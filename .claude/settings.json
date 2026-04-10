@@ -1,4 +1,25 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(npm run *)",
+      "Bash(npx *)",
+      "Bash(python -m pytest*)",
+      "Bash(cargo test*)",
+      "Bash(ls *)",
+      "Bash(cat *)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(git push --force*main*)",
+      "Bash(git push --force*master*)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -21,25 +42,25 @@
       }
     ]
   },
-  "permissions": {
-    "allow": [
-      "Bash(git status*)",
-      "Bash(git diff*)",
-      "Bash(git log*)",
-      "Bash(git branch*)",
-      "Bash(git add *)",
-      "Bash(git commit *)",
-      "Bash(npm run *)",
-      "Bash(npx *)",
-      "Bash(python -m pytest*)",
-      "Bash(cargo test*)",
-      "Bash(ls *)",
-      "Bash(cat *)"
-    ],
-    "deny": [
-      "Bash(rm -rf /)",
-      "Bash(git push --force*main*)",
-      "Bash(git push --force*master*)"
-    ]
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "code-review@claude-code-plugins": true,
+    "security-guidance@claude-code-plugins": true,
+    "commit-commands@claude-code-plugins": true,
+    "frontend-design@claude-code-plugins": true,
+    "feature-dev@claude-code-plugins": true,
+    "hookify@claude-code-plugins": true,
+    "plugin-dev@claude-code-plugins": true,
+    "ralph-wiggum@claude-code-plugins": true,
+    "github@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "knowledge-work-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/knowledge-work-plugins"
+      }
+    }
   }
 }
