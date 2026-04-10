@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+vendor/
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+target/
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+service_account.json
+
+# Build outputs
+dist/
+build/
+out/
+*.egg-info/
+*.whl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+.nyc_output/
+
+# Claude Code (personal overrides)
+CLAUDE.local.md
+
+# Logs
+*.log
+logs/
