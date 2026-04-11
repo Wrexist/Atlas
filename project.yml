@@ -1,6 +1,6 @@
 name: Peptide
 options:
-  bundleIdPrefix: com.peptideai
+  bundleIdPrefix: com.peptidesai
   deploymentTarget:
     iOS: "26.0"
   xcodeVersion: "26.0"
@@ -28,11 +28,11 @@ targets:
       path: Peptide/Resources/Info.plist
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.peptideai.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app
         PRODUCT_NAME: Peptide
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
-        INFOPLIST_KEY_CFBundleDisplayName: "Peptide AI"
+        INFOPLIST_KEY_CFBundleDisplayName: "PeptideX"
 
 schemes:
   Peptide:
