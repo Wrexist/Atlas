@@ -1,20 +1,44 @@
 name: PR Checks
+
 on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   build-check:
     runs-on: macos-15
+    timeout-minutes: 20
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '26.0'
+          xcode-version: latest-stable
+
+      - name: Verify Xcode version
+        run: xcodebuild -version
+
+      - name: Cache Homebrew packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /usr/local/Cellar/xcodegen
+            /opt/homebrew/Cellar/xcodegen
+          key: brew-xcodegen-${{ runner.os }}-${{ runner.arch }}
 
       - name: Install XcodeGen
-        run: brew install xcodegen
+        run: |
+          if command -v xcodegen &> /dev/null; then
+            echo "XcodeGen already available: $(xcodegen --version)"
+          else
+            brew install xcodegen
+          fi
 
       - name: Generate Xcode project
         run: xcodegen generate
