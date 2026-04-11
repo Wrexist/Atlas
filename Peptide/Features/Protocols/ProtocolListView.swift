@@ -33,6 +33,9 @@ struct ProtocolListView: View {
                 .padding(Spacing.xxl)
             }
             .navigationTitle("Protocols")
+            .navigationDestination(for: PeptideProtocol.self) { protocol_ in
+                ProtocolDetailView(protocol_: protocol_)
+            }
             .glassSheet(isPresented: $viewModel.showingBuilder) {
                 ProtocolBuilderView()
             }

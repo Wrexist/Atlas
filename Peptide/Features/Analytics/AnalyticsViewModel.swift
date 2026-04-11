@@ -18,24 +18,29 @@ enum TimeRange: String, CaseIterable, CustomStringConvertible {
 
 @Observable
 final class AnalyticsViewModel {
-    var selectedRange: TimeRange = .month
-
-    var complianceData: [(date: Date, compliance: Double)] {
-        MockEntries.complianceData(days: selectedRange.days)
+    var selectedRange: TimeRange = .month {
+        didSet { regenerateData() }
     }
 
-    var weeklyDoseData: [(day: String, count: Int)] {
-        MockEntries.weeklyDoseData()
-    }
+    private(set) var complianceData: [(date: Date, compliance: Double)] = []
+    private(set) var weeklyDoseData: [(day: String, count: Int)] = []
 
     var averageCompliance: Double {
-        let data = complianceData
-        guard !data.isEmpty else { return 0 }
-        return data.map(\.compliance).reduce(0, +) / Double(data.count)
+        guard !complianceData.isEmpty else { return 0 }
+        return complianceData.map(\.compliance).reduce(0, +) / Double(complianceData.count)
     }
 
     var totalDoses: Int { 127 }
     var currentStreak: Int { 12 }
     var bestStreak: Int { 18 }
     var complianceTrend: Double { 0.12 }
+
+    init() {
+        regenerateData()
+    }
+
+    private func regenerateData() {
+        complianceData = MockEntries.complianceData(days: selectedRange.days)
+        weeklyDoseData = MockEntries.weeklyDoseData()
+    }
 }

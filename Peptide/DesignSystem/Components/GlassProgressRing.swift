@@ -51,6 +51,11 @@ struct GlassProgressRing: View {
                 animatedProgress = progress
             }
         }
+        .onChange(of: progress) { _, newValue in
+            withAnimation(AppAnimation.springGentle) {
+                animatedProgress = newValue
+            }
+        }
     }
 }
 
@@ -82,6 +87,11 @@ struct GlassProgressBar: View {
         .onAppear {
             withAnimation(AppAnimation.springGentle) {
                 animatedProgress = progress
+            }
+        }
+        .onChange(of: progress) { _, newValue in
+            withAnimation(AppAnimation.springGentle) {
+                animatedProgress = newValue
             }
         }
     }
