@@ -17,6 +17,16 @@ target/
 credentials.json
 service_account.json
 
+# Xcode
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
 # Build outputs
 dist/
 build/

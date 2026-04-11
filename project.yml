@@ -1,0 +1,45 @@
+name: Peptide
+options:
+  bundleIdPrefix: com.peptideai
+  deploymentTarget:
+    iOS: "26.0"
+  xcodeVersion: "26.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    ENABLE_PREVIEWS: YES
+
+targets:
+  Peptide:
+    type: application
+    platform: iOS
+    sources:
+      - path: Peptide
+        excludes:
+          - "**/.DS_Store"
+    info:
+      path: Peptide/Resources/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.peptideai.app
+        PRODUCT_NAME: Peptide
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        INFOPLIST_KEY_CFBundleDisplayName: "Peptide AI"
+
+schemes:
+  Peptide:
+    build:
+      targets:
+        Peptide: all
+    run:
+      config: Debug
+    archive:
+      config: Release
