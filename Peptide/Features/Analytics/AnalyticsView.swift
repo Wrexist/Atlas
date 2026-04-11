@@ -1,7 +1,24 @@
 import SwiftUI
 
+enum TimeRange: String, CaseIterable, CustomStringConvertible {
+    case week = "Week"
+    case month = "Month"
+    case threeMonths = "3 Months"
+
+    var description: String { rawValue }
+
+    var days: Int {
+        switch self {
+        case .week: 7
+        case .month: 30
+        case .threeMonths: 90
+        }
+    }
+}
+
 struct AnalyticsView: View {
-    @State private var viewModel = AnalyticsViewModel()
+    @Environment(DataStore.self) private var dataStore
+    @State private var selectedRange: TimeRange = .month
     @Namespace private var segmentNamespace
 
     var body: some View {
@@ -10,28 +27,28 @@ struct AnalyticsView: View {
                 VStack(spacing: Spacing.lg) {
                     GlassSegmentedControl(
                         options: TimeRange.allCases,
-                        selected: $viewModel.selectedRange,
+                        selected: $selectedRange,
                         namespace: segmentNamespace
                     )
                     .sectionAppear(index: 0)
 
-                    ComplianceChart(data: viewModel.complianceData)
+                    ComplianceChart(data: complianceData)
                         .sectionAppear(index: 1)
 
-                    WeeklyDoseChart(data: viewModel.weeklyDoseData)
+                    WeeklyDoseChart(data: weeklyDoseData)
                         .sectionAppear(index: 2)
 
                     ProgressSummaryCard(
-                        totalDoses: viewModel.totalDoses,
-                        compliance: viewModel.averageCompliance,
-                        currentStreak: viewModel.currentStreak,
-                        bestStreak: viewModel.bestStreak
+                        totalDoses: dataStore.totalDoses,
+                        compliance: averageCompliance,
+                        currentStreak: dataStore.currentStreak,
+                        bestStreak: dataStore.bestStreak
                     )
                     .sectionAppear(index: 3)
 
                     TrendIndicator(
-                        value: viewModel.complianceTrend,
-                        label: "compliance this \(viewModel.selectedRange.rawValue.lowercased())"
+                        value: dataStore.complianceTrend(for: selectedRange.days),
+                        label: "compliance this \(selectedRange.rawValue.lowercased())"
                     )
                     .sectionAppear(index: 4)
                 }
@@ -42,9 +59,45 @@ struct AnalyticsView: View {
             .navigationTitle("Analytics")
         }
     }
+
+    private var complianceData: [(date: Date, compliance: Double)] {
+        let calendar = Calendar.current
+        let entries = dataStore.entries
+
+        return (0..<selectedRange.days).compactMap { dayOffset in
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { return nil }
+            let dayEntries = entries.filter { calendar.isDate($0.date, inSameDayAs: date) }
+            guard !dayEntries.isEmpty else { return nil }
+            let compliance = Double(dayEntries.filter(\.completed).count) / Double(dayEntries.count)
+            return (date: date, compliance: compliance)
+        }.reversed()
+    }
+
+    private var weeklyDoseData: [(day: String, count: Int)] {
+        let calendar = Calendar.current
+        let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        let cutoff = calendar.date(byAdding: .day, value: -selectedRange.days, to: Date()) ?? Date()
+        let rangeEntries = dataStore.entries.filter { $0.completed && $0.date >= cutoff }
+
+        return (1...7).map { isoDay in
+            let count = rangeEntries.filter { entry in
+                let weekday = calendar.component(.weekday, from: entry.date)
+                let iso = weekday == 1 ? 7 : weekday - 1
+                return iso == isoDay
+            }.count
+            return (day: dayNames[isoDay - 1], count: count)
+        }
+    }
+
+    private var averageCompliance: Double {
+        let data = complianceData
+        guard !data.isEmpty else { return 0 }
+        return data.map(\.compliance).reduce(0, +) / Double(data.count)
+    }
 }
 
 #Preview {
     AnalyticsView()
+        .environment(DataStore())
         .preferredColorScheme(.dark)
 }

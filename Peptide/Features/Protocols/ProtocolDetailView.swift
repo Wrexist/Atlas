@@ -2,7 +2,17 @@ import SwiftUI
 
 struct ProtocolDetailView: View {
     let protocol_: PeptideProtocol
-    @State private var entries: [ProtocolEntry] = []
+    @Environment(DataStore.self) private var dataStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var showDeleteConfirmation = false
+
+    private var entries: [ProtocolEntry] {
+        dataStore.entriesFor(protocolId: protocol_.id)
+    }
+
+    private var currentProtocol: PeptideProtocol? {
+        dataStore.protocols.first { $0.id == protocol_.id }
+    }
 
     var body: some View {
         ScrollView {
@@ -21,6 +31,15 @@ struct ProtocolDetailView: View {
                                     .foregroundStyle(AppColor.textSecondary)
                             }
                             Spacer()
+
+                            if let status = currentProtocol?.status {
+                                HStack(spacing: Spacing.xs) {
+                                    Image(systemName: status.iconName)
+                                    Text(status.displayName)
+                                }
+                                .font(AppFont.caption)
+                                .foregroundStyle(status.color)
+                            }
                         }
 
                         if protocol_.status == .active {
@@ -36,6 +55,10 @@ struct ProtocolDetailView: View {
                     }
                 }
                 .sectionAppear(index: 0)
+
+                // Protocol Actions
+                protocolActions
+                    .sectionAppear(index: 1)
 
                 // Peptides in protocol
                 GlassCard {
@@ -77,7 +100,7 @@ struct ProtocolDetailView: View {
                         }
                     }
                 }
-                .sectionAppear(index: 1)
+                .sectionAppear(index: 2)
 
                 // Schedule
                 GlassCard {
@@ -121,7 +144,7 @@ struct ProtocolDetailView: View {
                         }
                     }
                 }
-                .sectionAppear(index: 2)
+                .sectionAppear(index: 3)
 
                 // Notes
                 if !protocol_.notes.isEmpty {
@@ -137,7 +160,7 @@ struct ProtocolDetailView: View {
                                 .lineSpacing(4)
                         }
                     }
-                    .sectionAppear(index: 3)
+                    .sectionAppear(index: 4)
                 }
 
                 // Recent logs
@@ -153,7 +176,13 @@ struct ProtocolDetailView: View {
                                 .foregroundStyle(AppColor.textTertiary)
                         } else {
                             ForEach(entries.prefix(10)) { entry in
-                                DoseLogRow(entry: entry)
+                                Button {
+                                    dataStore.toggleEntry(entry.id)
+                                } label: {
+                                    DoseLogRow(entry: entry)
+                                }
+                                .buttonStyle(.plain)
+
                                 if entry != entries.prefix(10).last {
                                     Divider().foregroundStyle(AppColor.glassBorder)
                                 }
@@ -161,15 +190,55 @@ struct ProtocolDetailView: View {
                         }
                     }
                 }
-                .sectionAppear(index: 4)
+                .sectionAppear(index: 5)
+
+                // Delete button
+                GlassButton(title: "Delete Protocol", icon: "trash", style: .destructive, isFullWidth: true) {
+                    showDeleteConfirmation = true
+                }
+                .sectionAppear(index: 6)
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
         }
         .background(AppColor.background)
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            entries = MockEntries.generateEntries(for: protocol_, days: 14)
+        .alert("Delete Protocol", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                dataStore.deleteProtocol(id: protocol_.id)
+                dismiss()
+            }
+        } message: {
+            Text("This will permanently delete \"\(protocol_.name)\" and all its logged entries.")
+        }
+    }
+
+    @ViewBuilder
+    private var protocolActions: some View {
+        if let current = currentProtocol {
+            HStack(spacing: Spacing.md) {
+                switch current.status {
+                case .active:
+                    GlassButton(title: "Pause", icon: "pause.fill", style: .secondary) {
+                        dataStore.updateProtocolStatus(id: protocol_.id, to: .paused)
+                    }
+                    GlassButton(title: "Complete", icon: "checkmark", style: .primary) {
+                        dataStore.updateProtocolStatus(id: protocol_.id, to: .completed)
+                    }
+                case .paused:
+                    GlassButton(title: "Resume", icon: "play.fill", style: .primary) {
+                        dataStore.updateProtocolStatus(id: protocol_.id, to: .active)
+                    }
+                    GlassButton(title: "Complete", icon: "checkmark", style: .secondary) {
+                        dataStore.updateProtocolStatus(id: protocol_.id, to: .completed)
+                    }
+                case .completed:
+                    GlassButton(title: "Restart", icon: "arrow.counterclockwise", style: .primary) {
+                        dataStore.updateProtocolStatus(id: protocol_.id, to: .active)
+                    }
+                }
+            }
         }
     }
 }
@@ -195,5 +264,6 @@ private struct MiniStat: View {
     NavigationStack {
         ProtocolDetailView(protocol_: MockProtocols.recoveryStack)
     }
+    .environment(DataStore())
     .preferredColorScheme(.dark)
 }

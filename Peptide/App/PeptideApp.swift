@@ -3,7 +3,8 @@ import SwiftUI
 @main
 struct PeptideApp: App {
     @State private var appState = AppState()
-    
+    @State private var dataStore = DataStore()
+
     var body: some Scene {
         WindowGroup {
             TabView(selection: $appState.selectedTab) {
@@ -27,6 +28,7 @@ struct PeptideApp: App {
                 NextDoseAccessoryView()
             }
             .environment(appState)
+            .environment(dataStore)
             .preferredColorScheme(.dark)
             .tint(AppColor.accentPrimary)
         }
@@ -34,28 +36,26 @@ struct PeptideApp: App {
 }
 
 struct NextDoseAccessoryView: View {
-    private var nextDose: ProtocolEntry? {
-        let now = Date()
-        return MockEntries.todayEntries()
-            .filter { !$0.completed && $0.date > now }
-            .min(by: { $0.date < $1.date })
-    }
+    @Environment(DataStore.self) private var dataStore
 
     var body: some View {
         HStack(spacing: Spacing.sm) {
-            Image(systemName: "syringe.fill")
-                .font(.caption)
-                .foregroundStyle(AppColor.accentPrimary)
-            if let dose = nextDose {
-                Text("Next: \(dose.peptide.abbreviation) • \(dose.dose)")
+            if let next = dataStore.nextDose {
+                Image(systemName: "syringe.fill")
+                    .font(.caption)
+                    .foregroundStyle(AppColor.accentPrimary)
+                Text("Next: \(next.peptide.abbreviation) \u{2022} \(next.dose)")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()
-                Text(dose.date.formatted(.dateTime.hour().minute()))
+                Text(next.date.formatted(.dateTime.hour().minute()))
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.accentLight)
             } else {
-                Text("All doses completed")
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(AppColor.accentPrimary)
+                Text("All doses completed for today")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()

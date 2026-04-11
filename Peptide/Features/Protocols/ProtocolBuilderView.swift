@@ -2,6 +2,9 @@ import SwiftUI
 
 struct ProtocolBuilderView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(DataStore.self) private var dataStore
+    var preselectedPeptide: Peptide?
+
     @State private var name = ""
     @State private var selectedPeptides: Set<UUID> = []
     @State private var cycleLengthWeeks = 8
@@ -10,6 +13,10 @@ struct ProtocolBuilderView: View {
     @State private var selectedDays: Set<Int> = [1, 2, 3, 4, 5]
 
     private let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+    private var canCreate: Bool {
+        !name.trimmingCharacters(in: .whitespaces).isEmpty && !selectedPeptides.isEmpty && !selectedDays.isEmpty
+    }
 
     var body: some View {
         NavigationStack {
@@ -95,8 +102,10 @@ struct ProtocolBuilderView: View {
 
                     // Create Button
                     GlassButton(title: "Create Protocol", icon: "plus.circle.fill", style: .primary, isFullWidth: true) {
-                        dismiss()
+                        createProtocol()
                     }
+                    .opacity(canCreate ? 1.0 : 0.5)
+                    .disabled(!canCreate)
                     .sectionAppear(index: 4)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
@@ -111,11 +120,47 @@ struct ProtocolBuilderView: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
+            .onAppear {
+                if let peptide = preselectedPeptide {
+                    selectedPeptides.insert(peptide.id)
+                }
+            }
         }
+    }
+
+    private func createProtocol() {
+        let peptides = MockPeptides.all.filter { selectedPeptides.contains($0.id) }
+        guard !peptides.isEmpty else { return }
+
+        let defaultTimes = (1...timesPerDay).map { index in
+            let hour24 = 8 + (index - 1) * (12 / max(timesPerDay, 1))
+            let hour12 = hour24 > 12 ? hour24 - 12 : (hour24 == 0 ? 12 : hour24)
+            let period = hour24 >= 12 ? "PM" : "AM"
+            return "\(hour12):00 \(period)"
+        }
+
+        let newProtocol = PeptideProtocol(
+            id: UUID(),
+            name: name.trimmingCharacters(in: .whitespaces),
+            peptides: peptides,
+            schedule: ProtocolSchedule(
+                daysOfWeek: selectedDays.sorted(),
+                timesPerDay: timesPerDay,
+                preferredTimes: defaultTimes
+            ),
+            cycleLengthWeeks: cycleLengthWeeks,
+            startDate: Date(),
+            status: .active,
+            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+
+        dataStore.addProtocol(newProtocol)
+        dismiss()
     }
 }
 
 #Preview {
     ProtocolBuilderView()
+        .environment(DataStore())
         .preferredColorScheme(.dark)
 }

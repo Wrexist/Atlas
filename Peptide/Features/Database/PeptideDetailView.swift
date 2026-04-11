@@ -3,6 +3,7 @@ import SwiftUI
 struct PeptideDetailView: View {
     let peptide: Peptide
     @Environment(\.dismiss) private var dismiss
+    @State private var showingBuilder = false
 
     var body: some View {
         ScrollView {
@@ -38,8 +39,10 @@ struct PeptideDetailView: View {
                     }
                     .sectionAppear(index: 1)
 
-                    GlassButton(title: "Add to Protocol", icon: "plus", style: .primary) {}
-                        .sectionAppear(index: 2)
+                    GlassButton(title: "Add to Protocol", icon: "plus", style: .primary) {
+                        showingBuilder = true
+                    }
+                    .sectionAppear(index: 2)
                 }
                 .padding(.top, Spacing.lg)
 
@@ -88,6 +91,9 @@ struct PeptideDetailView: View {
         }
         .background(AppColor.background)
         .navigationBarTitleDisplayMode(.inline)
+        .glassSheet(isPresented: $showingBuilder) {
+            ProtocolBuilderView(preselectedPeptide: peptide)
+        }
     }
 }
 
@@ -95,5 +101,6 @@ struct PeptideDetailView: View {
     NavigationStack {
         PeptideDetailView(peptide: MockPeptides.bpc157)
     }
+    .environment(DataStore())
     .preferredColorScheme(.dark)
 }

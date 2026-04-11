@@ -18,9 +18,16 @@ enum MockEntries {
         var entries: [ProtocolEntry] = []
         let calendar = Calendar.current
         var rng = SeededGenerator(seed: UInt64(protocol_.name.hashValue &+ days))
+        let startOfProtocol = calendar.startOfDay(for: protocol_.startDate)
+        let endOfProtocol = calendar.startOfDay(for: protocol_.endDate)
 
         for dayOffset in 0..<days {
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { continue }
+            let dayStart = calendar.startOfDay(for: date)
+
+            // Only generate entries within the protocol's active date range
+            guard dayStart >= startOfProtocol && dayStart <= endOfProtocol else { continue }
+
             let dayOfWeek = calendar.component(.weekday, from: date)
             let isoDayOfWeek = dayOfWeek == 1 ? 7 : dayOfWeek - 1
 

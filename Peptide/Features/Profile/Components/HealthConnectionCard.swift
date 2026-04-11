@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HealthConnectionCard: View {
     let isConnected: Bool
+    var onConnect: () -> Void = {}
 
     var body: some View {
         GlassCard {
@@ -44,7 +45,9 @@ struct HealthConnectionCard: View {
                         }
                     }
 
-                    GlassButton(title: "Connect Apple Health", icon: "heart.fill", style: .primary, isFullWidth: true) {}
+                    GlassButton(title: "Connect Apple Health", icon: "heart.fill", style: .primary, isFullWidth: true) {
+                        onConnect()
+                    }
                 }
             }
         }

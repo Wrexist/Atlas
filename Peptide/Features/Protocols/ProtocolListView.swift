@@ -1,23 +1,25 @@
 import SwiftUI
 
 struct ProtocolListView: View {
-    @State private var viewModel = ProtocolViewModel()
+    @Environment(DataStore.self) private var dataStore
+    @State private var showingBuilder = false
+    @State private var preselectedPeptide: Peptide?
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Spacing.xl) {
-                        if !viewModel.activeProtocols.isEmpty {
-                            ProtocolSection(title: "Active", protocols: viewModel.activeProtocols)
+                        if !dataStore.activeProtocols.isEmpty {
+                            ProtocolSection(title: "Active", protocols: dataStore.activeProtocols)
                         }
 
-                        if !viewModel.pausedProtocols.isEmpty {
-                            ProtocolSection(title: "Paused", protocols: viewModel.pausedProtocols)
+                        if !dataStore.pausedProtocols.isEmpty {
+                            ProtocolSection(title: "Paused", protocols: dataStore.pausedProtocols)
                         }
 
-                        if !viewModel.completedProtocols.isEmpty {
-                            ProtocolSection(title: "Completed", protocols: viewModel.completedProtocols)
+                        if !dataStore.completedProtocols.isEmpty {
+                            ProtocolSection(title: "Completed", protocols: dataStore.completedProtocols)
                         }
                     }
                     .padding(.horizontal, Spacing.screenPadding)
@@ -27,7 +29,8 @@ struct ProtocolListView: View {
 
                 // Floating add button
                 GlassIconButton(icon: "plus", size: 56, tinted: true) {
-                    viewModel.showingBuilder = true
+                    preselectedPeptide = nil
+                    showingBuilder = true
                 }
                 .appShadow(AppShadow.accentGlow)
                 .padding(Spacing.xxl)
@@ -36,8 +39,8 @@ struct ProtocolListView: View {
             .navigationDestination(for: PeptideProtocol.self) { protocol_ in
                 ProtocolDetailView(protocol_: protocol_)
             }
-            .glassSheet(isPresented: $viewModel.showingBuilder) {
-                ProtocolBuilderView()
+            .glassSheet(isPresented: $showingBuilder) {
+                ProtocolBuilderView(preselectedPeptide: preselectedPeptide)
             }
         }
     }
@@ -68,5 +71,6 @@ private struct ProtocolSection: View {
 
 #Preview {
     ProtocolListView()
+        .environment(DataStore())
         .preferredColorScheme(.dark)
 }

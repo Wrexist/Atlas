@@ -19,7 +19,7 @@ struct PeptideProtocol: Identifiable, Hashable {
     let schedule: ProtocolSchedule
     let cycleLengthWeeks: Int
     let startDate: Date
-    let status: ProtocolStatus
+    var status: ProtocolStatus
     let notes: String
 
     var endDate: Date {
@@ -40,7 +40,7 @@ struct PeptideProtocol: Identifiable, Hashable {
 
     var weekNumber: Int {
         let weeks = Calendar.current.dateComponents([.weekOfYear], from: startDate, to: Date()).weekOfYear ?? 0
-        return min(weeks + 1, cycleLengthWeeks)
+        return max(1, min(weeks + 1, cycleLengthWeeks))
     }
 
     static func == (lhs: PeptideProtocol, rhs: PeptideProtocol) -> Bool {
