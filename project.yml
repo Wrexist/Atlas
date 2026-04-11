@@ -2,7 +2,7 @@ name: Peptide
 options:
   bundleIdPrefix: com.peptidesai
   deploymentTarget:
-    iOS: "18.0"
+    iOS: "26.0"
   generateEmptyDirectories: true
 settings:
   base:
