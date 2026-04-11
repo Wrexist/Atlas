@@ -10,16 +10,36 @@ struct ProtocolListView: View {
             ZStack(alignment: .bottomTrailing) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Spacing.xl) {
-                        if !dataStore.activeProtocols.isEmpty {
-                            ProtocolSection(title: "Active", protocols: dataStore.activeProtocols)
-                        }
+                        if dataStore.protocols.isEmpty {
+                            VStack(spacing: Spacing.lg) {
+                                Image(systemName: "list.clipboard")
+                                    .font(.system(size: 48))
+                                    .foregroundStyle(AppColor.textTertiary)
 
-                        if !dataStore.pausedProtocols.isEmpty {
-                            ProtocolSection(title: "Paused", protocols: dataStore.pausedProtocols)
-                        }
+                                Text("No Protocols Yet")
+                                    .font(AppFont.title2)
+                                    .foregroundStyle(AppColor.textSecondary)
 
-                        if !dataStore.completedProtocols.isEmpty {
-                            ProtocolSection(title: "Completed", protocols: dataStore.completedProtocols)
+                                Text("Create your first peptide protocol to start tracking your regimen.")
+                                    .font(AppFont.subheadline)
+                                    .foregroundStyle(AppColor.textTertiary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, Spacing.xxxxl)
+                            .sectionAppear(index: 0)
+                        } else {
+                            if !dataStore.activeProtocols.isEmpty {
+                                ProtocolSection(title: "Active", protocols: dataStore.activeProtocols)
+                            }
+
+                            if !dataStore.pausedProtocols.isEmpty {
+                                ProtocolSection(title: "Paused", protocols: dataStore.pausedProtocols)
+                            }
+
+                            if !dataStore.completedProtocols.isEmpty {
+                                ProtocolSection(title: "Completed", protocols: dataStore.completedProtocols)
+                            }
                         }
                     }
                     .padding(.horizontal, Spacing.screenPadding)

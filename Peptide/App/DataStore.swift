@@ -32,6 +32,7 @@ final class DataStore {
             protocols.insert(newProtocol, at: 0)
             appendTodayEntries(for: newProtocol)
         }
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
     func deleteProtocol(id: UUID) {
@@ -52,20 +53,26 @@ final class DataStore {
 
     var todayEntries: [ProtocolEntry] {
         let calendar = Calendar.current
+        let activeIds = Set(activeProtocols.map(\.id))
         return entries
-            .filter { calendar.isDateInToday($0.date) }
+            .filter { calendar.isDateInToday($0.date) && activeIds.contains($0.protocolId) }
             .sorted { $0.date < $1.date }
     }
 
     func toggleEntry(_ entryId: UUID) {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
+        let becoming = !entries[index].completed
         withAnimation(AppAnimation.springSnappy) {
             entries[index].completed.toggle()
         }
+        UIImpactFeedbackGenerator(style: becoming ? .light : .soft).impactOccurred()
     }
 
     func entriesFor(protocolId: UUID, days: Int = 14) -> [ProtocolEntry] {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+        let calendar = Calendar.current
+        let cutoff = calendar.startOfDay(
+            for: calendar.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+        )
         return entries
             .filter { $0.protocolId == protocolId && $0.date >= cutoff }
             .sorted { $0.date > $1.date }
@@ -77,14 +84,17 @@ final class DataStore {
         let calendar = Calendar.current
         var streak = 0
 
-        // Start from yesterday if today has no completed entries yet (day in progress)
+        // Start from yesterday if today has no completed entries yet
         let todayHasCompleted = todayEntries.contains(where: \.completed)
         let startOffset = todayHasCompleted ? 0 : 1
 
         for dayOffset in startOffset..<365 {
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { break }
             let dayEntries = entries.filter { calendar.isDate($0.date, inSameDayAs: date) }
-            if dayEntries.isEmpty { break }
+
+            // Skip days with no scheduled entries (non-protocol days)
+            if dayEntries.isEmpty { continue }
+
             if !dayEntries.contains(where: \.completed) { break }
             streak += 1
         }
@@ -104,21 +114,23 @@ final class DataStore {
 
     var bestStreak: Int {
         let calendar = Calendar.current
-        let completedDays = Set(entries.filter(\.completed).map { calendar.startOfDay(for: $0.date) })
-            .sorted()
 
-        guard completedDays.count > 1 else { return completedDays.count }
+        // Get all days that had entries (scheduled days only)
+        let scheduledDays = Set(entries.map { calendar.startOfDay(for: $0.date) }).sorted()
+        guard !scheduledDays.isEmpty else { return 0 }
 
-        var best = 1
-        var current = 1
+        // For each scheduled day, check if it had at least one completed entry
+        let completedDaySet = Set(entries.filter(\.completed).map { calendar.startOfDay(for: $0.date) })
 
-        for i in 1..<completedDays.count {
-            let diff = calendar.dateComponents([.day], from: completedDays[i - 1], to: completedDays[i]).day ?? 0
-            if diff == 1 {
+        var best = 0
+        var current = 0
+
+        for day in scheduledDays {
+            if completedDaySet.contains(day) {
                 current += 1
                 best = max(best, current)
             } else {
-                current = 1
+                current = 0
             }
         }
 
@@ -142,18 +154,15 @@ final class DataStore {
 
     func complianceTrend(for range: Int) -> Double {
         let calendar = Calendar.current
+        let now = Date()
         guard range > 1 else { return 0 }
 
         let halfPoint = range / 2
-        let recentEntries = entries.filter {
-            guard let cutoff = calendar.date(byAdding: .day, value: -halfPoint, to: Date()) else { return false }
-            return $0.date >= cutoff
-        }
-        let olderEntries = entries.filter {
-            guard let start = calendar.date(byAdding: .day, value: -range, to: Date()),
-                  let end = calendar.date(byAdding: .day, value: -halfPoint, to: Date()) else { return false }
-            return $0.date >= start && $0.date < end
-        }
+        guard let midCutoff = calendar.date(byAdding: .day, value: -halfPoint, to: now),
+              let startCutoff = calendar.date(byAdding: .day, value: -range, to: now) else { return 0 }
+
+        let recentEntries = entries.filter { $0.date >= midCutoff && $0.date <= now }
+        let olderEntries = entries.filter { $0.date >= startCutoff && $0.date < midCutoff }
 
         let recentRate = recentEntries.isEmpty ? 0 : Double(recentEntries.filter(\.completed).count) / Double(recentEntries.count)
         let olderRate = olderEntries.isEmpty ? 0 : Double(olderEntries.filter(\.completed).count) / Double(olderEntries.count)
@@ -173,7 +182,9 @@ final class DataStore {
     // MARK: - Profile
 
     func updateGoals(_ goals: Set<String>) {
-        profile.goals = Array(goals).sorted()
+        withAnimation(AppAnimation.springSnappy) {
+            profile.goals = Array(goals).sorted()
+        }
     }
 
     func toggleHealthConnection() {
@@ -189,7 +200,7 @@ final class DataStore {
         var allEntries: [ProtocolEntry] = []
 
         for proto in protocols {
-            // Historical entries (1-30 days ago), excluding today to avoid duplicates
+            // Historical entries, excluding today to avoid duplicates with timed entries
             let historical = MockEntries.generateEntries(for: proto, days: 30)
                 .filter { !calendar.isDateInToday($0.date) }
             allEntries.append(contentsOf: historical)
@@ -222,7 +233,6 @@ final class DataStore {
                     let minute = calendar.component(.minute, from: time)
                     let entryDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
 
-                    let isPast = entryDate < Date()
                     let entry = ProtocolEntry(
                         id: UUID(),
                         protocolId: proto.id,
@@ -230,7 +240,7 @@ final class DataStore {
                         date: entryDate,
                         dose: peptide.dosageRange.components(separatedBy: "-").last?.trimmingCharacters(in: .whitespaces) ?? peptide.dosageRange,
                         notes: "",
-                        completed: isPast && Double.random(in: 0...1) < 0.7
+                        completed: false
                     )
                     entries.append(entry)
                 }

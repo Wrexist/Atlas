@@ -22,6 +22,9 @@ struct AnalyticsView: View {
     @Namespace private var segmentNamespace
 
     var body: some View {
+        let compliance = complianceData
+        let avgCompliance = compliance.isEmpty ? 0 : compliance.map(\.compliance).reduce(0, +) / Double(compliance.count)
+
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
@@ -32,7 +35,7 @@ struct AnalyticsView: View {
                     )
                     .sectionAppear(index: 0)
 
-                    ComplianceChart(data: complianceData)
+                    ComplianceChart(data: compliance)
                         .sectionAppear(index: 1)
 
                     WeeklyDoseChart(data: weeklyDoseData)
@@ -40,7 +43,7 @@ struct AnalyticsView: View {
 
                     ProgressSummaryCard(
                         totalDoses: dataStore.totalDoses,
-                        compliance: averageCompliance,
+                        compliance: avgCompliance,
                         currentStreak: dataStore.currentStreak,
                         bestStreak: dataStore.bestStreak
                     )
@@ -76,7 +79,9 @@ struct AnalyticsView: View {
     private var weeklyDoseData: [(day: String, count: Int)] {
         let calendar = Calendar.current
         let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        let cutoff = calendar.date(byAdding: .day, value: -selectedRange.days, to: Date()) ?? Date()
+        let cutoff = calendar.startOfDay(
+            for: calendar.date(byAdding: .day, value: -selectedRange.days, to: Date()) ?? Date()
+        )
         let rangeEntries = dataStore.entries.filter { $0.completed && $0.date >= cutoff }
 
         return (1...7).map { isoDay in
@@ -87,12 +92,6 @@ struct AnalyticsView: View {
             }.count
             return (day: dayNames[isoDay - 1], count: count)
         }
-    }
-
-    private var averageCompliance: Double {
-        let data = complianceData
-        guard !data.isEmpty else { return 0 }
-        return data.map(\.compliance).reduce(0, +) / Double(data.count)
     }
 }
 

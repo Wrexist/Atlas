@@ -7,8 +7,9 @@ struct ProtocolSchedule: Hashable {
 
     var daysDescription: String {
         let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        if daysOfWeek.count == 7 { return "Every day" }
-        return daysOfWeek.map { dayNames[$0 - 1] }.joined(separator: ", ")
+        let validDays = daysOfWeek.filter { (1...7).contains($0) }
+        if validDays.count == 7 { return "Every day" }
+        return validDays.map { dayNames[$0 - 1] }.joined(separator: ", ")
     }
 }
 
