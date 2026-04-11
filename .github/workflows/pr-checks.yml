@@ -37,10 +37,15 @@ jobs:
           if command -v xcodegen &> /dev/null; then
             echo "XcodeGen already available: $(xcodegen --version)"
           else
-            brew install xcodegen
+            brew install xcodegen 2>&1 || true
             brew link --overwrite xcodegen 2>/dev/null || true
           fi
-          command -v xcodegen || { echo "FATAL: xcodegen not on PATH after install"; exit 1; }
+          if ! command -v xcodegen &> /dev/null; then
+            echo "FATAL: xcodegen not on PATH after install"
+            ls -la /opt/homebrew/Cellar/xcodegen/ 2>/dev/null || ls -la /usr/local/Cellar/xcodegen/ 2>/dev/null || echo "No xcodegen in Cellar"
+            exit 1
+          fi
+          echo "XcodeGen ready: $(xcodegen --version)"
 
       - name: Generate Xcode project
         run: xcodegen generate
