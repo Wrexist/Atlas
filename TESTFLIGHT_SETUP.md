@@ -64,12 +64,16 @@ openssl pkcs12 -export -inkey distribution.key -in distribution.pem -out distrib
 5. Name it (e.g., `PeptideX App Store`) — **remember this exact name**
 6. Download the `.mobileprovision` file
 
-## Step 5: Create App-Specific Password
+## Step 5: Create App Store Connect API Key
 
-1. Go to [appleid.apple.com](https://appleid.apple.com)
-2. **Sign-In and Security** → **App-Specific Passwords**
-3. Click **+** → Label: `GitHub Actions`
-4. Copy the generated password
+1. Go to [App Store Connect](https://appstoreconnect.apple.com) → **Users and Access** → **Integrations** → **App Store Connect API**
+2. Click **+** to generate a new key
+3. Name: `GitHub Actions`
+4. Access: **App Manager** (minimum role needed for TestFlight uploads)
+5. Click **Generate**
+6. **Download the `.p8` file immediately** — it can only be downloaded once
+7. Note the **Key ID** (shown in the keys list)
+8. Note the **Issuer ID** (shown at the top of the keys page)
 
 ## Step 6: Find Your Team ID
 
@@ -87,10 +91,10 @@ Add each of these:
 | `APPLE_CERTIFICATE_BASE64` | Base64-encoded .p12 | `base64 -i distribution.p12 \| pbcopy` (macOS) |
 | `APPLE_CERTIFICATE_PASSWORD` | .p12 password | The password you set in Step 3 |
 | `APPLE_PROVISIONING_PROFILE` | Base64-encoded .mobileprovision | `base64 -i profile.mobileprovision \| pbcopy` (macOS) |
-| `APPLE_PROVISIONING_PROFILE_NAME` | Profile name | Exactly as typed in Step 4 (e.g., `PeptideX App Store`) |
 | `APPLE_TEAM_ID` | 10-char team ID | From Step 6 |
-| `APPLE_ID` | Apple ID email | Your Apple Developer account email |
-| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password | From Step 5 |
+| `APPLE_CONNECT_KEY_ID` | API Key ID | From Step 5 (shown in the keys list) |
+| `APPLE_CONNECT_ISSUER_ID` | Issuer ID | From Step 5 (shown at top of keys page) |
+| `APPLE_CONNECT_PRIVATE_KEY` | Contents of .p8 file | `cat AuthKey_XXXXXXXXXX.p8 \| pbcopy` (macOS) |
 
 ## Step 8: Run the Workflow
 
@@ -104,20 +108,29 @@ Add each of these:
 
 ## Troubleshooting
 
-**Build fails at "Select Xcode version"**
-- Xcode 26 may not be installed on the GitHub runner yet. Try changing `xcode-version` to `latest-beta` in the workflow file.
+**Workflow fails at "Validate required secrets"**
+- The workflow checks all 7 secrets are configured before starting the build. Check the error message to see which secret is missing, then add it in Settings → Secrets.
 
 **"No signing certificate" error**
 - Verify `APPLE_CERTIFICATE_BASE64` is the full base64 output with no line breaks added manually.
 - Verify `APPLE_CERTIFICATE_PASSWORD` matches what you set when creating the .p12.
 
 **"No provisioning profile" error**
-- Ensure `APPLE_PROVISIONING_PROFILE_NAME` matches the exact name in Apple Developer Portal.
 - Ensure the provisioning profile uses the same distribution certificate.
+- Ensure the profile covers the bundle ID `com.peptidesai.app`.
 
 **"App icon missing" error**
-- App Store Connect requires a 1024x1024 app icon. Add one to `Peptide/Resources/Assets.xcassets/AppIcon.appiconset/` before deploying.
+- The workflow auto-generates a placeholder icon. For production, add a real 1024x1024 PNG to `Peptide/Resources/Assets.xcassets/AppIcon.appiconset/`.
+
+**Upload fails with "authentication" error**
+- Verify `APPLE_CONNECT_KEY_ID`, `APPLE_CONNECT_ISSUER_ID`, and `APPLE_CONNECT_PRIVATE_KEY` are correct.
+- The `.p8` key file contents should include the `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----` lines.
+- Ensure the API key has "App Manager" or higher access in App Store Connect.
 
 **Upload succeeds but build not visible in TestFlight**
 - New builds can take 15-30 minutes to process on Apple's side.
 - Check App Store Connect → TestFlight → your app for processing status.
+
+**Debugging failed builds**
+- Download the build artifacts from the workflow run (IPA + build logs are saved automatically).
+- Check `xcodebuild-archive.log` and `xcodebuild-export.log` for detailed error output.

@@ -3,7 +3,6 @@ options:
   bundleIdPrefix: com.peptidesai
   deploymentTarget:
     iOS: "26.0"
-  xcodeVersion: "26.0"
   generateEmptyDirectories: true
 settings:
   base:
