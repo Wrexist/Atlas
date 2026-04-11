@@ -11,5 +11,4 @@ enum AppTab: String, CaseIterable {
 @Observable
 final class AppState {
     var selectedTab: AppTab = .home
-    var showingOnboarding = false
 }

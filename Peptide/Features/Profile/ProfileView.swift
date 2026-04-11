@@ -1,30 +1,44 @@
 import SwiftUI
 
 struct ProfileView: View {
-    @State private var viewModel = ProfileViewModel()
+    @Environment(DataStore.self) private var dataStore
+
+    private let availableGoals = [
+        "Muscle Recovery",
+        "Better Sleep",
+        "Cognitive Enhancement",
+        "Anti-Aging",
+        "Fat Loss",
+        "Immune Support",
+        "Joint Health",
+        "Stress Reduction",
+    ]
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     ProfileHeader(
-                        name: viewModel.profile.name,
-                        memberDuration: viewModel.memberDuration,
-                        protocolCount: MockProtocols.all.count,
-                        peptideCount: MockPeptides.all.count,
-                        daysLogged: viewModel.daysLogged
+                        name: dataStore.profile.name,
+                        memberDuration: memberDuration,
+                        protocolCount: dataStore.protocols.count,
+                        peptideCount: Set(dataStore.protocols.flatMap(\.peptides).map(\.id)).count,
+                        daysLogged: dataStore.totalDaysLogged
                     )
                     .sectionAppear(index: 0)
 
                     GoalsSectionCard(
-                        availableGoals: viewModel.availableGoals,
-                        selectedGoals: viewModel.selectedGoals,
-                        onToggle: viewModel.toggleGoal
+                        availableGoals: availableGoals,
+                        selectedGoals: Set(dataStore.profile.goals),
+                        onToggle: toggleGoal
                     )
                     .sectionAppear(index: 1)
 
-                    HealthConnectionCard(isConnected: viewModel.profile.healthConnected)
-                        .sectionAppear(index: 2)
+                    HealthConnectionCard(
+                        isConnected: dataStore.profile.healthConnected,
+                        onConnect: { dataStore.toggleHealthConnection() }
+                    )
+                    .sectionAppear(index: 2)
 
                     AppearanceSettings()
                         .sectionAppear(index: 3)
@@ -39,9 +53,25 @@ struct ProfileView: View {
             .navigationTitle("Profile")
         }
     }
+
+    private var memberDuration: String {
+        let months = Calendar.current.dateComponents([.month], from: dataStore.profile.memberSince, to: Date()).month ?? 0
+        return months <= 1 ? "1 month" : "\(months) months"
+    }
+
+    private func toggleGoal(_ goal: String) {
+        var current = Set(dataStore.profile.goals)
+        if current.contains(goal) {
+            current.remove(goal)
+        } else {
+            current.insert(goal)
+        }
+        dataStore.updateGoals(current)
+    }
 }
 
 #Preview {
     ProfileView()
+        .environment(DataStore())
         .preferredColorScheme(.dark)
 }

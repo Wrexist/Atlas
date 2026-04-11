@@ -7,8 +7,9 @@ struct ProtocolSchedule: Hashable {
 
     var daysDescription: String {
         let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        if daysOfWeek.count == 7 { return "Every day" }
-        return daysOfWeek.map { dayNames[$0 - 1] }.joined(separator: ", ")
+        let validDays = daysOfWeek.filter { (1...7).contains($0) }
+        if validDays.count == 7 { return "Every day" }
+        return validDays.map { dayNames[$0 - 1] }.joined(separator: ", ")
     }
 }
 
@@ -19,7 +20,7 @@ struct PeptideProtocol: Identifiable, Hashable {
     let schedule: ProtocolSchedule
     let cycleLengthWeeks: Int
     let startDate: Date
-    let status: ProtocolStatus
+    var status: ProtocolStatus
     let notes: String
 
     var endDate: Date {
@@ -40,7 +41,7 @@ struct PeptideProtocol: Identifiable, Hashable {
 
     var weekNumber: Int {
         let weeks = Calendar.current.dateComponents([.weekOfYear], from: startDate, to: Date()).weekOfYear ?? 0
-        return min(weeks + 1, cycleLengthWeeks)
+        return max(1, min(weeks + 1, cycleLengthWeeks))
     }
 
     static func == (lhs: PeptideProtocol, rhs: PeptideProtocol) -> Bool {

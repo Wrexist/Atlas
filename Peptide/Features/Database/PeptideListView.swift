@@ -43,5 +43,6 @@ struct PeptideListView: View {
 
 #Preview {
     PeptideListView()
+        .environment(DataStore())
         .preferredColorScheme(.dark)
 }
