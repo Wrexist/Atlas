@@ -2,7 +2,7 @@
 
 ## App Details
 - **App Name:** Peptide AI
-- **Bundle ID:** `com.peptideai.app`
+- **Bundle ID:** `com.peptidesai.app`
 - **Platform:** iOS (iPhone only)
 
 ## Prerequisites
