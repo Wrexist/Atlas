@@ -16,7 +16,7 @@
 1. Go to [Apple Developer Portal](https://developer.apple.com/account/resources/identifiers/list)
 2. **Identifiers** → **+** → **App IDs** → **App**
 3. Description: `Peptide AI`
-4. Bundle ID: **Explicit** → `com.peptideai.app`
+4. Bundle ID: **Explicit** → `com.peptidesai.app`
 5. No special capabilities needed initially
 6. Click **Continue** → **Register**
 
@@ -26,7 +26,7 @@
 2. **My Apps** → **+** → **New App**
 3. Platform: **iOS**
 4. Name: `Peptide AI`
-5. Bundle ID: `com.peptideai.app`
+5. Bundle ID: `com.peptidesai.app`
 6. SKU: `peptideai`
 7. Click **Create**
 
@@ -59,7 +59,7 @@ openssl pkcs12 -export -inkey distribution.key -in distribution.pem -out distrib
 
 1. Go to [Profiles](https://developer.apple.com/account/resources/profiles/list) → **+**
 2. Select **App Store Connect** (under Distribution)
-3. Select App ID: `com.peptideai.app`
+3. Select App ID: `com.peptidesai.app`
 4. Select your distribution certificate
 5. Name it (e.g., `Peptide AI App Store`) — **remember this exact name**
 6. Download the `.mobileprovision` file
