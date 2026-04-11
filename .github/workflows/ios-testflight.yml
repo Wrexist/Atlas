@@ -72,7 +72,9 @@ jobs:
             echo "XcodeGen already available: $(xcodegen --version)"
           else
             brew install xcodegen
+            brew link --overwrite xcodegen 2>/dev/null || true
           fi
+          command -v xcodegen || { echo "FATAL: xcodegen not on PATH after install"; exit 1; }
 
       - name: Generate Xcode project
         run: xcodegen generate
@@ -261,13 +263,15 @@ jobs:
           IPA_PATH=$(ls "$RUNNER_TEMP/export/"*.ipa | head -1)
           echo "Uploading: $IPA_PATH ($(stat -f%z "$IPA_PATH") bytes)"
 
+          UPLOAD_LOG="$RUNNER_TEMP/upload.log"
+
           if xcrun altool --help 2>&1 | grep -q "upload-app"; then
             echo "Using xcrun altool for upload"
             xcrun altool --upload-app \
               --type ios \
               --file "$IPA_PATH" \
               --apiKey "$KEY_ID" \
-              --apiIssuer "$ISSUER_ID"
+              --apiIssuer "$ISSUER_ID" 2>&1 | tee "$UPLOAD_LOG"
           else
             echo "altool not available, using xcodebuild for upload"
             xcodebuild -exportArchive \
@@ -277,7 +281,13 @@ jobs:
               -allowProvisioningUpdates \
               -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
               -authenticationKeyID "$KEY_ID" \
-              -authenticationKeyIssuerID "$ISSUER_ID"
+              -authenticationKeyIssuerID "$ISSUER_ID" 2>&1 | tee "$UPLOAD_LOG"
+          fi
+
+          if grep -qi "ERROR" "$UPLOAD_LOG"; then
+            echo ""
+            echo "FATAL: Upload to TestFlight failed. See errors above."
+            exit 1
           fi
 
           echo "Upload to TestFlight complete. Build will appear in App Store Connect within 15-30 minutes."
