@@ -1,7 +1,7 @@
-# Peptides AI — TestFlight Setup Guide
+# PeptideX — TestFlight Setup Guide
 
 ## App Details
-- **App Name:** Peptides AI
+- **App Name:** PeptideX
 - **Bundle ID:** `com.peptidesai.app`
 - **Platform:** iOS (iPhone only)
 
@@ -15,7 +15,7 @@
 
 1. Go to [Apple Developer Portal](https://developer.apple.com/account/resources/identifiers/list)
 2. **Identifiers** → **+** → **App IDs** → **App**
-3. Description: `Peptides AI`
+3. Description: `PeptideX`
 4. Bundle ID: **Explicit** → `com.peptidesai.app`
 5. No special capabilities needed initially
 6. Click **Continue** → **Register**
@@ -25,9 +25,9 @@
 1. Go to [App Store Connect](https://appstoreconnect.apple.com)
 2. **My Apps** → **+** → **New App**
 3. Platform: **iOS**
-4. Name: `Peptides AI`
+4. Name: `PeptideX`
 5. Bundle ID: `com.peptidesai.app`
-6. SKU: `peptidesai`
+6. SKU: `peptidex`
 7. Click **Create**
 
 ## Step 3: Create Distribution Certificate
@@ -61,7 +61,7 @@ openssl pkcs12 -export -inkey distribution.key -in distribution.pem -out distrib
 2. Select **App Store Connect** (under Distribution)
 3. Select App ID: `com.peptidesai.app`
 4. Select your distribution certificate
-5. Name it (e.g., `Peptides AI App Store`) — **remember this exact name**
+5. Name it (e.g., `PeptideX App Store`) — **remember this exact name**
 6. Download the `.mobileprovision` file
 
 ## Step 5: Create App-Specific Password
@@ -87,7 +87,7 @@ Add each of these:
 | `APPLE_CERTIFICATE_BASE64` | Base64-encoded .p12 | `base64 -i distribution.p12 \| pbcopy` (macOS) |
 | `APPLE_CERTIFICATE_PASSWORD` | .p12 password | The password you set in Step 3 |
 | `APPLE_PROVISIONING_PROFILE` | Base64-encoded .mobileprovision | `base64 -i profile.mobileprovision \| pbcopy` (macOS) |
-| `APPLE_PROVISIONING_PROFILE_NAME` | Profile name | Exactly as typed in Step 4 (e.g., `Peptides AI App Store`) |
+| `APPLE_PROVISIONING_PROFILE_NAME` | Profile name | Exactly as typed in Step 4 (e.g., `PeptideX App Store`) |
 | `APPLE_TEAM_ID` | 10-char team ID | From Step 6 |
 | `APPLE_ID` | Apple ID email | Your Apple Developer account email |
 | `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password | From Step 5 |
