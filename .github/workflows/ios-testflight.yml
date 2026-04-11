@@ -8,7 +8,7 @@ jobs:
     runs-on: macos-15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -19,13 +19,6 @@ jobs:
 
       - name: Generate Xcode project
         run: xcodegen generate
-
-      - name: Set build number from run number
-        run: |
-          BUILD=${{ github.run_number }}
-          sed -i '' "s/CURRENT_PROJECT_VERSION = [^;]*;/CURRENT_PROJECT_VERSION = ${BUILD};/g" \
-            Peptide.xcodeproj/project.pbxproj
-          echo "Build number set to: $BUILD"
 
       - name: Generate app icon
         run: |
@@ -83,7 +76,8 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
-            OTHER_CODE_SIGN_FLAGS="--keychain build.keychain"
+            OTHER_CODE_SIGN_FLAGS="--keychain build.keychain" \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }}
 
       - name: Export IPA
         env:
@@ -106,8 +100,6 @@ jobs:
               <key>com.peptidesai.app</key>
               <string>${PROFILE_UUID}</string>
             </dict>
-            <key>uploadBitcode</key>
-            <false/>
             <key>uploadSymbols</key>
             <true/>
           </dict>
