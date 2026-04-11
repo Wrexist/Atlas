@@ -1,9 +1,23 @@
 import Foundation
 
+private struct SeededGenerator: RandomNumberGenerator {
+    private var state: UInt64
+
+    init(seed: UInt64) {
+        state = seed
+    }
+
+    mutating func next() -> UInt64 {
+        state = state &* 6364136223846793005 &+ 1442695040888963407
+        return state
+    }
+}
+
 enum MockEntries {
     static func generateEntries(for protocol_: PeptideProtocol, days: Int = 30) -> [ProtocolEntry] {
         var entries: [ProtocolEntry] = []
         let calendar = Calendar.current
+        var rng = SeededGenerator(seed: UInt64(protocol_.name.hashValue &+ days))
 
         for dayOffset in 0..<days {
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { continue }
@@ -13,7 +27,7 @@ enum MockEntries {
             guard protocol_.schedule.daysOfWeek.contains(isoDayOfWeek) else { continue }
 
             for peptide in protocol_.peptides {
-                let completed = Double.random(in: 0...1) < 0.82
+                let completed = Double.random(in: 0...1, using: &rng) < 0.82
                 let entry = ProtocolEntry(
                     id: UUID(),
                     protocolId: protocol_.id,
@@ -78,22 +92,24 @@ enum MockEntries {
 
     static func complianceData(days: Int = 30) -> [(date: Date, compliance: Double)] {
         let calendar = Calendar.current
+        var rng = SeededGenerator(seed: UInt64(days &* 31337))
         return (0..<days).compactMap { dayOffset in
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { return nil }
-            let compliance = Double.random(in: 0.6...1.0)
+            let compliance = Double.random(in: 0.6...1.0, using: &rng)
             return (date: date, compliance: compliance)
         }.reversed()
     }
 
     static func weeklyDoseData() -> [(day: String, count: Int)] {
-        [
-            (day: "Mon", count: Int.random(in: 3...6)),
-            (day: "Tue", count: Int.random(in: 3...6)),
-            (day: "Wed", count: Int.random(in: 2...5)),
-            (day: "Thu", count: Int.random(in: 3...6)),
-            (day: "Fri", count: Int.random(in: 3...6)),
-            (day: "Sat", count: Int.random(in: 1...4)),
-            (day: "Sun", count: Int.random(in: 1...4)),
+        var rng = SeededGenerator(seed: 42)
+        return [
+            (day: "Mon", count: Int.random(in: 3...6, using: &rng)),
+            (day: "Tue", count: Int.random(in: 3...6, using: &rng)),
+            (day: "Wed", count: Int.random(in: 2...5, using: &rng)),
+            (day: "Thu", count: Int.random(in: 3...6, using: &rng)),
+            (day: "Fri", count: Int.random(in: 3...6, using: &rng)),
+            (day: "Sat", count: Int.random(in: 1...4, using: &rng)),
+            (day: "Sun", count: Int.random(in: 1...4, using: &rng)),
         ]
     }
 }

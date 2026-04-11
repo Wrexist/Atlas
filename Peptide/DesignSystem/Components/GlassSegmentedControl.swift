@@ -38,7 +38,7 @@ struct GlassSegmentedControl<T: Hashable & CustomStringConvertible>: View {
         .padding(Spacing.xs)
         .background {
             Capsule()
-                .fill(.ultraThinMaterial)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
                 .overlay {
                     Capsule()
                         .fill(AppColor.cardOverlay)

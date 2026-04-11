@@ -32,7 +32,7 @@ struct GlassButton: View {
                 switch style {
                 case .primary:
                     Capsule()
-                        .fill(.ultraThinMaterial)
+                        .fill(AppColor.surfaceSecondary.opacity(0.6))
                         .overlay {
                             Capsule()
                                 .fill(AppColor.accentPrimary.opacity(0.3))
@@ -43,7 +43,7 @@ struct GlassButton: View {
                         }
                 case .secondary:
                     Capsule()
-                        .fill(.ultraThinMaterial)
+                        .fill(AppColor.surfaceSecondary.opacity(0.6))
                         .overlay {
                             Capsule()
                                 .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
@@ -52,7 +52,7 @@ struct GlassButton: View {
                     Color.clear
                 case .destructive:
                     Capsule()
-                        .fill(.ultraThinMaterial)
+                        .fill(AppColor.surfaceSecondary.opacity(0.6))
                         .overlay {
                             Capsule()
                                 .fill(AppColor.destructive.opacity(0.2))
@@ -92,7 +92,7 @@ struct GlassIconButton: View {
                 .frame(width: size, height: size)
                 .background {
                     Circle()
-                        .fill(.ultraThinMaterial)
+                        .fill(AppColor.surfaceSecondary.opacity(0.6))
                         .overlay {
                             Circle()
                                 .fill(tinted ? AppColor.glassTint : AppColor.cardOverlay)

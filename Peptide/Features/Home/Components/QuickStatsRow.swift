@@ -4,6 +4,7 @@ struct QuickStatsRow: View {
     let activeProtocols: Int
     let daysLogged: Int
     let streak: Int
+    let nextDose: ProtocolEntry?
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -27,7 +28,7 @@ struct QuickStatsRow: View {
                 )
 
                 GlassStatPill(
-                    value: "2:00 PM",
+                    value: nextDose?.date.formatted(.dateTime.hour().minute()) ?? "--",
                     label: "Next Dose",
                     icon: "clock.fill"
                 )
@@ -39,7 +40,7 @@ struct QuickStatsRow: View {
 #Preview {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        QuickStatsRow(activeProtocols: 2, daysLogged: 45, streak: 12)
+        QuickStatsRow(activeProtocols: 2, daysLogged: 45, streak: 12, nextDose: MockEntries.todayEntries().first { !$0.completed })
             .padding(.leading, Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)

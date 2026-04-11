@@ -9,7 +9,10 @@ struct ProfileView: View {
                 VStack(spacing: Spacing.lg) {
                     ProfileHeader(
                         name: viewModel.profile.name,
-                        memberDuration: viewModel.memberDuration
+                        memberDuration: viewModel.memberDuration,
+                        protocolCount: MockProtocols.all.count,
+                        peptideCount: MockPeptides.all.count,
+                        daysLogged: viewModel.daysLogged
                     )
                     .sectionAppear(index: 0)
 
