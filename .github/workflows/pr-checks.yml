@@ -38,7 +38,9 @@ jobs:
             echo "XcodeGen already available: $(xcodegen --version)"
           else
             brew install xcodegen
+            brew link --overwrite xcodegen 2>/dev/null || true
           fi
+          command -v xcodegen || { echo "FATAL: xcodegen not on PATH after install"; exit 1; }
 
       - name: Generate Xcode project
         run: xcodegen generate
