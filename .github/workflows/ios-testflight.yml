@@ -283,6 +283,7 @@ jobs:
 
           UPLOAD_LOG="$RUNNER_TEMP/upload.log"
 
+          set -o pipefail
           if xcrun altool --help 2>&1 | grep -q "upload-app"; then
             echo "Using xcrun altool for upload"
             xcrun altool --upload-app \
@@ -300,12 +301,6 @@ jobs:
               -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
               -authenticationKeyID "$KEY_ID" \
               -authenticationKeyIssuerID "$ISSUER_ID" 2>&1 | tee "$UPLOAD_LOG"
-          fi
-
-          if grep -qi "ERROR" "$UPLOAD_LOG"; then
-            echo ""
-            echo "FATAL: Upload to TestFlight failed. See errors above."
-            exit 1
           fi
 
           echo "Upload to TestFlight complete. Build will appear in App Store Connect within 15-30 minutes."

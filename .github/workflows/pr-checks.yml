@@ -55,7 +55,7 @@ jobs:
           xcodebuild build \
             -project Peptide.xcodeproj \
             -scheme Peptide \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+            -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
