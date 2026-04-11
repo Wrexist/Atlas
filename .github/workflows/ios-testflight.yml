@@ -1,12 +1,14 @@
 name: iOS TestFlight Deploy
+
 on:
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-15
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -18,12 +20,27 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Set build number from run number
+      - name: Generate app icon
         run: |
-          BUILD=${{ github.run_number }}
-          sed -i '' "s/CURRENT_PROJECT_VERSION = [^;]*;/CURRENT_PROJECT_VERSION = ${BUILD};/g" \
-            Peptide.xcodeproj/project.pbxproj
-          echo "Build number set to: $BUILD"
+          python3 - << 'EOF'
+          import struct, zlib, os
+
+          def make_png(width, height, r, g, b):
+              def chunk(name, data):
+                  c = zlib.crc32(name + data) & 0xffffffff
+                  return struct.pack('>I', len(data)) + name + data + struct.pack('>I', c)
+              ihdr = struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0)
+              scanline = b'\x00' + bytes([r, g, b]) * width
+              raw = scanline * height
+              idat = zlib.compress(raw)
+              return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', idat) + chunk(b'IEND', b'')
+
+          out = 'Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png'
+          os.makedirs(os.path.dirname(out), exist_ok=True)
+          with open(out, 'wb') as f:
+              f.write(make_png(1024, 1024, 0, 102, 204))
+          print(f"Generated {out}")
+          EOF
 
       - name: Import certificate
         env:
@@ -46,6 +63,9 @@ jobs:
 
       - name: Build archive
         run: |
+          PROFILE_UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision | plutil -extract UUID raw -)
+          echo "Using provisioning profile UUID: $PROFILE_UUID"
+
           xcodebuild archive \
             -project Peptide.xcodeproj \
             -scheme Peptide \
@@ -55,17 +75,18 @@ jobs:
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            OTHER_CODE_SIGN_FLAGS="--keychain build.keychain"
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
+            OTHER_CODE_SIGN_FLAGS="--keychain build.keychain" \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }}.${{ github.run_attempt }}
 
       - name: Export IPA
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          PROFILE_NAME: ${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}
         run: |
+          PROFILE_UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision | plutil -extract UUID raw -)
           cat > exportOptions.plist << PLIST
           <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
             <key>method</key>
@@ -77,10 +98,8 @@ jobs:
             <key>provisioningProfiles</key>
             <dict>
               <key>com.peptidesai.app</key>
-              <string>${PROFILE_NAME}</string>
+              <string>${PROFILE_UUID}</string>
             </dict>
-            <key>uploadBitcode</key>
-            <false/>
             <key>uploadSymbols</key>
             <true/>
           </dict>
@@ -97,7 +116,7 @@ jobs:
           APP_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
           xcrun altool --upload-app \
-            -f $RUNNER_TEMP/export/*.ipa \
+            -f "$RUNNER_TEMP/export/"*.ipa \
             -t ios \
             -u "$APPLE_ID" \
             -p "$APP_PASSWORD"
