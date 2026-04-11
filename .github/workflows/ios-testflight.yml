@@ -27,6 +27,18 @@ jobs:
             Peptide.xcodeproj/project.pbxproj
           echo "Build number set to: $BUILD"
 
+      - name: Verify Info.plist keys
+        run: |
+          PLIST="Peptide/Resources/Info.plist"
+          echo "=== Info.plist contents ==="
+          cat "$PLIST"
+          echo ""
+          echo "=== Verifying required keys ==="
+          /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations" "$PLIST" || { echo "FATAL: UISupportedInterfaceOrientations missing"; exit 1; }
+          /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations~ipad" "$PLIST" || { echo "FATAL: UISupportedInterfaceOrientations~ipad missing"; exit 1; }
+          /usr/libexec/PlistBuddy -c "Print :UILaunchScreen" "$PLIST" || { echo "FATAL: UILaunchScreen missing"; exit 1; }
+          echo "All required keys present."
+
       - name: Generate app icon
         run: |
           python3 - << 'EOF'
@@ -84,6 +96,17 @@ jobs:
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
             OTHER_CODE_SIGN_FLAGS="--keychain build.keychain"
+
+      - name: Verify archive Info.plist
+        run: |
+          APP_PLIST="$RUNNER_TEMP/Peptide.xcarchive/Products/Applications/Peptide.app/Info.plist"
+          echo "=== Archive bundle Info.plist ==="
+          /usr/libexec/PlistBuddy -c "Print" "$APP_PLIST"
+          echo ""
+          echo "=== Verifying required keys in archive ==="
+          /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations" "$APP_PLIST" || { echo "FATAL: UISupportedInterfaceOrientations missing from archive"; exit 1; }
+          /usr/libexec/PlistBuddy -c "Print :UILaunchScreen" "$APP_PLIST" || { echo "FATAL: UILaunchScreen missing from archive"; exit 1; }
+          echo "Archive verification passed."
 
       - name: Export IPA
         env:
