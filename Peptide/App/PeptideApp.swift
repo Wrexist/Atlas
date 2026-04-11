@@ -19,10 +19,11 @@ struct PeptideApp: App {
             .environment(appState)
             .preferredColorScheme(.dark)
             .tint(AppColor.accentPrimary)
-            .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-                    appState.showingSplash = false
-                }
+            .task {
+                guard appState.showingSplash else { return }
+                try? await Task.sleep(for: .seconds(2.2))
+                guard !Task.isCancelled else { return }
+                appState.showingSplash = false
             }
         }
     }
