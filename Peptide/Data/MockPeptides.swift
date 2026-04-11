@@ -1,0 +1,279 @@
+import Foundation
+
+enum MockPeptides {
+    static let all: [Peptide] = [
+        bpc157, tb500, igf1lr3, cjc1295,
+        thymosinBeta4, ghkCu,
+        semax, selank, dihexa,
+        epitalon,
+        thymosinAlpha1, ll37,
+        tesamorelin, aod9604,
+    ]
+
+    // MARK: - Growth
+
+    static let bpc157 = Peptide(
+        id: UUID(),
+        name: "BPC-157",
+        abbreviation: "BPC-157",
+        category: .growth,
+        description: "Body Protection Compound-157 is a pentadecapeptide composed of 15 amino acids. It is a partial sequence of body protection compound (BPC) found in human gastric juice. Research suggests it accelerates healing of many different wounds, including tendon-to-bone and damaged ligaments.",
+        benefits: ["Tissue Repair", "Gut Healing", "Anti-Inflammatory", "Joint Support", "Tendon Recovery"],
+        dosageRange: "250-500 mcg",
+        frequency: "1-2x daily",
+        halfLife: "4 hours",
+        adminRoute: "Subcutaneous",
+        researchLinks: [
+            ResearchLink(title: "Stable gastric pentadecapeptide BPC 157: Novel therapy in gastrointestinal tract", source: "Current Pharmaceutical Design", year: 2023),
+            ResearchLink(title: "BPC 157 and its role in accelerating wound healing", source: "Journal of Physiology", year: 2022),
+        ],
+        imageSystemName: "cross.vial.fill"
+    )
+
+    static let tb500 = Peptide(
+        id: UUID(),
+        name: "Thymosin Beta-4 Fragment",
+        abbreviation: "TB-500",
+        category: .growth,
+        description: "TB-500 is a synthetic fraction of the protein thymosin beta-4, which is present in virtually all human and animal cells. Its primary function is to promote cell migration, differentiation, and blood vessel formation for tissue repair.",
+        benefits: ["Muscle Repair", "Flexibility", "Reduced Inflammation", "Hair Regrowth", "Cardiac Repair"],
+        dosageRange: "2-5 mg",
+        frequency: "2x weekly",
+        halfLife: "N/A",
+        adminRoute: "Subcutaneous",
+        researchLinks: [
+            ResearchLink(title: "Thymosin Beta 4 promotes wound repair", source: "Annals of NY Academy of Sciences", year: 2021),
+        ],
+        imageSystemName: "bandage.fill"
+    )
+
+    static let igf1lr3 = Peptide(
+        id: UUID(),
+        name: "IGF-1 LR3",
+        abbreviation: "IGF-1 LR3",
+        category: .growth,
+        description: "Insulin-like Growth Factor 1 Long R3 is a modified form of IGF-1 with an extended half-life. It plays a crucial role in childhood growth and continues to have anabolic effects in adults, promoting muscle hypertrophy and cellular growth.",
+        benefits: ["Muscle Growth", "Fat Loss", "Recovery", "Cell Proliferation", "Protein Synthesis"],
+        dosageRange: "20-50 mcg",
+        frequency: "1x daily",
+        halfLife: "20-30 hours",
+        adminRoute: "Subcutaneous",
+        researchLinks: [
+            ResearchLink(title: "IGF-1 signaling in skeletal muscle", source: "Endocrine Reviews", year: 2022),
+        ],
+        imageSystemName: "figure.strengthtraining.traditional"
+    )
+
+    static let cjc1295 = Peptide(
+        id: UUID(),
+        name: "CJC-1295 (with DAC)",
+        abbreviation: "CJC-1295",
+        category: .growth,
+        description: "CJC-1295 is a synthetic analogue of growth hormone-releasing hormone (GHRH). When combined with Drug Affinity Complex (DAC), it has an extended half-life, providing sustained elevation of growth hormone levels.",
+        benefits: ["GH Release", "Deep Sleep", "Fat Metabolism", "Muscle Growth", "Recovery"],
+        dosageRange: "1-2 mg",
+        frequency: "2x weekly",
+        halfLife: "6-8 days",
+        adminRoute: "Subcutaneous",
+        researchLinks: [
+            ResearchLink(title: "Prolonged stimulation of growth hormone secretion", source: "Journal of Clinical Endocrinology", year: 2023),
+        ],
+        imageSystemName: "moon.zzz.fill"
+    )
+
+    // MARK: - Recovery
+
+    static let thymosinBeta4 = Peptide(
+        id: UUID(),
+        name: "Thymosin Beta-4",
+        abbreviation: "TB4",
+        category: .recovery,
+        description: "Thymosin Beta-4 is the full-length naturally occurring peptide involved in wound healing and tissue repair. It promotes cell migration and reduces inflammation throughout the body.",
+        benefits: ["Wound Healing", "Anti-Inflammatory", "Tissue Regeneration", "Cardiovascular Health"],
+        dosageRange: "750 mcg - 2 mg",
+        frequency: "1x daily",
+        halfLife: "N/A",
+        adminRoute: "Subcutaneous",
+        researchLinks: [
+            ResearchLink(title: "Thymosin beta4 and wound healing", source: "Vitamins and Hormones", year: 2023),
+        ],
+        imageSystemName: "heart.fill"
+    )
+
+    static let ghkCu = Peptide(
+        id: UUID(),
+        name: "GHK-Cu",
+        abbreviation: "GHK-Cu",
+        category: .recovery,
+        description: "GHK-Cu is a naturally occurring copper complex of the tripeptide glycyl-L-histidyl-L-lysine. It has multiple biological actions including stimulating collagen synthesis, promoting wound healing, and exhibiting anti-aging properties.",
+        benefits: ["Collagen Synthesis", "Skin Repair", "Hair Growth", "Anti-Aging", "Wound Healing"],
+        dosageRange: "1-2 mg",
+        frequency: "1x daily",
+        halfLife: "N/A",
+        adminRoute: "Subcutaneous / Topical",
+        researchLinks: [
+            ResearchLink(title: "GHK peptide as biological signal for skin remodeling", source: "Archives of Biochemistry", year: 2023),
+        ],
+        imageSystemName: "sparkle"
+    )
+
+    // MARK: - Cognitive
+
+    static let semax = Peptide(
+        id: UUID(),
+        name: "Semax",
+        abbreviation: "Semax",
+        category: .cognitive,
+        description: "Semax is a synthetic peptide derived from ACTH (adrenocorticotropic hormone). It is a heptapeptide developed in Russia for the treatment of stroke and cognitive disorders. It enhances brain-derived neurotrophic factor (BDNF) expression.",
+        benefits: ["Focus", "Memory", "Neuroprotection", "BDNF Enhancement", "Mood Support"],
+        dosageRange: "200-600 mcg",
+        frequency: "1-2x daily",
+        halfLife: "Several minutes (intranasal extends effects)",
+        adminRoute: "Intranasal",
+        researchLinks: [
+            ResearchLink(title: "Semax neuroprotective mechanisms in cerebral ischemia", source: "Neuroscience Letters", year: 2022),
+        ],
+        imageSystemName: "brain.head.profile.fill"
+    )
+
+    static let selank = Peptide(
+        id: UUID(),
+        name: "Selank",
+        abbreviation: "Selank",
+        category: .cognitive,
+        description: "Selank is a synthetic analogue of the immunomodulatory peptide tuftsin. Developed at the Institute of Molecular Genetics in Russia, it exhibits nootropic and anxiolytic properties while modulating the immune system.",
+        benefits: ["Anxiety Relief", "Focus", "Immune Modulation", "Memory", "Stress Resilience"],
+        dosageRange: "250-500 mcg",
+        frequency: "1-2x daily",
+        halfLife: "Several minutes",
+        adminRoute: "Intranasal",
+        researchLinks: [
+            ResearchLink(title: "Anxiolytic effects of selank peptide", source: "Bulletin of Experimental Biology", year: 2021),
+        ],
+        imageSystemName: "wind"
+    )
+
+    static let dihexa = Peptide(
+        id: UUID(),
+        name: "Dihexa",
+        abbreviation: "Dihexa",
+        category: .cognitive,
+        description: "Dihexa is a small peptide derived from angiotensin IV that crosses the blood-brain barrier. Research suggests it may be up to 10 million times more potent than BDNF at augmenting cognitive function through hepatocyte growth factor (HGF) pathway activation.",
+        benefits: ["Cognitive Enhancement", "Neurogenesis", "Synaptogenesis", "Memory Formation"],
+        dosageRange: "10-20 mg",
+        frequency: "1x daily",
+        halfLife: "N/A",
+        adminRoute: "Oral / Sublingual",
+        researchLinks: [
+            ResearchLink(title: "Dihexa augments cognitive function via HGF/MET signaling", source: "Journal of Pharmacology", year: 2023),
+        ],
+        imageSystemName: "lightbulb.fill"
+    )
+
+    // MARK: - Anti-Aging
+
+    static let epitalon = Peptide(
+        id: UUID(),
+        name: "Epitalon",
+        abbreviation: "Epitalon",
+        category: .antiAging,
+        description: "Epitalon (Epithalon) is a synthetic tetrapeptide based on the natural peptide epithalamin produced by the pineal gland. It is one of the few compounds shown to activate telomerase, the enzyme responsible for maintaining telomere length.",
+        benefits: ["Telomere Extension", "Sleep Quality", "Anti-Aging", "Melatonin Regulation", "DNA Repair"],
+        dosageRange: "5-10 mg",
+        frequency: "1x daily (10-20 day cycles)",
+        halfLife: "N/A",
+        adminRoute: "Subcutaneous",
+        researchLinks: [
+            ResearchLink(title: "Peptide regulation of aging: Epitalon", source: "Advances in Gerontology", year: 2022),
+        ],
+        imageSystemName: "hourglass"
+    )
+
+    // MARK: - Immune
+
+    static let thymosinAlpha1 = Peptide(
+        id: UUID(),
+        name: "Thymosin Alpha-1",
+        abbreviation: "TA1",
+        category: .immune,
+        description: "Thymosin Alpha-1 is a peptide naturally produced by the thymus gland. It is a major component of Thymosin Fraction 5 and plays a crucial role in the maturation and differentiation of T-cells for immune system regulation.",
+        benefits: ["Immune Enhancement", "T-Cell Activation", "Anti-Viral", "Vaccine Efficacy", "Cancer Support"],
+        dosageRange: "1.6 mg",
+        frequency: "2-3x weekly",
+        halfLife: "2 hours",
+        adminRoute: "Subcutaneous",
+        researchLinks: [
+            ResearchLink(title: "Clinical applications of thymalfasin (thymosin alpha 1)", source: "Annals of NY Academy of Sciences", year: 2023),
+        ],
+        imageSystemName: "shield.checkered"
+    )
+
+    static let ll37 = Peptide(
+        id: UUID(),
+        name: "LL-37",
+        abbreviation: "LL-37",
+        category: .immune,
+        description: "LL-37 is the only cathelicidin-derived antimicrobial peptide found in humans. It plays a vital role in innate immune defense against bacterial, viral, and fungal infections while also modulating immune cell recruitment and inflammation.",
+        benefits: ["Antimicrobial", "Anti-Biofilm", "Wound Healing", "Immune Defense", "Anti-Inflammatory"],
+        dosageRange: "50-100 mcg",
+        frequency: "1x daily",
+        halfLife: "N/A",
+        adminRoute: "Subcutaneous",
+        researchLinks: [
+            ResearchLink(title: "LL-37 cathelicidin in innate immunity", source: "Journal of Leukocyte Biology", year: 2022),
+        ],
+        imageSystemName: "bolt.shield.fill"
+    )
+
+    // MARK: - Metabolic
+
+    static let tesamorelin = Peptide(
+        id: UUID(),
+        name: "Tesamorelin",
+        abbreviation: "Tesamorelin",
+        category: .metabolic,
+        description: "Tesamorelin is a synthetic growth hormone-releasing factor (GRF) analogue. It is FDA-approved for the reduction of excess abdominal fat in HIV-infected patients with lipodystrophy, and is being studied for broader metabolic applications.",
+        benefits: ["Visceral Fat Reduction", "GH Stimulation", "Metabolic Health", "Body Composition", "IGF-1 Increase"],
+        dosageRange: "2 mg",
+        frequency: "1x daily",
+        halfLife: "26 minutes",
+        adminRoute: "Subcutaneous",
+        researchLinks: [
+            ResearchLink(title: "Tesamorelin effects on visceral adiposity", source: "New England Journal of Medicine", year: 2023),
+        ],
+        imageSystemName: "flame.fill"
+    )
+
+    static let aod9604 = Peptide(
+        id: UUID(),
+        name: "AOD-9604",
+        abbreviation: "AOD-9604",
+        category: .metabolic,
+        description: "AOD-9604 is a modified fragment of human growth hormone (HGH fragment 176-191). It retains the fat-reducing effects of growth hormone without the adverse effects on blood sugar or growth. It stimulates lipolysis and inhibits lipogenesis.",
+        benefits: ["Fat Loss", "Metabolism Boost", "Cartilage Repair", "No GH Side Effects", "Lipolysis"],
+        dosageRange: "300-500 mcg",
+        frequency: "1x daily",
+        halfLife: "N/A",
+        adminRoute: "Subcutaneous",
+        researchLinks: [
+            ResearchLink(title: "AOD9604 lipolytic and anti-lipogenic activity", source: "Obesity Research", year: 2021),
+        ],
+        imageSystemName: "bolt.fill"
+    )
+
+    static func filtered(by category: PeptideCategory?) -> [Peptide] {
+        guard let category else { return all }
+        return all.filter { $0.category == category }
+    }
+
+    static func search(_ query: String) -> [Peptide] {
+        guard !query.isEmpty else { return all }
+        let lowered = query.lowercased()
+        return all.filter {
+            $0.name.lowercased().contains(lowered) ||
+            $0.abbreviation.lowercased().contains(lowered) ||
+            $0.category.displayName.lowercased().contains(lowered) ||
+            $0.benefits.contains { $0.lowercased().contains(lowered) }
+        }
+    }
+}
