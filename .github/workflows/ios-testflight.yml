@@ -260,6 +260,7 @@ jobs:
           KEY_ID: ${{ secrets.APPLE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
         run: |
+          set -o pipefail
           IPA_PATH=$(ls "$RUNNER_TEMP/export/"*.ipa | head -1)
           echo "Uploading: $IPA_PATH ($(stat -f%z "$IPA_PATH") bytes)"
 
@@ -272,6 +273,7 @@ jobs:
               --file "$IPA_PATH" \
               --apiKey "$KEY_ID" \
               --apiIssuer "$ISSUER_ID" 2>&1 | tee "$UPLOAD_LOG"
+            upload_rc=${PIPESTATUS[0]}
           else
             echo "altool not available, using xcodebuild for upload"
             xcodebuild -exportArchive \
@@ -282,9 +284,16 @@ jobs:
               -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
               -authenticationKeyID "$KEY_ID" \
               -authenticationKeyIssuerID "$ISSUER_ID" 2>&1 | tee "$UPLOAD_LOG"
+            upload_rc=${PIPESTATUS[0]}
           fi
 
-          if grep -qi "ERROR" "$UPLOAD_LOG"; then
+          if [ "$upload_rc" -ne 0 ]; then
+            echo ""
+            echo "FATAL: Upload command exited with code $upload_rc"
+            exit "$upload_rc"
+          fi
+
+          if grep -qiw "ERROR" "$UPLOAD_LOG"; then
             echo ""
             echo "FATAL: Upload to TestFlight failed. See errors above."
             exit 1
