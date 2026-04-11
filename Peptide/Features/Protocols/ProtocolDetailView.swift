@@ -66,7 +66,7 @@ struct ProtocolDetailView: View {
                             .foregroundStyle(AppColor.textPrimary)
 
                         let peptides = liveProtocol.peptides
-                        ForEach(peptides) { peptide in
+                        ForEach(Array(peptides.enumerated()), id: \.element.id) { index, peptide in
                             HStack(spacing: Spacing.md) {
                                 Image(systemName: peptide.imageSystemName)
                                     .font(.system(size: 16))
@@ -93,7 +93,7 @@ struct ProtocolDetailView: View {
                                     .foregroundStyle(AppColor.textTertiary)
                             }
 
-                            if peptide != peptides.last {
+                            if index < peptides.count - 1 {
                                 Divider().foregroundStyle(AppColor.glassBorder)
                             }
                         }
@@ -176,7 +176,7 @@ struct ProtocolDetailView: View {
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.vertical, Spacing.lg)
                         } else {
-                            ForEach(recentEntries) { entry in
+                            ForEach(Array(recentEntries.enumerated()), id: \.element.id) { index, entry in
                                 Button {
                                     dataStore.toggleEntry(entry.id)
                                 } label: {
@@ -184,7 +184,7 @@ struct ProtocolDetailView: View {
                                 }
                                 .buttonStyle(.plain)
 
-                                if entry != recentEntries.last {
+                                if index < recentEntries.count - 1 {
                                     Divider().foregroundStyle(AppColor.glassBorder)
                                 }
                             }

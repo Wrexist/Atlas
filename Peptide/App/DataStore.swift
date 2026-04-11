@@ -174,9 +174,9 @@ final class DataStore {
 
     var nextDose: ProtocolEntry? {
         let now = Date()
-        let upcoming = todayEntries.filter { !$0.completed && $0.date > now }
-        if let next = upcoming.first { return next }
-        return todayEntries.first { !$0.completed }
+        let today = todayEntries
+        return today.first { !$0.completed && $0.date > now }
+            ?? today.first { !$0.completed }
     }
 
     // MARK: - Profile

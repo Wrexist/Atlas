@@ -24,9 +24,23 @@ struct TodayScheduleCard: View {
                 }
 
                 VStack(spacing: Spacing.sm) {
-                    ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-                        ScheduleRow(entry: entry, onToggle: { onToggle(entry) })
-                            .staggeredAppear(index: index)
+                    if entries.isEmpty {
+                        HStack(spacing: Spacing.md) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 24))
+                                .foregroundStyle(AppColor.textTertiary)
+
+                            Text("No doses scheduled today")
+                                .font(AppFont.subheadline)
+                                .foregroundStyle(AppColor.textTertiary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Spacing.lg)
+                    } else {
+                        ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                            ScheduleRow(entry: entry, onToggle: { onToggle(entry) })
+                                .staggeredAppear(index: index)
+                        }
                     }
                 }
             }
