@@ -124,17 +124,7 @@ jobs:
           APP_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
           xcrun altool --upload-app \
-            -f $RUNNER_TEMP/export/*.ipa \
+            -f "$RUNNER_TEMP/export/"*.ipa \
             -t ios \
             -u "$APPLE_ID" \
-            -p "$APP_PASSWORD" || true
-
-          # Also try with newer xcrun notarytool if altool fails
-          if [ $? -ne 0 ]; then
-            xcrun altool --upload-app \
-              -f $RUNNER_TEMP/export/*.ipa \
-              -t ios \
-              -u "$APPLE_ID" \
-              -p "$APP_PASSWORD" \
-              --output-format xml
-          fi
+            -p "$APP_PASSWORD"
