@@ -10,10 +10,11 @@ struct ProtocolEntry: Identifiable, Hashable {
     var completed: Bool
 
     static func == (lhs: ProtocolEntry, rhs: ProtocolEntry) -> Bool {
-        lhs.id == rhs.id
+        lhs.id == rhs.id && lhs.completed == rhs.completed
     }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+        hasher.combine(completed)
     }
 }
