@@ -12,4 +12,5 @@ enum AppTab: String, CaseIterable {
 final class AppState {
     var selectedTab: AppTab = .home
     var showingOnboarding = false
+    var showingSplash = true
 }
