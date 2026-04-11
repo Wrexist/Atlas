@@ -29,8 +29,8 @@ jobs:
 
       - name: Verify Info.plist keys
         run: |
-          PLIST=$(find Peptide.xcodeproj -name '*Info.plist' -type f | head -1)
-          echo "=== Generated plist: $PLIST ==="
+          PLIST="Peptide/Resources/Info.plist"
+          echo "=== Info.plist contents ==="
           cat "$PLIST"
           echo ""
           echo "=== Verifying required keys ==="

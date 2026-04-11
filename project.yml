@@ -22,6 +22,7 @@ targets:
           - "**/.DS_Store"
           - "Resources/Info.plist"
     info:
+      path: Peptide/Resources/Info.plist
       properties:
         CFBundleDisplayName: PeptideX
         UILaunchScreen: {}
@@ -41,6 +42,7 @@ targets:
         PRODUCT_NAME: Peptide
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: NO
 schemes:
   Peptide:
     build:
