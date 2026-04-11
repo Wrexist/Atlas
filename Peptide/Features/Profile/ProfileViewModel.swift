@@ -25,6 +25,14 @@ final class ProfileViewModel {
         return months <= 1 ? "1 month" : "\(months) months"
     }
 
+    var daysLogged: Int {
+        let calendar = Calendar.current
+        let uniqueDays = Set(MockEntries.allEntries.filter(\.completed).map {
+            calendar.startOfDay(for: $0.date)
+        })
+        return uniqueDays.count
+    }
+
     func toggleGoal(_ goal: String) {
         withAnimation(AppAnimation.springSnappy) {
             if selectedGoals.contains(goal) {

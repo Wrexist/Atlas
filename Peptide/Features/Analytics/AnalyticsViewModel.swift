@@ -30,10 +30,33 @@ final class AnalyticsViewModel {
         return complianceData.map(\.compliance).reduce(0, +) / Double(complianceData.count)
     }
 
-    var totalDoses: Int { 127 }
-    var currentStreak: Int { 12 }
-    var bestStreak: Int { 18 }
-    var complianceTrend: Double { 0.12 }
+    var totalDoses: Int {
+        MockEntries.allEntries.filter(\.completed).count
+    }
+
+    var currentStreak: Int {
+        let calendar = Calendar.current
+        var streak = 0
+        for dayOffset in 0..<90 {
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { break }
+            let dayEntries = MockEntries.allEntries.filter { calendar.isDate($0.date, inSameDayAs: date) }
+            guard !dayEntries.isEmpty else { continue }
+            if dayEntries.allSatisfy(\.completed) { streak += 1 } else { break }
+        }
+        return streak
+    }
+
+    var bestStreak: Int {
+        max(currentStreak, 18)
+    }
+
+    var complianceTrend: Double {
+        guard complianceData.count >= 2 else { return 0 }
+        let mid = complianceData.count / 2
+        let firstHalf = complianceData[..<mid].map(\.compliance).reduce(0, +) / Double(mid)
+        let secondHalf = complianceData[mid...].map(\.compliance).reduce(0, +) / Double(complianceData.count - mid)
+        return secondHalf - firstHalf
+    }
 
     init() {
         regenerateData()

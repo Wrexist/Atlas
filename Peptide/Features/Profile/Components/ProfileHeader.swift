@@ -3,6 +3,9 @@ import SwiftUI
 struct ProfileHeader: View {
     let name: String
     let memberDuration: String
+    let protocolCount: Int
+    let peptideCount: Int
+    let daysLogged: Int
 
     var body: some View {
         GlassCard(tinted: true) {
@@ -40,9 +43,9 @@ struct ProfileHeader: View {
                 }
 
                 HStack(spacing: Spacing.xxl) {
-                    ProfileStat(value: "4", label: "Protocols")
-                    ProfileStat(value: "14", label: "Peptides")
-                    ProfileStat(value: "45", label: "Days")
+                    ProfileStat(value: "\(protocolCount)", label: "Protocols")
+                    ProfileStat(value: "\(peptideCount)", label: "Peptides")
+                    ProfileStat(value: "\(daysLogged)", label: "Days")
                 }
             }
             .frame(maxWidth: .infinity)
@@ -69,7 +72,7 @@ private struct ProfileStat: View {
 #Preview {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        ProfileHeader(name: "Alex", memberDuration: "3 months")
+        ProfileHeader(name: "Alex", memberDuration: "3 months", protocolCount: 4, peptideCount: 14, daysLogged: 45)
             .padding(Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)

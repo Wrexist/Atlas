@@ -34,18 +34,32 @@ struct PeptideApp: App {
 }
 
 struct NextDoseAccessoryView: View {
+    private var nextDose: ProtocolEntry? {
+        let now = Date()
+        return MockEntries.todayEntries()
+            .filter { !$0.completed && $0.date > now }
+            .min(by: { $0.date < $1.date })
+    }
+
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "syringe.fill")
                 .font(.caption)
                 .foregroundStyle(AppColor.accentPrimary)
-            Text("Next: BPC-157 • 250mcg")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textSecondary)
-            Spacer()
-            Text("2:00 PM")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.accentLight)
+            if let dose = nextDose {
+                Text("Next: \(dose.peptide.abbreviation) • \(dose.dose)")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                Spacer()
+                Text(dose.date.formatted(.dateTime.hour().minute()))
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.accentLight)
+            } else {
+                Text("All doses completed")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                Spacer()
+            }
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.xs)

@@ -11,19 +11,19 @@ struct ResearchLinksSection: View {
                     .foregroundStyle(AppColor.textPrimary)
                 
                 VStack(spacing: Spacing.md) {
-                    ForEach(links) { link in
+                    ForEach(Array(links.enumerated()), id: \.element.id) { index, link in
                         HStack(alignment: .top, spacing: Spacing.md) {
                             Image(systemName: "doc.fill")
                                 .font(.system(size: 14))
                                 .foregroundStyle(AppColor.accentPrimary)
                                 .frame(width: 20)
-                            
+
                             VStack(alignment: .leading, spacing: Spacing.xxs) {
                                 Text(link.title)
                                     .font(AppFont.subheadline)
                                     .foregroundStyle(AppColor.textPrimary)
                                     .lineLimit(2)
-                                
+
                                 HStack(spacing: Spacing.xs) {
                                     Text(link.source)
                                         .font(AppFont.caption)
@@ -37,15 +37,15 @@ struct ResearchLinksSection: View {
                                         .foregroundStyle(AppColor.textTertiary)
                                 }
                             }
-                            
+
                             Spacer()
-                            
+
                             Image(systemName: "arrow.up.right")
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(AppColor.textTertiary)
                         }
-                        
-                        if link.id != links.last?.id {
+
+                        if index < links.count - 1 {
                             Divider().foregroundStyle(AppColor.glassBorder)
                         }
                     }

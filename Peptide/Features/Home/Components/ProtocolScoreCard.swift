@@ -40,7 +40,7 @@ struct ProtocolScoreCard: View {
 #Preview {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        ProtocolScoreCard(score: 0.75, completed: 3, total: 4)
+        ProtocolScoreCard(score: 0.5, completed: 2, total: 4)
             .padding(Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)

@@ -30,7 +30,8 @@ struct HomeView: View {
                     QuickStatsRow(
                         activeProtocols: viewModel.activeProtocols.count,
                         daysLogged: viewModel.totalDaysLogged,
-                        streak: viewModel.currentStreak
+                        streak: viewModel.currentStreak,
+                        nextDose: viewModel.nextDose
                     )
                     .sectionAppear(index: 3)
                 }

@@ -35,8 +35,33 @@ final class HomeViewModel {
         todayEntries.count
     }
 
-    var currentStreak: Int { 12 }
-    var totalDaysLogged: Int { 45 }
+    var nextDose: ProtocolEntry? {
+        let now = Date()
+        return todayEntries
+            .filter { !$0.completed && $0.date > now }
+            .min(by: { $0.date < $1.date })
+    }
+
+    var currentStreak: Int {
+        let calendar = Calendar.current
+        var streak = 0
+        for dayOffset in 0..<60 {
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { break }
+            let dayEntries = MockEntries.allEntries.filter { calendar.isDate($0.date, inSameDayAs: date) }
+            guard !dayEntries.isEmpty else { continue }
+            let allDone = dayEntries.allSatisfy(\.completed)
+            if allDone { streak += 1 } else { break }
+        }
+        return streak
+    }
+
+    var totalDaysLogged: Int {
+        let calendar = Calendar.current
+        let uniqueDays = Set(MockEntries.allEntries.filter(\.completed).map {
+            calendar.startOfDay(for: $0.date)
+        })
+        return uniqueDays.count
+    }
 
     func toggleEntry(_ entry: ProtocolEntry) {
         if let index = todayEntries.firstIndex(where: { $0.id == entry.id }) {

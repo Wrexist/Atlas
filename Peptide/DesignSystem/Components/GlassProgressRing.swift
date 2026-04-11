@@ -7,6 +7,11 @@ struct GlassProgressRing: View {
     var showLabel: Bool = true
 
     @State private var animatedProgress: Double = 0
+    @State private var hasAppeared = false
+
+    private var clampedProgress: Double {
+        min(max(progress, 0), 1)
+    }
 
     var body: some View {
         ZStack {
@@ -47,13 +52,18 @@ struct GlassProgressRing: View {
             }
         }
         .onAppear {
-            withAnimation(AppAnimation.springGentle) {
-                animatedProgress = progress
+            if hasAppeared {
+                animatedProgress = clampedProgress
+            } else {
+                hasAppeared = true
+                withAnimation(AppAnimation.springGentle) {
+                    animatedProgress = clampedProgress
+                }
             }
         }
         .onChange(of: progress) { _, newValue in
             withAnimation(AppAnimation.springGentle) {
-                animatedProgress = newValue
+                animatedProgress = min(max(newValue, 0), 1)
             }
         }
     }
@@ -62,9 +72,13 @@ struct GlassProgressRing: View {
 struct GlassProgressBar: View {
     let progress: Double
     var height: CGFloat = 6
-    var tinted: Bool = true
 
     @State private var animatedProgress: Double = 0
+    @State private var hasAppeared = false
+
+    private var clampedProgress: Double {
+        min(max(progress, 0), 1)
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -85,13 +99,18 @@ struct GlassProgressBar: View {
         }
         .frame(height: height)
         .onAppear {
-            withAnimation(AppAnimation.springGentle) {
-                animatedProgress = progress
+            if hasAppeared {
+                animatedProgress = clampedProgress
+            } else {
+                hasAppeared = true
+                withAnimation(AppAnimation.springGentle) {
+                    animatedProgress = clampedProgress
+                }
             }
         }
         .onChange(of: progress) { _, newValue in
             withAnimation(AppAnimation.springGentle) {
-                animatedProgress = newValue
+                animatedProgress = min(max(newValue, 0), 1)
             }
         }
     }

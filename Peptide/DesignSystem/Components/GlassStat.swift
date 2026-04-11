@@ -57,7 +57,7 @@ struct GlassStatPill: View {
         .padding(.vertical, Spacing.md)
         .background {
             RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
                 .overlay {
                     RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                         .fill(AppColor.cardOverlay)

@@ -32,7 +32,7 @@ struct GlassTextField: View {
         .padding(.vertical, Spacing.md)
         .background {
             Capsule()
-                .fill(.ultraThinMaterial)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
                 .overlay {
                     Capsule()
                         .fill(AppColor.cardOverlay)

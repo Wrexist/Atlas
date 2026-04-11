@@ -10,7 +10,7 @@ struct GlassCardModifier: ViewModifier {
             .padding(padding)
             .background {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
+                    .fill(AppColor.surfaceSecondary.opacity(0.6))
                     .overlay {
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                             .fill(tinted ? AppColor.glassTint : AppColor.cardOverlay)
