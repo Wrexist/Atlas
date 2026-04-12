@@ -73,7 +73,7 @@ struct ProfileView: View {
     }
 
     private func connectHealthKit() {
-        Task {
+        Task { @MainActor in
             let authorized = await HealthKitService.shared.requestAuthorization()
             if authorized {
                 dataStore.toggleHealthConnection()

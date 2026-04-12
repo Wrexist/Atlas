@@ -36,7 +36,7 @@ struct ExportSection: View {
         }
         .sheet(isPresented: $showShareSheet) {
             if let url = exportURL {
-                ShareSheet(items: [url])
+                ShareSheet(urls: [url])
             }
         }
         .sheet(isPresented: $showPaywall) { PaywallView() }
@@ -70,10 +70,10 @@ struct ExportSection: View {
 }
 
 struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
+    let urls: [URL]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
+        UIActivityViewController(activityItems: urls, applicationActivities: nil)
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}

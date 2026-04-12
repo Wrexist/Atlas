@@ -51,10 +51,9 @@ struct AchievementToastView: View {
                 Spacer()
             }
             .padding(.top, Spacing.sm)
-            .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                    withAnimation(AppAnimation.springSmooth) { isShowing = false }
-                }
+            .task {
+                try? await Task.sleep(for: .seconds(4))
+                withAnimation(AppAnimation.springSmooth) { isShowing = false }
             }
         }
     }

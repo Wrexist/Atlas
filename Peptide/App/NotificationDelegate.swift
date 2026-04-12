@@ -16,21 +16,14 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping @Sendable () -> Void
     ) {
         let action = response.actionIdentifier
-        let userInfo = response.notification.request.content.userInfo
-        let peptideIdStr = userInfo["peptideId"] as? String
-        let protocolIdStr = userInfo["protocolId"] as? String
 
-        // Build snooze request outside the Task to avoid sending non-Sendable types across isolation
-        var snoozeRequest: UNNotificationRequest?
-        if action == "SNOOZE" {
-            let content = response.notification.request.content.mutableCopy() as! UNMutableNotificationContent
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 15 * 60, repeats: false)
-            snoozeRequest = UNNotificationRequest(identifier: "snooze-\(UUID().uuidString)", content: content, trigger: trigger)
-        }
+        switch action {
+        case "MARK_TAKEN":
+            let userInfo = response.notification.request.content.userInfo
+            let peptideIdStr = userInfo["peptideId"] as? String
+            let protocolIdStr = userInfo["protocolId"] as? String
 
-        Task { @MainActor [dataStore] in
-            switch action {
-            case "MARK_TAKEN":
+            Task { @MainActor [dataStore] in
                 if let peptideIdStr,
                    let peptideId = UUID(uuidString: peptideIdStr),
                    let protocolIdStr,
@@ -43,15 +36,16 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                         dataStore.toggleEntry(entry.id)
                     }
                 }
-
-            case "SNOOZE":
-                if let snoozeRequest {
-                    try? await UNUserNotificationCenter.current().add(snoozeRequest)
-                }
-
-            default:
-                break
             }
+
+        case "SNOOZE":
+            let content = response.notification.request.content.mutableCopy() as! UNMutableNotificationContent
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 15 * 60, repeats: false)
+            let request = UNNotificationRequest(identifier: "snooze-\(UUID().uuidString)", content: content, trigger: trigger)
+            center.add(request)
+
+        default:
+            break
         }
 
         completionHandler()
