@@ -63,17 +63,17 @@ struct StackWarningCard: View {
                 }
                 .padding(.top, Spacing.xxs)
 
-                HStack(spacing: Spacing.xs) {
+                FlowLayout(spacing: Spacing.xs) {
                     ForEach(warning.peptides, id: \.self) { name in
+                        let color = warning.severity == .danger ? AppColor.destructive : Color.orange
                         Text(name)
                             .font(AppFont.caption)
                             .fontWeight(.medium)
-                            .foregroundStyle(warning.severity == .danger ? AppColor.destructive : Color.orange)
+                            .foregroundStyle(color)
                             .padding(.horizontal, Spacing.sm)
                             .padding(.vertical, Spacing.xxs)
                             .background {
-                                Capsule()
-                                    .fill((warning.severity == .danger ? AppColor.destructive : Color.orange).opacity(0.12))
+                                Capsule().fill(color.opacity(0.12))
                             }
                     }
                 }

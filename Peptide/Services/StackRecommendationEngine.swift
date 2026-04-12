@@ -302,13 +302,14 @@ enum StackRecommendationEngine {
             for j in (i + 1)..<currentPeptides.count {
                 let a = currentPeptides[i]
                 let b = currentPeptides[j]
-                let aRefs = b.abbreviation.count >= 4 && a.contraindications.contains {
-                    $0.localizedCaseInsensitiveContains(b.abbreviation) ||
-                    $0.localizedCaseInsensitiveContains(b.name)
+                // Check abbreviation only if ≥4 chars (avoid "GH" matching "high"), but always check full name
+                let aRefs = a.contraindications.contains {
+                    (b.abbreviation.count >= 4 && $0.localizedCaseInsensitiveContains(b.abbreviation)) ||
+                    (b.name.count >= 4 && $0.localizedCaseInsensitiveContains(b.name))
                 }
-                let bRefs = a.abbreviation.count >= 4 && b.contraindications.contains {
-                    $0.localizedCaseInsensitiveContains(a.abbreviation) ||
-                    $0.localizedCaseInsensitiveContains(a.name)
+                let bRefs = b.contraindications.contains {
+                    (a.abbreviation.count >= 4 && $0.localizedCaseInsensitiveContains(a.abbreviation)) ||
+                    (a.name.count >= 4 && $0.localizedCaseInsensitiveContains(a.name))
                 }
                 if aRefs || bRefs {
                     warnings.append(Warning(
@@ -405,13 +406,24 @@ enum StackRecommendationEngine {
                     }
                     guard !alreadyCovered else { continue }
 
+                    let warnSeverity: Warning.Severity
+                    let warnIcon: String
+                    switch interaction.severity {
+                    case .danger:
+                        warnSeverity = .danger
+                        warnIcon = "xmark.octagon.fill"
+                    case .caution:
+                        warnSeverity = .caution
+                        warnIcon = "exclamationmark.triangle.fill"
+                    }
+
                     warnings.append(Warning(
-                        severity: interaction.severity == .danger ? .danger : .caution,
+                        severity: warnSeverity,
                         title: "Known interaction",
                         detail: interaction.reason,
                         suggestion: interaction.recommendation,
                         peptides: [interaction.peptideA, interaction.peptideB],
-                        icon: interaction.severity == .danger ? "xmark.octagon.fill" : "exclamationmark.triangle.fill"
+                        icon: warnIcon
                     ))
                 }
             }

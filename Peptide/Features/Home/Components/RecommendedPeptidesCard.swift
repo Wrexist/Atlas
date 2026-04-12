@@ -40,6 +40,15 @@ struct RecommendedPeptidesCard: View {
         }
     }
 
+    private func reasonBadge(_ text: String, color: Color, bgOpacity: Double) -> some View {
+        Text(text)
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background { Capsule().fill(color.opacity(bgOpacity)) }
+    }
+
     private func recommendationRow(_ rec: StackRecommendationEngine.Recommendation) -> some View {
         HStack(spacing: Spacing.md) {
             ZStack {
@@ -62,24 +71,10 @@ struct RecommendedPeptidesCard: View {
                     PeptideCategoryBadge(category: rec.peptide.category)
 
                     // Tags for special reason types
-                    if rec.reasons.contains(where: { if case .validatedStack = $0 { return true }; return false }) {
-                        Text("Research-backed")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(AppColor.accentLight)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background {
-                                Capsule().fill(AppColor.accentPrimary.opacity(0.2))
-                            }
-                    } else if rec.reasons.contains(where: { if case .categorySynergy = $0 { return true }; return false }) {
-                        Text("Synergy")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(AppColor.accentPrimary)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background {
-                                Capsule().fill(AppColor.accentPrimary.opacity(0.15))
-                            }
+                    if rec.hasValidatedStack {
+                        reasonBadge("Research-backed", color: AppColor.accentLight, bgOpacity: 0.2)
+                    } else if rec.hasCategorySynergy {
+                        reasonBadge("Synergy", color: AppColor.accentPrimary, bgOpacity: 0.15)
                     }
                 }
 
@@ -105,6 +100,22 @@ struct RecommendedPeptidesCard: View {
                 .foregroundStyle(AppColor.textTertiary)
         }
         .padding(.vertical, Spacing.xs)
+    }
+}
+
+private extension StackRecommendationEngine.Recommendation {
+    var hasValidatedStack: Bool {
+        reasons.contains { reason in
+            guard case .validatedStack = reason else { return false }
+            return true
+        }
+    }
+
+    var hasCategorySynergy: Bool {
+        reasons.contains { reason in
+            guard case .categorySynergy = reason else { return false }
+            return true
+        }
     }
 }
 
