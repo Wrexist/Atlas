@@ -148,6 +148,7 @@ jobs:
           security create-keychain -p "$KC_PASSWORD" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "$KC_PASSWORD" build.keychain
+          security set-keychain-settings build.keychain
           security import "$CERT_PATH" -k build.keychain -P "$PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PASSWORD" build.keychain
           rm -f "$CERT_PATH"
@@ -232,26 +233,26 @@ jobs:
         run: |
           set -o pipefail
           cat > "$RUNNER_TEMP/exportOptions.plist" <<EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>method</key>
-  <string>app-store-connect</string>
-  <key>teamID</key>
-  <string>${TEAM_ID}</string>
-  <key>signingStyle</key>
-  <string>manual</string>
-  <key>provisioningProfiles</key>
-  <dict>
-    <key>com.peptidesai.app</key>
-    <string>${PROFILE_UUID}</string>
-  </dict>
-  <key>uploadSymbols</key>
-  <true/>
-</dict>
-</plist>
-EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>teamID</key>
+            <string>${TEAM_ID}</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.peptidesai.app</key>
+              <string>${PROFILE_UUID}</string>
+            </dict>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
 
           echo "=== exportOptions.plist ==="
           cat "$RUNNER_TEMP/exportOptions.plist"
@@ -292,28 +293,28 @@ EOF
           PROFILE_UUID: ${{ steps.profile.outputs.uuid }}
         run: |
           cat > "$RUNNER_TEMP/uploadOptions.plist" <<EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>method</key>
-  <string>app-store-connect</string>
-  <key>destination</key>
-  <string>upload</string>
-  <key>teamID</key>
-  <string>${TEAM_ID}</string>
-  <key>signingStyle</key>
-  <string>manual</string>
-  <key>provisioningProfiles</key>
-  <dict>
-    <key>com.peptidesai.app</key>
-    <string>${PROFILE_UUID}</string>
-  </dict>
-  <key>uploadSymbols</key>
-  <true/>
-</dict>
-</plist>
-EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>destination</key>
+            <string>upload</string>
+            <key>teamID</key>
+            <string>${TEAM_ID}</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.peptidesai.app</key>
+              <string>${PROFILE_UUID}</string>
+            </dict>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
 
           echo "=== uploadOptions.plist ==="
           cat "$RUNNER_TEMP/uploadOptions.plist"
