@@ -55,13 +55,14 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
 
                 (Text("Track your ")
+                    .font(AppFont.body)
                     .foregroundStyle(AppColor.textSecondary)
                 + Text("peptide protocols")
+                    .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(AppColor.accentLight)
-                    .fontWeight(.medium)
                 + Text(" with precision")
-                    .foregroundStyle(AppColor.textSecondary))
                     .font(AppFont.body)
+                    .foregroundStyle(AppColor.textSecondary))
                     .multilineTextAlignment(.center)
             }
 
@@ -249,11 +250,11 @@ struct OnboardingView: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 (Text("Start tracking your ")
+                    .font(AppFont.body)
                     .foregroundStyle(AppColor.textSecondary)
                 + Text("peptide protocols")
-                    .foregroundStyle(AppColor.accentLight)
-                    .fontWeight(.medium))
-                    .font(AppFont.body)
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(AppColor.accentLight))
                     .multilineTextAlignment(.center)
             }
 

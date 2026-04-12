@@ -21,12 +21,12 @@ struct BenefitTag: View {
         .background {
             RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                 .fill(color.opacity(0.15))
-                .shadow(color: color.opacity(0.2), radius: 4)
                 .overlay {
                     RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                         .strokeBorder(color.opacity(0.3), lineWidth: 0.5)
                 }
         }
+        .shadow(color: color.opacity(0.15), radius: 3, y: 1)
     }
 }
 
@@ -36,7 +36,7 @@ struct BenefitTagFlow: View {
 
     var body: some View {
         FlowLayout(spacing: Spacing.sm) {
-            ForEach(Array(benefits.enumerated()), id: \.element) { index, benefit in
+            ForEach(Array(benefits.enumerated()), id: \.offset) { index, benefit in
                 let style = BenefitStyleMap.style(for: benefit, fallbackColor: color)
                 BenefitTag(text: benefit, icon: style.icon, color: style.color)
                     .staggeredAppear(index: index)

@@ -1,40 +1,44 @@
 import SwiftUI
 
 enum KeywordHighlighter {
-    private enum KeywordCategory {
-        case biological
-        case anatomical
-        case action
-    }
+    // Highlight priority: action > anatomical > biological.
+    // Later passes overwrite earlier ones for overlapping matches.
+    // Within each list, longer/more-specific phrases are listed before
+    // shorter substrings so both get highlighted independently.
 
     private static let biologicalKeywords = [
         "amino acids", "pentadecapeptide", "heptapeptide", "tripeptide",
-        "tetrapeptide", "peptide", "protein", "enzyme", "receptor",
-        "hormone", "neurotrophic factor", "telomerase", "telomere",
-        "collagen", "T-cells", "cathelicidin", "BDNF", "HGF",
-        "IGF-1", "GHRH", "ACTH", "melatonin", "thymosin beta-4",
-        "growth hormone", "ghrelin", "somatostatin", "insulin-like",
-        "Drug Affinity Complex", "BPC-157", "TB-500", "GHK-Cu",
-        "Semax", "Selank", "Epitalon", "LL-37", "CJC-1295",
-        "Ipamorelin", "AOD-9604", "Tesamorelin", "Dihexa",
+        "tetrapeptide", "neurotrophic factor", "growth hormone",
+        "thymosin beta-4", "Drug Affinity Complex", "insulin-like",
+        "telomerase", "telomere", "collagen", "cathelicidin",
+        "T-cells", "ghrelin", "somatostatin",
+        "BDNF", "HGF", "IGF-1", "GHRH", "ACTH",
+        "BPC-157", "TB-500", "GHK-Cu", "CJC-1295", "LL-37",
+        "AOD-9604", "Semax", "Selank", "Epitalon",
+        "Ipamorelin", "Tesamorelin", "Dihexa",
     ]
 
     private static let anatomicalKeywords = [
-        "gastric juice", "blood-brain barrier", "gastrointestinal tract",
-        "nervous system", "immune system", "cardiovascular",
-        "pineal gland", "thymus gland", "pituitary gland",
-        "skeletal muscle", "connective tissue", "endocrine system",
-        "central nervous system", "hypothalamus",
+        "central nervous system", "gastrointestinal tract",
+        "blood-brain barrier", "gastric juice",
+        "connective tissue", "endocrine system",
+        "skeletal muscle", "cardiovascular",
+        "nervous system", "immune system",
+        "pituitary gland", "pineal gland", "thymus gland",
+        "hypothalamus",
     ]
 
     private static let actionKeywords = [
-        "healing", "regenerative", "neuroprotective", "anti-inflammatory",
-        "antimicrobial", "anxiolytic", "lipolysis", "anabolic",
-        "accelerates", "stimulates", "promotes", "enhances",
-        "activates", "inhibits", "upregulates", "modulates",
-        "protective", "wound healing", "tissue repair",
-        "cell migration", "blood vessel formation",
+        "blood vessel formation", "anti-inflammatory",
+        "cell migration", "wound healing", "tissue repair",
+        "neuroprotective", "antimicrobial", "regenerative",
+        "anxiolytic", "lipolysis", "anabolic", "protective",
+        "accelerates", "upregulates", "stimulates",
+        "modulates", "activates", "promotes", "enhances", "inhibits",
+        "healing",
     ]
+
+    private static let semiboldBody = Font.system(size: 17, weight: .semibold)
 
     static func highlight(_ text: String, accentColor: Color) -> AttributedString {
         var attributed = AttributedString(text)
@@ -57,26 +61,24 @@ enum KeywordHighlighter {
         for keyword in keywords {
             var searchStart = text.startIndex
             while let range = text.range(of: keyword, options: .caseInsensitive, range: searchStart..<text.endIndex) {
-                // Word boundary check for short keywords
-                if keyword.count < 6 {
-                    let before = range.lowerBound > text.startIndex
-                        ? text[text.index(before: range.lowerBound)]
-                        : Character(" ")
-                    let after = range.upperBound < text.endIndex
-                        ? text[range.upperBound]
-                        : Character(" ")
+                // Word boundary check: reject matches that are part of a longer word.
+                // Letters on either side indicate the match is a substring, not a word.
+                let before = range.lowerBound > text.startIndex
+                    ? text[text.index(before: range.lowerBound)]
+                    : Character(" ")
+                let after = range.upperBound < text.endIndex
+                    ? text[range.upperBound]
+                    : Character(" ")
 
-                    let isWordBoundary = !before.isLetter && !after.isLetter
-                    if !isWordBoundary {
-                        searchStart = range.upperBound
-                        continue
-                    }
+                if before.isLetter || after.isLetter {
+                    searchStart = range.upperBound
+                    continue
                 }
 
                 if let attrRange = AttributedString.Index(range.lowerBound, within: attributed),
                    let attrEnd = AttributedString.Index(range.upperBound, within: attributed) {
                     attributed[attrRange..<attrEnd].foregroundColor = color
-                    attributed[attrRange..<attrEnd].font = AppFont.body.weight(.semibold)
+                    attributed[attrRange..<attrEnd].font = semiboldBody
                 }
                 searchStart = range.upperBound
             }

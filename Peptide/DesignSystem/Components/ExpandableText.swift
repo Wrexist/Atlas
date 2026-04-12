@@ -17,18 +17,18 @@ struct ExpandableText: View {
 
     private static let gradientHeight: CGFloat = 24
 
-    private func styledText(_ content: String) -> Text {
+    private var renderedText: Text {
         if highlightKeywords {
-            return Text(KeywordHighlighter.highlight(content, accentColor: accentColor))
+            return Text(KeywordHighlighter.highlight(text, accentColor: accentColor))
         }
-        return Text(content)
+        return Text(text)
             .font(AppFont.body)
             .foregroundStyle(AppColor.textSecondary)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            styledText(text)
+            renderedText
                 .lineSpacing(4)
                 .lineLimit(isExpanded ? nil : lineLimit)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -69,7 +69,7 @@ struct ExpandableText: View {
         }
         .background(
             ZStack {
-                styledText(text)
+                renderedText
                     .lineSpacing(4)
                     .lineLimit(lineLimit)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -77,7 +77,7 @@ struct ExpandableText: View {
                         collapsedHeight = $0
                     }
 
-                styledText(text)
+                renderedText
                     .lineSpacing(4)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)

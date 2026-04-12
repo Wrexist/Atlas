@@ -2,13 +2,18 @@ import SwiftUI
 
 struct ResearchLinksSection: View {
     let links: [ResearchLink]
+    var categoryColor: Color = AppColor.accentPrimary
 
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                Label("Research", systemImage: "doc.text.magnifyingglass")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .foregroundStyle(categoryColor)
+                    Text("Research")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                }
 
                 VStack(spacing: Spacing.md) {
                     ForEach(links) { link in

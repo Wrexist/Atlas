@@ -20,16 +20,17 @@ struct ExportSection: View {
                 }
 
                 (Text("Export your ")
+                    .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                 + Text("protocol history")
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(AppColor.accentLight)
-                    .fontWeight(.medium)
                 + Text(" and ")
+                    .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                 + Text("tracking data")
-                    .foregroundStyle(AppColor.accentLight)
-                    .fontWeight(.medium))
-                    .font(AppFont.caption)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(AppColor.accentLight))
 
                 HStack(spacing: Spacing.md) {
                     GlassButton(title: "CSV", icon: "tablecells", style: .secondary) {
