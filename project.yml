@@ -26,6 +26,7 @@ targets:
         CFBundleDisplayName: PeptideX
         ITSAppUsesNonExemptEncryption: false
         NSHealthShareUsageDescription: "PeptideX uses your health data to correlate peptide protocol compliance with metrics like heart rate variability, sleep quality, and activity levels."
+        NSHealthUpdateUsageDescription: "PeptideX does not write data to Apple Health. This permission is required by the HealthKit framework but will not be used to modify your health records."
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
