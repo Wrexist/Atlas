@@ -28,7 +28,8 @@ extension StackRecommendationEngine {
         }
 
         if hasUnderservedWindow {
-            let windowName = candidateWindows.first { $0 != .anyTime }?.rawValue ?? "flexible"
+            let underservedWindow = candidateWindows.first { $0 != .anyTime && (windowCounts[$0] ?? 0) <= 1 }
+            let windowName = underservedWindow?.rawValue ?? "flexible"
             return (1, .timingComplement(description: "Fills a \(windowName) dosing gap in your schedule"))
         }
         return (0, nil)
@@ -60,9 +61,14 @@ extension StackRecommendationEngine {
         context: RecommendationContext
     ) -> (Int, RecommendationReason?) {
         let candidateRoute = candidate.adminRoute.lowercased()
-        let isInjectable = candidateRoute.contains("subcutaneous") ||
-                           candidateRoute.contains("intramuscular") ||
-                           candidateRoute.contains("intravenous")
+        // Check primary route (first listed, before any / or | separator)
+        let primaryRoute = candidateRoute
+            .components(separatedBy: CharacterSet(charactersIn: "/|"))
+            .first?
+            .trimmingCharacters(in: .whitespaces) ?? candidateRoute
+        let isInjectable = primaryRoute.contains("subcutaneous") ||
+                           primaryRoute.contains("intramuscular") ||
+                           primaryRoute.contains("intravenous")
 
         let injectableCount = context.currentRoutes.filter {
             $0.contains("subcutaneous") || $0.contains("intramuscular") || $0.contains("intravenous")
@@ -71,10 +77,10 @@ extension StackRecommendationEngine {
         guard !isInjectable && injectableCount >= 2 else { return (0, nil) }
 
         let routeLabel: String
-        if candidateRoute.contains("oral") { routeLabel = "oral" }
-        else if candidateRoute.contains("nasal") || candidateRoute.contains("intranasal") { routeLabel = "intranasal" }
-        else if candidateRoute.contains("topical") { routeLabel = "topical" }
-        else { routeLabel = candidateRoute }
+        if primaryRoute.contains("oral") || primaryRoute.contains("sublingual") { routeLabel = "oral" }
+        else if primaryRoute.contains("nasal") || primaryRoute.contains("intranasal") { routeLabel = "intranasal" }
+        else if primaryRoute.contains("topical") { routeLabel = "topical" }
+        else { routeLabel = primaryRoute }
 
         return (1, .routeDiversity(route: "Available as \(routeLabel) — reduces injection burden"))
     }
@@ -180,10 +186,10 @@ extension StackRecommendationEngine {
     /// Returns nil for unknown/unparseable values.
     static func parseHalfLifeHours(_ halfLife: String) -> Double? {
         let lower = halfLife.lowercased()
-        if lower.contains("unknown") || lower.isEmpty { return nil }
+        if lower.contains("unknown") || lower.isEmpty || lower.hasPrefix("n/a") { return nil }
 
-        // Extract numeric value
-        let pattern = #"(\d+\.?\d*)\s*[-–]?\s*(\d+\.?\d*)?\s*(min|hour|hr|h|day|d|week|wk)"#
+        // Extract numeric value with unit
+        let pattern = #"(\d+\.?\d*)\s*[-–]?\s*(\d+\.?\d*)?\s*(second|sec|min|hour|hr|h|day|d|week|wk)"#
         guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
               let match = regex.firstMatch(in: lower, range: NSRange(lower.startIndex..., in: lower)) else {
             return nil
@@ -202,6 +208,7 @@ extension StackRecommendationEngine {
         let unit = String(lower[unitRange])
 
         switch unit {
+        case "second", "sec": return value / 3600.0
         case "min": return value / 60.0
         case "hour", "hr", "h": return value
         case "day", "d": return value * 24.0

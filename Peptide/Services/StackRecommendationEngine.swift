@@ -348,9 +348,15 @@ enum StackRecommendationEngine {
         for currentPeptides: [Peptide],
         activeProtocols: [PeptideProtocol]
     ) -> [Warning] {
-        guard currentPeptides.count >= 2 else { return [] }
+        guard !currentPeptides.isEmpty else { return [] }
 
         var warnings: [Warning] = []
+
+        // --- Pairwise warnings (require 2+ peptides) ---
+        guard currentPeptides.count >= 2 else {
+            // Skip to per-peptide warnings below
+            return perPeptideWarnings(for: currentPeptides, activeProtocols: activeProtocols)
+        }
 
         // 1. Compounding side effects
         var sideEffectPeptides: [String: Set<String>] = [:]
@@ -532,7 +538,7 @@ enum StackRecommendationEngine {
             // Skip if a prior warning already covers 2+ of the same peptides (overlap, not subset)
             let matchingNames = Set(matching.map(\.abbreviation))
             let alreadyCovered = warnings.contains { w in
-                matchingNames.intersection(Set(w.peptides)).count >= 2
+                matchingNames.isSubset(of: Set(w.peptides))
             }
             guard !alreadyCovered else { continue }
 
@@ -561,8 +567,22 @@ enum StackRecommendationEngine {
             ))
         }
 
-        // 9. Cycle length warning
+        // 9-12. Per-peptide warnings (also fire for single-peptide stacks)
+        warnings.append(contentsOf: perPeptideWarnings(for: currentPeptides, activeProtocols: activeProtocols))
+
+        return warnings.sorted { $0.severity > $1.severity }
+    }
+
+    /// Warnings that apply per-peptide (cycle length, desensitization, hepatotoxicity, timing).
+    /// These fire regardless of stack size — a single overdue peptide still deserves a warning.
+    private static func perPeptideWarnings(
+        for currentPeptides: [Peptide],
+        activeProtocols: [PeptideProtocol]
+    ) -> [Warning] {
+        var warnings: [Warning] = []
         let calendar = Calendar.current
+
+        // 9. Cycle length warning
         for proto in activeProtocols {
             for peptide in proto.peptides {
                 guard let cycle = PeptideTimingData.cycleProtocols[peptide.abbreviation] else { continue }
@@ -651,7 +671,7 @@ enum StackRecommendationEngine {
             }
         }
 
-        return warnings.sorted { $0.severity > $1.severity }
+        return warnings
     }
 
     // MARK: - Stack Completeness
@@ -695,7 +715,7 @@ enum StackRecommendationEngine {
 
             // Dimension 2: validated stack coverage
             let hasCompleteStack = PeptideCompatibilityData.validatedStacks.contains { stack in
-                let goalRelevant = stack.goal.localizedCaseInsensitiveContains(goal.displayName) ||
+                let goalRelevant = stack.goal.localizedCaseInsensitiveContains(goal.category.displayName) ||
                     goal.benefitTerms.contains { stack.goal.localizedCaseInsensitiveContains($0) }
                 let isComplete = stack.peptideAbbreviations.allSatisfy { currentAbbreviations.contains($0) }
                 return goalRelevant && isComplete

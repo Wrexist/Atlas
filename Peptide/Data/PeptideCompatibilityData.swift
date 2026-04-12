@@ -127,9 +127,9 @@ enum PeptideCompatibilityData {
         // Skin & Anti-Aging
         ValidatedStack(
             name: "Skin Rejuvenation",
-            peptideAbbreviations: ["GHK-Cu", "Epitalon", "BPC-157"],
-            goal: "Skin health and anti-aging",
-            synergy: "GHK-Cu increases Type I/III collagen by up to 70% and stimulates elastin. Epitalon activates telomerase in fibroblasts for cellular longevity. BPC-157 provides cytoprotection and promotes angiogenesis for nutrient delivery to skin.",
+            peptideAbbreviations: ["GHK-Cu", "BPC-157", "TB-500"],
+            goal: "Skin health and tissue repair",
+            synergy: "GHK-Cu increases Type I/III collagen by up to 70% and stimulates elastin for skin structure. BPC-157 promotes angiogenesis for nutrient delivery to skin. TB-500 enhances cell migration and reduces fibrosis for smoother healing.",
             notes: "GHK-Cu can be applied topically for localized skin effects."
         ),
         ValidatedStack(
@@ -173,7 +173,7 @@ enum PeptideCompatibilityData {
         // Hormonal
         ValidatedStack(
             name: "Hormonal Optimization",
-            peptideAbbreviations: ["CJC-1295 DAC", "Ipamorelin", "Kisspeptin"],
+            peptideAbbreviations: ["CJC-1295 DAC", "Ipamorelin", "KP-10"],
             goal: "Endocrine axis support",
             synergy: "CJC-1295/Ipamorelin stimulate the GH axis for systemic anabolism. Kisspeptin activates GnRH neurons to support the HPG axis (LH/FSH/testosterone). Two independent endocrine axes stimulated without receptor overlap.",
             notes: "Kisspeptin is pulsatile — continuous dosing may desensitize GnRH neurons."
@@ -351,7 +351,7 @@ enum PeptideCompatibilityData {
     /// Peptides with documented hepatic metabolism burden or liver-stressing properties.
     /// Stacking multiple increases cumulative hepatic load.
     static let hepatotoxicPeptides: Set<String> = [
-        "MK-677", "IGF-1 LR3", "IGF-1 DES", "Follistatin"
+        "MK-677", "IGF-1 LR3", "IGF-1 DES", "FST-344"
     ]
 
     // MARK: - Lookup Helpers

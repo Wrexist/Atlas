@@ -56,10 +56,11 @@ extension StackRecommendationEngine {
                 currentPeptides: currentPeptides
             )
 
-            let activeCount = activeProtocols.count
-            if activeCount <= 1 {
+            // Use total unique peptides across active protocols as experience proxy
+            let totalPeptides = Set(activeProtocols.flatMap(\.peptides).map(\.id)).count
+            if totalPeptides <= 2 {
                 self.experienceLevel = .beginner
-            } else if activeCount <= 3 {
+            } else if totalPeptides <= 6 {
                 self.experienceLevel = .intermediate
             } else {
                 self.experienceLevel = .advanced

@@ -74,10 +74,10 @@ enum PeptideTimingData {
             PeptideTiming(abbreviation: "PEG-MGF", preferredWindows: [.postWorkout], avoidWith: [], notes: "PEGylated for extended half-life. Post-workout on non-IGF days"),
 
             // Other
-            PeptideTiming(abbreviation: "Follistatin", preferredWindows: [.morningFasted], avoidWith: [], notes: "Morning dosing for myostatin inhibition throughout the day"),
-            PeptideTiming(abbreviation: "Kisspeptin", preferredWindows: [.morningFasted, .preBed], avoidWith: [], notes: "Pulsatile dosing preferred. Morning or pre-bed for hormonal axis"),
+            PeptideTiming(abbreviation: "FST-344", preferredWindows: [.morningFasted], avoidWith: [], notes: "Morning dosing for myostatin inhibition throughout the day"),
+            PeptideTiming(abbreviation: "KP-10", preferredWindows: [.morningFasted, .preBed], avoidWith: [], notes: "Pulsatile dosing preferred. Morning or pre-bed for hormonal axis"),
         ]
-        return Dictionary(uniqueKeysWithValues: entries.map { ($0.abbreviation, $0) })
+        return Dictionary(entries.map { ($0.abbreviation, $0) }, uniquingKeysWith: { _, new in new })
     }()
 
     // MARK: - Cycling Protocols
@@ -126,7 +126,7 @@ enum PeptideTimingData {
             // Immune
             CycleProtocol(abbreviation: "TA1", onWeeks: 8, offWeeks: 4, reason: "T-cell maturation continues after cessation", transitionSuggestions: ["LL-37", "KPV"]),
         ]
-        return Dictionary(uniqueKeysWithValues: entries.map { ($0.abbreviation, $0) })
+        return Dictionary(entries.map { ($0.abbreviation, $0) }, uniquingKeysWith: { _, new in new })
     }()
 
     // MARK: - Desensitization Risk
