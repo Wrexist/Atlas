@@ -51,18 +51,21 @@ final class DataStore: DataServiceProtocol {
         protocols.insert(newProtocol, at: 0)
         appendTodayEntries(for: newProtocol)
         save()
+        NotificationService.shared.scheduleNotifications(for: activeProtocols)
     }
 
     func deleteProtocol(id: UUID) {
         protocols.removeAll { $0.id == id }
         entries.removeAll { $0.protocolId == id }
         save()
+        NotificationService.shared.scheduleNotifications(for: activeProtocols)
     }
 
     func updateProtocolStatus(id: UUID, to status: ProtocolStatus) {
         guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
         protocols[index].status = status
         save()
+        NotificationService.shared.scheduleNotifications(for: activeProtocols)
     }
 
     // MARK: - Entries
