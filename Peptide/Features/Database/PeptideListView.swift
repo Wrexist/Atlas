@@ -1,7 +1,12 @@
 import SwiftUI
 
 struct PeptideListView: View {
+    @Environment(DataStore.self) private var dataStore
     @State private var viewModel = PeptideListViewModel()
+
+    private func refreshPeptides() {
+        viewModel = PeptideListViewModel(peptides: dataStore.peptideDatabase)
+    }
 
     var body: some View {
         NavigationStack {
@@ -37,6 +42,7 @@ struct PeptideListView: View {
             .navigationDestination(for: Peptide.self) { peptide in
                 PeptideDetailView(peptide: peptide)
             }
+            .onAppear { refreshPeptides() }
         }
     }
 }

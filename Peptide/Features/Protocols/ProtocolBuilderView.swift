@@ -53,7 +53,7 @@ struct ProtocolBuilderView: View {
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
 
-                            PeptideSelector(selectedPeptides: $selectedPeptides)
+                            PeptideSelector(selectedPeptides: $selectedPeptides, peptides: dataStore.peptideDatabase)
                         }
                     }
                     .sectionAppear(index: 1)
@@ -129,7 +129,7 @@ struct ProtocolBuilderView: View {
     }
 
     private func createProtocol() {
-        let peptides = MockPeptides.all.filter { selectedPeptides.contains($0.id) }
+        let peptides = dataStore.peptideDatabase.filter { selectedPeptides.contains($0.id) }
         guard !peptides.isEmpty else { return }
 
         let defaultTimes = (1...timesPerDay).map { index in

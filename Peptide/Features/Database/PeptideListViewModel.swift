@@ -4,7 +4,11 @@ import SwiftUI
 final class PeptideListViewModel {
     var searchText = ""
     var selectedCategory: PeptideCategory?
-    var allPeptides = MockPeptides.all
+    private(set) var allPeptides: [Peptide]
+
+    init(peptides: [Peptide] = []) {
+        self.allPeptides = peptides.isEmpty ? MockPeptides.all : peptides
+    }
 
     var filteredPeptides: [Peptide] {
         var results = allPeptides

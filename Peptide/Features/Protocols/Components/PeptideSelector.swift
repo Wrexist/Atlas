@@ -2,10 +2,11 @@ import SwiftUI
 
 struct PeptideSelector: View {
     @Binding var selectedPeptides: Set<UUID>
+    var peptides: [Peptide] = MockPeptides.all
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
-            ForEach(MockPeptides.all) { peptide in
+            ForEach(peptides) { peptide in
                 Button {
                     withAnimation(AppAnimation.springSnappy) {
                         if selectedPeptides.contains(peptide.id) {

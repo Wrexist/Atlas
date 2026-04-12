@@ -6,11 +6,31 @@ final class DataStore: DataServiceProtocol {
     var entries: [ProtocolEntry]
     var profile: UserProfile
 
+    private let persistence = PersistenceService.shared
+
     init() {
-        let initialProtocols = MockProtocols.all
-        self.protocols = initialProtocols
-        self.profile = MockProfile.current
-        self.entries = Self.generateInitialEntries(for: initialProtocols)
+        if persistence.hasPersistedData,
+           let savedProtocols = persistence.loadProtocols(),
+           let savedEntries = persistence.loadEntries(),
+           let savedProfile = persistence.loadProfile() {
+            self.protocols = savedProtocols
+            self.entries = savedEntries
+            self.profile = savedProfile
+            regenerateTodayEntries()
+        } else {
+            let initialProtocols = MockProtocols.all
+            self.protocols = initialProtocols
+            self.profile = MockProfile.current
+            self.entries = Self.generateInitialEntries(for: initialProtocols)
+            save()
+        }
+    }
+
+    // MARK: - Peptide Database
+
+    var peptideDatabase: [Peptide] {
+        let bundled = persistence.loadPeptideDatabase()
+        return bundled.isEmpty ? MockPeptides.all : bundled
     }
 
     // MARK: - Protocols
@@ -30,16 +50,19 @@ final class DataStore: DataServiceProtocol {
     func addProtocol(_ newProtocol: PeptideProtocol) {
         protocols.insert(newProtocol, at: 0)
         appendTodayEntries(for: newProtocol)
+        save()
     }
 
     func deleteProtocol(id: UUID) {
         protocols.removeAll { $0.id == id }
         entries.removeAll { $0.protocolId == id }
+        save()
     }
 
     func updateProtocolStatus(id: UUID, to status: ProtocolStatus) {
         guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
         protocols[index].status = status
+        save()
     }
 
     // MARK: - Entries
@@ -55,6 +78,7 @@ final class DataStore: DataServiceProtocol {
     func toggleEntry(_ entryId: UUID) {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
         entries[index].completed.toggle()
+        save()
     }
 
     func entriesFor(protocolId: UUID, days: Int = 14) -> [ProtocolEntry] {
@@ -172,10 +196,31 @@ final class DataStore: DataServiceProtocol {
 
     func updateGoals(_ goals: Set<String>) {
         profile.goals = Array(goals).sorted()
+        save()
     }
 
     func toggleHealthConnection() {
         profile.healthConnected.toggle()
+        save()
+    }
+
+    // MARK: - Persistence
+
+    private func save() {
+        persistence.saveProtocols(protocols)
+        persistence.saveEntries(entries)
+        persistence.saveProfile(profile)
+    }
+
+    private func regenerateTodayEntries() {
+        let calendar = Calendar.current
+        let hasTodayEntries = entries.contains { calendar.isDateInToday($0.date) }
+        if !hasTodayEntries {
+            for proto in activeProtocols {
+                entries.append(contentsOf: Self.generateTodayEntries(for: proto))
+            }
+            save()
+        }
     }
 
     // MARK: - Entry Generation
