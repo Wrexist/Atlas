@@ -3,6 +3,8 @@ import SwiftUI
 struct ExpandableText: View {
     let text: String
     var lineLimit: Int = 4
+    var accentColor: Color = AppColor.accentLight
+    var highlightKeywords: Bool = true
 
     @State private var isExpanded = false
     @State private var collapsedHeight: CGFloat = 0
@@ -16,7 +18,10 @@ struct ExpandableText: View {
     private static let gradientHeight: CGFloat = 24
 
     private func styledText(_ content: String) -> Text {
-        Text(content)
+        if highlightKeywords {
+            return Text(KeywordHighlighter.highlight(content, accentColor: accentColor))
+        }
+        return Text(content)
             .font(AppFont.body)
             .foregroundStyle(AppColor.textSecondary)
     }

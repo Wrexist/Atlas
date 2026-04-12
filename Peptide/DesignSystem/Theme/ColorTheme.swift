@@ -14,6 +14,7 @@ enum AppColor {
     static let textPrimary = Color.white
     static let textSecondary = Color(hex: 0xA0A0A0)
     static let textTertiary = Color(hex: 0x666666)
+    static let textHighlight = Color(hex: 0xC8D8C0)
 
     static let destructive = Color(hex: 0xFF4444)
     static let warning = Color(hex: 0xFFB800)

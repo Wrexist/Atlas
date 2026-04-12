@@ -6,9 +6,13 @@ struct DosageInfoSection: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                Label("Dosage Information", systemImage: "syringe.fill")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "syringe.fill")
+                        .foregroundStyle(peptide.category.color)
+                    Text("Dosage Information")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                }
 
                 VStack(spacing: Spacing.md) {
                     DosageRow(label: "Dosage Range", value: peptide.dosageRange, icon: "scalemass.fill")

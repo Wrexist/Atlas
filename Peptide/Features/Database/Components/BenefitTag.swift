@@ -2,23 +2,31 @@ import SwiftUI
 
 struct BenefitTag: View {
     let text: String
+    var icon: String? = nil
     var color: Color = AppColor.accentPrimary
 
     var body: some View {
-        Text(text)
-            .font(AppFont.caption)
-            .fontWeight(.medium)
-            .foregroundStyle(color)
-            .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, Spacing.xs)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                    .fill(color.opacity(0.12))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                            .strokeBorder(color.opacity(0.2), lineWidth: 0.5)
-                    }
+        HStack(spacing: 4) {
+            if let icon {
+                Image(systemName: icon)
+                    .font(.system(size: 9, weight: .semibold))
             }
+            Text(text)
+                .font(AppFont.caption)
+                .fontWeight(.medium)
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.xs)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
+                .fill(color.opacity(0.15))
+                .shadow(color: color.opacity(0.2), radius: 4)
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
+                        .strokeBorder(color.opacity(0.3), lineWidth: 0.5)
+                }
+        }
     }
 }
 
@@ -28,8 +36,10 @@ struct BenefitTagFlow: View {
 
     var body: some View {
         FlowLayout(spacing: Spacing.sm) {
-            ForEach(benefits, id: \.self) { benefit in
-                BenefitTag(text: benefit, color: color)
+            ForEach(Array(benefits.enumerated()), id: \.element) { index, benefit in
+                let style = BenefitStyleMap.style(for: benefit, fallbackColor: color)
+                BenefitTag(text: benefit, icon: style.icon, color: style.color)
+                    .staggeredAppear(index: index)
             }
         }
     }
@@ -78,10 +88,16 @@ struct FlowLayout: Layout {
 #Preview {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        BenefitTagFlow(
-            benefits: ["Tissue Repair", "Gut Healing", "Anti-Inflammatory", "Joint Support", "Tendon Recovery"],
-            color: PeptideCategory.growth.color
-        )
+        VStack(spacing: Spacing.lg) {
+            BenefitTagFlow(
+                benefits: ["Tissue Repair", "Gut Healing", "Anti-Inflammatory", "Joint Support", "Tendon Recovery"],
+                color: PeptideCategory.growth.color
+            )
+            BenefitTagFlow(
+                benefits: ["Focus", "Memory", "Neuroprotection", "BDNF", "Mood"],
+                color: PeptideCategory.cognitive.color
+            )
+        }
         .padding(Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)
