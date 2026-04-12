@@ -3,6 +3,9 @@ name: iOS TestFlight Deploy
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ios-testflight-deploy
   cancel-in-progress: false
@@ -85,8 +88,9 @@ jobs:
         run: xcodegen generate
 
       - name: Stamp build number into Info.plist
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
-          BUILD_NUMBER=${{ github.run_number }}
           PLIST="Peptide/Resources/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$PLIST"
           echo "Stamped CFBundleVersion = $BUILD_NUMBER"
@@ -140,11 +144,13 @@ jobs:
           fi
           echo "Certificate decoded: $CERT_SIZE bytes"
 
-          security create-keychain -p "" build.keychain
+          KC_PASSWORD=$(openssl rand -hex 24)
+          security create-keychain -p "$KC_PASSWORD" build.keychain
           security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
+          security unlock-keychain -p "$KC_PASSWORD" build.keychain
+          security set-keychain-settings build.keychain
           security import "$CERT_PATH" -k build.keychain -P "$PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PASSWORD" build.keychain
           rm -f "$CERT_PATH"
           echo "Certificate imported successfully"
 
@@ -153,6 +159,7 @@ jobs:
         env:
           PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
         run: |
+          set -o pipefail
           PROFILE_DIR=~/Library/MobileDevice/Provisioning\ Profiles
           mkdir -p "$PROFILE_DIR"
           PROFILE_PATH="$PROFILE_DIR/profile.mobileprovision"
@@ -176,8 +183,10 @@ jobs:
       - name: Build archive
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          PROFILE_UUID: ${{ steps.profile.outputs.uuid }}
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
-          BUILD_NUMBER=${{ github.run_number }}
+          set -o pipefail
           echo "Building build #$BUILD_NUMBER"
 
           xcodebuild archive \
@@ -189,7 +198,7 @@ jobs:
             DEVELOPMENT_TEAM="$TEAM_ID" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="${{ steps.profile.outputs.uuid }}" \
+            PROVISIONING_PROFILE="$PROFILE_UUID" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             OTHER_CODE_SIGN_FLAGS="--keychain build.keychain" \
             | tee "$RUNNER_TEMP/xcodebuild-archive.log"
@@ -222,6 +231,7 @@ jobs:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           PROFILE_UUID: ${{ steps.profile.outputs.uuid }}
         run: |
+          set -o pipefail
           cat > "$RUNNER_TEMP/exportOptions.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -268,42 +278,64 @@ jobs:
           API_KEY: ${{ secrets.APPLE_CONNECT_PRIVATE_KEY }}
           KEY_ID: ${{ secrets.APPLE_CONNECT_KEY_ID }}
         run: |
-          mkdir -p ~/private_keys
-          echo "$API_KEY" > ~/private_keys/AuthKey_${KEY_ID}.p8
-          chmod 600 ~/private_keys/AuthKey_${KEY_ID}.p8
+          KEY_DIR="$RUNNER_TEMP/private_keys"
+          mkdir -p "$KEY_DIR"
+          chmod 700 "$KEY_DIR"
+          echo "$API_KEY" > "$KEY_DIR/AuthKey_${KEY_ID}.p8"
+          chmod 600 "$KEY_DIR/AuthKey_${KEY_ID}.p8"
           echo "API key written for key ID: $KEY_ID"
 
-      - name: Upload to TestFlight
+      - name: Upload to App Store Connect
         env:
           KEY_ID: ${{ secrets.APPLE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          PROFILE_UUID: ${{ steps.profile.outputs.uuid }}
         run: |
-          IPA_PATH=$(ls "$RUNNER_TEMP/export/"*.ipa | head -1)
-          echo "Uploading: $IPA_PATH ($(stat -f%z "$IPA_PATH") bytes)"
+          cat > "$RUNNER_TEMP/uploadOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>destination</key>
+            <string>upload</string>
+            <key>teamID</key>
+            <string>${TEAM_ID}</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.peptidesai.app</key>
+              <string>${PROFILE_UUID}</string>
+            </dict>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
 
+          echo "=== uploadOptions.plist ==="
+          cat "$RUNNER_TEMP/uploadOptions.plist"
+          echo "==========================="
+
+          echo "Starting upload to App Store Connect..."
           UPLOAD_LOG="$RUNNER_TEMP/upload.log"
 
           set -o pipefail
-          if xcrun altool --help 2>&1 | grep -q "upload-app"; then
-            echo "Using xcrun altool for upload"
-            xcrun altool --upload-app \
-              --type ios \
-              --file "$IPA_PATH" \
-              --apiKey "$KEY_ID" \
-              --apiIssuer "$ISSUER_ID" 2>&1 | tee "$UPLOAD_LOG"
-          else
-            echo "altool not available, using xcodebuild for upload"
-            xcodebuild -exportArchive \
-              -archivePath "$RUNNER_TEMP/Peptide.xcarchive" \
-              -exportPath "$RUNNER_TEMP/upload-export" \
-              -exportOptionsPlist "$RUNNER_TEMP/exportOptions.plist" \
-              -allowProvisioningUpdates \
-              -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
-              -authenticationKeyID "$KEY_ID" \
-              -authenticationKeyIssuerID "$ISSUER_ID" 2>&1 | tee "$UPLOAD_LOG"
-          fi
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Peptide.xcarchive" \
+            -exportPath "$RUNNER_TEMP/upload-output" \
+            -exportOptionsPlist "$RUNNER_TEMP/uploadOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8" \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" 2>&1 | tee "$UPLOAD_LOG"
 
-          echo "Upload to TestFlight complete. Build will appear in App Store Connect within 15-30 minutes."
+          echo ""
+          echo "Upload command completed (exit code propagated by pipefail)."
+          echo "Build uploaded. It will appear in TestFlight within 15-30 minutes after Apple processing."
 
       - name: Upload build artifacts
         if: always()
@@ -314,6 +346,7 @@ jobs:
             ${{ runner.temp }}/export/*.ipa
             ${{ runner.temp }}/xcodebuild-archive.log
             ${{ runner.temp }}/xcodebuild-export.log
+            ${{ runner.temp }}/upload.log
           retention-days: 30
           if-no-files-found: warn
 
@@ -321,4 +354,4 @@ jobs:
         if: always()
         run: |
           security delete-keychain build.keychain 2>/dev/null || true
-          rm -f ~/private_keys/AuthKey_*.p8 2>/dev/null || true
+          rm -rf "$RUNNER_TEMP/private_keys" 2>/dev/null || true
