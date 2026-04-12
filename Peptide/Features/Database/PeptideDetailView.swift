@@ -213,6 +213,10 @@ struct PeptideDetailView: View {
 struct MolecularInfoSection: View {
     let molecular: MolecularData
 
+    private var showsFormula: Bool {
+        !molecular.formula.isEmpty && !molecular.formula.hasPrefix("Complex peptide")
+    }
+
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -221,19 +225,21 @@ struct MolecularInfoSection: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 VStack(spacing: Spacing.md) {
-                    if !molecular.formula.isEmpty && molecular.formula != "Complex peptide" {
+                    if showsFormula {
                         MolecularRow(label: "Formula", value: molecular.formula, icon: "textformat.abc")
                     }
 
                     if !molecular.weight.isEmpty {
-                        if !molecular.formula.isEmpty && molecular.formula != "Complex peptide" {
+                        if showsFormula {
                             Divider().foregroundStyle(AppColor.glassBorder)
                         }
-                        MolecularRow(label: "Molecular Weight", value: "\(molecular.weight) Da", icon: "scalemass.fill")
+                        MolecularRow(label: "Molecular Weight", value: molecular.weight, icon: "scalemass.fill")
                     }
 
                     if let cid = molecular.cid, cid > 0, !molecular.pubchemURL.isEmpty {
-                        Divider().foregroundStyle(AppColor.glassBorder)
+                        if showsFormula || !molecular.weight.isEmpty {
+                            Divider().foregroundStyle(AppColor.glassBorder)
+                        }
                         if let url = URL(string: molecular.pubchemURL) {
                             Link(destination: url) {
                                 HStack {

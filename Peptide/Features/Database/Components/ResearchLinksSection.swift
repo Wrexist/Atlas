@@ -11,10 +11,10 @@ struct ResearchLinksSection: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 VStack(spacing: Spacing.md) {
-                    ForEach(Array(links.enumerated()), id: \.element.id) { index, link in
+                    ForEach(links) { link in
                         researchRow(link: link)
 
-                        if index < links.count - 1 {
+                        if link.id != links.last?.id {
                             Divider().foregroundStyle(AppColor.glassBorder)
                         }
                     }
@@ -25,7 +25,17 @@ struct ResearchLinksSection: View {
 
     @ViewBuilder
     private func researchRow(link: ResearchLink) -> some View {
-        let content = HStack(alignment: .top, spacing: Spacing.md) {
+        if let url = URL(string: link.url), !link.url.isEmpty {
+            Link(destination: url) {
+                researchRowContent(link: link, tappable: true)
+            }
+        } else {
+            researchRowContent(link: link, tappable: false)
+        }
+    }
+
+    private func researchRowContent(link: ResearchLink, tappable: Bool) -> some View {
+        HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: "doc.fill")
                 .font(.system(size: 14))
                 .foregroundStyle(AppColor.accentPrimary)
@@ -42,7 +52,7 @@ struct ResearchLinksSection: View {
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
                         .lineLimit(1)
-                    Text("•")
+                    Text("\u{2022}")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
                     Text("\(link.year)")
@@ -61,13 +71,7 @@ struct ResearchLinksSection: View {
 
             Image(systemName: "arrow.up.right")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(link.url.isEmpty ? AppColor.textTertiary : AppColor.accentPrimary)
-        }
-
-        if let url = URL(string: link.url), !link.url.isEmpty {
-            Link(destination: url) { content }
-        } else {
-            content
+                .foregroundStyle(tappable ? AppColor.accentPrimary : AppColor.textTertiary)
         }
     }
 }

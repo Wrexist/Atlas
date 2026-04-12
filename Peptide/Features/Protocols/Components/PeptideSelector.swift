@@ -56,9 +56,8 @@ struct PeptideSelector: View {
                 }
             }
 
-            ScrollView {
-                LazyVStack(spacing: Spacing.xs) {
-                    ForEach(peptides) { peptide in
+            LazyVStack(spacing: Spacing.xs) {
+                ForEach(peptides) { peptide in
                         Button {
                             withAnimation(AppAnimation.springSnappy) {
                                 if selectedPeptides.contains(peptide.id) {
@@ -119,8 +118,6 @@ struct PeptideSelector: View {
                         .buttonStyle(.plain)
                     }
                 }
-            }
-            .frame(maxHeight: 400)
         }
     }
 }

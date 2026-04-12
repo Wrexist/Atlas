@@ -67,8 +67,9 @@ enum PeptideDatabase {
 
     // MARK: - Loading
 
-    static func load() -> [Peptide] {
+    private static func load() -> [Peptide] {
         guard let url = Bundle.main.url(forResource: "peptides", withExtension: "json") else {
+            assertionFailure("peptides.json not found in bundle — using fallback mocks")
             return MockPeptides.fallback
         }
 
@@ -77,6 +78,7 @@ enum PeptideDatabase {
             let payload = try JSONDecoder().decode(Payload.self, from: data)
             return payload.peptides.map(map)
         } catch {
+            assertionFailure("Failed to decode peptides.json: \(error)")
             return MockPeptides.fallback
         }
     }
