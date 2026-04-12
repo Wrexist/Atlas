@@ -17,6 +17,11 @@ struct HomeView: View {
 
     var body: some View {
         let stats = todayStats
+        let stackPeptides = Array(Set(dataStore.activeProtocols.flatMap(\.peptides)))
+        let stackWarnings = StackRecommendationEngine.warnings(for: stackPeptides)
+        let recommendations = StackRecommendationEngine.recommendations(
+            for: stackPeptides, from: dataStore.peptideDatabase
+        )
 
         NavigationStack {
             ScrollView {
@@ -53,9 +58,21 @@ struct HomeView: View {
                     )
                     .sectionAppear(index: 3)
 
+                    // Stack warnings (danger/caution alerts)
+                    if !stackWarnings.isEmpty {
+                        StackWarningCard(warnings: stackWarnings)
+                            .sectionAppear(index: 4)
+                    }
+
+                    // Smart recommendations
+                    if !stackPeptides.isEmpty {
+                        RecommendedPeptidesCard(recommendations: recommendations)
+                            .sectionAppear(index: 5)
+                    }
+
                     if dataStore.profile.healthConnected {
                         HealthSummaryCard()
-                            .sectionAppear(index: 4)
+                            .sectionAppear(index: 6)
                     }
 
                     // Top insight
@@ -84,7 +101,7 @@ struct HomeView: View {
                                 Spacer()
                             }
                         }
-                        .sectionAppear(index: 5)
+                        .sectionAppear(index: 7)
                     }
                 }
                 .padding(.horizontal, Spacing.screenPadding)
@@ -102,6 +119,9 @@ struct HomeView: View {
                         notes: notes
                     )
                 }
+            }
+            .navigationDestination(for: Peptide.self) { peptide in
+                PeptideDetailView(peptide: peptide)
             }
             .overlay {
                 if let achievement = toastAchievement {
