@@ -1,10 +1,12 @@
 import SwiftUI
+import UserNotifications
 
 @main
 struct PeptideApp: App {
     @State private var appState = AppState()
     @State private var dataStore = DataStore()
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @State private var notificationDelegate: NotificationDelegate?
 
     var body: some Scene {
         WindowGroup {
@@ -34,6 +36,9 @@ struct PeptideApp: App {
                 .preferredColorScheme(.dark)
                 .tint(AppColor.accentPrimary)
                 .task {
+                    let delegate = NotificationDelegate(dataStore: dataStore)
+                    notificationDelegate = delegate
+                    UNUserNotificationCenter.current().delegate = delegate
                     NotificationService.shared.registerCategories()
                     let status = await NotificationService.shared.checkAuthorization()
                     if status == .notDetermined {

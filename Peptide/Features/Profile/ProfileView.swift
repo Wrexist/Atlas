@@ -47,7 +47,7 @@ struct ProfileView: View {
 
                     HealthConnectionCard(
                         isConnected: dataStore.profile.healthConnected,
-                        onConnect: { dataStore.toggleHealthConnection() }
+                        onConnect: { connectHealthKit() }
                     )
                     .sectionAppear(index: 4)
 
@@ -71,6 +71,15 @@ struct ProfileView: View {
     private var memberDuration: String {
         let months = Calendar.current.dateComponents([.month], from: dataStore.profile.memberSince, to: Date()).month ?? 0
         return months <= 1 ? "1 month" : "\(months) months"
+    }
+
+    private func connectHealthKit() {
+        Task {
+            let authorized = await HealthKitService.shared.requestAuthorization()
+            if authorized {
+                dataStore.toggleHealthConnection()
+            }
+        }
     }
 
     private func toggleGoal(_ goal: String) {

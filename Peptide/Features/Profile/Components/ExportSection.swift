@@ -3,14 +3,21 @@ import SwiftUI
 struct ExportSection: View {
     @Environment(DataStore.self) private var dataStore
     @State private var showShareSheet = false
+    @State private var showPaywall = false
     @State private var exportURL: URL?
+    private var isPro: Bool { StoreService.shared.isProUser }
 
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                Label("Data Export", systemImage: "square.and.arrow.up")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
+                HStack {
+                    Label("Data Export", systemImage: "square.and.arrow.up")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    if !isPro {
+                        ProBadge()
+                    }
+                }
 
                 Text("Export your protocol history and tracking data")
                     .font(AppFont.caption)
@@ -18,11 +25,11 @@ struct ExportSection: View {
 
                 HStack(spacing: Spacing.md) {
                     GlassButton(title: "CSV", icon: "tablecells", style: .secondary) {
-                        exportCSV()
+                        isPro ? exportCSV() : (showPaywall = true)
                     }
 
                     GlassButton(title: "Backup", icon: "externaldrive.fill", style: .secondary) {
-                        exportJSON()
+                        isPro ? exportJSON() : (showPaywall = true)
                     }
                 }
             }
@@ -32,6 +39,7 @@ struct ExportSection: View {
                 ShareSheet(items: [url])
             }
         }
+        .sheet(isPresented: $showPaywall) { PaywallView() }
     }
 
     private func exportCSV() {

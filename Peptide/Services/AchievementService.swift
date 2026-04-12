@@ -15,6 +15,7 @@ final class AchievementService {
     static let shared = AchievementService()
 
     private(set) var achievements: [Achievement] = []
+    private(set) var latestUnlock: Achievement?
 
     private let persistenceKey = "achievements"
     private let defaults = UserDefaults.standard
@@ -24,6 +25,8 @@ final class AchievementService {
     }
 
     func checkAchievements(totalDoses: Int, currentStreak: Int, bestStreak: Int, protocolCount: Int, daysLogged: Int) {
+        latestUnlock = nil
+
         unlock("first_dose", if: totalDoses >= 1)
         unlock("ten_doses", if: totalDoses >= 10)
         unlock("fifty_doses", if: totalDoses >= 50)
@@ -58,6 +61,7 @@ final class AchievementService {
     private func unlock(_ id: String, if condition: Bool) {
         guard condition, let index = achievements.firstIndex(where: { $0.id == id && !$0.isUnlocked }) else { return }
         achievements[index].unlockedDate = Date()
+        latestUnlock = achievements[index]
     }
 
     private func loadAchievements() {

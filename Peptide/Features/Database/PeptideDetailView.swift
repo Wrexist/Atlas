@@ -4,6 +4,7 @@ struct PeptideDetailView: View {
     let peptide: Peptide
     @Environment(\.dismiss) private var dismiss
     @State private var showingBuilder = false
+    @AppStorage("experienceLevel") private var experienceLevel = "beginner"
 
     var body: some View {
         ScrollView {
@@ -80,8 +81,8 @@ struct PeptideDetailView: View {
                 DosageInfoSection(peptide: peptide)
                     .sectionAppear(index: 5)
 
-                // Research Links
-                if !peptide.researchLinks.isEmpty {
+                // Research Links (hidden for beginners)
+                if !peptide.researchLinks.isEmpty && experienceLevel != "beginner" {
                     ResearchLinksSection(links: peptide.researchLinks)
                         .sectionAppear(index: 6)
                 }

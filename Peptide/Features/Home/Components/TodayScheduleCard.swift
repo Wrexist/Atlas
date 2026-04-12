@@ -3,7 +3,7 @@ import SwiftUI
 struct TodayScheduleCard: View {
     let entries: [ProtocolEntry]
     let onToggle: (ProtocolEntry) -> Void
-    var onLongPress: ((ProtocolEntry) -> Void)?
+    var onTap: ((ProtocolEntry) -> Void)?
 
     var body: some View {
         GlassCard {
@@ -39,9 +39,12 @@ struct TodayScheduleCard: View {
                         .padding(.vertical, Spacing.lg)
                     } else {
                         ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-                            ScheduleRow(entry: entry, onToggle: { onToggle(entry) })
-                                .onLongPressGesture { onLongPress?(entry) }
-                                .staggeredAppear(index: index)
+                            ScheduleRow(
+                                entry: entry,
+                                onToggle: { onToggle(entry) },
+                                onTap: { onTap?(entry) }
+                            )
+                            .staggeredAppear(index: index)
                         }
                     }
                 }
@@ -53,9 +56,11 @@ struct TodayScheduleCard: View {
 private struct ScheduleRow: View {
     let entry: ProtocolEntry
     let onToggle: () -> Void
+    let onTap: () -> Void
 
     var body: some View {
         HStack(spacing: Spacing.md) {
+            // Circle button = quick toggle
             Button(action: onToggle) {
                 Image(systemName: entry.completed ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 22))
@@ -63,35 +68,41 @@ private struct ScheduleRow: View {
                     .contentTransition(.symbolEffect(.replace))
             }
 
-            Image(systemName: entry.peptide.imageSystemName)
-                .font(.system(size: 14))
-                .foregroundStyle(entry.peptide.category.color)
-                .frame(width: 28, height: 28)
-                .background {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(entry.peptide.category.color.opacity(0.15))
+            // Tapping the row = open detailed logging sheet
+            Button(action: onTap) {
+                HStack(spacing: Spacing.md) {
+                    Image(systemName: entry.peptide.imageSystemName)
+                        .font(.system(size: 14))
+                        .foregroundStyle(entry.peptide.category.color)
+                        .frame(width: 28, height: 28)
+                        .background {
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(entry.peptide.category.color.opacity(0.15))
+                        }
+
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        Text(entry.peptide.abbreviation)
+                            .font(AppFont.headline)
+                            .foregroundStyle(
+                                entry.completed ? AppColor.textSecondary : AppColor.textPrimary
+                            )
+                            .strikethrough(entry.completed, color: AppColor.textTertiary)
+
+                        Text(entry.dose)
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textTertiary)
+                    }
+
+                    Spacer()
+
+                    Text(entry.date.formatted(.dateTime.hour().minute()))
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(
+                            entry.completed ? AppColor.textTertiary : AppColor.accentLight
+                        )
                 }
-
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(entry.peptide.abbreviation)
-                    .font(AppFont.headline)
-                    .foregroundStyle(
-                        entry.completed ? AppColor.textSecondary : AppColor.textPrimary
-                    )
-                    .strikethrough(entry.completed, color: AppColor.textTertiary)
-
-                Text(entry.dose)
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textTertiary)
             }
-
-            Spacer()
-
-            Text(entry.date.formatted(.dateTime.hour().minute()))
-                .font(AppFont.subheadline)
-                .foregroundStyle(
-                    entry.completed ? AppColor.textTertiary : AppColor.accentLight
-                )
+            .buttonStyle(.plain)
         }
         .padding(.vertical, Spacing.xs)
     }
