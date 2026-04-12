@@ -185,19 +185,23 @@ final class StackRecommendationEngineTests: XCTestCase {
     }
 
     func test_diminishingReturns_penalizes4thInCategory() {
-        // 3 growth peptides already in stack
-        let stack = peptides(abbrevs: ["BPC-157", "TB-500", "IGF-1 LR3"])
+        // 3 recovery peptides already in stack (BPC-157, TB-500, GHK-Cu are .recovery in the JSON DB)
+        let stack = peptides(abbrevs: ["BPC-157", "TB-500", "GHK-Cu"])
         guard stack.count == 3 else { return }
+        // Verify they share a category
+        let category = stack[0].category
+        guard stack.allSatisfy({ $0.category == category }) else { return }
+
         let context = StackRecommendationEngine.RecommendationContext(
             currentPeptides: stack, database: database, goals: [],
             activeProtocols: [], entries: []
         )
-        // CJC-1295 is also growth — should be penalized
-        if let cjc = peptide(abbrev: "CJC-1295 DAC") ?? peptide(abbrev: "CJC-1295") {
-            if cjc.category == .growth {
-                let (score, _) = StackRecommendationEngine.scoreDiminishingReturns(candidate: cjc, context: context)
-                XCTAssertLessThan(score, 0, "4th peptide in same category should be penalized")
-            }
+        // Find another peptide in the same category to test the penalty
+        if let fourth = database.first(where: {
+            $0.category == category && !stack.contains(where: { s in s.id == $0.id })
+        }) {
+            let (score, _) = StackRecommendationEngine.scoreDiminishingReturns(candidate: fourth, context: context)
+            XCTAssertLessThan(score, 0, "4th peptide in same category should be penalized")
         }
     }
 
@@ -247,16 +251,15 @@ final class StackRecommendationEngineTests: XCTestCase {
     // MARK: - Existing Warnings Regression
 
     func test_compoundingSideEffects_triggersAt3() {
-        // Need 3+ peptides sharing same side effect
-        let stack = peptides(abbrevs: ["BPC-157", "TB-500", "GHK-Cu"])
-        guard stack.count >= 2 else { return }
+        // Find 3+ peptides that share "nausea" as a side effect
+        let nauseaPeptides = database.filter {
+            $0.sideEffects.contains(where: { $0.lowercased().contains("nausea") })
+        }
+        let stack = Array(nauseaPeptides.prefix(4))
+        guard stack.count >= 3 else { return }
         let warnings = StackRecommendationEngine.warnings(for: stack)
-        // At minimum, verify the engine runs without crashing and returns a valid array
-        XCTAssertTrue(warnings is [StackRecommendationEngine.Warning])
-        // If side effects overlap, check compounding warnings exist
-        let compounding = warnings.filter { $0.title.contains("Compounding") }
-        // No strict assertion — side effects vary, but verify no crash
-        _ = compounding.count
+        let hasCompounding = warnings.contains { $0.title.contains("Compounding") }
+        XCTAssertTrue(hasCompounding, "3+ peptides sharing nausea side effect should trigger compounding warning")
     }
 
     func test_categoryOverload_triggersAt4() {
@@ -312,10 +315,9 @@ final class StackRecommendationEngineTests: XCTestCase {
             schedule: ProtocolSchedule(daysOfWeek: [1, 3, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
             cycleLengthWeeks: 12, startDate: tenWeeksAgo, status: .active, notes: ""
         )
-        // Need at least 2 peptides for warnings to fire
-        guard let tb = peptide(abbrev: "TB-500") else { return }
+        // Per-peptide warnings fire even for single-peptide stacks
         let warnings = StackRecommendationEngine.warnings(
-            for: [bpc, tb], activeProtocols: [proto]
+            for: [bpc], activeProtocols: [proto]
         )
         let hasCycleWarning = warnings.contains { $0.title.contains("over cycle") }
         XCTAssertTrue(hasCycleWarning, "Should warn about BPC-157 being over its recommended cycle")
@@ -500,13 +502,14 @@ final class StackRecommendationEngineTests: XCTestCase {
         XCTAssertTrue(recs.isEmpty)
     }
 
-    func test_singlePeptide_returnsRecommendationsWithoutWarnings() {
+    func test_singlePeptide_returnsRecommendationsAndNoPairwiseWarnings() {
         let stack = peptides(abbrevs: ["BPC-157"])
         guard !stack.isEmpty else { return }
         let recs = StackRecommendationEngine.recommendations(for: stack, from: database)
-        let warnings = StackRecommendationEngine.warnings(for: stack)
         XCTAssertFalse(recs.isEmpty, "Single peptide should still produce recommendations")
-        XCTAssertTrue(warnings.isEmpty, "Single peptide should produce no warnings")
+        // Backward-compat call (empty activeProtocols) produces no per-peptide warnings
+        let warnings = StackRecommendationEngine.warnings(for: stack)
+        XCTAssertTrue(warnings.isEmpty, "No warnings without activeProtocols for single peptide")
     }
 
     // MARK: - Half-Life Parsing

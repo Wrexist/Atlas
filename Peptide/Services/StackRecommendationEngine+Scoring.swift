@@ -23,14 +23,12 @@ extension StackRecommendationEngine {
         let candidateWindows = candidateTiming.preferredWindows
 
         // Bonus if any of the candidate's preferred windows has 0-1 existing peptides
-        let hasUnderservedWindow = candidateWindows.contains { window in
+        if let underservedWindow = candidateWindows.first(where: { window in
             window != .anyTime && (windowCounts[window] ?? 0) <= 1
-        }
-
-        if hasUnderservedWindow {
-            let underservedWindow = candidateWindows.first { $0 != .anyTime && (windowCounts[$0] ?? 0) <= 1 }
-            let windowName = underservedWindow?.rawValue ?? "flexible"
-            return (1, .timingComplement(description: "Fills a \(windowName) dosing gap in your schedule"))
+        }) {
+            return (1, .timingComplement(
+                description: "Fills a \(underservedWindow.rawValue) dosing gap in your schedule"
+            ))
         }
         return (0, nil)
     }

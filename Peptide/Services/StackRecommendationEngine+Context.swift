@@ -56,8 +56,14 @@ extension StackRecommendationEngine {
                 currentPeptides: currentPeptides
             )
 
-            // Use total unique peptides across active protocols as experience proxy
-            let totalPeptides = Set(activeProtocols.flatMap(\.peptides).map(\.id)).count
+            // Use total unique peptides as experience proxy.
+            // When activeProtocols is empty (legacy API), fall back to currentPeptides count.
+            let totalPeptides: Int
+            if activeProtocols.isEmpty {
+                totalPeptides = currentPeptides.count
+            } else {
+                totalPeptides = Set(activeProtocols.flatMap(\.peptides).map(\.id)).count
+            }
             if totalPeptides <= 2 {
                 self.experienceLevel = .beginner
             } else if totalPeptides <= 6 {
@@ -73,7 +79,8 @@ extension StackRecommendationEngine {
         ) -> [PeptideCategory: Double] {
             guard !entries.isEmpty else { return [:] }
             let peptideCategories = Dictionary(
-                uniqueKeysWithValues: currentPeptides.map { ($0.id, $0.category) }
+                currentPeptides.map { ($0.id, $0.category) },
+                uniquingKeysWith: { first, _ in first }
             )
             var categoryEntries: [PeptideCategory: (completed: Int, total: Int)] = [:]
             for entry in entries {

@@ -356,6 +356,7 @@ enum StackRecommendationEngine {
         guard currentPeptides.count >= 2 else {
             // Skip to per-peptide warnings below
             return perPeptideWarnings(for: currentPeptides, activeProtocols: activeProtocols)
+                .sorted { $0.severity > $1.severity }
         }
 
         // 1. Compounding side effects

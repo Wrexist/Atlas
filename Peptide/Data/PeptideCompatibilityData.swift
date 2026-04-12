@@ -127,9 +127,9 @@ enum PeptideCompatibilityData {
         // Skin & Anti-Aging
         ValidatedStack(
             name: "Skin Rejuvenation",
-            peptideAbbreviations: ["GHK-Cu", "BPC-157", "TB-500"],
-            goal: "Skin health and tissue repair",
-            synergy: "GHK-Cu increases Type I/III collagen by up to 70% and stimulates elastin for skin structure. BPC-157 promotes angiogenesis for nutrient delivery to skin. TB-500 enhances cell migration and reduces fibrosis for smoother healing.",
+            peptideAbbreviations: ["GHK-Cu", "Epitalon", "TA1"],
+            goal: "Skin health and anti-aging",
+            synergy: "GHK-Cu increases Type I/III collagen by up to 70% and stimulates elastin for skin structure. Epitalon activates telomerase in fibroblasts for cellular longevity. TA1 supports immune-mediated skin defense and wound surveillance. Three distinct pathways: structural, genetic, and immunological.",
             notes: "GHK-Cu can be applied topically for localized skin effects."
         ),
         ValidatedStack(
