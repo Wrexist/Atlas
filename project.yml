@@ -70,26 +70,6 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app.uitests
         GENERATE_INFOPLIST_FILE: YES
-  PeptideWidgets:
-    type: app-extension
-    platform: iOS
-    sources:
-      - path: PeptideWidgets
-        excludes:
-          - "**/.DS_Store"
-    info:
-      properties:
-        CFBundleDisplayName: PeptideX Widgets
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.widgetkit-extension
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app.widgets
-        GENERATE_INFOPLIST_FILE: YES
-        SWIFT_EMIT_LOC_STRINGS: YES
-    dependencies:
-      - sdk: WidgetKit.framework
-      - sdk: SwiftUI.framework
 schemes:
   Peptide:
     build:
