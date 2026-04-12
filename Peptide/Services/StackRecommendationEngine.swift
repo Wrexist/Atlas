@@ -9,6 +9,7 @@ enum StackRecommendationEngine {
         case goalMatch(goal: String)
         case categorySynergy(description: String)
         case sharedBenefits(count: Int)
+        case validatedStack(name: String, synergy: String)
 
         var icon: String {
             switch self {
@@ -16,6 +17,7 @@ enum StackRecommendationEngine {
             case .goalMatch: return "target"
             case .categorySynergy: return "sparkles"
             case .sharedBenefits: return "square.on.square"
+            case .validatedStack: return "checkmark.seal.fill"
             }
         }
 
@@ -32,6 +34,8 @@ enum StackRecommendationEngine {
                 return desc
             case .sharedBenefits(let count):
                 return "Shares \(count) benefits with your stack"
+            case .validatedStack(let name, _):
+                return "Part of \(name) — research-backed combination"
             }
         }
     }
@@ -210,7 +214,26 @@ enum StackRecommendationEngine {
             }
         }
 
-        // --- 4. Shared benefits boost ---
+        // --- 4. Validated stack scoring ---
+        let currentAbbreviations = Set(currentPeptides.map(\.abbreviation))
+        for stack in PeptideCompatibilityData.validatedStacks {
+            let overlap = stack.peptideAbbreviations.filter { currentAbbreviations.contains($0) }
+            guard !overlap.isEmpty else { continue }
+            // Find peptides in this validated stack that are NOT in the current stack
+            for missing in stack.peptideAbbreviations where !currentAbbreviations.contains(missing) {
+                if let found = dbByName[missing.lowercased()], !currentIds.contains(found.id) {
+                    if candidates[found.id] == nil {
+                        candidates[found.id] = (found, 0, [])
+                    }
+                    candidates[found.id]?.score += 3
+                    candidates[found.id]?.reasons.append(
+                        .validatedStack(name: stack.name, synergy: stack.synergy)
+                    )
+                }
+            }
+        }
+
+        // --- 5. Shared benefits boost ---
         for candidate in database where !currentIds.contains(candidate.id) {
             let sharedCount = candidate.benefits.filter { currentBenefits.contains($0.lowercased()) }.count
             if sharedCount >= 2 {
@@ -367,6 +390,66 @@ enum StackRecommendationEngine {
                     icon: "syringe.fill"
                 ))
             }
+        }
+
+        // 6. Known interactions from research database
+        let abbreviations = currentPeptides.map(\.abbreviation)
+        for i in 0..<abbreviations.count {
+            for j in (i + 1)..<abbreviations.count {
+                if let interaction = PeptideCompatibilityData.findInteraction(
+                    between: abbreviations[i], and: abbreviations[j]
+                ) {
+                    // Only add if not already covered by mechanism pathway check above
+                    let alreadyCovered = warnings.contains { w in
+                        w.peptides.contains(abbreviations[i]) && w.peptides.contains(abbreviations[j])
+                    }
+                    guard !alreadyCovered else { continue }
+
+                    warnings.append(Warning(
+                        severity: interaction.severity == .danger ? .danger : .caution,
+                        title: "Known interaction",
+                        detail: interaction.reason,
+                        suggestion: interaction.recommendation,
+                        peptides: [interaction.peptideA, interaction.peptideB],
+                        icon: interaction.severity == .danger ? "xmark.octagon.fill" : "exclamationmark.triangle.fill"
+                    ))
+                }
+            }
+        }
+
+        // 7. Pathway group violations from knowledge base
+        for group in PeptideCompatibilityData.pathwayGroups {
+            let matching = currentPeptides.filter { group.peptideAbbreviations.contains($0.abbreviation) }
+            guard matching.count > group.maxSafe else { continue }
+            // Don't duplicate mechanism pathway warnings already generated above
+            let alreadyCovered = warnings.contains { w in
+                Set(matching.map(\.abbreviation)).isSubset(of: Set(w.peptides))
+            }
+            guard !alreadyCovered else { continue }
+
+            warnings.append(Warning(
+                severity: .caution,
+                title: "\(group.pathway) overload",
+                detail: "\(matching.count) peptides target the \(group.pathway) pathway (recommended max: \(group.maxSafe)).",
+                suggestion: group.warningText,
+                peptides: matching.map(\.abbreviation),
+                icon: "arrow.triangle.2.circlepath"
+            ))
+        }
+
+        // 8. Angiogenic risk stacking
+        let angiogenic = currentPeptides.filter {
+            PeptideCompatibilityData.angiogenicPeptides.contains($0.abbreviation)
+        }
+        if angiogenic.count >= 3 {
+            warnings.append(Warning(
+                severity: .caution,
+                title: "High angiogenic activity",
+                detail: "\(angiogenic.count) peptides in your stack promote blood vessel growth. Use caution if you have a history of malignancy, as angiogenesis can theoretically fuel tumor vascularization.",
+                suggestion: "If you have any cancer history, consult an oncologist before using multiple angiogenic peptides together.",
+                peptides: angiogenic.map(\.abbreviation),
+                icon: "staroflife.fill"
+            ))
         }
 
         return warnings.sorted { $0.severity > $1.severity }

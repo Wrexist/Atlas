@@ -61,8 +61,17 @@ struct RecommendedPeptidesCard: View {
 
                     PeptideCategoryBadge(category: rec.peptide.category)
 
-                    // Synergy tag if present
-                    if rec.reasons.contains(where: { if case .categorySynergy = $0 { return true }; return false }) {
+                    // Tags for special reason types
+                    if rec.reasons.contains(where: { if case .validatedStack = $0 { return true }; return false }) {
+                        Text("Research-backed")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(AppColor.accentLight)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background {
+                                Capsule().fill(AppColor.accentPrimary.opacity(0.2))
+                            }
+                    } else if rec.reasons.contains(where: { if case .categorySynergy = $0 { return true }; return false }) {
                         Text("Synergy")
                             .font(.system(size: 9, weight: .bold))
                             .foregroundStyle(AppColor.accentPrimary)
