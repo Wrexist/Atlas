@@ -101,7 +101,6 @@ PEPTIDES = [
     ("Myostatin Inhibitor (ACE-031)", "ACE-031", "ACE-031"),
     ("ACVR2B (YK-11)", "ACVR2B", "ACVR2B"),
     ("MK-0773", "MK-0773", "MK-0773"),
-    ("PEG-MGF", "PEG-MGF", "PEG-MGF"),
     ("Adipotide (FTPP)", "Adipotide", "Adipotide"),
     ("Tesofensine", "Tesofensine", "Tesofensine"),
 
@@ -195,7 +194,6 @@ PEPTIDES = [
 
     # ═══ RESEARCH / EXPERIMENTAL ═══
     ("SS-20", "SS-20", "SS-20 peptide"),
-    ("Bremelanotide (PT-141)", "PT-141", "Bremelanotide"),
     ("Gonadotropin (HCG)", "HCG", "Human chorionic gonadotropin"),
     ("Menotropin (HMG)", "HMG", "Human menopausal gonadotropin"),
     ("FSH", "FSH", "Follicle stimulating hormone"),
@@ -223,7 +221,6 @@ PEPTIDES = [
     ("Crostagen", "Crostagen", "Crostagen"),
     ("Ovagen", "Ovagen", "Ovagen"),
     ("Pancragen", "Pancragen", "Pancragen"),
-    ("Pinealon", "Pinealon", "Pinealon"),
     ("Renagen", "Renagen", "Renagen"),
     ("Vladonix", "Vladonix", "Vladonix"),
     ("Ventfort", "Ventfort", "Ventfort"),
@@ -239,7 +236,6 @@ PEPTIDES = [
     ("LY3841136", "LY3841136", "LY3841136"),
 
     # ═══ SPECIALTY / NICHE ═══
-    ("Angiotensin-(1-7)", "Ang-(1-7)", "Angiotensin 1-7"),
     ("Apelin-13", "Apelin-13", "Apelin 13"),
     ("Elabela", "Elabela", "Elabela peptide"),
     ("Adropin", "Adropin", "Adropin"),

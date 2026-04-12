@@ -60,7 +60,7 @@ struct ComplianceChart: View {
 #Preview {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        ComplianceChart(data: MockEntries.complianceData(days: 30))
+        ComplianceChart(data: [])
             .padding(Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)

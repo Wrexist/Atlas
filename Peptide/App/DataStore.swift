@@ -74,7 +74,9 @@ final class DataStore {
             protocols.insert(newProtocol, at: 0)
             appendTodayEntries(for: newProtocol)
         }
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        if profile.hapticFeedbackEnabled {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
     }
 
     func deleteProtocol(id: UUID) {
@@ -114,7 +116,9 @@ final class DataStore {
         withAnimation(AppAnimation.springSnappy) {
             entries[index].completed.toggle()
         }
-        UIImpactFeedbackGenerator(style: becoming ? .light : .soft).impactOccurred()
+        if profile.hapticFeedbackEnabled {
+            UIImpactFeedbackGenerator(style: becoming ? .light : .soft).impactOccurred()
+        }
     }
 
     func entriesFor(protocolId: UUID, days: Int = 14) -> [ProtocolEntry] {

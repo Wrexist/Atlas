@@ -58,7 +58,7 @@ Builds a comprehensive ~210-peptide dataset for the PeptideX iOS app.
 cd peptide-dataset
 python3 -m venv .venv
 source .venv/bin/activate
-pip install anthropic requests
+pip install anthropic
 
 export ANTHROPIC_API_KEY=sk-ant-your-key-here
 ```
@@ -88,8 +88,6 @@ Every peptide is checkpointed to `peptides.partial.json` immediately after proce
 
 - **Claude Opus 4.6**: ~1.5k input + ~800 output tokens per peptide = roughly $0.03-0.05 per peptide at current pricing
 - 210 peptides × $0.04 ≈ **$8-10 total**
-- PubMed and PubChem are free
-
 If you want to cut cost, swap `CLAUDE_MODEL = "claude-opus-4-6"` to `"claude-sonnet-4-6"` in `build_dataset.py`. Still very good quality, ~5x cheaper.
 
 ## Integrate into the iOS app

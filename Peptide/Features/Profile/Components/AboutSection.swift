@@ -13,11 +13,7 @@ struct AboutSection: View {
                     Divider().foregroundStyle(AppColor.glassBorder)
                     AboutRow(title: "Build", value: "1")
                     Divider().foregroundStyle(AppColor.glassBorder)
-                    AboutLinkRow(title: "Privacy Policy", icon: "lock.shield.fill")
-                    Divider().foregroundStyle(AppColor.glassBorder)
-                    AboutLinkRow(title: "Terms of Service", icon: "doc.text.fill")
-                    Divider().foregroundStyle(AppColor.glassBorder)
-                    AboutLinkRow(title: "Support", icon: "questionmark.circle.fill")
+                    AboutRow(title: "Peptide Database", value: "\(MockPeptides.all.count) peptides")
                 }
 
                 HStack {
@@ -27,7 +23,7 @@ struct AboutSection: View {
                             .font(.system(size: 24))
                             .foregroundStyle(AppColor.accentPrimary)
 
-                        Text("Peptide AI")
+                        Text("PeptideX")
                             .font(AppFont.footnote)
                             .foregroundStyle(AppColor.textTertiary)
                     }
@@ -52,30 +48,6 @@ private struct AboutRow: View {
             Text(value)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textPrimary)
-        }
-    }
-}
-
-private struct AboutLinkRow: View {
-    let title: String
-    let icon: String
-
-    var body: some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundStyle(AppColor.accentPrimary)
-                .frame(width: 20)
-
-            Text(title)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textPrimary)
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(AppColor.textTertiary)
         }
     }
 }

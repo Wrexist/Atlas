@@ -67,31 +67,38 @@ struct ProtocolDetailView: View {
 
                         let peptides = liveProtocol.peptides
                         ForEach(Array(peptides.enumerated()), id: \.element.id) { index, peptide in
-                            HStack(spacing: Spacing.md) {
-                                Image(systemName: peptide.imageSystemName)
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(peptide.category.color)
-                                    .frame(width: 32, height: 32)
-                                    .background {
-                                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                            .fill(peptide.category.color.opacity(0.15))
+                            NavigationLink(value: peptide) {
+                                HStack(spacing: Spacing.md) {
+                                    Image(systemName: peptide.imageSystemName)
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(peptide.category.color)
+                                        .frame(width: 32, height: 32)
+                                        .background {
+                                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                                .fill(peptide.category.color.opacity(0.15))
+                                        }
+
+                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                        Text(peptide.abbreviation)
+                                            .font(AppFont.headline)
+                                            .foregroundStyle(AppColor.textPrimary)
+                                        Text(peptide.dosageRange)
+                                            .font(AppFont.caption)
+                                            .foregroundStyle(AppColor.textSecondary)
                                     }
 
-                                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                    Text(peptide.abbreviation)
-                                        .font(AppFont.headline)
-                                        .foregroundStyle(AppColor.textPrimary)
-                                    Text(peptide.dosageRange)
+                                    Spacer()
+
+                                    Text(peptide.frequency)
                                         .font(AppFont.caption)
-                                        .foregroundStyle(AppColor.textSecondary)
+                                        .foregroundStyle(AppColor.textTertiary)
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundStyle(AppColor.textTertiary)
                                 }
-
-                                Spacer()
-
-                                Text(peptide.frequency)
-                                    .font(AppFont.caption)
-                                    .foregroundStyle(AppColor.textTertiary)
                             }
+                            .buttonStyle(.plain)
 
                             if index < peptides.count - 1 {
                                 Divider().foregroundStyle(AppColor.glassBorder)
@@ -211,6 +218,9 @@ struct ProtocolDetailView: View {
             }
         } message: {
             Text("This will permanently delete \"\(liveProtocol.name)\" and all its logged entries.")
+        }
+        .navigationDestination(for: Peptide.self) { peptide in
+            PeptideDetailView(peptide: peptide)
         }
         .onChange(of: dataStore.protocols.contains(where: { $0.id == protocol_.id })) { _, exists in
             if !exists { dismiss() }
