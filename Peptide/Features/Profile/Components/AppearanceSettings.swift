@@ -1,10 +1,11 @@
 import SwiftUI
 
 struct AppearanceSettings: View {
-    @State private var hapticEnabled = true
-    @State private var notificationsEnabled = true
+    @Environment(DataStore.self) private var dataStore
 
     var body: some View {
+        @Bindable var store = dataStore
+
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 Label("Settings", systemImage: "gearshape.fill")
@@ -15,7 +16,7 @@ struct AppearanceSettings: View {
                     icon: "bell.fill",
                     title: "Dose Reminders",
                     subtitle: "Get notified for scheduled doses",
-                    isOn: $notificationsEnabled
+                    isOn: $store.profile.doseRemindersEnabled
                 )
 
                 Divider().foregroundStyle(AppColor.glassBorder)
@@ -24,12 +25,12 @@ struct AppearanceSettings: View {
                     icon: "hand.tap.fill",
                     title: "Haptic Feedback",
                     subtitle: "Vibrate on interactions",
-                    isOn: $hapticEnabled
+                    isOn: $store.profile.hapticFeedbackEnabled
                 )
 
                 Divider().foregroundStyle(AppColor.glassBorder)
 
-                SettingsRow(
+                SettingsInfoRow(
                     icon: "moon.fill",
                     title: "Appearance",
                     value: "Dark"
@@ -37,7 +38,7 @@ struct AppearanceSettings: View {
 
                 Divider().foregroundStyle(AppColor.glassBorder)
 
-                SettingsRow(
+                SettingsInfoRow(
                     icon: "globe",
                     title: "Units",
                     value: "Metric (mcg)"
@@ -78,7 +79,7 @@ private struct SettingsToggleRow: View {
     }
 }
 
-private struct SettingsRow: View {
+private struct SettingsInfoRow: View {
     let icon: String
     let title: String
     let value: String
@@ -99,10 +100,6 @@ private struct SettingsRow: View {
             Text(value)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(AppColor.textTertiary)
         }
     }
 }
@@ -113,5 +110,6 @@ private struct SettingsRow: View {
         AppearanceSettings()
             .padding(Spacing.screenPadding)
     }
+    .environment(DataStore())
     .preferredColorScheme(.dark)
 }

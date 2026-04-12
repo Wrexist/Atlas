@@ -45,8 +45,14 @@ struct HealthConnectionCard: View {
                         }
                     }
 
-                    GlassButton(title: "Connect Apple Health", icon: "heart.fill", style: .primary, isFullWidth: true) {
-                        onConnect()
+                    VStack(spacing: Spacing.xs) {
+                        GlassButton(title: "Connect Apple Health", icon: "heart.fill", style: .primary, isFullWidth: true) {
+                            onConnect()
+                        }
+
+                        Text("Coming soon")
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textTertiary)
                     }
                 }
             }
