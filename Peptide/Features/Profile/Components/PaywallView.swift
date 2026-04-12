@@ -5,6 +5,7 @@ struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var storeService = StoreService.shared
     @State private var isPurchasing = false
+    @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -68,10 +69,24 @@ struct PaywallView: View {
 
                     // Restore
                     Button("Restore Purchases") {
-                        Task { await storeService.restorePurchases() }
+                        Task {
+                            do {
+                                try await storeService.restorePurchases()
+                                if storeService.isProUser { dismiss() }
+                            } catch {
+                                errorMessage = "Restore failed. Check your internet connection and try again."
+                            }
+                        }
                     }
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.destructive)
+                            .multilineTextAlignment(.center)
+                    }
 
                     // Legal
                     Text("Payment will be charged to your Apple ID. Subscription auto-renews unless cancelled at least 24 hours before the end of the current period.")

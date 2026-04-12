@@ -38,13 +38,12 @@ struct TodayScheduleCard: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, Spacing.lg)
                     } else {
-                        ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                        ForEach(entries) { entry in
                             ScheduleRow(
                                 entry: entry,
                                 onToggle: { onToggle(entry) },
                                 onTap: { onTap?(entry) }
                             )
-                            .staggeredAppear(index: index)
                         }
                     }
                 }

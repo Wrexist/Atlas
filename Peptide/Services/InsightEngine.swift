@@ -92,7 +92,7 @@ struct InsightEngine {
             }
 
             consecutiveEmptyDays = 0
-            if !dayEntries.contains(where: \.completed) { break }
+            if !dayEntries.allSatisfy(\.completed) { break }
             streak += 1
         }
         return streak

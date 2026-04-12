@@ -31,7 +31,10 @@ struct HomeView: View {
                     ProtocolScoreCard(
                         score: stats.score,
                         completed: stats.completed,
-                        total: stats.total
+                        total: stats.total,
+                        streak: dataStore.currentStreak,
+                        bestStreak: dataStore.bestStreak,
+                        weeklyCompletion: dataStore.weeklyCompletion
                     )
                     .sectionAppear(index: 1)
 
@@ -45,7 +48,7 @@ struct HomeView: View {
                     QuickStatsRow(
                         activeProtocols: dataStore.activeProtocols.count,
                         daysLogged: dataStore.totalDaysLogged,
-                        streak: dataStore.currentStreak,
+                        compliance: Int(dataStore.averageCompliance * 100),
                         nextDose: dataStore.nextDose
                     )
                     .sectionAppear(index: 3)

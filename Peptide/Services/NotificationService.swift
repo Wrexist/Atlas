@@ -61,7 +61,11 @@ final class NotificationService {
             }
         }
 
-        for request in requests.prefix(64) {
+        let limited = Array(requests.prefix(64))
+        if requests.count > 64 {
+            print("NotificationService: \(requests.count) notifications requested, truncated to 64 (iOS limit)")
+        }
+        for request in limited {
             center.add(request)
         }
     }

@@ -58,7 +58,25 @@ final class HealthKitService {
     // MARK: - Activity
 
     func averageSteps(days: Int) async -> Double? {
-        await averageQuantity(type: .stepCount, unit: .count(), days: days)
+        guard isAvailable, days > 0 else { return nil }
+
+        let calendar = Calendar.current
+        let endDate = Date()
+        guard let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { return nil }
+
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
+        let descriptor = HKStatisticsQueryDescriptor(
+            predicate: .quantitySample(type: HKQuantityType(.stepCount), predicate: predicate),
+            options: .cumulativeSum
+        )
+
+        do {
+            let result = try await descriptor.result(for: store)
+            guard let total = result?.sumQuantity()?.doubleValue(for: .count()) else { return nil }
+            return total / Double(days)
+        } catch {
+            return nil
+        }
     }
 
     // MARK: - Sleep

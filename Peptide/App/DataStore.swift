@@ -8,10 +8,48 @@ final class DataStore: DataServiceProtocol {
 
     private let persistence = PersistenceService.shared
 
-    private var _peptideDatabase: [Peptide]?
+    // MARK: - Cache (avoids recomputing expensive stats on every toggle)
+    @ObservationIgnored private var _peptideDatabase: [Peptide]?
+    @ObservationIgnored private var _cachedTodayEntries: [ProtocolEntry]?
+    @ObservationIgnored private var _cachedCurrentStreak: Int?
+    @ObservationIgnored private var _cachedTotalDaysLogged: Int?
+    @ObservationIgnored private var _cachedBestStreak: Int?
+    @ObservationIgnored private var _cachedNextDose: ProtocolEntry??
+    @ObservationIgnored private var _cachedWeeklyCompletion: [WeekDayStatus]?
+    @ObservationIgnored private var _entriesByDay: [Date: [ProtocolEntry]]?
+    @ObservationIgnored private var _cacheDate: Date?
+
+    private func invalidateCache() {
+        _cachedTodayEntries = nil
+        _cachedCurrentStreak = nil
+        _cachedTotalDaysLogged = nil
+        _cachedBestStreak = nil
+        _cachedNextDose = nil
+        _cachedWeeklyCompletion = nil
+        _entriesByDay = nil
+        _cacheDate = nil
+    }
+
+    private func invalidateCacheIfDayChanged() {
+        guard let cacheDate = _cacheDate else {
+            _cacheDate = Date()
+            return
+        }
+        if !Calendar.current.isDateInToday(cacheDate) {
+            invalidateCache()
+            _cacheDate = Date()
+        }
+    }
+
+    private var entriesByDay: [Date: [ProtocolEntry]] {
+        if let cached = _entriesByDay { return cached }
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: entries) { calendar.startOfDay(for: $0.date) }
+        _entriesByDay = grouped
+        return grouped
+    }
 
     init() {
-        // Load each file independently -- don't lose all data if one file is corrupt
         let loadedProtocols = persistence.loadProtocols() ?? MockProtocols.all
         self.protocols = loadedProtocols
         self.entries = persistence.loadEntries() ?? Self.generateInitialEntries(for: loadedProtocols)
@@ -45,6 +83,7 @@ final class DataStore: DataServiceProtocol {
     }
 
     func addProtocol(_ newProtocol: PeptideProtocol) {
+        invalidateCache()
         protocols.insert(newProtocol, at: 0)
         appendTodayEntries(for: newProtocol)
         save()
@@ -52,6 +91,7 @@ final class DataStore: DataServiceProtocol {
     }
 
     func deleteProtocol(id: UUID) {
+        invalidateCache()
         protocols.removeAll { $0.id == id }
         entries.removeAll { $0.protocolId == id }
         save()
@@ -60,7 +100,11 @@ final class DataStore: DataServiceProtocol {
 
     func updateProtocolStatus(id: UUID, to status: ProtocolStatus) {
         guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
+        invalidateCache()
         protocols[index].status = status
+        if status == .active {
+            appendTodayEntries(for: protocols[index])
+        }
         save()
         NotificationService.shared.scheduleNotifications(for: activeProtocols)
     }
@@ -68,21 +112,27 @@ final class DataStore: DataServiceProtocol {
     // MARK: - Entries
 
     var todayEntries: [ProtocolEntry] {
+        invalidateCacheIfDayChanged()
+        if let cached = _cachedTodayEntries { return cached }
         let calendar = Calendar.current
         let activeIds = Set(activeProtocols.map(\.id))
-        return entries
+        let result = entries
             .filter { calendar.isDateInToday($0.date) && activeIds.contains($0.protocolId) }
             .sorted { $0.date < $1.date }
+        _cachedTodayEntries = result
+        return result
     }
 
     func toggleEntry(_ entryId: UUID) {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
+        invalidateCache()
         entries[index].completed.toggle()
         save()
     }
 
     func logDose(entryId: UUID, actualDose: String?, actualTime: Date?, injectionSite: String?, notes: String) {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
+        invalidateCache()
         let existing = entries[index]
         entries[index] = ProtocolEntry(
             id: existing.id,
@@ -101,6 +151,7 @@ final class DataStore: DataServiceProtocol {
 
     func updateProtocol(id: UUID, name: String, peptides: [Peptide], schedule: ProtocolSchedule, cycleLengthWeeks: Int, notes: String) {
         guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
+        invalidateCache()
         let updated = PeptideProtocol(
             id: id,
             name: name,
@@ -129,20 +180,22 @@ final class DataStore: DataServiceProtocol {
     // MARK: - Computed Stats
 
     var currentStreak: Int {
+        if let cached = _cachedCurrentStreak { return cached }
         let calendar = Calendar.current
-        var streak = 0
-        var consecutiveEmptyDays = 0
+        let grouped = entriesByDay
+        let todayStart = calendar.startOfDay(for: Date())
 
         let todayHasCompleted = todayEntries.contains(where: \.completed)
         let startOffset = todayHasCompleted ? 0 : 1
 
+        var streak = 0
+        var consecutiveEmptyDays = 0
         for dayOffset in startOffset..<365 {
-            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { break }
-            let dayEntries = entries.filter { calendar.isDate($0.date, inSameDayAs: date) }
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: todayStart) else { break }
+            let dayEntries = grouped[date] ?? []
 
             if dayEntries.isEmpty {
                 consecutiveEmptyDays += 1
-                // Allow up to 2 consecutive empty days (weekends) before breaking
                 if consecutiveEmptyDays > 2 { break }
                 continue
             }
@@ -152,13 +205,17 @@ final class DataStore: DataServiceProtocol {
             streak += 1
         }
 
+        _cachedCurrentStreak = streak
         return streak
     }
 
     var totalDaysLogged: Int {
-        let calendar = Calendar.current
-        let days = Set(entries.filter(\.completed).map { calendar.startOfDay(for: $0.date) })
-        return days.count
+        if let cached = _cachedTotalDaysLogged { return cached }
+        let result = entriesByDay.values.filter { dayEntries in
+            dayEntries.contains(where: \.completed)
+        }.count
+        _cachedTotalDaysLogged = result
+        return result
     }
 
     var totalDoses: Int {
@@ -166,20 +223,16 @@ final class DataStore: DataServiceProtocol {
     }
 
     var bestStreak: Int {
-        let calendar = Calendar.current
-
-        // Get all days that had entries (scheduled days only)
-        let scheduledDays = Set(entries.map { calendar.startOfDay(for: $0.date) }).sorted()
+        if let cached = _cachedBestStreak { return cached }
+        let grouped = entriesByDay
+        let scheduledDays = grouped.keys.sorted()
         guard !scheduledDays.isEmpty else { return 0 }
-
-        // For each scheduled day, check if it had at least one completed entry
-        let completedDaySet = Set(entries.filter(\.completed).map { calendar.startOfDay(for: $0.date) })
 
         var best = 0
         var current = 0
 
         for day in scheduledDays {
-            if completedDaySet.contains(day) {
+            if let dayEntries = grouped[day], dayEntries.contains(where: \.completed) {
                 current += 1
                 best = max(best, current)
             } else {
@@ -187,7 +240,56 @@ final class DataStore: DataServiceProtocol {
             }
         }
 
+        _cachedBestStreak = best
         return best
+    }
+
+    var weeklyCompletion: [WeekDayStatus] {
+        invalidateCacheIfDayChanged()
+        if let cached = _cachedWeeklyCompletion { return cached }
+        let calendar = Calendar.current
+        let today = Date()
+        let todayStart = calendar.startOfDay(for: today)
+
+        let weekday = calendar.component(.weekday, from: today)
+        let mondayOffset = weekday == 1 ? -6 : -(weekday - 2)
+        guard let monday = calendar.date(byAdding: .day, value: mondayOffset, to: todayStart) else { return [] }
+
+        let dayLabels = ["M", "T", "W", "T", "F", "S", "S"]
+        let grouped = entriesByDay
+
+        let result = (0..<7).map { offset -> WeekDayStatus in
+            let dayDate = calendar.date(byAdding: .day, value: offset, to: monday) ?? monday
+            let dayStart = calendar.startOfDay(for: dayDate)
+            let isToday = dayStart == todayStart
+            let isFuture = dayStart > todayStart
+
+            let dayEntries = grouped[dayStart] ?? []
+
+            let status: DayCompletionStatus
+            if isFuture {
+                status = .future
+            } else if dayEntries.isEmpty {
+                status = .noSchedule
+            } else if isToday {
+                let allDone = dayEntries.allSatisfy(\.completed)
+                status = allDone ? .completed : .today
+            } else {
+                let completedCount = dayEntries.filter(\.completed).count
+                if completedCount == dayEntries.count {
+                    status = .completed
+                } else if completedCount > 0 {
+                    status = .partial
+                } else {
+                    status = .missed
+                }
+            }
+
+            return WeekDayStatus(id: offset + 1, dayLabel: dayLabels[offset], status: status)
+        }
+
+        _cachedWeeklyCompletion = result
+        return result
     }
 
     var averageCompliance: Double {
@@ -226,10 +328,13 @@ final class DataStore: DataServiceProtocol {
     // MARK: - Next Dose
 
     var nextDose: ProtocolEntry? {
+        if let cached = _cachedNextDose { return cached }
         let now = Date()
         let today = todayEntries
-        return today.first { !$0.completed && $0.date > now }
+        let result = today.first { !$0.completed && $0.date > now }
             ?? today.first { !$0.completed }
+        _cachedNextDose = .some(result)
+        return result
     }
 
     // MARK: - Profile
@@ -291,12 +396,9 @@ final class DataStore: DataServiceProtocol {
         var allEntries: [ProtocolEntry] = []
 
         for proto in protocols {
-            // Historical entries, excluding today to avoid duplicates with timed entries
             let historical = MockEntries.generateEntries(for: proto, days: 30)
                 .filter { !calendar.isDateInToday($0.date) }
             allEntries.append(contentsOf: historical)
-
-            // Today's entries with proper times from schedule
             allEntries.append(contentsOf: generateTodayEntries(for: proto))
         }
 

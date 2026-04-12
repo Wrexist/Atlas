@@ -68,8 +68,8 @@ final class StoreService {
         }
     }
 
-    func restorePurchases() async {
-        try? await AppStore.sync()
+    func restorePurchases() async throws {
+        try await AppStore.sync()
         await updatePurchasedProducts()
     }
 
@@ -108,8 +108,9 @@ final class StoreService {
                 purchased.insert(transaction.productID)
             }
         }
+        let proIDs: Set<String> = [Self.monthlyID, Self.annualID]
         purchasedProductIDs = purchased
-        isProUser = !purchased.isEmpty
+        isProUser = !purchased.intersection(proIDs).isEmpty
     }
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {

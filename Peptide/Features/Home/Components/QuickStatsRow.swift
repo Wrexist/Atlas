@@ -3,7 +3,7 @@ import SwiftUI
 struct QuickStatsRow: View {
     let activeProtocols: Int
     let daysLogged: Int
-    let streak: Int
+    let compliance: Int
     let nextDose: ProtocolEntry?
 
     var body: some View {
@@ -22,9 +22,9 @@ struct QuickStatsRow: View {
                 )
 
                 GlassStatPill(
-                    value: "\(streak)",
-                    label: "Day Streak",
-                    icon: "flame.fill"
+                    value: "\(compliance)%",
+                    label: "Compliance",
+                    icon: "chart.bar.fill"
                 )
 
                 GlassStatPill(
@@ -40,7 +40,7 @@ struct QuickStatsRow: View {
 #Preview {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        QuickStatsRow(activeProtocols: 2, daysLogged: 45, streak: 12, nextDose: MockEntries.todayEntries().first { !$0.completed })
+        QuickStatsRow(activeProtocols: 2, daysLogged: 45, compliance: 82, nextDose: MockEntries.todayEntries().first { !$0.completed })
             .padding(.leading, Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)

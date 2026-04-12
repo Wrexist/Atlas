@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ProfileView: View {
     @Environment(DataStore.self) private var dataStore
-    @State private var showPaywall = false
     @State private var storeService = StoreService.shared
     @State private var achievementService = AchievementService.shared
 

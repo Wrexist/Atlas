@@ -252,7 +252,9 @@ struct OnboardingView: View {
             Spacer()
 
             GlassButton(title: "Let's Go", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                dataStore.updateGoals(selectedGoals)
+                if !selectedGoals.isEmpty {
+                    dataStore.updateGoals(selectedGoals)
+                }
                 withAnimation(AppAnimation.springSnappy) {
                     hasCompleted = true
                 }
