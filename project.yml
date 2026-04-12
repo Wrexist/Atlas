@@ -20,6 +20,7 @@ targets:
         excludes:
           - "**/.DS_Store"
           - "Resources/Info.plist"
+          - "Resources/AppStoreCovers/**"
     info:
       path: Peptide/Resources/Info.plist
       properties:
