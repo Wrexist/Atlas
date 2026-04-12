@@ -18,7 +18,7 @@ enum StackRecommendationEngine {
         let detail: String
         let peptides: [String]
 
-        enum Severity {
+        enum Severity: Comparable {
             case caution, danger
         }
     }
@@ -32,8 +32,6 @@ enum StackRecommendationEngine {
     ) -> [Recommendation] {
         guard !currentPeptides.isEmpty else { return [] }
 
-        let currentNames = Set(currentPeptides.map { $0.abbreviation.lowercased() })
-        let currentFullNames = Set(currentPeptides.map { $0.name.lowercased() })
         let currentIds = Set(currentPeptides.map(\.id))
 
         // Build a lookup from lowercased name/abbreviation → Peptide
@@ -42,25 +40,21 @@ enum StackRecommendationEngine {
             dict[p.name.lowercased()] = p
         }
 
+        // Pre-compute current benefit keywords for O(1) lookups
+        let currentBenefits = Set(currentPeptides.flatMap(\.benefits).map { $0.lowercased() })
+
         // Score each recommended peptide by how many current stack peptides suggest it
-        var scores: [UUID: (peptide: Peptide, score: Int, recommenders: [String])] = [:]
+        var scores: [UUID: (peptide: Peptide, score: Int, recommenders: Set<String>)] = [:]
 
         for current in currentPeptides {
-            for stackName in current.commonStacks {
-                let key = stackName.lowercased()
-
-                // Try direct match first, then fuzzy contains
-                let match = dbByName[key] ?? database.first {
-                    $0.abbreviation.localizedCaseInsensitiveContains(stackName) ||
-                    $0.name.localizedCaseInsensitiveContains(stackName) ||
-                    stackName.localizedCaseInsensitiveContains($0.abbreviation)
-                }
-
-                guard let found = match, !currentIds.contains(found.id) else { continue }
+            let seenStacks = Set(current.commonStacks.map { $0.lowercased() })
+            for stackName in seenStacks {
+                guard let found = resolveMatch(stackName, in: dbByName, database: database),
+                      !currentIds.contains(found.id) else { continue }
 
                 if var existing = scores[found.id] {
                     existing.score += 1
-                    existing.recommenders.append(current.abbreviation)
+                    existing.recommenders.insert(current.abbreviation)
                     scores[found.id] = existing
                 } else {
                     scores[found.id] = (found, 1, [current.abbreviation])
@@ -68,14 +62,10 @@ enum StackRecommendationEngine {
             }
         }
 
-        // Also boost peptides that share the same category benefits
+        // Boost peptides that share benefits with the current stack
         for candidate in database where !currentIds.contains(candidate.id) {
-            let sharedBenefits = candidate.benefits.filter { benefit in
-                currentPeptides.contains { current in
-                    current.benefits.contains { $0.localizedCaseInsensitiveContains(benefit) }
-                }
-            }
-            if sharedBenefits.count >= 2, scores[candidate.id] != nil {
+            let sharedCount = candidate.benefits.filter { currentBenefits.contains($0.lowercased()) }.count
+            if sharedCount >= 2, scores[candidate.id] != nil {
                 scores[candidate.id]?.score += 1
             }
         }
@@ -84,9 +74,10 @@ enum StackRecommendationEngine {
             .sorted { $0.score > $1.score }
             .prefix(limit)
             .map { entry in
-                let reasonText = entry.recommenders.count <= 3
-                    ? entry.recommenders.joined(separator: ", ")
-                    : entry.recommenders.prefix(2).joined(separator: ", ") + " +\(entry.recommenders.count - 2) more"
+                let names = Array(entry.recommenders).sorted()
+                let reasonText = names.count <= 3
+                    ? names.joined(separator: ", ")
+                    : names.prefix(2).joined(separator: ", ") + " +\(names.count - 2) more"
                 return Recommendation(
                     id: entry.peptide.id,
                     peptide: entry.peptide,
@@ -103,27 +94,27 @@ enum StackRecommendationEngine {
 
         var warnings: [Warning] = []
 
-        // 1. Check for overlapping side effects that compound (3+ peptides share same effect)
-        var sideEffectCounts: [String: [String]] = [:]
+        // 1. Check for overlapping side effects that compound (3+ distinct peptides share same effect)
+        var sideEffectPeptides: [String: Set<String>] = [:]
         for peptide in currentPeptides {
             for effect in peptide.sideEffects {
                 let normalized = effect.lowercased()
                     .replacingOccurrences(of: "possible ", with: "")
                     .replacingOccurrences(of: "mild ", with: "")
+                    .replacingOccurrences(of: "temporary ", with: "")
                     .trimmingCharacters(in: .whitespaces)
 
                 let key = normalizedSideEffect(normalized)
-                sideEffectCounts[key, default: []].append(peptide.abbreviation)
+                sideEffectPeptides[key, default: []].insert(peptide.abbreviation)
             }
         }
 
-        for (effect, peptideNames) in sideEffectCounts where peptideNames.count >= 3 {
-            let uniqueNames = Array(Set(peptideNames))
+        for (effect, peptideNames) in sideEffectPeptides where peptideNames.count >= 3 {
             warnings.append(Warning(
                 severity: .caution,
                 title: "Compounding side effect risk",
-                detail: "\(uniqueNames.count) peptides share \"\(effect)\" as a potential side effect. Monitor closely.",
-                peptides: uniqueNames
+                detail: "\(peptideNames.count) peptides share \"\(effect)\" as a potential side effect. Monitor closely.",
+                peptides: peptideNames.sorted()
             ))
         }
 
@@ -138,19 +129,20 @@ enum StackRecommendationEngine {
             ))
         }
 
-        // 3. Check cross-contraindication references
+        // 3. Check cross-contraindication references (only for names ≥ 4 chars to avoid false positives)
         for i in 0..<currentPeptides.count {
             for j in (i + 1)..<currentPeptides.count {
                 let a = currentPeptides[i]
                 let b = currentPeptides[j]
 
-                let aContra = a.contraindications.joined(separator: " ").lowercased()
-                let bContra = b.contraindications.joined(separator: " ").lowercased()
-
-                let aReferences = aContra.contains(b.abbreviation.lowercased()) ||
-                                  aContra.contains(b.name.lowercased())
-                let bReferences = bContra.contains(a.abbreviation.lowercased()) ||
-                                  bContra.contains(a.name.lowercased())
+                let aReferences = b.abbreviation.count >= 4 && a.contraindications.contains {
+                    $0.localizedCaseInsensitiveContains(b.abbreviation) ||
+                    $0.localizedCaseInsensitiveContains(b.name)
+                }
+                let bReferences = a.abbreviation.count >= 4 && b.contraindications.contains {
+                    $0.localizedCaseInsensitiveContains(a.abbreviation) ||
+                    $0.localizedCaseInsensitiveContains(a.name)
+                }
 
                 if aReferences || bReferences {
                     warnings.append(Warning(
@@ -163,7 +155,7 @@ enum StackRecommendationEngine {
             }
         }
 
-        // 4. Check for peptides with overlapping mechanisms that might over-stimulate a pathway
+        // 4. Check for multiple GH secretagogues that might over-stimulate
         let ghReleasers = currentPeptides.filter {
             $0.mechanism.localizedCaseInsensitiveContains("growth hormone") &&
             ($0.mechanism.localizedCaseInsensitiveContains("releas") ||
@@ -179,28 +171,41 @@ enum StackRecommendationEngine {
             ))
         }
 
-        // Sort: danger first, then caution
-        return warnings.sorted { a, b in
-            switch (a.severity, b.severity) {
-            case (.danger, .caution): return true
-            case (.caution, .danger): return false
-            default: return false
-            }
-        }
+        return warnings.sorted { $0.severity > $1.severity }
     }
 
     // MARK: - Helpers
 
+    /// Resolve a commonStacks name to a database Peptide via exact key match, then careful substring match.
+    private static func resolveMatch(
+        _ stackName: String,
+        in lookup: [String: Peptide],
+        database: [Peptide]
+    ) -> Peptide? {
+        // Exact match on lowercased abbreviation or name
+        if let exact = lookup[stackName] { return exact }
+
+        // Fuzzy: only for names ≥ 4 chars to prevent "GH" matching "GHK-Cu"
+        guard stackName.count >= 4 else { return nil }
+
+        return database.first {
+            $0.abbreviation.localizedCaseInsensitiveContains(stackName) ||
+            $0.name.localizedCaseInsensitiveContains(stackName)
+        }
+    }
+
+    /// Normalize side effect strings to canonical keywords for grouping.
+    /// Keyword order matters: more specific terms should come first.
     private static func normalizedSideEffect(_ raw: String) -> String {
         let keywords = [
-            "nausea", "headache", "fatigue", "dizziness", "water retention",
-            "injection site", "flushing", "appetite", "blood pressure",
-            "cortisol", "insulin", "blood sugar", "numbness", "tingling",
-            "joint pain", "swelling"
+            "injection site", "blood pressure", "blood sugar", "water retention",
+            "joint pain", "nausea", "headache", "fatigue", "dizziness",
+            "flushing", "appetite", "cortisol", "insulin", "numbness",
+            "tingling", "swelling"
         ]
         for keyword in keywords where raw.contains(keyword) {
             return keyword
         }
-        return raw.prefix(40).lowercased()
+        return String(raw.prefix(40))
     }
 }

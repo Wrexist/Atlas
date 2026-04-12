@@ -17,7 +17,8 @@ struct HomeView: View {
 
     var body: some View {
         let stats = todayStats
-        let stackPeptides = Array(Set(dataStore.activeProtocols.flatMap(\.peptides)))
+        var seenIds = Set<UUID>()
+        let stackPeptides = dataStore.activeProtocols.flatMap(\.peptides).filter { seenIds.insert($0.id).inserted }
         let stackWarnings = StackRecommendationEngine.warnings(for: stackPeptides)
         let recommendations = StackRecommendationEngine.recommendations(
             for: stackPeptides, from: dataStore.peptideDatabase

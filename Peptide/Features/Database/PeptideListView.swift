@@ -52,7 +52,7 @@ struct PeptideListView: View {
                             }
                         }
                         .padding(.horizontal, Spacing.screenPadding)
-                        .animation(AppAnimation.fadeIn, value: viewModel.filteredPeptides.count)
+                        .animation(AppAnimation.fadeIn, value: viewModel.filteredPeptides.map(\.id))
                     }
                 }
                 .padding(.bottom, Spacing.xxxxl)
@@ -61,7 +61,7 @@ struct PeptideListView: View {
             .navigationTitle("Peptides")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Text("\(viewModel.filteredPeptides.count)")
+                    Text("\(viewModel.allPeptides.count)")
                         .font(AppFont.caption)
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColor.accentPrimary)

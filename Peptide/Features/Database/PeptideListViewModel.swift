@@ -3,7 +3,7 @@ import SwiftUI
 @Observable
 final class PeptideListViewModel {
     var searchText = "" { didSet { refilter() } }
-    var selectedCategory: PeptideCategory? { didSet { refilter() } }
+    var selectedCategory: PeptideCategory?
     private(set) var allPeptides: [Peptide]
     private(set) var filteredPeptides: [Peptide] = []
     private var hasLoadedFromStore = false
@@ -27,11 +27,8 @@ final class PeptideListViewModel {
 
     func selectCategory(_ category: PeptideCategory?) {
         withAnimation(AppAnimation.springSnappy) {
-            if selectedCategory == category {
-                selectedCategory = nil
-            } else {
-                selectedCategory = category
-            }
+            selectedCategory = (selectedCategory == category) ? nil : category
+            refilter()
         }
     }
 
@@ -43,7 +40,7 @@ final class PeptideListViewModel {
         }
 
         if !searchText.isEmpty {
-            let query = searchText.lowercased()
+            let query = searchText
             results = results.filter {
                 $0.name.localizedCaseInsensitiveContains(query) ||
                 $0.abbreviation.localizedCaseInsensitiveContains(query) ||
