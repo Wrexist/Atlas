@@ -87,6 +87,7 @@ enum PeptideDatabase {
 
     private static func map(_ dto: PeptideDTO) -> Peptide {
         Peptide(
+            id: stableUUID(from: dto.id),
             name: dto.name,
             abbreviation: dto.abbreviation,
             category: mapCategory(dto.category),
@@ -124,6 +125,12 @@ enum PeptideDatabase {
         )
     }
 
+    /// Deterministic UUID from a peptide index, stable across launches.
+    private static func stableUUID(from id: Int) -> UUID {
+        let hex = String(format: "50455054-4944-4500-%04X-0000%08X", (id >> 32) & 0xFFFF, id & 0xFFFFFFFF)
+        return UUID(uuidString: hex) ?? UUID()
+    }
+
     private static func mapCategory(_ raw: String) -> PeptideCategory {
         switch raw {
         case "growth": .growth
@@ -132,7 +139,9 @@ enum PeptideDatabase {
         case "antiAging": .antiAging
         case "immune": .immune
         case "metabolic": .metabolic
-        default: .recovery
+        default:
+            assertionFailure("Unknown peptide category: \(raw)")
+            return .recovery
         }
     }
 }

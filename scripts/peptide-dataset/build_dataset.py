@@ -161,9 +161,9 @@ def call_claude_with_retry(client: anthropic.Anthropic, name: str,
 
             # Strip markdown fences if the model slips
             if text.startswith("```"):
-                match = re.search(r'```(?:\w*)?\n(.*?)\n```', text, re.DOTALL)
+                match = re.match(r'```\w*\n?(.*?)\n?```', text, re.DOTALL)
                 if match:
-                    text = match.group(1)
+                    text = match.group(1).strip()
                 else:
                     text = "\n".join(text.split("\n")[1:])
 

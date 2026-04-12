@@ -236,7 +236,6 @@ PEPTIDES = [
     ("LY3841136", "LY3841136", "LY3841136"),
 
     # ═══ SPECIALTY / NICHE ═══
-    ("Angiotensin-(1-7)", "Ang-(1-7)", "Angiotensin 1-7"),
     ("Apelin-13", "Apelin-13", "Apelin 13"),
     ("Elabela", "Elabela", "Elabela peptide"),
     ("Adropin", "Adropin", "Adropin"),
