@@ -15,6 +15,7 @@ final class DataStore {
     @ObservationIgnored private var _cachedNextDose: ProtocolEntry??
     @ObservationIgnored private var _cachedWeeklyCompletion: [WeekDayStatus]?
     @ObservationIgnored private var _entriesByDay: [Date: [ProtocolEntry]]?
+    @ObservationIgnored private var _cacheDate: Date?
 
     private func invalidateCache() {
         _cachedTodayEntries = nil
@@ -24,6 +25,18 @@ final class DataStore {
         _cachedNextDose = nil
         _cachedWeeklyCompletion = nil
         _entriesByDay = nil
+        _cacheDate = nil
+    }
+
+    private func invalidateCacheIfDayChanged() {
+        guard let cacheDate = _cacheDate else {
+            _cacheDate = Date()
+            return
+        }
+        if !Calendar.current.isDateInToday(cacheDate) {
+            invalidateCache()
+            _cacheDate = Date()
+        }
     }
 
     private var entriesByDay: [Date: [ProtocolEntry]] {
@@ -83,6 +96,7 @@ final class DataStore {
     // MARK: - Entries
 
     var todayEntries: [ProtocolEntry] {
+        invalidateCacheIfDayChanged()
         if let cached = _cachedTodayEntries { return cached }
         let calendar = Calendar.current
         let activeIds = Set(activeProtocols.map(\.id))
@@ -173,6 +187,7 @@ final class DataStore {
     }
 
     var weeklyCompletion: [WeekDayStatus] {
+        invalidateCacheIfDayChanged()
         if let cached = _cachedWeeklyCompletion { return cached }
         let calendar = Calendar.current
         let today = Date()

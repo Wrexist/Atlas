@@ -4,8 +4,6 @@ struct TodayScheduleCard: View {
     let entries: [ProtocolEntry]
     let onToggle: (ProtocolEntry) -> Void
 
-    @State private var hasAppeared = false
-
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -45,9 +43,6 @@ struct TodayScheduleCard: View {
                     }
                 }
             }
-        }
-        .onAppear {
-            hasAppeared = true
         }
     }
 }

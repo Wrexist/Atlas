@@ -43,7 +43,7 @@ struct HomeView: View {
                     QuickStatsRow(
                         activeProtocols: dataStore.activeProtocols.count,
                         daysLogged: dataStore.totalDaysLogged,
-                        streak: dataStore.currentStreak,
+                        compliance: Int(dataStore.averageCompliance * 100),
                         nextDose: dataStore.nextDose
                     )
                     .sectionAppear(index: 3)

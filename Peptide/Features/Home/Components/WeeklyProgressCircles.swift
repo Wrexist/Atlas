@@ -17,7 +17,7 @@ private struct DayCircle: View {
     let day: WeekDayStatus
 
     private var isCurrentDay: Bool {
-        day.status == .today || day.status == .completed && isCompletedToday
+        day.status == .today || (day.status == .completed && isCompletedToday)
     }
 
     // Only true when today's index matches AND the day is completed (so we still highlight the label)
