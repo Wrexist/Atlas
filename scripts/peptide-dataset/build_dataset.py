@@ -5,17 +5,18 @@ PeptideX Dataset Builder
 Builds a comprehensive peptide dataset for the PeptideX iOS app.
 
 Pipeline per peptide:
-  1. Claude API (claude-opus-4-6) -> structured extraction matching Peptide.swift model
-  2. PubMed E-utilities -> real citations (title, journal, year, PMID, DOI)
-  3. PubChem REST -> molecular data (CID, MW, formula, canonical SMILES)
-  4. Auto-classify into one of 6 app categories
-  5. Merge + validate -> write to peptides.json (bundle-ready)
+  1. Claude API (claude-opus-4-6) -> all structured data in one call:
+     - Core peptide info matching Peptide.swift model
+     - Research citations (PMIDs, DOIs, journal refs)
+     - Molecular data (formula, MW, SMILES, PubChem CID)
+  2. Auto-validate category + field completeness
+  3. Checkpoint after each peptide (resumable)
 
 Usage:
   export ANTHROPIC_API_KEY=sk-ant-...
   python3 build_dataset.py              # full build
   python3 build_dataset.py --limit 5    # test run on 5 peptides
-  python3 build_dataset.py --resume     # resume from peptides.partial.json
+  python3 build_dataset.py --resume     # resume from checkpoint
 
 Output:
   peptides.json              - final dataset (drop into app bundle)
@@ -29,12 +30,10 @@ import logging
 import os
 import sys
 import time
-import urllib.parse
 from pathlib import Path
 from typing import Any
 
-import anthropic  # pip install anthropic
-import requests   # pip install requests
+import anthropic
 
 from peptide_list import PEPTIDES_DEDUPED
 
@@ -46,16 +45,12 @@ PARTIAL_PATH = OUT_DIR / "peptides.partial.json"
 LOG_PATH = OUT_DIR / "build.log"
 
 CLAUDE_MODEL = "claude-opus-4-6"
-CLAUDE_MAX_TOKENS = 2500
-
-PUBMED_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
-PUBCHEM_BASE = "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
-
-# NCBI asks for <= 3 req/sec without API key. Be polite.
-NCBI_DELAY = 0.4
-PUBMED_MAX_CITATIONS = 5
+CLAUDE_MAX_TOKENS = 4096
 
 CATEGORIES = ["growth", "recovery", "cognitive", "antiAging", "immune", "metabolic"]
+
+MAX_RETRIES = 3
+RETRY_BASE_DELAY = 2  # seconds, doubles each retry
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
 
@@ -70,7 +65,7 @@ logging.basicConfig(
 log = logging.getLogger("peptidex")
 
 
-# ─── Claude extraction ───────────────────────────────────────────────────────
+# ─── Claude extraction (all-in-one) ─────────────────────────────────────────
 
 EXTRACTION_SYSTEM = """You are a scientific research assistant building an educational peptide database for a mobile app called PeptideX.
 
@@ -81,12 +76,15 @@ Rules:
 4. Keep descriptions factual and neutral. Do not make therapeutic claims.
 5. Never recommend usage — describe what research has investigated.
 6. For unapproved research peptides, note their regulatory status honestly.
+7. For research citations, use REAL papers you are confident exist. Include accurate PMIDs and DOIs. If unsure of exact PMID/DOI, omit that citation rather than guessing.
+8. For molecular data, provide accurate values from established databases. If the peptide is too large or complex for a simple molecular formula, note that.
 """
 
-EXTRACTION_USER_TEMPLATE = """Extract structured data for this peptide for our educational database.
+EXTRACTION_USER_TEMPLATE = """Extract comprehensive structured data for this peptide for our educational database.
 
 Peptide: {name}
 Common abbreviation hint: {abbreviation}
+PubChem search term: {pubchem_query}
 
 Return a JSON object with EXACTLY these fields:
 
@@ -101,11 +99,28 @@ Return a JSON object with EXACTLY these fields:
   "half_life": "Half-life with units or 'Unknown'",
   "admin_route": "Subcutaneous | Intramuscular | Intranasal | Oral | Topical | Sublingual | Intravenous | Unknown",
   "mechanism": "1-2 sentences on mechanism of action",
-  "contraindications": ["Array", "of", "known", "contraindications", "or", "['Unknown']"],
-  "side_effects": ["Array", "of", "reported", "side", "effects", "or", "['Unknown']"],
+  "contraindications": ["Array", "of", "known", "contraindications"],
+  "side_effects": ["Array", "of", "reported", "side", "effects"],
   "common_stacks": ["Other peptides", "it is commonly", "researched alongside"],
   "regulatory_status": "e.g. 'FDA-approved for X', 'Research chemical, not approved for human use', 'Cosmetic ingredient'",
-  "sf_symbol": "Most-fitting SF Symbol name, e.g. 'cross.vial.fill', 'brain.head.profile.fill', 'flame.fill'"
+  "sf_symbol": "Most-fitting SF Symbol name, e.g. 'cross.vial.fill', 'brain.head.profile.fill', 'flame.fill'",
+  "research_links": [
+    {{
+      "title": "Exact paper title",
+      "source": "Journal name",
+      "year": 2023,
+      "pmid": "12345678 or empty string if unknown",
+      "doi": "10.xxxx/yyyy or empty string if unknown",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/12345678/ or relevant URL"
+    }}
+  ],
+  "molecular": {{
+    "cid": 12345,
+    "molecular_formula": "C10H15N3O4 or 'Complex peptide' for large peptides",
+    "molecular_weight": "245.25 or approximate weight as string",
+    "smiles": "Canonical SMILES string or empty string for large peptides",
+    "pubchem_url": "https://pubchem.ncbi.nlm.nih.gov/compound/12345 or empty string"
+  }}
 }}
 
 Category guide:
@@ -116,158 +131,111 @@ Category guide:
 - immune: antimicrobial, immunomodulating, antiviral, T-cell
 - metabolic: fat loss, glucose, GLP-1, thermogenesis, appetite
 
+Include 3-5 real, well-known research citations. Only include citations you are confident are real publications with correct details.
+
 Return ONLY the JSON object."""
 
 
-def call_claude(client: anthropic.Anthropic, name: str, abbreviation: str) -> dict[str, Any]:
-    """Extract structured peptide data via Claude API."""
-    msg = client.messages.create(
-        model=CLAUDE_MODEL,
-        max_tokens=CLAUDE_MAX_TOKENS,
-        system=EXTRACTION_SYSTEM,
-        messages=[
-            {
-                "role": "user",
-                "content": EXTRACTION_USER_TEMPLATE.format(
-                    name=name, abbreviation=abbreviation
-                ),
-            }
-        ],
-    )
-    text = msg.content[0].text.strip()
+def call_claude_with_retry(client: anthropic.Anthropic, name: str,
+                           abbreviation: str, pubchem_query: str) -> dict[str, Any]:
+    """Extract all peptide data via Claude API with retry logic."""
+    for attempt in range(MAX_RETRIES):
+        try:
+            msg = client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=CLAUDE_MAX_TOKENS,
+                system=EXTRACTION_SYSTEM,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": EXTRACTION_USER_TEMPLATE.format(
+                            name=name,
+                            abbreviation=abbreviation,
+                            pubchem_query=pubchem_query,
+                        ),
+                    }
+                ],
+            )
+            text = msg.content[0].text.strip()
 
-    # Defensive: strip markdown fences if the model slips
-    if text.startswith("```"):
-        lines = text.split("\n")
-        text = "\n".join(lines[1:-1] if lines[-1].startswith("```") else lines[1:])
+            # Strip markdown fences if the model slips
+            if text.startswith("```"):
+                lines = text.split("\n")
+                text = "\n".join(
+                    lines[1:-1] if lines[-1].startswith("```") else lines[1:]
+                )
 
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError as e:
-        log.error("JSON parse failed for %s: %s", name, e)
-        log.error("Raw text: %s", text[:500])
-        raise
+            data = json.loads(text)
 
-    # Validate category
-    if data.get("category") not in CATEGORIES:
-        log.warning("Bad category '%s' for %s, defaulting to 'recovery'",
-                    data.get("category"), name)
-        data["category"] = "recovery"
+            # Validate category
+            if data.get("category") not in CATEGORIES:
+                log.warning("Bad category '%s' for %s → defaulting to 'recovery'",
+                            data.get("category"), name)
+                data["category"] = "recovery"
 
-    return data
+            return data
+
+        except json.JSONDecodeError as e:
+            log.warning("JSON parse failed for %s (attempt %d/%d): %s",
+                        name, attempt + 1, MAX_RETRIES, e)
+            if attempt < MAX_RETRIES - 1:
+                delay = RETRY_BASE_DELAY * (2 ** attempt)
+                log.info("  Retrying in %ds...", delay)
+                time.sleep(delay)
+            else:
+                log.error("All retries exhausted for %s, raw: %s", name, text[:300])
+                raise
+
+        except anthropic.RateLimitError:
+            delay = RETRY_BASE_DELAY * (2 ** attempt) * 5
+            log.warning("Rate limited on %s (attempt %d/%d), waiting %ds",
+                        name, attempt + 1, MAX_RETRIES, delay)
+            time.sleep(delay)
+
+        except anthropic.APIError as e:
+            log.warning("API error for %s (attempt %d/%d): %s",
+                        name, attempt + 1, MAX_RETRIES, e)
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_BASE_DELAY * (2 ** attempt))
+            else:
+                raise
+
+    raise RuntimeError(f"Failed to process {name} after {MAX_RETRIES} attempts")
 
 
-# ─── PubMed enrichment ───────────────────────────────────────────────────────
+# ─── Record building ────────────────────────────────────────────────────────
 
-def fetch_pubmed_citations(query: str, max_results: int = PUBMED_MAX_CITATIONS) -> list[dict[str, Any]]:
-    """Get real PubMed citations via E-utilities."""
-    citations: list[dict[str, Any]] = []
-    try:
-        # Step 1: esearch for PMIDs, recent first
-        search_url = f"{PUBMED_BASE}/esearch.fcgi"
-        params = {
-            "db": "pubmed",
-            "term": query,
-            "retmax": max_results,
-            "retmode": "json",
-            "sort": "pub_date",
+def build_record(idx: int, claude_data: dict[str, Any]) -> dict[str, Any]:
+    """Build a clean, validated record from Claude's response."""
+    # Extract and normalize research links
+    raw_links = claude_data.get("research_links", [])
+    research_links = []
+    for link in raw_links:
+        if not isinstance(link, dict):
+            continue
+        entry = {
+            "title": str(link.get("title", "")).rstrip("."),
+            "source": str(link.get("source", "")),
+            "year": int(link.get("year", 0)) if link.get("year") else 0,
+            "pmid": str(link.get("pmid", "")),
+            "doi": str(link.get("doi", "")),
+            "url": str(link.get("url", "")),
         }
-        r = requests.get(search_url, params=params, timeout=15)
-        r.raise_for_status()
-        pmids = r.json().get("esearchresult", {}).get("idlist", [])
-        if not pmids:
-            return []
+        if entry["title"]:
+            research_links.append(entry)
 
-        time.sleep(NCBI_DELAY)
-
-        # Step 2: esummary for metadata
-        summary_url = f"{PUBMED_BASE}/esummary.fcgi"
-        params = {"db": "pubmed", "id": ",".join(pmids), "retmode": "json"}
-        r = requests.get(summary_url, params=params, timeout=15)
-        r.raise_for_status()
-        result = r.json().get("result", {})
-
-        for pmid in pmids:
-            item = result.get(pmid)
-            if not item:
-                continue
-            # Extract DOI if present
-            doi = ""
-            for article_id in item.get("articleids", []):
-                if article_id.get("idtype") == "doi":
-                    doi = article_id.get("value", "")
-                    break
-
-            # Year from pubdate like "2023 May 15"
-            pubdate = item.get("pubdate", "")
-            year = 0
-            for tok in pubdate.split():
-                if tok.isdigit() and len(tok) == 4:
-                    year = int(tok)
-                    break
-
-            citations.append({
-                "title": item.get("title", "").rstrip("."),
-                "source": item.get("fulljournalname") or item.get("source", ""),
-                "year": year,
-                "pmid": pmid,
-                "doi": doi,
-                "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
-            })
-    except Exception as e:
-        log.warning("PubMed failed for '%s': %s", query, e)
-
-    return citations
-
-
-# ─── PubChem enrichment ──────────────────────────────────────────────────────
-
-def fetch_pubchem_data(query: str) -> dict[str, Any]:
-    """Get molecular data from PubChem."""
-    try:
-        # Get CID from name
-        cid_url = f"{PUBCHEM_BASE}/compound/name/{urllib.parse.quote(query)}/cids/JSON"
-        r = requests.get(cid_url, timeout=15)
-        if r.status_code != 200:
-            return {}
-        cids = r.json().get("IdentifierList", {}).get("CID", [])
-        if not cids:
-            return {}
-        cid = cids[0]
-
-        time.sleep(NCBI_DELAY)
-
-        # Get properties
-        props_url = (
-            f"{PUBCHEM_BASE}/compound/cid/{cid}/property/"
-            f"MolecularFormula,MolecularWeight,CanonicalSMILES/JSON"
-        )
-        r = requests.get(props_url, timeout=15)
-        if r.status_code != 200:
-            return {"cid": cid}
-        props = r.json().get("PropertyTable", {}).get("Properties", [{}])[0]
-
-        return {
-            "cid": cid,
-            "molecular_formula": props.get("MolecularFormula", ""),
-            "molecular_weight": props.get("MolecularWeight", ""),
-            "smiles": props.get("CanonicalSMILES", ""),
-            "pubchem_url": f"https://pubchem.ncbi.nlm.nih.gov/compound/{cid}",
+    # Extract and normalize molecular data
+    raw_mol = claude_data.get("molecular", {})
+    molecular = {}
+    if isinstance(raw_mol, dict) and raw_mol:
+        molecular = {
+            "cid": raw_mol.get("cid", 0),
+            "molecular_formula": str(raw_mol.get("molecular_formula", "")),
+            "molecular_weight": str(raw_mol.get("molecular_weight", "")),
+            "smiles": str(raw_mol.get("smiles", "")),
+            "pubchem_url": str(raw_mol.get("pubchem_url", "")),
         }
-    except Exception as e:
-        log.warning("PubChem failed for '%s': %s", query, e)
-        return {}
 
-
-# ─── Merge + output ──────────────────────────────────────────────────────────
-
-def build_record(
-    idx: int,
-    claude_data: dict[str, Any],
-    citations: list[dict[str, Any]],
-    pubchem: dict[str, Any],
-) -> dict[str, Any]:
-    """Combine all sources into a single clean record."""
     return {
         "id": idx,
         "name": claude_data.get("name", ""),
@@ -285,24 +253,34 @@ def build_record(
         "commonStacks": claude_data.get("common_stacks", []),
         "regulatoryStatus": claude_data.get("regulatory_status", "Unknown"),
         "imageSystemName": claude_data.get("sf_symbol", "cross.vial.fill"),
-        "researchLinks": citations,
-        "molecular": pubchem,
+        "researchLinks": research_links,
+        "molecular": molecular,
     }
 
 
-def load_partial() -> list[dict[str, Any]]:
+# ─── Checkpoint I/O ─────────────────────────────────────────────────────────
+
+def load_checkpoint() -> list[dict[str, Any]]:
     if PARTIAL_PATH.exists():
         with PARTIAL_PATH.open() as f:
-            return json.load(f)
+            data = json.load(f)
+            # Handle both raw list and wrapped format
+            if isinstance(data, list):
+                return data
+            return data.get("peptides", [])
     return []
 
 
-def save_partial(records: list[dict[str, Any]]) -> None:
+def save_checkpoint(records: list[dict[str, Any]]) -> None:
     with PARTIAL_PATH.open("w") as f:
         json.dump(records, f, indent=2, ensure_ascii=False)
 
 
 def save_final(records: list[dict[str, Any]]) -> None:
+    # Re-index all records sequentially
+    for i, rec in enumerate(records):
+        rec["id"] = i
+
     payload = {
         "version": 1,
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -321,64 +299,72 @@ def save_final(records: list[dict[str, Any]]) -> None:
 # ─── Main ────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Build PeptideX dataset")
     parser.add_argument("--limit", type=int, default=None,
                         help="Only process first N peptides (for testing)")
     parser.add_argument("--resume", action="store_true",
-                        help="Resume from peptides.partial.json")
-    parser.add_argument("--skip-pubmed", action="store_true")
-    parser.add_argument("--skip-pubchem", action="store_true")
+                        help="Resume from peptides.partial.json checkpoint")
     args = parser.parse_args()
 
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        log.error("ANTHROPIC_API_KEY not set")
+        log.error("ANTHROPIC_API_KEY not set. Export it and retry.")
         sys.exit(1)
 
     client = anthropic.Anthropic(api_key=api_key)
 
-    records = load_partial() if args.resume else []
+    # Load checkpoint if resuming
+    records = load_checkpoint() if args.resume else []
     done_abbrevs = {r["abbreviation"].lower() for r in records}
-    log.info("Starting build. Already done: %d", len(records))
 
-    todo = PEPTIDES_DEDUPED[: args.limit] if args.limit else PEPTIDES_DEDUPED
+    todo = PEPTIDES_DEDUPED[:args.limit] if args.limit else PEPTIDES_DEDUPED
+    total = len(todo)
+    skipped = 0
+    failed = 0
+
+    log.info("═" * 60)
+    log.info("PeptideX Dataset Builder")
+    log.info("Model: %s | Peptides: %d | Checkpoint: %d done",
+             CLAUDE_MODEL, total, len(records))
+    log.info("═" * 60)
 
     for idx, (name, abbreviation, pubchem_query) in enumerate(todo):
         if abbreviation.lower() in done_abbrevs:
-            log.info("[%d/%d] SKIP (already done): %s", idx + 1, len(todo), abbreviation)
+            skipped += 1
             continue
 
-        log.info("[%d/%d] Processing: %s", idx + 1, len(todo), name)
+        progress = f"[{idx + 1}/{total}]"
+        log.info("%s Processing: %s (%s)", progress, name, abbreviation)
 
         try:
-            claude_data = call_claude(client, name, abbreviation)
+            claude_data = call_claude_with_retry(client, name, abbreviation, pubchem_query)
+            record = build_record(len(records), claude_data)
+            records.append(record)
+            done_abbrevs.add(abbreviation.lower())
+
+            # Checkpoint immediately
+            save_checkpoint(records)
+
+            n_links = len(record["researchLinks"])
+            has_mol = bool(record["molecular"])
+            log.info("%s  ✓ %s | cat=%s | %d citations | mol=%s",
+                     progress, record["abbreviation"], record["category"],
+                     n_links, "yes" if has_mol else "no")
+
         except Exception as e:
-            log.error("Claude extraction failed for %s: %s", name, e)
-            time.sleep(5)
+            failed += 1
+            log.error("%s  ✗ FAILED %s: %s", progress, name, e)
             continue
 
-        citations: list[dict[str, Any]] = []
-        pubchem: dict[str, Any] = {}
-
-        if not args.skip_pubmed:
-            citations = fetch_pubmed_citations(name)
-            time.sleep(NCBI_DELAY)
-
-        if not args.skip_pubchem:
-            pubchem = fetch_pubchem_data(pubchem_query)
-            time.sleep(NCBI_DELAY)
-
-        record = build_record(len(records), claude_data, citations, pubchem)
-        records.append(record)
-
-        # Checkpoint every peptide — resumable on crash
-        save_partial(records)
-        log.info("  ✓ %s | cat=%s | %d citations | PubChem CID=%s",
-                 record["abbreviation"], record["category"],
-                 len(citations), pubchem.get("cid", "—"))
-
+    # Write final output
     save_final(records)
-    log.info("DONE. %d peptides written to %s", len(records), FINAL_PATH)
+
+    log.info("═" * 60)
+    log.info("BUILD COMPLETE")
+    log.info("  Total: %d | Success: %d | Skipped: %d | Failed: %d",
+             total, len(records), skipped, failed)
+    log.info("  Output: %s", FINAL_PATH)
+    log.info("═" * 60)
 
 
 if __name__ == "__main__":
