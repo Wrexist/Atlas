@@ -1,6 +1,6 @@
 import Foundation
 
-struct ProtocolEntry: Identifiable, Hashable {
+struct ProtocolEntry: Identifiable, Hashable, Codable {
     let id: UUID
     let protocolId: UUID
     let peptide: Peptide

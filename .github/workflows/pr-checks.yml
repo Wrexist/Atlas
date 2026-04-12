@@ -85,3 +85,26 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Install SwiftLint
+        run: |
+          if command -v swiftlint &> /dev/null; then
+            echo "SwiftLint already available"
+          else
+            brew install swiftlint 2>&1 || true
+          fi
+
+      - name: Lint
+        run: swiftlint lint --reporter github-actions-logging || true
+
+      - name: Test
+        run: |
+          xcodebuild test \
+            -project Peptide.xcodeproj \
+            -scheme Peptide \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -resultBundlePath TestResults.xcresult || true

@@ -1,7 +1,7 @@
 import SwiftUI
 
 @Observable
-final class DataStore {
+final class DataStore: DataServiceProtocol {
     var protocols: [PeptideProtocol]
     var entries: [ProtocolEntry]
     var profile: UserProfile
@@ -28,25 +28,18 @@ final class DataStore {
     }
 
     func addProtocol(_ newProtocol: PeptideProtocol) {
-        withAnimation(AppAnimation.springSnappy) {
-            protocols.insert(newProtocol, at: 0)
-            appendTodayEntries(for: newProtocol)
-        }
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        protocols.insert(newProtocol, at: 0)
+        appendTodayEntries(for: newProtocol)
     }
 
     func deleteProtocol(id: UUID) {
-        withAnimation(AppAnimation.springSnappy) {
-            protocols.removeAll { $0.id == id }
-            entries.removeAll { $0.protocolId == id }
-        }
+        protocols.removeAll { $0.id == id }
+        entries.removeAll { $0.protocolId == id }
     }
 
     func updateProtocolStatus(id: UUID, to status: ProtocolStatus) {
         guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
-        withAnimation(AppAnimation.springSnappy) {
-            protocols[index].status = status
-        }
+        protocols[index].status = status
     }
 
     // MARK: - Entries
@@ -61,11 +54,7 @@ final class DataStore {
 
     func toggleEntry(_ entryId: UUID) {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
-        let becoming = !entries[index].completed
-        withAnimation(AppAnimation.springSnappy) {
-            entries[index].completed.toggle()
-        }
-        UIImpactFeedbackGenerator(style: becoming ? .light : .soft).impactOccurred()
+        entries[index].completed.toggle()
     }
 
     func entriesFor(protocolId: UUID, days: Int = 14) -> [ProtocolEntry] {
@@ -182,15 +171,11 @@ final class DataStore {
     // MARK: - Profile
 
     func updateGoals(_ goals: Set<String>) {
-        withAnimation(AppAnimation.springSnappy) {
-            profile.goals = Array(goals).sorted()
-        }
+        profile.goals = Array(goals).sorted()
     }
 
     func toggleHealthConnection() {
-        withAnimation(AppAnimation.springSnappy) {
-            profile.healthConnected.toggle()
-        }
+        profile.healthConnected.toggle()
     }
 
     // MARK: - Entry Generation

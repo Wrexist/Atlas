@@ -43,12 +43,45 @@ targets:
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: NO
+  PeptideTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: PeptideTests
+        excludes:
+          - "**/.DS_Store"
+    dependencies:
+      - target: Peptide
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app.tests
+        GENERATE_INFOPLIST_FILE: YES
+  PeptideUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: PeptideUITests
+        excludes:
+          - "**/.DS_Store"
+    dependencies:
+      - target: Peptide
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app.uitests
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   Peptide:
     build:
       targets:
         Peptide: all
+        PeptideTests: [test]
+        PeptideUITests: [test]
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - PeptideTests
+        - PeptideUITests
     archive:
       config: Release
