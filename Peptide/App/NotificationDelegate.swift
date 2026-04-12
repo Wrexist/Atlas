@@ -13,19 +13,21 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
-        withCompletionHandler completionHandler: @escaping () -> Void
+        withCompletionHandler completionHandler: @escaping @Sendable () -> Void
     ) {
-        let userInfo = response.notification.request.content.userInfo
         let action = response.actionIdentifier
+        let userInfo = response.notification.request.content.userInfo
+        let peptideIdStr = userInfo["peptideId"] as? String
+        let protocolIdStr = userInfo["protocolId"] as? String
+        let originalContent = response.notification.request.content
 
         Task { @MainActor [dataStore] in
             switch action {
             case "MARK_TAKEN":
-                if let peptideIdStr = userInfo["peptideId"] as? String,
+                if let peptideIdStr,
                    let peptideId = UUID(uuidString: peptideIdStr),
-                   let protocolIdStr = userInfo["protocolId"] as? String,
+                   let protocolIdStr,
                    let protocolId = UUID(uuidString: protocolIdStr) {
-                    let calendar = Calendar.current
                     if let entry = dataStore.todayEntries.first(where: {
                         $0.peptide.id == peptideId &&
                         $0.protocolId == protocolId &&
@@ -36,14 +38,14 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                 }
 
             case "SNOOZE":
-                let content = response.notification.request.content.mutableCopy() as! UNMutableNotificationContent
+                let content = originalContent.mutableCopy() as! UNMutableNotificationContent
                 let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 15 * 60, repeats: false)
                 let request = UNNotificationRequest(
                     identifier: "snooze-\(UUID().uuidString)",
                     content: content,
                     trigger: trigger
                 )
-                try? await center.add(request)
+                try? await UNUserNotificationCenter.current().add(request)
 
             default:
                 break
