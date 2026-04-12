@@ -28,6 +28,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -160,10 +161,11 @@ def call_claude_with_retry(client: anthropic.Anthropic, name: str,
 
             # Strip markdown fences if the model slips
             if text.startswith("```"):
-                lines = text.split("\n")
-                text = "\n".join(
-                    lines[1:-1] if lines[-1].startswith("```") else lines[1:]
-                )
+                match = re.search(r'```(?:\w*)?\n(.*?)\n```', text, re.DOTALL)
+                if match:
+                    text = match.group(1)
+                else:
+                    text = "\n".join(text.split("\n")[1:])
 
             data = json.loads(text)
 
@@ -262,12 +264,17 @@ def build_record(idx: int, claude_data: dict[str, Any]) -> dict[str, Any]:
 
 def load_checkpoint() -> list[dict[str, Any]]:
     if PARTIAL_PATH.exists():
-        with PARTIAL_PATH.open() as f:
-            data = json.load(f)
-            # Handle both raw list and wrapped format
+        try:
+            with PARTIAL_PATH.open() as f:
+                data = json.load(f)
             if isinstance(data, list):
                 return data
-            return data.get("peptides", [])
+            peptides = data.get("peptides", [])
+            return peptides if isinstance(peptides, list) else []
+        except (json.JSONDecodeError, ValueError) as e:
+            log.warning("Checkpoint corrupted (%s), backing up and starting fresh", e)
+            PARTIAL_PATH.rename(PARTIAL_PATH.with_suffix(".json.bak"))
+            return []
     return []
 
 

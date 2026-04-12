@@ -1,7 +1,7 @@
 {
   "version": 1,
   "generated_at": "2026-04-12T03:50:07Z",
-  "count": 210,
+  "count": 208,
   "disclaimer": "This dataset is for educational purposes only. It does not constitute medical advice. Many peptides listed are research chemicals not approved for human use. Always consult a qualified healthcare provider.",
   "peptides": [
     {
@@ -1599,7 +1599,7 @@
           "source": "Proceedings of the National Academy of Sciences",
           "year": 2005,
           "pmid": "16230631",
-          "doi": "10.1073/pnas.0505تخ649",
+          "doi": "",
           "url": "https://pubmed.ncbi.nlm.nih.gov/16230631/"
         },
         {
@@ -1688,7 +1688,7 @@
           "source": "Proceedings of the National Academy of Sciences",
           "year": 2005,
           "pmid": "16230631",
-          "doi": "10.1073/pnas.0505تة193102",
+          "doi": "",
           "url": "https://pubmed.ncbi.nlm.nih.gov/16230631/"
         },
         {
@@ -2675,7 +2675,7 @@
           "title": "The isolation and amino acid composition of delta-sleep-inducing peptide",
           "source": "Biochimica et Biophysica Acta",
           "year": 1977,
-          "pmid": "861242",
+          "pmid": "",
           "doi": "10.1016/0005-2795(77)90109-1",
           "url": "https://pubmed.ncbi.nlm.nih.gov/861242/"
         },
@@ -2683,7 +2683,7 @@
           "title": "DSIP--a tool for investigating the sleep onset mechanism",
           "source": "Waking and Sleeping",
           "year": 1979,
-          "pmid": "532485",
+          "pmid": "",
           "doi": "",
           "url": "https://pubmed.ncbi.nlm.nih.gov/532485/"
         },
@@ -3872,7 +3872,7 @@
           "title": "Prenatal to early postnatal neurotrophic treatment prevents Alzheimer-like behavior and pathology in mice",
           "source": "Translational Psychiatry",
           "year": 2017,
-          "pmid": "28amed72",
+          "pmid": "",
           "doi": "10.1038/tp.2017.11",
           "url": "https://pubmed.ncbi.nlm.nih.gov/28211509/"
         },
@@ -5361,7 +5361,7 @@
           "title": "Thymosin α1 represents a potential potent single-molecule-based therapy for cystic fibrosis",
           "source": "Nature Medicine",
           "year": 2017,
-          "pmid": "28compromised",
+          "pmid": "",
           "doi": "10.1038/nm.4305",
           "url": "https://pubmed.ncbi.nlm.nih.gov/28394333/"
         },
@@ -7323,96 +7323,6 @@
     },
     {
       "id": 85,
-      "name": "Glycyl-L-Histidyl-L-Lysine-Copper(II) Complex",
-      "abbreviation": "GHK-Cu",
-      "category": "antiAging",
-      "description": "GHK-Cu is a naturally occurring copper-binding tripeptide first isolated from human plasma by Loren Pickart in 1973. It consists of the amino acids glycine, histidine, and lysine complexed with a copper(II) ion. The peptide is found in plasma, saliva, and urine, with levels declining significantly with age. Research has investigated its roles in wound healing, skin remodeling, anti-inflammatory signaling, and gene expression modulation related to aging and tissue repair.",
-      "benefits": [
-        "Stimulation of collagen and glycosaminoglycan synthesis in skin",
-        "Promotion of wound healing and tissue remodeling",
-        "Antioxidant and anti-inflammatory effects",
-        "Stimulation of hair follicle growth",
-        "Modulation of gene expression associated with aging processes",
-        "Enhancement of angiogenesis and nerve outgrowth in wound models"
-      ],
-      "dosageRange": "Topical: 1-200 ppm in creams/serums; Subcutaneous: research dosages vary, commonly referenced at 1-20 mg topically",
-      "frequency": "1-2x daily (topical application)",
-      "halfLife": "Unknown",
-      "adminRoute": "Topical",
-      "mechanism": "GHK-Cu acts as a copper delivery vehicle, modulating copper-dependent enzyme activity involved in collagen synthesis, superoxide dismutase function, and extracellular matrix remodeling. It also influences gene expression by upregulating genes associated with tissue repair (e.g., collagen, decorin, metalloproteinases) and downregulating genes associated with inflammation and fibrinogen synthesis, affecting over 4,000 human genes according to Broad Institute connectivity map analyses.",
-      "contraindications": [
-        "Known hypersensitivity to copper or peptide components",
-        "Wilson's disease or other copper metabolism disorders",
-        "Pregnancy and lactation (insufficient safety data)",
-        "Active malignancy (theoretical concern due to angiogenic properties)"
-      ],
-      "sideEffects": [
-        "Mild skin irritation or redness at topical application site",
-        "Contact dermatitis in sensitive individuals",
-        "Injection site reactions (if administered subcutaneously)",
-        "Headache (rarely reported)"
-      ],
-      "commonStacks": [
-        "Retinol/Retinoids",
-        "Vitamin C (ascorbic acid)",
-        "Hyaluronic acid",
-        "BPC-157",
-        "TB-500 (Thymosin Beta-4)"
-      ],
-      "regulatoryStatus": "Widely used as a cosmetic ingredient in topical skincare formulations. Not FDA-approved as a drug. Injectable forms are considered research chemicals and are not approved for human therapeutic use. Classified as a cosmetic active ingredient in many jurisdictions.",
-      "imageSystemName": "sparkles",
-      "researchLinks": [
-        {
-          "title": "The human tripeptide GHK-Cu in prevention of oxidative stress and degenerative conditions of aging: implications for cognitive health",
-          "source": "Oxidative Medicine and Cellular Longevity",
-          "year": 2012,
-          "pmid": "22900129",
-          "doi": "10.1155/2012/324832",
-          "url": "https://pubmed.ncbi.nlm.nih.gov/22900129/"
-        },
-        {
-          "title": "GHK peptide as a natural modulator of multiple cellular pathways in skin regeneration",
-          "source": "BioMed Research International",
-          "year": 2015,
-          "pmid": "25985612",
-          "doi": "10.1155/2015/648108",
-          "url": "https://pubmed.ncbi.nlm.nih.gov/25985612/"
-        },
-        {
-          "title": "Tripeptide-copper complex stimulates healing of skin wounds in animals",
-          "source": "Archives of Surgery",
-          "year": 1990,
-          "pmid": "2241551",
-          "doi": "",
-          "url": "https://pubmed.ncbi.nlm.nih.gov/2241551/"
-        },
-        {
-          "title": "Biochemistry and molecular biology of the tripeptide GHK-Cu",
-          "source": "Life Sciences",
-          "year": 2014,
-          "pmid": "25476823",
-          "doi": "10.1016/j.lfs.2014.11.021",
-          "url": "https://pubmed.ncbi.nlm.nih.gov/25476823/"
-        },
-        {
-          "title": "Human skin wounds: a major and snowballing threat to public health and the economy",
-          "source": "Wound Repair and Regeneration",
-          "year": 2009,
-          "pmid": "19660044",
-          "doi": "10.1111/j.1524-475X.2009.00543.x",
-          "url": "https://pubmed.ncbi.nlm.nih.gov/19660044/"
-        }
-      ],
-      "molecular": {
-        "cid": 73587,
-        "molecular_formula": "C14H24CuN6O4",
-        "molecular_weight": "403.92",
-        "smiles": "[Cu+2].NCC(=O)NC(Cc1c[nH]cn1)C(=O)NC(CCCC[NH3+])C([O-])=O.[O-]",
-        "pubchem_url": "https://pubchem.ncbi.nlm.nih.gov/compound/73587"
-      }
-    },
-    {
-      "id": 86,
       "name": "Acetyl Hexapeptide-3 (Argireline)",
       "abbreviation": "Argireline",
       "category": "antiAging",
@@ -7492,7 +7402,7 @@
       }
     },
     {
-      "id": 87,
+      "id": 86,
       "name": "Acetyl Octapeptide-3 (SNAP-8)",
       "abbreviation": "SNAP-8",
       "category": "antiAging",
@@ -7563,7 +7473,7 @@
       }
     },
     {
-      "id": 88,
+      "id": 87,
       "name": "Pentapeptide-18 (Leuphasyl)",
       "abbreviation": "Leuphasyl",
       "category": "antiAging",
@@ -7632,7 +7542,7 @@
       }
     },
     {
-      "id": 89,
+      "id": 88,
       "name": "Pentapeptide-3 (Vialox)",
       "abbreviation": "Vialox",
       "category": "antiAging",
@@ -7702,7 +7612,7 @@
       }
     },
     {
-      "id": 90,
+      "id": 89,
       "name": "Palmitoyl Oligopeptide (Biopeptide EL)",
       "abbreviation": "Biopeptide EL",
       "category": "antiAging",
@@ -7773,7 +7683,7 @@
       }
     },
     {
-      "id": 91,
+      "id": 90,
       "name": "Palmitoyl Tripeptide-1 (Biopeptide CL)",
       "abbreviation": "Biopeptide CL",
       "category": "antiAging",
@@ -7852,7 +7762,7 @@
       }
     },
     {
-      "id": 92,
+      "id": 91,
       "name": "Acetyl Tetrapeptide-5 (Eyeseryl)",
       "abbreviation": "Eyeseryl",
       "category": "antiAging",
@@ -7923,7 +7833,7 @@
       }
     },
     {
-      "id": 93,
+      "id": 92,
       "name": "Tripeptide-10 Citrulline (Decorinyl)",
       "abbreviation": "Decorinyl",
       "category": "antiAging",
@@ -8002,7 +7912,7 @@
       }
     },
     {
-      "id": 94,
+      "id": 93,
       "name": "Trifluoroacetyl Tripeptide-2",
       "abbreviation": "TT-2",
       "category": "antiAging",
@@ -8052,7 +7962,7 @@
           "source": "Journal of Clinical Investigation",
           "year": 2011,
           "pmid": "21765213",
-          "doi": "10.1172/JCI43تمام578",
+          "doi": "",
           "url": "https://pubmed.ncbi.nlm.nih.gov/21765213/"
         },
         {
@@ -8081,7 +7991,7 @@
       }
     },
     {
-      "id": 95,
+      "id": 94,
       "name": "Palmitoyl Tetrapeptide-7 (Rigin)",
       "abbreviation": "Pal-TP7",
       "category": "antiAging",
@@ -8159,7 +8069,7 @@
       }
     },
     {
-      "id": 96,
+      "id": 95,
       "name": "Trifluoroacetyl Tripeptide-2",
       "abbreviation": "Progeline",
       "category": "antiAging",
@@ -8201,7 +8111,7 @@
           "source": "Journal of Clinical Investigation",
           "year": 2011,
           "pmid": "21646721",
-          "doi": "10.1172/JCI43تخص578",
+          "doi": "",
           "url": "https://pubmed.ncbi.nlm.nih.gov/21646721/"
         },
         {
@@ -8238,7 +8148,7 @@
       }
     },
     {
-      "id": 97,
+      "id": 96,
       "name": "Dermorphin",
       "abbreviation": "Dermorphin",
       "category": "recovery",
@@ -8320,7 +8230,7 @@
       }
     },
     {
-      "id": 98,
+      "id": 97,
       "name": "Humanin S14G (HNG)",
       "abbreviation": "HNG",
       "category": "cognitive",
@@ -8409,7 +8319,7 @@
       }
     },
     {
-      "id": 99,
+      "id": 98,
       "name": "Gonadorelin (Gonadotropin-Releasing Hormone)",
       "abbreviation": "Gonadorelin",
       "category": "metabolic",
@@ -8503,7 +8413,7 @@
       }
     },
     {
-      "id": 100,
+      "id": 99,
       "name": "Kisspeptin-10 (Metastin 45-54)",
       "abbreviation": "KP-10",
       "category": "metabolic",
@@ -8594,7 +8504,7 @@
       }
     },
     {
-      "id": 101,
+      "id": 100,
       "name": "Triptorelin (D-Trp6-LHRH)",
       "abbreviation": "Triptorelin",
       "category": "metabolic",
@@ -8691,7 +8601,7 @@
       }
     },
     {
-      "id": 102,
+      "id": 101,
       "name": "Leuprolide (Leuprorelin)",
       "abbreviation": "Leuprolide",
       "category": "metabolic",
@@ -8792,7 +8702,7 @@
       }
     },
     {
-      "id": 103,
+      "id": 102,
       "name": "Buserelin (des-Gly10-[D-Ser(tBu)6]-LH-RH ethylamide)",
       "abbreviation": "Buserelin",
       "category": "metabolic",
@@ -8880,7 +8790,7 @@
       }
     },
     {
-      "id": 104,
+      "id": 103,
       "name": "Magainin 2",
       "abbreviation": "Magainin",
       "category": "immune",
@@ -8967,7 +8877,7 @@
       }
     },
     {
-      "id": 105,
+      "id": 104,
       "name": "Human Defensin (Alpha-Defensin / HNP-1)",
       "abbreviation": "Defensin",
       "category": "immune",
@@ -9055,7 +8965,7 @@
       }
     },
     {
-      "id": 106,
+      "id": 105,
       "name": "Lactoferrin",
       "abbreviation": "Lactoferrin",
       "category": "immune",
@@ -9145,7 +9055,7 @@
       }
     },
     {
-      "id": 107,
+      "id": 106,
       "name": "Nisin",
       "abbreviation": "Nisin",
       "category": "immune",
@@ -9231,7 +9141,7 @@
       }
     },
     {
-      "id": 108,
+      "id": 107,
       "name": "Polymyxin B",
       "abbreviation": "Polymyxin B",
       "category": "immune",
@@ -9323,7 +9233,7 @@
       }
     },
     {
-      "id": 109,
+      "id": 108,
       "name": "Gramicidin",
       "abbreviation": "Gramicidin",
       "category": "immune",
@@ -9411,7 +9321,7 @@
       }
     },
     {
-      "id": 110,
+      "id": 109,
       "name": "Colistin (Polymyxin E)",
       "abbreviation": "Colistin",
       "category": "immune",
@@ -9503,7 +9413,7 @@
       }
     },
     {
-      "id": 111,
+      "id": 110,
       "name": "Bacitracin",
       "abbreviation": "Bacitracin",
       "category": "immune",
@@ -9591,7 +9501,7 @@
       }
     },
     {
-      "id": 112,
+      "id": 111,
       "name": "Insulin (human recombinant)",
       "abbreviation": "Insulin",
       "category": "metabolic",
@@ -9683,7 +9593,7 @@
       }
     },
     {
-      "id": 113,
+      "id": 112,
       "name": "Glucagon",
       "abbreviation": "Glucagon",
       "category": "metabolic",
@@ -9776,7 +9686,7 @@
       }
     },
     {
-      "id": 114,
+      "id": 113,
       "name": "Oxyntomodulin",
       "abbreviation": "OXM",
       "category": "metabolic",
@@ -9867,7 +9777,7 @@
       }
     },
     {
-      "id": 115,
+      "id": 114,
       "name": "Peptide YY (3-36)",
       "abbreviation": "PYY 3-36",
       "category": "metabolic",
@@ -9956,7 +9866,7 @@
       }
     },
     {
-      "id": 116,
+      "id": 115,
       "name": "Ghrelin (Growth Hormone Release Inducing)",
       "abbreviation": "Ghrelin",
       "category": "metabolic",
@@ -10050,7 +9960,7 @@
       }
     },
     {
-      "id": 117,
+      "id": 116,
       "name": "Leptin (human recombinant leptin / metreleptin)",
       "abbreviation": "Leptin",
       "category": "metabolic",
@@ -10142,7 +10052,7 @@
       }
     },
     {
-      "id": 118,
+      "id": 117,
       "name": "Calcitonin (Salmon Calcitonin)",
       "abbreviation": "Calcitonin",
       "category": "recovery",
@@ -10232,7 +10142,7 @@
       }
     },
     {
-      "id": 119,
+      "id": 118,
       "name": "Parathyroid Hormone (1-34) / Teriparatide",
       "abbreviation": "PTH 1-34",
       "category": "recovery",
@@ -10329,7 +10239,7 @@
       }
     },
     {
-      "id": 120,
+      "id": 119,
       "name": "Arginine Vasopressin",
       "abbreviation": "AVP",
       "category": "cognitive",
@@ -10424,7 +10334,7 @@
       }
     },
     {
-      "id": 121,
+      "id": 120,
       "name": "Desmopressin (1-Deamino-8-D-Arginine Vasopressin)",
       "abbreviation": "DDAVP",
       "category": "cognitive",
@@ -10468,7 +10378,7 @@
           "title": "Desmopressin: a new principle for symptomatic treatment of hemophilia A and von Willebrand's disease",
           "source": "Lancet",
           "year": 1977,
-          "pmid": "68810",
+          "pmid": "",
           "doi": "10.1016/S0140-6736(77)92004-8",
           "url": "https://pubmed.ncbi.nlm.nih.gov/68810/"
         },
@@ -10514,7 +10424,7 @@
       }
     },
     {
-      "id": 122,
+      "id": 121,
       "name": "5-Hydroxytryptamine (Serotonin) Receptor-Targeting Peptides",
       "abbreviation": "5-HT Peptides",
       "category": "cognitive",
@@ -10597,7 +10507,7 @@
       }
     },
     {
-      "id": 123,
+      "id": 122,
       "name": "Agouti-Related Peptide",
       "abbreviation": "AGRP",
       "category": "metabolic",
@@ -10683,7 +10593,7 @@
       }
     },
     {
-      "id": 124,
+      "id": 123,
       "name": "Alpha-Melanocyte-Stimulating Hormone",
       "abbreviation": "α-MSH",
       "category": "immune",
@@ -10772,7 +10682,7 @@
       }
     },
     {
-      "id": 125,
+      "id": 124,
       "name": "Angiotensin II",
       "abbreviation": "Ang II",
       "category": "metabolic",
@@ -10866,7 +10776,7 @@
       }
     },
     {
-      "id": 126,
+      "id": 125,
       "name": "Angiotensin-(1-7)",
       "abbreviation": "Ang-(1-7)",
       "category": "metabolic",
@@ -10955,7 +10865,7 @@
       }
     },
     {
-      "id": 127,
+      "id": 126,
       "name": "Atrial Natriuretic Peptide",
       "abbreviation": "ANP",
       "category": "metabolic",
@@ -11045,7 +10955,7 @@
       }
     },
     {
-      "id": 128,
+      "id": 127,
       "name": "Brain Natriuretic Peptide (B-type Natriuretic Peptide)",
       "abbreviation": "BNP",
       "category": "metabolic",
@@ -11138,7 +11048,7 @@
       }
     },
     {
-      "id": 129,
+      "id": 128,
       "name": "Bradykinin",
       "abbreviation": "BK",
       "category": "immune",
@@ -11230,7 +11140,7 @@
       }
     },
     {
-      "id": 130,
+      "id": 129,
       "name": "Bombesin",
       "abbreviation": "Bombesin",
       "category": "metabolic",
@@ -11281,7 +11191,7 @@
           "title": "Bombesin: a potent stimulus for growth hormone secretion in the rat",
           "source": "Life Sciences",
           "year": 1978,
-          "pmid": "692261",
+          "pmid": "",
           "doi": "",
           "url": "https://pubmed.ncbi.nlm.nih.gov/692261/"
         },
@@ -11319,7 +11229,7 @@
       }
     },
     {
-      "id": 131,
+      "id": 130,
       "name": "Cecropin A",
       "abbreviation": "Cecropin",
       "category": "immune",
@@ -11405,7 +11315,7 @@
       }
     },
     {
-      "id": 132,
+      "id": 131,
       "name": "Cholecystokinin Octapeptide (CCK-8)",
       "abbreviation": "CCK-8",
       "category": "metabolic",
@@ -11495,7 +11405,7 @@
       }
     },
     {
-      "id": 133,
+      "id": 132,
       "name": "Corticotropin-Releasing Hormone",
       "abbreviation": "CRH",
       "category": "cognitive",
@@ -11585,7 +11495,7 @@
       }
     },
     {
-      "id": 134,
+      "id": 133,
       "name": "Dynorphin A (1-17)",
       "abbreviation": "Dynorphin A",
       "category": "cognitive",
@@ -11676,7 +11586,7 @@
       }
     },
     {
-      "id": 135,
+      "id": 134,
       "name": "Endomorphin-1",
       "abbreviation": "EM-1",
       "category": "cognitive",
@@ -11765,7 +11675,7 @@
       }
     },
     {
-      "id": 136,
+      "id": 135,
       "name": "Endomorphin-2",
       "abbreviation": "EM-2",
       "category": "cognitive",
@@ -11856,7 +11766,7 @@
       }
     },
     {
-      "id": 137,
+      "id": 136,
       "name": "Endothelin-1",
       "abbreviation": "ET-1",
       "category": "metabolic",
@@ -11950,7 +11860,7 @@
       }
     },
     {
-      "id": 138,
+      "id": 137,
       "name": "Methionine-Enkephalin (Tyr-Gly-Gly-Phe-Met)",
       "abbreviation": "Met-Enkephalin",
       "category": "immune",
@@ -12030,7 +11940,7 @@
       }
     },
     {
-      "id": 139,
+      "id": 138,
       "name": "Galanin",
       "abbreviation": "GAL",
       "category": "cognitive",
@@ -12119,7 +12029,7 @@
       }
     },
     {
-      "id": 140,
+      "id": 139,
       "name": "Gastrin (Gastrin-17 / Little Gastrin)",
       "abbreviation": "Gastrin",
       "category": "metabolic",
@@ -12211,7 +12121,7 @@
       }
     },
     {
-      "id": 141,
+      "id": 140,
       "name": "Teduglutide (GLP-2 analog)",
       "abbreviation": "GLP-2",
       "category": "recovery",
@@ -12306,7 +12216,7 @@
       }
     },
     {
-      "id": 142,
+      "id": 141,
       "name": "Guanylin (Guanylyl cyclase-activating peptide)",
       "abbreviation": "Guanylin",
       "category": "metabolic",
@@ -12395,7 +12305,7 @@
       }
     },
     {
-      "id": 143,
+      "id": 142,
       "name": "Hepcidin (Liver-expressed antimicrobial peptide, LEAP-1)",
       "abbreviation": "Hepcidin",
       "category": "immune",
@@ -12482,7 +12392,7 @@
       }
     },
     {
-      "id": 144,
+      "id": 143,
       "name": "Melanin-Concentrating Hormone",
       "abbreviation": "MCH",
       "category": "metabolic",
@@ -12569,7 +12479,7 @@
       }
     },
     {
-      "id": 145,
+      "id": 144,
       "name": "Melanocortin Peptides (α-MSH / Melanocortin System)",
       "abbreviation": "MC / α-MSH",
       "category": "metabolic",
@@ -12663,7 +12573,7 @@
       }
     },
     {
-      "id": 146,
+      "id": 145,
       "name": "Motilin",
       "abbreviation": "Motilin",
       "category": "metabolic",
@@ -12751,7 +12661,7 @@
       }
     },
     {
-      "id": 147,
+      "id": 146,
       "name": "Neuropeptide Y",
       "abbreviation": "NPY",
       "category": "metabolic",
@@ -12842,7 +12752,7 @@
       }
     },
     {
-      "id": 148,
+      "id": 147,
       "name": "Neurotensin",
       "abbreviation": "NT",
       "category": "metabolic",
@@ -12930,7 +12840,7 @@
       }
     },
     {
-      "id": 149,
+      "id": 148,
       "name": "Orexin A (Hypocretin-1)",
       "abbreviation": "OX-A",
       "category": "cognitive",
@@ -13019,7 +12929,7 @@
       }
     },
     {
-      "id": 150,
+      "id": 149,
       "name": "Orexin B (Hypocretin-2)",
       "abbreviation": "OX-B",
       "category": "cognitive",
@@ -13108,7 +13018,7 @@
       }
     },
     {
-      "id": 151,
+      "id": 150,
       "name": "Oxytocin Fragment (Pro-Leu-Gly-NH2 / MIF-1)",
       "abbreviation": "OT-Frag/MIF-1",
       "category": "cognitive",
@@ -13188,7 +13098,7 @@
       }
     },
     {
-      "id": 152,
+      "id": 151,
       "name": "Relaxin-2 (Human Relaxin H2)",
       "abbreviation": "Relaxin",
       "category": "recovery",
@@ -13277,7 +13187,7 @@
       }
     },
     {
-      "id": 153,
+      "id": 152,
       "name": "Secretin",
       "abbreviation": "Secretin",
       "category": "metabolic",
@@ -13366,7 +13276,7 @@
       }
     },
     {
-      "id": 154,
+      "id": 153,
       "name": "Somatostatin (Somatotropin Release-Inhibiting Factor)",
       "abbreviation": "SST",
       "category": "metabolic",
@@ -13458,7 +13368,7 @@
       }
     },
     {
-      "id": 155,
+      "id": 154,
       "name": "Octreotide",
       "abbreviation": "Octreotide",
       "category": "metabolic",
@@ -13553,7 +13463,7 @@
       }
     },
     {
-      "id": 156,
+      "id": 155,
       "name": "Lanreotide",
       "abbreviation": "Lanreotide",
       "category": "metabolic",
@@ -13646,7 +13556,7 @@
       }
     },
     {
-      "id": 157,
+      "id": 156,
       "name": "Pasireotide (SOM230)",
       "abbreviation": "Pasireotide",
       "category": "metabolic",
@@ -13741,7 +13651,7 @@
       }
     },
     {
-      "id": 158,
+      "id": 157,
       "name": "Substance P",
       "abbreviation": "SP",
       "category": "immune",
@@ -13831,7 +13741,7 @@
       }
     },
     {
-      "id": 159,
+      "id": 158,
       "name": "Thyrotropin-Releasing Hormone",
       "abbreviation": "TRH",
       "category": "metabolic",
@@ -13924,7 +13834,7 @@
       }
     },
     {
-      "id": 160,
+      "id": 159,
       "name": "Urocortin",
       "abbreviation": "UCN",
       "category": "recovery",
@@ -14014,7 +13924,7 @@
       }
     },
     {
-      "id": 161,
+      "id": 160,
       "name": "Urotensin II",
       "abbreviation": "U-II",
       "category": "metabolic",
@@ -14103,7 +14013,7 @@
       }
     },
     {
-      "id": 162,
+      "id": 161,
       "name": "SS-20 (Phe-D-Arg-Phe-Lys-NH2)",
       "abbreviation": "SS-20",
       "category": "antiAging",
@@ -14188,7 +14098,7 @@
       }
     },
     {
-      "id": 163,
+      "id": 162,
       "name": "Human Chorionic Gonadotropin",
       "abbreviation": "HCG",
       "category": "metabolic",
@@ -14287,7 +14197,7 @@
       }
     },
     {
-      "id": 164,
+      "id": 163,
       "name": "Menotropin (Human Menopausal Gonadotropin)",
       "abbreviation": "HMG",
       "category": "metabolic",
@@ -14375,7 +14285,7 @@
       }
     },
     {
-      "id": 165,
+      "id": 164,
       "name": "Follicle-Stimulating Hormone",
       "abbreviation": "FSH",
       "category": "metabolic",
@@ -14473,7 +14383,7 @@
       }
     },
     {
-      "id": 166,
+      "id": 165,
       "name": "Luteinizing Hormone",
       "abbreviation": "LH",
       "category": "metabolic",
@@ -14567,7 +14477,7 @@
       }
     },
     {
-      "id": 167,
+      "id": 166,
       "name": "Thyroid-Stimulating Hormone (Thyrotropin)",
       "abbreviation": "TSH",
       "category": "metabolic",
@@ -14657,7 +14567,7 @@
       }
     },
     {
-      "id": 168,
+      "id": 167,
       "name": "Adrenocorticotropic Hormone (Corticotropin)",
       "abbreviation": "ACTH",
       "category": "immune",
@@ -14756,7 +14666,7 @@
       }
     },
     {
-      "id": 169,
+      "id": 168,
       "name": "Cosyntropin (Tetracosactide)",
       "abbreviation": "Cosyntropin",
       "category": "metabolic",
@@ -14834,7 +14744,7 @@
       }
     },
     {
-      "id": 170,
+      "id": 169,
       "name": "Glucagon-like peptide-1",
       "abbreviation": "GLP-1",
       "category": "metabolic",
@@ -14929,7 +14839,7 @@
       }
     },
     {
-      "id": 171,
+      "id": 170,
       "name": "Glucose-dependent Insulinotropic Peptide (Gastric Inhibitory Polypeptide)",
       "abbreviation": "GIP",
       "category": "metabolic",
@@ -15018,7 +14928,7 @@
       }
     },
     {
-      "id": 172,
+      "id": 171,
       "name": "Amylin (Islet Amyloid Polypeptide)",
       "abbreviation": "Amylin (IAPP)",
       "category": "metabolic",
@@ -15111,7 +15021,7 @@
       }
     },
     {
-      "id": 173,
+      "id": 172,
       "name": "Pramlintide acetate",
       "abbreviation": "Pramlintide",
       "category": "metabolic",
@@ -15204,7 +15114,7 @@
       }
     },
     {
-      "id": 174,
+      "id": 173,
       "name": "Cortexin (polypeptide bioregulator from animal cerebral cortex)",
       "abbreviation": "Cortexin",
       "category": "cognitive",
@@ -15274,7 +15184,7 @@
       }
     },
     {
-      "id": 175,
+      "id": 174,
       "name": "Celtypan (Pancreatin enzyme preparation)",
       "abbreviation": "Celtypan",
       "category": "metabolic",
@@ -15347,7 +15257,7 @@
       }
     },
     {
-      "id": 176,
+      "id": 175,
       "name": "Peptide R (Arg-Pro-Lys-Pro-Gln-Gln-Phe-Phe-Gly-Leu-Met)",
       "abbreviation": "Peptide R",
       "category": "immune",
@@ -15403,7 +15313,7 @@
       }
     },
     {
-      "id": 177,
+      "id": 176,
       "name": "Davunetide (NAP, NAPVSIPQ)",
       "abbreviation": "NAP",
       "category": "cognitive",
@@ -15488,7 +15398,7 @@
       }
     },
     {
-      "id": 178,
+      "id": 177,
       "name": "SNK-411",
       "abbreviation": "SNK-411",
       "category": "immune",
@@ -15522,7 +15432,7 @@
       }
     },
     {
-      "id": 179,
+      "id": 178,
       "name": "Cortagen (Ala-Glu-Asp-Pro)",
       "abbreviation": "Cortagen",
       "category": "cognitive",
@@ -15601,7 +15511,7 @@
       }
     },
     {
-      "id": 180,
+      "id": 179,
       "name": "Bronchogen (Ala-Asp-Glu-Leu)",
       "abbreviation": "Bronchogen",
       "category": "immune",
@@ -15672,7 +15582,7 @@
       }
     },
     {
-      "id": 181,
+      "id": 180,
       "name": "Chonluten (Ala-Glu-Asp tripeptide)",
       "abbreviation": "Chonluten",
       "category": "antiAging",
@@ -15751,7 +15661,7 @@
       }
     },
     {
-      "id": 182,
+      "id": 181,
       "name": "Cardiogen (Ala-Glu-Asp-Arg)",
       "abbreviation": "Cardiogen",
       "category": "antiAging",
@@ -15830,7 +15740,7 @@
       }
     },
     {
-      "id": 183,
+      "id": 182,
       "name": "Crostagen (Ala-Glu-Asp-Leu tetrapeptide)",
       "abbreviation": "Crostagen",
       "category": "immune",
@@ -15908,7 +15818,7 @@
       }
     },
     {
-      "id": 184,
+      "id": 183,
       "name": "Ovagen (Lys-Glu-Asp tripeptide)",
       "abbreviation": "Ovagen",
       "category": "immune",
@@ -15987,7 +15897,7 @@
       }
     },
     {
-      "id": 185,
+      "id": 184,
       "name": "Pancragen (Lys-Glu-Asp-Trp)",
       "abbreviation": "Pancragen",
       "category": "metabolic",
@@ -16066,7 +15976,7 @@
       }
     },
     {
-      "id": 186,
+      "id": 185,
       "name": "Renagen (Kidney Bioregulator Peptide Complex)",
       "abbreviation": "Renagen",
       "category": "antiAging",
@@ -16136,7 +16046,7 @@
       }
     },
     {
-      "id": 187,
+      "id": 186,
       "name": "Vladonix (Thymus peptide bioregulator, Lys-Glu dipeptide complex)",
       "abbreviation": "Vladonix",
       "category": "immune",
@@ -16216,7 +16126,7 @@
       }
     },
     {
-      "id": 188,
+      "id": 187,
       "name": "Ventfort (Aorta Peptide Bioregulator)",
       "abbreviation": "Ventfort",
       "category": "antiAging",
@@ -16295,7 +16205,7 @@
       }
     },
     {
-      "id": 189,
+      "id": 188,
       "name": "Maridebart cafraglutide (MariTide)",
       "abbreviation": "MariTide",
       "category": "metabolic",
@@ -16358,7 +16268,7 @@
       }
     },
     {
-      "id": 190,
+      "id": 189,
       "name": "Danuglipron",
       "abbreviation": "Danuglipron",
       "category": "metabolic",
@@ -16439,7 +16349,7 @@
       }
     },
     {
-      "id": 191,
+      "id": 190,
       "name": "Ecnoglutide (MK-6024 / XW003)",
       "abbreviation": "Ecnoglutide",
       "category": "metabolic",
@@ -16503,7 +16413,7 @@
       }
     },
     {
-      "id": 192,
+      "id": 191,
       "name": "Mazdutide (LY3305677 / IBI362)",
       "abbreviation": "Mazdutide",
       "category": "metabolic",
@@ -16588,7 +16498,7 @@
       }
     },
     {
-      "id": 193,
+      "id": 192,
       "name": "Efinopegdutide",
       "abbreviation": "Efinopegdutide",
       "category": "metabolic",
@@ -16662,7 +16572,7 @@
       }
     },
     {
-      "id": 194,
+      "id": 193,
       "name": "Pemvidutide",
       "abbreviation": "Pemvidutide",
       "category": "metabolic",
@@ -16736,7 +16646,7 @@
       }
     },
     {
-      "id": 195,
+      "id": 194,
       "name": "VK2735",
       "abbreviation": "VK2735",
       "category": "metabolic",
@@ -16809,7 +16719,7 @@
       }
     },
     {
-      "id": 196,
+      "id": 195,
       "name": "LY3841136",
       "abbreviation": "LY3841136",
       "category": "metabolic",
@@ -16852,96 +16762,7 @@
       }
     },
     {
-      "id": 197,
-      "name": "Angiotensin-(1-7)",
-      "abbreviation": "Ang-(1-7)",
-      "category": "metabolic",
-      "description": "Angiotensin-(1-7) is a seven-amino-acid peptide (Asp-Arg-Val-Tyr-Ile-His-Pro) derived from the renin-angiotensin system, primarily formed by the action of angiotensin-converting enzyme 2 (ACE2) on angiotensin II. It acts as a counter-regulatory peptide to angiotensin II, opposing its vasoconstrictive, pro-inflammatory, and pro-fibrotic effects. Research has investigated its roles in cardiovascular protection, metabolic regulation, anti-inflammatory signaling, and organ protection in models of heart failure, diabetes, and lung injury.",
-      "benefits": [
-        "Vasodilation and blood pressure reduction in preclinical models",
-        "Anti-inflammatory and anti-fibrotic effects in cardiovascular tissues",
-        "Cardioprotective effects studied in heart failure and ischemia models",
-        "Improved insulin sensitivity and glucose metabolism in animal studies",
-        "Renoprotective effects investigated in diabetic nephropathy models",
-        "Pulmonary protective effects studied in acute lung injury models"
-      ],
-      "dosageRange": "100-1000 mcg/day (preclinical research; human dosing not well established)",
-      "frequency": "1-2x daily in research protocols",
-      "halfLife": "~10-15 seconds (endogenous; varies with formulation and delivery method)",
-      "adminRoute": "Subcutaneous | Intravenous | Oral",
-      "mechanism": "Angiotensin-(1-7) binds to the Mas receptor (MasR), activating signaling pathways including PI3K/Akt and nitric oxide/cGMP cascades, which promote vasodilation, anti-inflammation, and anti-fibrosis. It functionally opposes the angiotensin II/AT1 receptor axis, thereby reducing oxidative stress, sympathetic tone, and aldosterone secretion.",
-      "contraindications": [
-        "Hypotension or conditions predisposing to low blood pressure",
-        "Concurrent use of ACE inhibitors or ARBs (potential additive hypotensive effects)",
-        "Pregnancy and breastfeeding (insufficient safety data)",
-        "Known hypersensitivity to angiotensin-derived peptides"
-      ],
-      "sideEffects": [
-        "Hypotension",
-        "Dizziness or lightheadedness",
-        "Injection site reactions (subcutaneous administration)",
-        "Headache",
-        "Bradycardia (reported in some preclinical studies)"
-      ],
-      "commonStacks": [
-        "BPC-157",
-        "Thymosin Beta-4",
-        "ACE2 modulators"
-      ],
-      "regulatoryStatus": "Research chemical, not approved by the FDA for therapeutic use in humans. Investigational compound studied in clinical trials for cardiovascular and pulmonary conditions.",
-      "imageSystemName": "heart.circle.fill",
-      "researchLinks": [
-        {
-          "title": "Angiotensin-(1-7) and Mas: new players of the renin-angiotensin system",
-          "source": "Journal of Endocrinology",
-          "year": 2013,
-          "pmid": "23197899",
-          "doi": "10.1530/JOE-12-0341",
-          "url": "https://pubmed.ncbi.nlm.nih.gov/23197899/"
-        },
-        {
-          "title": "Angiotensin-(1-7) is an endogenous ligand for the G protein-coupled receptor Mas",
-          "source": "Proceedings of the National Academy of Sciences",
-          "year": 2003,
-          "pmid": "12897241",
-          "doi": "10.1073/pnas.1432869100",
-          "url": "https://pubmed.ncbi.nlm.nih.gov/12897241/"
-        },
-        {
-          "title": "Evidence for a new angiotensin-(1-7) receptor subtype in the aorta of Sprague-Dawley rats",
-          "source": "Peptides",
-          "year": 2007,
-          "pmid": "17321634",
-          "doi": "10.1016/j.peptides.2007.01.010",
-          "url": "https://pubmed.ncbi.nlm.nih.gov/17321634/"
-        },
-        {
-          "title": "Angiotensin-converting enzyme 2 (ACE2), angiotensin-(1-7) and Mas: new players of the renin-angiotensin system in diabetic nephropathy",
-          "source": "Nephrology Dialysis Transplantation",
-          "year": 2013,
-          "pmid": "23975843",
-          "doi": "10.1093/ndt/gft252",
-          "url": "https://pubmed.ncbi.nlm.nih.gov/23975843/"
-        },
-        {
-          "title": "The ACE2/angiotensin-(1-7)/MAS axis of the renin-angiotensin system: focus on angiotensin-(1-7)",
-          "source": "Physiological Reviews",
-          "year": 2018,
-          "pmid": "29351514",
-          "doi": "10.1152/physrev.00023.2016",
-          "url": "https://pubmed.ncbi.nlm.nih.gov/29351514/"
-        }
-      ],
-      "molecular": {
-        "cid": 10751095,
-        "molecular_formula": "C41H62N12O11",
-        "molecular_weight": "899.0",
-        "smiles": "",
-        "pubchem_url": "https://pubchem.ncbi.nlm.nih.gov/compound/10751095"
-      }
-    },
-    {
-      "id": 198,
+      "id": 196,
       "name": "Apelin-13 ([Pyr1]apelin-13)",
       "abbreviation": "Apelin-13",
       "category": "metabolic",
@@ -17029,7 +16850,7 @@
       }
     },
     {
-      "id": 199,
+      "id": 197,
       "name": "Elabela (ELABELA/Toddler/Apela)",
       "abbreviation": "ELA",
       "category": "metabolic",
@@ -17114,7 +16935,7 @@
       }
     },
     {
-      "id": 200,
+      "id": 198,
       "name": "Adropin (Energy Homeostasis Associated peptide, encoded by ENHO gene)",
       "abbreviation": "Adropin",
       "category": "metabolic",
@@ -17198,7 +17019,7 @@
       }
     },
     {
-      "id": 201,
+      "id": 199,
       "name": "Betatrophin (Angiopoietin-like protein 8 / ANGPTL8)",
       "abbreviation": "Betatrophin",
       "category": "metabolic",
@@ -17279,7 +17100,7 @@
       }
     },
     {
-      "id": 202,
+      "id": 200,
       "name": "Irisin (FNDC5 cleavage product)",
       "abbreviation": "Irisin",
       "category": "metabolic",
@@ -17365,7 +17186,7 @@
       }
     },
     {
-      "id": 203,
+      "id": 201,
       "name": "Spexin (SPX)",
       "abbreviation": "SPX",
       "category": "metabolic",
@@ -17451,7 +17272,7 @@
       }
     },
     {
-      "id": 204,
+      "id": 202,
       "name": "Nesfatin-1",
       "abbreviation": "Nesfatin-1",
       "category": "metabolic",
@@ -17540,7 +17361,7 @@
       }
     },
     {
-      "id": 205,
+      "id": 203,
       "name": "Phoenixin",
       "abbreviation": "PNX",
       "category": "cognitive",
@@ -17581,7 +17402,7 @@
           "source": "Proceedings of the National Academy of Sciences",
           "year": 2013,
           "pmid": "24297916",
-          "doi": "10.1073/pnas.1315تعم",
+          "doi": "",
           "url": "https://pubmed.ncbi.nlm.nih.gov/24297916/"
         },
         {
@@ -17626,7 +17447,7 @@
       }
     },
     {
-      "id": 206,
+      "id": 204,
       "name": "Asprosin",
       "abbreviation": "Asprosin",
       "category": "metabolic",
@@ -17707,7 +17528,7 @@
       }
     },
     {
-      "id": 207,
+      "id": 205,
       "name": "Fibroblast Growth Factor 21",
       "abbreviation": "FGF-21",
       "category": "metabolic",
@@ -17797,7 +17618,7 @@
       }
     },
     {
-      "id": 208,
+      "id": 206,
       "name": "Klotho (α-Klotho protein)",
       "abbreviation": "Klotho",
       "category": "antiAging",
@@ -17885,7 +17706,7 @@
       }
     },
     {
-      "id": 209,
+      "id": 207,
       "name": "Sirtuin Activating Peptides",
       "abbreviation": "SAP",
       "category": "antiAging",
