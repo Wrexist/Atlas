@@ -189,7 +189,7 @@ jobs:
             DEVELOPMENT_TEAM="$TEAM_ID" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="${{ steps.profile.outputs.uuid }}" \
+            PROVISIONING_PROFILE="${{ steps.profile.outputs.uuid }}" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             OTHER_CODE_SIGN_FLAGS="--keychain build.keychain" \
             | tee "$RUNNER_TEMP/xcodebuild-archive.log"
@@ -223,26 +223,26 @@ jobs:
           PROFILE_UUID: ${{ steps.profile.outputs.uuid }}
         run: |
           cat > "$RUNNER_TEMP/exportOptions.plist" <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-            <key>teamID</key>
-            <string>${TEAM_ID}</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.peptidesai.app</key>
-              <string>${PROFILE_UUID}</string>
-            </dict>
-            <key>uploadSymbols</key>
-            <true/>
-          </dict>
-          </plist>
-          EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>app-store-connect</string>
+  <key>teamID</key>
+  <string>${TEAM_ID}</string>
+  <key>signingStyle</key>
+  <string>manual</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>com.peptidesai.app</key>
+    <string>${PROFILE_UUID}</string>
+  </dict>
+  <key>uploadSymbols</key>
+  <true/>
+</dict>
+</plist>
+EOF
 
           echo "=== exportOptions.plist ==="
           cat "$RUNNER_TEMP/exportOptions.plist"
@@ -273,37 +273,67 @@ jobs:
           chmod 600 ~/private_keys/AuthKey_${KEY_ID}.p8
           echo "API key written for key ID: $KEY_ID"
 
-      - name: Upload to TestFlight
+      - name: Upload to App Store Connect
         env:
           KEY_ID: ${{ secrets.APPLE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          PROFILE_UUID: ${{ steps.profile.outputs.uuid }}
         run: |
-          IPA_PATH=$(ls "$RUNNER_TEMP/export/"*.ipa | head -1)
-          echo "Uploading: $IPA_PATH ($(stat -f%z "$IPA_PATH") bytes)"
+          cat > "$RUNNER_TEMP/uploadOptions.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>app-store-connect</string>
+  <key>destination</key>
+  <string>upload</string>
+  <key>teamID</key>
+  <string>${TEAM_ID}</string>
+  <key>signingStyle</key>
+  <string>manual</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>com.peptidesai.app</key>
+    <string>${PROFILE_UUID}</string>
+  </dict>
+  <key>uploadSymbols</key>
+  <true/>
+</dict>
+</plist>
+EOF
 
+          echo "=== uploadOptions.plist ==="
+          cat "$RUNNER_TEMP/uploadOptions.plist"
+          echo "==========================="
+
+          echo "Starting upload to App Store Connect..."
           UPLOAD_LOG="$RUNNER_TEMP/upload.log"
 
           set -o pipefail
-          if xcrun altool --help 2>&1 | grep -q "upload-app"; then
-            echo "Using xcrun altool for upload"
-            xcrun altool --upload-app \
-              --type ios \
-              --file "$IPA_PATH" \
-              --apiKey "$KEY_ID" \
-              --apiIssuer "$ISSUER_ID" 2>&1 | tee "$UPLOAD_LOG"
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Peptide.xcarchive" \
+            -exportPath "$RUNNER_TEMP/upload-output" \
+            -exportOptionsPlist "$RUNNER_TEMP/uploadOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" 2>&1 | tee "$UPLOAD_LOG"
+
+          if grep -qi "upload successful\|successfully uploaded\|No errors uploading" "$UPLOAD_LOG"; then
+            echo "Upload verified: App Store Connect acknowledged the upload."
+          elif grep -qi "error\|failed\|unable to upload" "$UPLOAD_LOG"; then
+            echo "FATAL: Upload log contains error indicators:"
+            grep -i "error\|failed\|unable" "$UPLOAD_LOG"
+            exit 1
           else
-            echo "altool not available, using xcodebuild for upload"
-            xcodebuild -exportArchive \
-              -archivePath "$RUNNER_TEMP/Peptide.xcarchive" \
-              -exportPath "$RUNNER_TEMP/upload-export" \
-              -exportOptionsPlist "$RUNNER_TEMP/exportOptions.plist" \
-              -allowProvisioningUpdates \
-              -authenticationKeyPath ~/private_keys/AuthKey_${KEY_ID}.p8 \
-              -authenticationKeyID "$KEY_ID" \
-              -authenticationKeyIssuerID "$ISSUER_ID" 2>&1 | tee "$UPLOAD_LOG"
+            echo "WARNING: Could not confirm upload success from log output."
+            echo "xcodebuild exited 0 which typically indicates success. Check App Store Connect."
           fi
 
-          echo "Upload to TestFlight complete. Build will appear in App Store Connect within 15-30 minutes."
+          echo ""
+          echo "Build uploaded. It will appear in TestFlight within 15-30 minutes after Apple processing."
 
       - name: Upload build artifacts
         if: always()
@@ -314,6 +344,7 @@ jobs:
             ${{ runner.temp }}/export/*.ipa
             ${{ runner.temp }}/xcodebuild-archive.log
             ${{ runner.temp }}/xcodebuild-export.log
+            ${{ runner.temp }}/upload.log
           retention-days: 30
           if-no-files-found: warn
 
