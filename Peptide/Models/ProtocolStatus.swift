@@ -1,4 +1,4 @@
-import SwiftUI
+import Foundation
 
 enum ProtocolStatus: String, CaseIterable, Identifiable, Codable {
     case active
@@ -12,14 +12,6 @@ enum ProtocolStatus: String, CaseIterable, Identifiable, Codable {
         case .active: "Active"
         case .paused: "Paused"
         case .completed: "Completed"
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .active: AppColor.accentPrimary
-        case .paused: AppColor.warning
-        case .completed: AppColor.textTertiary
         }
     }
 

@@ -18,8 +18,10 @@ enum TimeRange: String, CaseIterable, CustomStringConvertible {
 
 struct AnalyticsView: View {
     @Environment(DataStore.self) private var dataStore
-    @State private var selectedRange: TimeRange = .month
+    @State private var selectedRange: TimeRange = .week
+    @State private var showPaywall = false
     @Namespace private var segmentNamespace
+    private var storeService: StoreService { StoreService.shared }
 
     var body: some View {
         let compliance = complianceData
@@ -30,7 +32,16 @@ struct AnalyticsView: View {
                 VStack(spacing: Spacing.lg) {
                     GlassSegmentedControl(
                         options: TimeRange.allCases,
-                        selected: $selectedRange,
+                        selected: Binding(
+                            get: { selectedRange },
+                            set: { newRange in
+                                if newRange != .week && !storeService.isProUser {
+                                    showPaywall = true
+                                } else {
+                                    selectedRange = newRange
+                                }
+                            }
+                        ),
                         namespace: segmentNamespace
                     )
                     .sectionAppear(index: 0)
@@ -54,12 +65,24 @@ struct AnalyticsView: View {
                         label: "compliance this \(selectedRange.rawValue.lowercased())"
                     )
                     .sectionAppear(index: 4)
+
+                    CalendarHeatmap(entries: dataStore.entries, days: selectedRange.days)
+                        .sectionAppear(index: 5)
+
+                    InsightsCard(
+                        insights: InsightEngine.generateInsights(
+                            from: dataStore.entries,
+                            protocols: dataStore.protocols
+                        )
+                    )
+                    .sectionAppear(index: 6)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
             }
             .background(AppColor.background)
             .navigationTitle("Analytics")
+            .sheet(isPresented: $showPaywall) { PaywallView() }
         }
     }
 

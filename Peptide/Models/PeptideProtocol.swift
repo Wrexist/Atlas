@@ -1,6 +1,6 @@
 import Foundation
 
-struct ProtocolSchedule: Hashable {
+struct ProtocolSchedule: Hashable, Codable {
     let daysOfWeek: [Int]  // 1=Mon, 7=Sun
     let timesPerDay: Int
     let preferredTimes: [String]
@@ -13,7 +13,7 @@ struct ProtocolSchedule: Hashable {
     }
 }
 
-struct PeptideProtocol: Identifiable, Hashable {
+struct PeptideProtocol: Identifiable, Hashable, Codable {
     let id: UUID
     let name: String
     let peptides: [Peptide]

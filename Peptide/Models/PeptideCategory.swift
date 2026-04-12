@@ -1,4 +1,4 @@
-import SwiftUI
+import Foundation
 
 enum PeptideCategory: String, CaseIterable, Identifiable, Codable {
     case growth
@@ -29,17 +29,6 @@ enum PeptideCategory: String, CaseIterable, Identifiable, Codable {
         case .antiAging: "sparkles"
         case .immune: "shield.checkered"
         case .metabolic: "flame.fill"
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .growth: Color(hex: 0x4A7C59)
-        case .recovery: Color(hex: 0x5B8FB9)
-        case .cognitive: Color(hex: 0x9B72CF)
-        case .antiAging: Color(hex: 0xD4A844)
-        case .immune: Color(hex: 0xCF7272)
-        case .metabolic: Color(hex: 0xE88D4F)
         }
     }
 }

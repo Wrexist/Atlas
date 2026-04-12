@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ProfileView: View {
     @Environment(DataStore.self) private var dataStore
+    @State private var storeService = StoreService.shared
+    @State private var achievementService = AchievementService.shared
 
     private let availableGoals = [
         "Muscle Recovery",
@@ -27,24 +29,35 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 0)
 
+                    if !storeService.isProUser {
+                        UpgradePromptCard()
+                            .sectionAppear(index: 1)
+                    }
+
+                    AchievementsSection(achievements: achievementService.achievements)
+                        .sectionAppear(index: 2)
+
                     GoalsSectionCard(
                         availableGoals: availableGoals,
                         selectedGoals: Set(dataStore.profile.goals),
                         onToggle: toggleGoal
                     )
-                    .sectionAppear(index: 1)
+                    .sectionAppear(index: 3)
 
                     HealthConnectionCard(
                         isConnected: dataStore.profile.healthConnected,
-                        onConnect: { dataStore.toggleHealthConnection() }
+                        onConnect: { connectHealthKit() }
                     )
-                    .sectionAppear(index: 2)
+                    .sectionAppear(index: 4)
+
+                    ExportSection()
+                        .sectionAppear(index: 5)
 
                     AppearanceSettings()
-                        .sectionAppear(index: 3)
+                        .sectionAppear(index: 6)
 
                     AboutSection()
-                        .sectionAppear(index: 4)
+                        .sectionAppear(index: 7)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
@@ -57,6 +70,15 @@ struct ProfileView: View {
     private var memberDuration: String {
         let months = Calendar.current.dateComponents([.month], from: dataStore.profile.memberSince, to: Date()).month ?? 0
         return months <= 1 ? "1 month" : "\(months) months"
+    }
+
+    private func connectHealthKit() {
+        Task { @MainActor in
+            let authorized = await HealthKitService.shared.requestAuthorization()
+            if authorized {
+                dataStore.toggleHealthConnection()
+            }
+        }
     }
 
     private func toggleGoal(_ goal: String) {

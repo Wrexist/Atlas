@@ -4,6 +4,7 @@ struct ProtocolBuilderView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(DataStore.self) private var dataStore
     var preselectedPeptide: Peptide?
+    var editingProtocol: PeptideProtocol?
 
     @State private var name = ""
     @State private var selectedPeptides: Set<UUID> = []
@@ -13,6 +14,8 @@ struct ProtocolBuilderView: View {
     @State private var selectedDays: Set<Int> = [1, 2, 3, 4, 5]
 
     private let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+    private var isEditing: Bool { editingProtocol != nil }
 
     private var canCreate: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && !selectedPeptides.isEmpty && !selectedDays.isEmpty
@@ -53,7 +56,7 @@ struct ProtocolBuilderView: View {
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
 
-                            PeptideSelector(selectedPeptides: $selectedPeptides)
+                            PeptideSelector(selectedPeptides: $selectedPeptides, allPeptides: dataStore.peptideDatabase)
                         }
                     }
                     .sectionAppear(index: 1)
@@ -100,9 +103,14 @@ struct ProtocolBuilderView: View {
                     }
                     .sectionAppear(index: 3)
 
-                    // Create Button
-                    GlassButton(title: "Create Protocol", icon: "plus.circle.fill", style: .primary, isFullWidth: true) {
-                        createProtocol()
+                    // Create/Save Button
+                    GlassButton(
+                        title: isEditing ? "Save Changes" : "Create Protocol",
+                        icon: isEditing ? "checkmark.circle.fill" : "plus.circle.fill",
+                        style: .primary,
+                        isFullWidth: true
+                    ) {
+                        isEditing ? saveProtocol() : createProtocol()
                     }
                     .opacity(canCreate ? 1.0 : 0.5)
                     .disabled(!canCreate)
@@ -112,7 +120,7 @@ struct ProtocolBuilderView: View {
                 .padding(.bottom, Spacing.xxxxl)
             }
             .background(AppColor.background)
-            .navigationTitle("New Protocol")
+            .navigationTitle(isEditing ? "Edit Protocol" : "New Protocol")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -124,13 +132,20 @@ struct ProtocolBuilderView: View {
                 if let peptide = preselectedPeptide {
                     selectedPeptides.insert(peptide.id)
                 }
+                if let proto = editingProtocol {
+                    name = proto.name
+                    selectedPeptides = Set(proto.peptides.map(\.id))
+                    cycleLengthWeeks = proto.cycleLengthWeeks
+                    timesPerDay = proto.schedule.timesPerDay
+                    notes = proto.notes
+                    selectedDays = Set(proto.schedule.daysOfWeek)
+                }
             }
         }
     }
 
     private func createProtocol() {
-        let allPeptides = MockPeptides.all
-        let peptides = allPeptides.filter { selectedPeptides.contains($0.id) }
+        let peptides = dataStore.peptideDatabase.filter { selectedPeptides.contains($0.id) }
         guard !peptides.isEmpty else { return }
 
         let defaultTimes = (1...timesPerDay).map { index in
@@ -157,6 +172,43 @@ struct ProtocolBuilderView: View {
 
         dataStore.addProtocol(newProtocol)
         dismiss()
+    }
+
+    private func saveProtocol() {
+        guard let proto = editingProtocol else { return }
+        let peptides = dataStore.peptideDatabase.filter { selectedPeptides.contains($0.id) }
+        guard !peptides.isEmpty else { return }
+
+        // Preserve existing preferred times if timesPerDay hasn't changed
+        let times: [String]
+        if timesPerDay == proto.schedule.timesPerDay {
+            times = proto.schedule.preferredTimes
+        } else {
+            times = generateDefaultTimes(count: timesPerDay)
+        }
+
+        dataStore.updateProtocol(
+            id: proto.id,
+            name: name.trimmingCharacters(in: .whitespaces),
+            peptides: peptides,
+            schedule: ProtocolSchedule(
+                daysOfWeek: selectedDays.sorted(),
+                timesPerDay: timesPerDay,
+                preferredTimes: times
+            ),
+            cycleLengthWeeks: cycleLengthWeeks,
+            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+        dismiss()
+    }
+
+    private func generateDefaultTimes(count: Int) -> [String] {
+        (1...count).map { index in
+            let hour24 = min(8 + (index - 1) * (12 / max(count, 1)), 23)
+            let hour12 = hour24 > 12 ? hour24 - 12 : (hour24 == 0 ? 12 : hour24)
+            let period = hour24 >= 12 ? "PM" : "AM"
+            return "\(hour12):00 \(period)"
+        }
     }
 }
 

@@ -1,36 +1,57 @@
 import SwiftUI
+import UserNotifications
 
 @main
 struct PeptideApp: App {
     @State private var appState = AppState()
     @State private var dataStore = DataStore()
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @State private var notificationDelegate: NotificationDelegate?
 
     var body: some Scene {
         WindowGroup {
-            TabView(selection: $appState.selectedTab) {
-                Tab("Home", systemImage: "house.fill", value: .home) {
-                    HomeView()
+            if hasCompletedOnboarding {
+                TabView(selection: $appState.selectedTab) {
+                    Tab("Home", systemImage: "house.fill", value: .home) {
+                        HomeView()
+                    }
+                    Tab("Peptides", systemImage: "flask.fill", value: .database) {
+                        PeptideListView()
+                    }
+                    Tab("Protocols", systemImage: "list.clipboard.fill", value: .protocols) {
+                        ProtocolListView()
+                    }
+                    Tab("Analytics", systemImage: "chart.bar.fill", value: .analytics) {
+                        AnalyticsView()
+                    }
+                    Tab("Profile", systemImage: "person.fill", value: .profile) {
+                        ProfileView()
+                    }
                 }
-                Tab("Peptides", systemImage: "flask.fill", value: .database) {
-                    PeptideListView()
+                .tabViewBottomAccessory {
+                    NextDoseAccessoryView()
                 }
-                Tab("Protocols", systemImage: "list.clipboard.fill", value: .protocols) {
-                    ProtocolListView()
+                .environment(appState)
+                .environment(dataStore)
+                .preferredColorScheme(.dark)
+                .tint(AppColor.accentPrimary)
+                .task {
+                    let delegate = NotificationDelegate(dataStore: dataStore)
+                    notificationDelegate = delegate
+                    UNUserNotificationCenter.current().delegate = delegate
+                    NotificationService.shared.registerCategories()
+                    let status = await NotificationService.shared.checkAuthorization()
+                    if status == .notDetermined {
+                        _ = await NotificationService.shared.requestAuthorization()
+                    }
+                    NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols)
                 }
-                Tab("Analytics", systemImage: "chart.bar.fill", value: .analytics) {
-                    AnalyticsView()
-                }
-                Tab("Profile", systemImage: "person.fill", value: .profile) {
-                    ProfileView()
-                }
+            } else {
+                OnboardingView()
+                    .environment(dataStore)
+                    .preferredColorScheme(.dark)
+                    .tint(AppColor.accentPrimary)
             }
-            .tabViewBottomAccessory {
-                NextDoseAccessoryView()
-            }
-            .environment(appState)
-            .environment(dataStore)
-            .preferredColorScheme(.dark)
-            .tint(AppColor.accentPrimary)
         }
     }
 }

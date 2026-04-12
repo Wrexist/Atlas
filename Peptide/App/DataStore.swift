@@ -1,11 +1,13 @@
 import SwiftUI
 
-@MainActor
-@Observable
-final class DataStore {
+@MainActor @Observable
+final class DataStore: DataServiceProtocol {
     var protocols: [PeptideProtocol]
     var entries: [ProtocolEntry]
     var profile: UserProfile
+
+    private let persistence = PersistenceService.shared
+    private let _peptideDatabase: [Peptide] = PeptideDatabase.shared
 
     // MARK: - Cache (avoids recomputing expensive stats on every toggle)
     @ObservationIgnored private var _cachedTodayEntries: [ProtocolEntry]?
@@ -48,11 +50,17 @@ final class DataStore {
     }
 
     init() {
-        let initialProtocols = MockProtocols.all
-        self.protocols = initialProtocols
-        self.profile = MockProfile.current
-        self.entries = Self.generateInitialEntries(for: initialProtocols)
+        let loadedProtocols = persistence.loadProtocols() ?? MockProtocols.all
+        self.protocols = loadedProtocols
+        self.entries = persistence.loadEntries() ?? Self.generateInitialEntries(for: loadedProtocols)
+        self.profile = persistence.loadProfile() ?? MockProfile.current
+        regenerateTodayEntries()
+        if !persistence.hasPersistedData { save() }
     }
+
+    // MARK: - Peptide Database
+
+    var peptideDatabase: [Peptide] { _peptideDatabase }
 
     // MARK: - Protocols
 
@@ -70,10 +78,10 @@ final class DataStore {
 
     func addProtocol(_ newProtocol: PeptideProtocol) {
         invalidateCache()
-        withAnimation(AppAnimation.springSnappy) {
-            protocols.insert(newProtocol, at: 0)
-            appendTodayEntries(for: newProtocol)
-        }
+        protocols.insert(newProtocol, at: 0)
+        appendTodayEntries(for: newProtocol)
+        save()
+        NotificationService.shared.scheduleNotifications(for: activeProtocols)
         if profile.hapticFeedbackEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
@@ -81,18 +89,21 @@ final class DataStore {
 
     func deleteProtocol(id: UUID) {
         invalidateCache()
-        withAnimation(AppAnimation.springSnappy) {
-            protocols.removeAll { $0.id == id }
-            entries.removeAll { $0.protocolId == id }
-        }
+        protocols.removeAll { $0.id == id }
+        entries.removeAll { $0.protocolId == id }
+        save()
+        NotificationService.shared.scheduleNotifications(for: activeProtocols)
     }
 
     func updateProtocolStatus(id: UUID, to status: ProtocolStatus) {
         guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
         invalidateCache()
-        withAnimation(AppAnimation.springSnappy) {
-            protocols[index].status = status
+        protocols[index].status = status
+        if status == .active {
+            appendTodayEntries(for: protocols[index])
         }
+        save()
+        NotificationService.shared.scheduleNotifications(for: activeProtocols)
     }
 
     // MARK: - Entries
@@ -113,12 +124,48 @@ final class DataStore {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
         let becoming = !entries[index].completed
         invalidateCache()
-        withAnimation(AppAnimation.springSnappy) {
-            entries[index].completed.toggle()
-        }
+        entries[index].completed.toggle()
+        save()
         if profile.hapticFeedbackEnabled {
             UIImpactFeedbackGenerator(style: becoming ? .light : .soft).impactOccurred()
         }
+    }
+
+    func logDose(entryId: UUID, actualDose: String?, actualTime: Date?, injectionSite: String?, notes: String) {
+        guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
+        invalidateCache()
+        let existing = entries[index]
+        entries[index] = ProtocolEntry(
+            id: existing.id,
+            protocolId: existing.protocolId,
+            peptide: existing.peptide,
+            date: existing.date,
+            dose: existing.dose,
+            notes: notes.isEmpty ? existing.notes : notes,
+            completed: true,
+            actualDose: actualDose,
+            actualTime: actualTime,
+            injectionSite: injectionSite
+        )
+        save()
+    }
+
+    func updateProtocol(id: UUID, name: String, peptides: [Peptide], schedule: ProtocolSchedule, cycleLengthWeeks: Int, notes: String) {
+        guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
+        invalidateCache()
+        let updated = PeptideProtocol(
+            id: id,
+            name: name,
+            peptides: peptides,
+            schedule: schedule,
+            cycleLengthWeeks: cycleLengthWeeks,
+            startDate: protocols[index].startDate,
+            status: protocols[index].status,
+            notes: notes
+        )
+        protocols[index] = updated
+        save()
+        NotificationService.shared.scheduleNotifications(for: activeProtocols)
     }
 
     func entriesFor(protocolId: UUID, days: Int = 14) -> [ProtocolEntry] {
@@ -143,10 +190,18 @@ final class DataStore {
         let startOffset = todayHasCompleted ? 0 : 1
 
         var streak = 0
+        var consecutiveEmptyDays = 0
         for dayOffset in startOffset..<365 {
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: todayStart) else { break }
             let dayEntries = grouped[date] ?? []
-            if dayEntries.isEmpty { continue }
+
+            if dayEntries.isEmpty {
+                consecutiveEmptyDays += 1
+                if consecutiveEmptyDays > 2 { break }
+                continue
+            }
+
+            consecutiveEmptyDays = 0
             if !dayEntries.contains(where: \.completed) { break }
             streak += 1
         }
@@ -197,7 +252,6 @@ final class DataStore {
         let today = Date()
         let todayStart = calendar.startOfDay(for: today)
 
-        // Find Monday of the current ISO week
         let weekday = calendar.component(.weekday, from: today)
         let mondayOffset = weekday == 1 ? -6 : -(weekday - 2)
         guard let monday = calendar.date(byAdding: .day, value: mondayOffset, to: todayStart) else { return [] }
@@ -274,7 +328,6 @@ final class DataStore {
 
     // MARK: - Next Dose
 
-    // Double optional: nil = not cached, .some(nil) = cached with no result, .some(.some) = cached entry
     var nextDose: ProtocolEntry? {
         if let cached = _cachedNextDose { return cached }
         let now = Date()
@@ -288,15 +341,53 @@ final class DataStore {
     // MARK: - Profile
 
     func updateGoals(_ goals: Set<String>) {
-        withAnimation(AppAnimation.springSnappy) {
-            profile.goals = Array(goals).sorted()
-        }
+        profile.goals = Array(goals).sorted()
+        save()
     }
 
     func toggleHealthConnection() {
-        withAnimation(AppAnimation.springSnappy) {
-            profile.healthConnected.toggle()
+        profile.healthConnected.toggle()
+        save()
+    }
+
+    // MARK: - Persistence
+
+    private var achievementCheckPending = false
+
+    private func save() {
+        persistence.saveProtocols(protocols)
+        persistence.saveEntries(entries)
+        persistence.saveProfile(profile)
+        scheduleAchievementCheck()
+    }
+
+    private func scheduleAchievementCheck() {
+        guard !achievementCheckPending else { return }
+        achievementCheckPending = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.achievementCheckPending = false
+            AchievementService.shared.checkAchievements(
+                totalDoses: self.totalDoses,
+                currentStreak: self.currentStreak,
+                bestStreak: self.bestStreak,
+                protocolCount: self.protocols.count,
+                daysLogged: self.totalDaysLogged
+            )
         }
+    }
+
+    private func regenerateTodayEntries() {
+        let calendar = Calendar.current
+        let existingProtocolIds = Set(
+            entries.filter { calendar.isDateInToday($0.date) }.map(\.protocolId)
+        )
+        var added = false
+        for proto in activeProtocols where !existingProtocolIds.contains(proto.id) {
+            entries.append(contentsOf: Self.generateTodayEntries(for: proto))
+            added = true
+        }
+        if added { save() }
     }
 
     // MARK: - Entry Generation
@@ -306,12 +397,9 @@ final class DataStore {
         var allEntries: [ProtocolEntry] = []
 
         for proto in protocols {
-            // Historical entries, excluding today to avoid duplicates with timed entries
             let historical = MockEntries.generateEntries(for: proto, days: 30)
                 .filter { !calendar.isDateInToday($0.date) }
             allEntries.append(contentsOf: historical)
-
-            // Today's entries with proper times from schedule
             allEntries.append(contentsOf: generateTodayEntries(for: proto))
         }
 
@@ -357,7 +445,6 @@ final class DataStore {
     }
 
     private func appendTodayEntries(for proto: PeptideProtocol) {
-        // Cache already invalidated by caller (addProtocol)
         let newEntries = Self.generateTodayEntries(for: proto)
         entries.append(contentsOf: newEntries)
     }

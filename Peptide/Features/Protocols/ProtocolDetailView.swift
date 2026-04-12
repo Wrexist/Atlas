@@ -5,6 +5,7 @@ struct ProtocolDetailView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
     @State private var showDeleteConfirmation = false
+    @State private var showEditSheet = false
 
     private var liveProtocol: PeptideProtocol {
         dataStore.protocols.first { $0.id == protocol_.id } ?? protocol_
@@ -55,8 +56,13 @@ struct ProtocolDetailView: View {
                 .sectionAppear(index: 0)
 
                 // Protocol Actions
-                protocolActions
-                    .sectionAppear(index: 1)
+                HStack(spacing: Spacing.md) {
+                    GlassButton(title: "Edit", icon: "pencil", style: .secondary) {
+                        showEditSheet = true
+                    }
+                    protocolActions
+                }
+                .sectionAppear(index: 1)
 
                 // Peptides in protocol
                 GlassCard {
@@ -224,6 +230,9 @@ struct ProtocolDetailView: View {
         }
         .onChange(of: dataStore.protocols.contains(where: { $0.id == protocol_.id })) { _, exists in
             if !exists { dismiss() }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            ProtocolBuilderView(editingProtocol: liveProtocol)
         }
     }
 

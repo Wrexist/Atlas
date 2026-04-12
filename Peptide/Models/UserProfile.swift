@@ -1,6 +1,6 @@
 import Foundation
 
-struct UserProfile {
+struct UserProfile: Codable {
     var name: String
     var goals: [String]
     var memberSince: Date

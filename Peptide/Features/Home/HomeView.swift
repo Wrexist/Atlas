@@ -2,6 +2,10 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(DataStore.self) private var dataStore
+    @State private var selectedEntry: ProtocolEntry?
+    @State private var showAchievementToast = false
+    @State private var toastAchievement: Achievement?
+    @State private var achievementService = AchievementService.shared
 
     private var todayStats: (entries: [ProtocolEntry], score: Double, completed: Int, total: Int) {
         let entries = dataStore.todayEntries
@@ -36,7 +40,8 @@ struct HomeView: View {
 
                     TodayScheduleCard(
                         entries: stats.entries,
-                        onToggle: { entry in dataStore.toggleEntry(entry.id) }
+                        onToggle: { entry in dataStore.toggleEntry(entry.id) },
+                        onTap: { entry in selectedEntry = entry }
                     )
                     .sectionAppear(index: 2)
 
@@ -47,12 +52,68 @@ struct HomeView: View {
                         nextDose: dataStore.nextDose
                     )
                     .sectionAppear(index: 3)
+
+                    if dataStore.profile.healthConnected {
+                        HealthSummaryCard()
+                            .sectionAppear(index: 4)
+                    }
+
+                    // Top insight
+                    let insights = InsightEngine.generateInsights(
+                        from: dataStore.entries, protocols: dataStore.protocols
+                    )
+                    if let topInsight = insights.first {
+                        GlassCard {
+                            HStack(spacing: Spacing.md) {
+                                Image(systemName: topInsight.icon)
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(AppColor.accentPrimary)
+                                    .frame(width: 28, height: 28)
+                                    .background {
+                                        Circle().fill(AppColor.accentPrimary.opacity(0.15))
+                                    }
+                                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                    Text(topInsight.title)
+                                        .font(AppFont.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(AppColor.textPrimary)
+                                    Text(topInsight.description)
+                                        .font(AppFont.caption)
+                                        .foregroundStyle(AppColor.textSecondary)
+                                }
+                                Spacer()
+                            }
+                        }
+                        .sectionAppear(index: 5)
+                    }
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
             }
             .background(AppColor.background)
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(item: $selectedEntry) { entry in
+                DoseLoggingSheet(entry: entry) { actualDose, actualTime, site, notes in
+                    dataStore.logDose(
+                        entryId: entry.id,
+                        actualDose: actualDose,
+                        actualTime: actualTime,
+                        injectionSite: site,
+                        notes: notes
+                    )
+                }
+            }
+            .overlay {
+                if let achievement = toastAchievement {
+                    AchievementToastView(achievement: achievement, isShowing: $showAchievementToast)
+                }
+            }
+            .onChange(of: achievementService.latestUnlock?.id) { _, newId in
+                if let newId, let achievement = achievementService.achievements.first(where: { $0.id == newId }) {
+                    toastAchievement = achievement
+                    withAnimation(AppAnimation.springBouncy) { showAchievementToast = true }
+                }
+            }
         }
     }
 

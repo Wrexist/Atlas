@@ -2,13 +2,13 @@ import SwiftUI
 
 struct PeptideSelector: View {
     @Binding var selectedPeptides: Set<UUID>
+    var allPeptides: [Peptide] = MockPeptides.all
     @State private var searchText = ""
 
     private var peptides: [Peptide] {
-        let all = MockPeptides.all
-        guard !searchText.isEmpty else { return all }
+        guard !searchText.isEmpty else { return allPeptides }
         let query = searchText.lowercased()
-        return all.filter {
+        return allPeptides.filter {
             $0.name.lowercased().contains(query) ||
             $0.abbreviation.lowercased().contains(query) ||
             $0.category.displayName.lowercased().contains(query)

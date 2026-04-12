@@ -3,6 +3,7 @@ import SwiftUI
 struct ProtocolListView: View {
     @Environment(DataStore.self) private var dataStore
     @State private var showingBuilder = false
+    @State private var showingPaywall = false
     @State private var preselectedPeptide: Peptide?
 
     var body: some View {
@@ -50,7 +51,11 @@ struct ProtocolListView: View {
                 // Floating add button
                 GlassIconButton(icon: "plus", size: 56, tinted: true) {
                     preselectedPeptide = nil
-                    showingBuilder = true
+                    if StoreService.shared.requiresPro(activeProtocolCount: dataStore.activeProtocols.count) {
+                        showingPaywall = true
+                    } else {
+                        showingBuilder = true
+                    }
                 }
                 .appShadow(AppShadow.accentGlow)
                 .padding(Spacing.xxl)
@@ -61,6 +66,9 @@ struct ProtocolListView: View {
             }
             .glassSheet(isPresented: $showingBuilder) {
                 ProtocolBuilderView(preselectedPeptide: preselectedPeptide)
+            }
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView()
             }
         }
     }
