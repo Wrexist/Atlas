@@ -17,7 +17,7 @@ enum MockEntries {
     static func generateEntries(for protocol_: PeptideProtocol, days: Int = 30) -> [ProtocolEntry] {
         var entries: [ProtocolEntry] = []
         let calendar = Calendar.current
-        var rng = SeededGenerator(seed: UInt64(protocol_.name.hashValue &+ days))
+        var rng = SeededGenerator(seed: UInt64(bitPattern: Int64(protocol_.name.hashValue &+ days)))
         let startOfProtocol = calendar.startOfDay(for: protocol_.startDate)
         let endOfProtocol = calendar.startOfDay(for: protocol_.endDate)
 
@@ -99,7 +99,7 @@ enum MockEntries {
 
     static func complianceData(days: Int = 30) -> [(date: Date, compliance: Double)] {
         let calendar = Calendar.current
-        var rng = SeededGenerator(seed: UInt64(days &* 31337))
+        var rng = SeededGenerator(seed: UInt64(bitPattern: Int64(days &* 31337)))
         return (0..<days).compactMap { dayOffset in
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { return nil }
             let compliance = Double.random(in: 0.6...1.0, using: &rng)
