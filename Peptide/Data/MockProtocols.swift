@@ -62,8 +62,4 @@ enum MockProtocols {
         status: .paused,
         notes: "Paused due to travel. Resume on return. TA1 3x/week with LL-37 daily."
     )
-
-    static var activeProtocols: [PeptideProtocol] {
-        all.filter { $0.status == .active }
-    }
 }

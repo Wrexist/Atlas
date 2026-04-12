@@ -56,7 +56,7 @@ struct ProtocolBuilderView: View {
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
 
-                            PeptideSelector(selectedPeptides: $selectedPeptides, peptides: dataStore.peptideDatabase)
+                            PeptideSelector(selectedPeptides: $selectedPeptides, allPeptides: dataStore.peptideDatabase)
                         }
                     }
                     .sectionAppear(index: 1)

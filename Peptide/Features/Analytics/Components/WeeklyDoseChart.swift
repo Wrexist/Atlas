@@ -76,7 +76,7 @@ struct WeeklyDoseChart: View {
 #Preview {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        WeeklyDoseChart(data: MockEntries.weeklyDoseData())
+        WeeklyDoseChart(data: [("Mon", 4), ("Tue", 5), ("Wed", 3), ("Thu", 4), ("Fri", 5), ("Sat", 2), ("Sun", 2)])
             .padding(Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)

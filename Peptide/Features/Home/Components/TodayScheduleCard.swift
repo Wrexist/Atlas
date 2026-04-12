@@ -110,7 +110,7 @@ private struct ScheduleRow: View {
 #Preview {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        TodayScheduleCard(entries: MockEntries.todayEntries()) { _ in }
+        TodayScheduleCard(entries: []) { _ in }
             .padding(Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)

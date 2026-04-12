@@ -1,7 +1,10 @@
 import Foundation
 
 enum MockPeptides {
-    static let all: [Peptide] = [
+    static let all: [Peptide] = PeptideDatabase.shared
+
+    /// Hardcoded fallback used when peptides.json is missing from the bundle.
+    static let fallback: [Peptide] = [
         bpc157, tb500, igf1lr3, cjc1295,
         thymosinBeta4, ghkCu,
         semax, selank, dihexa,

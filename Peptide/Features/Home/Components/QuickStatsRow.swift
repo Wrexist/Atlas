@@ -40,7 +40,7 @@ struct QuickStatsRow: View {
 #Preview {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        QuickStatsRow(activeProtocols: 2, daysLogged: 45, compliance: 82, nextDose: MockEntries.todayEntries().first { !$0.completed })
+        QuickStatsRow(activeProtocols: 2, daysLogged: 45, compliance: 82, nextDose: nil)
             .padding(.leading, Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)

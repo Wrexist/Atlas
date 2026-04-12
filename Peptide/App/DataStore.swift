@@ -88,6 +88,9 @@ final class DataStore: DataServiceProtocol {
         appendTodayEntries(for: newProtocol)
         save()
         NotificationService.shared.scheduleNotifications(for: activeProtocols)
+        if profile.hapticFeedbackEnabled {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
     }
 
     func deleteProtocol(id: UUID) {
@@ -125,9 +128,13 @@ final class DataStore: DataServiceProtocol {
 
     func toggleEntry(_ entryId: UUID) {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
+        let becoming = !entries[index].completed
         invalidateCache()
         entries[index].completed.toggle()
         save()
+        if profile.hapticFeedbackEnabled {
+            UIImpactFeedbackGenerator(style: becoming ? .light : .soft).impactOccurred()
+        }
     }
 
     func logDose(entryId: UUID, actualDose: String?, actualTime: Date?, injectionSite: String?, notes: String) {
