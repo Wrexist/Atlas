@@ -49,6 +49,18 @@ struct RecommendedPeptidesCard: View {
             .background { Capsule().fill(color.opacity(bgOpacity)) }
     }
 
+    @ViewBuilder
+    private func confidenceBadge(_ confidence: StackRecommendationEngine.Confidence) -> some View {
+        switch confidence {
+        case .high:
+            reasonBadge("Research-backed", color: AppColor.accentLight, bgOpacity: 0.2)
+        case .medium:
+            reasonBadge("Suggested", color: AppColor.accentPrimary, bgOpacity: 0.15)
+        case .low:
+            reasonBadge("Exploratory", color: AppColor.textSecondary, bgOpacity: 0.1)
+        }
+    }
+
     private func recommendationRow(_ rec: StackRecommendationEngine.Recommendation) -> some View {
         HStack(spacing: Spacing.md) {
             ZStack {
@@ -70,12 +82,7 @@ struct RecommendedPeptidesCard: View {
 
                     PeptideCategoryBadge(category: rec.peptide.category)
 
-                    // Tags for special reason types
-                    if rec.hasValidatedStack {
-                        reasonBadge("Research-backed", color: AppColor.accentLight, bgOpacity: 0.2)
-                    } else if rec.hasCategorySynergy {
-                        reasonBadge("Synergy", color: AppColor.accentPrimary, bgOpacity: 0.15)
-                    }
+                    confidenceBadge(rec.confidence)
                 }
 
                 // Show up to 2 reasons with icons
@@ -100,22 +107,6 @@ struct RecommendedPeptidesCard: View {
                 .foregroundStyle(AppColor.textTertiary)
         }
         .padding(.vertical, Spacing.xs)
-    }
-}
-
-private extension StackRecommendationEngine.Recommendation {
-    var hasValidatedStack: Bool {
-        reasons.contains { reason in
-            guard case .validatedStack = reason else { return false }
-            return true
-        }
-    }
-
-    var hasCategorySynergy: Bool {
-        reasons.contains { reason in
-            guard case .categorySynergy = reason else { return false }
-            return true
-        }
     }
 }
 
@@ -149,7 +140,8 @@ private struct RecommendationPressStyle: ButtonStyle {
                             .commonStack(pairsWith: ["TB-500", "GHK-Cu"]),
                             .goalMatch(goal: "recovery"),
                             .categorySynergy(description: "Growth + Recovery amplify tissue repair"),
-                        ]
+                        ],
+                        confidence: .high
                     ),
                     .init(
                         id: UUID(),
@@ -158,7 +150,8 @@ private struct RecommendationPressStyle: ButtonStyle {
                         reasons: [
                             .commonStack(pairsWith: ["Selank"]),
                             .goalMatch(goal: "cognitive"),
-                        ]
+                        ],
+                        confidence: .medium
                     ),
                 ]
             )

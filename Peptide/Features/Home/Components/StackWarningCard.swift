@@ -25,16 +25,24 @@ struct StackWarningCard: View {
     }
 
     private var highestSeverityColor: Color {
-        warnings.contains(where: { $0.severity == .danger })
-            ? AppColor.destructive
-            : Color.orange
+        if warnings.contains(where: { $0.severity == .danger }) { return AppColor.destructive }
+        if warnings.contains(where: { $0.severity == .caution }) { return Color.orange }
+        return AppColor.accentPrimary
+    }
+
+    private func severityColor(_ severity: StackRecommendationEngine.Warning.Severity) -> Color {
+        switch severity {
+        case .danger: return AppColor.destructive
+        case .caution: return Color.orange
+        case .info: return AppColor.accentPrimary
+        }
     }
 
     private func warningRow(_ warning: StackRecommendationEngine.Warning) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: warning.icon)
                 .font(.system(size: 14))
-                .foregroundStyle(warning.severity == .danger ? AppColor.destructive : Color.orange)
+                .foregroundStyle(severityColor(warning.severity))
                 .frame(width: 20)
                 .padding(.top, 2)
 
@@ -65,7 +73,7 @@ struct StackWarningCard: View {
 
                 FlowLayout(spacing: Spacing.xs) {
                     ForEach(warning.peptides, id: \.self) { name in
-                        let color = warning.severity == .danger ? AppColor.destructive : Color.orange
+                        let color = severityColor(warning.severity)
                         Text(name)
                             .font(AppFont.caption)
                             .fontWeight(.medium)
