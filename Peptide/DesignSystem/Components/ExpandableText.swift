@@ -9,16 +9,21 @@ struct ExpandableText: View {
     @State private var fullHeight: CGFloat = 0
 
     private var isTruncated: Bool {
-        fullHeight > collapsedHeight + 1
+        guard collapsedHeight > 0 else { return false }
+        return fullHeight > collapsedHeight + 1
     }
 
     private static let gradientHeight: CGFloat = 24
 
+    private func styledText(_ content: String) -> Text {
+        Text(content)
+            .font(AppFont.body)
+            .foregroundStyle(AppColor.textSecondary)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text(text)
-                .font(AppFont.body)
-                .foregroundStyle(AppColor.textSecondary)
+            styledText(text)
                 .lineSpacing(4)
                 .lineLimit(isExpanded ? nil : lineLimit)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -36,9 +41,8 @@ struct ExpandableText: View {
                         }
                     }
                 }
-                .animation(AppAnimation.springSmooth, value: isExpanded)
 
-            if isTruncated || isExpanded {
+            if isTruncated {
                 Button {
                     withAnimation(AppAnimation.springSmooth) {
                         isExpanded.toggle()
@@ -54,15 +58,13 @@ struct ExpandableText: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.accentPrimary)
                 }
-                .accessibilityLabel(isExpanded ? "Show less" : "Read more")
                 .accessibilityHint(isExpanded ? "Collapse text" : "Expand full text")
                 .transition(.opacity)
             }
         }
         .background(
             ZStack {
-                Text(text)
-                    .font(AppFont.body)
+                styledText(text)
                     .lineSpacing(4)
                     .lineLimit(lineLimit)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -70,8 +72,7 @@ struct ExpandableText: View {
                         collapsedHeight = $0
                     }
 
-                Text(text)
-                    .font(AppFont.body)
+                styledText(text)
                     .lineSpacing(4)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -80,6 +81,7 @@ struct ExpandableText: View {
                     }
             }
             .hidden()
+            .accessibilityHidden(true)
         )
     }
 }
