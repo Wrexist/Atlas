@@ -53,8 +53,13 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Generate app icon
+      - name: Generate app icon (fallback)
         run: |
+          ICON="Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
+          if [ -f "$ICON" ]; then
+            echo "App icon already exists, skipping generation"
+            exit 0
+          fi
           python3 - << 'EOF'
           import struct, zlib, os
 

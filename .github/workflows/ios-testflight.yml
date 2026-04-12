@@ -107,8 +107,13 @@ jobs:
           /usr/libexec/PlistBuddy -c "Print :UILaunchScreen" "$PLIST" || { echo "FATAL: UILaunchScreen missing"; exit 1; }
           echo "All required keys present."
 
-      - name: Generate app icon
+      - name: Generate app icon (fallback)
         run: |
+          ICON="Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
+          if [ -f "$ICON" ]; then
+            echo "App icon already exists, skipping generation"
+            exit 0
+          fi
           python3 - << 'EOF'
           import struct, zlib, os
 
