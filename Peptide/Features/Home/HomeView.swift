@@ -15,8 +15,27 @@ struct HomeView: View {
         return (entries, score, completed, total)
     }
 
+    private var stackPeptides: [Peptide] {
+        var seen = Set<UUID>()
+        return dataStore.activeProtocols.flatMap(\.peptides).filter { seen.insert($0.id).inserted }
+    }
+
+    private var stackWarnings: [StackRecommendationEngine.Warning] {
+        StackRecommendationEngine.warnings(for: stackPeptides)
+    }
+
+    private var stackRecommendations: [StackRecommendationEngine.Recommendation] {
+        StackRecommendationEngine.recommendations(
+            for: stackPeptides,
+            from: dataStore.peptideDatabase,
+            goals: dataStore.profile.goals
+        )
+    }
+
     var body: some View {
         let stats = todayStats
+        let warnings = stackWarnings
+        let recommendations = stackRecommendations
 
         NavigationStack {
             ScrollView {
@@ -53,9 +72,24 @@ struct HomeView: View {
                     )
                     .sectionAppear(index: 3)
 
+                    // Stack warnings (danger/caution alerts)
+                    if !warnings.isEmpty {
+                        StackWarningCard(warnings: warnings)
+                            .sectionAppear(index: 4)
+                    }
+
+                    // Smart recommendations
+                    if !recommendations.isEmpty {
+                        RecommendedPeptidesCard(
+                            recommendations: recommendations,
+                            hapticEnabled: dataStore.profile.hapticFeedbackEnabled
+                        )
+                        .sectionAppear(index: 5)
+                    }
+
                     if dataStore.profile.healthConnected {
                         HealthSummaryCard()
-                            .sectionAppear(index: 4)
+                            .sectionAppear(index: 6)
                     }
 
                     // Top insight
@@ -84,7 +118,7 @@ struct HomeView: View {
                                 Spacer()
                             }
                         }
-                        .sectionAppear(index: 5)
+                        .sectionAppear(index: 7)
                     }
                 }
                 .padding(.horizontal, Spacing.screenPadding)
@@ -102,6 +136,9 @@ struct HomeView: View {
                         notes: notes
                     )
                 }
+            }
+            .navigationDestination(for: Peptide.self) { peptide in
+                PeptideDetailView(peptide: peptide)
             }
             .overlay {
                 if let achievement = toastAchievement {

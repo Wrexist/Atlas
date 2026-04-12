@@ -20,6 +20,7 @@ struct DosageInfoSection: View {
                     DosageRow(label: "Administration", value: peptide.adminRoute, icon: "cross.vial.fill")
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
@@ -30,7 +31,7 @@ private struct DosageRow: View {
     let icon: String
 
     var body: some View {
-        HStack {
+        HStack(alignment: .top) {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
                     .font(.system(size: 12))
@@ -40,14 +41,17 @@ private struct DosageRow: View {
                 Text(label)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
+                    .layoutPriority(1)
             }
 
-            Spacer()
+            Spacer(minLength: Spacing.sm)
 
             Text(value)
                 .font(AppFont.subheadline)
                 .fontWeight(.medium)
                 .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.trailing)
+                .lineLimit(3)
         }
     }
 }

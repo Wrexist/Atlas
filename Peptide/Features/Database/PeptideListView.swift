@@ -44,15 +44,15 @@ struct PeptideListView: View {
                         .padding(.top, Spacing.xxxxl)
                     } else {
                         LazyVStack(spacing: Spacing.md) {
-                            ForEach(Array(viewModel.filteredPeptides.enumerated()), id: \.element.id) { index, peptide in
+                            ForEach(viewModel.filteredPeptides) { peptide in
                                 NavigationLink(value: peptide) {
                                     PeptideRow(peptide: peptide)
                                 }
                                 .buttonStyle(.plain)
-                                .staggeredAppear(index: index)
                             }
                         }
                         .padding(.horizontal, Spacing.screenPadding)
+                        .animation(AppAnimation.fadeIn, value: viewModel.filteredPeptides.map(\.id))
                     }
                 }
                 .padding(.bottom, Spacing.xxxxl)

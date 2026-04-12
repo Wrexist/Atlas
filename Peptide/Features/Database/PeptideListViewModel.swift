@@ -2,40 +2,23 @@ import SwiftUI
 
 @Observable
 final class PeptideListViewModel {
-    var searchText = ""
+    var searchText = "" { didSet { refilter() } }
     var selectedCategory: PeptideCategory?
     private(set) var allPeptides: [Peptide]
+    private(set) var filteredPeptides: [Peptide] = []
     private var hasLoadedFromStore = false
 
     init(peptides: [Peptide] = []) {
         self.allPeptides = peptides.isEmpty ? MockPeptides.all : peptides
         self.hasLoadedFromStore = !peptides.isEmpty
+        refilter()
     }
 
     func updatePeptides(_ peptides: [Peptide]) {
         guard !hasLoadedFromStore else { return }
         allPeptides = peptides
         hasLoadedFromStore = true
-    }
-
-    var filteredPeptides: [Peptide] {
-        var results = allPeptides
-
-        if let category = selectedCategory {
-            results = results.filter { $0.category == category }
-        }
-
-        if !searchText.isEmpty {
-            let query = searchText.lowercased()
-            results = results.filter {
-                $0.name.lowercased().contains(query) ||
-                $0.abbreviation.lowercased().contains(query) ||
-                $0.category.displayName.lowercased().contains(query) ||
-                $0.benefits.contains { $0.lowercased().contains(query) }
-            }
-        }
-
-        return results
+        refilter()
     }
 
     var categories: [PeptideCategory] {
@@ -44,11 +27,28 @@ final class PeptideListViewModel {
 
     func selectCategory(_ category: PeptideCategory?) {
         withAnimation(AppAnimation.springSnappy) {
-            if selectedCategory == category {
-                selectedCategory = nil
-            } else {
-                selectedCategory = category
+            selectedCategory = (selectedCategory == category) ? nil : category
+            refilter()
+        }
+    }
+
+    private func refilter() {
+        var results = allPeptides
+
+        if let category = selectedCategory {
+            results = results.filter { $0.category == category }
+        }
+
+        if !searchText.isEmpty {
+            let query = searchText
+            results = results.filter {
+                $0.name.localizedCaseInsensitiveContains(query) ||
+                $0.abbreviation.localizedCaseInsensitiveContains(query) ||
+                $0.category.displayName.localizedCaseInsensitiveContains(query) ||
+                $0.benefits.contains { $0.localizedCaseInsensitiveContains(query) }
             }
         }
+
+        filteredPeptides = results
     }
 }
