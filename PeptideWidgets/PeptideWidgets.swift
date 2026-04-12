@@ -25,34 +25,10 @@ struct DoseTimelineProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<DoseEntry>) -> Void) {
-        let persistence = PersistenceService.shared
-        let protocols = persistence.loadProtocols() ?? []
-        let entries = persistence.loadEntries() ?? []
-        let calendar = Calendar.current
-
-        let activeIds = Set(protocols.filter { $0.status == .active }.map(\.id))
-        let todayEntries = entries.filter { calendar.isDateInToday($0.date) && activeIds.contains($0.protocolId) }
-        let completed = todayEntries.filter(\.completed).count
-        let total = todayEntries.count
-        let compliance = total > 0 ? Double(completed) / Double(total) : 0
-
-        let now = Date()
-        let nextDose = todayEntries
-            .filter { !$0.completed && $0.date > now }
-            .sorted { $0.date < $1.date }
-            .first ?? todayEntries.first { !$0.completed }
-
-        let entry = DoseEntry(
-            date: now,
-            peptideName: nextDose?.peptide.abbreviation ?? "All done",
-            dose: nextDose?.dose ?? "",
-            doseTime: nextDose?.date.formatted(.dateTime.hour().minute()) ?? "",
-            completed: completed,
-            total: total,
-            compliance: compliance
-        )
-
-        let nextUpdate = calendar.date(byAdding: .minute, value: 30, to: now) ?? now
+        // Widget data sharing requires App Groups (future work).
+        // For now, show placeholder data that refreshes every 30 min.
+        let entry = placeholder(in: context)
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: Date()) ?? Date()
         completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
     }
 }
@@ -105,7 +81,6 @@ struct MediumWidgetView: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            // Left: Progress
             VStack(spacing: 8) {
                 ZStack {
                     Circle()
@@ -124,7 +99,6 @@ struct MediumWidgetView: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Right: Next dose
             VStack(alignment: .leading, spacing: 4) {
                 Text("Next Dose")
                     .font(.caption)
@@ -150,7 +124,7 @@ struct MediumWidgetView: View {
     }
 }
 
-// MARK: - Widget Definition
+// MARK: - Widget Definitions
 
 struct NextDoseWidgetView: View {
     @Environment(\.widgetFamily) var family

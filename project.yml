@@ -77,8 +77,6 @@ targets:
       - path: PeptideWidgets
         excludes:
           - "**/.DS_Store"
-      - path: Peptide/Models
-      - path: Peptide/Services/PersistenceService.swift
     info:
       properties:
         CFBundleDisplayName: PeptideX Widgets
