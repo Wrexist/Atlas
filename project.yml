@@ -24,6 +24,7 @@ targets:
       path: Peptide/Resources/Info.plist
       properties:
         CFBundleDisplayName: PeptideX
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
