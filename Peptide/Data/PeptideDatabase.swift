@@ -132,16 +132,10 @@ enum PeptideDatabase {
     }
 
     private static func mapCategory(_ raw: String) -> PeptideCategory {
-        switch raw {
-        case "growth": .growth
-        case "recovery": .recovery
-        case "cognitive": .cognitive
-        case "antiAging": .antiAging
-        case "immune": .immune
-        case "metabolic": .metabolic
-        default:
+        guard let category = PeptideCategory(rawValue: raw) else {
             assertionFailure("Unknown peptide category: \(raw)")
             return .recovery
         }
+        return category
     }
 }
