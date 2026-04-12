@@ -103,7 +103,7 @@ jobs:
           xcodebuild test \
             -project Peptide.xcodeproj \
             -scheme Peptide \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \

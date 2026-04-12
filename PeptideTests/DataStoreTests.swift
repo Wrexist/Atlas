@@ -1,6 +1,7 @@
 import XCTest
 @testable import Peptide
 
+@MainActor
 final class DataStoreTests: XCTestCase {
 
     private var store: DataStore!
