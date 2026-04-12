@@ -95,7 +95,8 @@ jobs:
           fi
 
       - name: Lint
-        run: swiftlint lint --reporter github-actions-logging || true
+        run: swiftlint lint --reporter github-actions-logging --strict
+        continue-on-error: true
 
       - name: Test
         run: |
@@ -107,4 +108,4 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            -resultBundlePath TestResults.xcresult || true
+            -resultBundlePath TestResults.xcresult

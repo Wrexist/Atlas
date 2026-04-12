@@ -123,7 +123,7 @@ final class HealthKitService {
 
         do {
             let samples = try await descriptor.result(for: store)
-            return (samples.first as? HKQuantitySample)?.quantity.doubleValue(for: unit)
+            return samples.first?.quantity.doubleValue(for: unit)
         } catch {
             return nil
         }

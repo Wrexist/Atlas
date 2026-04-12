@@ -3,7 +3,7 @@ import StoreKit
 
 struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var storeService = StoreService.shared
+    private var storeService: StoreService { StoreService.shared }
     @State private var isPurchasing = false
 
     var body: some View {

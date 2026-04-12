@@ -5,7 +5,9 @@ struct PeptideListView: View {
     @State private var viewModel = PeptideListViewModel()
 
     private func refreshPeptides() {
-        viewModel = PeptideListViewModel(peptides: dataStore.peptideDatabase)
+        if viewModel.allPeptides.isEmpty {
+            viewModel = PeptideListViewModel(peptides: dataStore.peptideDatabase)
+        }
     }
 
     var body: some View {

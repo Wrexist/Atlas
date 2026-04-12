@@ -8,29 +8,25 @@ final class DataStore: DataServiceProtocol {
 
     private let persistence = PersistenceService.shared
 
+    private var _peptideDatabase: [Peptide]?
+
     init() {
-        if persistence.hasPersistedData,
-           let savedProtocols = persistence.loadProtocols(),
-           let savedEntries = persistence.loadEntries(),
-           let savedProfile = persistence.loadProfile() {
-            self.protocols = savedProtocols
-            self.entries = savedEntries
-            self.profile = savedProfile
-            regenerateTodayEntries()
-        } else {
-            let initialProtocols = MockProtocols.all
-            self.protocols = initialProtocols
-            self.profile = MockProfile.current
-            self.entries = Self.generateInitialEntries(for: initialProtocols)
-            save()
-        }
+        // Load each file independently -- don't lose all data if one file is corrupt
+        self.protocols = persistence.loadProtocols() ?? MockProtocols.all
+        self.entries = persistence.loadEntries() ?? Self.generateInitialEntries(for: protocols)
+        self.profile = persistence.loadProfile() ?? MockProfile.current
+        regenerateTodayEntries()
+        if !persistence.hasPersistedData { save() }
     }
 
     // MARK: - Peptide Database
 
     var peptideDatabase: [Peptide] {
+        if let cached = _peptideDatabase { return cached }
         let bundled = persistence.loadPeptideDatabase()
-        return bundled.isEmpty ? MockPeptides.all : bundled
+        let result = bundled.isEmpty ? MockPeptides.all : bundled
+        _peptideDatabase = result
+        return result
     }
 
     // MARK: - Protocols
@@ -86,24 +82,19 @@ final class DataStore: DataServiceProtocol {
 
     func logDose(entryId: UUID, actualDose: String?, actualTime: Date?, injectionSite: String?, notes: String) {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
-        entries[index].completed = true
-        entries[index].actualDose = actualDose
-        entries[index].actualTime = actualTime
-        entries[index].injectionSite = injectionSite
-        if !notes.isEmpty {
-            entries[index] = ProtocolEntry(
-                id: entries[index].id,
-                protocolId: entries[index].protocolId,
-                peptide: entries[index].peptide,
-                date: entries[index].date,
-                dose: entries[index].dose,
-                notes: notes,
-                completed: true,
-                actualDose: actualDose,
-                actualTime: actualTime,
-                injectionSite: injectionSite
-            )
-        }
+        let existing = entries[index]
+        entries[index] = ProtocolEntry(
+            id: existing.id,
+            protocolId: existing.protocolId,
+            peptide: existing.peptide,
+            date: existing.date,
+            dose: existing.dose,
+            notes: notes.isEmpty ? existing.notes : notes,
+            completed: true,
+            actualDose: actualDose,
+            actualTime: actualTime,
+            injectionSite: injectionSite
+        )
         save()
     }
 
@@ -139,8 +130,8 @@ final class DataStore: DataServiceProtocol {
     var currentStreak: Int {
         let calendar = Calendar.current
         var streak = 0
+        var consecutiveEmptyDays = 0
 
-        // Start from yesterday if today has no completed entries yet
         let todayHasCompleted = todayEntries.contains(where: \.completed)
         let startOffset = todayHasCompleted ? 0 : 1
 
@@ -148,9 +139,14 @@ final class DataStore: DataServiceProtocol {
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { break }
             let dayEntries = entries.filter { calendar.isDate($0.date, inSameDayAs: date) }
 
-            // Skip days with no scheduled entries (non-protocol days)
-            if dayEntries.isEmpty { continue }
+            if dayEntries.isEmpty {
+                consecutiveEmptyDays += 1
+                // Allow up to 2 consecutive empty days (weekends) before breaking
+                if consecutiveEmptyDays > 2 { break }
+                continue
+            }
 
+            consecutiveEmptyDays = 0
             if !dayEntries.contains(where: \.completed) { break }
             streak += 1
         }
@@ -249,28 +245,42 @@ final class DataStore: DataServiceProtocol {
 
     // MARK: - Persistence
 
+    private var achievementCheckPending = false
+
     private func save() {
         persistence.saveProtocols(protocols)
         persistence.saveEntries(entries)
         persistence.saveProfile(profile)
-        AchievementService.shared.checkAchievements(
-            totalDoses: totalDoses,
-            currentStreak: currentStreak,
-            bestStreak: bestStreak,
-            protocolCount: protocols.count,
-            daysLogged: totalDaysLogged
-        )
+        scheduleAchievementCheck()
+    }
+
+    private func scheduleAchievementCheck() {
+        guard !achievementCheckPending else { return }
+        achievementCheckPending = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.achievementCheckPending = false
+            AchievementService.shared.checkAchievements(
+                totalDoses: self.totalDoses,
+                currentStreak: self.currentStreak,
+                bestStreak: self.bestStreak,
+                protocolCount: self.protocols.count,
+                daysLogged: self.totalDaysLogged
+            )
+        }
     }
 
     private func regenerateTodayEntries() {
         let calendar = Calendar.current
-        let hasTodayEntries = entries.contains { calendar.isDateInToday($0.date) }
-        if !hasTodayEntries {
-            for proto in activeProtocols {
-                entries.append(contentsOf: Self.generateTodayEntries(for: proto))
-            }
-            save()
+        let existingProtocolIds = Set(
+            entries.filter { calendar.isDateInToday($0.date) }.map(\.protocolId)
+        )
+        var added = false
+        for proto in activeProtocols where !existingProtocolIds.contains(proto.id) {
+            entries.append(contentsOf: Self.generateTodayEntries(for: proto))
+            added = true
         }
+        if added { save() }
     }
 
     // MARK: - Entry Generation

@@ -152,15 +152,26 @@ struct MediumWidgetView: View {
 
 // MARK: - Widget Definition
 
+struct NextDoseWidgetView: View {
+    @Environment(\.widgetFamily) var family
+    let entry: DoseEntry
+
+    var body: some View {
+        switch family {
+        case .systemMedium:
+            MediumWidgetView(entry: entry)
+        default:
+            SmallWidgetView(entry: entry)
+        }
+    }
+}
+
 struct NextDoseWidget: Widget {
     let kind = "NextDoseWidget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: DoseTimelineProvider()) { entry in
-            switch WidgetFamily.systemSmall {
-            default:
-                SmallWidgetView(entry: entry)
-            }
+            NextDoseWidgetView(entry: entry)
         }
         .configurationDisplayName("Next Dose")
         .description("Shows your next scheduled peptide dose")

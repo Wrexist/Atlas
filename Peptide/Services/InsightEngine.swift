@@ -45,13 +45,13 @@ struct InsightEngine {
             insights.append(Insight(icon: "moon.fill", title: "Evening doses need attention", description: "You miss \(Int(eveningMissRate * 100))% of evening doses. Try linking them to a routine.", type: .warning))
         }
 
-        // Compliance trend
+        // Compliance trend: compare last 7 days vs preceding 8-30 days (non-overlapping)
         let recentCompliance = complianceForRange(entries: entries, days: 7)
-        let olderCompliance = complianceForRange(entries: entries, days: 30)
-        if recentCompliance > olderCompliance + 0.1 {
-            insights.append(Insight(icon: "arrow.up.right", title: "Compliance improving", description: "Your 7-day compliance is \(Int(recentCompliance * 100))%, up from \(Int(olderCompliance * 100))% monthly average.", type: .positive))
-        } else if recentCompliance < olderCompliance - 0.15 {
-            insights.append(Insight(icon: "arrow.down.right", title: "Compliance dipping", description: "Recent compliance dropped to \(Int(recentCompliance * 100))%. Your average is \(Int(olderCompliance * 100))%.", type: .warning))
+        let olderCompliance = complianceForExclusiveRange(entries: entries, from: 30, to: 7)
+        if recentCompliance > olderCompliance + 0.1 && olderCompliance > 0 {
+            insights.append(Insight(icon: "arrow.up.right", title: "Compliance improving", description: "Your 7-day compliance is \(Int(recentCompliance * 100))%, up from \(Int(olderCompliance * 100))% prior average.", type: .positive))
+        } else if recentCompliance < olderCompliance - 0.15 && olderCompliance > 0 {
+            insights.append(Insight(icon: "arrow.down.right", title: "Compliance dipping", description: "Recent compliance dropped to \(Int(recentCompliance * 100))%. Prior average was \(Int(olderCompliance * 100))%.", type: .warning))
         }
 
         // Protocol count
@@ -108,6 +108,15 @@ struct InsightEngine {
         let calendar = Calendar.current
         guard let cutoff = calendar.date(byAdding: .day, value: -days, to: Date()) else { return 0 }
         let rangeEntries = entries.filter { $0.date >= cutoff }
+        guard !rangeEntries.isEmpty else { return 0 }
+        return Double(rangeEntries.filter(\.completed).count) / Double(rangeEntries.count)
+    }
+
+    private static func complianceForExclusiveRange(entries: [ProtocolEntry], from outerDays: Int, to innerDays: Int) -> Double {
+        let calendar = Calendar.current
+        guard let outerCutoff = calendar.date(byAdding: .day, value: -outerDays, to: Date()),
+              let innerCutoff = calendar.date(byAdding: .day, value: -innerDays, to: Date()) else { return 0 }
+        let rangeEntries = entries.filter { $0.date >= outerCutoff && $0.date < innerCutoff }
         guard !rangeEntries.isEmpty else { return 0 }
         return Double(rangeEntries.filter(\.completed).count) / Double(rangeEntries.count)
     }

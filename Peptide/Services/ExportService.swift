@@ -17,9 +17,19 @@ final class ExportService {
             let timeStr = entry.date.formatted(.dateTime.hour().minute())
             let actualDose = entry.actualDose ?? entry.dose
             let site = entry.injectionSite ?? ""
-            let notes = entry.notes.replacingOccurrences(of: ",", with: ";")
 
-            csv += "\(dateStr),\(protocolName),\(entry.peptide.abbreviation),\(entry.dose),\(actualDose),\(timeStr),\(site),\(entry.completed),\(notes)\n"
+            let fields = [
+                dateStr,
+                csvQuote(protocolName),
+                csvQuote(entry.peptide.abbreviation),
+                csvQuote(entry.dose),
+                csvQuote(actualDose),
+                timeStr,
+                csvQuote(site),
+                "\(entry.completed)",
+                csvQuote(entry.notes),
+            ]
+            csv += fields.joined(separator: ",") + "\n"
         }
 
         return csv
@@ -42,6 +52,13 @@ final class ExportService {
     }
 
     // MARK: - File URLs
+
+    private func csvQuote(_ value: String) -> String {
+        if value.contains(",") || value.contains("\"") || value.contains("\n") {
+            return "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+        }
+        return value
+    }
 
     func writeCSV(_ content: String, filename: String) -> URL? {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
