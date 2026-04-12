@@ -58,3 +58,9 @@ CLAUDE.local.md
 # Logs
 *.log
 logs/
+
+# Peptide dataset builder
+scripts/peptide-dataset/.venv/
+scripts/peptide-dataset/peptides.json
+scripts/peptide-dataset/peptides.partial.json
+scripts/peptide-dataset/build.log
