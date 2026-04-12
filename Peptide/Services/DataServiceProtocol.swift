@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 protocol DataServiceProtocol {
     // Protocol management
     var protocols: [PeptideProtocol] { get }
@@ -19,6 +20,9 @@ protocol DataServiceProtocol {
 
     // Protocol editing
     func updateProtocol(id: UUID, name: String, peptides: [Peptide], schedule: ProtocolSchedule, cycleLengthWeeks: Int, notes: String)
+
+    // Peptide database
+    var peptideDatabase: [Peptide] { get }
 
     // Stats
     var currentStreak: Int { get }

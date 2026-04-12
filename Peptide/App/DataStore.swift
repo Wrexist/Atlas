@@ -12,8 +12,9 @@ final class DataStore: DataServiceProtocol {
 
     init() {
         // Load each file independently -- don't lose all data if one file is corrupt
-        self.protocols = persistence.loadProtocols() ?? MockProtocols.all
-        self.entries = persistence.loadEntries() ?? Self.generateInitialEntries(for: protocols)
+        let loadedProtocols = persistence.loadProtocols() ?? MockProtocols.all
+        self.protocols = loadedProtocols
+        self.entries = persistence.loadEntries() ?? Self.generateInitialEntries(for: loadedProtocols)
         self.profile = persistence.loadProfile() ?? MockProfile.current
         regenerateTodayEntries()
         if !persistence.hasPersistedData { save() }

@@ -31,7 +31,7 @@ struct InsightEngine {
         let dayMissPatterns = analyzeDayPatterns(entries: entries)
         if let worstDay = dayMissPatterns.max(by: { $0.value < $1.value }), worstDay.value > 0.3 {
             let dayNames = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-            let dayName = dayNames[worstDay.key]
+            let dayName = worstDay.key >= 1 && worstDay.key <= 7 ? dayNames[worstDay.key] : "unknown"
             insights.append(Insight(icon: "calendar.badge.exclamationmark", title: "Pattern detected", description: "You tend to miss doses on \(dayName)s. Consider setting an extra reminder.", type: .warning))
         }
 
@@ -76,10 +76,22 @@ struct InsightEngine {
     private static func calculateStreak(entries: [ProtocolEntry]) -> Int {
         let calendar = Calendar.current
         var streak = 0
-        for dayOffset in 0..<365 {
+        var consecutiveEmptyDays = 0
+
+        let todayEntries = entries.filter { calendar.isDateInToday($0.date) }
+        let startOffset = todayEntries.contains(where: \.completed) ? 0 : 1
+
+        for dayOffset in startOffset..<365 {
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { break }
             let dayEntries = entries.filter { calendar.isDate($0.date, inSameDayAs: date) }
-            if dayEntries.isEmpty { continue }
+
+            if dayEntries.isEmpty {
+                consecutiveEmptyDays += 1
+                if consecutiveEmptyDays > 2 { break }
+                continue
+            }
+
+            consecutiveEmptyDays = 0
             if !dayEntries.contains(where: \.completed) { break }
             streak += 1
         }

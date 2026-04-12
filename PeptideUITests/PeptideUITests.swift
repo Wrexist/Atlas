@@ -8,6 +8,7 @@ final class PeptideUITests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
+        app.launchArguments = ["-hasCompletedOnboarding", "YES"]
         app.launch()
     }
 

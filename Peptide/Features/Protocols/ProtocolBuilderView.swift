@@ -179,11 +179,12 @@ struct ProtocolBuilderView: View {
         let peptides = dataStore.peptideDatabase.filter { selectedPeptides.contains($0.id) }
         guard !peptides.isEmpty else { return }
 
-        let defaultTimes = (1...timesPerDay).map { index in
-            let hour24 = 8 + (index - 1) * (12 / max(timesPerDay, 1))
-            let hour12 = hour24 > 12 ? hour24 - 12 : (hour24 == 0 ? 12 : hour24)
-            let period = hour24 >= 12 ? "PM" : "AM"
-            return "\(hour12):00 \(period)"
+        // Preserve existing preferred times if timesPerDay hasn't changed
+        let times: [String]
+        if timesPerDay == proto.schedule.timesPerDay {
+            times = proto.schedule.preferredTimes
+        } else {
+            times = generateDefaultTimes(count: timesPerDay)
         }
 
         dataStore.updateProtocol(
@@ -193,12 +194,21 @@ struct ProtocolBuilderView: View {
             schedule: ProtocolSchedule(
                 daysOfWeek: selectedDays.sorted(),
                 timesPerDay: timesPerDay,
-                preferredTimes: defaultTimes
+                preferredTimes: times
             ),
             cycleLengthWeeks: cycleLengthWeeks,
             notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)
         )
         dismiss()
+    }
+
+    private func generateDefaultTimes(count: Int) -> [String] {
+        (1...count).map { index in
+            let hour24 = min(8 + (index - 1) * (12 / max(count, 1)), 23)
+            let hour12 = hour24 > 12 ? hour24 - 12 : (hour24 == 0 ? 12 : hour24)
+            let period = hour24 >= 12 ? "PM" : "AM"
+            return "\(hour12):00 \(period)"
+        }
     }
 }
 
