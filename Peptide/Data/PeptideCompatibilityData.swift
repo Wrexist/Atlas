@@ -264,13 +264,4 @@ enum PeptideCompatibilityData {
         }
     }
 
-    /// Find all pathway groups a peptide belongs to.
-    static func pathways(for abbreviation: String) -> [PathwayGroup] {
-        pathwayGroups.filter { $0.peptideAbbreviations.contains(abbreviation) }
-    }
-
-    /// Find validated stacks that include a given peptide.
-    static func validatedStacks(containing abbreviation: String) -> [ValidatedStack] {
-        validatedStacks.filter { $0.peptideAbbreviations.contains(abbreviation) }
-    }
 }

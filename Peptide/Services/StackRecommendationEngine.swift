@@ -216,20 +216,25 @@ enum StackRecommendationEngine {
 
         // --- 4. Validated stack scoring ---
         let currentAbbreviations = Set(currentPeptides.map(\.abbreviation))
+        var validatedStacksAdded: [UUID: Set<String>] = [:] // dedup by stack name per candidate
         for stack in PeptideCompatibilityData.validatedStacks {
             let overlap = stack.peptideAbbreviations.filter { currentAbbreviations.contains($0) }
             guard !overlap.isEmpty else { continue }
-            // Find peptides in this validated stack that are NOT in the current stack
             for missing in stack.peptideAbbreviations where !currentAbbreviations.contains(missing) {
-                if let found = dbByName[missing.lowercased()], !currentIds.contains(found.id) {
-                    if candidates[found.id] == nil {
-                        candidates[found.id] = (found, 0, [])
-                    }
-                    candidates[found.id]?.score += 3
-                    candidates[found.id]?.reasons.append(
-                        .validatedStack(name: stack.name, synergy: stack.synergy)
-                    )
+                // Use resolveMatch for robust lookup (handles parenthetical qualifiers, fuzzy matching)
+                guard let found = resolveMatch(missing.lowercased(), in: dbByName, database: database),
+                      !currentIds.contains(found.id) else { continue }
+                // Prevent duplicate validatedStack reasons for same stack name
+                if validatedStacksAdded[found.id, default: []].contains(stack.name) { continue }
+                validatedStacksAdded[found.id, default: []].insert(stack.name)
+
+                if candidates[found.id] == nil {
+                    candidates[found.id] = (found, 0, [])
                 }
+                candidates[found.id]?.score += 3
+                candidates[found.id]?.reasons.append(
+                    .validatedStack(name: stack.name, synergy: stack.synergy)
+                )
             }
         }
 
@@ -346,7 +351,7 @@ enum StackRecommendationEngine {
                     peptides: names,
                     icon: "arrow.triangle.2.circlepath"
                 ))
-            case .ghrhAnalog where peptides.count >= 3:
+            case .ghrhAnalog where peptides.count >= 2:
                 warnings.append(Warning(
                     severity: .caution,
                     title: "Multiple GHRH analogs",
@@ -373,11 +378,15 @@ enum StackRecommendationEngine {
             let route = $0.adminRoute.lowercased()
             return route.contains("subcutaneous") || route.contains("intramuscular") || route.contains("intravenous")
         }
-        if injectables.count >= 5 {
+        if injectables.count >= 4 {
             var dailyCount = 0
             for p in injectables {
                 let freq = p.frequency.lowercased()
-                if freq.contains("3x") || freq.contains("3 times") { dailyCount += 3 }
+                let isWeekly = freq.contains("week") || freq.contains("once per")
+                if isWeekly {
+                    // Weekly peptides contribute fractionally to daily burden
+                    dailyCount += 1 // count as 1 since they do require an injection day
+                } else if freq.contains("3x") || freq.contains("3 times") { dailyCount += 3 }
                 else if freq.contains("2x") || freq.contains("twice") || freq.contains("2 times") { dailyCount += 2 }
                 else { dailyCount += 1 }
             }
@@ -433,9 +442,10 @@ enum StackRecommendationEngine {
         for group in PeptideCompatibilityData.pathwayGroups {
             let matching = currentPeptides.filter { group.peptideAbbreviations.contains($0.abbreviation) }
             guard matching.count > group.maxSafe else { continue }
-            // Don't duplicate mechanism pathway warnings already generated above
+            // Skip if a prior warning already covers 2+ of the same peptides (overlap, not subset)
+            let matchingNames = Set(matching.map(\.abbreviation))
             let alreadyCovered = warnings.contains { w in
-                Set(matching.map(\.abbreviation)).isSubset(of: Set(w.peptides))
+                matchingNames.intersection(Set(w.peptides)).count >= 2
             }
             guard !alreadyCovered else { continue }
 
