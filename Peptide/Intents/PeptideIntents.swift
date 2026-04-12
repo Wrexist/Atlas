@@ -4,9 +4,9 @@ import Foundation
 // MARK: - Next Dose Intent
 
 struct NextDoseIntent: AppIntent {
-    static var title: LocalizedStringResource = "What's My Next Dose?"
-    static var description = IntentDescription("Shows your next scheduled peptide dose")
-    static var openAppWhenRun: Bool = false
+    static let title: LocalizedStringResource = "What's My Next Dose?"
+    static let description = IntentDescription("Shows your next scheduled peptide dose")
+    static let openAppWhenRun: Bool = false
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
@@ -35,9 +35,9 @@ struct NextDoseIntent: AppIntent {
 // MARK: - Compliance Intent
 
 struct ComplianceIntent: AppIntent {
-    static var title: LocalizedStringResource = "How's My Compliance?"
-    static var description = IntentDescription("Shows your current compliance stats")
-    static var openAppWhenRun: Bool = false
+    static let title: LocalizedStringResource = "How's My Compliance?"
+    static let description = IntentDescription("Shows your current compliance stats")
+    static let openAppWhenRun: Bool = false
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
@@ -64,9 +64,9 @@ struct ComplianceIntent: AppIntent {
 // MARK: - Log Dose Intent
 
 struct LogDoseIntent: AppIntent {
-    static var title: LocalizedStringResource = "Log My Dose"
-    static var description = IntentDescription("Marks your next scheduled dose as taken")
-    static var openAppWhenRun: Bool = true
+    static let title: LocalizedStringResource = "Log My Dose"
+    static let description = IntentDescription("Marks your next scheduled dose as taken")
+    static let openAppWhenRun: Bool = true
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {

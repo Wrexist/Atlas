@@ -12,7 +12,7 @@ final class StoreService {
     static let monthlyID = "com.peptidesai.app.pro.monthly"
     static let annualID = "com.peptidesai.app.pro.annual"
 
-    private nonisolated(unsafe) var updateTask: Task<Void, Never>?
+    private nonisolated var updateTask: Task<Void, Never>?
 
     private init() {
         updateTask = Task { [weak self] in
