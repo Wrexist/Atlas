@@ -27,7 +27,10 @@ struct HomeView: View {
                     ProtocolScoreCard(
                         score: stats.score,
                         completed: stats.completed,
-                        total: stats.total
+                        total: stats.total,
+                        streak: dataStore.currentStreak,
+                        bestStreak: dataStore.bestStreak,
+                        weeklyCompletion: dataStore.weeklyCompletion
                     )
                     .sectionAppear(index: 1)
 

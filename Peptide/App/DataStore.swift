@@ -6,6 +6,33 @@ final class DataStore {
     var entries: [ProtocolEntry]
     var profile: UserProfile
 
+    // MARK: - Cache (avoids recomputing expensive stats on every toggle)
+    @ObservationIgnored private var _cachedTodayEntries: [ProtocolEntry]?
+    @ObservationIgnored private var _cachedCurrentStreak: Int?
+    @ObservationIgnored private var _cachedTotalDaysLogged: Int?
+    @ObservationIgnored private var _cachedBestStreak: Int?
+    @ObservationIgnored private var _cachedNextDose: ProtocolEntry??
+    @ObservationIgnored private var _cachedWeeklyCompletion: [WeekDayStatus]?
+    @ObservationIgnored private var _entriesByDay: [Date: [ProtocolEntry]]?
+
+    private func invalidateCache() {
+        _cachedTodayEntries = nil
+        _cachedCurrentStreak = nil
+        _cachedTotalDaysLogged = nil
+        _cachedBestStreak = nil
+        _cachedNextDose = nil
+        _cachedWeeklyCompletion = nil
+        _entriesByDay = nil
+    }
+
+    private var entriesByDay: [Date: [ProtocolEntry]] {
+        if let cached = _entriesByDay { return cached }
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: entries) { calendar.startOfDay(for: $0.date) }
+        _entriesByDay = grouped
+        return grouped
+    }
+
     init() {
         let initialProtocols = MockProtocols.all
         self.protocols = initialProtocols
@@ -28,6 +55,7 @@ final class DataStore {
     }
 
     func addProtocol(_ newProtocol: PeptideProtocol) {
+        invalidateCache()
         withAnimation(AppAnimation.springSnappy) {
             protocols.insert(newProtocol, at: 0)
             appendTodayEntries(for: newProtocol)
@@ -36,6 +64,7 @@ final class DataStore {
     }
 
     func deleteProtocol(id: UUID) {
+        invalidateCache()
         withAnimation(AppAnimation.springSnappy) {
             protocols.removeAll { $0.id == id }
             entries.removeAll { $0.protocolId == id }
@@ -44,6 +73,7 @@ final class DataStore {
 
     func updateProtocolStatus(id: UUID, to status: ProtocolStatus) {
         guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
+        invalidateCache()
         withAnimation(AppAnimation.springSnappy) {
             protocols[index].status = status
         }
@@ -52,16 +82,20 @@ final class DataStore {
     // MARK: - Entries
 
     var todayEntries: [ProtocolEntry] {
+        if let cached = _cachedTodayEntries { return cached }
         let calendar = Calendar.current
         let activeIds = Set(activeProtocols.map(\.id))
-        return entries
+        let result = entries
             .filter { calendar.isDateInToday($0.date) && activeIds.contains($0.protocolId) }
             .sorted { $0.date < $1.date }
+        _cachedTodayEntries = result
+        return result
     }
 
     func toggleEntry(_ entryId: UUID) {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
         let becoming = !entries[index].completed
+        invalidateCache()
         withAnimation(AppAnimation.springSnappy) {
             entries[index].completed.toggle()
         }
@@ -81,31 +115,34 @@ final class DataStore {
     // MARK: - Computed Stats
 
     var currentStreak: Int {
+        if let cached = _cachedCurrentStreak { return cached }
         let calendar = Calendar.current
-        var streak = 0
+        let grouped = entriesByDay
+        let todayStart = calendar.startOfDay(for: Date())
 
-        // Start from yesterday if today has no completed entries yet
         let todayHasCompleted = todayEntries.contains(where: \.completed)
         let startOffset = todayHasCompleted ? 0 : 1
 
+        var streak = 0
         for dayOffset in startOffset..<365 {
-            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { break }
-            let dayEntries = entries.filter { calendar.isDate($0.date, inSameDayAs: date) }
-
-            // Skip days with no scheduled entries (non-protocol days)
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: todayStart) else { break }
+            let dayEntries = grouped[date] ?? []
             if dayEntries.isEmpty { continue }
-
             if !dayEntries.contains(where: \.completed) { break }
             streak += 1
         }
 
+        _cachedCurrentStreak = streak
         return streak
     }
 
     var totalDaysLogged: Int {
-        let calendar = Calendar.current
-        let days = Set(entries.filter(\.completed).map { calendar.startOfDay(for: $0.date) })
-        return days.count
+        if let cached = _cachedTotalDaysLogged { return cached }
+        let result = entriesByDay.values.filter { dayEntries in
+            dayEntries.contains(where: \.completed)
+        }.count
+        _cachedTotalDaysLogged = result
+        return result
     }
 
     var totalDoses: Int {
@@ -113,20 +150,16 @@ final class DataStore {
     }
 
     var bestStreak: Int {
-        let calendar = Calendar.current
-
-        // Get all days that had entries (scheduled days only)
-        let scheduledDays = Set(entries.map { calendar.startOfDay(for: $0.date) }).sorted()
+        if let cached = _cachedBestStreak { return cached }
+        let grouped = entriesByDay
+        let scheduledDays = grouped.keys.sorted()
         guard !scheduledDays.isEmpty else { return 0 }
-
-        // For each scheduled day, check if it had at least one completed entry
-        let completedDaySet = Set(entries.filter(\.completed).map { calendar.startOfDay(for: $0.date) })
 
         var best = 0
         var current = 0
 
         for day in scheduledDays {
-            if completedDaySet.contains(day) {
+            if let dayEntries = grouped[day], dayEntries.contains(where: \.completed) {
                 current += 1
                 best = max(best, current)
             } else {
@@ -134,7 +167,56 @@ final class DataStore {
             }
         }
 
+        _cachedBestStreak = best
         return best
+    }
+
+    var weeklyCompletion: [WeekDayStatus] {
+        if let cached = _cachedWeeklyCompletion { return cached }
+        let calendar = Calendar.current
+        let today = Date()
+        let todayStart = calendar.startOfDay(for: today)
+
+        // Find Monday of the current ISO week
+        let weekday = calendar.component(.weekday, from: today)
+        let mondayOffset = weekday == 1 ? -6 : -(weekday - 2)
+        guard let monday = calendar.date(byAdding: .day, value: mondayOffset, to: todayStart) else { return [] }
+
+        let dayLabels = ["M", "T", "W", "T", "F", "S", "S"]
+        let grouped = entriesByDay
+
+        let result = (0..<7).map { offset -> WeekDayStatus in
+            let dayDate = calendar.date(byAdding: .day, value: offset, to: monday)!
+            let dayStart = calendar.startOfDay(for: dayDate)
+            let isToday = dayStart == todayStart
+            let isFuture = dayStart > todayStart
+
+            let dayEntries = grouped[dayStart] ?? []
+
+            let status: DayCompletionStatus
+            if isFuture {
+                status = .future
+            } else if dayEntries.isEmpty {
+                status = .noSchedule
+            } else if isToday {
+                let allDone = dayEntries.allSatisfy(\.completed)
+                status = allDone ? .completed : .today
+            } else {
+                let completedCount = dayEntries.filter(\.completed).count
+                if completedCount == dayEntries.count {
+                    status = .completed
+                } else if completedCount > 0 {
+                    status = .partial
+                } else {
+                    status = .missed
+                }
+            }
+
+            return WeekDayStatus(id: offset + 1, dayLabel: dayLabels[offset], status: status)
+        }
+
+        _cachedWeeklyCompletion = result
+        return result
     }
 
     var averageCompliance: Double {
@@ -173,10 +255,13 @@ final class DataStore {
     // MARK: - Next Dose
 
     var nextDose: ProtocolEntry? {
+        if let cached = _cachedNextDose { return cached }
         let now = Date()
         let today = todayEntries
-        return today.first { !$0.completed && $0.date > now }
+        let result = today.first { !$0.completed && $0.date > now }
             ?? today.first { !$0.completed }
+        _cachedNextDose = .some(result)
+        return result
     }
 
     // MARK: - Profile
@@ -251,6 +336,7 @@ final class DataStore {
     }
 
     private func appendTodayEntries(for proto: PeptideProtocol) {
+        invalidateCache()
         let newEntries = Self.generateTodayEntries(for: proto)
         entries.append(contentsOf: newEntries)
     }
