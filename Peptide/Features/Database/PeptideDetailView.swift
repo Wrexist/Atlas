@@ -54,11 +54,9 @@ struct PeptideDetailView: View {
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
 
-                        Text(peptide.description)
-                            .font(AppFont.body)
-                            .foregroundStyle(AppColor.textSecondary)
-                            .lineSpacing(4)
+                        ExpandableText(text: peptide.description)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .sectionAppear(index: 3)
 
@@ -70,11 +68,9 @@ struct PeptideDetailView: View {
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
 
-                            Text(peptide.mechanism)
-                                .font(AppFont.body)
-                                .foregroundStyle(AppColor.textSecondary)
-                                .lineSpacing(4)
+                            ExpandableText(text: peptide.mechanism)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .sectionAppear(index: 4)
                 }
@@ -91,6 +87,7 @@ struct PeptideDetailView: View {
                             color: peptide.category.color
                         )
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .sectionAppear(index: 5)
 
@@ -121,6 +118,7 @@ struct PeptideDetailView: View {
                                 }
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .sectionAppear(index: 7)
                 }
@@ -148,6 +146,7 @@ struct PeptideDetailView: View {
                                 }
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .sectionAppear(index: 8)
                 }
@@ -165,6 +164,7 @@ struct PeptideDetailView: View {
                                 color: AppColor.accentPrimary
                             )
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .sectionAppear(index: 9)
                 }
@@ -177,11 +177,9 @@ struct PeptideDetailView: View {
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
 
-                            Text(peptide.regulatoryStatus)
-                                .font(AppFont.body)
-                                .foregroundStyle(AppColor.textSecondary)
-                                .lineSpacing(4)
+                            ExpandableText(text: peptide.regulatoryStatus)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .sectionAppear(index: 10)
                 }
