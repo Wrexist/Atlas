@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RecommendedPeptidesCard: View {
     let recommendations: [StackRecommendationEngine.Recommendation]
+    var hapticEnabled: Bool = true
 
     var body: some View {
         GlassCard {
@@ -26,7 +27,7 @@ struct RecommendedPeptidesCard: View {
                             NavigationLink(value: rec.peptide) {
                                 recommendationRow(rec)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(RecommendationPressStyle(hapticEnabled: hapticEnabled))
 
                             if rec.id != recommendations.last?.id {
                                 Divider().foregroundStyle(AppColor.glassBorder)
@@ -51,7 +52,7 @@ struct RecommendedPeptidesCard: View {
                     .foregroundStyle(rec.peptide.category.color)
             }
 
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 HStack(spacing: Spacing.sm) {
                     Text(rec.peptide.abbreviation)
                         .font(AppFont.subheadline)
@@ -59,31 +60,58 @@ struct RecommendedPeptidesCard: View {
                         .foregroundStyle(AppColor.textPrimary)
 
                     PeptideCategoryBadge(category: rec.peptide.category)
+
+                    // Synergy tag if present
+                    if rec.reasons.contains(where: { if case .categorySynergy = $0 { return true }; return false }) {
+                        Text("Synergy")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(AppColor.accentPrimary)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background {
+                                Capsule().fill(AppColor.accentPrimary.opacity(0.15))
+                            }
+                    }
                 }
 
-                if let reason = rec.reasons.first {
-                    Text(reason)
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.accentLight)
-                        .lineLimit(1)
+                // Show up to 2 reasons with icons
+                ForEach(Array(rec.reasons.prefix(2).enumerated()), id: \.offset) { _, reason in
+                    HStack(spacing: Spacing.xs) {
+                        Image(systemName: reason.icon)
+                            .font(.system(size: 8))
+                            .foregroundStyle(AppColor.accentLight)
+
+                        Text(reason.text)
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                            .lineLimit(1)
+                    }
                 }
             }
 
             Spacer()
-
-            HStack(spacing: Spacing.xxs) {
-                ForEach(0..<min(rec.score, 5), id: \.self) { _ in
-                    Circle()
-                        .fill(AppColor.accentPrimary)
-                        .frame(width: 4, height: 4)
-                }
-            }
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
         }
         .padding(.vertical, Spacing.xs)
+    }
+}
+
+private struct RecommendationPressStyle: ButtonStyle {
+    var hapticEnabled: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .opacity(configuration.isPressed ? 0.8 : 1.0)
+            .animation(AppAnimation.springSnappy, value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, pressed in
+                if pressed && hapticEnabled {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+            }
     }
 }
 
@@ -96,14 +124,21 @@ struct RecommendedPeptidesCard: View {
                     .init(
                         id: UUID(),
                         peptide: MockPeptides.bpc157,
-                        score: 3,
-                        reasons: ["Pairs well with TB-500, GHK-Cu"]
+                        score: 5,
+                        reasons: [
+                            .commonStack(pairsWith: ["TB-500", "GHK-Cu"]),
+                            .goalMatch(goal: "recovery"),
+                            .categorySynergy(description: "Growth + Recovery amplify tissue repair"),
+                        ]
                     ),
                     .init(
                         id: UUID(),
                         peptide: MockPeptides.semax,
-                        score: 2,
-                        reasons: ["Pairs well with Selank"]
+                        score: 3,
+                        reasons: [
+                            .commonStack(pairsWith: ["Selank"]),
+                            .goalMatch(goal: "cognitive"),
+                        ]
                     ),
                 ]
             )

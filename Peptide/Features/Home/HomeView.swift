@@ -15,14 +15,27 @@ struct HomeView: View {
         return (entries, score, completed, total)
     }
 
+    private var stackPeptides: [Peptide] {
+        var seen = Set<UUID>()
+        return dataStore.activeProtocols.flatMap(\.peptides).filter { seen.insert($0.id).inserted }
+    }
+
+    private var stackWarnings: [StackRecommendationEngine.Warning] {
+        StackRecommendationEngine.warnings(for: stackPeptides)
+    }
+
+    private var stackRecommendations: [StackRecommendationEngine.Recommendation] {
+        StackRecommendationEngine.recommendations(
+            for: stackPeptides,
+            from: dataStore.peptideDatabase,
+            goals: dataStore.profile.goals
+        )
+    }
+
     var body: some View {
         let stats = todayStats
-        var seenIds = Set<UUID>()
-        let stackPeptides = dataStore.activeProtocols.flatMap(\.peptides).filter { seenIds.insert($0.id).inserted }
-        let stackWarnings = StackRecommendationEngine.warnings(for: stackPeptides)
-        let recommendations = StackRecommendationEngine.recommendations(
-            for: stackPeptides, from: dataStore.peptideDatabase
-        )
+        let warnings = stackWarnings
+        let recommendations = stackRecommendations
 
         NavigationStack {
             ScrollView {
@@ -60,15 +73,18 @@ struct HomeView: View {
                     .sectionAppear(index: 3)
 
                     // Stack warnings (danger/caution alerts)
-                    if !stackWarnings.isEmpty {
-                        StackWarningCard(warnings: stackWarnings)
+                    if !warnings.isEmpty {
+                        StackWarningCard(warnings: warnings)
                             .sectionAppear(index: 4)
                     }
 
                     // Smart recommendations
-                    if !stackPeptides.isEmpty {
-                        RecommendedPeptidesCard(recommendations: recommendations)
-                            .sectionAppear(index: 5)
+                    if !recommendations.isEmpty {
+                        RecommendedPeptidesCard(
+                            recommendations: recommendations,
+                            hapticEnabled: dataStore.profile.hapticFeedbackEnabled
+                        )
+                        .sectionAppear(index: 5)
                     }
 
                     if dataStore.profile.healthConnected {
