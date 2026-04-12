@@ -23,8 +23,8 @@ struct GlassCardModifier: ViewModifier {
                             )
                     }
             }
-            .glassEffect(in: .rect(cornerRadius: cornerRadius))
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .glassEffect(in: .rect(cornerRadius: cornerRadius))
     }
 }
 

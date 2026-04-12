@@ -20,6 +20,7 @@ struct ResearchLinksSection: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

@@ -5,7 +5,14 @@ struct ExpandableText: View {
     var lineLimit: Int = 4
 
     @State private var isExpanded = false
-    @State private var isTruncated = false
+    @State private var collapsedHeight: CGFloat = 0
+    @State private var fullHeight: CGFloat = 0
+
+    private var isTruncated: Bool {
+        fullHeight > collapsedHeight + 1
+    }
+
+    private static let gradientHeight: CGFloat = 24
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -24,7 +31,8 @@ struct ExpandableText: View {
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
-                            .frame(height: 24)
+                            .frame(height: Self.gradientHeight)
+                            .transition(.opacity)
                         }
                     }
                 }
@@ -38,13 +46,17 @@ struct ExpandableText: View {
                 } label: {
                     HStack(spacing: Spacing.xs) {
                         Text(isExpanded ? "Show less" : "Read more")
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        Image(systemName: "chevron.down")
                             .font(.system(size: 10, weight: .semibold))
+                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
                     }
                     .font(AppFont.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.accentPrimary)
                 }
+                .accessibilityLabel(isExpanded ? "Show less" : "Read more")
+                .accessibilityHint(isExpanded ? "Collapse text" : "Expand full text")
+                .transition(.opacity)
             }
         }
         .background(
@@ -54,64 +66,21 @@ struct ExpandableText: View {
                     .lineSpacing(4)
                     .lineLimit(lineLimit)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        GeometryReader { limitedGeo in
-                            Color.clear.preference(
-                                key: CollapsedHeightKey.self,
-                                value: limitedGeo.size.height
-                            )
-                        }
-                    )
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                        collapsedHeight = $0
+                    }
 
                 Text(text)
                     .font(AppFont.body)
                     .lineSpacing(4)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        GeometryReader { fullGeo in
-                            Color.clear.preference(
-                                key: FullHeightKey.self,
-                                value: fullGeo.size.height
-                            )
-                        }
-                    )
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                        fullHeight = $0
+                    }
             }
             .hidden()
         )
-        .onPreferenceChange(CollapsedHeightKey.self) { collapsed in
-            updateTruncation(collapsed: collapsed)
-        }
-        .onPreferenceChange(FullHeightKey.self) { full in
-            updateTruncation(full: full)
-        }
-    }
-
-    @State private var collapsedHeight: CGFloat = 0
-    @State private var fullHeight: CGFloat = 0
-
-    private func updateTruncation(collapsed: CGFloat? = nil, full: CGFloat? = nil) {
-        if let collapsed { collapsedHeight = collapsed }
-        if let full { fullHeight = full }
-        let c = collapsed ?? collapsedHeight
-        let f = full ?? fullHeight
-        if c > 0 && f > 0 {
-            isTruncated = f > c + 1
-        }
-    }
-}
-
-private struct CollapsedHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
-private struct FullHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
     }
 }
 

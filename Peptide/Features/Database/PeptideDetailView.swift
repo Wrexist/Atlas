@@ -269,6 +269,7 @@ struct MolecularInfoSection: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
