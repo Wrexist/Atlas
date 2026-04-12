@@ -54,6 +54,17 @@ struct AnalyticsView: View {
                         label: "compliance this \(selectedRange.rawValue.lowercased())"
                     )
                     .sectionAppear(index: 4)
+
+                    CalendarHeatmap(entries: dataStore.entries, days: selectedRange.days)
+                        .sectionAppear(index: 5)
+
+                    InsightsCard(
+                        insights: InsightEngine.generateInsights(
+                            from: dataStore.entries,
+                            protocols: dataStore.protocols
+                        )
+                    )
+                    .sectionAppear(index: 6)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)

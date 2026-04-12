@@ -84,6 +84,46 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
+    func logDose(entryId: UUID, actualDose: String?, actualTime: Date?, injectionSite: String?, notes: String) {
+        guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
+        entries[index].completed = true
+        entries[index].actualDose = actualDose
+        entries[index].actualTime = actualTime
+        entries[index].injectionSite = injectionSite
+        if !notes.isEmpty {
+            entries[index] = ProtocolEntry(
+                id: entries[index].id,
+                protocolId: entries[index].protocolId,
+                peptide: entries[index].peptide,
+                date: entries[index].date,
+                dose: entries[index].dose,
+                notes: notes,
+                completed: true,
+                actualDose: actualDose,
+                actualTime: actualTime,
+                injectionSite: injectionSite
+            )
+        }
+        save()
+    }
+
+    func updateProtocol(id: UUID, name: String, peptides: [Peptide], schedule: ProtocolSchedule, cycleLengthWeeks: Int, notes: String) {
+        guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
+        let updated = PeptideProtocol(
+            id: id,
+            name: name,
+            peptides: peptides,
+            schedule: schedule,
+            cycleLengthWeeks: cycleLengthWeeks,
+            startDate: protocols[index].startDate,
+            status: protocols[index].status,
+            notes: notes
+        )
+        protocols[index] = updated
+        save()
+        NotificationService.shared.scheduleNotifications(for: activeProtocols)
+    }
+
     func entriesFor(protocolId: UUID, days: Int = 14) -> [ProtocolEntry] {
         let calendar = Calendar.current
         let cutoff = calendar.startOfDay(

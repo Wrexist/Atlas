@@ -3,6 +3,7 @@ import SwiftUI
 struct TodayScheduleCard: View {
     let entries: [ProtocolEntry]
     let onToggle: (ProtocolEntry) -> Void
+    var onLongPress: ((ProtocolEntry) -> Void)?
 
     var body: some View {
         GlassCard {
@@ -39,6 +40,7 @@ struct TodayScheduleCard: View {
                     } else {
                         ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
                             ScheduleRow(entry: entry, onToggle: { onToggle(entry) })
+                                .onLongPressGesture { onLongPress?(entry) }
                                 .staggeredAppear(index: index)
                         }
                     }

@@ -40,11 +40,14 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 2)
 
-                    AppearanceSettings()
+                    ExportSection()
                         .sectionAppear(index: 3)
 
-                    AboutSection()
+                    AppearanceSettings()
                         .sectionAppear(index: 4)
+
+                    AboutSection()
+                        .sectionAppear(index: 5)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)

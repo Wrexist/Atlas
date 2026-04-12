@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(DataStore.self) private var dataStore
+    @State private var selectedEntry: ProtocolEntry?
 
     private var todayStats: (entries: [ProtocolEntry], score: Double, completed: Int, total: Int) {
         let entries = dataStore.todayEntries
@@ -33,7 +34,8 @@ struct HomeView: View {
 
                     TodayScheduleCard(
                         entries: stats.entries,
-                        onToggle: { entry in dataStore.toggleEntry(entry.id) }
+                        onToggle: { entry in dataStore.toggleEntry(entry.id) },
+                        onLongPress: { entry in selectedEntry = entry }
                     )
                     .sectionAppear(index: 2)
 
@@ -50,6 +52,17 @@ struct HomeView: View {
             }
             .background(AppColor.background)
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(item: $selectedEntry) { entry in
+                DoseLoggingSheet(entry: entry) { actualDose, actualTime, site, notes in
+                    dataStore.logDose(
+                        entryId: entry.id,
+                        actualDose: actualDose,
+                        actualTime: actualTime,
+                        injectionSite: site,
+                        notes: notes
+                    )
+                }
+            }
         }
     }
 

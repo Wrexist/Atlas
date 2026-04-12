@@ -14,7 +14,11 @@ protocol DataServiceProtocol {
     var entries: [ProtocolEntry] { get }
     var todayEntries: [ProtocolEntry] { get }
     func toggleEntry(_ entryId: UUID)
+    func logDose(entryId: UUID, actualDose: String?, actualTime: Date?, injectionSite: String?, notes: String)
     func entriesFor(protocolId: UUID, days: Int) -> [ProtocolEntry]
+
+    // Protocol editing
+    func updateProtocol(id: UUID, name: String, peptides: [Peptide], schedule: ProtocolSchedule, cycleLengthWeeks: Int, notes: String)
 
     // Stats
     var currentStreak: Int { get }
