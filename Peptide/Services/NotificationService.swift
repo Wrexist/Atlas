@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 
+@MainActor
 final class NotificationService {
     static let shared = NotificationService()
     private let center = UNUserNotificationCenter.current()
@@ -88,11 +89,15 @@ final class NotificationService {
         center.removeAllPendingNotificationRequests()
     }
 
-    private func parseTime(_ timeString: String) -> (Int, Int)? {
+    private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        guard let date = formatter.date(from: timeString) else { return nil }
+        return formatter
+    }()
+
+    private func parseTime(_ timeString: String) -> (Int, Int)? {
+        guard let date = Self.timeFormatter.date(from: timeString) else { return nil }
         let calendar = Calendar.current
         return (calendar.component(.hour, from: date), calendar.component(.minute, from: date))
     }

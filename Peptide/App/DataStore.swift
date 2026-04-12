@@ -1,6 +1,6 @@
 import SwiftUI
 
-@Observable
+@MainActor @Observable
 final class DataStore: DataServiceProtocol {
     var protocols: [PeptideProtocol]
     var entries: [ProtocolEntry]
@@ -257,7 +257,7 @@ final class DataStore: DataServiceProtocol {
     private func scheduleAchievementCheck() {
         guard !achievementCheckPending else { return }
         achievementCheckPending = true
-        DispatchQueue.main.async { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self else { return }
             self.achievementCheckPending = false
             AchievementService.shared.checkAchievements(

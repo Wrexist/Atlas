@@ -8,6 +8,7 @@ struct NextDoseIntent: AppIntent {
     static var description = IntentDescription("Shows your next scheduled peptide dose")
     static var openAppWhenRun: Bool = false
 
+    @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let persistence = PersistenceService.shared
         guard let protocols = persistence.loadProtocols(),
@@ -38,6 +39,7 @@ struct ComplianceIntent: AppIntent {
     static var description = IntentDescription("Shows your current compliance stats")
     static var openAppWhenRun: Bool = false
 
+    @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let persistence = PersistenceService.shared
         guard let entries = persistence.loadEntries() else {
@@ -66,8 +68,9 @@ struct LogDoseIntent: AppIntent {
     static var description = IntentDescription("Marks your next scheduled dose as taken")
     static var openAppWhenRun: Bool = true
 
+    @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        return .result(dialog: "Opening PeptideX to log your dose...")
+        return .result(dialog: "Opening PeptideX...")
     }
 }
 

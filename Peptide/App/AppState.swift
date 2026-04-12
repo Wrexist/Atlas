@@ -8,7 +8,7 @@ enum AppTab: String, CaseIterable {
     case profile
 }
 
-@Observable
+@MainActor @Observable
 final class AppState {
     var selectedTab: AppTab = .home
 }

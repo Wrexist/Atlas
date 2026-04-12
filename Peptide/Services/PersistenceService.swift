@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 final class PersistenceService {
     static let shared = PersistenceService()
 

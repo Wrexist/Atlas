@@ -10,7 +10,7 @@ struct Achievement: Identifiable, Codable {
     var isUnlocked: Bool { unlockedDate != nil }
 }
 
-@Observable
+@MainActor @Observable
 final class AchievementService {
     static let shared = AchievementService()
 

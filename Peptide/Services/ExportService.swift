@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 final class ExportService {
     static let shared = ExportService()
     private init() {}

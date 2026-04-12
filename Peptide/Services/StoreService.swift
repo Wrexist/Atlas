@@ -1,7 +1,7 @@
 import Foundation
 import StoreKit
 
-@Observable
+@MainActor @Observable
 final class StoreService {
     static let shared = StoreService()
 
@@ -12,11 +12,15 @@ final class StoreService {
     static let monthlyID = "com.peptidesai.app.pro.monthly"
     static let annualID = "com.peptidesai.app.pro.annual"
 
-    private var updateTask: Task<Void, Never>?
+    private nonisolated(unsafe) var updateTask: Task<Void, Never>?
 
     private init() {
-        updateTask = Task { await listenForTransactions() }
-        Task { await updatePurchasedProducts() }
+        updateTask = Task { [weak self] in
+            await self?.listenForTransactions()
+        }
+        Task { [weak self] in
+            await self?.updatePurchasedProducts()
+        }
     }
 
     deinit {

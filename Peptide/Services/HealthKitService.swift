@@ -1,6 +1,7 @@
 import Foundation
 import HealthKit
 
+@MainActor
 final class HealthKitService {
     static let shared = HealthKitService()
     private let store = HKHealthStore()
