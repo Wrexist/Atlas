@@ -19,7 +19,14 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         let userInfo = response.notification.request.content.userInfo
         let peptideIdStr = userInfo["peptideId"] as? String
         let protocolIdStr = userInfo["protocolId"] as? String
-        let originalContent = response.notification.request.content
+
+        // Build snooze request outside the Task to avoid sending non-Sendable types across isolation
+        var snoozeRequest: UNNotificationRequest?
+        if action == "SNOOZE" {
+            let content = response.notification.request.content.mutableCopy() as! UNMutableNotificationContent
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 15 * 60, repeats: false)
+            snoozeRequest = UNNotificationRequest(identifier: "snooze-\(UUID().uuidString)", content: content, trigger: trigger)
+        }
 
         Task { @MainActor [dataStore] in
             switch action {
@@ -38,14 +45,9 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                 }
 
             case "SNOOZE":
-                let content = originalContent.mutableCopy() as! UNMutableNotificationContent
-                let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 15 * 60, repeats: false)
-                let request = UNNotificationRequest(
-                    identifier: "snooze-\(UUID().uuidString)",
-                    content: content,
-                    trigger: trigger
-                )
-                try? await UNUserNotificationCenter.current().add(request)
+                if let snoozeRequest {
+                    try? await UNUserNotificationCenter.current().add(snoozeRequest)
+                }
 
             default:
                 break
