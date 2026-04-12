@@ -2,48 +2,17 @@ import SwiftUI
 
 struct ResearchLinksSection: View {
     let links: [ResearchLink]
-    
+
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 Label("Research", systemImage: "doc.text.magnifyingglass")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
-                
+
                 VStack(spacing: Spacing.md) {
                     ForEach(Array(links.enumerated()), id: \.element.id) { index, link in
-                        HStack(alignment: .top, spacing: Spacing.md) {
-                            Image(systemName: "doc.fill")
-                                .font(.system(size: 14))
-                                .foregroundStyle(AppColor.accentPrimary)
-                                .frame(width: 20)
-
-                            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                Text(link.title)
-                                    .font(AppFont.subheadline)
-                                    .foregroundStyle(AppColor.textPrimary)
-                                    .lineLimit(2)
-
-                                HStack(spacing: Spacing.xs) {
-                                    Text(link.source)
-                                        .font(AppFont.caption)
-                                        .foregroundStyle(AppColor.textTertiary)
-                                        .lineLimit(1)
-                                    Text("•")
-                                        .font(AppFont.caption)
-                                        .foregroundStyle(AppColor.textTertiary)
-                                    Text("\(link.year)")
-                                        .font(AppFont.caption)
-                                        .foregroundStyle(AppColor.textTertiary)
-                                }
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "arrow.up.right")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(AppColor.textTertiary)
-                        }
+                        researchRow(link: link)
 
                         if index < links.count - 1 {
                             Divider().foregroundStyle(AppColor.glassBorder)
@@ -51,6 +20,54 @@ struct ResearchLinksSection: View {
                     }
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func researchRow(link: ResearchLink) -> some View {
+        let content = HStack(alignment: .top, spacing: Spacing.md) {
+            Image(systemName: "doc.fill")
+                .font(.system(size: 14))
+                .foregroundStyle(AppColor.accentPrimary)
+                .frame(width: 20)
+
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(link.title)
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(2)
+
+                HStack(spacing: Spacing.xs) {
+                    Text(link.source)
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                        .lineLimit(1)
+                    Text("•")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                    Text("\(link.year)")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+
+                if !link.pmid.isEmpty {
+                    Text("PMID: \(link.pmid)")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.accentPrimary.opacity(0.8))
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(link.url.isEmpty ? AppColor.textTertiary : AppColor.accentPrimary)
+        }
+
+        if let url = URL(string: link.url), !link.url.isEmpty {
+            Link(destination: url) { content }
+        } else {
+            content
         }
     }
 }

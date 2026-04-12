@@ -129,7 +129,8 @@ struct ProtocolBuilderView: View {
     }
 
     private func createProtocol() {
-        let peptides = MockPeptides.all.filter { selectedPeptides.contains($0.id) }
+        let allPeptides = MockPeptides.all
+        let peptides = allPeptides.filter { selectedPeptides.contains($0.id) }
         guard !peptides.isEmpty else { return }
 
         let defaultTimes = (1...timesPerDay).map { index in

@@ -18,6 +18,7 @@ final class PeptideListViewModel {
             results = results.filter {
                 $0.name.lowercased().contains(query) ||
                 $0.abbreviation.lowercased().contains(query) ||
+                $0.category.displayName.lowercased().contains(query) ||
                 $0.benefits.contains { $0.lowercased().contains(query) }
             }
         }
