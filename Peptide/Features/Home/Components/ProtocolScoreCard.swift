@@ -36,10 +36,7 @@ struct ProtocolScoreCard: View {
                 StreakCounterView(currentStreak: streak, bestStreak: bestStreak)
 
                 WeeklyProgressCircles(days: weeklyCompletion)
-                    .padding(.horizontal, Spacing.xs)
-
-                GlassProgressBar(progress: score)
-                    .padding(.horizontal, Spacing.xl)
+                    .padding(.horizontal, Spacing.sm)
             }
         }
     }

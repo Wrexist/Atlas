@@ -16,11 +16,13 @@ struct WeeklyProgressCircles: View {
 private struct DayCircle: View {
     let day: WeekDayStatus
 
-    private var isToday: Bool {
-        day.status == .today || (day.status == .completed && isTodayIndex)
+    private var isCurrentDay: Bool {
+        day.status == .today || day.status == .completed && isCompletedToday
     }
 
-    private var isTodayIndex: Bool {
+    // Only true when today's index matches AND the day is completed (so we still highlight the label)
+    private var isCompletedToday: Bool {
+        guard day.status == .completed else { return false }
         let weekday = Calendar.current.component(.weekday, from: Date())
         let isoDay = weekday == 1 ? 7 : weekday - 1
         return day.id == isoDay
@@ -30,59 +32,60 @@ private struct DayCircle: View {
         VStack(spacing: Spacing.xs) {
             Text(day.dayLabel)
                 .font(AppFont.caption)
-                .foregroundStyle(isTodayIndex ? AppColor.textPrimary : AppColor.textTertiary)
-                .fontWeight(isTodayIndex ? .semibold : .regular)
+                .foregroundStyle(isCurrentDay ? AppColor.textPrimary : AppColor.textTertiary)
+                .fontWeight(isCurrentDay ? .semibold : .regular)
 
+            circleView
+                .frame(width: 28, height: 28)
+        }
+    }
+
+    @ViewBuilder
+    private var circleView: some View {
+        switch day.status {
+        case .completed:
             ZStack {
-                switch day.status {
-                case .completed:
-                    Circle()
-                        .fill(AppColor.accentPrimary)
-                        .frame(width: 28, height: 28)
+                Circle()
+                    .fill(AppColor.accentPrimary)
 
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.white)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white)
+            }
 
-                case .partial:
-                    Circle()
-                        .fill(AppColor.accentPrimary.opacity(0.35))
-                        .frame(width: 28, height: 28)
+        case .partial:
+            ZStack {
+                Circle()
+                    .fill(AppColor.accentPrimary.opacity(0.35))
 
-                    Circle()
-                        .strokeBorder(AppColor.accentPrimary, lineWidth: 1.5)
-                        .frame(width: 28, height: 28)
+                Circle()
+                    .strokeBorder(AppColor.accentPrimary, lineWidth: 1.5)
+            }
 
-                case .missed:
-                    Circle()
-                        .fill(AppColor.surfaceElevated)
-                        .frame(width: 28, height: 28)
-
+        case .missed:
+            Circle()
+                .fill(AppColor.surfaceElevated)
+                .overlay {
                     Circle()
                         .strokeBorder(AppColor.destructive.opacity(0.25), lineWidth: 1)
-                        .frame(width: 28, height: 28)
+                }
 
-                case .today:
-                    Circle()
-                        .fill(AppColor.surfaceElevated)
-                        .frame(width: 28, height: 28)
-
+        case .today:
+            Circle()
+                .fill(AppColor.surfaceElevated)
+                .overlay {
                     Circle()
                         .strokeBorder(AppColor.accentLight, lineWidth: 2)
-                        .frame(width: 28, height: 28)
-
-                case .future:
-                    Circle()
-                        .fill(AppColor.surfaceElevated.opacity(0.5))
-                        .frame(width: 28, height: 28)
-
-                case .noSchedule:
-                    Circle()
-                        .fill(AppColor.textTertiary.opacity(0.2))
-                        .frame(width: 20, height: 20)
                 }
-            }
-            .frame(width: 28, height: 28)
+
+        case .future:
+            Circle()
+                .fill(AppColor.surfaceElevated.opacity(0.5))
+
+        case .noSchedule:
+            Circle()
+                .fill(AppColor.textTertiary.opacity(0.2))
+                .padding(4)
         }
     }
 }

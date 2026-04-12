@@ -4,8 +4,6 @@ struct StreakCounterView: View {
     let currentStreak: Int
     let bestStreak: Int
 
-    @State private var appeared = false
-
     private var flameColor: Color {
         switch currentStreak {
         case 0: return AppColor.textTertiary
@@ -19,14 +17,18 @@ struct StreakCounterView: View {
         currentStreak >= 7
     }
 
+    private var isNewBest: Bool {
+        currentStreak > 0 && currentStreak >= bestStreak
+    }
+
     var body: some View {
         VStack(spacing: Spacing.xs) {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(flameColor)
-                    .scaleEffect(appeared ? 1.0 : 0.5)
-                    .appShadow(showGlow ? AppShadow.accentGlow : AppShadow.glassSubtle)
+                    .symbolEffect(.bounce, value: currentStreak)
+                    .modifier(ConditionalGlow(active: showGlow))
 
                 if currentStreak > 0 {
                     Text("\(currentStreak)")
@@ -44,16 +46,27 @@ struct StreakCounterView: View {
                 }
             }
 
-            if bestStreak > currentStreak && bestStreak > 0 {
+            if isNewBest && currentStreak > 1 {
+                Text("New personal best!")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.accentLight)
+            } else if bestStreak > currentStreak && bestStreak > 0 {
                 Text("Best: \(bestStreak) days")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
             }
         }
-        .onAppear {
-            withAnimation(AppAnimation.springBouncy) {
-                appeared = true
-            }
+    }
+}
+
+private struct ConditionalGlow: ViewModifier {
+    let active: Bool
+
+    func body(content: Content) -> some View {
+        if active {
+            content.appShadow(AppShadow.accentGlow)
+        } else {
+            content
         }
     }
 }
@@ -63,6 +76,7 @@ struct StreakCounterView: View {
         AppColor.background.ignoresSafeArea()
         VStack(spacing: Spacing.xxxl) {
             StreakCounterView(currentStreak: 12, bestStreak: 18)
+            StreakCounterView(currentStreak: 12, bestStreak: 12)
             StreakCounterView(currentStreak: 0, bestStreak: 5)
             StreakCounterView(currentStreak: 3, bestStreak: 3)
         }

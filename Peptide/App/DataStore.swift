@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 @Observable
 final class DataStore {
     var protocols: [PeptideProtocol]
@@ -186,7 +187,7 @@ final class DataStore {
         let grouped = entriesByDay
 
         let result = (0..<7).map { offset -> WeekDayStatus in
-            let dayDate = calendar.date(byAdding: .day, value: offset, to: monday)!
+            let dayDate = calendar.date(byAdding: .day, value: offset, to: monday) ?? monday
             let dayStart = calendar.startOfDay(for: dayDate)
             let isToday = dayStart == todayStart
             let isFuture = dayStart > todayStart
@@ -254,6 +255,7 @@ final class DataStore {
 
     // MARK: - Next Dose
 
+    // Double optional: nil = not cached, .some(nil) = cached with no result, .some(.some) = cached entry
     var nextDose: ProtocolEntry? {
         if let cached = _cachedNextDose { return cached }
         let now = Date()
@@ -336,7 +338,7 @@ final class DataStore {
     }
 
     private func appendTodayEntries(for proto: PeptideProtocol) {
-        invalidateCache()
+        // Cache already invalidated by caller (addProtocol)
         let newEntries = Self.generateTodayEntries(for: proto)
         entries.append(contentsOf: newEntries)
     }
