@@ -10,6 +10,7 @@ struct ResearchLinksSection: View {
                 HStack(spacing: Spacing.sm) {
                     Image(systemName: "doc.text.magnifyingglass")
                         .foregroundStyle(categoryColor)
+                        .accessibilityHidden(true)
                     Text("Research")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)

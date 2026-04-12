@@ -53,6 +53,7 @@ struct PeptideDetailView: View {
                         HStack(spacing: Spacing.sm) {
                             Image(systemName: "info.circle.fill")
                                 .foregroundStyle(peptide.category.color)
+                                .accessibilityHidden(true)
                             Text("About")
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
@@ -71,6 +72,7 @@ struct PeptideDetailView: View {
                             HStack(spacing: Spacing.sm) {
                                 Image(systemName: "gearshape.2.fill")
                                     .foregroundStyle(peptide.category.color)
+                                    .accessibilityHidden(true)
                                 Text("Mechanism of Action")
                                     .font(AppFont.headline)
                                     .foregroundStyle(AppColor.textPrimary)
@@ -89,6 +91,7 @@ struct PeptideDetailView: View {
                         HStack(spacing: Spacing.sm) {
                             Image(systemName: "star.fill")
                                 .foregroundStyle(peptide.category.color)
+                                .accessibilityHidden(true)
                             Text("Benefits")
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
@@ -114,6 +117,7 @@ struct PeptideDetailView: View {
                             HStack(spacing: Spacing.sm) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundStyle(Color.orange)
+                                    .accessibilityHidden(true)
                                 Text("Side Effects")
                                     .font(AppFont.headline)
                                     .foregroundStyle(AppColor.textPrimary)
@@ -147,6 +151,7 @@ struct PeptideDetailView: View {
                             HStack(spacing: Spacing.sm) {
                                 Image(systemName: "hand.raised.fill")
                                     .foregroundStyle(Color.red.opacity(0.9))
+                                    .accessibilityHidden(true)
                                 Text("Contraindications")
                                     .font(AppFont.headline)
                                     .foregroundStyle(AppColor.textPrimary)
@@ -180,6 +185,7 @@ struct PeptideDetailView: View {
                             HStack(spacing: Spacing.sm) {
                                 Image(systemName: "square.stack.3d.up.fill")
                                     .foregroundStyle(peptide.category.color)
+                                    .accessibilityHidden(true)
                                 Text("Commonly Stacked With")
                                     .font(AppFont.headline)
                                     .foregroundStyle(AppColor.textPrimary)
@@ -202,6 +208,7 @@ struct PeptideDetailView: View {
                             HStack(spacing: Spacing.sm) {
                                 Image(systemName: "building.columns.fill")
                                     .foregroundStyle(peptide.category.color)
+                                    .accessibilityHidden(true)
                                 Text("Regulatory Status")
                                     .font(AppFont.headline)
                                     .foregroundStyle(AppColor.textPrimary)
@@ -253,6 +260,7 @@ struct MolecularInfoSection: View {
                 HStack(spacing: Spacing.sm) {
                     Image(systemName: "atom")
                         .foregroundStyle(categoryColor)
+                        .accessibilityHidden(true)
                     Text("Molecular Data")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)

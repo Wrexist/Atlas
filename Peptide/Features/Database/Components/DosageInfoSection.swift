@@ -9,6 +9,7 @@ struct DosageInfoSection: View {
                 HStack(spacing: Spacing.sm) {
                     Image(systemName: "syringe.fill")
                         .foregroundStyle(peptide.category.color)
+                        .accessibilityHidden(true)
                     Text("Dosage Information")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
