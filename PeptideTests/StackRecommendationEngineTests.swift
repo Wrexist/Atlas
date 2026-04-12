@@ -70,7 +70,7 @@ final class StackRecommendationEngineTests: XCTestCase {
         let recs = StackRecommendationEngine.recommendations(for: stack, from: database, limit: 20)
         let hasValidated = recs.contains { rec in
             rec.reasons.contains { reason in
-                if case .validatedStack(let name, _) = reason {
+                if case .validatedStack(name: let name, synergy: _) = reason {
                     return name.contains("Wolverine")
                 }
                 return false
@@ -146,7 +146,7 @@ final class StackRecommendationEngineTests: XCTestCase {
         if let semax = peptide(abbrev: "Semax") {
             let (score, reason) = StackRecommendationEngine.scoreRouteDiversity(candidate: semax, context: context)
             XCTAssertGreaterThan(score, 0, "Intranasal peptide should get route diversity bonus")
-            if case .routeDiversity(let text) = reason {
+            if case .routeDiversity(route: let text) = reason {
                 XCTAssertTrue(text.contains("intranasal"), "Should mention the route type")
             }
         }

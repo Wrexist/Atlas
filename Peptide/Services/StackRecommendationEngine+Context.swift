@@ -96,7 +96,7 @@ extension StackRecommendationEngine {
         }
     }
 
-    enum ExperienceLevel {
+    enum ExperienceLevel: Equatable {
         case beginner
         case intermediate
         case advanced
