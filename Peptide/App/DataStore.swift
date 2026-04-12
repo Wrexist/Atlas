@@ -7,9 +7,9 @@ final class DataStore: DataServiceProtocol {
     var profile: UserProfile
 
     private let persistence = PersistenceService.shared
+    private let _peptideDatabase: [Peptide] = PeptideDatabase.shared
 
     // MARK: - Cache (avoids recomputing expensive stats on every toggle)
-    @ObservationIgnored private var _peptideDatabase: [Peptide]?
     @ObservationIgnored private var _cachedTodayEntries: [ProtocolEntry]?
     @ObservationIgnored private var _cachedCurrentStreak: Int?
     @ObservationIgnored private var _cachedTotalDaysLogged: Int?
@@ -60,13 +60,7 @@ final class DataStore: DataServiceProtocol {
 
     // MARK: - Peptide Database
 
-    var peptideDatabase: [Peptide] {
-        if let cached = _peptideDatabase { return cached }
-        let bundled = persistence.loadPeptideDatabase()
-        let result = bundled.isEmpty ? MockPeptides.all : bundled
-        _peptideDatabase = result
-        return result
-    }
+    var peptideDatabase: [Peptide] { _peptideDatabase }
 
     // MARK: - Protocols
 

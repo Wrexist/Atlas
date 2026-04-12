@@ -1,7 +1,6 @@
 import Foundation
 
-@MainActor
-final class PersistenceService {
+final class PersistenceService: @unchecked Sendable {
     static let shared = PersistenceService()
 
     private let fileManager = FileManager.default
@@ -43,55 +42,24 @@ final class PersistenceService {
         save(profile, to: profileURL)
     }
 
-    // MARK: - Load (nonisolated for widget/intent access)
+    // MARK: - Load
 
-    nonisolated func loadProtocols() -> [PeptideProtocol]? {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("protocols.json")
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return try? decoder.decode([PeptideProtocol].self, from: data)
+    func loadProtocols() -> [PeptideProtocol]? {
+        load([PeptideProtocol].self, from: protocolsURL)
     }
 
-    nonisolated func loadEntries() -> [ProtocolEntry]? {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("entries.json")
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return try? decoder.decode([ProtocolEntry].self, from: data)
+    func loadEntries() -> [ProtocolEntry]? {
+        load([ProtocolEntry].self, from: entriesURL)
     }
 
-    nonisolated func loadProfile() -> UserProfile? {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("profile.json")
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return try? decoder.decode(UserProfile.self, from: data)
-    }
-
-    // MARK: - Peptide Database
-
-    nonisolated func loadPeptideDatabase() -> [Peptide] {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        guard let url = Bundle.main.url(forResource: "peptides", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let peptides = try? decoder.decode([Peptide].self, from: data) else {
-            return []
-        }
-        return peptides
+    func loadProfile() -> UserProfile? {
+        load(UserProfile.self, from: profileURL)
     }
 
     // MARK: - State
 
-    nonisolated var hasPersistedData: Bool {
-        FileManager.default.fileExists(
-            atPath: FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("protocols.json").path
-        )
+    var hasPersistedData: Bool {
+        fileManager.fileExists(atPath: protocolsURL.path)
     }
 
     func clearAll() {
