@@ -25,9 +25,27 @@ struct HealthConnectionCard: View {
                     }
                 }
 
-                Text("Connect Apple Health to sync your health data and get personalized insights based on your wearable metrics.")
+                (Text("Connect ")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
+                + Text("Apple Health")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(AppColor.accentLight)
+                + Text(" to sync your health data and get ")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                + Text("personalized insights")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(AppColor.accentLight)
+                + Text(" based on your ")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                + Text("wearable metrics")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(AppColor.accentLight)
+                + Text(".")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary))
                     .lineSpacing(3)
 
                 if !isConnected {
@@ -36,7 +54,7 @@ struct HealthConnectionCard: View {
                             VStack(spacing: Spacing.xs) {
                                 Image(systemName: iconFor(metric))
                                     .font(.system(size: 16))
-                                    .foregroundStyle(AppColor.textTertiary)
+                                    .foregroundStyle(colorFor(metric))
                                 Text(metric)
                                     .font(AppFont.caption)
                                     .foregroundStyle(AppColor.textTertiary)
@@ -66,6 +84,16 @@ struct HealthConnectionCard: View {
         case "Sleep": "moon.fill"
         case "Activity": "figure.walk"
         default: "circle"
+        }
+    }
+
+    private func colorFor(_ metric: String) -> Color {
+        switch metric {
+        case "Heart Rate": Color(hex: 0xCF7272)
+        case "HRV": Color(hex: 0x9B72CF)
+        case "Sleep": Color(hex: 0xD4A844)
+        case "Activity": Color(hex: 0x4A7C59)
+        default: AppColor.textTertiary
         }
     }
 }

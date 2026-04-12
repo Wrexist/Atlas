@@ -19,9 +19,18 @@ struct ExportSection: View {
                     }
                 }
 
-                Text("Export your protocol history and tracking data")
+                (Text("Export your ")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
+                + Text("protocol history")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(AppColor.accentLight)
+                + Text(" and ")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                + Text("tracking data")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(AppColor.accentLight))
 
                 HStack(spacing: Spacing.md) {
                     GlassButton(title: "CSV", icon: "tablecells", style: .secondary) {

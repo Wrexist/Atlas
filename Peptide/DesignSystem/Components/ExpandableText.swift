@@ -3,6 +3,8 @@ import SwiftUI
 struct ExpandableText: View {
     let text: String
     var lineLimit: Int = 4
+    var accentColor: Color = AppColor.accentLight
+    var highlightKeywords: Bool = true
 
     @State private var isExpanded = false
     @State private var collapsedHeight: CGFloat = 0
@@ -15,15 +17,18 @@ struct ExpandableText: View {
 
     private static let gradientHeight: CGFloat = 24
 
-    private func styledText(_ content: String) -> Text {
-        Text(content)
+    private var renderedText: Text {
+        if highlightKeywords {
+            return Text(KeywordHighlighter.highlight(text, accentColor: accentColor))
+        }
+        return Text(text)
             .font(AppFont.body)
             .foregroundStyle(AppColor.textSecondary)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            styledText(text)
+            renderedText
                 .lineSpacing(4)
                 .lineLimit(isExpanded ? nil : lineLimit)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -64,7 +69,7 @@ struct ExpandableText: View {
         }
         .background(
             ZStack {
-                styledText(text)
+                renderedText
                     .lineSpacing(4)
                     .lineLimit(lineLimit)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -72,7 +77,7 @@ struct ExpandableText: View {
                         collapsedHeight = $0
                     }
 
-                styledText(text)
+                renderedText
                     .lineSpacing(4)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)

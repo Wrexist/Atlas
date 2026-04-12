@@ -22,10 +22,18 @@ struct AboutSection: View {
                         Image(systemName: "atom")
                             .font(.system(size: 24))
                             .foregroundStyle(AppColor.accentPrimary)
+                            .pulse()
 
                         Text("PeptideX")
                             .font(AppFont.footnote)
-                            .foregroundStyle(AppColor.textTertiary)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [AppColor.accentPrimary, AppColor.accentLight],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
                     }
                     Spacer()
                 }

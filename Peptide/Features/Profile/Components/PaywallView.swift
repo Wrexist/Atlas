@@ -29,7 +29,13 @@ struct PaywallView: View {
 
                         Text("Unlock the full potential of your protocols")
                             .font(AppFont.body)
-                            .foregroundStyle(AppColor.textSecondary)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [AppColor.accentLight, AppColor.textSecondary],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
                             .multilineTextAlignment(.center)
                     }
                     .padding(.top, Spacing.xxl)
@@ -128,7 +134,7 @@ struct PaywallView: View {
                     .foregroundStyle(AppColor.textPrimary)
                 Text(description)
                     .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
+                    .foregroundStyle(Color(hex: 0xB0B0B0))
             }
             Spacer()
         }

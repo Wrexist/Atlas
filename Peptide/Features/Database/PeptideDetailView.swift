@@ -50,11 +50,16 @@ struct PeptideDetailView: View {
                 // Description
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.md) {
-                        Label("About", systemImage: "info.circle.fill")
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
+                        HStack(spacing: Spacing.sm) {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundStyle(peptide.category.color)
+                                .accessibilityHidden(true)
+                            Text("About")
+                                .font(AppFont.headline)
+                                .foregroundStyle(AppColor.textPrimary)
+                        }
 
-                        ExpandableText(text: peptide.description)
+                        ExpandableText(text: peptide.description, accentColor: peptide.category.color)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -64,11 +69,16 @@ struct PeptideDetailView: View {
                 if !peptide.mechanism.isEmpty {
                     GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
-                            Label("Mechanism of Action", systemImage: "gearshape.2.fill")
-                                .font(AppFont.headline)
-                                .foregroundStyle(AppColor.textPrimary)
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: "gearshape.2.fill")
+                                    .foregroundStyle(peptide.category.color)
+                                    .accessibilityHidden(true)
+                                Text("Mechanism of Action")
+                                    .font(AppFont.headline)
+                                    .foregroundStyle(AppColor.textPrimary)
+                            }
 
-                            ExpandableText(text: peptide.mechanism)
+                            ExpandableText(text: peptide.mechanism, accentColor: peptide.category.color)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -78,9 +88,14 @@ struct PeptideDetailView: View {
                 // Benefits
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.md) {
-                        Label("Benefits", systemImage: "star.fill")
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
+                        HStack(spacing: Spacing.sm) {
+                            Image(systemName: "star.fill")
+                                .foregroundStyle(peptide.category.color)
+                                .accessibilityHidden(true)
+                            Text("Benefits")
+                                .font(AppFont.headline)
+                                .foregroundStyle(AppColor.textPrimary)
+                        }
 
                         BenefitTagFlow(
                             benefits: peptide.benefits,
@@ -99,16 +114,22 @@ struct PeptideDetailView: View {
                 if !peptide.sideEffects.isEmpty {
                     GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
-                            Label("Side Effects", systemImage: "exclamationmark.triangle.fill")
-                                .font(AppFont.headline)
-                                .foregroundStyle(Color.orange)
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(Color.orange)
+                                    .accessibilityHidden(true)
+                                Text("Side Effects")
+                                    .font(AppFont.headline)
+                                    .foregroundStyle(AppColor.textPrimary)
+                            }
 
                             VStack(alignment: .leading, spacing: Spacing.sm) {
                                 ForEach(peptide.sideEffects, id: \.self) { effect in
                                     HStack(alignment: .top, spacing: Spacing.sm) {
                                         Image(systemName: "circle.fill")
-                                            .font(.system(size: 5))
-                                            .foregroundStyle(Color.orange.opacity(0.6))
+                                            .font(.system(size: 6))
+                                            .foregroundStyle(Color.orange.opacity(0.7))
+                                            .shadow(color: Color.orange.opacity(0.3), radius: 3)
                                             .padding(.top, 7)
 
                                         Text(effect)
@@ -127,16 +148,22 @@ struct PeptideDetailView: View {
                 if !peptide.contraindications.isEmpty {
                     GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
-                            Label("Contraindications", systemImage: "hand.raised.fill")
-                                .font(AppFont.headline)
-                                .foregroundStyle(Color.red.opacity(0.9))
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: "hand.raised.fill")
+                                    .foregroundStyle(Color.red.opacity(0.9))
+                                    .accessibilityHidden(true)
+                                Text("Contraindications")
+                                    .font(AppFont.headline)
+                                    .foregroundStyle(AppColor.textPrimary)
+                            }
 
                             VStack(alignment: .leading, spacing: Spacing.sm) {
                                 ForEach(peptide.contraindications, id: \.self) { item in
                                     HStack(alignment: .top, spacing: Spacing.sm) {
                                         Image(systemName: "xmark.circle.fill")
                                             .font(.system(size: 12))
-                                            .foregroundStyle(Color.red.opacity(0.6))
+                                            .foregroundStyle(Color.red.opacity(0.7))
+                                            .shadow(color: Color.red.opacity(0.3), radius: 3)
                                             .padding(.top, 3)
 
                                         Text(item)
@@ -155,9 +182,14 @@ struct PeptideDetailView: View {
                 if !peptide.commonStacks.isEmpty {
                     GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
-                            Label("Commonly Stacked With", systemImage: "square.stack.3d.up.fill")
-                                .font(AppFont.headline)
-                                .foregroundStyle(AppColor.textPrimary)
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: "square.stack.3d.up.fill")
+                                    .foregroundStyle(peptide.category.color)
+                                    .accessibilityHidden(true)
+                                Text("Commonly Stacked With")
+                                    .font(AppFont.headline)
+                                    .foregroundStyle(AppColor.textPrimary)
+                            }
 
                             BenefitTagFlow(
                                 benefits: peptide.commonStacks,
@@ -173,11 +205,16 @@ struct PeptideDetailView: View {
                 if !peptide.regulatoryStatus.isEmpty {
                     GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
-                            Label("Regulatory Status", systemImage: "building.columns.fill")
-                                .font(AppFont.headline)
-                                .foregroundStyle(AppColor.textPrimary)
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: "building.columns.fill")
+                                    .foregroundStyle(peptide.category.color)
+                                    .accessibilityHidden(true)
+                                Text("Regulatory Status")
+                                    .font(AppFont.headline)
+                                    .foregroundStyle(AppColor.textPrimary)
+                            }
 
-                            ExpandableText(text: peptide.regulatoryStatus)
+                            ExpandableText(text: peptide.regulatoryStatus, accentColor: peptide.category.color)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -186,13 +223,13 @@ struct PeptideDetailView: View {
 
                 // Research Links (hidden for beginners)
                 if !peptide.researchLinks.isEmpty && experienceLevel != "beginner" {
-                    ResearchLinksSection(links: peptide.researchLinks)
+                    ResearchLinksSection(links: peptide.researchLinks, categoryColor: peptide.category.color)
                         .sectionAppear(index: 11)
                 }
 
                 // Molecular Data
                 if let mol = peptide.molecular, !mol.formula.isEmpty {
-                    MolecularInfoSection(molecular: mol)
+                    MolecularInfoSection(molecular: mol, categoryColor: peptide.category.color)
                         .sectionAppear(index: 12)
                 }
             }
@@ -211,6 +248,7 @@ struct PeptideDetailView: View {
 
 struct MolecularInfoSection: View {
     let molecular: MolecularData
+    var categoryColor: Color = AppColor.accentPrimary
 
     private var showsFormula: Bool {
         !molecular.formula.isEmpty && !molecular.formula.hasPrefix("Complex peptide")
@@ -219,9 +257,14 @@ struct MolecularInfoSection: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                Label("Molecular Data", systemImage: "atom")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "atom")
+                        .foregroundStyle(categoryColor)
+                        .accessibilityHidden(true)
+                    Text("Molecular Data")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                }
 
                 VStack(spacing: Spacing.md) {
                     if showsFormula {
