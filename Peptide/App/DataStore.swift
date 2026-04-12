@@ -253,6 +253,13 @@ final class DataStore: DataServiceProtocol {
         persistence.saveProtocols(protocols)
         persistence.saveEntries(entries)
         persistence.saveProfile(profile)
+        AchievementService.shared.checkAchievements(
+            totalDoses: totalDoses,
+            currentStreak: currentStreak,
+            bestStreak: bestStreak,
+            protocolCount: protocols.count,
+            daysLogged: totalDaysLogged
+        )
     }
 
     private func regenerateTodayEntries() {

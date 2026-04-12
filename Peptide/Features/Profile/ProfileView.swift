@@ -2,6 +2,9 @@ import SwiftUI
 
 struct ProfileView: View {
     @Environment(DataStore.self) private var dataStore
+    @State private var showPaywall = false
+    private let storeService = StoreService.shared
+    private let achievementService = AchievementService.shared
 
     private let availableGoals = [
         "Muscle Recovery",
@@ -27,27 +30,35 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 0)
 
+                    if !storeService.isProUser {
+                        UpgradePromptCard()
+                            .sectionAppear(index: 1)
+                    }
+
+                    AchievementsSection(achievements: achievementService.achievements)
+                        .sectionAppear(index: 2)
+
                     GoalsSectionCard(
                         availableGoals: availableGoals,
                         selectedGoals: Set(dataStore.profile.goals),
                         onToggle: toggleGoal
                     )
-                    .sectionAppear(index: 1)
+                    .sectionAppear(index: 3)
 
                     HealthConnectionCard(
                         isConnected: dataStore.profile.healthConnected,
                         onConnect: { dataStore.toggleHealthConnection() }
                     )
-                    .sectionAppear(index: 2)
+                    .sectionAppear(index: 4)
 
                     ExportSection()
-                        .sectionAppear(index: 3)
+                        .sectionAppear(index: 5)
 
                     AppearanceSettings()
-                        .sectionAppear(index: 4)
+                        .sectionAppear(index: 6)
 
                     AboutSection()
-                        .sectionAppear(index: 5)
+                        .sectionAppear(index: 7)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
