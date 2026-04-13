@@ -94,6 +94,98 @@ enum PeptideCompatibilityData {
             synergy: "Epitalon activates telomerase for telomere maintenance. GHK-Cu stimulates collagen/elastin synthesis and has broad gene-resetting activity. BPC-157 provides systemic cytoprotection. Addresses aging at genetic (telomeres), structural (collagen), and protective levels.",
             notes: "Epitalon is typically cycled in 10-20 day courses."
         ),
+        // Performance & Athletic
+        ValidatedStack(
+            name: "Performance Stack",
+            peptideAbbreviations: ["BPC-157", "TB-500", "CJC-1295 DAC", "Ipamorelin"],
+            goal: "Athletic performance and recovery",
+            synergy: "BPC-157 and TB-500 accelerate tissue repair through complementary mechanisms (VEGF/NO and actin regulation). CJC-1295/Ipamorelin elevate GH for systemic anabolism and protein synthesis. Four non-overlapping pathways supporting training recovery.",
+            notes: "Common protocol for high-volume training phases."
+        ),
+        ValidatedStack(
+            name: "Full Recovery Protocol",
+            peptideAbbreviations: ["BPC-157", "TB-500", "GHK-Cu", "Ipamorelin"],
+            goal: "Comprehensive injury recovery",
+            synergy: "Wolverine stack (BPC-157 + TB-500) for tissue repair, GHK-Cu for collagen remodeling, Ipamorelin for GH-mediated protein synthesis. Covers inflammation, cell migration, extracellular matrix rebuilding, and systemic recovery.",
+            notes: "Appropriate for post-surgical or significant injury recovery."
+        ),
+        ValidatedStack(
+            name: "Joint Recovery",
+            peptideAbbreviations: ["BPC-157", "GHK-Cu", "AOD-9604"],
+            goal: "Joint and connective tissue repair",
+            synergy: "BPC-157 drives tendon/ligament healing via growth factor upregulation. GHK-Cu promotes collagen III synthesis for cartilage. AOD-9604 provides anti-inflammatory action at the joint without IGF-1 elevation.",
+            notes: "AOD-9604 retains anti-inflammatory properties of the GH fragment."
+        ),
+        // Sleep & Recovery
+        ValidatedStack(
+            name: "Deep Sleep Stack",
+            peptideAbbreviations: ["CJC-1295 DAC", "Ipamorelin", "Epitalon"],
+            goal: "Sleep quality and nocturnal recovery",
+            synergy: "CJC-1295/Ipamorelin pre-bed dosing amplifies natural nocturnal GH pulse for deep sleep-phase recovery. Epitalon supports melatonin synthesis via pineal gland activation, improving circadian rhythm regulation.",
+            notes: "All three dosed pre-bed. Avoid carbs 2-3 hours before for optimal GH response."
+        ),
+        // Skin & Anti-Aging
+        ValidatedStack(
+            name: "Skin Rejuvenation",
+            peptideAbbreviations: ["GHK-Cu", "Epitalon", "TA1"],
+            goal: "Skin health and anti-aging",
+            synergy: "GHK-Cu increases Type I/III collagen by up to 70% and stimulates elastin for skin structure. Epitalon activates telomerase in fibroblasts for cellular longevity. TA1 supports immune-mediated skin defense and wound surveillance. Three distinct pathways: structural, genetic, and immunological.",
+            notes: "GHK-Cu can be applied topically for localized skin effects."
+        ),
+        ValidatedStack(
+            name: "Anti-Aging Complete",
+            peptideAbbreviations: ["Epitalon", "GHK-Cu", "BPC-157", "TA1"],
+            goal: "Comprehensive anti-aging and immune longevity",
+            synergy: "Epitalon for telomere maintenance, GHK-Cu for tissue regeneration, BPC-157 for organ cytoprotection, TA1 for immune system rejuvenation (thymic function declines with age). Addresses four pillars of aging: genetic, structural, protective, and immunological.",
+            notes: "Cycle Epitalon separately (3 weeks on, 3-6 months off)."
+        ),
+        // Metabolic & Body Composition
+        ValidatedStack(
+            name: "Metabolic Reset",
+            peptideAbbreviations: ["AOD-9604", "Tesamorelin"],
+            goal: "Targeted fat reduction",
+            synergy: "AOD-9604 activates beta-3 adrenergic fat metabolism. Tesamorelin specifically reduces visceral adipose tissue via pulsatile GH release. Different pathways: AOD targets adipocyte lipolysis directly; Tesamorelin works through the GHRH receptor.",
+            notes: "Tesamorelin is FDA-approved for HIV-associated lipodystrophy."
+        ),
+        ValidatedStack(
+            name: "Lean Mass Stack",
+            peptideAbbreviations: ["CJC-1295 DAC", "Ipamorelin", "IGF-1 LR3"],
+            goal: "Lean muscle growth",
+            synergy: "CJC-1295/Ipamorelin elevate systemic GH for protein synthesis and recovery. IGF-1 LR3 provides direct downstream anabolic signaling with extended half-life (20-30 hours). GH peptides drive hepatic IGF-1; exogenous IGF-1 LR3 adds localized muscle-specific growth.",
+            notes: "Monitor blood glucose — IGF-1 LR3 can cause hypoglycemia. Cycle IGF-1 LR3 (4 weeks on/off)."
+        ),
+        // Cognitive & Neuro
+        ValidatedStack(
+            name: "Neuro-Immune",
+            peptideAbbreviations: ["Semax", "Selank", "TA1"],
+            goal: "Neuroprotection with immune support",
+            synergy: "Semax upregulates BDNF for neuroplasticity. Selank modulates GABA for stress resilience. TA1 bridges neuro-immune crosstalk by enhancing T-cell function that supports CNS immune surveillance. Addresses the brain-immune axis.",
+            notes: "All three have favorable safety profiles with minimal interactions."
+        ),
+        // Gut Health
+        ValidatedStack(
+            name: "Gut-Brain Axis",
+            peptideAbbreviations: ["BPC-157", "Semax", "KPV"],
+            goal: "Gut healing with cognitive support",
+            synergy: "BPC-157 heals GI mucosal lining and modulates the gut-brain vagal pathway. KPV reduces intestinal inflammation via NF-κB inhibition. Semax provides BDNF-mediated neuroprotection. Together they address the gut-brain axis from both ends.",
+            notes: "Relevant for gut-related cognitive symptoms (brain fog, fatigue)."
+        ),
+        // Hormonal
+        ValidatedStack(
+            name: "Hormonal Optimization",
+            peptideAbbreviations: ["CJC-1295 DAC", "Ipamorelin", "KP-10"],
+            goal: "Endocrine axis support",
+            synergy: "CJC-1295/Ipamorelin stimulate the GH axis for systemic anabolism. Kisspeptin activates GnRH neurons to support the HPG axis (LH/FSH/testosterone). Two independent endocrine axes stimulated without receptor overlap.",
+            notes: "Kisspeptin is pulsatile — continuous dosing may desensitize GnRH neurons."
+        ),
+        // Hair
+        ValidatedStack(
+            name: "Hair Restoration",
+            peptideAbbreviations: ["GHK-Cu", "TB-500"],
+            goal: "Hair follicle support and scalp health",
+            synergy: "GHK-Cu stimulates hair follicle growth by enlarging follicle size and promoting the anagen (growth) phase via Wnt/β-catenin signaling. TB-500 enhances blood flow to the scalp through angiogenesis and reduces follicular inflammation.",
+            notes: "GHK-Cu can be used topically on scalp. TB-500 is systemic."
+        ),
     ]
 
     // MARK: - Known Interactions (Avoid)
@@ -252,6 +344,14 @@ enum PeptideCompatibilityData {
     static let angiogenicPeptides: Set<String> = [
         "BPC-157", "TB-500", "TB-4", "GHK-Cu", "GHK", "PDA",
         "IGF-1 LR3", "IGF-1 DES", "MGF", "PEG-MGF"
+    ]
+
+    // MARK: - Hepatotoxicity Risk
+
+    /// Peptides with documented hepatic metabolism burden or liver-stressing properties.
+    /// Stacking multiple increases cumulative hepatic load.
+    static let hepatotoxicPeptides: Set<String> = [
+        "MK-677", "IGF-1 LR3", "IGF-1 DES", "FST-344"
     ]
 
     // MARK: - Lookup Helpers

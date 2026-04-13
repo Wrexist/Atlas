@@ -21,21 +21,41 @@ struct HomeView: View {
     }
 
     private var stackWarnings: [StackRecommendationEngine.Warning] {
-        StackRecommendationEngine.warnings(for: stackPeptides)
+        StackRecommendationEngine.warnings(
+            for: stackPeptides,
+            activeProtocols: dataStore.activeProtocols
+        )
     }
 
     private var stackRecommendations: [StackRecommendationEngine.Recommendation] {
-        StackRecommendationEngine.recommendations(
-            for: stackPeptides,
-            from: dataStore.peptideDatabase,
-            goals: dataStore.profile.goals
+        let context = StackRecommendationEngine.RecommendationContext(
+            currentPeptides: stackPeptides,
+            database: dataStore.peptideDatabase,
+            goals: dataStore.profile.goals,
+            activeProtocols: dataStore.activeProtocols,
+            entries: dataStore.entries
         )
+        return StackRecommendationEngine.recommendations(context: context)
+    }
+
+    private var stackCompleteness: StackRecommendationEngine.StackCompleteness? {
+        StackRecommendationEngine.stackCompleteness(
+            for: stackPeptides,
+            goals: dataStore.profile.goals,
+            from: dataStore.peptideDatabase
+        )
+    }
+
+    private var cycleTransitions: [StackRecommendationEngine.CycleTransition] {
+        StackRecommendationEngine.cycleTransitions(for: dataStore.activeProtocols)
     }
 
     var body: some View {
         let stats = todayStats
         let warnings = stackWarnings
         let recommendations = stackRecommendations
+        let completeness = stackCompleteness
+        let transitions = cycleTransitions
 
         NavigationStack {
             ScrollView {
@@ -72,10 +92,22 @@ struct HomeView: View {
                     )
                     .sectionAppear(index: 3)
 
-                    // Stack warnings (danger/caution alerts)
+                    // Stack completeness ring
+                    if let completeness {
+                        StackCompletenessCard(completeness: completeness)
+                            .sectionAppear(index: 4)
+                    }
+
+                    // Cycle transition alerts
+                    if !transitions.isEmpty {
+                        CycleTransitionCard(transitions: transitions)
+                            .sectionAppear(index: 5)
+                    }
+
+                    // Stack warnings (danger/caution/info alerts)
                     if !warnings.isEmpty {
                         StackWarningCard(warnings: warnings)
-                            .sectionAppear(index: 4)
+                            .sectionAppear(index: 6)
                     }
 
                     // Smart recommendations
@@ -84,12 +116,12 @@ struct HomeView: View {
                             recommendations: recommendations,
                             hapticEnabled: dataStore.profile.hapticFeedbackEnabled
                         )
-                        .sectionAppear(index: 5)
+                        .sectionAppear(index: 7)
                     }
 
                     if dataStore.profile.healthConnected {
                         HealthSummaryCard()
-                            .sectionAppear(index: 6)
+                            .sectionAppear(index: 8)
                     }
 
                     // Top insight
@@ -118,7 +150,7 @@ struct HomeView: View {
                                 Spacer()
                             }
                         }
-                        .sectionAppear(index: 7)
+                        .sectionAppear(index: 9)
                     }
                 }
                 .padding(.horizontal, Spacing.screenPadding)

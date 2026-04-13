@@ -10,6 +10,11 @@ enum StackRecommendationEngine {
         case categorySynergy(description: String)
         case sharedBenefits(count: Int)
         case validatedStack(name: String, synergy: String)
+        case timingComplement(description: String)
+        case complianceBoost(category: String)
+        case routeDiversity(route: String)
+        case halfLifeComplement(description: String)
+        case seasonalRelevance(description: String)
 
         var icon: String {
             switch self {
@@ -18,6 +23,11 @@ enum StackRecommendationEngine {
             case .categorySynergy: return "sparkles"
             case .sharedBenefits: return "square.on.square"
             case .validatedStack: return "checkmark.seal.fill"
+            case .timingComplement: return "clock"
+            case .complianceBoost: return "checkmark.circle"
+            case .routeDiversity: return "syringe"
+            case .halfLifeComplement: return "waveform"
+            case .seasonalRelevance: return "leaf"
             }
         }
 
@@ -36,6 +46,28 @@ enum StackRecommendationEngine {
                 return "Shares \(count) benefits with your stack"
             case .validatedStack(let name, _):
                 return "Part of \(name) — research-backed combination"
+            case .timingComplement(let desc):
+                return desc
+            case .complianceBoost(let category):
+                return "You're highly compliant with \(category) peptides"
+            case .routeDiversity(let route):
+                return route
+            case .halfLifeComplement(let desc):
+                return desc
+            case .seasonalRelevance(let desc):
+                return desc
+            }
+        }
+    }
+
+    enum Confidence: Comparable {
+        case low, medium, high
+
+        var label: String {
+            switch self {
+            case .low: return "Exploratory"
+            case .medium: return "Suggested"
+            case .high: return "Research-backed"
             }
         }
     }
@@ -45,6 +77,7 @@ enum StackRecommendationEngine {
         let peptide: Peptide
         let score: Int
         let reasons: [RecommendationReason]
+        let confidence: Confidence
     }
 
     struct Warning: Identifiable {
@@ -57,8 +90,23 @@ enum StackRecommendationEngine {
         let icon: String
 
         enum Severity: Comparable {
-            case caution, danger
+            case info, caution, danger
         }
+    }
+
+    struct StackCompleteness {
+        let score: Double
+        let coveredGoals: [String]
+        let missingCategories: [PeptideCategory]
+        let suggestions: [String]
+    }
+
+    struct CycleTransition: Identifiable {
+        let id = UUID()
+        let peptideAbbreviation: String
+        let weeksRemaining: Int
+        let suggestedReplacements: [String]
+        let reason: String
     }
 
     // MARK: - Category Synergies
@@ -124,35 +172,39 @@ enum StackRecommendationEngine {
 
     // MARK: - Recommendations
 
+    /// Backward-compatible entry point. Wraps the context-aware version.
     static func recommendations(
         for currentPeptides: [Peptide],
         from database: [Peptide],
         goals: [String] = [],
         limit: Int = 5
     ) -> [Recommendation] {
-        guard !currentPeptides.isEmpty else { return [] }
+        let context = RecommendationContext(
+            currentPeptides: currentPeptides,
+            database: database,
+            goals: goals,
+            activeProtocols: [],
+            entries: []
+        )
+        return recommendations(context: context, limit: limit)
+    }
 
-        let currentIds = Set(currentPeptides.map(\.id))
-        let currentCategories = Set(currentPeptides.map(\.category))
+    /// Full context-aware recommendation engine with all 12 scoring signals.
+    static func recommendations(
+        context: RecommendationContext,
+        limit: Int = 5
+    ) -> [Recommendation] {
+        guard !context.currentPeptides.isEmpty else { return [] }
 
-        let dbByName: [String: Peptide] = database.reduce(into: [:]) { dict, p in
-            dict[p.abbreviation.lowercased()] = p
-            dict[p.name.lowercased()] = p
-        }
-
-        let currentBenefits = Set(currentPeptides.flatMap(\.benefits).map { $0.lowercased() })
-        let resolvedGoals = resolveGoals(goals)
-
-        // Accumulate scores and reasons per candidate
         var candidates: [UUID: (peptide: Peptide, score: Int, reasons: [RecommendationReason])] = [:]
 
         // --- 1. CommonStacks scoring ---
         var stackRecommenders: [UUID: Set<String>] = [:]
-        for current in currentPeptides {
+        for current in context.currentPeptides {
             let seenStacks = Set(current.commonStacks.map { $0.lowercased() })
             for stackName in seenStacks {
-                guard let found = resolveMatch(stackName, in: dbByName, database: database),
-                      !currentIds.contains(found.id) else { continue }
+                guard let found = resolveMatch(stackName, in: context.dbByName, database: context.database),
+                      !context.currentIds.contains(found.id) else { continue }
                 stackRecommenders[found.id, default: []].insert(current.abbreviation)
                 if candidates[found.id] == nil {
                     candidates[found.id] = (found, 0, [])
@@ -165,12 +217,12 @@ enum StackRecommendationEngine {
         }
 
         // --- 2. Goal-aligned scoring ---
-        if !resolvedGoals.isEmpty {
-            for candidate in database where !currentIds.contains(candidate.id) {
+        if !context.resolvedGoals.isEmpty {
+            for candidate in context.database where !context.currentIds.contains(candidate.id) {
                 var goalScore = 0
                 var matchedGoals: [String] = []
 
-                for goal in resolvedGoals {
+                for goal in context.resolvedGoals {
                     if candidate.category == goal.category {
                         goalScore += 2
                         matchedGoals.append(goal.displayName)
@@ -199,11 +251,11 @@ enum StackRecommendationEngine {
         }
 
         // --- 3. Category synergy scoring ---
-        for candidate in database where !currentIds.contains(candidate.id) {
+        for candidate in context.database where !context.currentIds.contains(candidate.id) {
             for (catA, catB, description) in categorySynergies {
                 let candidateCat = candidate.category
-                if (candidateCat == catA && currentCategories.contains(catB)) ||
-                   (candidateCat == catB && currentCategories.contains(catA)) {
+                if (candidateCat == catA && context.currentCategories.contains(catB)) ||
+                   (candidateCat == catB && context.currentCategories.contains(catA)) {
                     if candidates[candidate.id] == nil {
                         candidates[candidate.id] = (candidate, 0, [])
                     }
@@ -215,16 +267,13 @@ enum StackRecommendationEngine {
         }
 
         // --- 4. Validated stack scoring ---
-        let currentAbbreviations = Set(currentPeptides.map(\.abbreviation))
-        var validatedStacksAdded: [UUID: Set<String>] = [:] // dedup by stack name per candidate
+        var validatedStacksAdded: [UUID: Set<String>] = [:]
         for stack in PeptideCompatibilityData.validatedStacks {
-            let overlap = stack.peptideAbbreviations.filter { currentAbbreviations.contains($0) }
+            let overlap = stack.peptideAbbreviations.filter { context.currentAbbreviations.contains($0) }
             guard !overlap.isEmpty else { continue }
-            for missing in stack.peptideAbbreviations where !currentAbbreviations.contains(missing) {
-                // Use resolveMatch for robust lookup (handles parenthetical qualifiers, fuzzy matching)
-                guard let found = resolveMatch(missing.lowercased(), in: dbByName, database: database),
-                      !currentIds.contains(found.id) else { continue }
-                // Prevent duplicate validatedStack reasons for same stack name
+            for missing in stack.peptideAbbreviations where !context.currentAbbreviations.contains(missing) {
+                guard let found = resolveMatch(missing.lowercased(), in: context.dbByName, database: context.database),
+                      !context.currentIds.contains(found.id) else { continue }
                 if validatedStacksAdded[found.id, default: []].contains(stack.name) { continue }
                 validatedStacksAdded[found.id, default: []].insert(stack.name)
 
@@ -239,8 +288,8 @@ enum StackRecommendationEngine {
         }
 
         // --- 5. Shared benefits boost ---
-        for candidate in database where !currentIds.contains(candidate.id) {
-            let sharedCount = candidate.benefits.filter { currentBenefits.contains($0.lowercased()) }.count
+        for candidate in context.database where !context.currentIds.contains(candidate.id) {
+            let sharedCount = candidate.benefits.filter { context.currentBenefits.contains($0.lowercased()) }.count
             if sharedCount >= 2 {
                 if candidates[candidate.id] == nil {
                     candidates[candidate.id] = (candidate, 0, [])
@@ -250,20 +299,65 @@ enum StackRecommendationEngine {
             }
         }
 
-        // Filter out zero-score and sort
+        // --- 6-12. New scoring signals ---
+        for candidate in context.database where !context.currentIds.contains(candidate.id) {
+            let signals: [(Int, RecommendationReason?)] = [
+                scoreTiming(candidate: candidate, context: context),
+                scoreCompliance(candidate: candidate, context: context),
+                scoreRouteDiversity(candidate: candidate, context: context),
+                scoreHalfLife(candidate: candidate, context: context),
+                scoreExperience(candidate: candidate, context: context),
+                scoreDiminishingReturns(candidate: candidate, context: context),
+                scoreSeasonal(candidate: candidate, context: context),
+            ]
+            for (points, reason) in signals where points != 0 {
+                if candidates[candidate.id] == nil && points > 0 {
+                    candidates[candidate.id] = (candidate, 0, [])
+                }
+                guard candidates[candidate.id] != nil else { continue }
+                candidates[candidate.id]?.score += points
+                if let reason { candidates[candidate.id]?.reasons.append(reason) }
+            }
+        }
+
+        // Filter out zero-score, compute confidence, sort and return
         return candidates.values
             .filter { $0.score > 0 }
             .sorted { $0.score > $1.score }
             .prefix(limit)
-            .map { Recommendation(id: $0.peptide.id, peptide: $0.peptide, score: $0.score, reasons: $0.reasons) }
+            .map {
+                Recommendation(
+                    id: $0.peptide.id,
+                    peptide: $0.peptide,
+                    score: $0.score,
+                    reasons: $0.reasons,
+                    confidence: computeConfidence(reasons: $0.reasons, score: $0.score)
+                )
+            }
     }
 
     // MARK: - Compatibility Warnings
 
+    /// Backward-compatible entry point.
     static func warnings(for currentPeptides: [Peptide]) -> [Warning] {
-        guard currentPeptides.count >= 2 else { return [] }
+        warnings(for: currentPeptides, activeProtocols: [])
+    }
+
+    /// Full context-aware warnings with cycle, desensitization, hepatotoxicity, and timing checks.
+    static func warnings(
+        for currentPeptides: [Peptide],
+        activeProtocols: [PeptideProtocol]
+    ) -> [Warning] {
+        guard !currentPeptides.isEmpty else { return [] }
 
         var warnings: [Warning] = []
+
+        // --- Pairwise warnings (require 2+ peptides) ---
+        guard currentPeptides.count >= 2 else {
+            // Skip to per-peptide warnings below
+            return perPeptideWarnings(for: currentPeptides, activeProtocols: activeProtocols)
+                .sorted { $0.severity > $1.severity }
+        }
 
         // 1. Compounding side effects
         var sideEffectPeptides: [String: Set<String>] = [:]
@@ -445,7 +539,7 @@ enum StackRecommendationEngine {
             // Skip if a prior warning already covers 2+ of the same peptides (overlap, not subset)
             let matchingNames = Set(matching.map(\.abbreviation))
             let alreadyCovered = warnings.contains { w in
-                matchingNames.intersection(Set(w.peptides)).count >= 2
+                matchingNames.isSubset(of: Set(w.peptides))
             }
             guard !alreadyCovered else { continue }
 
@@ -474,18 +568,213 @@ enum StackRecommendationEngine {
             ))
         }
 
+        // 9-12. Per-peptide warnings (also fire for single-peptide stacks)
+        warnings.append(contentsOf: perPeptideWarnings(for: currentPeptides, activeProtocols: activeProtocols))
+
         return warnings.sorted { $0.severity > $1.severity }
+    }
+
+    /// Warnings that apply per-peptide (cycle length, desensitization, hepatotoxicity, timing).
+    /// These fire regardless of stack size — a single overdue peptide still deserves a warning.
+    private static func perPeptideWarnings(
+        for currentPeptides: [Peptide],
+        activeProtocols: [PeptideProtocol]
+    ) -> [Warning] {
+        var warnings: [Warning] = []
+        let calendar = Calendar.current
+
+        // 9. Cycle length warning
+        for proto in activeProtocols {
+            for peptide in proto.peptides {
+                guard let cycle = PeptideTimingData.cycleProtocols[peptide.abbreviation] else { continue }
+                let weeksElapsed = calendar.dateComponents(
+                    [.weekOfYear], from: proto.startDate, to: Date()
+                ).weekOfYear ?? 0
+                guard weeksElapsed > cycle.onWeeks else { continue }
+                let overBy = weeksElapsed - cycle.onWeeks
+                let transitionText = cycle.transitionSuggestions.isEmpty
+                    ? ""
+                    : " Consider transitioning to \(cycle.transitionSuggestions.joined(separator: " or "))."
+                warnings.append(Warning(
+                    severity: .caution,
+                    title: "\(peptide.abbreviation) — \(overBy)w over cycle",
+                    detail: "Recommended cycle is \(cycle.onWeeks) weeks on / \(cycle.offWeeks) weeks off. You're at week \(weeksElapsed). \(cycle.reason).",
+                    suggestion: "Schedule a \(cycle.offWeeks)-week off period.\(transitionText)",
+                    peptides: [peptide.abbreviation],
+                    icon: "clock.arrow.circlepath"
+                ))
+            }
+        }
+
+        // 10. Desensitization risk
+        for peptide in currentPeptides {
+            guard let info = PeptideTimingData.desensitizationRisks[peptide.abbreviation] else { continue }
+            let matchingProtocol = activeProtocols.first { proto in
+                proto.peptides.contains(where: { $0.abbreviation == peptide.abbreviation })
+            }
+            guard let proto = matchingProtocol else { continue }
+            let weeks = calendar.dateComponents(
+                [.weekOfYear], from: proto.startDate, to: Date()
+            ).weekOfYear ?? 0
+            guard weeks >= info.riskOnsetWeeks else { continue }
+            let offWeeks = PeptideTimingData.cycleProtocols[peptide.abbreviation]?.offWeeks ?? 4
+            warnings.append(Warning(
+                severity: .caution,
+                title: "\(info.receptor) desensitization risk",
+                detail: "\(peptide.abbreviation) active for \(weeks) weeks. \(info.description) typically begins around week \(info.riskOnsetWeeks).",
+                suggestion: "Consider a \(offWeeks)-week washout period to restore receptor sensitivity.",
+                peptides: [peptide.abbreviation],
+                icon: "arrow.down.right.circle"
+            ))
+        }
+
+        // 11. Hepatotoxicity stacking
+        let hepatotoxic = currentPeptides.filter {
+            PeptideCompatibilityData.hepatotoxicPeptides.contains($0.abbreviation)
+        }
+        if hepatotoxic.count >= 2 {
+            warnings.append(Warning(
+                severity: .caution,
+                title: "Multiple liver-stressing peptides",
+                detail: "\(hepatotoxic.count) peptides in your stack have hepatic metabolism burden: \(hepatotoxic.map(\.abbreviation).joined(separator: ", ")).",
+                suggestion: "Monitor liver enzymes (ALT, AST) and avoid combining with alcohol or hepatotoxic supplements.",
+                peptides: hepatotoxic.map(\.abbreviation),
+                icon: "exclamationmark.triangle.fill"
+            ))
+        }
+
+        // 12. Timing conflicts
+        for i in 0..<currentPeptides.count {
+            for j in (i + 1)..<currentPeptides.count {
+                let a = currentPeptides[i]
+                let b = currentPeptides[j]
+                if let timingA = PeptideTimingData.timingRecommendations[a.abbreviation],
+                   timingA.avoidWith.contains(b.abbreviation) {
+                    warnings.append(Warning(
+                        severity: .info,
+                        title: "Timing separation recommended",
+                        detail: "\(a.abbreviation) and \(b.abbreviation) should be separated when administered.",
+                        suggestion: timingA.notes,
+                        peptides: [a.abbreviation, b.abbreviation],
+                        icon: "clock.badge.exclamationmark"
+                    ))
+                } else if let timingB = PeptideTimingData.timingRecommendations[b.abbreviation],
+                          timingB.avoidWith.contains(a.abbreviation) {
+                    warnings.append(Warning(
+                        severity: .info,
+                        title: "Timing separation recommended",
+                        detail: "\(a.abbreviation) and \(b.abbreviation) should be separated when administered.",
+                        suggestion: timingB.notes,
+                        peptides: [a.abbreviation, b.abbreviation],
+                        icon: "clock.badge.exclamationmark"
+                    ))
+                }
+            }
+        }
+
+        return warnings
+    }
+
+    // MARK: - Stack Completeness
+
+    /// Evaluates how complete the user's stack is relative to their stated goals.
+    /// Returns nil if no goals are set.
+    static func stackCompleteness(
+        for currentPeptides: [Peptide],
+        goals: [String],
+        from database: [Peptide]
+    ) -> StackCompleteness? {
+        let resolved = resolveGoals(goals)
+        guard !resolved.isEmpty else { return nil }
+
+        let currentCategories = Set(currentPeptides.map(\.category))
+        let currentAbbreviations = Set(currentPeptides.map(\.abbreviation))
+
+        var coveredGoals: [String] = []
+        var missingCategories: [PeptideCategory] = []
+        var suggestions: [String] = []
+        var totalDimensions = 0
+        var coveredDimensions = 0
+
+        for goal in resolved {
+            totalDimensions += 2
+
+            // Dimension 1: category coverage
+            if currentCategories.contains(goal.category) {
+                coveredDimensions += 1
+                if !coveredGoals.contains(goal.displayName) {
+                    coveredGoals.append(goal.displayName)
+                }
+            } else {
+                if !missingCategories.contains(goal.category) {
+                    missingCategories.append(goal.category)
+                }
+                suggestions.append(
+                    "Add a \(goal.category.displayName) peptide for your \"\(goal.displayName)\" goal"
+                )
+            }
+
+            // Dimension 2: validated stack coverage
+            let hasCompleteStack = PeptideCompatibilityData.validatedStacks.contains { stack in
+                let goalRelevant = stack.goal.localizedCaseInsensitiveContains(goal.category.displayName) ||
+                    goal.benefitTerms.contains { stack.goal.localizedCaseInsensitiveContains($0) }
+                let isComplete = stack.peptideAbbreviations.allSatisfy { currentAbbreviations.contains($0) }
+                return goalRelevant && isComplete
+            }
+            if hasCompleteStack {
+                coveredDimensions += 1
+            }
+        }
+
+        let score = totalDimensions > 0 ? Double(coveredDimensions) / Double(totalDimensions) : 0
+        return StackCompleteness(
+            score: score,
+            coveredGoals: coveredGoals,
+            missingCategories: missingCategories,
+            suggestions: suggestions
+        )
+    }
+
+    // MARK: - Cycle Transitions
+
+    /// Identifies peptides approaching or past their recommended cycle end.
+    static func cycleTransitions(
+        for activeProtocols: [PeptideProtocol]
+    ) -> [CycleTransition] {
+        let calendar = Calendar.current
+        var transitions: [CycleTransition] = []
+
+        for proto in activeProtocols {
+            for peptide in proto.peptides {
+                guard let cycle = PeptideTimingData.cycleProtocols[peptide.abbreviation] else { continue }
+                let weeksElapsed = calendar.dateComponents(
+                    [.weekOfYear], from: proto.startDate, to: Date()
+                ).weekOfYear ?? 0
+                let weeksRemaining = max(cycle.onWeeks - weeksElapsed, 0)
+
+                // Show transition if within 2 weeks of cycle end or already overdue
+                guard weeksRemaining <= 2 else { continue }
+                transitions.append(CycleTransition(
+                    peptideAbbreviation: peptide.abbreviation,
+                    weeksRemaining: weeksRemaining,
+                    suggestedReplacements: cycle.transitionSuggestions,
+                    reason: cycle.reason
+                ))
+            }
+        }
+
+        return transitions.sorted { $0.weeksRemaining < $1.weeksRemaining }
     }
 
     // MARK: - Helpers
 
-    private struct ResolvedGoal {
+    struct ResolvedGoal {
         let displayName: String
         let category: PeptideCategory
         let benefitTerms: [String]
     }
 
-    private static func resolveGoals(_ goals: [String]) -> [ResolvedGoal] {
+    static func resolveGoals(_ goals: [String]) -> [ResolvedGoal] {
         goals.compactMap { goal in
             let lower = goal.lowercased()
             for mapping in goalKeywords {
@@ -497,7 +786,7 @@ enum StackRecommendationEngine {
         }
     }
 
-    private static func resolveMatch(
+    static func resolveMatch(
         _ stackName: String,
         in lookup: [String: Peptide],
         database: [Peptide]
