@@ -110,6 +110,6 @@ private struct SettingsInfoRow: View {
         AppearanceSettings()
             .padding(Spacing.screenPadding)
     }
-    .environment(DataStore())
+    .environment(DataStore(seedSampleData: true))
     .preferredColorScheme(.dark)
 }

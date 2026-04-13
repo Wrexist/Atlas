@@ -83,6 +83,6 @@ struct PeptideListView: View {
 
 #Preview {
     PeptideListView()
-        .environment(DataStore())
+        .environment(DataStore(seedSampleData: true))
         .preferredColorScheme(.dark)
 }

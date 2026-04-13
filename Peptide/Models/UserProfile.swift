@@ -7,4 +7,13 @@ struct UserProfile: Codable {
     var healthConnected: Bool
     var hapticFeedbackEnabled: Bool = true
     var doseRemindersEnabled: Bool = false
+
+    static var fresh: UserProfile {
+        UserProfile(
+            name: "",
+            goals: [],
+            memberSince: Date(),
+            healthConnected: false
+        )
+    }
 }

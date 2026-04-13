@@ -49,13 +49,31 @@ final class DataStore: DataServiceProtocol {
         return grouped
     }
 
-    init() {
-        let loadedProtocols = persistence.loadProtocols() ?? MockProtocols.all
-        self.protocols = loadedProtocols
-        self.entries = persistence.loadEntries() ?? Self.generateInitialEntries(for: loadedProtocols)
-        self.profile = persistence.loadProfile() ?? MockProfile.current
-        regenerateTodayEntries()
-        if !persistence.hasPersistedData { save() }
+    init(seedSampleData: Bool = false) {
+        let savedProtocols = persistence.loadProtocols()
+        let savedEntries = persistence.loadEntries()
+        let savedProfile = persistence.loadProfile()
+
+        if savedProtocols != nil || savedEntries != nil || savedProfile != nil {
+            // Returning user: restore persisted data
+            self.protocols = savedProtocols ?? []
+            self.entries = savedEntries ?? []
+            self.profile = savedProfile ?? .fresh
+            regenerateTodayEntries()
+        } else if seedSampleData {
+            // Tests/previews: seed mock data
+            let sampleProtocols = MockProtocols.all
+            self.protocols = sampleProtocols
+            self.entries = Self.generateInitialEntries(for: sampleProtocols)
+            self.profile = MockProfile.current
+            regenerateTodayEntries()
+            save()
+        } else {
+            // First launch: clean slate, no entries to generate
+            self.protocols = []
+            self.entries = []
+            self.profile = .fresh
+        }
     }
 
     // MARK: - Peptide Database

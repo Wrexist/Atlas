@@ -94,6 +94,6 @@ struct ProfileView: View {
 
 #Preview {
     ProfileView()
-        .environment(DataStore())
+        .environment(DataStore(seedSampleData: true))
         .preferredColorScheme(.dark)
 }

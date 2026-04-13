@@ -8,13 +8,19 @@ struct WelcomeHeader: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text("\(greeting),")
-                    .font(AppFont.title)
-                    .foregroundStyle(AppColor.textPrimary)
+                if name.isEmpty {
+                    Text(greeting)
+                        .font(AppFont.largeTitle)
+                        .foregroundStyle(AppColor.textPrimary)
+                } else {
+                    Text("\(greeting),")
+                        .font(AppFont.title)
+                        .foregroundStyle(AppColor.textPrimary)
 
-                Text(name)
-                    .font(AppFont.largeTitle)
-                    .foregroundStyle(AppColor.accentLight)
+                    Text(name)
+                        .font(AppFont.largeTitle)
+                        .foregroundStyle(AppColor.accentLight)
+                }
 
                 Text(date)
                     .font(AppFont.subheadline)
@@ -32,9 +38,15 @@ struct WelcomeHeader: View {
                             .strokeBorder(AppColor.glassBorderActive, lineWidth: 1)
                     }
 
-                Text(String(name.prefix(1)))
-                    .font(AppFont.title2)
-                    .foregroundStyle(AppColor.accentLight)
+                if name.isEmpty {
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(AppColor.accentLight)
+                } else {
+                    Text(String(name.prefix(1)))
+                        .font(AppFont.title2)
+                        .foregroundStyle(AppColor.accentLight)
+                }
             }
             .glassEffect(in: .circle)
         }
@@ -42,10 +54,19 @@ struct WelcomeHeader: View {
     }
 }
 
-#Preview {
+#Preview("With Name") {
     ZStack {
         AppColor.background.ignoresSafeArea()
         WelcomeHeader(greeting: "Good evening", name: "Alex", date: "Thursday, April 10")
+            .padding(Spacing.screenPadding)
+    }
+    .preferredColorScheme(.dark)
+}
+
+#Preview("No Name") {
+    ZStack {
+        AppColor.background.ignoresSafeArea()
+        WelcomeHeader(greeting: "Good evening", name: "", date: "Thursday, April 10")
             .padding(Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)

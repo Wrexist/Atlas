@@ -99,6 +99,6 @@ private struct ProtocolSection: View {
 
 #Preview {
     ProtocolListView()
-        .environment(DataStore())
+        .environment(DataStore(seedSampleData: true))
         .preferredColorScheme(.dark)
 }
