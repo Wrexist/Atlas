@@ -197,8 +197,8 @@ final class StackRecommendationEngineTests: XCTestCase {
             activeProtocols: [], entries: []
         )
         // Find another peptide in the same category to test the penalty
-        if let fourth = database.first(where: {
-            $0.category == category && !stack.contains(where: { s in s.id == $0.id })
+        if let fourth = database.first(where: { candidate in
+            candidate.category == category && !stack.contains(where: { $0.id == candidate.id })
         }) {
             let (score, _) = StackRecommendationEngine.scoreDiminishingReturns(candidate: fourth, context: context)
             XCTAssertLessThan(score, 0, "4th peptide in same category should be penalized")
