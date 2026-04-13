@@ -518,7 +518,11 @@ final class StackRecommendationEngineTests: XCTestCase {
         XCTAssertEqual(StackRecommendationEngine.parseHalfLifeHours("4 hours"), 4.0)
         XCTAssertEqual(StackRecommendationEngine.parseHalfLifeHours("20-30 hours"), 25.0)
         XCTAssertEqual(StackRecommendationEngine.parseHalfLifeHours("6-8 days"), 168.0)
-        XCTAssertEqual(StackRecommendationEngine.parseHalfLifeHours("26 minutes"), 26.0 / 60.0, accuracy: 0.01)
+        if let minutes = StackRecommendationEngine.parseHalfLifeHours("26 minutes") {
+            XCTAssertEqual(minutes, 26.0 / 60.0, accuracy: 0.01)
+        } else {
+            XCTFail("Should parse '26 minutes'")
+        }
         XCTAssertNil(StackRecommendationEngine.parseHalfLifeHours("Unknown"))
         XCTAssertNil(StackRecommendationEngine.parseHalfLifeHours("N/A"))
     }
