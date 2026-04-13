@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 @MainActor @Observable
 final class DataStore: DataServiceProtocol {
@@ -347,6 +348,7 @@ final class DataStore: DataServiceProtocol {
     // MARK: - Next Dose
 
     var nextDose: ProtocolEntry? {
+        invalidateCacheIfDayChanged()
         if let cached = _cachedNextDose { return cached }
         let now = Date()
         let today = todayEntries
@@ -376,7 +378,26 @@ final class DataStore: DataServiceProtocol {
         persistence.saveProtocols(protocols)
         persistence.saveEntries(entries)
         persistence.saveProfile(profile)
+        updateWidgetData()
         scheduleAchievementCheck()
+    }
+
+    private func updateWidgetData() {
+        let today = todayEntries
+        let completed = today.filter(\.completed).count
+        let next = nextDose
+
+        let data = WidgetData(
+            nextPeptideName: next?.peptide.abbreviation ?? "",
+            nextDose: next?.dose ?? "",
+            nextDoseTime: next?.date,
+            completedToday: completed,
+            totalToday: today.count,
+            lastUpdated: Date()
+        )
+
+        persistence.updateWidgetData(data)
+        Task { WidgetCenter.shared.reloadAllTimelines() }
     }
 
     private func scheduleAchievementCheck() {

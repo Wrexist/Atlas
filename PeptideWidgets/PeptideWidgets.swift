@@ -8,28 +8,98 @@ struct DoseEntry: TimelineEntry {
     let peptideName: String
     let dose: String
     let doseTime: String
+    let nextDoseDate: Date?
     let completed: Int
     let total: Int
     let compliance: Double
+
+    static let placeholder = DoseEntry(
+        date: .now,
+        peptideName: "BPC-157",
+        dose: "250 mcg",
+        doseTime: "8:00 AM",
+        nextDoseDate: nil,
+        completed: 3,
+        total: 5,
+        compliance: 0.6
+    )
 }
 
 // MARK: - Timeline Provider
 
 struct DoseTimelineProvider: TimelineProvider {
+    private static let decoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }()
+
     func placeholder(in context: Context) -> DoseEntry {
-        DoseEntry(date: .now, peptideName: "BPC-157", dose: "250 mcg", doseTime: "8:00 AM", completed: 3, total: 5, compliance: 0.6)
+        .placeholder
     }
 
     func getSnapshot(in context: Context, completion: @escaping (DoseEntry) -> Void) {
-        completion(placeholder(in: context))
+        if context.isPreview {
+            completion(.placeholder)
+            return
+        }
+        completion(currentEntry())
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<DoseEntry>) -> Void) {
-        // Widget data sharing requires App Groups (future work).
-        // For now, show placeholder data that refreshes every 30 min.
-        let entry = placeholder(in: context)
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: Date()) ?? Date()
+        let entry = currentEntry()
+
+        // Refresh at dose time if it's coming up soon, otherwise every 15 min
+        let fallback = Calendar.current.date(byAdding: .minute, value: 15, to: .now) ?? .now
+        let nextUpdate: Date
+        if let doseDate = entry.nextDoseDate, doseDate > .now, doseDate < fallback {
+            nextUpdate = doseDate.addingTimeInterval(60)
+        } else {
+            nextUpdate = fallback
+        }
+
         completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
+    }
+
+    private func currentEntry() -> DoseEntry {
+        guard let widgetData = loadWidgetData() else {
+            return DoseEntry(
+                date: .now,
+                peptideName: "",
+                dose: "",
+                doseTime: "",
+                nextDoseDate: nil,
+                completed: 0,
+                total: 0,
+                compliance: 0
+            )
+        }
+
+        let doseTime: String
+        if let time = widgetData.nextDoseTime {
+            doseTime = time.formatted(.dateTime.hour().minute())
+        } else {
+            doseTime = ""
+        }
+
+        return DoseEntry(
+            date: .now,
+            peptideName: widgetData.nextPeptideName,
+            dose: widgetData.nextDose,
+            doseTime: doseTime,
+            nextDoseDate: widgetData.nextDoseTime,
+            completed: widgetData.completedToday,
+            total: widgetData.totalToday,
+            compliance: widgetData.compliance
+        )
+    }
+
+    private func loadWidgetData() -> WidgetData? {
+        guard let url = FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)?
+            .appendingPathComponent("widget-data.json"),
+              let data = try? Data(contentsOf: url) else { return nil }
+        return try? Self.decoder.decode(WidgetData.self, from: data)
     }
 }
 
@@ -51,7 +121,14 @@ struct SmallWidgetView: View {
 
             Spacer()
 
-            if entry.dose.isEmpty {
+            if entry.total == 0 {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(.green)
+                Text("No protocols")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            } else if entry.dose.isEmpty {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 24))
                     .foregroundStyle(.green)
@@ -104,7 +181,14 @@ struct MediumWidgetView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                if entry.dose.isEmpty {
+                if entry.total == 0 {
+                    Text("Create a protocol")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                    Text("to start tracking doses")
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                } else if entry.dose.isEmpty {
                     Text("All doses completed!")
                         .font(.headline)
                         .foregroundStyle(.green)
