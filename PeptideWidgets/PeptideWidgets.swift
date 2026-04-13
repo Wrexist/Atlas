@@ -18,7 +18,7 @@ struct DoseEntry: TimelineEntry {
         peptideName: "BPC-157",
         dose: "250 mcg",
         doseTime: "8:00 AM",
-        nextDoseDate: nil,
+        nextDoseDate: .now,
         completed: 3,
         total: 5,
         compliance: 0.6
@@ -48,14 +48,21 @@ struct DoseTimelineProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<DoseEntry>) -> Void) {
         let entry = currentEntry()
+        let calendar = Calendar.current
 
-        // Refresh at dose time if it's coming up soon, otherwise every 15 min
-        let fallback = Calendar.current.date(byAdding: .minute, value: 15, to: .now) ?? .now
+        // Always refresh at midnight to show the new day's schedule
+        let midnight = calendar.startOfDay(
+            for: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now
+        )
+        let fifteenMin = calendar.date(byAdding: .minute, value: 15, to: .now) ?? .now
+
         let nextUpdate: Date
-        if let doseDate = entry.nextDoseDate, doseDate > .now, doseDate < fallback {
-            nextUpdate = doseDate.addingTimeInterval(60)
+        if let doseDate = entry.nextDoseDate, doseDate > .now, doseDate <= fifteenMin {
+            // Dose is imminent: refresh 1 min after it's due
+            nextUpdate = min(doseDate.addingTimeInterval(60), midnight)
         } else {
-            nextUpdate = fallback
+            // Standard 15-min refresh, but never past midnight
+            nextUpdate = min(fifteenMin, midnight)
         }
 
         completion(Timeline(entries: [entry], policy: .after(nextUpdate)))

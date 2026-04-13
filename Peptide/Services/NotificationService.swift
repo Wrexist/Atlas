@@ -59,6 +59,8 @@ final class NotificationService {
                     content.categoryIdentifier = "DOSE_REMINDER"
                     content.userInfo = [
                         "protocolId": proto.id.uuidString,
+                        "hour": hour,
+                        "minute": minute,
                     ]
 
                     let trigger = UNCalendarNotificationTrigger(

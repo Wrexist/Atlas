@@ -87,6 +87,8 @@ struct AppearanceSettings: View {
                 if authorized {
                     NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols)
                 } else {
+                    // Flip back to false; this triggers onChange again with enabled=false,
+                    // which calls cancelAll() -- redundant but harmless since nothing is scheduled.
                     dataStore.profile.doseRemindersEnabled = false
                     dataStore.persistProfile()
                 }

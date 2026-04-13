@@ -78,6 +78,9 @@ final class PersistenceService: @unchecked Sendable {
         try? fileManager.removeItem(at: protocolsURL)
         try? fileManager.removeItem(at: entriesURL)
         try? fileManager.removeItem(at: profileURL)
+        if let url = widgetDataURL {
+            try? fileManager.removeItem(at: url)
+        }
     }
 
     // MARK: - Private

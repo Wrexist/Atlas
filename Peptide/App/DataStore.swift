@@ -56,7 +56,8 @@ final class DataStore: DataServiceProtocol {
         let savedProfile = persistence.loadProfile()
 
         if savedProtocols != nil || savedEntries != nil || savedProfile != nil {
-            // Returning user: restore persisted data
+            // Returning user: recover what we can. Using || (not &&) so a single
+            // corrupt file doesn't erase the user's entire dataset.
             self.protocols = savedProtocols ?? []
             self.entries = savedEntries ?? []
             self.profile = savedProfile ?? .fresh
@@ -497,6 +498,11 @@ final class DataStore: DataServiceProtocol {
     }
 
     private func appendTodayEntries(for proto: PeptideProtocol) {
+        let calendar = Calendar.current
+        let alreadyHasToday = entries.contains {
+            $0.protocolId == proto.id && calendar.isDateInToday($0.date)
+        }
+        guard !alreadyHasToday else { return }
         let newEntries = Self.generateTodayEntries(for: proto)
         entries.append(contentsOf: newEntries)
     }

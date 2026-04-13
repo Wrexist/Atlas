@@ -21,16 +21,24 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         case "MARK_TAKEN":
             let userInfo = response.notification.request.content.userInfo
             let protocolIdStr = userInfo["protocolId"] as? String
+            let scheduledHour = userInfo["hour"] as? Int
+            let scheduledMinute = userInfo["minute"] as? Int
 
             Task { @MainActor [dataStore] in
-                if let protocolIdStr,
-                   let protocolId = UUID(uuidString: protocolIdStr) {
-                    let uncompleted = dataStore.todayEntries.filter {
-                        $0.protocolId == protocolId && !$0.completed
-                    }
-                    for entry in uncompleted {
-                        dataStore.toggleEntry(entry.id)
-                    }
+                guard let protocolIdStr,
+                      let protocolId = UUID(uuidString: protocolIdStr) else { return }
+
+                let calendar = Calendar.current
+                let uncompleted = dataStore.todayEntries.filter { entry in
+                    guard entry.protocolId == protocolId, !entry.completed else { return false }
+                    // Match the time slot if available, otherwise mark all
+                    guard let hour = scheduledHour, let minute = scheduledMinute else { return true }
+                    let entryHour = calendar.component(.hour, from: entry.date)
+                    let entryMinute = calendar.component(.minute, from: entry.date)
+                    return entryHour == hour && entryMinute == minute
+                }
+                for entry in uncompleted {
+                    dataStore.toggleEntry(entry.id)
                 }
             }
 
