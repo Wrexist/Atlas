@@ -100,7 +100,7 @@ final class DataStore: DataServiceProtocol {
         protocols.insert(newProtocol, at: 0)
         appendTodayEntries(for: newProtocol)
         save()
-        NotificationService.shared.scheduleNotifications(for: activeProtocols)
+        rescheduleNotificationsIfEnabled()
         if profile.hapticFeedbackEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
@@ -111,7 +111,7 @@ final class DataStore: DataServiceProtocol {
         protocols.removeAll { $0.id == id }
         entries.removeAll { $0.protocolId == id }
         save()
-        NotificationService.shared.scheduleNotifications(for: activeProtocols)
+        rescheduleNotificationsIfEnabled()
     }
 
     func updateProtocolStatus(id: UUID, to status: ProtocolStatus) {
@@ -122,7 +122,7 @@ final class DataStore: DataServiceProtocol {
             appendTodayEntries(for: protocols[index])
         }
         save()
-        NotificationService.shared.scheduleNotifications(for: activeProtocols)
+        rescheduleNotificationsIfEnabled()
     }
 
     // MARK: - Entries
@@ -184,7 +184,7 @@ final class DataStore: DataServiceProtocol {
         )
         protocols[index] = updated
         save()
-        NotificationService.shared.scheduleNotifications(for: activeProtocols)
+        rescheduleNotificationsIfEnabled()
     }
 
     func entriesFor(protocolId: UUID, days: Int = 14) -> [ProtocolEntry] {
@@ -368,6 +368,19 @@ final class DataStore: DataServiceProtocol {
     func toggleHealthConnection() {
         profile.healthConnected.toggle()
         save()
+    }
+
+    /// Persists the current profile state. Call after direct property mutations
+    /// via bindings (e.g. settings toggles) that bypass dedicated update methods.
+    func persistProfile() {
+        save()
+    }
+
+    // MARK: - Notifications
+
+    private func rescheduleNotificationsIfEnabled() {
+        guard profile.doseRemindersEnabled else { return }
+        NotificationService.shared.scheduleNotifications(for: activeProtocols)
     }
 
     // MARK: - Persistence

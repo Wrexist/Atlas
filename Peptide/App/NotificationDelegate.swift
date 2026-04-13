@@ -20,19 +20,15 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         switch action {
         case "MARK_TAKEN":
             let userInfo = response.notification.request.content.userInfo
-            let peptideIdStr = userInfo["peptideId"] as? String
             let protocolIdStr = userInfo["protocolId"] as? String
 
             Task { @MainActor [dataStore] in
-                if let peptideIdStr,
-                   let peptideId = UUID(uuidString: peptideIdStr),
-                   let protocolIdStr,
+                if let protocolIdStr,
                    let protocolId = UUID(uuidString: protocolIdStr) {
-                    if let entry = dataStore.todayEntries.first(where: {
-                        $0.peptide.id == peptideId &&
-                        $0.protocolId == protocolId &&
-                        !$0.completed
-                    }) {
+                    let uncompleted = dataStore.todayEntries.filter {
+                        $0.protocolId == protocolId && !$0.completed
+                    }
+                    for entry in uncompleted {
                         dataStore.toggleEntry(entry.id)
                     }
                 }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AppearanceSettings: View {
     @Environment(DataStore.self) private var dataStore
+    @State private var notificationService = NotificationService.shared
 
     var body: some View {
         @Bindable var store = dataStore
@@ -12,12 +13,21 @@ struct AppearanceSettings: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
-                SettingsToggleRow(
-                    icon: "bell.fill",
-                    title: "Dose Reminders",
-                    subtitle: "Get notified for scheduled doses",
-                    isOn: $store.profile.doseRemindersEnabled
-                )
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    SettingsToggleRow(
+                        icon: "bell.fill",
+                        title: "Dose Reminders",
+                        subtitle: "Get notified for scheduled doses",
+                        isOn: $store.profile.doseRemindersEnabled
+                    )
+                    .onChange(of: dataStore.profile.doseRemindersEnabled) { _, enabled in
+                        handleDoseRemindersToggle(enabled)
+                    }
+
+                    if dataStore.profile.doseRemindersEnabled, notificationService.requestedCount > 0 {
+                        notificationStatusRow
+                    }
+                }
 
                 Divider().foregroundStyle(AppColor.glassBorder)
 
@@ -27,6 +37,9 @@ struct AppearanceSettings: View {
                     subtitle: "Vibrate on interactions",
                     isOn: $store.profile.hapticFeedbackEnabled
                 )
+                .onChange(of: dataStore.profile.hapticFeedbackEnabled) { _, _ in
+                    dataStore.persistProfile()
+                }
 
                 Divider().foregroundStyle(AppColor.glassBorder)
 
@@ -44,6 +57,42 @@ struct AppearanceSettings: View {
                     value: "Metric (mcg)"
                 )
             }
+        }
+    }
+
+    private var notificationStatusRow: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: notificationService.requestedCount > 64 ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(notificationService.requestedCount > 64 ? .orange : AppColor.accentPrimary)
+
+            if notificationService.requestedCount > 64 {
+                Text("\(notificationService.scheduledCount) of \(notificationService.requestedCount) reminders active (iOS limit: 64)")
+                    .font(AppFont.caption)
+                    .foregroundStyle(.orange)
+            } else {
+                Text("\(notificationService.scheduledCount) reminders scheduled")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+        }
+        .padding(.leading, 36)
+    }
+
+    private func handleDoseRemindersToggle(_ enabled: Bool) {
+        dataStore.persistProfile()
+        if enabled {
+            Task {
+                let authorized = await NotificationService.shared.requestAuthorization()
+                if authorized {
+                    NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols)
+                } else {
+                    dataStore.profile.doseRemindersEnabled = false
+                    dataStore.persistProfile()
+                }
+            }
+        } else {
+            NotificationService.shared.cancelAll()
         }
     }
 }
