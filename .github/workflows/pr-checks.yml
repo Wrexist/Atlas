@@ -105,6 +105,7 @@ jobs:
 
       - name: Unit Tests
         run: |
+          set -o pipefail
           xcodebuild test \
             -project Peptide.xcodeproj \
             -scheme Peptide \
@@ -114,7 +115,15 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             -only-testing:PeptideTests \
-            -resultBundlePath UnitTestResults.xcresult
+            -resultBundlePath UnitTestResults.xcresult 2>&1 | tee test-output.log
+
+      - name: Print test failures
+        if: failure()
+        run: |
+          echo "=== FAILED TESTS ==="
+          grep -E '(Test Case .* failed|error:|fatal error|Assertion|FAILED|passed|Tests)' test-output.log | tail -80 || true
+          echo "=== TEST SUMMARY ==="
+          grep -E '(Executed|Test suite|test.* (passed|failed))' test-output.log | tail -30 || true
 
       - name: UI Tests
         run: |
