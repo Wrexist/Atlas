@@ -54,7 +54,6 @@ final class PersistenceRoundTripTests: XCTestCase {
     }
 
     func test_saveAndLoadEntries_roundTrip() {
-        let protocols = MockProtocols.all
         let store = DataStore(seedSampleData: true)
         let original = store.entries
 
