@@ -411,7 +411,7 @@ final class DataStore: DataServiceProtocol {
         )
 
         PersistenceService.shared.updateWidgetData(data)
-        Task { WidgetCenter.shared.reloadAllTimelines() }
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     private func scheduleAchievementCheck() {
