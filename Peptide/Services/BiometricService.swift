@@ -1,4 +1,4 @@
-import LocalAuthentication
+@preconcurrency import LocalAuthentication
 
 @MainActor @Observable
 final class BiometricService {
