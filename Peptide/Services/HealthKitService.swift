@@ -17,7 +17,9 @@ final class HealthKitService {
     static let shared = HealthKitService()
 
     @ObservationIgnored private let store = HKHealthStore()
+    @ObservationIgnored private var activeQueries: [HKObserverQuery] = []
     private(set) var cachedSnapshot: HealthSnapshot?
+    private var isBackgroundDeliveryStarted = false
 
     private init() {}
 
@@ -49,7 +51,8 @@ final class HealthKitService {
     // MARK: - Background Delivery
 
     func startBackgroundDelivery() async {
-        guard isAvailable else { return }
+        guard isAvailable, !isBackgroundDeliveryStarted else { return }
+        isBackgroundDeliveryStarted = true
 
         let quantityTypes: [(HKQuantityTypeIdentifier, HKUpdateFrequency)] = [
             (.heartRate, .immediate),
@@ -67,6 +70,13 @@ final class HealthKitService {
 
         // Populate cache immediately so Analytics has data on first open
         await refreshSnapshot()
+    }
+
+    func stopBackgroundDelivery() {
+        for query in activeQueries { store.stop(query) }
+        activeQueries.removeAll()
+        store.disableAllBackgroundDelivery { _, _ in }
+        isBackgroundDeliveryStarted = false
     }
 
     func refreshSnapshot() async {
@@ -116,6 +126,7 @@ final class HealthKitService {
             }
         }
         store.execute(query)
+        activeQueries.append(query)
     }
 
     // MARK: - Heart Rate

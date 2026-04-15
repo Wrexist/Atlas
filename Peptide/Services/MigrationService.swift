@@ -30,6 +30,10 @@ final class MigrationService {
         repo.saveEntries(entries)
         if let profile { repo.saveProfile(profile) }
 
+        // Only archive if data landed in SwiftData (guards against silent save failures)
+        let nothingToImport = protocols.isEmpty && entries.isEmpty && profile == nil
+        guard repo.hasAnyData || nothingToImport else { return }
+
         // Rename source files to mark migration complete
         persistence.archiveLegacyFiles()
     }

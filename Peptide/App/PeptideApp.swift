@@ -36,8 +36,11 @@ struct PeptideApp: App {
             }
         }
         .task(id: dataStore.profile.healthConnected) {
-            guard dataStore.profile.healthConnected else { return }
-            await HealthKitService.shared.startBackgroundDelivery()
+            if dataStore.profile.healthConnected {
+                await HealthKitService.shared.startBackgroundDelivery()
+            } else {
+                HealthKitService.shared.stopBackgroundDelivery()
+            }
         }
     }
 

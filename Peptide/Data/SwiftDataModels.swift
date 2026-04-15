@@ -40,10 +40,10 @@ final class StoredProtocol {
         self.scheduleData = scheduleData
     }
 
-    convenience init(from proto: PeptideProtocol) throws {
+    static func make(from proto: PeptideProtocol) throws -> StoredProtocol {
         let peptideData = try sdEncoder.encode(proto.peptides)
         let scheduleData = try sdEncoder.encode(proto.schedule)
-        self.init(
+        return StoredProtocol(
             id: proto.id,
             name: proto.name,
             cycleLengthWeeks: proto.cycleLengthWeeks,
@@ -112,9 +112,9 @@ final class StoredEntry {
         self.peptideData = peptideData
     }
 
-    convenience init(from entry: ProtocolEntry) throws {
+    static func make(from entry: ProtocolEntry) throws -> StoredEntry {
         let peptideData = try sdEncoder.encode(entry.peptide)
-        self.init(
+        return StoredEntry(
             id: entry.id,
             protocolId: entry.protocolId,
             date: entry.date,
@@ -179,9 +179,9 @@ final class StoredProfile {
         self.goalsData = goalsData
     }
 
-    convenience init(from profile: UserProfile) throws {
+    static func make(from profile: UserProfile) throws -> StoredProfile {
         let goalsData = try sdEncoder.encode(profile.goals)
-        self.init(
+        return StoredProfile(
             name: profile.name,
             memberSince: profile.memberSince,
             healthConnected: profile.healthConnected,
