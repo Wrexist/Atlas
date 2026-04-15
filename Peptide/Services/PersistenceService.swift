@@ -83,6 +83,16 @@ final class PersistenceService: @unchecked Sendable {
         }
     }
 
+    /// Renames legacy JSON files to `.migrated` so MigrationService knows not to re-run.
+    /// Silently ignores files that don't exist.
+    func archiveLegacyFiles() {
+        for url in [protocolsURL, entriesURL, profileURL] {
+            guard fileManager.fileExists(atPath: url.path) else { continue }
+            let archived = url.deletingPathExtension().appendingPathExtension("migrated")
+            try? fileManager.moveItem(at: url, to: archived)
+        }
+    }
+
     // MARK: - Private
 
     private func save<T: Encodable>(_ value: T, to url: URL) {

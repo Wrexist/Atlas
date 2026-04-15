@@ -4,7 +4,10 @@ import UserNotifications
 @main
 struct PeptideApp: App {
     @State private var appState = AppState()
-    @State private var dataStore = DataStore()
+    @State private var dataStore: DataStore = {
+        MigrationService.shared.migrateIfNeeded()
+        return DataStore()
+    }()
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var notificationDelegate: NotificationDelegate?
     @State private var isUnlocked = false

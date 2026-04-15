@@ -7,7 +7,7 @@ final class DataStore: DataServiceProtocol {
     var entries: [ProtocolEntry]
     var profile: UserProfile
 
-    private let persistence = PersistenceService.shared
+    private let repo = SwiftDataRepository.shared
     private let _peptideDatabase: [Peptide] = PeptideDatabase.shared
 
     // MARK: - Cache (avoids recomputing expensive stats on every toggle)
@@ -51,16 +51,16 @@ final class DataStore: DataServiceProtocol {
     }
 
     init(seedSampleData: Bool = false) {
-        let savedProtocols = persistence.loadProtocols()
-        let savedEntries = persistence.loadEntries()
-        let savedProfile = persistence.loadProfile()
+        let savedProtocols = repo.loadProtocols()
+        let savedEntries   = repo.loadEntries()
+        let savedProfile   = repo.loadProfile()
 
-        if savedProtocols != nil || savedEntries != nil || savedProfile != nil {
+        if !savedProtocols.isEmpty || !savedEntries.isEmpty || savedProfile != nil {
             // Returning user: recover what we can. Using || (not &&) so a single
-            // corrupt file doesn't erase the user's entire dataset.
-            self.protocols = savedProtocols ?? []
-            self.entries = savedEntries ?? []
-            self.profile = savedProfile ?? .fresh
+            // corrupt record doesn't erase the user's entire dataset.
+            self.protocols = savedProtocols
+            self.entries   = savedEntries
+            self.profile   = savedProfile ?? .fresh
             regenerateTodayEntries()
         } else if seedSampleData {
             // Tests/previews: seed mock data
@@ -389,9 +389,9 @@ final class DataStore: DataServiceProtocol {
     private var achievementCheckPending = false
 
     private func save() {
-        persistence.saveProtocols(protocols)
-        persistence.saveEntries(entries)
-        persistence.saveProfile(profile)
+        repo.saveProtocols(protocols)
+        repo.saveEntries(entries)
+        repo.saveProfile(profile)
         updateWidgetData()
         scheduleAchievementCheck()
     }
@@ -410,7 +410,7 @@ final class DataStore: DataServiceProtocol {
             lastUpdated: Date()
         )
 
-        persistence.updateWidgetData(data)
+        PersistenceService.shared.updateWidgetData(data)
         Task { WidgetCenter.shared.reloadAllTimelines() }
     }
 
