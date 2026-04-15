@@ -34,20 +34,28 @@ final class AuthService {
 
         let userId = credential.user
 
-        // Apple only sends name/email on the FIRST authorization.
-        // On subsequent sign-ins these are nil — we use the Keychain copy.
-        let email = credential.email ?? Self.readKeychain(account: Self.keychainAccountEmail)
+        // Guard against PII carryover: only reuse cached email/name when the
+        // stored user ID matches the current credential (Apple only sends
+        // name/email on the very first authorization).
+        let previousUserId = Self.readKeychain(account: Self.keychainAccountID)
+        let sameAccount = (previousUserId == userId)
+        if !sameAccount {
+            Self.deleteKeychain(account: Self.keychainAccountEmail)
+            Self.deleteKeychain(account: Self.keychainAccountName)
+        }
+
+        let email = credential.email ?? (sameAccount ? Self.readKeychain(account: Self.keychainAccountEmail) : nil)
         let name: String? = {
             if let components = credential.fullName,
                let formatted = PersonNameComponentsFormatter().string(for: components),
                !formatted.trimmingCharacters(in: .whitespaces).isEmpty {
                 return formatted
             }
-            return Self.readKeychain(account: Self.keychainAccountName)
+            return sameAccount ? Self.readKeychain(account: Self.keychainAccountName) : nil
         }()
 
-        // Persist to Keychain
-        Self.writeKeychain(value: userId, account: Self.keychainAccountID)
+        // Persist to Keychain — abort sign-in if the user ID can't be stored.
+        guard Self.writeKeychain(value: userId, account: Self.keychainAccountID) == errSecSuccess else { return }
         if let email  { Self.writeKeychain(value: email, account: Self.keychainAccountEmail) }
         if let name   { Self.writeKeychain(value: name, account: Self.keychainAccountName) }
 
@@ -100,8 +108,9 @@ final class AuthService {
 
     // MARK: - Keychain Helpers
 
-    private static func writeKeychain(value: String, account: String) {
-        guard let data = value.data(using: .utf8) else { return }
+    @discardableResult
+    private static func writeKeychain(value: String, account: String) -> OSStatus {
+        guard let data = value.data(using: .utf8) else { return errSecParam }
 
         let query: [String: Any] = [
             kSecClass as String:       kSecClassGenericPassword,
@@ -116,7 +125,7 @@ final class AuthService {
         addQuery[kSecValueData as String]          = data
         addQuery[kSecAttrAccessible as String]     = kSecAttrAccessibleAfterFirstUnlock
 
-        SecItemAdd(addQuery as CFDictionary, nil)
+        return SecItemAdd(addQuery as CFDictionary, nil)
     }
 
     private static func readKeychain(account: String) -> String? {

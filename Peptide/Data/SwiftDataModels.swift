@@ -61,8 +61,16 @@ final class StoredProtocol {
         startDate = proto.startDate
         statusRaw = proto.status.rawValue
         notes = proto.notes
-        peptideData = (try? sdEncoder.encode(proto.peptides)) ?? peptideData
-        scheduleData = (try? sdEncoder.encode(proto.schedule)) ?? scheduleData
+        do {
+            peptideData = try sdEncoder.encode(proto.peptides)
+        } catch {
+            assertionFailure("Failed to encode peptides for '\(proto.name)': \(error)")
+        }
+        do {
+            scheduleData = try sdEncoder.encode(proto.schedule)
+        } catch {
+            assertionFailure("Failed to encode schedule for '\(proto.name)': \(error)")
+        }
     }
 
     func toPeptideProtocol() throws -> PeptideProtocol {
@@ -135,7 +143,11 @@ final class StoredEntry {
         injectionSite = entry.injectionSite
         notes = entry.notes
         dose = entry.dose
-        peptideData = (try? sdEncoder.encode(entry.peptide)) ?? peptideData
+        do {
+            peptideData = try sdEncoder.encode(entry.peptide)
+        } catch {
+            assertionFailure("Failed to encode peptide for entry \(entry.id): \(error)")
+        }
     }
 
     func toProtocolEntry() throws -> ProtocolEntry {
@@ -199,7 +211,11 @@ final class StoredProfile {
         hapticFeedbackEnabled = profile.hapticFeedbackEnabled
         doseRemindersEnabled = profile.doseRemindersEnabled
         biometricLockEnabled = profile.biometricLockEnabled
-        goalsData = (try? sdEncoder.encode(profile.goals)) ?? goalsData
+        do {
+            goalsData = try sdEncoder.encode(profile.goals)
+        } catch {
+            assertionFailure("Failed to encode goals for UserProfile '\(profile.name)': \(error)")
+        }
     }
 
     func toUserProfile() throws -> UserProfile {

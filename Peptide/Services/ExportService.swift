@@ -72,13 +72,18 @@ final class ExportService {
 
         // Drawing is extracted to a separate method so the pdfData closure
         // only captures Sendable value types, avoiding Swift 6 @Sendable errors.
-        return renderer.pdfData { [protocols, entries, profile, pageWidth, pageHeight, margin, contentWidth] ctx in
-            drawPDFContent(
-                ctx: ctx,
-                protocols: protocols, entries: entries, profile: profile,
-                pageWidth: pageWidth, pageHeight: pageHeight,
-                margin: margin, contentWidth: contentWidth
-            )
+        // UIGraphicsPDFRenderer calls its closure synchronously on the main thread.
+        // MainActor.assumeIsolated lets us call the @MainActor-isolated drawPDFContent
+        // from within the potentially @Sendable closure without a Swift 6 error.
+        return renderer.pdfData { [self, protocols, entries, profile, pageWidth, pageHeight, margin, contentWidth] ctx in
+            MainActor.assumeIsolated {
+                self.drawPDFContent(
+                    ctx: ctx,
+                    protocols: protocols, entries: entries, profile: profile,
+                    pageWidth: pageWidth, pageHeight: pageHeight,
+                    margin: margin, contentWidth: contentWidth
+                )
+            }
         }
     }
 
@@ -131,6 +136,19 @@ final class ExportService {
             let h = ceil(bounds.height)
             text.draw(in: CGRect(x: x, y: y, width: width, height: h), withAttributes: attrs)
             return h
+        }
+
+        // Measures text height without drawing — used to pre-compute row height
+        // so checkPageBreak gets the real value before any drawing occurs.
+        func measureText(_ text: String, font: UIFont, width: CGFloat) -> CGFloat {
+            let attrs: [NSAttributedString.Key: Any] = [.font: font]
+            let bounds = text.boundingRect(
+                with: CGSize(width: width, height: 2000),
+                options: .usesLineFragmentOrigin,
+                attributes: attrs,
+                context: nil
+            )
+            return ceil(bounds.height)
         }
 
         func drawRule(color: UIColor = UIColor(white: 0.82, alpha: 1)) {
@@ -251,16 +269,24 @@ final class ExportService {
             drawRule()
             y += 5
 
-            // Entry rows
+            // Entry rows — measure first, then paginate, then draw.
             for entry in protoEntries.prefix(60) {
-                checkPageBreak(for: 14)
-
                 let dateVal = entry.date.formatted(date: .abbreviated, time: .omitted)
                 let timeVal = (entry.actualTime ?? entry.date).formatted(.dateTime.hour().minute())
                 let doseVal = entry.actualDose ?? entry.dose
                 let siteVal = entry.injectionSite ?? "—"
+                let doneVal = entry.completed ? "Yes" : "No"
 
-                var rowH: CGFloat = 0
+                let rowH = [
+                    measureText(dateVal, font: bodyFont, width: 68),
+                    measureText(entry.peptide.abbreviation, font: bodyFont, width: 110),
+                    measureText(doseVal, font: bodyFont, width: 75),
+                    measureText(timeVal, font: bodyFont, width: 70),
+                    measureText(siteVal, font: bodyFont, width: 95),
+                    measureText(doneVal, font: bodyFont, width: 40),
+                ].max() ?? 14
+                checkPageBreak(for: rowH + 3)
+
                 for (text, x, width) in [
                     (dateVal,                    cDate, 68.0),
                     (entry.peptide.abbreviation, cPep,  110.0),
@@ -268,11 +294,10 @@ final class ExportService {
                     (timeVal,                    cTime, 70.0),
                     (siteVal,                    cSite, 95.0),
                 ] {
-                    rowH = max(rowH, drawText(text, font: bodyFont, x: x, width: width))
+                    drawText(text, font: bodyFont, x: x, width: width)
                 }
                 let doneColor: UIColor = entry.completed ? greenColor : redColor
-                drawText(entry.completed ? "Yes" : "No",
-                         font: bodyFont, color: doneColor, x: cDone, width: 40)
+                drawText(doneVal, font: bodyFont, color: doneColor, x: cDone, width: 40)
                 y += rowH + 3
             }
 
