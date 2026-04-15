@@ -17,7 +17,6 @@ final class HealthKitService {
     static let shared = HealthKitService()
 
     @ObservationIgnored private let store = HKHealthStore()
-    @ObservationIgnored private var activeQueries: [HKObserverQuery] = []
     private(set) var cachedSnapshot: HealthSnapshot?
     private var isBackgroundDeliveryStarted = false
 
@@ -73,8 +72,6 @@ final class HealthKitService {
     }
 
     func stopBackgroundDelivery() {
-        for query in activeQueries { store.stop(query) }
-        activeQueries.removeAll()
         store.disableAllBackgroundDelivery { _, _ in }
         isBackgroundDeliveryStarted = false
     }
@@ -126,7 +123,6 @@ final class HealthKitService {
             }
         }
         store.execute(query)
-        activeQueries.append(query)
     }
 
     // MARK: - Heart Rate

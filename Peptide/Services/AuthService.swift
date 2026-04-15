@@ -1,4 +1,4 @@
-import AuthenticationServices
+@preconcurrency import AuthenticationServices
 import Security
 
 /// Manages Sign in with Apple identity and Keychain-backed credential persistence.
