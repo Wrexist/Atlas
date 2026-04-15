@@ -50,7 +50,6 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Peptide/Peptide.entitlements
     dependencies:
       - target: PeptideWidgets
-      - sdk: WidgetKit.framework
   PeptideWidgets:
     type: app-extension
     platform: iOS
@@ -70,9 +69,7 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_EMIT_LOC_STRINGS: YES
         CODE_SIGN_ENTITLEMENTS: PeptideWidgets/PeptideWidgets.entitlements
-    dependencies:
-      - sdk: WidgetKit.framework
-      - sdk: SwiftUI.framework
+    dependencies: []
   PeptideTests:
     type: bundle.unit-test
     platform: iOS
