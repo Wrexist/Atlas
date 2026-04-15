@@ -5,10 +5,15 @@ struct WelcomeHeader: View {
     let name: String
     let date: String
 
+    private var displayName: String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "" : trimmed
+    }
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                if name.isEmpty {
+                if displayName.isEmpty {
                     Text(greeting)
                         .font(AppFont.largeTitle)
                         .foregroundStyle(AppColor.textPrimary)
@@ -17,7 +22,7 @@ struct WelcomeHeader: View {
                         .font(AppFont.title)
                         .foregroundStyle(AppColor.textPrimary)
 
-                    Text(name)
+                    Text(displayName)
                         .font(AppFont.largeTitle)
                         .foregroundStyle(AppColor.accentLight)
                 }
@@ -38,12 +43,12 @@ struct WelcomeHeader: View {
                             .strokeBorder(AppColor.glassBorderActive, lineWidth: 1)
                     }
 
-                if name.isEmpty {
+                if displayName.isEmpty {
                     Image(systemName: "person.fill")
                         .font(.system(size: 22))
                         .foregroundStyle(AppColor.accentLight)
                 } else {
-                    Text(String(name.prefix(1)))
+                    Text(String(displayName.prefix(1)))
                         .font(AppFont.title2)
                         .foregroundStyle(AppColor.accentLight)
                 }

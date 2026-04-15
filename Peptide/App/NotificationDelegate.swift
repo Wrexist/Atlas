@@ -25,14 +25,16 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             let scheduledMinute = userInfo["minute"] as? Int
 
             Task { @MainActor [dataStore] in
+                defer { completionHandler() }
+
                 guard let protocolIdStr,
-                      let protocolId = UUID(uuidString: protocolIdStr) else { return }
+                      let protocolId = UUID(uuidString: protocolIdStr),
+                      let hour = scheduledHour,
+                      let minute = scheduledMinute else { return }
 
                 let calendar = Calendar.current
                 let uncompleted = dataStore.todayEntries.filter { entry in
                     guard entry.protocolId == protocolId, !entry.completed else { return false }
-                    // Match the time slot if available, otherwise mark all
-                    guard let hour = scheduledHour, let minute = scheduledMinute else { return true }
                     let entryHour = calendar.component(.hour, from: entry.date)
                     let entryMinute = calendar.component(.minute, from: entry.date)
                     return entryHour == hour && entryMinute == minute
@@ -41,6 +43,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                     dataStore.toggleEntry(entry.id)
                 }
             }
+            return
 
         case "SNOOZE":
             let content = response.notification.request.content.mutableCopy() as! UNMutableNotificationContent

@@ -50,6 +50,7 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Peptide/Peptide.entitlements
     dependencies:
       - target: PeptideWidgets
+      - sdk: WidgetKit.framework
   PeptideWidgets:
     type: app-extension
     platform: iOS

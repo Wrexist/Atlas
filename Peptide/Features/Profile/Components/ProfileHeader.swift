@@ -7,6 +7,11 @@ struct ProfileHeader: View {
     let peptideCount: Int
     let daysLogged: Int
 
+    private var displayName: String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "" : trimmed
+    }
+
     var body: some View {
         GlassCard(tinted: true) {
             VStack(spacing: Spacing.lg) {
@@ -26,12 +31,12 @@ struct ProfileHeader: View {
                                 )
                         }
 
-                    if name.isEmpty {
+                    if displayName.isEmpty {
                         Image(systemName: "person.fill")
                             .font(.system(size: 32))
                             .foregroundStyle(AppColor.accentLight)
                     } else {
-                        Text(String(name.prefix(1)))
+                        Text(String(displayName.prefix(1)))
                             .font(AppFont.title)
                             .foregroundStyle(AppColor.accentLight)
                     }
@@ -39,7 +44,7 @@ struct ProfileHeader: View {
                 .glassEffect(in: .circle)
 
                 VStack(spacing: Spacing.xs) {
-                    Text(name.isEmpty ? "PeptideX User" : name)
+                    Text(displayName.isEmpty ? "PeptideX User" : displayName)
                         .font(AppFont.title)
                         .foregroundStyle(AppColor.textPrimary)
 

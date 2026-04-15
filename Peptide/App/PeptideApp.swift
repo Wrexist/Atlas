@@ -41,7 +41,10 @@ struct PeptideApp: App {
                     UNUserNotificationCenter.current().delegate = delegate
                     NotificationService.shared.registerCategories()
 
-                    guard dataStore.profile.doseRemindersEnabled else { return }
+                    guard dataStore.profile.doseRemindersEnabled else {
+                        NotificationService.shared.cancelAll()
+                        return
+                    }
 
                     let status = await NotificationService.shared.checkAuthorization()
                     if status == .notDetermined {
@@ -49,11 +52,13 @@ struct PeptideApp: App {
                         if !granted {
                             dataStore.profile.doseRemindersEnabled = false
                             dataStore.persistProfile()
+                            NotificationService.shared.cancelAll()
                             return
                         }
                     } else if status == .denied {
                         dataStore.profile.doseRemindersEnabled = false
                         dataStore.persistProfile()
+                        NotificationService.shared.cancelAll()
                         return
                     }
 
