@@ -103,7 +103,7 @@ jobs:
         run: swiftlint lint --reporter github-actions-logging --strict
         continue-on-error: true
 
-      - name: Test
+      - name: Unit Tests
         run: |
           xcodebuild test \
             -project Peptide.xcodeproj \
@@ -113,4 +113,19 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            -resultBundlePath TestResults.xcresult
+            -only-testing:PeptideTests \
+            -resultBundlePath UnitTestResults.xcresult
+
+      - name: UI Tests
+        run: |
+          xcodebuild test \
+            -project Peptide.xcodeproj \
+            -scheme Peptide \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -only-testing:PeptideUITests \
+            -resultBundlePath UITestResults.xcresult
+        continue-on-error: true
