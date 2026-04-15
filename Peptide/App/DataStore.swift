@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 @MainActor @Observable
 final class DataStore: DataServiceProtocol {
@@ -49,13 +50,32 @@ final class DataStore: DataServiceProtocol {
         return grouped
     }
 
-    init() {
-        let loadedProtocols = persistence.loadProtocols() ?? MockProtocols.all
-        self.protocols = loadedProtocols
-        self.entries = persistence.loadEntries() ?? Self.generateInitialEntries(for: loadedProtocols)
-        self.profile = persistence.loadProfile() ?? MockProfile.current
-        regenerateTodayEntries()
-        if !persistence.hasPersistedData { save() }
+    init(seedSampleData: Bool = false) {
+        let savedProtocols = persistence.loadProtocols()
+        let savedEntries = persistence.loadEntries()
+        let savedProfile = persistence.loadProfile()
+
+        if savedProtocols != nil || savedEntries != nil || savedProfile != nil {
+            // Returning user: recover what we can. Using || (not &&) so a single
+            // corrupt file doesn't erase the user's entire dataset.
+            self.protocols = savedProtocols ?? []
+            self.entries = savedEntries ?? []
+            self.profile = savedProfile ?? .fresh
+            regenerateTodayEntries()
+        } else if seedSampleData {
+            // Tests/previews: seed mock data
+            let sampleProtocols = MockProtocols.all
+            self.protocols = sampleProtocols
+            self.entries = Self.generateInitialEntries(for: sampleProtocols)
+            self.profile = MockProfile.current
+            regenerateTodayEntries()
+            save()
+        } else {
+            // First launch: clean slate, no entries to generate
+            self.protocols = []
+            self.entries = []
+            self.profile = .fresh
+        }
     }
 
     // MARK: - Peptide Database
@@ -81,7 +101,7 @@ final class DataStore: DataServiceProtocol {
         protocols.insert(newProtocol, at: 0)
         appendTodayEntries(for: newProtocol)
         save()
-        NotificationService.shared.scheduleNotifications(for: activeProtocols)
+        rescheduleNotificationsIfEnabled()
         if profile.hapticFeedbackEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
@@ -92,7 +112,7 @@ final class DataStore: DataServiceProtocol {
         protocols.removeAll { $0.id == id }
         entries.removeAll { $0.protocolId == id }
         save()
-        NotificationService.shared.scheduleNotifications(for: activeProtocols)
+        rescheduleNotificationsIfEnabled()
     }
 
     func updateProtocolStatus(id: UUID, to status: ProtocolStatus) {
@@ -103,7 +123,7 @@ final class DataStore: DataServiceProtocol {
             appendTodayEntries(for: protocols[index])
         }
         save()
-        NotificationService.shared.scheduleNotifications(for: activeProtocols)
+        rescheduleNotificationsIfEnabled()
     }
 
     // MARK: - Entries
@@ -165,7 +185,7 @@ final class DataStore: DataServiceProtocol {
         )
         protocols[index] = updated
         save()
-        NotificationService.shared.scheduleNotifications(for: activeProtocols)
+        rescheduleNotificationsIfEnabled()
     }
 
     func entriesFor(protocolId: UUID, days: Int = 14) -> [ProtocolEntry] {
@@ -329,6 +349,7 @@ final class DataStore: DataServiceProtocol {
     // MARK: - Next Dose
 
     var nextDose: ProtocolEntry? {
+        invalidateCacheIfDayChanged()
         if let cached = _cachedNextDose { return cached }
         let now = Date()
         let today = todayEntries
@@ -350,6 +371,19 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
+    /// Persists the current profile state. Call after direct property mutations
+    /// via bindings (e.g. settings toggles) that bypass dedicated update methods.
+    func persistProfile() {
+        save()
+    }
+
+    // MARK: - Notifications
+
+    private func rescheduleNotificationsIfEnabled() {
+        guard profile.doseRemindersEnabled else { return }
+        NotificationService.shared.scheduleNotifications(for: activeProtocols)
+    }
+
     // MARK: - Persistence
 
     private var achievementCheckPending = false
@@ -358,7 +392,26 @@ final class DataStore: DataServiceProtocol {
         persistence.saveProtocols(protocols)
         persistence.saveEntries(entries)
         persistence.saveProfile(profile)
+        updateWidgetData()
         scheduleAchievementCheck()
+    }
+
+    private func updateWidgetData() {
+        let today = todayEntries
+        let completed = today.filter(\.completed).count
+        let next = nextDose
+
+        let data = WidgetData(
+            nextPeptideName: next?.peptide.abbreviation ?? "",
+            nextDose: next?.dose ?? "",
+            nextDoseTime: next?.date,
+            completedToday: completed,
+            totalToday: today.count,
+            lastUpdated: Date()
+        )
+
+        persistence.updateWidgetData(data)
+        Task { WidgetCenter.shared.reloadAllTimelines() }
     }
 
     private func scheduleAchievementCheck() {
@@ -445,6 +498,11 @@ final class DataStore: DataServiceProtocol {
     }
 
     private func appendTodayEntries(for proto: PeptideProtocol) {
+        let calendar = Calendar.current
+        let alreadyHasToday = entries.contains {
+            $0.protocolId == proto.id && calendar.isDateInToday($0.date)
+        }
+        guard !alreadyHasToday else { return }
         let newEntries = Self.generateTodayEntries(for: proto)
         entries.append(contentsOf: newEntries)
     }

@@ -21,6 +21,7 @@ targets:
           - "**/.DS_Store"
           - "Resources/Info.plist"
           - "Resources/AppStoreCovers/**"
+      - path: Shared
     info:
       path: Peptide/Resources/Info.plist
       properties:
@@ -47,6 +48,31 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: Peptide/Peptide.entitlements
+    dependencies:
+      - target: PeptideWidgets
+  PeptideWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: PeptideWidgets
+        excludes:
+          - "**/.DS_Store"
+          - Info.plist
+      - path: Shared
+    info:
+      path: PeptideWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: PeptideX Widgets
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app.widgets
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        SWIFT_EMIT_LOC_STRINGS: YES
+        CODE_SIGN_ENTITLEMENTS: PeptideWidgets/PeptideWidgets.entitlements
   PeptideTests:
     type: bundle.unit-test
     platform: iOS
@@ -78,6 +104,7 @@ schemes:
     build:
       targets:
         Peptide: all
+        PeptideWidgets: all
         PeptideTests: [test]
         PeptideUITests: [test]
     run:

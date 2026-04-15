@@ -120,6 +120,6 @@ struct AnalyticsView: View {
 
 #Preview {
     AnalyticsView()
-        .environment(DataStore())
+        .environment(DataStore(seedSampleData: true))
         .preferredColorScheme(.dark)
 }

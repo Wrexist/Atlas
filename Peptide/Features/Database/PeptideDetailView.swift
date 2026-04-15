@@ -351,6 +351,6 @@ private struct MolecularRow: View {
     NavigationStack {
         PeptideDetailView(peptide: MockPeptides.bpc157)
     }
-    .environment(DataStore())
+    .environment(DataStore(seedSampleData: true))
     .preferredColorScheme(.dark)
 }

@@ -289,6 +289,6 @@ struct OnboardingView: View {
 
 #Preview {
     OnboardingView()
-        .environment(DataStore())
+        .environment(DataStore(seedSampleData: true))
         .preferredColorScheme(.dark)
 }

@@ -1,10 +1,13 @@
 import Foundation
 import UserNotifications
 
-@MainActor
+@MainActor @Observable
 final class NotificationService {
     static let shared = NotificationService()
     private let center = UNUserNotificationCenter.current()
+
+    private(set) var scheduledCount = 0
+    private(set) var requestedCount = 0
 
     private init() {}
 
@@ -21,50 +24,60 @@ final class NotificationService {
         return settings.authorizationStatus
     }
 
+    /// Schedules consolidated dose reminders. One notification per (protocol, time, day) timeslot
+    /// instead of per-peptide, keeping the count manageable within the iOS 64 limit.
     func scheduleNotifications(for protocols: [PeptideProtocol]) {
         center.removeAllPendingNotificationRequests()
 
         var requests: [UNNotificationRequest] = []
 
         for proto in protocols where proto.status == .active {
-            for peptide in proto.peptides {
-                for timeString in proto.schedule.preferredTimes {
-                    for day in proto.schedule.daysOfWeek {
-                        guard let (hour, minute) = parseTime(timeString) else { continue }
+            for timeString in proto.schedule.preferredTimes {
+                for day in proto.schedule.daysOfWeek {
+                    guard let (hour, minute) = parseTime(timeString) else { continue }
 
-                        let calendarWeekday = day == 7 ? 1 : day + 1
+                    let calendarWeekday = day == 7 ? 1 : day + 1
 
-                        var dateComponents = DateComponents()
-                        dateComponents.weekday = calendarWeekday
-                        dateComponents.hour = hour
-                        dateComponents.minute = minute
+                    var dateComponents = DateComponents()
+                    dateComponents.weekday = calendarWeekday
+                    dateComponents.hour = hour
+                    dateComponents.minute = minute
 
-                        let content = UNMutableNotificationContent()
+                    let content = UNMutableNotificationContent()
+
+                    if proto.peptides.count == 1 {
+                        let peptide = proto.peptides[0]
                         content.title = "Time for \(peptide.abbreviation)"
                         content.body = "\(peptide.name) \u{2022} \(peptide.dosageRange)"
-                        content.sound = .default
-                        content.categoryIdentifier = "DOSE_REMINDER"
-                        content.userInfo = [
-                            "protocolId": proto.id.uuidString,
-                            "peptideId": peptide.id.uuidString,
-                        ]
-
-                        let trigger = UNCalendarNotificationTrigger(
-                            dateMatching: dateComponents,
-                            repeats: true
-                        )
-
-                        let id = "\(proto.id)-\(peptide.id)-\(day)-\(timeString)"
-                        requests.append(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+                    } else {
+                        let names = proto.peptides.map(\.abbreviation).joined(separator: ", ")
+                        content.title = proto.name
+                        content.body = names
                     }
+
+                    content.sound = .default
+                    content.categoryIdentifier = "DOSE_REMINDER"
+                    content.userInfo = [
+                        "protocolId": proto.id.uuidString,
+                        "hour": hour,
+                        "minute": minute,
+                    ]
+
+                    let trigger = UNCalendarNotificationTrigger(
+                        dateMatching: dateComponents,
+                        repeats: true
+                    )
+
+                    let id = "\(proto.id)-\(day)-\(timeString)"
+                    requests.append(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
                 }
             }
         }
 
+        requestedCount = requests.count
+        scheduledCount = min(requests.count, 64)
+
         let limited = Array(requests.prefix(64))
-        if requests.count > 64 {
-            print("NotificationService: \(requests.count) notifications requested, truncated to 64 (iOS limit)")
-        }
         for request in limited {
             center.add(request)
         }
@@ -91,6 +104,8 @@ final class NotificationService {
 
     func cancelAll() {
         center.removeAllPendingNotificationRequests()
+        scheduledCount = 0
+        requestedCount = 0
     }
 
     private static let timeFormatter: DateFormatter = {

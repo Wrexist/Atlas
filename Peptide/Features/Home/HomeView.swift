@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(AppState.self) private var appState
     @State private var selectedEntry: ProtocolEntry?
     @State private var showAchievementToast = false
     @State private var toastAchievement: Achievement?
@@ -67,90 +68,90 @@ struct HomeView: View {
                     )
                     .sectionAppear(index: 0)
 
-                    ProtocolScoreCard(
-                        score: stats.score,
-                        completed: stats.completed,
-                        total: stats.total,
-                        streak: dataStore.currentStreak,
-                        bestStreak: dataStore.bestStreak,
-                        weeklyCompletion: dataStore.weeklyCompletion
-                    )
-                    .sectionAppear(index: 1)
-
-                    TodayScheduleCard(
-                        entries: stats.entries,
-                        onToggle: { entry in dataStore.toggleEntry(entry.id) },
-                        onTap: { entry in selectedEntry = entry }
-                    )
-                    .sectionAppear(index: 2)
-
-                    QuickStatsRow(
-                        activeProtocols: dataStore.activeProtocols.count,
-                        daysLogged: dataStore.totalDaysLogged,
-                        compliance: Int(dataStore.averageCompliance * 100),
-                        nextDose: dataStore.nextDose
-                    )
-                    .sectionAppear(index: 3)
-
-                    // Stack completeness ring
-                    if let completeness {
-                        StackCompletenessCard(completeness: completeness)
-                            .sectionAppear(index: 4)
-                    }
-
-                    // Cycle transition alerts
-                    if !transitions.isEmpty {
-                        CycleTransitionCard(transitions: transitions)
-                            .sectionAppear(index: 5)
-                    }
-
-                    // Stack warnings (danger/caution/info alerts)
-                    if !warnings.isEmpty {
-                        StackWarningCard(warnings: warnings)
-                            .sectionAppear(index: 6)
-                    }
-
-                    // Smart recommendations
-                    if !recommendations.isEmpty {
-                        RecommendedPeptidesCard(
-                            recommendations: recommendations,
-                            hapticEnabled: dataStore.profile.hapticFeedbackEnabled
+                    if dataStore.protocols.isEmpty {
+                        gettingStartedCard
+                            .sectionAppear(index: 1)
+                    } else {
+                        ProtocolScoreCard(
+                            score: stats.score,
+                            completed: stats.completed,
+                            total: stats.total,
+                            streak: dataStore.currentStreak,
+                            bestStreak: dataStore.bestStreak,
+                            weeklyCompletion: dataStore.weeklyCompletion
                         )
-                        .sectionAppear(index: 7)
-                    }
+                        .sectionAppear(index: 1)
 
-                    if dataStore.profile.healthConnected {
-                        HealthSummaryCard()
-                            .sectionAppear(index: 8)
-                    }
+                        TodayScheduleCard(
+                            entries: stats.entries,
+                            onToggle: { entry in dataStore.toggleEntry(entry.id) },
+                            onTap: { entry in selectedEntry = entry }
+                        )
+                        .sectionAppear(index: 2)
 
-                    // Top insight
-                    let insights = InsightEngine.generateInsights(
-                        from: dataStore.entries, protocols: dataStore.protocols
-                    )
-                    if let topInsight = insights.first {
-                        GlassCard {
-                            HStack(spacing: Spacing.md) {
-                                Image(systemName: topInsight.icon)
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(AppColor.accentPrimary)
-                                    .frame(width: 28, height: 28)
-                                    .background {
-                                        Circle().fill(AppColor.accentPrimary.opacity(0.15))
-                                    }
-                                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                    Text(topInsight.title)
-                                        .font(AppFont.subheadline)
-                                        .fontWeight(.medium)
-                                        .foregroundStyle(AppColor.textPrimary)
-                                    Text(topInsight.description)
-                                        .font(AppFont.caption)
-                                        .foregroundStyle(AppColor.textSecondary)
-                                }
-                                Spacer()
-                            }
+                        QuickStatsRow(
+                            activeProtocols: dataStore.activeProtocols.count,
+                            daysLogged: dataStore.totalDaysLogged,
+                            compliance: Int(dataStore.averageCompliance * 100),
+                            nextDose: dataStore.nextDose
+                        )
+                        .sectionAppear(index: 3)
+
+                        if let completeness {
+                            StackCompletenessCard(completeness: completeness)
+                                .sectionAppear(index: 4)
                         }
-                        .sectionAppear(index: 9)
+
+                        if !transitions.isEmpty {
+                            CycleTransitionCard(transitions: transitions)
+                                .sectionAppear(index: 5)
+                        }
+
+                        if !warnings.isEmpty {
+                            StackWarningCard(warnings: warnings)
+                                .sectionAppear(index: 6)
+                        }
+
+                        if !recommendations.isEmpty {
+                            RecommendedPeptidesCard(
+                                recommendations: recommendations,
+                                hapticEnabled: dataStore.profile.hapticFeedbackEnabled
+                            )
+                            .sectionAppear(index: 7)
+                        }
+
+                        if dataStore.profile.healthConnected {
+                            HealthSummaryCard()
+                                .sectionAppear(index: 8)
+                        }
+
+                        let insights = InsightEngine.generateInsights(
+                            from: dataStore.entries, protocols: dataStore.protocols
+                        )
+                        if let topInsight = insights.first {
+                            GlassCard {
+                                HStack(spacing: Spacing.md) {
+                                    Image(systemName: topInsight.icon)
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(AppColor.accentPrimary)
+                                        .frame(width: 28, height: 28)
+                                        .background {
+                                            Circle().fill(AppColor.accentPrimary.opacity(0.15))
+                                        }
+                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                        Text(topInsight.title)
+                                            .font(AppFont.subheadline)
+                                            .fontWeight(.medium)
+                                            .foregroundStyle(AppColor.textPrimary)
+                                        Text(topInsight.description)
+                                            .font(AppFont.caption)
+                                            .foregroundStyle(AppColor.textSecondary)
+                                    }
+                                    Spacer()
+                                }
+                            }
+                            .sectionAppear(index: 9)
+                        }
                     }
                 }
                 .padding(.horizontal, Spacing.screenPadding)
@@ -186,6 +187,45 @@ struct HomeView: View {
         }
     }
 
+    private var gettingStartedCard: some View {
+        GlassCard(tinted: true) {
+            VStack(spacing: Spacing.xl) {
+                Image(systemName: "flask.fill")
+                    .font(.system(size: 48))
+                    .foregroundStyle(AppColor.accentPrimary)
+
+                VStack(spacing: Spacing.sm) {
+                    Text("Create Your First Protocol")
+                        .font(AppFont.title2)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .multilineTextAlignment(.center)
+
+                    Text("Set up a peptide protocol to start tracking doses, streaks, and compliance.")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                GlassButton(title: "Get Started", icon: "plus", style: .primary, isFullWidth: true) {
+                    withAnimation(AppAnimation.springSnappy) {
+                        appState.selectedTab = .protocols
+                    }
+                }
+
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppColor.textTertiary)
+                    Text("Browse the Peptides tab to explore the database")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.lg)
+        }
+    }
+
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
@@ -201,8 +241,16 @@ struct HomeView: View {
     }
 }
 
-#Preview {
+#Preview("With Data") {
+    HomeView()
+        .environment(DataStore(seedSampleData: true))
+        .environment(AppState())
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Empty State") {
     HomeView()
         .environment(DataStore())
+        .environment(AppState())
         .preferredColorScheme(.dark)
 }

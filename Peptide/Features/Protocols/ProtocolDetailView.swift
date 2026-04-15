@@ -284,6 +284,6 @@ private struct MiniStat: View {
     NavigationStack {
         ProtocolDetailView(protocol_: MockProtocols.recoveryStack)
     }
-    .environment(DataStore())
+    .environment(DataStore(seedSampleData: true))
     .preferredColorScheme(.dark)
 }

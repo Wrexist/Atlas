@@ -9,9 +9,14 @@ final class PersistenceService: @unchecked Sendable {
         fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
 
+    private var sharedContainerURL: URL? {
+        fileManager.containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)
+    }
+
     private var protocolsURL: URL { documentsDirectory.appendingPathComponent("protocols.json") }
     private var entriesURL: URL { documentsDirectory.appendingPathComponent("entries.json") }
     private var profileURL: URL { documentsDirectory.appendingPathComponent("profile.json") }
+    private var widgetDataURL: URL? { sharedContainerURL?.appendingPathComponent("widget-data.json") }
 
     private let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
@@ -56,6 +61,13 @@ final class PersistenceService: @unchecked Sendable {
         load(UserProfile.self, from: profileURL)
     }
 
+    // MARK: - Widget Data (Shared Container)
+
+    func updateWidgetData(_ data: WidgetData) {
+        guard let url = widgetDataURL else { return }
+        save(data, to: url)
+    }
+
     // MARK: - State
 
     var hasPersistedData: Bool {
@@ -66,6 +78,9 @@ final class PersistenceService: @unchecked Sendable {
         try? fileManager.removeItem(at: protocolsURL)
         try? fileManager.removeItem(at: entriesURL)
         try? fileManager.removeItem(at: profileURL)
+        if let url = widgetDataURL {
+            try? fileManager.removeItem(at: url)
+        }
     }
 
     // MARK: - Private

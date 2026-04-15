@@ -7,6 +7,11 @@ struct ProfileHeader: View {
     let peptideCount: Int
     let daysLogged: Int
 
+    private var displayName: String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "" : trimmed
+    }
+
     var body: some View {
         GlassCard(tinted: true) {
             VStack(spacing: Spacing.lg) {
@@ -26,14 +31,20 @@ struct ProfileHeader: View {
                                 )
                         }
 
-                    Text(String(name.prefix(1)))
-                        .font(AppFont.title)
-                        .foregroundStyle(AppColor.accentLight)
+                    if displayName.isEmpty {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 32))
+                            .foregroundStyle(AppColor.accentLight)
+                    } else {
+                        Text(String(displayName.prefix(1)))
+                            .font(AppFont.title)
+                            .foregroundStyle(AppColor.accentLight)
+                    }
                 }
                 .glassEffect(in: .circle)
 
                 VStack(spacing: Spacing.xs) {
-                    Text(name)
+                    Text(displayName.isEmpty ? "PeptideX User" : displayName)
                         .font(AppFont.title)
                         .foregroundStyle(AppColor.textPrimary)
 
@@ -69,10 +80,19 @@ private struct ProfileStat: View {
     }
 }
 
-#Preview {
+#Preview("With Name") {
     ZStack {
         AppColor.background.ignoresSafeArea()
         ProfileHeader(name: "Alex", memberDuration: "3 months", protocolCount: 4, peptideCount: 14, daysLogged: 45)
+            .padding(Spacing.screenPadding)
+    }
+    .preferredColorScheme(.dark)
+}
+
+#Preview("New User") {
+    ZStack {
+        AppColor.background.ignoresSafeArea()
+        ProfileHeader(name: "", memberDuration: "1 month", protocolCount: 0, peptideCount: 0, daysLogged: 0)
             .padding(Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)

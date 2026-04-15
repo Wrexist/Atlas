@@ -214,6 +214,6 @@ struct ProtocolBuilderView: View {
 
 #Preview {
     ProtocolBuilderView()
-        .environment(DataStore())
+        .environment(DataStore(seedSampleData: true))
         .preferredColorScheme(.dark)
 }
