@@ -71,7 +71,10 @@ struct AccountSection: View {
             SignInWithAppleButton(.signIn) { request in
                 request.requestedScopes = [.fullName, .email]
             } onCompletion: { result in
-                authService.handleAuthorization(result)
+                // onCompletion is @escaping @Sendable — hop to MainActor explicitly
+                Task { @MainActor in
+                    authService.handleAuthorization(result)
+                }
             }
             .signInWithAppleButtonStyle(.white)
             .frame(height: 50)
@@ -88,24 +91,24 @@ struct AccountSection: View {
 
     private var featurePreview: some View {
         HStack(spacing: Spacing.md) {
-            ForEach([
-                ("icloud", "Cloud\nBackup"),
-                ("arrow.triangle.2.circlepath", "Multi-\nDevice"),
-                ("lock.shield", "Encrypted\nSync"),
-            ], id: \.0) { icon, label in
-                VStack(spacing: Spacing.xs) {
-                    Image(systemName: icon)
-                        .font(.system(size: 18))
-                        .foregroundStyle(AppColor.accentLight)
-                    Text(label)
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textTertiary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                }
-                .frame(maxWidth: .infinity)
-            }
+            featureItem(icon: "icloud",                         label: "Cloud\nBackup")
+            featureItem(icon: "arrow.triangle.2.circlepath",    label: "Multi-\nDevice")
+            featureItem(icon: "lock.shield",                    label: "Encrypted\nSync")
         }
+    }
+
+    private func featureItem(icon: String, label: String) -> some View {
+        VStack(spacing: Spacing.xs) {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundStyle(AppColor.accentLight)
+            Text(label)
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textTertiary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Signed In
