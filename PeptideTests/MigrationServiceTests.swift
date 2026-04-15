@@ -59,7 +59,6 @@ final class MigrationServiceTests: XCTestCase {
     func test_migration_importsProfile() {
         let original = MockProfile.current
         persistence.saveProfile(original)
-        persistence.saveProtocols([])  // hasPersistedData checks protocols file
 
         migration.migrateIfNeeded()
 

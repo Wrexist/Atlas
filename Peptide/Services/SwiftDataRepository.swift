@@ -71,7 +71,10 @@ final class SwiftDataRepository {
     }
 
     func loadProtocols() -> [PeptideProtocol] {
-        let stored = (try? context.fetch(FetchDescriptor<StoredProtocol>())) ?? []
+        let descriptor = FetchDescriptor<StoredProtocol>(
+            sortBy: [SortDescriptor(\.startDate, order: .reverse)]
+        )
+        let stored = (try? context.fetch(descriptor)) ?? []
         return stored.compactMap { try? $0.toPeptideProtocol() }
     }
 

@@ -71,7 +71,9 @@ final class PersistenceService: @unchecked Sendable {
     // MARK: - State
 
     var hasPersistedData: Bool {
-        fileManager.fileExists(atPath: protocolsURL.path)
+        fileManager.fileExists(atPath: protocolsURL.path) ||
+        fileManager.fileExists(atPath: entriesURL.path) ||
+        fileManager.fileExists(atPath: profileURL.path)
     }
 
     func clearAll() {
