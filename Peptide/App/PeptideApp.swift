@@ -30,6 +30,10 @@ struct PeptideApp: App {
                 isUnlocked = false
             }
         }
+        .task(id: dataStore.profile.healthConnected) {
+            guard dataStore.profile.healthConnected else { return }
+            await HealthKitService.shared.startBackgroundDelivery()
+        }
     }
 
     private var mainContent: some View {

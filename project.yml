@@ -40,6 +40,8 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
+        UIBackgroundModes:
+          - healthkit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app
