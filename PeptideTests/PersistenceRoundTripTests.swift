@@ -148,7 +148,12 @@ final class PersistenceRoundTripTests: XCTestCase {
 
         let store = DataStore()
         XCTAssertEqual(store.protocols.count, MockProtocols.all.count)
-        XCTAssertTrue(store.entries.isEmpty)
+        // No historical entries were saved, but regenerateTodayEntries() creates
+        // today's schedule for active protocols on init.
+        let historicalEntries = store.entries.filter {
+            !Calendar.current.isDateInToday($0.date)
+        }
+        XCTAssertTrue(historicalEntries.isEmpty, "Should have no historical entries when entries.json is missing")
         XCTAssertEqual(store.profile.name, "", "Should use fresh profile when profile.json is missing")
     }
 
