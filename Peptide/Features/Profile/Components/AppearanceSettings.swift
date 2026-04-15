@@ -3,6 +3,7 @@ import SwiftUI
 struct AppearanceSettings: View {
     @Environment(DataStore.self) private var dataStore
     @State private var notificationService = NotificationService.shared
+    @State private var biometricService = BiometricService.shared
 
     var body: some View {
         @Bindable var store = dataStore
@@ -39,6 +40,20 @@ struct AppearanceSettings: View {
                 )
                 .onChange(of: dataStore.profile.hapticFeedbackEnabled) { _, _ in
                     dataStore.persistProfile()
+                }
+
+                if biometricService.isAvailable {
+                    Divider().foregroundStyle(AppColor.glassBorder)
+
+                    SettingsToggleRow(
+                        icon: biometricService.biometryIcon,
+                        title: "\(biometricService.biometryName) Lock",
+                        subtitle: "Require authentication on launch",
+                        isOn: $store.profile.biometricLockEnabled
+                    )
+                    .onChange(of: dataStore.profile.biometricLockEnabled) { _, _ in
+                        dataStore.persistProfile()
+                    }
                 }
 
                 Divider().foregroundStyle(AppColor.glassBorder)

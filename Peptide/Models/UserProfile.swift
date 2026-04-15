@@ -7,14 +7,16 @@ struct UserProfile: Codable {
     var healthConnected: Bool
     var hapticFeedbackEnabled: Bool
     var doseRemindersEnabled: Bool
+    var biometricLockEnabled: Bool
 
-    init(name: String, goals: [String], memberSince: Date, healthConnected: Bool, hapticFeedbackEnabled: Bool = true, doseRemindersEnabled: Bool = false) {
+    init(name: String, goals: [String], memberSince: Date, healthConnected: Bool, hapticFeedbackEnabled: Bool = true, doseRemindersEnabled: Bool = false, biometricLockEnabled: Bool = false) {
         self.name = name
         self.goals = goals
         self.memberSince = memberSince
         self.healthConnected = healthConnected
         self.hapticFeedbackEnabled = hapticFeedbackEnabled
         self.doseRemindersEnabled = doseRemindersEnabled
+        self.biometricLockEnabled = biometricLockEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -25,6 +27,7 @@ struct UserProfile: Codable {
         healthConnected = try container.decode(Bool.self, forKey: .healthConnected)
         hapticFeedbackEnabled = try container.decodeIfPresent(Bool.self, forKey: .hapticFeedbackEnabled) ?? true
         doseRemindersEnabled = try container.decodeIfPresent(Bool.self, forKey: .doseRemindersEnabled) ?? false
+        biometricLockEnabled = try container.decodeIfPresent(Bool.self, forKey: .biometricLockEnabled) ?? false
     }
 
     static var fresh: UserProfile {

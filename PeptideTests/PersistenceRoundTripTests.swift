@@ -84,6 +84,7 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(loaded!.healthConnected, original.healthConnected)
         XCTAssertEqual(loaded!.hapticFeedbackEnabled, original.hapticFeedbackEnabled)
         XCTAssertEqual(loaded!.doseRemindersEnabled, original.doseRemindersEnabled)
+        XCTAssertEqual(loaded!.biometricLockEnabled, original.biometricLockEnabled)
     }
 
     func test_loadProtocols_returnsNil_whenNoFile() {
@@ -165,6 +166,7 @@ final class PersistenceRoundTripTests: XCTestCase {
 
         let profile = try decoder.decode(UserProfile.self, from: json)
         XCTAssertTrue(profile.hapticFeedbackEnabled, "Should default to true when field is missing")
+        XCTAssertFalse(profile.biometricLockEnabled, "Should default to false when field is missing")
     }
 
     func test_userProfile_decodesWithoutRemindersField() throws {
@@ -189,7 +191,8 @@ final class PersistenceRoundTripTests: XCTestCase {
             "memberSince": "2025-06-15T12:00:00Z",
             "healthConnected": true,
             "hapticFeedbackEnabled": false,
-            "doseRemindersEnabled": true
+            "doseRemindersEnabled": true,
+            "biometricLockEnabled": true
         }
         """.data(using: .utf8)!
 
@@ -199,6 +202,7 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertTrue(profile.healthConnected)
         XCTAssertFalse(profile.hapticFeedbackEnabled, "Should respect explicit false")
         XCTAssertTrue(profile.doseRemindersEnabled, "Should respect explicit true")
+        XCTAssertTrue(profile.biometricLockEnabled, "Should respect explicit true")
     }
 
     func test_researchLink_decodesWithoutOptionalFields() throws {

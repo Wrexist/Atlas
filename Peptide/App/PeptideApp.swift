@@ -7,69 +7,84 @@ struct PeptideApp: App {
     @State private var dataStore = DataStore()
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var notificationDelegate: NotificationDelegate?
+    @State private var isUnlocked = false
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
-            if hasCompletedOnboarding {
-                TabView(selection: $appState.selectedTab) {
-                    Tab("Home", systemImage: "house.fill", value: .home) {
-                        HomeView()
-                    }
-                    Tab("Peptides", systemImage: "flask.fill", value: .database) {
-                        PeptideListView()
-                    }
-                    Tab("Protocols", systemImage: "list.clipboard.fill", value: .protocols) {
-                        ProtocolListView()
-                    }
-                    Tab("Analytics", systemImage: "chart.bar.fill", value: .analytics) {
-                        AnalyticsView()
-                    }
-                    Tab("Profile", systemImage: "person.fill", value: .profile) {
-                        ProfileView()
-                    }
-                }
-                .tabViewBottomAccessory {
-                    NextDoseAccessoryView()
-                }
-                .environment(appState)
-                .environment(dataStore)
-                .preferredColorScheme(.dark)
-                .tint(AppColor.accentPrimary)
-                .task {
-                    let delegate = NotificationDelegate(dataStore: dataStore)
-                    notificationDelegate = delegate
-                    UNUserNotificationCenter.current().delegate = delegate
-                    NotificationService.shared.registerCategories()
-
-                    guard dataStore.profile.doseRemindersEnabled else {
-                        NotificationService.shared.cancelAll()
-                        return
-                    }
-
-                    let status = await NotificationService.shared.checkAuthorization()
-                    if status == .notDetermined {
-                        let granted = await NotificationService.shared.requestAuthorization()
-                        if !granted {
-                            dataStore.profile.doseRemindersEnabled = false
-                            dataStore.persistProfile()
-                            NotificationService.shared.cancelAll()
-                            return
-                        }
-                    } else if status == .denied {
-                        dataStore.profile.doseRemindersEnabled = false
-                        dataStore.persistProfile()
-                        NotificationService.shared.cancelAll()
-                        return
-                    }
-
-                    NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols)
-                }
-            } else {
+            if !hasCompletedOnboarding {
                 OnboardingView()
                     .environment(dataStore)
                     .preferredColorScheme(.dark)
                     .tint(AppColor.accentPrimary)
+            } else if dataStore.profile.biometricLockEnabled, !isUnlocked {
+                LockScreenView { isUnlocked = true }
+                    .preferredColorScheme(.dark)
+                    .tint(AppColor.accentPrimary)
+            } else {
+                mainContent
             }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background, dataStore.profile.biometricLockEnabled {
+                isUnlocked = false
+            }
+        }
+    }
+
+    private var mainContent: some View {
+        TabView(selection: $appState.selectedTab) {
+            Tab("Home", systemImage: "house.fill", value: .home) {
+                HomeView()
+            }
+            Tab("Peptides", systemImage: "flask.fill", value: .database) {
+                PeptideListView()
+            }
+            Tab("Protocols", systemImage: "list.clipboard.fill", value: .protocols) {
+                ProtocolListView()
+            }
+            Tab("Analytics", systemImage: "chart.bar.fill", value: .analytics) {
+                AnalyticsView()
+            }
+            Tab("Profile", systemImage: "person.fill", value: .profile) {
+                ProfileView()
+            }
+        }
+        .tabViewBottomAccessory {
+            NextDoseAccessoryView()
+        }
+        .environment(appState)
+        .environment(dataStore)
+        .preferredColorScheme(.dark)
+        .tint(AppColor.accentPrimary)
+        .task {
+            let delegate = NotificationDelegate(dataStore: dataStore)
+            notificationDelegate = delegate
+            UNUserNotificationCenter.current().delegate = delegate
+            NotificationService.shared.registerCategories()
+
+            guard dataStore.profile.doseRemindersEnabled else {
+                NotificationService.shared.cancelAll()
+                return
+            }
+
+            let status = await NotificationService.shared.checkAuthorization()
+            if status == .notDetermined {
+                let granted = await NotificationService.shared.requestAuthorization()
+                if !granted {
+                    dataStore.profile.doseRemindersEnabled = false
+                    dataStore.persistProfile()
+                    NotificationService.shared.cancelAll()
+                    return
+                }
+            } else if status == .denied {
+                dataStore.profile.doseRemindersEnabled = false
+                dataStore.persistProfile()
+                NotificationService.shared.cancelAll()
+                return
+            }
+
+            NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols)
         }
     }
 }
