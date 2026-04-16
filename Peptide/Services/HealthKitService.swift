@@ -1,10 +1,24 @@
 import Foundation
-import HealthKit
+@preconcurrency import HealthKit
+import WidgetKit
 
-@MainActor
+struct HealthSnapshot {
+    let heartRate: Double?         // bpm, 7-day avg
+    let restingHeartRate: Double?  // bpm, 7-day avg
+    let hrv: Double?               // ms, 7-day avg
+    let weight: Double?            // kg, latest
+    let steps: Double?             // daily avg steps, 7 days
+    let sleep: Double?             // daily avg hours, 7 days
+    let capturedAt: Date
+}
+
+@MainActor @Observable
 final class HealthKitService {
     static let shared = HealthKitService()
-    private let store = HKHealthStore()
+
+    @ObservationIgnored private let store = HKHealthStore()
+    private(set) var cachedSnapshot: HealthSnapshot?
+    private var isBackgroundDeliveryStarted = false
 
     private init() {}
 
@@ -31,6 +45,84 @@ final class HealthKitService {
         } catch {
             return false
         }
+    }
+
+    // MARK: - Background Delivery
+
+    func startBackgroundDelivery() async {
+        guard isAvailable, !isBackgroundDeliveryStarted else { return }
+        isBackgroundDeliveryStarted = true
+
+        let quantityTypes: [(HKQuantityTypeIdentifier, HKUpdateFrequency)] = [
+            (.heartRate, .immediate),
+            (.heartRateVariabilitySDNN, .immediate),
+            (.restingHeartRate, .hourly),
+            (.bodyMass, .daily),
+            (.stepCount, .daily),
+            (.activeEnergyBurned, .daily),
+        ]
+
+        for (typeId, frequency) in quantityTypes {
+            await enableAndObserve(HKQuantityType(typeId), frequency: frequency)
+        }
+        await enableAndObserve(HKCategoryType(.sleepAnalysis), frequency: .daily)
+
+        // Populate cache immediately so Analytics has data on first open
+        await refreshSnapshot()
+    }
+
+    func stopBackgroundDelivery() {
+        store.disableAllBackgroundDelivery { _, _ in }
+        isBackgroundDeliveryStarted = false
+    }
+
+    func refreshSnapshot() async {
+        guard isAvailable else { return }
+
+        let hr = await averageHeartRate(days: 7)
+        let rhr = await averageRestingHeartRate(days: 7)
+        let hrv = await averageHRV(days: 7)
+        let weight = await latestWeight()
+        let steps = await averageSteps(days: 7)
+        let sleep = await averageSleepHours(days: 7)
+
+        cachedSnapshot = HealthSnapshot(
+            heartRate: hr,
+            restingHeartRate: rhr,
+            hrv: hrv,
+            weight: weight,
+            steps: steps,
+            sleep: sleep,
+            capturedAt: Date()
+        )
+
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    private func enableAndObserve(_ sampleType: HKSampleType, frequency: HKUpdateFrequency) async {
+        do {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                store.enableBackgroundDelivery(for: sampleType, frequency: frequency) { _, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+        } catch {
+            return  // Simulator or authorization not granted — skip silently
+        }
+
+        let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { _, completionHandler, error in
+            // Call immediately — our refresh runs in a separate Task per Apple's guidance
+            completionHandler()
+            guard error == nil else { return }
+            Task { @MainActor [weak self] in
+                await self?.refreshSnapshot()
+            }
+        }
+        store.execute(query)
     }
 
     // MARK: - Heart Rate

@@ -4,6 +4,7 @@ struct ProfileView: View {
     @Environment(DataStore.self) private var dataStore
     @State private var storeService = StoreService.shared
     @State private var achievementService = AchievementService.shared
+    @State private var authService = AuthService.shared
 
     private let availableGoals = [
         "Muscle Recovery",
@@ -53,17 +54,21 @@ struct ProfileView: View {
                     ExportSection()
                         .sectionAppear(index: 5)
 
-                    AppearanceSettings()
+                    AccountSection()
                         .sectionAppear(index: 6)
 
-                    AboutSection()
+                    AppearanceSettings()
                         .sectionAppear(index: 7)
+
+                    AboutSection()
+                        .sectionAppear(index: 8)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
             }
             .background(AppColor.background)
             .navigationTitle("Profile")
+            .task { await authService.validateCredential() }
         }
     }
 

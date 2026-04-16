@@ -40,6 +40,10 @@ struct ExportSection: View {
                     GlassButton(title: "Backup", icon: "externaldrive.fill", style: .secondary) {
                         isPro ? exportJSON() : (showPaywall = true)
                     }
+
+                    GlassButton(title: "PDF", icon: "doc.richtext", style: .secondary) {
+                        isPro ? exportPDF() : (showPaywall = true)
+                    }
                 }
             }
         }
@@ -74,6 +78,19 @@ struct ExportSection: View {
                 exportURL = url
                 showShareSheet = true
             }
+        }
+    }
+
+    private func exportPDF() {
+        let data = ExportService.shared.exportPDF(
+            protocols: dataStore.protocols,
+            entries: dataStore.entries,
+            profile: dataStore.profile
+        )
+        let dateStr = Date().formatted(.iso8601.year().month().day())
+        if let url = ExportService.shared.writePDF(data, filename: "peptidex-report-\(dateStr).pdf") {
+            exportURL = url
+            showShareSheet = true
         }
     }
 }

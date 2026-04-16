@@ -4,25 +4,43 @@ import UserNotifications
 @main
 struct PeptideApp: App {
     @State private var appState = AppState()
-    @State private var dataStore = DataStore()
+    @State private var dataStore: DataStore
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var notificationDelegate: NotificationDelegate?
     @State private var isUnlocked = false
     @Environment(\.scenePhase) private var scenePhase
 
+    init() {
+        // App.init() may be nonisolated in strict Swift 6 mode; assumeIsolated
+        // bridges to @MainActor safely since @main always runs on the main thread.
+        _dataStore = State(wrappedValue: MainActor.assumeIsolated {
+            MigrationService.shared.migrateIfNeeded()
+            return DataStore()
+        })
+    }
+
     var body: some Scene {
         WindowGroup {
-            if !hasCompletedOnboarding {
-                OnboardingView()
-                    .environment(dataStore)
-                    .preferredColorScheme(.dark)
-                    .tint(AppColor.accentPrimary)
-            } else if dataStore.profile.biometricLockEnabled, !isUnlocked {
-                LockScreenView { isUnlocked = true }
-                    .preferredColorScheme(.dark)
-                    .tint(AppColor.accentPrimary)
-            } else {
-                mainContent
+            Group {
+                if !hasCompletedOnboarding {
+                    OnboardingView()
+                        .environment(dataStore)
+                        .preferredColorScheme(.dark)
+                        .tint(AppColor.accentPrimary)
+                } else if dataStore.profile.biometricLockEnabled, !isUnlocked {
+                    LockScreenView { isUnlocked = true }
+                        .preferredColorScheme(.dark)
+                        .tint(AppColor.accentPrimary)
+                } else {
+                    mainContent
+                }
+            }
+            .task(id: dataStore.profile.healthConnected) {
+                if dataStore.profile.healthConnected {
+                    await HealthKitService.shared.startBackgroundDelivery()
+                } else {
+                    HealthKitService.shared.stopBackgroundDelivery()
+                }
             }
         }
         .onChange(of: scenePhase) { _, phase in

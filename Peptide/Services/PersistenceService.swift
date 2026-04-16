@@ -71,7 +71,9 @@ final class PersistenceService: @unchecked Sendable {
     // MARK: - State
 
     var hasPersistedData: Bool {
-        fileManager.fileExists(atPath: protocolsURL.path)
+        fileManager.fileExists(atPath: protocolsURL.path) ||
+        fileManager.fileExists(atPath: entriesURL.path) ||
+        fileManager.fileExists(atPath: profileURL.path)
     }
 
     func clearAll() {
@@ -80,6 +82,16 @@ final class PersistenceService: @unchecked Sendable {
         try? fileManager.removeItem(at: profileURL)
         if let url = widgetDataURL {
             try? fileManager.removeItem(at: url)
+        }
+    }
+
+    /// Renames legacy JSON files to `.migrated` so MigrationService knows not to re-run.
+    /// Silently ignores files that don't exist.
+    func archiveLegacyFiles() {
+        for url in [protocolsURL, entriesURL, profileURL] {
+            guard fileManager.fileExists(atPath: url.path) else { continue }
+            let archived = url.deletingPathExtension().appendingPathExtension("migrated")
+            try? fileManager.moveItem(at: url, to: archived)
         }
     }
 

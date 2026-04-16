@@ -8,12 +8,12 @@ final class DataStoreTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        PersistenceService.shared.clearAll()
+        SwiftDataRepository.shared.configureForTesting()
         store = DataStore(seedSampleData: true)
     }
 
     override func tearDown() {
-        PersistenceService.shared.clearAll()
+        SwiftDataRepository.shared.deleteAll()
         store = nil
         super.tearDown()
     }

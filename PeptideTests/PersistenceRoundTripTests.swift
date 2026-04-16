@@ -8,10 +8,12 @@ final class PersistenceRoundTripTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        SwiftDataRepository.shared.configureForTesting()
         persistence.clearAll()
     }
 
     override func tearDown() {
+        SwiftDataRepository.shared.deleteAll()
         persistence.clearAll()
         super.tearDown()
     }
@@ -59,18 +61,19 @@ final class PersistenceRoundTripTests: XCTestCase {
 
         XCTAssertFalse(original.isEmpty, "Seeded store should have entries")
 
-        // Entries were already saved by DataStore.init(seedSampleData: true).
-        // Reload from disk.
-        let loaded = persistence.loadEntries()
-        XCTAssertNotNil(loaded)
-        XCTAssertEqual(loaded!.count, original.count)
+        // Entries were already saved to SwiftData by DataStore.init(seedSampleData: true).
+        // Reload from SwiftData.
+        let loaded = SwiftDataRepository.shared.loadEntries()
+        XCTAssertFalse(loaded.isEmpty)
+        XCTAssertEqual(loaded.count, original.count)
 
-        // Spot-check first and last entries
-        let first = loaded!.first!
-        let origFirst = original.first(where: { $0.id == first.id })!
-        XCTAssertEqual(first.protocolId, origFirst.protocolId)
-        XCTAssertEqual(first.dose, origFirst.dose)
-        XCTAssertEqual(first.completed, origFirst.completed)
+        // Spot-check a known entry
+        let origFirst = original.first!
+        let reloaded = loaded.first(where: { $0.id == origFirst.id })
+        XCTAssertNotNil(reloaded)
+        XCTAssertEqual(reloaded?.protocolId, origFirst.protocolId)
+        XCTAssertEqual(reloaded?.dose, origFirst.dose)
+        XCTAssertEqual(reloaded?.completed, origFirst.completed)
     }
 
     func test_saveAndLoadProfile_roundTrip() {
@@ -143,8 +146,8 @@ final class PersistenceRoundTripTests: XCTestCase {
     }
 
     func test_partialData_recoversWhatExists() {
-        // Save only protocols, no entries or profile
-        persistence.saveProtocols(MockProtocols.all)
+        // Save only protocols (no entries, no profile) into SwiftData
+        SwiftDataRepository.shared.saveProtocols(MockProtocols.all)
 
         let store = DataStore()
         XCTAssertEqual(store.protocols.count, MockProtocols.all.count)
@@ -153,8 +156,8 @@ final class PersistenceRoundTripTests: XCTestCase {
         let historicalEntries = store.entries.filter {
             !Calendar.current.isDateInToday($0.date)
         }
-        XCTAssertTrue(historicalEntries.isEmpty, "Should have no historical entries when entries.json is missing")
-        XCTAssertEqual(store.profile.name, "", "Should use fresh profile when profile.json is missing")
+        XCTAssertTrue(historicalEntries.isEmpty, "Should have no historical entries when no entries are in the store")
+        XCTAssertEqual(store.profile.name, "", "Should use fresh profile when no profile is in the store")
     }
 
     // MARK: - Group 3: Codable Backward Compatibility
