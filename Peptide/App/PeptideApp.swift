@@ -21,29 +21,31 @@ struct PeptideApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if !hasCompletedOnboarding {
-                OnboardingView()
-                    .environment(dataStore)
-                    .preferredColorScheme(.dark)
-                    .tint(AppColor.accentPrimary)
-            } else if dataStore.profile.biometricLockEnabled, !isUnlocked {
-                LockScreenView { isUnlocked = true }
-                    .preferredColorScheme(.dark)
-                    .tint(AppColor.accentPrimary)
-            } else {
-                mainContent
+            Group {
+                if !hasCompletedOnboarding {
+                    OnboardingView()
+                        .environment(dataStore)
+                        .preferredColorScheme(.dark)
+                        .tint(AppColor.accentPrimary)
+                } else if dataStore.profile.biometricLockEnabled, !isUnlocked {
+                    LockScreenView { isUnlocked = true }
+                        .preferredColorScheme(.dark)
+                        .tint(AppColor.accentPrimary)
+                } else {
+                    mainContent
+                }
+            }
+            .task(id: dataStore.profile.healthConnected) {
+                if dataStore.profile.healthConnected {
+                    await HealthKitService.shared.startBackgroundDelivery()
+                } else {
+                    HealthKitService.shared.stopBackgroundDelivery()
+                }
             }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background, dataStore.profile.biometricLockEnabled {
                 isUnlocked = false
-            }
-        }
-        .task(id: dataStore.profile.healthConnected) {
-            if dataStore.profile.healthConnected {
-                await HealthKitService.shared.startBackgroundDelivery()
-            } else {
-                HealthKitService.shared.stopBackgroundDelivery()
             }
         }
     }

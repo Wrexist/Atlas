@@ -120,13 +120,18 @@ final class AuthService {
             kSecAttrAccount as String: account,
         ]
 
-        // Delete existing item first (upsert pattern)
-        SecItemDelete(query as CFDictionary)
+        // Update-first upsert: avoids a window where the item is absent.
+        let updateAttrs: [String: Any] = [
+            kSecValueData as String:      data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+        ]
+        let updateStatus = SecItemUpdate(query as CFDictionary, updateAttrs as CFDictionary)
+        if updateStatus == errSecSuccess { return errSecSuccess }
+        if updateStatus != errSecItemNotFound { return updateStatus }
 
         var addQuery = query
-        addQuery[kSecValueData as String]          = data
-        addQuery[kSecAttrAccessible as String]     = kSecAttrAccessibleAfterFirstUnlock
-
+        addQuery[kSecValueData as String]      = data
+        addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
         return SecItemAdd(addQuery as CFDictionary, nil)
     }
 
