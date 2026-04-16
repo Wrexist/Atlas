@@ -2,50 +2,79 @@ import SwiftUI
 
 struct PeptideDetailView: View {
     let peptide: Peptide
-    @Environment(\.dismiss) private var dismiss
     @State private var showingBuilder = false
     @AppStorage("experienceLevel") private var experienceLevel = "beginner"
 
+    private enum Section: Hashable {
+        case hero, about, mechanism, benefits, dosage, sideEffects,
+             contraindications, stacks, regulatory, research, molecular
+    }
+
+    private var visibleSections: [Section] {
+        var ids: [Section] = [.hero, .about]
+        if !peptide.mechanism.isEmpty { ids.append(.mechanism) }
+        ids.append(contentsOf: [.benefits, .dosage])
+        if !peptide.sideEffects.isEmpty { ids.append(.sideEffects) }
+        if !peptide.contraindications.isEmpty { ids.append(.contraindications) }
+        if !peptide.commonStacks.isEmpty { ids.append(.stacks) }
+        if !peptide.regulatoryStatus.isEmpty { ids.append(.regulatory) }
+        if !peptide.researchLinks.isEmpty && experienceLevel != "beginner" { ids.append(.research) }
+        if let mol = peptide.molecular, !mol.formula.isEmpty { ids.append(.molecular) }
+        return ids
+    }
+
+    private func staggerIndex(_ section: Section) -> Int {
+        visibleSections.firstIndex(of: section) ?? 0
+    }
+
     var body: some View {
         ScrollView {
-            VStack(spacing: Spacing.lg) {
+            LazyVStack(spacing: Spacing.lg) {
                 // Hero Section
-                VStack(spacing: Spacing.lg) {
-                    ZStack {
-                        Circle()
-                            .fill(peptide.category.color.opacity(0.15))
-                            .frame(width: 80, height: 80)
-                            .overlay {
+                GlassCard(tinted: true) {
+                    VStack(spacing: Spacing.lg) {
+                        VStack(spacing: Spacing.lg) {
+                            ZStack {
                                 Circle()
-                                    .strokeBorder(peptide.category.color.opacity(0.3), lineWidth: 1)
+                                    .fill(peptide.category.color.opacity(0.15))
+                                    .frame(width: 80, height: 80)
+                                    .overlay {
+                                        Circle()
+                                            .strokeBorder(peptide.category.color.opacity(0.3), lineWidth: 1)
+                                    }
+
+                                Image(systemName: peptide.imageSystemName)
+                                    .font(.system(size: 32))
+                                    .foregroundStyle(peptide.category.color)
                             }
+                            .accessibilityHidden(true)
 
-                        Image(systemName: peptide.imageSystemName)
-                            .font(.system(size: 32))
-                            .foregroundStyle(peptide.category.color)
+                            VStack(spacing: Spacing.sm) {
+                                Text(peptide.abbreviation)
+                                    .font(AppFont.largeTitle)
+                                    .foregroundStyle(AppColor.textPrimary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.75)
+
+                                Text(peptide.name)
+                                    .font(AppFont.subheadline)
+                                    .foregroundStyle(AppColor.textSecondary)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.85)
+
+                                PeptideCategoryBadge(category: peptide.category)
+                            }
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity)
+                        }
+                        .accessibilityElement(children: .combine)
+
+                        GlassButton(title: "Add to Protocol", icon: "plus", style: .primary) {
+                            showingBuilder = true
+                        }
                     }
-                    .glassEffect(in: .circle)
-                    .sectionAppear(index: 0)
-
-                    VStack(spacing: Spacing.sm) {
-                        Text(peptide.abbreviation)
-                            .font(AppFont.largeTitle)
-                            .foregroundStyle(AppColor.textPrimary)
-
-                        Text(peptide.name)
-                            .font(AppFont.subheadline)
-                            .foregroundStyle(AppColor.textSecondary)
-
-                        PeptideCategoryBadge(category: peptide.category)
-                    }
-                    .sectionAppear(index: 1)
-
-                    GlassButton(title: "Add to Protocol", icon: "plus", style: .primary) {
-                        showingBuilder = true
-                    }
-                    .sectionAppear(index: 2)
                 }
-                .padding(.top, Spacing.lg)
+                .sectionAppear(index: staggerIndex(.hero))
 
                 // Description
                 GlassCard {
@@ -63,7 +92,7 @@ struct PeptideDetailView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .sectionAppear(index: 3)
+                .sectionAppear(index: staggerIndex(.about))
 
                 // Mechanism of Action
                 if !peptide.mechanism.isEmpty {
@@ -82,7 +111,7 @@ struct PeptideDetailView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .sectionAppear(index: 4)
+                    .sectionAppear(index: staggerIndex(.mechanism))
                 }
 
                 // Benefits
@@ -104,11 +133,11 @@ struct PeptideDetailView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .sectionAppear(index: 5)
+                .sectionAppear(index: staggerIndex(.benefits))
 
                 // Dosage Info
                 DosageInfoSection(peptide: peptide)
-                    .sectionAppear(index: 6)
+                    .sectionAppear(index: staggerIndex(.dosage))
 
                 // Side Effects
                 if !peptide.sideEffects.isEmpty {
@@ -141,7 +170,7 @@ struct PeptideDetailView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .sectionAppear(index: 7)
+                    .sectionAppear(index: staggerIndex(.sideEffects))
                 }
 
                 // Contraindications
@@ -175,7 +204,7 @@ struct PeptideDetailView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .sectionAppear(index: 8)
+                    .sectionAppear(index: staggerIndex(.contraindications))
                 }
 
                 // Common Stacks
@@ -198,7 +227,7 @@ struct PeptideDetailView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .sectionAppear(index: 9)
+                    .sectionAppear(index: staggerIndex(.stacks))
                 }
 
                 // Regulatory Status
@@ -218,19 +247,19 @@ struct PeptideDetailView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .sectionAppear(index: 10)
+                    .sectionAppear(index: staggerIndex(.regulatory))
                 }
 
                 // Research Links (hidden for beginners)
                 if !peptide.researchLinks.isEmpty && experienceLevel != "beginner" {
                     ResearchLinksSection(links: peptide.researchLinks, categoryColor: peptide.category.color)
-                        .sectionAppear(index: 11)
+                        .sectionAppear(index: staggerIndex(.research))
                 }
 
                 // Molecular Data
                 if let mol = peptide.molecular, !mol.formula.isEmpty {
                     MolecularInfoSection(molecular: mol, categoryColor: peptide.category.color)
-                        .sectionAppear(index: 12)
+                        .sectionAppear(index: staggerIndex(.molecular))
                 }
             }
             .padding(.horizontal, Spacing.screenPadding)
@@ -238,6 +267,7 @@ struct PeptideDetailView: View {
         }
         .background(AppColor.background)
         .navigationBarTitleDisplayMode(.inline)
+        .sensoryFeedback(.impact(weight: .medium), trigger: showingBuilder) { _, new in new }
         .glassSheet(isPresented: $showingBuilder) {
             ProtocolBuilderView(preselectedPeptide: peptide)
         }
