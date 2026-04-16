@@ -11,14 +11,46 @@
 
 ---
 
-## Step 1: Register App ID
+## Step 1: Register App IDs & Capabilities
 
-1. Go to [Apple Developer Portal](https://developer.apple.com/account/resources/identifiers/list)
-2. **Identifiers** → **+** → **App IDs** → **App**
-3. Description: `PeptideX`
-4. Bundle ID: **Explicit** → `com.peptidesai.app`
-5. No special capabilities needed initially
+PeptideX ships two bundles (main app + widget extension) that share data via an
+App Group. All three identifiers below must exist in the Developer Portal **before**
+the CI workflow runs — Xcode's `-allowProvisioningUpdates` can regenerate signing
+profiles, but it cannot create App Groups or link them to App IDs.
+
+### 1a. Create the App Group (do this first)
+
+1. Go to [Identifiers](https://developer.apple.com/account/resources/identifiers/list)
+2. Click **+** → select **App Groups** → **Continue**
+3. Description: `PeptideX Shared Group`
+4. Identifier: `group.com.peptidesai.app`
+5. Click **Continue** → **Register**
+
+### 1b. Register the main App ID
+
+1. Identifiers → **+** → **App IDs** → **App** → **Continue**
+2. Description: `PeptideX`
+3. Bundle ID: **Explicit** → `com.peptidesai.app`
+4. Under **Capabilities**, check:
+   - **App Groups**
+   - **HealthKit**
+   - **Sign In with Apple**
+5. Next to **App Groups**, click **Edit** → select `group.com.peptidesai.app` → **Continue**
 6. Click **Continue** → **Register**
+
+### 1c. Register the widget App ID
+
+1. Identifiers → **+** → **App IDs** → **App** → **Continue**
+2. Description: `PeptideX Widgets`
+3. Bundle ID: **Explicit** → `com.peptidesai.app.widgets`
+4. Under **Capabilities**, check **App Groups**
+5. Next to **App Groups**, click **Edit** → select `group.com.peptidesai.app` → **Continue**
+6. Click **Continue** → **Register**
+
+> You do **not** need to create provisioning profiles manually. Once the App IDs
+> and capabilities above are registered, the workflow uses `-allowProvisioningUpdates`
+> + the App Store Connect API key (Step 4) to generate and refresh profiles on every
+> build for both targets.
 
 ## Step 2: Create App in App Store Connect
 
@@ -111,10 +143,19 @@ Add each of these:
 - Verify `APPLE_CERTIFICATE_BASE64` is the full base64 output with no line breaks added manually.
 - Verify `APPLE_CERTIFICATE_PASSWORD` matches what you set when creating the .p12.
 
-**"No provisioning profile" / "doesn't include X capability" errors**
-- Xcode creates/updates profiles automatically via the App Store Connect API. Confirm the API key role is **App Manager** or higher.
-- Confirm both App IDs exist in the Developer Portal: `com.peptidesai.app` (main app) and `com.peptidesai.app.widgets` (widget extension). Xcode can register them if missing, but they must be in the same team.
-- If capabilities (App Groups, Sign In with Apple, HealthKit) aren't being auto-enabled, re-run the workflow once — Xcode registers them on first access. If it keeps failing, enable them manually in the Identifiers section of the Developer Portal.
+**"Preflight: verify Developer Portal resources" fails with missing App ID**
+- One or both bundle IDs (`com.peptidesai.app`, `com.peptidesai.app.widgets`) aren't
+  registered. Go back to **Step 1** and register them with the listed capabilities.
+
+**Archive fails with "doesn't match the entitlements file's value for com.apple.security.application-groups"**
+- The App Group `group.com.peptidesai.app` isn't linked to the App ID that failed.
+  In the Developer Portal, open the offending App ID → **Capabilities** → **App Groups**
+  → **Edit** → tick `group.com.peptidesai.app` → **Save**. Re-run the workflow.
+
+**Archive fails with "doesn't include the <X> capability / entitlement"**
+- The capability (App Groups, HealthKit, Sign In with Apple) isn't checked on the
+  App ID. Open the App ID in the Developer Portal and enable it per **Step 1**.
+- After enabling a capability, the next workflow run will regenerate the profile.
 
 **"App icon missing" error**
 - The workflow auto-generates a placeholder icon. For production, add a real 1024x1024 PNG to `Peptide/Resources/Assets.xcassets/AppIcon.appiconset/`.
