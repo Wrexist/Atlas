@@ -55,16 +55,7 @@ openssl x509 -in distribution.cer -inform DER -out distribution.pem -outform PEM
 openssl pkcs12 -export -inkey distribution.key -in distribution.pem -out distribution.p12
 ```
 
-## Step 4: Create Provisioning Profile
-
-1. Go to [Profiles](https://developer.apple.com/account/resources/profiles/list) → **+**
-2. Select **App Store Connect** (under Distribution)
-3. Select App ID: `com.peptidesai.app`
-4. Select your distribution certificate
-5. Name it (e.g., `PeptideX App Store`) — **remember this exact name**
-6. Download the `.mobileprovision` file
-
-## Step 5: Create App Store Connect API Key
+## Step 4: Create App Store Connect API Key
 
 1. Go to [App Store Connect](https://appstoreconnect.apple.com) → **Users and Access** → **Integrations** → **App Store Connect API**
 2. Click **+** to generate a new key
@@ -75,12 +66,12 @@ openssl pkcs12 -export -inkey distribution.key -in distribution.pem -out distrib
 7. Note the **Key ID** (shown in the keys list)
 8. Note the **Issuer ID** (shown at the top of the keys page)
 
-## Step 6: Find Your Team ID
+## Step 5: Find Your Team ID
 
 1. Go to [Apple Developer Membership](https://developer.apple.com/account#MembershipDetailsCard)
 2. Your **Team ID** is the 10-character alphanumeric string
 
-## Step 7: Add GitHub Secrets
+## Step 6: Add GitHub Secrets
 
 Go to your repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
 
@@ -90,13 +81,18 @@ Add each of these:
 |---|---|---|
 | `APPLE_CERTIFICATE_BASE64` | Base64-encoded .p12 | `base64 -i distribution.p12 \| pbcopy` (macOS) |
 | `APPLE_CERTIFICATE_PASSWORD` | .p12 password | The password you set in Step 3 |
-| `APPLE_PROVISIONING_PROFILE` | Base64-encoded .mobileprovision | `base64 -i profile.mobileprovision \| pbcopy` (macOS) |
-| `APPLE_TEAM_ID` | 10-char team ID | From Step 6 |
-| `APPLE_CONNECT_KEY_ID` | API Key ID | From Step 5 (shown in the keys list) |
-| `APPLE_CONNECT_ISSUER_ID` | Issuer ID | From Step 5 (shown at top of keys page) |
+| `APPLE_TEAM_ID` | 10-char team ID | From Step 5 |
+| `APPLE_CONNECT_KEY_ID` | API Key ID | From Step 4 (shown in the keys list) |
+| `APPLE_CONNECT_ISSUER_ID` | Issuer ID | From Step 4 (shown at top of keys page) |
 | `APPLE_CONNECT_PRIVATE_KEY` | Contents of .p8 file | `cat AuthKey_XXXXXXXXXX.p8 \| pbcopy` (macOS) |
 
-## Step 8: Run the Workflow
+> Note: Provisioning profiles are created/updated automatically at build time by Xcode
+> using the App Store Connect API key (`-allowProvisioningUpdates`). You do **not**
+> need to manually create or upload a `.mobileprovision` file. The API key must have
+> **App Manager** access so Xcode can register capabilities (App Groups, Sign In with
+> Apple, HealthKit) and generate profiles for both the app and widget extension.
+
+## Step 7: Run the Workflow
 
 1. Go to **Actions** tab in GitHub
 2. Click **iOS TestFlight Deploy** in the left sidebar
@@ -115,9 +111,10 @@ Add each of these:
 - Verify `APPLE_CERTIFICATE_BASE64` is the full base64 output with no line breaks added manually.
 - Verify `APPLE_CERTIFICATE_PASSWORD` matches what you set when creating the .p12.
 
-**"No provisioning profile" error**
-- Ensure the provisioning profile uses the same distribution certificate.
-- Ensure the profile covers the bundle ID `com.peptidesai.app`.
+**"No provisioning profile" / "doesn't include X capability" errors**
+- Xcode creates/updates profiles automatically via the App Store Connect API. Confirm the API key role is **App Manager** or higher.
+- Confirm both App IDs exist in the Developer Portal: `com.peptidesai.app` (main app) and `com.peptidesai.app.widgets` (widget extension). Xcode can register them if missing, but they must be in the same team.
+- If capabilities (App Groups, Sign In with Apple, HealthKit) aren't being auto-enabled, re-run the workflow once — Xcode registers them on first access. If it keeps failing, enable them manually in the Identifiers section of the Developer Portal.
 
 **"App icon missing" error**
 - The workflow auto-generates a placeholder icon. For production, add a real 1024x1024 PNG to `Peptide/Resources/Assets.xcassets/AppIcon.appiconset/`.
