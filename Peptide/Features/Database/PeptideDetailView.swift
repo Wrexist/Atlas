@@ -2,7 +2,6 @@ import SwiftUI
 
 struct PeptideDetailView: View {
     let peptide: Peptide
-    @Environment(\.dismiss) private var dismiss
     @State private var showingBuilder = false
     @AppStorage("experienceLevel") private var experienceLevel = "beginner"
 
@@ -25,7 +24,6 @@ struct PeptideDetailView: View {
                                 .font(.system(size: 32))
                                 .foregroundStyle(peptide.category.color)
                         }
-                        .glassEffect(in: .circle)
 
                         VStack(spacing: Spacing.sm) {
                             Text(peptide.abbreviation)
@@ -49,7 +47,6 @@ struct PeptideDetailView: View {
                             showingBuilder = true
                         }
                     }
-                    .frame(maxWidth: .infinity)
                 }
                 .sectionAppear(index: 0)
 

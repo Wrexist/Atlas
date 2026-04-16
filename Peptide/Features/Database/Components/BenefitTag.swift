@@ -6,7 +6,7 @@ struct BenefitTag: View {
     var color: Color = AppColor.accentPrimary
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
+        HStack(alignment: .center, spacing: 4) {
             if let icon {
                 Image(systemName: icon)
                     .font(.system(size: 9, weight: .semibold))
@@ -38,10 +38,9 @@ struct BenefitTagFlow: View {
 
     var body: some View {
         FlowLayout(spacing: Spacing.sm) {
-            ForEach(Array(benefits.enumerated()), id: \.offset) { index, benefit in
+            ForEach(benefits, id: \.self) { benefit in
                 let style = BenefitStyleMap.style(for: benefit, fallbackColor: color)
                 BenefitTag(text: benefit, icon: style.icon, color: style.color)
-                    .staggeredAppear(index: index)
             }
         }
     }
