@@ -1,5 +1,5 @@
 import Foundation
-import UIKit
+@preconcurrency import UIKit
 
 @MainActor
 final class ExportService {
@@ -71,9 +71,6 @@ final class ExportService {
 
         let renderer = UIGraphicsPDFRenderer(bounds: pageRect, format: format)
 
-        // The pdfData closure is non-escaping and called synchronously on the calling
-        // thread. Since exportPDF is @MainActor-isolated, the closure body also runs on
-        // the main actor — no actor-isolation annotation needed.
         return renderer.pdfData { ctx in
             var y: CGFloat = margin
 
