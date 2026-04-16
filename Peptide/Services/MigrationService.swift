@@ -8,10 +8,13 @@ import Foundation
 @MainActor
 final class MigrationService {
     static let shared = MigrationService()
-    private init() {}
 
     private let persistence = PersistenceService.shared
-    private let repo = SwiftDataRepository.shared
+    private let repo: SwiftDataRepository
+
+    private init() {
+        self.repo = SwiftDataRepository.shared
+    }
 
     /// Runs the migration if legacy JSON files exist and SwiftData has no data yet.
     func migrateIfNeeded() {

@@ -7,7 +7,7 @@ final class DataStore: DataServiceProtocol {
     var entries: [ProtocolEntry]
     var profile: UserProfile
 
-    private let repo = SwiftDataRepository.shared
+    private let repo: SwiftDataRepository
     private let _peptideDatabase: [Peptide] = PeptideDatabase.shared
 
     // MARK: - Cache (avoids recomputing expensive stats on every toggle)
@@ -51,6 +51,8 @@ final class DataStore: DataServiceProtocol {
     }
 
     init(seedSampleData: Bool = false) {
+        self.repo = SwiftDataRepository.shared
+        MigrationService.shared.migrateIfNeeded()
         let savedProtocols = repo.loadProtocols()
         let savedEntries   = repo.loadEntries()
         let savedProfile   = repo.loadProfile()

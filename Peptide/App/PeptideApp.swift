@@ -4,16 +4,11 @@ import UserNotifications
 @main
 struct PeptideApp: App {
     @State private var appState = AppState()
-    @State private var dataStore: DataStore
+    @State private var dataStore = DataStore()
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var notificationDelegate: NotificationDelegate?
     @State private var isUnlocked = false
     @Environment(\.scenePhase) private var scenePhase
-
-    init() {
-        MigrationService.shared.migrateIfNeeded()
-        _dataStore = State(wrappedValue: DataStore())
-    }
 
     var body: some Scene {
         WindowGroup {
