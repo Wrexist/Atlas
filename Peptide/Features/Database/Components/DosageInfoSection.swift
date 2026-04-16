@@ -57,6 +57,7 @@ private struct DosageRow: View {
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.trailing)
                 .lineLimit(3)
+                .minimumScaleFactor(0.85)
         }
     }
 }

@@ -10,42 +10,48 @@ struct PeptideDetailView: View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
                 // Hero Section
-                VStack(spacing: Spacing.lg) {
-                    ZStack {
-                        Circle()
-                            .fill(peptide.category.color.opacity(0.15))
-                            .frame(width: 80, height: 80)
-                            .overlay {
-                                Circle()
-                                    .strokeBorder(peptide.category.color.opacity(0.3), lineWidth: 1)
-                            }
+                GlassCard(tinted: true) {
+                    VStack(spacing: Spacing.lg) {
+                        ZStack {
+                            Circle()
+                                .fill(peptide.category.color.opacity(0.15))
+                                .frame(width: 80, height: 80)
+                                .overlay {
+                                    Circle()
+                                        .strokeBorder(peptide.category.color.opacity(0.3), lineWidth: 1)
+                                }
 
-                        Image(systemName: peptide.imageSystemName)
-                            .font(.system(size: 32))
-                            .foregroundStyle(peptide.category.color)
+                            Image(systemName: peptide.imageSystemName)
+                                .font(.system(size: 32))
+                                .foregroundStyle(peptide.category.color)
+                        }
+                        .glassEffect(in: .circle)
+
+                        VStack(spacing: Spacing.sm) {
+                            Text(peptide.abbreviation)
+                                .font(AppFont.largeTitle)
+                                .foregroundStyle(AppColor.textPrimary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
+
+                            Text(peptide.name)
+                                .font(AppFont.subheadline)
+                                .foregroundStyle(AppColor.textSecondary)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.85)
+
+                            PeptideCategoryBadge(category: peptide.category)
+                        }
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+
+                        GlassButton(title: "Add to Protocol", icon: "plus", style: .primary) {
+                            showingBuilder = true
+                        }
                     }
-                    .glassEffect(in: .circle)
-                    .sectionAppear(index: 0)
-
-                    VStack(spacing: Spacing.sm) {
-                        Text(peptide.abbreviation)
-                            .font(AppFont.largeTitle)
-                            .foregroundStyle(AppColor.textPrimary)
-
-                        Text(peptide.name)
-                            .font(AppFont.subheadline)
-                            .foregroundStyle(AppColor.textSecondary)
-
-                        PeptideCategoryBadge(category: peptide.category)
-                    }
-                    .sectionAppear(index: 1)
-
-                    GlassButton(title: "Add to Protocol", icon: "plus", style: .primary) {
-                        showingBuilder = true
-                    }
-                    .sectionAppear(index: 2)
+                    .frame(maxWidth: .infinity)
                 }
-                .padding(.top, Spacing.lg)
+                .sectionAppear(index: 0)
 
                 // Description
                 GlassCard {
@@ -63,7 +69,7 @@ struct PeptideDetailView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .sectionAppear(index: 3)
+                .sectionAppear(index: 1)
 
                 // Mechanism of Action
                 if !peptide.mechanism.isEmpty {
@@ -82,7 +88,7 @@ struct PeptideDetailView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .sectionAppear(index: 4)
+                    .sectionAppear(index: 2)
                 }
 
                 // Benefits
@@ -104,11 +110,11 @@ struct PeptideDetailView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .sectionAppear(index: 5)
+                .sectionAppear(index: 3)
 
                 // Dosage Info
                 DosageInfoSection(peptide: peptide)
-                    .sectionAppear(index: 6)
+                    .sectionAppear(index: 4)
 
                 // Side Effects
                 if !peptide.sideEffects.isEmpty {
@@ -141,7 +147,7 @@ struct PeptideDetailView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .sectionAppear(index: 7)
+                    .sectionAppear(index: 5)
                 }
 
                 // Contraindications
@@ -175,7 +181,7 @@ struct PeptideDetailView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .sectionAppear(index: 8)
+                    .sectionAppear(index: 6)
                 }
 
                 // Common Stacks
@@ -198,7 +204,7 @@ struct PeptideDetailView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .sectionAppear(index: 9)
+                    .sectionAppear(index: 7)
                 }
 
                 // Regulatory Status
@@ -218,19 +224,19 @@ struct PeptideDetailView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .sectionAppear(index: 10)
+                    .sectionAppear(index: 8)
                 }
 
                 // Research Links (hidden for beginners)
                 if !peptide.researchLinks.isEmpty && experienceLevel != "beginner" {
                     ResearchLinksSection(links: peptide.researchLinks, categoryColor: peptide.category.color)
-                        .sectionAppear(index: 11)
+                        .sectionAppear(index: 9)
                 }
 
                 // Molecular Data
                 if let mol = peptide.molecular, !mol.formula.isEmpty {
                     MolecularInfoSection(molecular: mol, categoryColor: peptide.category.color)
-                        .sectionAppear(index: 12)
+                        .sectionAppear(index: 10)
                 }
             }
             .padding(.horizontal, Spacing.screenPadding)

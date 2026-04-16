@@ -6,7 +6,7 @@ struct BenefitTag: View {
     var color: Color = AppColor.accentPrimary
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
             if let icon {
                 Image(systemName: icon)
                     .font(.system(size: 9, weight: .semibold))
@@ -14,6 +14,8 @@ struct BenefitTag: View {
             Text(text)
                 .font(AppFont.caption)
                 .fontWeight(.medium)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .foregroundStyle(color)
         .padding(.horizontal, Spacing.sm)
@@ -55,33 +57,48 @@ struct FlowLayout: Layout {
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         let result = arrange(proposal: proposal, subviews: subviews)
-        for (index, position) in result.positions.enumerated() {
-            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
+        for (index, item) in result.items.enumerated() {
+            subviews[index].place(
+                at: CGPoint(x: bounds.minX + item.position.x, y: bounds.minY + item.position.y),
+                proposal: ProposedViewSize(width: item.size.width, height: item.size.height)
+            )
         }
     }
 
-    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (positions: [CGPoint], size: CGSize) {
+    private struct Placement {
+        let position: CGPoint
+        let size: CGSize
+    }
+
+    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (items: [Placement], size: CGSize) {
         let maxWidth = proposal.width ?? .infinity
-        var positions: [CGPoint] = []
+        var items: [Placement] = []
         var x: CGFloat = 0
         var y: CGFloat = 0
         var rowHeight: CGFloat = 0
         var maxX: CGFloat = 0
 
         for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
+            // Propose the available row width so subviews wrap their text
+            // (e.g. long benefit chips) instead of returning a too-wide ideal size.
+            let widthProposal = maxWidth.isFinite ? maxWidth : nil
+            let measured = subview.sizeThatFits(ProposedViewSize(width: widthProposal, height: nil))
+            let cappedWidth = min(measured.width, maxWidth)
+            let size = CGSize(width: cappedWidth, height: measured.height)
+
             if x + size.width > maxWidth, x > 0 {
                 x = 0
                 y += rowHeight + spacing
                 rowHeight = 0
             }
-            positions.append(CGPoint(x: x, y: y))
+            items.append(Placement(position: CGPoint(x: x, y: y), size: size))
             rowHeight = max(rowHeight, size.height)
             x += size.width + spacing
             maxX = max(maxX, x - spacing)
         }
 
-        return (positions, CGSize(width: maxX, height: y + rowHeight))
+        let totalWidth = min(maxX, maxWidth)
+        return (items, CGSize(width: totalWidth, height: y + rowHeight))
     }
 }
 
