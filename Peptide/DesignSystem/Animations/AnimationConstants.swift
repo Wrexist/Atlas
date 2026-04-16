@@ -12,11 +12,15 @@ enum AppAnimation {
     static let staggerDelay: Double = 0.05
     static let sectionDelay: Double = 0.15
 
+    // Cap the visible delay so long lists (10+ cards) don't take 1.5s+ to settle.
+    private static let maxStaggerIndex = 8
+    private static let maxSectionIndex = 4
+
     static func staggered(index: Int) -> Animation {
-        springBouncy.delay(Double(index) * staggerDelay)
+        springBouncy.delay(Double(min(index, maxStaggerIndex)) * staggerDelay)
     }
 
     static func sectionStaggered(index: Int) -> Animation {
-        springSmooth.delay(Double(index) * sectionDelay)
+        springSmooth.delay(Double(min(index, maxSectionIndex)) * sectionDelay)
     }
 }

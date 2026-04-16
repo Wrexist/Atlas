@@ -49,14 +49,31 @@ struct BenefitTagFlow: View {
 struct FlowLayout: Layout {
     var spacing: CGFloat = 8
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        return result.size
+    struct Cache {
+        var width: CGFloat?
+        var items: [Placement] = []
+        var size: CGSize = .zero
     }
 
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        for (index, item) in result.items.enumerated() {
+    struct Placement {
+        let position: CGPoint
+        let size: CGSize
+    }
+
+    func makeCache(subviews: Subviews) -> Cache { Cache() }
+
+    func updateCache(_ cache: inout Cache, subviews: Subviews) {
+        cache = Cache()
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) -> CGSize {
+        arrange(proposal: proposal, subviews: subviews, cache: &cache)
+        return cache.size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) {
+        arrange(proposal: proposal, subviews: subviews, cache: &cache)
+        for (index, item) in cache.items.enumerated() {
             subviews[index].place(
                 at: CGPoint(x: bounds.minX + item.position.x, y: bounds.minY + item.position.y),
                 proposal: ProposedViewSize(width: item.size.width, height: item.size.height)
@@ -64,13 +81,10 @@ struct FlowLayout: Layout {
         }
     }
 
-    private struct Placement {
-        let position: CGPoint
-        let size: CGSize
-    }
-
-    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (items: [Placement], size: CGSize) {
+    private func arrange(proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) {
         let maxWidth = proposal.width ?? .infinity
+        if cache.width == maxWidth, !cache.items.isEmpty { return }
+
         var items: [Placement] = []
         var x: CGFloat = 0
         var y: CGFloat = 0
@@ -96,8 +110,9 @@ struct FlowLayout: Layout {
             maxX = max(maxX, x - spacing)
         }
 
-        let totalWidth = min(maxX, maxWidth)
-        return (items, CGSize(width: totalWidth, height: y + rowHeight))
+        cache.width = maxWidth
+        cache.items = items
+        cache.size = CGSize(width: min(maxX, maxWidth), height: y + rowHeight)
     }
 }
 
