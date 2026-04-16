@@ -39,10 +39,6 @@ final class AuthService {
         // name/email on the very first authorization).
         let previousUserId = Self.readKeychain(account: Self.keychainAccountID)
         let sameAccount = (previousUserId == userId)
-        if !sameAccount {
-            Self.deleteKeychain(account: Self.keychainAccountEmail)
-            Self.deleteKeychain(account: Self.keychainAccountName)
-        }
 
         let email = credential.email ?? (sameAccount ? Self.readKeychain(account: Self.keychainAccountEmail) : nil)
         let name: String? = {
@@ -54,8 +50,13 @@ final class AuthService {
             return sameAccount ? Self.readKeychain(account: Self.keychainAccountName) : nil
         }()
 
-        // Persist to Keychain — abort sign-in if the user ID can't be stored.
+        // Persist user ID first — abort sign-in if it can't be stored.
+        // Only clear old profile data after confirming the new ID landed safely.
         guard Self.writeKeychain(value: userId, account: Self.keychainAccountID) == errSecSuccess else { return }
+        if !sameAccount {
+            Self.deleteKeychain(account: Self.keychainAccountEmail)
+            Self.deleteKeychain(account: Self.keychainAccountName)
+        }
         if let email  { Self.writeKeychain(value: email, account: Self.keychainAccountEmail) }
         if let name   { Self.writeKeychain(value: name, account: Self.keychainAccountName) }
 

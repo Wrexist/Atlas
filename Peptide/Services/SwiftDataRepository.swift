@@ -128,7 +128,8 @@ final class SwiftDataRepository {
 
     var hasAnyData: Bool {
         let protocolCount = (try? context.fetchCount(FetchDescriptor<StoredProtocol>())) ?? 0
+        let entryCount    = (try? context.fetchCount(FetchDescriptor<StoredEntry>()))    ?? 0
         let profileCount  = (try? context.fetchCount(FetchDescriptor<StoredProfile>())) ?? 0
-        return protocolCount > 0 || profileCount > 0
+        return protocolCount > 0 || entryCount > 0 || profileCount > 0
     }
 }
