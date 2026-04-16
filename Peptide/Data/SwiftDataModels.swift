@@ -55,22 +55,14 @@ final class StoredProtocol {
         )
     }
 
-    func update(from proto: PeptideProtocol) {
+    func update(from proto: PeptideProtocol) throws {
         name = proto.name
         cycleLengthWeeks = proto.cycleLengthWeeks
         startDate = proto.startDate
         statusRaw = proto.status.rawValue
         notes = proto.notes
-        do {
-            peptideData = try sdEncoder.encode(proto.peptides)
-        } catch {
-            assertionFailure("Failed to encode peptides for '\(proto.name)': \(error)")
-        }
-        do {
-            scheduleData = try sdEncoder.encode(proto.schedule)
-        } catch {
-            assertionFailure("Failed to encode schedule for '\(proto.name)': \(error)")
-        }
+        peptideData = try sdEncoder.encode(proto.peptides)
+        scheduleData = try sdEncoder.encode(proto.schedule)
     }
 
     func toPeptideProtocol() throws -> PeptideProtocol {
@@ -136,18 +128,14 @@ final class StoredEntry {
         )
     }
 
-    func update(from entry: ProtocolEntry) {
+    func update(from entry: ProtocolEntry) throws {
         completed = entry.completed
         actualDose = entry.actualDose
         actualTime = entry.actualTime
         injectionSite = entry.injectionSite
         notes = entry.notes
         dose = entry.dose
-        do {
-            peptideData = try sdEncoder.encode(entry.peptide)
-        } catch {
-            assertionFailure("Failed to encode peptide for entry \(entry.id): \(error)")
-        }
+        peptideData = try sdEncoder.encode(entry.peptide)
     }
 
     func toProtocolEntry() throws -> ProtocolEntry {
@@ -204,18 +192,14 @@ final class StoredProfile {
         )
     }
 
-    func update(from profile: UserProfile) {
+    func update(from profile: UserProfile) throws {
         name = profile.name
         memberSince = profile.memberSince
         healthConnected = profile.healthConnected
         hapticFeedbackEnabled = profile.hapticFeedbackEnabled
         doseRemindersEnabled = profile.doseRemindersEnabled
         biometricLockEnabled = profile.biometricLockEnabled
-        do {
-            goalsData = try sdEncoder.encode(profile.goals)
-        } catch {
-            assertionFailure("Failed to encode goals for UserProfile '\(profile.name)': \(error)")
-        }
+        goalsData = try sdEncoder.encode(profile.goals)
     }
 
     func toUserProfile() throws -> UserProfile {

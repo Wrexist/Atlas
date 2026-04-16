@@ -88,6 +88,7 @@ final class AuthService {
         let provider = ASAuthorizationAppleIDProvider()
         do {
             let state = try await provider.credentialState(forUserID: userId)
+            guard userIdentifier == userId else { return }
             if state != .authorized {
                 signOut()
             }

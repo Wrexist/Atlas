@@ -1,6 +1,6 @@
 import SwiftUI
 
-@Observable
+@MainActor @Observable
 final class PeptideListViewModel {
     var searchText = "" { didSet { refilter() } }
     var selectedCategory: PeptideCategory?

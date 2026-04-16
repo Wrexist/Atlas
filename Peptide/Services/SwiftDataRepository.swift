@@ -61,7 +61,7 @@ final class SwiftDataRepository {
         // Update existing / insert new
         for proto in protocols {
             if let stored = existingById[proto.id] {
-                stored.update(from: proto)
+                try? stored.update(from: proto)
             } else if let stored = try? StoredProtocol.make(from: proto) {
                 context.insert(stored)
             }
@@ -93,7 +93,7 @@ final class SwiftDataRepository {
         // Update existing / insert new
         for entry in entries {
             if let stored = existingById[entry.id] {
-                stored.update(from: entry)
+                try? stored.update(from: entry)
             } else if let stored = try? StoredEntry.make(from: entry) {
                 context.insert(stored)
             }
@@ -112,7 +112,7 @@ final class SwiftDataRepository {
     func saveProfile(_ profile: UserProfile) {
         let existing = (try? context.fetch(FetchDescriptor<StoredProfile>()))?.first
         if let existing {
-            existing.update(from: profile)
+            try? existing.update(from: profile)
         } else if let stored = try? StoredProfile.make(from: profile) {
             context.insert(stored)
         }
