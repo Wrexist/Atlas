@@ -347,20 +347,70 @@ jobs:
             if grep -E "doesn't match the entitlements file's value|doesn't include the .* (capability|entitlement)" \
                  "$RUNNER_TEMP/xcodebuild-archive.log" >/dev/null 2>&1; then
               echo ""
-              echo "Detected a capability/entitlement mismatch. One or more App IDs in"
-              echo "the Apple Developer Portal is missing a required capability, or the"
-              echo "App Group 'group.com.peptidesai.app' is not linked to the failing"
-              echo "App ID. See TESTFLIGHT_SETUP.md → 'Step 1: Register App IDs &"
-              echo "Capabilities' and the Troubleshooting section."
+              echo "Detected a capability/entitlement mismatch. Xcode's -allowProvisioningUpdates"
+              echo "fetched profiles from Apple, but they don't contain the entitlements your app"
+              echo "requests. The profiles below are what Apple actually returned — check their"
+              echo "application-groups array to see whether group.com.peptidesai.app is linked."
               echo ""
               grep -E "doesn't match the entitlements file's value|doesn't include the .* (capability|entitlement)" \
                    "$RUNNER_TEMP/xcodebuild-archive.log" || true
               echo ""
+              echo "=================================================================="
+              echo "Auto-generated provisioning profiles (ground truth from Apple)"
+              echo "=================================================================="
+              PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+              if [ -d "$PROFILE_DIR" ] && ls "$PROFILE_DIR"/*.mobileprovision >/dev/null 2>&1; then
+                for p in "$PROFILE_DIR"/*.mobileprovision; do
+                  echo ""
+                  echo "--- $(basename "$p") ---"
+                  PLIST=$(security cms -D -i "$p")
+                  printf 'Name:        '; echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Name' /dev/stdin 2>/dev/null || true
+                  printf 'AppIDName:   '; echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :AppIDName' /dev/stdin 2>/dev/null || true
+                  printf 'UUID:        '; echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :UUID' /dev/stdin 2>/dev/null || true
+                  printf 'TeamID:      '; echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' /dev/stdin 2>/dev/null || true
+                  echo "application-identifier: $(echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' /dev/stdin 2>/dev/null || echo '(missing)')"
+                  echo "application-groups:"
+                  echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.security.application-groups' /dev/stdin 2>/dev/null | sed 's/^/  /' || echo "  (none — App Group is NOT linked to this App ID in the Developer Portal)"
+                  echo "healthkit:  $(echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.healthkit' /dev/stdin 2>/dev/null || echo '(not enabled)')"
+                  echo "applesignin: $(echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.applesignin' /dev/stdin 2>/dev/null || echo '(not enabled)')"
+                done
+              else
+                echo "(no profiles fetched — likely failed before provisioning step)"
+              fi
+              echo ""
+              echo "=================================================================="
+              echo "What to do"
+              echo "=================================================================="
+              echo "Go to https://developer.apple.com/account/resources/identifiers/list"
+              echo ""
+              echo "1. Identifiers → App Groups → verify 'group.com.peptidesai.app' exists."
+              echo "   If not, click + → App Groups → identifier 'group.com.peptidesai.app' → Continue → Register."
+              echo ""
+              echo "2. Click the App ID 'com.peptidesai.app' → check 'App Groups' capability."
+              echo "   Click the 'Configure' (or 'Edit') button next to App Groups → tick"
+              echo "   'group.com.peptidesai.app' → Continue → Save."
+              echo ""
+              echo "3. Repeat step 2 for App ID 'com.peptidesai.app.widgets'."
+              echo ""
+              echo "4. Re-run this workflow. The dumped profile above should now show"
+              echo "   'group.com.peptidesai.app' in its application-groups array."
             fi
             echo "FATAL: Archive was not created"
             exit 1
           fi
           echo "Archive created successfully"
+
+          echo ""
+          echo "=== Auto-generated provisioning profiles (for reference) ==="
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          for p in "$PROFILE_DIR"/*.mobileprovision; do
+            [ -f "$p" ] || continue
+            PLIST=$(security cms -D -i "$p")
+            NAME=$(echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Name' /dev/stdin 2>/dev/null)
+            APPID=$(echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' /dev/stdin 2>/dev/null)
+            GROUPS=$(echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.security.application-groups' /dev/stdin 2>/dev/null | tr '\n' ' ')
+            echo "  $NAME  |  $APPID  |  groups: $GROUPS"
+          done
 
       - name: Verify archive Info.plist
         run: |
