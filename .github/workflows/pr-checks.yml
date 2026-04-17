@@ -14,7 +14,7 @@ concurrency:
 jobs:
   build-check:
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v4
@@ -33,7 +33,16 @@ jobs:
             ~/Library/Caches/Homebrew
             /usr/local/Cellar/xcodegen
             /opt/homebrew/Cellar/xcodegen
-          key: brew-xcodegen-${{ runner.os }}-${{ runner.arch }}
+            /usr/local/Cellar/swiftlint
+            /opt/homebrew/Cellar/swiftlint
+          key: brew-tools-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: derived-data-${{ runner.os }}-${{ hashFiles('**/*.xcodeproj/project.pbxproj', 'project.yml') }}
+          restore-keys: derived-data-${{ runner.os }}-
 
       - name: Install XcodeGen
         run: |
@@ -94,11 +103,11 @@ jobs:
 
       - name: Install SwiftLint
         run: |
-          if command -v swiftlint &> /dev/null; then
-            echo "SwiftLint already available"
-          else
-            brew install swiftlint 2>&1 || true
+          if ! command -v swiftlint &> /dev/null; then
+            brew install swiftlint || brew reinstall swiftlint
           fi
+          export PATH="$(brew --prefix)/bin:$PATH"
+          echo "SwiftLint ready: $(swiftlint version)"
 
       - name: Lint
         run: swiftlint lint --reporter github-actions-logging --strict
