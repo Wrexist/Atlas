@@ -3,178 +3,292 @@
 ## App Details
 - **App Name:** PeptideX
 - **Bundle ID:** `com.peptidesai.app`
-- **Platform:** iOS (iPhone only)
-
-## Prerequisites
-- Apple Developer Program membership ($99/year)
-- GitHub repository with Actions enabled
+- **Widget Bundle ID:** `com.peptidesai.app.widgets`
+- **App Group:** `group.com.peptidesai.app`
 
 ---
 
-## Step 1: Register App IDs, App Group, and Capabilities
+## Quick Checklist
 
-PeptideX ships two bundles (main app + widget extension) that share data via an
-App Group. **All of the following must exist in the Developer Portal before the
-CI workflow runs** — the App Store Connect API can't create App Groups or link
-them to App IDs (that endpoint doesn't exist in the public API), and Xcode's
-`-allowProvisioningUpdates` only regenerates profiles, it can't configure the
-underlying App ID state.
+Work through this top-to-bottom before running the workflow. Each item maps to a step below.
 
-### 1a. Create the App Group (do this first)
+- [ ] Apple Developer Program active ($99/year membership)
+- [ ] App Group `group.com.peptidesai.app` registered in Developer Portal
+- [ ] App ID `com.peptidesai.app` registered with App Groups + HealthKit + Sign In with Apple
+- [ ] App Group linked to `com.peptidesai.app` (click Configure → tick the group → Save)
+- [ ] App ID `com.peptidesai.app.widgets` registered with App Groups
+- [ ] App Group linked to `com.peptidesai.app.widgets`
+- [ ] App created in App Store Connect with bundle ID `com.peptidesai.app`
+- [ ] Apple Distribution certificate downloaded and exported as `.p12`
+- [ ] App Store Connect API key created with App Manager access, `.p8` file saved
+- [ ] All 6 GitHub Secrets added (see Step 6)
+- [ ] Secrets verified with the verification commands (see Step 6)
 
-1. Go to [Identifiers](https://developer.apple.com/account/resources/identifiers/list)
+---
+
+## Step 1: Register App Group and App IDs in the Developer Portal
+
+> **Do this in order.** The App Group must exist before you can link it to App IDs.
+
+### 1a. Create the App Group
+
+1. Open [Identifiers](https://developer.apple.com/account/resources/identifiers/list)
 2. Click **+** → select **App Groups** → **Continue**
 3. Description: `PeptideX Shared Group`
 4. Identifier: `group.com.peptidesai.app`
 5. Click **Continue** → **Register**
 
-### 1b. Register the main App ID
+### 1b. Register the main App ID (`com.peptidesai.app`)
 
 1. Identifiers → **+** → **App IDs** → **App** → **Continue**
 2. Description: `PeptideX`
 3. Bundle ID: **Explicit** → `com.peptidesai.app`
-4. Under **Capabilities**, check:
-   - **App Groups**
-   - **HealthKit**
-   - **Sign In with Apple**
-5. Next to **App Groups**, click **Configure** (or **Edit**) → tick `group.com.peptidesai.app` → **Continue**
+4. Under **Capabilities**, tick all three:
+   - ☑ **App Groups**
+   - ☑ **HealthKit**
+   - ☑ **Sign In with Apple**
+5. Click **Configure** (or **Edit**) next to **App Groups** → tick `group.com.peptidesai.app` → **Continue**
 6. Click **Continue** → **Register**
 
-### 1c. Register the widget App ID
+### 1c. Register the widget App ID (`com.peptidesai.app.widgets`)
 
 1. Identifiers → **+** → **App IDs** → **App** → **Continue**
 2. Description: `PeptideX Widgets`
 3. Bundle ID: **Explicit** → `com.peptidesai.app.widgets`
-4. Under **Capabilities**, check **App Groups**
-5. Next to **App Groups**, click **Configure** (or **Edit**) → tick `group.com.peptidesai.app` → **Continue**
+4. Under **Capabilities**, tick:
+   - ☑ **App Groups**
+5. Click **Configure** next to **App Groups** → tick `group.com.peptidesai.app` → **Continue**
 6. Click **Continue** → **Register**
 
-> The workflow's preflight verifies that both App IDs exist and that the required
-> capabilities are enabled. App Group *linkage* isn't queryable via the public
-> ASC API, so if you miss step 1a or the **Configure** click in 1b/1c, the archive
-> step will fail with an `application-groups entitlement` mismatch. Re-open the
-> App ID → App Groups → Edit → tick the group → Save, then re-run the workflow.
+> **Common mistake:** Forgetting to click **Configure** and actually tick the group after enabling the App Groups capability. The capability checkbox alone is not enough — the group must be explicitly linked. If the archive fails with an `application-groups entitlement` mismatch, this is the cause.
+
+---
 
 ## Step 2: Create App in App Store Connect
 
-1. Go to [App Store Connect](https://appstoreconnect.apple.com)
-2. **My Apps** → **+** → **New App**
+1. Go to [App Store Connect → My Apps](https://appstoreconnect.apple.com/apps)
+2. Click **+** → **New App**
 3. Platform: **iOS**
 4. Name: `PeptideX`
-5. Bundle ID: `com.peptidesai.app`
-6. SKU: `peptidex`
-7. Click **Create**
+5. Bundle ID: select `com.peptidesai.app` (must appear after Step 1b)
+6. SKU: `peptidex` (any unique string works)
+7. Primary Language: your language of choice
+8. Click **Create**
 
-## Step 3: Create Distribution Certificate
+---
 
-If you already have an Apple Distribution certificate, skip to exporting it as .p12.
+## Step 3: Create a Distribution Certificate
 
-**Create a new one:**
+> Skip to "Export as .p12" if you already have an Apple Distribution certificate in Keychain.
+
+### Create a Certificate Signing Request (CSR)
+
 ```bash
-# Generate a Certificate Signing Request (CSR)
-openssl req -nodes -newkey rsa:2048 -keyout distribution.key -out distribution.csr \
-  -subj "/emailAddress=YOUR_EMAIL/CN=YOUR_NAME/C=US"
+openssl req -nodes -newkey rsa:2048 \
+  -keyout ~/Desktop/distribution.key \
+  -out ~/Desktop/distribution.csr \
+  -subj "/emailAddress=YOUR_APPLE_EMAIL/CN=YOUR_NAME/C=US"
 ```
+
+### Upload and download the certificate
 
 1. Go to [Certificates](https://developer.apple.com/account/resources/certificates/list) → **+**
-2. Select **Apple Distribution**
-3. Upload `distribution.csr`
-4. Download the `.cer` file
+2. Select **Apple Distribution** → **Continue**
+3. Upload `distribution.csr` → **Continue**
+4. Download the resulting `.cer` file (e.g. `distribution_identity.cer`)
 
-**Convert to .p12:**
+### Export as .p12
+
 ```bash
 # Convert .cer to .pem
-openssl x509 -in distribution.cer -inform DER -out distribution.pem -outform PEM
+openssl x509 -in ~/Desktop/distribution_identity.cer \
+  -inform DER -out ~/Desktop/distribution.pem -outform PEM
 
-# Create .p12 (you'll be prompted for a password — remember it!)
-openssl pkcs12 -export -inkey distribution.key -in distribution.pem -out distribution.p12
+# Bundle key + cert into .p12 — you will be prompted to set a password
+# USE A STRONG PASSWORD AND REMEMBER IT — you need it for APPLE_CERTIFICATE_PASSWORD
+openssl pkcs12 -export \
+  -inkey ~/Desktop/distribution.key \
+  -in ~/Desktop/distribution.pem \
+  -out ~/Desktop/distribution.p12
 ```
 
-## Step 4: Create App Store Connect API Key
+> If you already have the certificate in Keychain Access: open **Keychain Access** → **My Certificates** → right-click the "Apple Distribution: …" cert → **Export** → save as `.p12` → set a password.
 
-1. Go to [App Store Connect](https://appstoreconnect.apple.com) → **Users and Access** → **Integrations** → **App Store Connect API**
-2. Click **+** to generate a new key
-3. Name: `GitHub Actions`
-4. Access: **App Manager** (minimum role needed for TestFlight uploads)
-5. Click **Generate**
-6. **Download the `.p8` file immediately** — it can only be downloaded once
-7. Note the **Key ID** (shown in the keys list)
-8. Note the **Issuer ID** (shown at the top of the keys page)
+---
+
+## Step 4: Create an App Store Connect API Key
+
+1. Go to [App Store Connect → Users and Access → Integrations → App Store Connect API](https://appstoreconnect.apple.com/access/api)
+2. If prompted, click **Request Access** first
+3. Click **+** to generate a new key
+4. Name: `GitHub Actions`
+5. Access: **App Manager** (minimum required for TestFlight uploads)
+6. Click **Generate**
+7. **Download the `.p8` file immediately** — it can only be downloaded once. If you miss it, delete and regenerate.
+8. Copy the **Key ID** (10-character string shown in the table, e.g. `ABC1234DEF`)
+9. Copy the **Issuer ID** (UUID shown at the top of the page, e.g. `12345678-1234-1234-1234-123456789012`)
+
+---
 
 ## Step 5: Find Your Team ID
 
-1. Go to [Apple Developer Membership](https://developer.apple.com/account#MembershipDetailsCard)
-2. Your **Team ID** is the 10-character alphanumeric string
+1. Go to [Membership Details](https://developer.apple.com/account#MembershipDetailsCard)
+2. Your **Team ID** is the 10-character alphanumeric string (e.g. `LFGMAA62R4`)
+
+---
 
 ## Step 6: Add GitHub Secrets
 
-Go to your repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+Go to: **GitHub repo → Settings → Secrets and variables → Actions → New repository secret**
 
-Add each of these:
+Add all 6 secrets exactly as named below (case-sensitive):
 
-| Secret Name | Value | How to Get It |
-|---|---|---|
-| `APPLE_CERTIFICATE_BASE64` | Base64-encoded .p12 | `base64 -i distribution.p12 \| pbcopy` (macOS) |
-| `APPLE_CERTIFICATE_PASSWORD` | .p12 password | The password you set in Step 3 |
-| `APPLE_TEAM_ID` | 10-char team ID | From Step 5 |
-| `APPLE_CONNECT_KEY_ID` | API Key ID | From Step 4 (shown in the keys list) |
-| `APPLE_CONNECT_ISSUER_ID` | Issuer ID | From Step 4 (shown at top of keys page) |
-| `APPLE_CONNECT_PRIVATE_KEY` | Contents of .p8 file | `cat AuthKey_XXXXXXXXXX.p8 \| pbcopy` (macOS) |
+| Secret Name | Value |
+|---|---|
+| `APPLE_CERTIFICATE_BASE64` | Base64 of the `.p12` file |
+| `APPLE_CERTIFICATE_PASSWORD` | Password you set when exporting `.p12` |
+| `APPLE_TEAM_ID` | 10-char Team ID from Step 5 (e.g. `LFGMAA62R4`) |
+| `APPLE_CONNECT_KEY_ID` | API Key ID from Step 4 (e.g. `ABC1234DEF`) |
+| `APPLE_CONNECT_ISSUER_ID` | Issuer ID UUID from Step 4 |
+| `APPLE_CONNECT_PRIVATE_KEY` | Full contents of the `.p8` file |
 
-> Note: Provisioning profiles are created/updated automatically at build time by Xcode
-> using the App Store Connect API key (`-allowProvisioningUpdates`). You do **not**
-> need to manually create or upload a `.mobileprovision` file. The API key must have
-> **App Manager** access so Xcode can register capabilities (App Groups, Sign In with
-> Apple, HealthKit) and generate profiles for both the app and widget extension.
+### How to encode each secret
+
+**`APPLE_CERTIFICATE_BASE64`** — the entire `.p12` file base64-encoded, no line breaks:
+```bash
+# macOS
+base64 -i ~/Desktop/distribution.p12 | pbcopy
+# Linux / GitHub Actions runner
+base64 -w 0 ~/Desktop/distribution.p12
+```
+Paste the result directly into the secret value field (no quotes, no newlines).
+
+**`APPLE_CONNECT_PRIVATE_KEY`** — the raw contents of the `.p8` file, including the header/footer lines:
+```bash
+cat ~/Desktop/AuthKey_XXXXXXXXXX.p8
+```
+The value must look exactly like:
+```
+-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg...
+-----END PRIVATE KEY-----
+```
+
+### Verify your secrets locally before adding them
+
+Run these checks on your Mac **before** pasting anything into GitHub — they catch the most common mistakes:
+
+```bash
+# 1. Check the .p12 decodes to a real certificate (should show 1000+ bytes)
+base64 -i ~/Desktop/distribution.p12 | base64 --decode | wc -c
+
+# 2. Verify the .p12 password is correct (should print certificate info)
+openssl pkcs12 -info -in ~/Desktop/distribution.p12 \
+  -passin pass:YOUR_P12_PASSWORD -noout
+
+# 3. Verify the .p8 key is a valid EC private key (should print "read EC key")
+openssl ec -in ~/Desktop/AuthKey_XXXXXXXXXX.p8 -noout -text 2>&1 | head -3
+
+# 4. Confirm Team ID format (exactly 10 uppercase alphanumeric chars)
+echo "LFGMAA62R4" | grep -E '^[A-Z0-9]{10}$' && echo "OK" || echo "INVALID FORMAT"
+
+# 5. Confirm Key ID format (exactly 10 uppercase alphanumeric chars)
+echo "ABC1234DEF" | grep -E '^[A-Z0-9]{10}$' && echo "OK" || echo "INVALID FORMAT"
+
+# 6. Confirm Issuer ID is a UUID
+echo "12345678-1234-1234-1234-123456789012" | \
+  grep -E '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' \
+  && echo "OK" || echo "INVALID FORMAT"
+```
+
+---
 
 ## Step 7: Run the Workflow
 
-1. Go to **Actions** tab in GitHub
+1. Go to the **Actions** tab in your GitHub repository
 2. Click **iOS TestFlight Deploy** in the left sidebar
 3. Click **Run workflow** → **Run workflow**
-4. Wait 10-20 minutes for the build
-5. Check **App Store Connect** → **TestFlight** for the new build
+4. The build takes **30–45 minutes** on the first run (cold build + Apple processing)
+5. After the workflow completes, check **App Store Connect → TestFlight** — builds appear within 15–30 minutes of a successful upload
 
 ---
 
 ## Troubleshooting
 
-**Workflow fails at "Validate required secrets"**
-- The workflow checks all 7 secrets are configured before starting the build. Check the error message to see which secret is missing, then add it in Settings → Secrets.
+### "FATAL: Secret 'APPLE_CERTIFICATE_BASE64' is not set or empty"
 
-**"No signing certificate" error**
-- Verify `APPLE_CERTIFICATE_BASE64` is the full base64 output with no line breaks added manually.
-- Verify `APPLE_CERTIFICATE_PASSWORD` matches what you set when creating the .p12.
+The workflow validates all 6 secrets before starting. Check which secret is named incorrectly:
+- Secret names are **case-sensitive** and must match exactly
+- Go to **Settings → Secrets and variables → Actions** and verify each name
+- If a secret value is empty, delete it and re-add it
 
-**Preflight fails with `MISSING: App ID <name>`**
-- Register the missing bundle ID via Step 1b or 1c.
+### "Decoded certificate is only N bytes"
 
-**Preflight fails with `MISSING capability: APP_GROUPS / HEALTHKIT / APPLE_ID_AUTH`**
-- Open the App ID in the Developer Portal and tick the listed capability. Remember
-  to click **Configure** next to App Groups and select `group.com.peptidesai.app`.
+The `APPLE_CERTIFICATE_BASE64` value is corrupt. Common causes:
+- Line breaks were added when copying (use `base64 -w 0` on Linux or `base64 -i ... | tr -d '\n'`)
+- You copied the wrong file (e.g. `.cer` instead of `.p12`)
+- The base64 was double-encoded
 
-**Archive fails with "doesn't match the entitlements file's value for com.apple.security.application-groups"**
-- The App Group `group.com.peptidesai.app` is not linked to the failing App ID.
-  Public ASC API doesn't expose App Group linkage so the preflight can't catch
-  this — fix it by opening the App ID → **App Groups** capability → **Edit** →
-  tick `group.com.peptidesai.app` → **Save**. Then re-run the workflow.
+Verify: `echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode | wc -c` should return > 2000.
 
-**Archive fails with "doesn't include the <X> capability / entitlement"**
-- The capability isn't enabled on the App ID. Open the App ID, tick it under
-  Capabilities, and Save. Re-run the workflow.
+### "FATAL: xcodegen still not on PATH after install"
 
-**"App icon missing" error**
-- The workflow auto-generates a placeholder icon. For production, add a real 1024x1024 PNG to `Peptide/Resources/Assets.xcassets/AppIcon.appiconset/`.
+This is fixed in the current workflow — the Homebrew bin directory is now written to `$GITHUB_PATH` so all subsequent steps inherit it. If you see this, make sure your branch has the latest workflow changes (PR #40 or later).
 
-**Upload fails with "authentication" error**
-- Verify `APPLE_CONNECT_KEY_ID`, `APPLE_CONNECT_ISSUER_ID`, and `APPLE_CONNECT_PRIVATE_KEY` are correct.
-- The `.p8` key file contents should include the `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----` lines.
-- Ensure the API key has "App Manager" or higher access in App Store Connect.
+### "Preflight — MISSING: App ID com.peptidesai.app"
 
-**Upload succeeds but build not visible in TestFlight**
-- New builds can take 15-30 minutes to process on Apple's side.
-- Check App Store Connect → TestFlight → your app for processing status.
+The bundle ID `com.peptidesai.app` has not been registered. Follow **Step 1b** exactly.
 
-**Debugging failed builds**
-- Download the build artifacts from the workflow run (IPA + build logs are saved automatically).
-- Check `xcodebuild-archive.log` and `xcodebuild-export.log` for detailed error output.
+### "Preflight — MISSING capability: APP_GROUPS"
+
+The capability is enabled but the App Group isn't linked, or the capability wasn't saved. Fix:
+1. Developer Portal → Identifiers → click the App ID
+2. Under App Groups, click **Configure** (not just the checkbox)
+3. Tick `group.com.peptidesai.app` → **Continue** → **Save**
+4. Re-run the workflow
+
+### "Preflight — MISSING capability: HEALTHKIT"
+
+Open the App ID `com.peptidesai.app` → tick **HealthKit** → **Save**.
+
+### "Preflight — MISSING capability: APPLE_ID_AUTH"
+
+Open the App ID `com.peptidesai.app` → tick **Sign In with Apple** → **Save**.
+
+### Archive fails: "doesn't match the entitlements file's value for com.apple.security.application-groups"
+
+The App Group is not linked to the App ID in the Developer Portal. The workflow's preflight can't verify App Group linkage (the ASC public API doesn't expose it), so this error is only caught at archive time.
+
+Fix:
+1. Developer Portal → Identifiers → click `com.peptidesai.app`
+2. App Groups → **Configure** → tick `group.com.peptidesai.app` → **Continue** → **Save**
+3. Repeat for `com.peptidesai.app.widgets`
+4. Re-run the workflow
+
+### Archive fails: "No signing certificate 'iOS Distribution' found"
+
+The certificate wasn't imported. Causes:
+- `APPLE_CERTIFICATE_BASE64` is corrupt (see above)
+- `APPLE_CERTIFICATE_PASSWORD` is wrong — verify it locally with `openssl pkcs12 -info -in distribution.p12 -passin pass:YOUR_PASSWORD -noout`
+- The certificate is expired — check its expiry date in Keychain Access or Developer Portal → Certificates
+
+### Upload fails: "authentication" / 401 / "invalid credentials"
+
+- `APPLE_CONNECT_KEY_ID` or `APPLE_CONNECT_ISSUER_ID` is wrong — double-check against the App Store Connect API keys page
+- `APPLE_CONNECT_PRIVATE_KEY` is missing the `-----BEGIN PRIVATE KEY-----` / `-----END PRIVATE KEY-----` header lines
+- The API key was revoked — check App Store Connect → Users and Access → Integrations → App Store Connect API
+
+### Upload succeeds but build not visible in TestFlight
+
+- Processing takes 15–30 minutes on Apple's side
+- Check **App Store Connect → TestFlight → your app** for processing status or compliance questions
+
+### Build artifacts
+
+Every workflow run (success or failure) uploads logs and IPA to **GitHub Actions → your run → Artifacts**:
+- `xcodebuild-archive.log` — full archive output
+- `xcodebuild-export.log` — full export output
+- `upload.log` — upload output
+- `*.ipa` — the signed IPA file
+
+Download these when diagnosing failures instead of re-running the workflow blind.
