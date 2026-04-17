@@ -11,37 +11,49 @@
 
 ---
 
-## Step 1: Register App IDs (capabilities auto-configure)
+## Step 1: Register App IDs, App Group, and Capabilities
 
 PeptideX ships two bundles (main app + widget extension) that share data via an
-App Group. The workflow auto-configures the App Group and required capabilities
-via the App Store Connect API on every run — you only need to make sure the two
-**App IDs** exist in the Developer Portal before the first run.
+App Group. **All of the following must exist in the Developer Portal before the
+CI workflow runs** — the App Store Connect API can't create App Groups or link
+them to App IDs (that endpoint doesn't exist in the public API), and Xcode's
+`-allowProvisioningUpdates` only regenerates profiles, it can't configure the
+underlying App ID state.
 
-### 1a. Register the main App ID
+### 1a. Create the App Group (do this first)
 
 1. Go to [Identifiers](https://developer.apple.com/account/resources/identifiers/list)
-2. Click **+** → **App IDs** → **App** → **Continue**
-3. Description: `PeptideX`
-4. Bundle ID: **Explicit** → `com.peptidesai.app`
-5. Leave capabilities unchecked (the workflow enables them automatically)
+2. Click **+** → select **App Groups** → **Continue**
+3. Description: `PeptideX Shared Group`
+4. Identifier: `group.com.peptidesai.app`
+5. Click **Continue** → **Register**
+
+### 1b. Register the main App ID
+
+1. Identifiers → **+** → **App IDs** → **App** → **Continue**
+2. Description: `PeptideX`
+3. Bundle ID: **Explicit** → `com.peptidesai.app`
+4. Under **Capabilities**, check:
+   - **App Groups**
+   - **HealthKit**
+   - **Sign In with Apple**
+5. Next to **App Groups**, click **Configure** (or **Edit**) → tick `group.com.peptidesai.app` → **Continue**
 6. Click **Continue** → **Register**
 
-### 1b. Register the widget App ID
+### 1c. Register the widget App ID
 
 1. Identifiers → **+** → **App IDs** → **App** → **Continue**
 2. Description: `PeptideX Widgets`
 3. Bundle ID: **Explicit** → `com.peptidesai.app.widgets`
-4. Leave capabilities unchecked
-5. Click **Continue** → **Register**
+4. Under **Capabilities**, check **App Groups**
+5. Next to **App Groups**, click **Configure** (or **Edit**) → tick `group.com.peptidesai.app` → **Continue**
+6. Click **Continue** → **Register**
 
-> **What the workflow auto-configures on every run** (via ASC API, using the API
-> key from Step 4):
-> - Creates App Group `group.com.peptidesai.app` if it doesn't exist
-> - On `com.peptidesai.app`: enables App Groups (linked to the group), HealthKit, Sign In with Apple
-> - On `com.peptidesai.app.widgets`: enables App Groups (linked to the group)
->
-> The API key must have **App Manager** role or higher.
+> The workflow's preflight verifies that both App IDs exist and that the required
+> capabilities are enabled. App Group *linkage* isn't queryable via the public
+> ASC API, so if you miss step 1a or the **Configure** click in 1b/1c, the archive
+> step will fail with an `application-groups entitlement` mismatch. Re-open the
+> App ID → App Groups → Edit → tick the group → Save, then re-run the workflow.
 
 ## Step 2: Create App in App Store Connect
 
@@ -134,19 +146,22 @@ Add each of these:
 - Verify `APPLE_CERTIFICATE_BASE64` is the full base64 output with no line breaks added manually.
 - Verify `APPLE_CERTIFICATE_PASSWORD` matches what you set when creating the .p12.
 
-**"Preflight & auto-configure" fails with "App IDs not registered"**
-- One or both bundle IDs (`com.peptidesai.app`, `com.peptidesai.app.widgets`) aren't
-  registered. Go back to **Step 1** and register them (leave capabilities unchecked —
-  the workflow enables them).
+**Preflight fails with `MISSING: App ID <name>`**
+- Register the missing bundle ID via Step 1b or 1c.
 
-**"Preflight & auto-configure" fails with an HTTP 403 / permissions error**
-- The App Store Connect API key needs **App Manager** role or higher to create
-  App Groups and manage capabilities. Generate a new key with App Manager role in
-  App Store Connect → Users and Access → Integrations → App Store Connect API.
+**Preflight fails with `MISSING capability: APP_GROUPS / HEALTHKIT / APPLE_ID_AUTH`**
+- Open the App ID in the Developer Portal and tick the listed capability. Remember
+  to click **Configure** next to App Groups and select `group.com.peptidesai.app`.
 
-**Archive fails with "doesn't match the entitlements file's value" or "doesn't include the <X> capability"**
-- The auto-configure step should prevent this. If it happens anyway, the API key
-  likely can't write; regenerate with App Manager role and re-run the workflow.
+**Archive fails with "doesn't match the entitlements file's value for com.apple.security.application-groups"**
+- The App Group `group.com.peptidesai.app` is not linked to the failing App ID.
+  Public ASC API doesn't expose App Group linkage so the preflight can't catch
+  this — fix it by opening the App ID → **App Groups** capability → **Edit** →
+  tick `group.com.peptidesai.app` → **Save**. Then re-run the workflow.
+
+**Archive fails with "doesn't include the <X> capability / entitlement"**
+- The capability isn't enabled on the App ID. Open the App ID, tick it under
+  Capabilities, and Save. Re-run the workflow.
 
 **"App icon missing" error**
 - The workflow auto-generates a placeholder icon. For production, add a real 1024x1024 PNG to `Peptide/Resources/Assets.xcassets/AppIcon.appiconset/`.
