@@ -67,7 +67,7 @@ struct GlassStatPill: View {
                         .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                 }
         }
-        .glassEffect(in: .rect(cornerRadius: Spacing.smallCornerRadius))
+        .liquidGlass(.rect(cornerRadius: Spacing.smallCornerRadius))
     }
 }
 

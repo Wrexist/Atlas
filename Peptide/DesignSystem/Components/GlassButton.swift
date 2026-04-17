@@ -63,7 +63,7 @@ struct GlassButton: View {
                         }
                 }
             }
-            .glassEffect(in: .capsule)
+            .liquidGlass(.capsule)
         }
         .buttonStyle(GlassPressStyle())
     }
@@ -105,7 +105,7 @@ struct GlassIconButton: View {
                                 )
                         }
                 }
-                .glassEffect(in: .circle)
+                .liquidGlass(.circle)
         }
         .buttonStyle(GlassPressStyle())
     }

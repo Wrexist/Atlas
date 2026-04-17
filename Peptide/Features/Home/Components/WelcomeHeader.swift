@@ -53,7 +53,7 @@ struct WelcomeHeader: View {
                         .foregroundStyle(AppColor.accentLight)
                 }
             }
-            .glassEffect(in: .circle)
+            .liquidGlass(.circle)
         }
         .padding(.top, Spacing.sm)
     }

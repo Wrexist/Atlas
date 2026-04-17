@@ -41,7 +41,7 @@ struct ProfileHeader: View {
                             .foregroundStyle(AppColor.accentLight)
                     }
                 }
-                .glassEffect(in: .circle)
+                .liquidGlass(.circle)
 
                 VStack(spacing: Spacing.xs) {
                     Text(displayName.isEmpty ? "PeptideX User" : displayName)
