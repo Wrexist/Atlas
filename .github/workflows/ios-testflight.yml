@@ -169,7 +169,7 @@ jobs:
           chmod 600 "$KEY_DIR/AuthKey_${KEY_ID}.p8"
           echo "API key written for key ID: $KEY_ID"
 
-      - name: Preflight & auto-configure Developer Portal resources
+      - name: Preflight — verify Developer Portal resources
         env:
           KEY_ID: ${{ secrets.APPLE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
@@ -178,6 +178,17 @@ jobs:
           export KEY_PATH="$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8"
           python3 -m pip install --quiet --disable-pip-version-check cryptography >/dev/null 2>&1 || true
           python3 - <<'PY'
+          # Verifies what the public App Store Connect API can see:
+          #   - both bundle IDs are registered
+          #   - each bundle has the capabilities its entitlements need
+          #
+          # Apple's public ASC API does NOT expose AppGroup resources
+          # (GET /v1/appGroups returns 404, "path does not match a defined resource
+          # type"). App Group creation and linkage to an App ID must be done in
+          # the Developer Portal web UI (or via fastlane's private session API).
+          # So we can't verify App Group linkage here — that gets caught by the
+          # archive step with a clear error message pointing back to the setup doc.
+
           import base64, json, os, sys, time, urllib.request, urllib.error
           from cryptography.hazmat.primitives import hashes, serialization
           from cryptography.hazmat.primitives.asymmetric import ec, utils
@@ -206,126 +217,99 @@ jobs:
 
           BASE = "https://api.appstoreconnect.apple.com"
 
-          def request(method, path, payload=None):
+          def api_get(path):
               url = path if path.startswith("http") else BASE + path
-              data = json.dumps(payload).encode() if payload is not None else None
-              headers = {"Authorization": f"Bearer {token}"}
-              if data is not None:
-                  headers["Content-Type"] = "application/json"
-              req = urllib.request.Request(url, data=data, method=method, headers=headers)
+              req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
               try:
                   with urllib.request.urlopen(req, timeout=30) as resp:
-                      raw = resp.read()
-                      return json.loads(raw) if raw else {}
+                      return json.loads(resp.read())
               except urllib.error.HTTPError as e:
-                  err = e.read().decode(errors="replace")
-                  raise RuntimeError(f"{method} {url} -> {e.code}\n{err}") from None
+                  print(f"FATAL: {url} -> {e.code}")
+                  print(e.read().decode(errors="replace"))
+                  sys.exit(1)
 
           def paginate(path):
               url = path
               while url:
-                  body = request("GET", url)
+                  body = api_get(url)
                   for d in body.get("data", []):
                       yield d
                   url = body.get("links", {}).get("next")
 
-          REQUIRED_GROUP_ID   = "group.com.peptidesai.app"
-          REQUIRED_GROUP_NAME = "PeptideX Shared Group"
-          REQUIRED_BUNDLES    = ["com.peptidesai.app", "com.peptidesai.app.widgets"]
+          REQUIRED_BUNDLES = ["com.peptidesai.app", "com.peptidesai.app.widgets"]
+          # Capability types we need enabled per bundle, per its entitlements file.
           WANT_CAPS = {
-              "com.peptidesai.app":         ["APP_GROUPS", "HEALTHKIT", "APPLE_ID_AUTH"],
-              "com.peptidesai.app.widgets": ["APP_GROUPS"],
+              "com.peptidesai.app":         {"APP_GROUPS", "HEALTHKIT", "APPLE_ID_AUTH"},
+              "com.peptidesai.app.widgets": {"APP_GROUPS"},
           }
 
-          def ensure_app_group():
-              for d in paginate("/v1/appGroups?limit=200"):
-                  if d.get("attributes", {}).get("identifier") == REQUIRED_GROUP_ID:
-                      return d["id"]
-              print(f"  creating App Group {REQUIRED_GROUP_ID}")
-              resp = request("POST", "/v1/appGroups", {
-                  "data": {
-                      "type": "appGroups",
-                      "attributes": {
-                          "identifier": REQUIRED_GROUP_ID,
-                          "name": REQUIRED_GROUP_NAME,
-                      },
-                  }
-              })
-              return resp["data"]["id"]
+          bundle_map = {
+              d["attributes"]["identifier"]: d["id"]
+              for d in paginate("/v1/bundleIds?limit=200")
+              if d.get("attributes", {}).get("identifier")
+          }
+          missing_bundles = [b for b in REQUIRED_BUNDLES if b not in bundle_map]
 
-          def ensure_capability(bundle_rid, cap_type, cap_map, group_rid):
-              cap_id = cap_map.get(cap_type)
-              rels = {"bundleId": {"data": {"type": "bundleIds", "id": bundle_rid}}}
-              if cap_type == "APP_GROUPS":
-                  rels["appGroups"] = {"data": [{"type": "appGroups", "id": group_rid}]}
-              if cap_id is None:
-                  print(f"  enabling {cap_type}" + (f" + linking {REQUIRED_GROUP_ID}" if cap_type == "APP_GROUPS" else ""))
-                  request("POST", "/v1/bundleIdCapabilities", {
-                      "data": {
-                          "type": "bundleIdCapabilities",
-                          "attributes": {"capabilityType": cap_type},
-                          "relationships": rels,
-                      }
-                  })
-                  return
-              if cap_type == "APP_GROUPS":
-                  linked_now = request("GET", f"/v1/bundleIdCapabilities/{cap_id}/relationships/appGroups")
-                  linked_ids = {g["id"] for g in (linked_now.get("data") or [])}
-                  if group_rid not in linked_ids:
-                      merged = sorted(linked_ids | {group_rid})
-                      print(f"  linking {REQUIRED_GROUP_ID} to existing APP_GROUPS capability")
-                      request("PATCH", f"/v1/bundleIdCapabilities/{cap_id}/relationships/appGroups", {
-                          "data": [{"type": "appGroups", "id": g} for g in merged],
-                      })
-
-          def main():
-              bundle_map = {
-                  d["attributes"]["identifier"]: d["id"]
-                  for d in paginate("/v1/bundleIds?limit=200")
-                  if d.get("attributes", {}).get("identifier")
-              }
-              missing = [b for b in REQUIRED_BUNDLES if b not in bundle_map]
-              if missing:
-                  print(f"FATAL: App IDs not registered: {', '.join(missing)}")
-                  print("Register them at https://developer.apple.com/account/resources/identifiers/list")
-                  print(f"Visible bundle IDs ({len(bundle_map)}):")
-                  for b in sorted(bundle_map):
-                      print(f"  - {b}")
-                  sys.exit(1)
-              for b in REQUIRED_BUNDLES:
+          problems = []
+          for b in REQUIRED_BUNDLES:
+              if b not in bundle_map:
+                  problems.append(f"App ID '{b}' is not registered in the Developer Portal")
+                  print(f"MISSING: App ID {b}")
+              else:
                   print(f"OK: App ID {b}")
 
-              group_rid = ensure_app_group()
-              print(f"OK: App Group {REQUIRED_GROUP_ID}")
-
+          missing_caps: dict[str, set[str]] = {}
+          if not missing_bundles:
               for bundle_name in REQUIRED_BUNDLES:
                   brid = bundle_map[bundle_name]
-                  cap_map = {
-                      c["attributes"]["capabilityType"]: c["id"]
+                  enabled = {
+                      c["attributes"]["capabilityType"]
                       for c in paginate(f"/v1/bundleIds/{brid}/bundleIdCapabilities?limit=200")
                       if c.get("attributes", {}).get("capabilityType")
                   }
-                  print(f"{bundle_name}:")
-                  for cap in WANT_CAPS[bundle_name]:
-                      ensure_capability(brid, cap, cap_map, group_rid)
-                      print(f"  OK: {cap}")
+                  want = WANT_CAPS[bundle_name]
+                  print(f"{bundle_name} enabled capabilities: {sorted(enabled) or '(none)'}")
+                  miss = want - enabled
+                  if miss:
+                      missing_caps[bundle_name] = miss
+                      for cap in sorted(miss):
+                          print(f"  MISSING capability: {cap}")
+                          problems.append(f"App ID '{bundle_name}' is missing capability {cap}")
 
+          if problems:
               print()
-              print("Preflight + auto-configure complete. Proceeding to archive.")
-
-          try:
-              main()
-          except RuntimeError as e:
+              print("FATAL: preflight detected Developer Portal configuration problems:")
+              for p in problems:
+                  print(f"  - {p}")
               print()
-              print("FATAL: auto-configure via App Store Connect API failed.")
-              print(str(e))
+              print("Fix in the Developer Portal:")
+              print("  https://developer.apple.com/account/resources/identifiers/list")
               print()
-              print("The API key may not have sufficient permissions (App Manager or higher")
-              print("is required to manage capabilities and App Groups).")
+              if missing_bundles:
+                  print("  1. Click + → App IDs → App → register each missing bundle ID")
+              if missing_caps:
+                  print("  2. For each App ID below, click it and tick the listed capabilities:")
+                  for bundle_name, caps in missing_caps.items():
+                      pretty = ", ".join(sorted({
+                          "APP_GROUPS": "App Groups",
+                          "HEALTHKIT": "HealthKit",
+                          "APPLE_ID_AUTH": "Sign In with Apple",
+                      }.get(c, c) for c in caps))
+                      print(f"       - {bundle_name}: {pretty}")
               print()
-              print("Fallback: configure manually in the Apple Developer Portal.")
+              print("Then ensure the App Group 'group.com.peptidesai.app' exists and is linked:")
+              print("  - Identifiers → + → App Groups → identifier group.com.peptidesai.app")
+              print("  - For each App ID above, open App Groups capability → Edit → tick the group → Save")
+              print()
               print("See TESTFLIGHT_SETUP.md → 'Step 1: Register App IDs & Capabilities'.")
               sys.exit(1)
+
+          print()
+          print("Preflight passed: both App IDs registered with required capabilities.")
+          print("Note: App Group linkage can't be verified via ASC API; if the archive")
+          print("fails with an 'application-groups entitlement' mismatch, ensure")
+          print("group.com.peptidesai.app exists and is linked to both App IDs in the")
+          print("Developer Portal (see TESTFLIGHT_SETUP.md Step 1).")
           PY
 
       - name: Build archive
