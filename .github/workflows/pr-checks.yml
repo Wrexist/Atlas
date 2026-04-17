@@ -46,16 +46,20 @@ jobs:
 
       - name: Install XcodeGen
         run: |
-          if command -v xcodegen &> /dev/null; then
-            echo "XcodeGen already available: $(xcodegen --version)"
-          else
+          if ! command -v xcodegen &> /dev/null; then
+            if ls "$(brew --prefix)/Cellar/xcodegen" &>/dev/null 2>&1; then
+              brew link --overwrite xcodegen 2>/dev/null || true
+            fi
+          fi
+          if ! command -v xcodegen &> /dev/null; then
             brew install xcodegen || brew reinstall xcodegen
             brew link --overwrite xcodegen 2>/dev/null || true
           fi
+          echo "$(brew --prefix)/bin" >> $GITHUB_PATH
           export PATH="$(brew --prefix)/bin:$PATH"
           if ! command -v xcodegen &> /dev/null; then
             echo "FATAL: xcodegen still not on PATH after install"
-            ls -la /opt/homebrew/Cellar/xcodegen/ 2>/dev/null || ls -la /usr/local/Cellar/xcodegen/ 2>/dev/null || echo "No xcodegen in Cellar"
+            ls -la "$(brew --prefix)/Cellar/xcodegen/" 2>/dev/null || echo "No xcodegen in Cellar"
             exit 1
           fi
           echo "XcodeGen ready: $(xcodegen --version)"
@@ -104,9 +108,13 @@ jobs:
       - name: Install SwiftLint
         run: |
           if ! command -v swiftlint &> /dev/null; then
+            if ls "$(brew --prefix)/Cellar/swiftlint" &>/dev/null 2>&1; then
+              brew link --overwrite swiftlint 2>/dev/null || true
+            fi
+          fi
+          if ! command -v swiftlint &> /dev/null; then
             brew install swiftlint || brew reinstall swiftlint
           fi
-          export PATH="$(brew --prefix)/bin:$PATH"
           echo "SwiftLint ready: $(swiftlint version)"
 
       - name: Lint
