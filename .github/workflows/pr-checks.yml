@@ -14,7 +14,7 @@ concurrency:
 jobs:
   build-check:
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v4
@@ -33,18 +33,28 @@ jobs:
             ~/Library/Caches/Homebrew
             /usr/local/Cellar/xcodegen
             /opt/homebrew/Cellar/xcodegen
-          key: brew-xcodegen-${{ runner.os }}-${{ runner.arch }}
+            /usr/local/Cellar/swiftlint
+            /opt/homebrew/Cellar/swiftlint
+          key: brew-tools-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: derived-data-${{ runner.os }}-${{ hashFiles('**/*.xcodeproj/project.pbxproj', 'project.yml') }}
+          restore-keys: derived-data-${{ runner.os }}-
 
       - name: Install XcodeGen
         run: |
           if command -v xcodegen &> /dev/null; then
             echo "XcodeGen already available: $(xcodegen --version)"
           else
-            brew install xcodegen 2>&1 || true
+            brew install xcodegen || brew reinstall xcodegen
             brew link --overwrite xcodegen 2>/dev/null || true
           fi
+          export PATH="$(brew --prefix)/bin:$PATH"
           if ! command -v xcodegen &> /dev/null; then
-            echo "FATAL: xcodegen not on PATH after install"
+            echo "FATAL: xcodegen still not on PATH after install"
             ls -la /opt/homebrew/Cellar/xcodegen/ 2>/dev/null || ls -la /usr/local/Cellar/xcodegen/ 2>/dev/null || echo "No xcodegen in Cellar"
             exit 1
           fi
@@ -93,11 +103,11 @@ jobs:
 
       - name: Install SwiftLint
         run: |
-          if command -v swiftlint &> /dev/null; then
-            echo "SwiftLint already available"
-          else
-            brew install swiftlint 2>&1 || true
+          if ! command -v swiftlint &> /dev/null; then
+            brew install swiftlint || brew reinstall swiftlint
           fi
+          export PATH="$(brew --prefix)/bin:$PATH"
+          echo "SwiftLint ready: $(swiftlint version)"
 
       - name: Lint
         run: swiftlint lint --reporter github-actions-logging --strict
