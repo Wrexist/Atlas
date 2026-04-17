@@ -20,7 +20,7 @@ opt_in_rules:
   - implicitly_unwrapped_optional
 
 force_cast:
-  severity: warning
+  severity: error
 
 identifier_name:
   min_length:

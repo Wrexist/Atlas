@@ -13,18 +13,20 @@ final class StoreService {
     static let annualID = "com.peptidesai.app.pro.annual"
 
     @ObservationIgnored private var updateTask: Task<Void, Never>?
+    @ObservationIgnored private var productsTask: Task<Void, Never>?
 
     private init() {
         updateTask = Task { [weak self] in
             await self?.listenForTransactions()
         }
-        Task { [weak self] in
+        productsTask = Task { [weak self] in
             await self?.updatePurchasedProducts()
         }
     }
 
     deinit {
         updateTask?.cancel()
+        productsTask?.cancel()
     }
 
     // MARK: - Products

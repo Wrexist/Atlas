@@ -67,6 +67,13 @@ jobs:
             /opt/homebrew/Cellar/xcodegen
           key: brew-xcodegen-${{ runner.os }}-${{ runner.arch }}
 
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: derived-data-${{ runner.os }}-${{ hashFiles('project.yml') }}
+          restore-keys: derived-data-${{ runner.os }}-
+
       - name: Install XcodeGen
         run: |
           if ! command -v xcodegen &> /dev/null; then
@@ -212,7 +219,7 @@ jobs:
           payload = b64url(json.dumps({
               "iss": os.environ["ISSUER_ID"],
               "iat": now,
-              "exp": now + 600,
+              "exp": now + 1800,
               "aud": "appstoreconnect-v1",
           }, separators=(",", ":")).encode())
           signing_input = f"{header}.{payload}".encode()
