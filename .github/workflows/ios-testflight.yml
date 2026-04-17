@@ -72,11 +72,12 @@ jobs:
           if command -v xcodegen &> /dev/null; then
             echo "XcodeGen already available: $(xcodegen --version)"
           else
-            brew install xcodegen 2>&1 || true
+            brew install xcodegen || brew reinstall xcodegen
             brew link --overwrite xcodegen 2>/dev/null || true
           fi
+          export PATH="$(brew --prefix)/bin:$PATH"
           if ! command -v xcodegen &> /dev/null; then
-            echo "FATAL: xcodegen not on PATH after install"
+            echo "FATAL: xcodegen still not on PATH after install"
             ls -la /opt/homebrew/Cellar/xcodegen/ 2>/dev/null || ls -la /usr/local/Cellar/xcodegen/ 2>/dev/null || echo "No xcodegen in Cellar"
             exit 1
           fi
@@ -245,7 +246,7 @@ jobs:
 
           bundle_map = {
               d["attributes"]["identifier"]: d["id"]
-              for d in paginate("/v1/bundleIds?limit=200")
+              for d in paginate("/v1/bundleIds?limit=50")
               if d.get("attributes", {}).get("identifier")
           }
           missing_bundles = [b for b in REQUIRED_BUNDLES if b not in bundle_map]
@@ -264,7 +265,7 @@ jobs:
                   brid = bundle_map[bundle_name]
                   enabled = {
                       c["attributes"]["capabilityType"]
-                      for c in paginate(f"/v1/bundleIds/{brid}/bundleIdCapabilities?limit=200")
+                      for c in paginate(f"/v1/bundleIds/{brid}/bundleIdCapabilities?limit=50")
                       if c.get("attributes", {}).get("capabilityType")
                   }
                   want = WANT_CAPS[bundle_name]
