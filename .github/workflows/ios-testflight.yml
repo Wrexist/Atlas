@@ -276,7 +276,7 @@ jobs:
                   brid = bundle_map[bundle_name]
                   enabled = {
                       c["attributes"]["capabilityType"]
-                      for c in paginate(f"/v1/bundleIds/{brid}/bundleIdCapabilities?limit=50")
+                      for c in paginate(f"/v1/bundleIds/{brid}/bundleIdCapabilities")
                       if c.get("attributes", {}).get("capabilityType")
                   }
                   want = WANT_CAPS[bundle_name]
