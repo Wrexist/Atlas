@@ -169,7 +169,7 @@ jobs:
           chmod 600 "$KEY_DIR/AuthKey_${KEY_ID}.p8"
           echo "API key written for key ID: $KEY_ID"
 
-      - name: Preflight — verify Developer Portal resources
+      - name: Preflight & auto-configure Developer Portal resources
         env:
           KEY_ID: ${{ secrets.APPLE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
@@ -204,44 +204,127 @@ jobs:
           r, s = utils.decode_dss_signature(der)
           token = f"{header}.{payload}.{b64url(r.to_bytes(32, 'big') + s.to_bytes(32, 'big'))}"
 
-          def fetch_all_bundle_ids() -> set[str]:
-              url = "https://api.appstoreconnect.apple.com/v1/bundleIds?limit=200"
-              seen: set[str] = set()
-              while url:
-                  req = urllib.request.Request(
-                      url, headers={"Authorization": f"Bearer {token}"}
-                  )
-                  try:
-                      with urllib.request.urlopen(req, timeout=30) as resp:
-                          body = json.loads(resp.read())
-                  except urllib.error.HTTPError as e:
-                      print(f"FATAL: App Store Connect API returned {e.code}")
-                      print(e.read().decode(errors="replace"))
-                      sys.exit(1)
-                  for d in body.get("data", []):
-                      ident = d.get("attributes", {}).get("identifier")
-                      if ident:
-                          seen.add(ident)
-                  url = body.get("links", {}).get("next")
-              return seen
+          BASE = "https://api.appstoreconnect.apple.com"
 
-          registered = fetch_all_bundle_ids()
-          required = ["com.peptidesai.app", "com.peptidesai.app.widgets"]
-          missing = [b for b in required if b not in registered]
-          for b in required:
-              print(("MISSING" if b in missing else "OK") + f": {b}")
-          if missing:
+          def request(method, path, payload=None):
+              url = path if path.startswith("http") else BASE + path
+              data = json.dumps(payload).encode() if payload is not None else None
+              headers = {"Authorization": f"Bearer {token}"}
+              if data is not None:
+                  headers["Content-Type"] = "application/json"
+              req = urllib.request.Request(url, data=data, method=method, headers=headers)
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as resp:
+                      raw = resp.read()
+                      return json.loads(raw) if raw else {}
+              except urllib.error.HTTPError as e:
+                  err = e.read().decode(errors="replace")
+                  raise RuntimeError(f"{method} {url} -> {e.code}\n{err}") from None
+
+          def paginate(path):
+              url = path
+              while url:
+                  body = request("GET", url)
+                  for d in body.get("data", []):
+                      yield d
+                  url = body.get("links", {}).get("next")
+
+          REQUIRED_GROUP_ID   = "group.com.peptidesai.app"
+          REQUIRED_GROUP_NAME = "PeptideX Shared Group"
+          REQUIRED_BUNDLES    = ["com.peptidesai.app", "com.peptidesai.app.widgets"]
+          WANT_CAPS = {
+              "com.peptidesai.app":         ["APP_GROUPS", "HEALTHKIT", "APPLE_ID_AUTH"],
+              "com.peptidesai.app.widgets": ["APP_GROUPS"],
+          }
+
+          def ensure_app_group():
+              for d in paginate("/v1/appGroups?limit=200"):
+                  if d.get("attributes", {}).get("identifier") == REQUIRED_GROUP_ID:
+                      return d["id"]
+              print(f"  creating App Group {REQUIRED_GROUP_ID}")
+              resp = request("POST", "/v1/appGroups", {
+                  "data": {
+                      "type": "appGroups",
+                      "attributes": {
+                          "identifier": REQUIRED_GROUP_ID,
+                          "name": REQUIRED_GROUP_NAME,
+                      },
+                  }
+              })
+              return resp["data"]["id"]
+
+          def ensure_capability(bundle_rid, cap_type, cap_map, group_rid):
+              cap_id = cap_map.get(cap_type)
+              rels = {"bundleId": {"data": {"type": "bundleIds", "id": bundle_rid}}}
+              if cap_type == "APP_GROUPS":
+                  rels["appGroups"] = {"data": [{"type": "appGroups", "id": group_rid}]}
+              if cap_id is None:
+                  print(f"  enabling {cap_type}" + (f" + linking {REQUIRED_GROUP_ID}" if cap_type == "APP_GROUPS" else ""))
+                  request("POST", "/v1/bundleIdCapabilities", {
+                      "data": {
+                          "type": "bundleIdCapabilities",
+                          "attributes": {"capabilityType": cap_type},
+                          "relationships": rels,
+                      }
+                  })
+                  return
+              if cap_type == "APP_GROUPS":
+                  linked_now = request("GET", f"/v1/bundleIdCapabilities/{cap_id}/relationships/appGroups")
+                  linked_ids = {g["id"] for g in (linked_now.get("data") or [])}
+                  if group_rid not in linked_ids:
+                      merged = sorted(linked_ids | {group_rid})
+                      print(f"  linking {REQUIRED_GROUP_ID} to existing APP_GROUPS capability")
+                      request("PATCH", f"/v1/bundleIdCapabilities/{cap_id}/relationships/appGroups", {
+                          "data": [{"type": "appGroups", "id": g} for g in merged],
+                      })
+
+          def main():
+              bundle_map = {
+                  d["attributes"]["identifier"]: d["id"]
+                  for d in paginate("/v1/bundleIds?limit=200")
+                  if d.get("attributes", {}).get("identifier")
+              }
+              missing = [b for b in REQUIRED_BUNDLES if b not in bundle_map]
+              if missing:
+                  print(f"FATAL: App IDs not registered: {', '.join(missing)}")
+                  print("Register them at https://developer.apple.com/account/resources/identifiers/list")
+                  print(f"Visible bundle IDs ({len(bundle_map)}):")
+                  for b in sorted(bundle_map):
+                      print(f"  - {b}")
+                  sys.exit(1)
+              for b in REQUIRED_BUNDLES:
+                  print(f"OK: App ID {b}")
+
+              group_rid = ensure_app_group()
+              print(f"OK: App Group {REQUIRED_GROUP_ID}")
+
+              for bundle_name in REQUIRED_BUNDLES:
+                  brid = bundle_map[bundle_name]
+                  cap_map = {
+                      c["attributes"]["capabilityType"]: c["id"]
+                      for c in paginate(f"/v1/bundleIds/{brid}/bundleIdCapabilities?limit=200")
+                      if c.get("attributes", {}).get("capabilityType")
+                  }
+                  print(f"{bundle_name}:")
+                  for cap in WANT_CAPS[bundle_name]:
+                      ensure_capability(brid, cap, cap_map, group_rid)
+                      print(f"  OK: {cap}")
+
               print()
-              print("FATAL: the following App ID(s) are not registered in the")
-              print("Apple Developer Portal: " + ", ".join(missing))
+              print("Preflight + auto-configure complete. Proceeding to archive.")
+
+          try:
+              main()
+          except RuntimeError as e:
+              print()
+              print("FATAL: auto-configure via App Store Connect API failed.")
+              print(str(e))
+              print()
+              print("The API key may not have sufficient permissions (App Manager or higher")
+              print("is required to manage capabilities and App Groups).")
+              print()
+              print("Fallback: configure manually in the Apple Developer Portal.")
               print("See TESTFLIGHT_SETUP.md → 'Step 1: Register App IDs & Capabilities'.")
-              print("The App Group 'group.com.peptidesai.app' must also exist and be")
-              print("linked to both App IDs, or the archive will fail with an")
-              print("entitlements-mismatch error.")
-              print()
-              print(f"Bundle IDs visible to this API key ({len(registered)}):")
-              for ident in sorted(registered):
-                  print(f"  - {ident}")
               sys.exit(1)
           PY
 
