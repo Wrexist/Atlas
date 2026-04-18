@@ -146,7 +146,7 @@ final class ExportService {
 
             // Table column x-positions
             let cDate: CGFloat = margin
-            let cPep:  CGFloat = margin + 72
+            let cPep: CGFloat = margin + 72
             let cDose: CGFloat = margin + 187
             let cTime: CGFloat = margin + 267
             let cSite: CGFloat = margin + 342
