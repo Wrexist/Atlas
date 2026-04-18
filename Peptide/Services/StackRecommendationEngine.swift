@@ -480,9 +480,13 @@ enum StackRecommendationEngine {
                 if isWeekly {
                     // Weekly peptides contribute fractionally to daily burden
                     dailyCount += 1 // count as 1 since they do require an injection day
-                } else if freq.contains("3x") || freq.contains("3 times") { dailyCount += 3 }
-                else if freq.contains("2x") || freq.contains("twice") || freq.contains("2 times") { dailyCount += 2 }
-                else { dailyCount += 1 }
+                } else if freq.contains("3x") || freq.contains("3 times") {
+                    dailyCount += 3
+                } else if freq.contains("2x") || freq.contains("twice") || freq.contains("2 times") {
+                    dailyCount += 2
+                } else {
+                    dailyCount += 1
+                }
             }
             if dailyCount > 4 {
                 warnings.append(Warning(
