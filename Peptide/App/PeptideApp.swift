@@ -50,7 +50,7 @@ struct PeptideApp: App {
         }
     }
 
-    private var mainContent: some View {
+    private var coreTabView: some View {
         TabView(selection: $appState.selectedTab) {
             Tab("Home", systemImage: "house.fill", value: .home) {
                 HomeView()
@@ -68,9 +68,19 @@ struct PeptideApp: App {
                 ProfileView()
             }
         }
-        .tabViewBottomAccessory {
-            NextDoseAccessoryView()
+    }
+
+    @ViewBuilder
+    private var tabViewWithAccessory: some View {
+        if #available(iOS 26.0, *) {
+            coreTabView.tabViewBottomAccessory { NextDoseAccessoryView() }
+        } else {
+            coreTabView
         }
+    }
+
+    private var mainContent: some View {
+        tabViewWithAccessory
         .environment(appState)
         .environment(dataStore)
         .preferredColorScheme(.dark)
