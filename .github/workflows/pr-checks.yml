@@ -104,12 +104,10 @@ jobs:
 
       - name: Install SwiftLint
         run: |
-          if ! command -v swiftlint &> /dev/null; then
-            if ls "$(brew --prefix)/Cellar/swiftlint" &>/dev/null 2>&1; then
-              brew link --overwrite swiftlint 2>/dev/null || true
-            fi
-          fi
-          if ! command -v swiftlint &> /dev/null; then
+          if brew list swiftlint &>/dev/null 2>&1; then
+            brew unlink swiftlint 2>/dev/null || true
+            brew link --overwrite swiftlint 2>/dev/null || true
+          else
             brew install swiftlint || brew reinstall swiftlint
           fi
           echo "SwiftLint ready: $(swiftlint version)"
