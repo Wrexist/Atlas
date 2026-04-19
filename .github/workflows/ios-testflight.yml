@@ -177,9 +177,15 @@ jobs:
           KEY_DIR="$RUNNER_TEMP/private_keys"
           mkdir -p "$KEY_DIR"
           chmod 700 "$KEY_DIR"
-          echo "$API_KEY" > "$KEY_DIR/AuthKey_${KEY_ID}.p8"
+          # Handle both real newlines and escaped \n sequences from GitHub secrets
+          printf '%s' "$API_KEY" | sed 's/\\n/\n/g' > "$KEY_DIR/AuthKey_${KEY_ID}.p8"
           chmod 600 "$KEY_DIR/AuthKey_${KEY_ID}.p8"
-          echo "API key written for key ID: $KEY_ID"
+          KEY_SIZE=$(wc -c < "$KEY_DIR/AuthKey_${KEY_ID}.p8")
+          if [ "$KEY_SIZE" -lt 100 ]; then
+            echo "FATAL: API key file is only $KEY_SIZE bytes — APPLE_CONNECT_PRIVATE_KEY secret is empty or corrupt"
+            exit 1
+          fi
+          echo "API key written for key ID: $KEY_ID ($KEY_SIZE bytes)"
 
       - name: Preflight — verify Developer Portal resources
         env:
