@@ -57,8 +57,8 @@ final class AuthService {
             Self.deleteKeychain(account: Self.keychainAccountEmail)
             Self.deleteKeychain(account: Self.keychainAccountName)
         }
-        if let email  { Self.writeKeychain(value: email, account: Self.keychainAccountEmail) }
-        if let name   { Self.writeKeychain(value: name, account: Self.keychainAccountName) }
+        if let email { Self.writeKeychain(value: email, account: Self.keychainAccountEmail) }
+        if let name { Self.writeKeychain(value: name, account: Self.keychainAccountName) }
 
         userIdentifier  = userId
         userEmail       = email
@@ -115,14 +115,14 @@ final class AuthService {
         guard let data = value.data(using: .utf8) else { return errSecParam }
 
         let query: [String: Any] = [
-            kSecClass as String:       kSecClassGenericPassword,
+            kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: keychainService,
             kSecAttrAccount as String: account,
         ]
 
         // Update-first upsert: avoids a window where the item is absent.
         let updateAttrs: [String: Any] = [
-            kSecValueData as String:      data,
+            kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
         ]
         let updateStatus = SecItemUpdate(query as CFDictionary, updateAttrs as CFDictionary)
@@ -137,11 +137,11 @@ final class AuthService {
 
     private static func readKeychain(account: String) -> String? {
         let query: [String: Any] = [
-            kSecClass as String:       kSecClassGenericPassword,
+            kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: keychainService,
             kSecAttrAccount as String: account,
-            kSecReturnData as String:  true,
-            kSecMatchLimit as String:  kSecMatchLimitOne,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
         ]
 
         var result: AnyObject?
@@ -152,7 +152,7 @@ final class AuthService {
 
     private static func deleteKeychain(account: String) {
         let query: [String: Any] = [
-            kSecClass as String:       kSecClassGenericPassword,
+            kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: keychainService,
             kSecAttrAccount as String: account,
         ]

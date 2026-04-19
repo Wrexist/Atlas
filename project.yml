@@ -2,7 +2,7 @@ name: Peptide
 options:
   bundleIdPrefix: com.peptidesai
   deploymentTarget:
-    iOS: "26.0"
+    iOS: "18.0"
   generateEmptyDirectories: true
 settings:
   base:
@@ -27,6 +27,7 @@ targets:
       properties:
         CFBundleDisplayName: PeptideX
         ITSAppUsesNonExemptEncryption: false
+        NSFaceIDUsageDescription: "PeptideX uses Face ID to protect your peptide protocols and health information."
         NSHealthShareUsageDescription: "PeptideX uses your health data to correlate peptide protocol compliance with metrics like heart rate variability, sleep quality, and activity levels."
         NSHealthUpdateUsageDescription: "PeptideX does not write data to Apple Health. This permission is required by the HealthKit framework but will not be used to modify your health records."
         UILaunchScreen: {}

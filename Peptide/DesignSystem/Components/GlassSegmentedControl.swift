@@ -48,7 +48,7 @@ struct GlassSegmentedControl<T: Hashable & CustomStringConvertible>: View {
                         .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                 }
         }
-        .glassEffect(in: .capsule)
+        .liquidGlass(.capsule)
     }
 }
 

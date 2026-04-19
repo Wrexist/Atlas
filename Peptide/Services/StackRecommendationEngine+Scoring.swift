@@ -75,10 +75,15 @@ extension StackRecommendationEngine {
         guard !isInjectable && injectableCount >= 2 else { return (0, nil) }
 
         let routeLabel: String
-        if primaryRoute.contains("oral") || primaryRoute.contains("sublingual") { routeLabel = "oral" }
-        else if primaryRoute.contains("nasal") || primaryRoute.contains("intranasal") { routeLabel = "intranasal" }
-        else if primaryRoute.contains("topical") { routeLabel = "topical" }
-        else { routeLabel = primaryRoute }
+        if primaryRoute.contains("oral") || primaryRoute.contains("sublingual") {
+            routeLabel = "oral"
+        } else if primaryRoute.contains("nasal") || primaryRoute.contains("intranasal") {
+            routeLabel = "intranasal"
+        } else if primaryRoute.contains("topical") {
+            routeLabel = "topical"
+        } else {
+            routeLabel = primaryRoute
+        }
 
         return (1, .routeDiversity(route: "Available as \(routeLabel) — reduces injection burden"))
     }
@@ -193,7 +198,8 @@ extension StackRecommendationEngine {
             return nil
         }
 
-        let firstNumStr = String(lower[Range(match.range(at: 1), in: lower)!])
+        guard let firstRange = Range(match.range(at: 1), in: lower) else { return nil }
+        let firstNumStr = String(lower[firstRange])
         let firstNum = Double(firstNumStr) ?? 0
 
         var value = firstNum
@@ -202,7 +208,7 @@ extension StackRecommendationEngine {
             value = (firstNum + secondNum) / 2.0
         }
 
-        let unitRange = Range(match.range(at: 3), in: lower)!
+        guard let unitRange = Range(match.range(at: 3), in: lower) else { return nil }
         let unit = String(lower[unitRange])
 
         switch unit {

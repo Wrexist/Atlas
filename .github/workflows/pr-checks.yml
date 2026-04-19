@@ -41,21 +41,22 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: derived-data-${{ runner.os }}-${{ hashFiles('**/*.xcodeproj/project.pbxproj', 'project.yml') }}
+          key: derived-data-${{ runner.os }}-${{ hashFiles('project.yml') }}
           restore-keys: derived-data-${{ runner.os }}-
 
       - name: Install XcodeGen
         run: |
-          if command -v xcodegen &> /dev/null; then
-            echo "XcodeGen already available: $(xcodegen --version)"
+          if brew list xcodegen &>/dev/null 2>&1; then
+            brew unlink xcodegen 2>/dev/null || true
+            brew link --overwrite xcodegen 2>/dev/null || true
           else
             brew install xcodegen || brew reinstall xcodegen
-            brew link --overwrite xcodegen 2>/dev/null || true
           fi
+          echo "$(brew --prefix)/bin" >> $GITHUB_PATH
           export PATH="$(brew --prefix)/bin:$PATH"
           if ! command -v xcodegen &> /dev/null; then
             echo "FATAL: xcodegen still not on PATH after install"
-            ls -la /opt/homebrew/Cellar/xcodegen/ 2>/dev/null || ls -la /usr/local/Cellar/xcodegen/ 2>/dev/null || echo "No xcodegen in Cellar"
+            ls -la "$(brew --prefix)/Cellar/xcodegen/" 2>/dev/null || echo "No xcodegen in Cellar"
             exit 1
           fi
           echo "XcodeGen ready: $(xcodegen --version)"
@@ -103,18 +104,20 @@ jobs:
 
       - name: Install SwiftLint
         run: |
-          if ! command -v swiftlint &> /dev/null; then
+          if brew list swiftlint &>/dev/null 2>&1; then
+            brew unlink swiftlint 2>/dev/null || true
+            brew link --overwrite swiftlint 2>/dev/null || true
+          else
             brew install swiftlint || brew reinstall swiftlint
           fi
-          export PATH="$(brew --prefix)/bin:$PATH"
           echo "SwiftLint ready: $(swiftlint version)"
 
       - name: Lint
         run: swiftlint lint --reporter github-actions-logging --strict
-        continue-on-error: true
 
       - name: Unit Tests
         run: |
+          touch test-output.log
           set -o pipefail
           xcodebuild test \
             -project Peptide.xcodeproj \
@@ -154,3 +157,15 @@ jobs:
             -only-testing:PeptideUITests \
             -resultBundlePath UITestResults.xcresult
         continue-on-error: true
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_number }}
+          path: |
+            UnitTestResults.xcresult
+            UITestResults.xcresult
+            test-output.log
+          retention-days: 7
+          if-no-files-found: warn

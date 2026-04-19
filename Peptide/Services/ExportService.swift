@@ -146,7 +146,7 @@ final class ExportService {
 
             // Table column x-positions
             let cDate: CGFloat = margin
-            let cPep:  CGFloat = margin + 72
+            let cPep: CGFloat = margin + 72
             let cDose: CGFloat = margin + 187
             let cTime: CGFloat = margin + 267
             let cSite: CGFloat = margin + 342
@@ -176,8 +176,8 @@ final class ExportService {
             let activeCount    = protocols.filter { $0.status == .active }.count
 
             for (label, value) in [
-                ("Active Protocols",  "\(activeCount) of \(protocols.count)"),
-                ("Doses Logged",      "\(completedDoses) of \(entries.count)"),
+                ("Active Protocols", "\(activeCount) of \(protocols.count)"),
+                ("Doses Logged", "\(completedDoses) of \(entries.count)"),
                 ("Overall Compliance", "\(compliancePct)%"),
             ] {
                 let h = drawText(label, font: bodyFont, color: mutedColor)
@@ -230,12 +230,12 @@ final class ExportService {
                 y += 4
                 var hdrH: CGFloat = 0
                 for (text, x, width) in [
-                    ("DATE",    cDate, 68.0),
-                    ("PEPTIDE", cPep,  110.0),
-                    ("DOSE",    cDose, 75.0),
-                    ("TIME",    cTime, 70.0),
-                    ("SITE",    cSite, 95.0),
-                    ("DONE",    cDone, 40.0),
+                    ("DATE", cDate, 68.0),
+                    ("PEPTIDE", cPep, 110.0),
+                    ("DOSE", cDose, 75.0),
+                    ("TIME", cTime, 70.0),
+                    ("SITE", cSite, 95.0),
+                    ("DONE", cDone, 40.0),
                 ] {
                     hdrH = max(hdrH, drawText(text, font: labelFont, color: mutedColor, x: x, width: width))
                 }
@@ -262,11 +262,11 @@ final class ExportService {
                     checkPageBreak(for: rowH + 3)
 
                     for (text, x, width) in [
-                        (dateVal,                    cDate, 68.0),
-                        (entry.peptide.abbreviation, cPep,  110.0),
-                        (doseVal,                    cDose, 75.0),
-                        (timeVal,                    cTime, 70.0),
-                        (siteVal,                    cSite, 95.0),
+                        (dateVal, cDate, 68.0),
+                        (entry.peptide.abbreviation, cPep, 110.0),
+                        (doseVal, cDose, 75.0),
+                        (timeVal, cTime, 70.0),
+                        (siteVal, cSite, 95.0),
                     ] {
                         drawText(text, font: bodyFont, x: x, width: width)
                     }

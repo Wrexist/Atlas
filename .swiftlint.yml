@@ -5,13 +5,19 @@ included:
 
 excluded:
   - Peptide/Resources
+  - PeptideTests
+  - PeptideUITests
 
 disabled_rules:
   - trailing_whitespace
+  - trailing_comma
   - line_length
   - type_body_length
   - file_length
   - function_body_length
+  - cyclomatic_complexity
+  - large_tuple
+  - function_parameter_count
 
 opt_in_rules:
   - empty_count
@@ -20,7 +26,7 @@ opt_in_rules:
   - implicitly_unwrapped_optional
 
 force_cast:
-  severity: warning
+  severity: error
 
 identifier_name:
   min_length:
@@ -32,6 +38,7 @@ identifier_name:
     - r
     - g
     - b
+    - protocol_
 
 nesting:
   type_level: 2

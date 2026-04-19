@@ -161,10 +161,8 @@ enum StackRecommendationEngine {
         static func detect(from mechanism: String) -> Set<MechanismPathway> {
             let lower = mechanism.lowercased()
             var found = Set<MechanismPathway>()
-            for pathway in allCases {
-                if pathway.keywords.contains(where: { lower.contains($0) }) {
-                    found.insert(pathway)
-                }
+            for pathway in allCases where pathway.keywords.contains(where: { lower.contains($0) }) {
+                found.insert(pathway)
             }
             return found
         }
@@ -480,9 +478,13 @@ enum StackRecommendationEngine {
                 if isWeekly {
                     // Weekly peptides contribute fractionally to daily burden
                     dailyCount += 1 // count as 1 since they do require an injection day
-                } else if freq.contains("3x") || freq.contains("3 times") { dailyCount += 3 }
-                else if freq.contains("2x") || freq.contains("twice") || freq.contains("2 times") { dailyCount += 2 }
-                else { dailyCount += 1 }
+                } else if freq.contains("3x") || freq.contains("3 times") {
+                    dailyCount += 3
+                } else if freq.contains("2x") || freq.contains("twice") || freq.contains("2 times") {
+                    dailyCount += 2
+                } else {
+                    dailyCount += 1
+                }
             }
             if dailyCount > 4 {
                 warnings.append(Warning(
@@ -777,10 +779,8 @@ enum StackRecommendationEngine {
     static func resolveGoals(_ goals: [String]) -> [ResolvedGoal] {
         goals.compactMap { goal in
             let lower = goal.lowercased()
-            for mapping in goalKeywords {
-                if mapping.keywords.contains(where: { lower.contains($0) }) {
-                    return ResolvedGoal(displayName: goal, category: mapping.category, benefitTerms: mapping.benefitTerms)
-                }
+            for mapping in goalKeywords where mapping.keywords.contains(where: { lower.contains($0) }) {
+                return ResolvedGoal(displayName: goal, category: mapping.category, benefitTerms: mapping.benefitTerms)
             }
             return nil
         }

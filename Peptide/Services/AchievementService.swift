@@ -64,6 +64,11 @@ final class AchievementService {
         latestUnlock = achievements[index]
     }
 
+    func resetForTesting() {
+        achievements = Self.defaultAchievements
+        latestUnlock = nil
+    }
+
     private func loadAchievements() {
         if let data = defaults.data(forKey: persistenceKey),
            let saved = try? JSONDecoder().decode([Achievement].self, from: data) {

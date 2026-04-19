@@ -46,7 +46,10 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             return
 
         case "SNOOZE":
-            let content = response.notification.request.content.mutableCopy() as! UNMutableNotificationContent
+            guard let content = response.notification.request.content.mutableCopy() as? UNMutableNotificationContent else {
+                completionHandler()
+                return
+            }
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 15 * 60, repeats: false)
             let request = UNNotificationRequest(identifier: "snooze-\(UUID().uuidString)", content: content, trigger: trigger)
             center.add(request)

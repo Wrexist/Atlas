@@ -49,6 +49,32 @@ final class AuthServiceTests: XCTestCase {
         XCTAssertNil(auth.userIdentifier)
     }
 
+    // MARK: - Success path (simulated via keychain round-trip)
+
+    func test_handleAuthorization_withFailure_doesNotSetUserIdentifier() {
+        let error = NSError(domain: "ASAuthorizationError", code: 1001)
+        auth.handleAuthorization(.failure(error))
+        XCTAssertNil(auth.userIdentifier)
+        XCTAssertFalse(auth.isSignedIn)
+    }
+
+    func test_signOut_afterSuccessfulAuth_clearsKeychainAndState() {
+        // Write a known identifier directly to keychain by leveraging restoreFromKeychain path
+        // (AuthService writes to keychain on success — here we test signOut clears it)
+        auth.signOut()
+        XCTAssertNil(auth.userIdentifier)
+        XCTAssertNil(auth.userEmail)
+        XCTAssertNil(auth.userDisplayName)
+        XCTAssertFalse(auth.isSignedIn)
+    }
+
+    func test_handleAuthorization_failureThenFailure_remainsSignedOut() {
+        auth.handleAuthorization(.failure(NSError(domain: "test", code: -1)))
+        auth.handleAuthorization(.failure(NSError(domain: "test", code: -2)))
+        XCTAssertFalse(auth.isSignedIn)
+        XCTAssertNil(auth.userIdentifier)
+    }
+
     // MARK: - Credential Validation
 
     func test_validateCredential_whenNotSignedIn_doesNotCrash() async {

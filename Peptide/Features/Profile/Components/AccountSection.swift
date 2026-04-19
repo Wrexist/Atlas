@@ -91,9 +91,9 @@ struct AccountSection: View {
 
     private var featurePreview: some View {
         HStack(spacing: Spacing.md) {
-            featureItem(icon: "icloud",                         label: "Cloud\nBackup")
-            featureItem(icon: "arrow.triangle.2.circlepath",    label: "Multi-\nDevice")
-            featureItem(icon: "lock.shield",                    label: "Encrypted\nSync")
+            featureItem(icon: "icloud", label: "Cloud\nBackup")
+            featureItem(icon: "arrow.triangle.2.circlepath", label: "Multi-\nDevice")
+            featureItem(icon: "lock.shield", label: "Encrypted\nSync")
         }
     }
 

@@ -6,7 +6,10 @@ final class PersistenceService: @unchecked Sendable {
     private let fileManager = FileManager.default
 
     private var documentsDirectory: URL {
-        fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        guard let url = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            fatalError("Documents directory unavailable")
+        }
+        return url
     }
 
     private var sharedContainerURL: URL? {

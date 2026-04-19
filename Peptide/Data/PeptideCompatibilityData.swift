@@ -198,8 +198,8 @@ enum PeptideCompatibilityData {
         let recommendation: String
 
         enum Severity: String {
-            case danger = "danger"
-            case caution = "caution"
+            case danger
+            case caution
         }
     }
 

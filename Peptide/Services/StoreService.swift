@@ -13,18 +13,20 @@ final class StoreService {
     static let annualID = "com.peptidesai.app.pro.annual"
 
     @ObservationIgnored private var updateTask: Task<Void, Never>?
+    @ObservationIgnored private var productsTask: Task<Void, Never>?
 
     private init() {
         updateTask = Task { [weak self] in
             await self?.listenForTransactions()
         }
-        Task { [weak self] in
+        productsTask = Task { [weak self] in
             await self?.updatePurchasedProducts()
         }
     }
 
     deinit {
         updateTask?.cancel()
+        productsTask?.cancel()
     }
 
     // MARK: - Products
@@ -110,7 +112,7 @@ final class StoreService {
         }
         let proIDs: Set<String> = [Self.monthlyID, Self.annualID]
         purchasedProductIDs = purchased
-        isProUser = !purchased.intersection(proIDs).isEmpty
+        isProUser = !purchased.isDisjoint(with: proIDs)
     }
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
