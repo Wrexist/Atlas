@@ -274,9 +274,10 @@ jobs:
           if not missing_bundles:
               for bundle_name in REQUIRED_BUNDLES:
                   brid = bundle_map[bundle_name]
+                  caps_resp = api_get(f"/v1/bundleIds/{brid}/bundleIdCapabilities")
                   enabled = {
                       c["attributes"]["capabilityType"]
-                      for c in paginate(f"/v1/bundleIds/{brid}/bundleIdCapabilities")
+                      for c in caps_resp.get("data", [])
                       if c.get("attributes", {}).get("capabilityType")
                   }
                   want = WANT_CAPS[bundle_name]
