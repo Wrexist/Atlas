@@ -5,12 +5,12 @@ import XCTest
 final class AchievementServiceTests: XCTestCase {
 
     private var service: AchievementService!
-    private let testKey = "achievements_test"
 
     override func setUp() {
         super.setUp()
         UserDefaults.standard.removeObject(forKey: "achievements")
         service = AchievementService.shared
+        service.resetForTesting()
     }
 
     override func tearDown() {

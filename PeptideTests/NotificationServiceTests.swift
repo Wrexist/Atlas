@@ -65,22 +65,23 @@ final class NotificationServiceTests: XCTestCase {
     // MARK: - 64-notification limit
 
     func test_scheduleNotifications_moreThan64_capsAt64() {
-        // 8 times × 8 days = 64 … plus 1 more time × 1 day = 65 total
-        let times = ["6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM", "12:00 PM", "3:00 PM", "6:00 PM", "9:00 PM", "10:00 PM"]
-        let days = [1, 2, 3, 4, 5, 6, 7]
-        let proto = makeProtocol(times: times, days: days)
-        service.scheduleNotifications(for: [proto])
-        XCTAssertGreaterThan(service.requestedCount, 64)
+        // 8 times × 7 days = 56, plus 9 times × 1 day = 9, total 65 requests
+        let weeklyTimes = ["6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM", "12:00 PM", "3:00 PM", "6:00 PM", "9:00 PM"]
+        let weekly = makeProtocol(times: weeklyTimes, days: [1, 2, 3, 4, 5, 6, 7])
+        let overflow = makeProtocol(times: weeklyTimes + ["10:00 PM"], days: [1])
+        service.scheduleNotifications(for: [weekly, overflow])
+        XCTAssertEqual(service.requestedCount, 65)
         XCTAssertEqual(service.scheduledCount, 64)
     }
 
     func test_scheduleNotifications_exactlyAtLimit_schedulesAll() {
-        // 8 times × 8 days = 64
+        // 8 times × 7 days = 56, plus 8 times × 1 day = 8, total 64 requests
         let times = ["6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM", "12:00 PM", "3:00 PM", "6:00 PM", "9:00 PM"]
-        let days = [1, 2, 3, 4, 5, 6, 7, 1]
-        let proto = makeProtocol(times: times, days: days)
-        service.scheduleNotifications(for: [proto])
-        XCTAssertLessThanOrEqual(service.scheduledCount, 64)
+        let weekly = makeProtocol(times: times, days: [1, 2, 3, 4, 5, 6, 7])
+        let extra = makeProtocol(times: times, days: [1])
+        service.scheduleNotifications(for: [weekly, extra])
+        XCTAssertEqual(service.requestedCount, 64)
+        XCTAssertEqual(service.scheduledCount, 64)
     }
 
     // MARK: - Inactive protocols skipped

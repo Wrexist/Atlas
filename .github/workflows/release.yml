@@ -32,16 +32,16 @@ jobs:
         run: |
           sed -i "s/MARKETING_VERSION: \"[^\"]*\"/MARKETING_VERSION: \"${VERSION}\"/" project.yml
           echo "Updated MARKETING_VERSION to ${VERSION}"
-          python3 -c "
-import sys
-try:
-    import yaml
-except ImportError:
-    sys.exit(0)  # pyyaml not available, skip validation
-with open('project.yml') as f:
-    yaml.safe_load(f)
-print('project.yml YAML syntax OK')
-"
+          python3 - <<'PY'
+          import sys
+          try:
+              import yaml
+          except ImportError:
+              sys.exit(0)  # pyyaml not available, skip validation
+          with open("project.yml") as f:
+              yaml.safe_load(f)
+          print("project.yml YAML syntax OK")
+          PY
 
       - name: Commit version bump
         env:
