@@ -87,10 +87,8 @@ enum BenefitStyleMap {
     ]
 
     static func style(for benefit: String, fallbackColor: Color) -> Style {
-        for mapping in mappings {
-            if benefit.localizedCaseInsensitiveContains(mapping.keyword) {
-                return Style(icon: mapping.icon, color: mapping.color)
-            }
+        for mapping in mappings where benefit.localizedCaseInsensitiveContains(mapping.keyword) {
+            return Style(icon: mapping.icon, color: mapping.color)
         }
         return Style(icon: "checkmark.seal.fill", color: fallbackColor)
     }

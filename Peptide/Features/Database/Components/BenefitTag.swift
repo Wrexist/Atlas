@@ -2,7 +2,7 @@ import SwiftUI
 
 struct BenefitTag: View {
     let text: String
-    var icon: String? = nil
+    var icon: String?
     var color: Color = AppColor.accentPrimary
 
     var body: some View {

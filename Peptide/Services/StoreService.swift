@@ -112,7 +112,7 @@ final class StoreService {
         }
         let proIDs: Set<String> = [Self.monthlyID, Self.annualID]
         purchasedProductIDs = purchased
-        isProUser = !purchased.intersection(proIDs).isEmpty
+        isProUser = !purchased.isDisjoint(with: proIDs)
     }
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {

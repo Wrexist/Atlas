@@ -63,11 +63,9 @@ struct InsightEngine {
         // Total doses milestone
         let totalCompleted = entries.filter(\.completed).count
         let milestones = [50, 100, 250, 500, 1000]
-        for milestone in milestones {
-            if totalCompleted >= milestone && totalCompleted < milestone + 10 {
-                insights.append(Insight(icon: "star.fill", title: "Milestone reached!", description: "You've logged over \(milestone) doses. Outstanding commitment.", type: .positive))
-                break
-            }
+        for milestone in milestones where totalCompleted >= milestone && totalCompleted < milestone + 10 {
+            insights.append(Insight(icon: "star.fill", title: "Milestone reached!", description: "You've logged over \(milestone) doses. Outstanding commitment.", type: .positive))
+            break
         }
 
         return insights
