@@ -194,6 +194,31 @@ jobs:
         run: |
           set -e
           export KEY_PATH="$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8"
+
+          # Diagnose secret configuration before attempting any API calls
+          echo "=== ASC credential diagnostics ==="
+          if [ -z "$KEY_ID" ]; then
+            echo "FATAL: APPLE_CONNECT_KEY_ID secret is empty"
+            exit 1
+          fi
+          echo "KEY_ID length: ${#KEY_ID} chars (expected 10)"
+
+          if [ -z "$ISSUER_ID" ]; then
+            echo "FATAL: APPLE_CONNECT_ISSUER_ID secret is empty"
+            exit 1
+          fi
+          echo "ISSUER_ID length: ${#ISSUER_ID} chars (expected 36 for UUID)"
+
+          if [ ! -f "$KEY_PATH" ]; then
+            echo "FATAL: Key file not found at $KEY_PATH"
+            exit 1
+          fi
+          KEY_SIZE=$(wc -c < "$KEY_PATH")
+          echo "Key file size: $KEY_SIZE bytes (expected ~170)"
+          head -1 "$KEY_PATH"  # Print PEM header line (not secret content)
+          tail -1 "$KEY_PATH"  # Print PEM footer line
+
+          echo "=== Starting preflight checks ==="
           python3 -m pip install --quiet --disable-pip-version-check cryptography >/dev/null 2>&1 || true
           python3 - <<'PY'
           # Verifies what the public App Store Connect API can see:
