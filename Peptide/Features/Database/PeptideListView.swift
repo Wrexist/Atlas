@@ -2,7 +2,7 @@ import SwiftUI
 
 struct PeptideListView: View {
     @Environment(DataStore.self) private var dataStore
-    @State private var viewModel = PeptideListViewModel()
+    @State private var viewModel = PeptideListViewModel(peptides: PeptideDatabase.shared)
 
     private func refreshPeptides() {
         viewModel.updatePeptides(dataStore.peptideDatabase)

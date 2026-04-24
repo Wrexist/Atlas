@@ -237,11 +237,11 @@ struct OnboardingView: View {
     // MARK: - Page 4: Ready
 
     private var readyPage: some View {
-        VStack(spacing: Spacing.xxl) {
-            Spacer()
+        VStack(spacing: Spacing.xl) {
+            Spacer(minLength: Spacing.lg)
 
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 80))
+                .font(.system(size: 72))
                 .foregroundStyle(AppColor.accentPrimary)
 
             VStack(spacing: Spacing.md) {
@@ -258,9 +258,12 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
             }
 
-            Spacer()
+            disclaimerCard
+                .padding(.horizontal, Spacing.screenPadding)
 
-            GlassButton(title: "Let's Go", icon: "arrow.right", style: .primary, isFullWidth: true) {
+            Spacer(minLength: Spacing.md)
+
+            GlassButton(title: "I Understand — Let's Go", icon: "arrow.right", style: .primary, isFullWidth: true) {
                 if !selectedGoals.isEmpty {
                     dataStore.updateGoals(selectedGoals)
                 }
@@ -270,6 +273,27 @@ struct OnboardingView: View {
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.lg)
+        }
+    }
+
+    private var disclaimerCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "stethoscope")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(AppColor.accentPrimary)
+                    Text("Before you continue")
+                        .font(AppFont.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColor.textPrimary)
+                }
+
+                Text(PeptideDatabase.disclaimer)
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 

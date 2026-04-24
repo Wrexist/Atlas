@@ -1,5 +1,8 @@
 import Foundation
+import OSLog
 import StoreKit
+
+private let log = Logger(subsystem: "com.peptidesai.app", category: "StoreService")
 
 @MainActor @Observable
 final class StoreService {
@@ -38,7 +41,7 @@ final class StoreService {
                 Self.annualID,
             ])
         } catch {
-            print("StoreService: Failed to load products: \(error)")
+            log.error("Failed to load products: \(error.localizedDescription, privacy: .public)")
         }
     }
 

@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct AboutSection: View {
+    @State private var showDisclaimer = false
+
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
@@ -13,7 +15,20 @@ struct AboutSection: View {
                     Divider().foregroundStyle(AppColor.glassBorder)
                     AboutRow(title: "Build", value: "1")
                     Divider().foregroundStyle(AppColor.glassBorder)
-                    AboutRow(title: "Peptide Database", value: "\(MockPeptides.all.count) peptides")
+                    AboutRow(title: "Peptide Database", value: "\(PeptideDatabase.shared.count) peptides")
+                    Divider().foregroundStyle(AppColor.glassBorder)
+                    Button { showDisclaimer = true } label: {
+                        HStack {
+                            Text("Medical Disclaimer")
+                                .font(AppFont.subheadline)
+                                .foregroundStyle(AppColor.textSecondary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(AppColor.textTertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 HStack {
@@ -38,6 +53,45 @@ struct AboutSection: View {
                     Spacer()
                 }
                 .padding(.top, Spacing.sm)
+            }
+        }
+        .sheet(isPresented: $showDisclaimer) {
+            MedicalDisclaimerSheet()
+        }
+    }
+}
+
+struct MedicalDisclaimerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.lg) {
+                    Image(systemName: "stethoscope")
+                        .font(.system(size: 40))
+                        .foregroundStyle(AppColor.accentPrimary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+
+                    Text(PeptideDatabase.disclaimer)
+                        .font(AppFont.body)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text("PeptideX is a tracking and educational tool. It is not a medical device, and it does not provide medical advice, diagnosis, or treatment.")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(Spacing.screenPadding)
+            }
+            .background(AppColor.background)
+            .navigationTitle("Medical Disclaimer")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
             }
         }
     }

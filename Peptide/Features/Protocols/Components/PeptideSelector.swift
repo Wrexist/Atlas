@@ -2,7 +2,7 @@ import SwiftUI
 
 struct PeptideSelector: View {
     @Binding var selectedPeptides: Set<UUID>
-    var allPeptides: [Peptide] = MockPeptides.all
+    var allPeptides: [Peptide]
     @State private var searchText = ""
 
     private var peptides: [Peptide] {
@@ -125,7 +125,7 @@ struct PeptideSelector: View {
 #Preview {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        PeptideSelector(selectedPeptides: .constant([MockPeptides.bpc157.id]))
+        PeptideSelector(selectedPeptides: .constant([MockPeptides.bpc157.id]), allPeptides: MockPeptides.all)
             .padding(Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)

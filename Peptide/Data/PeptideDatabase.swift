@@ -3,7 +3,20 @@ import Foundation
 enum PeptideDatabase {
 
     /// Cached peptide list, loaded once on first access.
-    static let shared: [Peptide] = load()
+    static var shared: [Peptide] { loaded.peptides }
+
+    /// Educational/safety disclaimer surfaced in onboarding, About, and on
+    /// each peptide detail screen. Source: `peptides.json`.
+    static var disclaimer: String { loaded.disclaimer }
+
+    private static let loaded: (peptides: [Peptide], disclaimer: String) = load()
+
+    private static let fallbackDisclaimer = """
+    This information is for educational purposes only. It does not constitute \
+    medical advice. Many peptides referenced are research chemicals not approved \
+    for human use. Always consult a qualified healthcare provider before \
+    starting, changing, or stopping any protocol.
+    """
 
     // MARK: - Decoding DTOs
 
@@ -67,19 +80,19 @@ enum PeptideDatabase {
 
     // MARK: - Loading
 
-    private static func load() -> [Peptide] {
+    private static func load() -> (peptides: [Peptide], disclaimer: String) {
         guard let url = Bundle.main.url(forResource: "peptides", withExtension: "json") else {
             assertionFailure("peptides.json not found in bundle — using fallback mocks")
-            return MockPeptides.fallback
+            return (MockPeptides.fallback, fallbackDisclaimer)
         }
 
         do {
             let data = try Data(contentsOf: url)
             let payload = try JSONDecoder().decode(Payload.self, from: data)
-            return payload.peptides.map(map)
+            return (payload.peptides.map(map), payload.disclaimer)
         } catch {
             assertionFailure("Failed to decode peptides.json: \(error)")
-            return MockPeptides.fallback
+            return (MockPeptides.fallback, fallbackDisclaimer)
         }
     }
 
