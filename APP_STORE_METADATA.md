@@ -308,3 +308,18 @@ Tick off before hitting Submit:
 - [ ] Age rating set to 17+
 - [ ] Review notes pasted above
 - [ ] `review@peptidesai.com` inbox monitored
+
+### Quick URL verification (run after enabling Pages, before Submit)
+
+```bash
+# 1. Each must return HTTP/2 200 (not 301/302/404)
+curl -sI https://wrexist.github.io/Peptide-ai/           | head -1
+curl -sI https://wrexist.github.io/Peptide-ai/privacy.html | head -1
+curl -sI https://wrexist.github.io/Peptide-ai/support.html | head -1
+
+# 2. Confirm privacy page is server-rendered (Apple's crawler reads HTML, not JS)
+curl -s  https://wrexist.github.io/Peptide-ai/privacy.html | grep -i "privacy policy" | head -3
+```
+
+All three URLs returning `HTTP/2 200` and the privacy page producing readable
+text without JavaScript = safe to paste the URLs into App Store Connect.
