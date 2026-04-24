@@ -1,3 +1,7 @@
+---
+title: Privacy Policy
+---
+
 # Privacy Policy — PeptideX
 
 **Effective date:** April 24, 2026
