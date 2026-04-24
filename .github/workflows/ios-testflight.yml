@@ -214,7 +214,7 @@ jobs:
             exit 1
           fi
           KEY_SIZE=$(wc -c < "$KEY_PATH")
-          echo "Key file size: $KEY_SIZE bytes (expected ~170)"
+          echo "Key file size: $KEY_SIZE bytes (expected ~240–280 for EC P-256 .p8)"
           head -1 "$KEY_PATH"  # Print PEM header line (not secret content)
           tail -1 "$KEY_PATH"  # Print PEM footer line
 
@@ -247,10 +247,12 @@ jobs:
               separators=(",", ":"),
           ).encode())
           now = int(time.time())
+          # Apple rejects JWTs whose exp is more than 20 minutes (1200s) past iat
+          # with a 401 NOT_AUTHORIZED. Keep this comfortably under that ceiling.
           payload = b64url(json.dumps({
               "iss": os.environ["ISSUER_ID"],
               "iat": now,
-              "exp": now + 1800,
+              "exp": now + 600,
               "aud": "appstoreconnect-v1",
           }, separators=(",", ":")).encode())
           signing_input = f"{header}.{payload}".encode()
