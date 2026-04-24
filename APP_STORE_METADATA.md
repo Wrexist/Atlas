@@ -296,8 +296,10 @@ Apple's requirement.
 
 Tick off before hitting Submit:
 
-- [ ] GitHub Pages deployed — privacy URL returns 200
-- [ ] Support URL returns 200
+- [ ] GitHub Pages deployed — `https://wrexist.github.io/Peptide-ai/privacy.html` returns **200** (Cayman uses default permalinks, so `.html` is correct — verify with `curl -I` before pasting into App Store Connect; the privacy URL is hard to change after submission)
+- [ ] Support URL `/support.html` returns **200**
+- [ ] Marketing URL `/` returns **200**
+- [ ] Privacy page is publicly accessible (no auth, no JS dependency for content — Apple's review crawler must read it)
 - [ ] TestFlight build uploaded and installable
 - [ ] Install on a real device — HealthKit, Face ID, paywall, widget all work
 - [ ] Screenshots uploaded for 6.9" iPhone + 13" iPad
