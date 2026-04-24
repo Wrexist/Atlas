@@ -15,7 +15,7 @@ default, built with Swift and SwiftUI, powered entirely on-device.
 - **Widgets:** next dose and compliance ring on your Home Screen
 - **Notifications:** actionable local dose reminders
 - **Export:** CSV or JSON backup anytime
-- **No backend, no analytics, no tracking**
+- **No analytics, no tracking, no proprietary backend** *(as of v1.0; Apple's StoreKit is used for purchases)*
 
 ## Links
 

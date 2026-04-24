@@ -21,8 +21,11 @@ When reaching out, please include:
 ## Common questions
 
 ### How do I export my data?
-Settings → Export. You can choose CSV (for spreadsheets) or JSON (full backup,
-including protocols and entries).
+PeptideX Pro subscribers can export from **Profile → Data Export**, choosing
+CSV (for spreadsheets), JSON (full backup including protocols and entries),
+or PDF (printable report). If you are not a Pro subscriber and need a copy
+of your data for legal or portability reasons, email privacy@peptidesai.com
+and we will help at no charge.
 
 ### How do I delete all my data?
 Uninstall the app. All local data is removed with it. If you signed in with

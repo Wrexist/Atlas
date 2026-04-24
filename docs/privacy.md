@@ -10,11 +10,17 @@ title: Privacy Policy
 
 ## Summary
 
-PeptideX is designed to be private by default. All of your data stays on your
-device. We do not operate a backend server, do not run analytics, do not use
-advertising SDKs, and do not share data with third parties. Nothing you enter
-in the app — protocols, doses, journal entries, health metrics, achievements —
-leaves your device unless you explicitly export it yourself.
+PeptideX is designed to be private by default. As of version 1.0, all of your
+data stays on your device: we do not operate any backend servers of our own
+for app functionality, do not run analytics, do not use advertising SDKs, and
+do not share data with third parties. Nothing you enter in the app — protocols,
+doses, journal entries, health metrics, achievements — leaves your device
+unless you explicitly export it yourself. The only network services the app
+uses are Apple's StoreKit (for subscription purchases) and Apple's Sign in
+with Apple (only if you choose to sign in); both are governed by Apple's own
+privacy policy. Future releases may add optional iCloud-backed sync for Pro
+subscribers; if and when that ships, this policy will be updated before the
+feature is enabled.
 
 ## What data the app handles
 
@@ -93,16 +99,20 @@ not have the ability to — your data never leaves your device.
 
 ## Data export and deletion
 
-- **Export:** you can export your own data at any time as CSV or JSON from
-  inside the app (Settings → Export).
+- **Export:** PeptideX Pro subscribers can export all protocol history and
+  tracking data as CSV, JSON, or PDF from **Profile → Data Export**. If you
+  are not a Pro subscriber and need a copy of your data for legal or
+  portability reasons, email **privacy@peptidesai.com** and we will walk you
+  through a manual export at no charge.
 - **Deletion:** deleting the app from your device permanently removes all
   PeptideX data stored locally, including your protocol history and cached
-  HealthKit correlations. If you signed in with Apple, also revoke app access
-  in **Settings → Apple Account → Sign in with Apple** to complete removal of
-  the Keychain-stored identifier.
+  HealthKit correlations — this works regardless of subscription status. If
+  you signed in with Apple, also revoke app access in **Settings → Apple
+  Account → Sign in with Apple** to complete removal of the Keychain-stored
+  identifier.
 
-Because we do not operate a server, there is no remote copy of your data for
-us to delete.
+Because we do not operate a backend server of our own, there is no remote
+copy of your data for us to delete.
 
 ## Children
 
@@ -121,12 +131,14 @@ starting, changing, or stopping any protocol.
 ## Your rights (GDPR / UK GDPR / CCPA)
 
 Because all personal data is stored locally on your device and is under your
-direct control, you can exercise the following rights at any time by using
-the app itself:
+direct control, you can exercise the following rights at any time:
 
-- **Access / portability:** export your data via Settings → Export.
+- **Access / portability:** Pro subscribers can export via Profile → Data
+  Export; non-subscribers may request a free manual export by emailing
+  privacy@peptidesai.com.
 - **Rectification:** edit any entry directly in the app.
 - **Erasure:** delete entries in the app, or uninstall to remove everything.
+  Uninstalling works regardless of subscription status.
 - **Withdraw consent:** revoke HealthKit or Sign in with Apple access in iOS
   Settings as described above.
 

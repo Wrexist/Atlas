@@ -20,6 +20,11 @@ All text respects Apple's current character limits. Placeholders are marked
 
 ## URLs
 
+> **Deploy first:** these URLs return 404 until you enable GitHub Pages in
+> the repo (Settings → Pages → deploy from `main` / `/docs`). App Store
+> Connect validates the Privacy Policy URL at submission time, so publish the
+> site before hitting Submit.
+
 | Field | Value |
 |---|---|
 | Marketing URL | `https://wrexist.github.io/Peptide-ai/` |
@@ -84,15 +89,15 @@ EXPORT WHATEVER YOU NEED
 
 PRIVATE BY DEFAULT
 • No analytics, no trackers, no advertising SDKs
-• No server — every feature works offline
+• All your data stored locally on-device
 • Optional Sign in with Apple, stored only in the iOS Keychain
 • Privacy manifest declares zero collected data types
 
 PEPTIDEX PRO
 Unlock unlimited protocols, full analytics with HealthKit correlation, AI
-insights, all widgets, and cloud backup (coming soon) with a monthly or
-annual subscription. A 7-day free trial is available on monthly; 14 days on
-annual. Cancel anytime in your Apple ID settings.
+insights, all Home Screen widgets, and full CSV / JSON / PDF export with a
+monthly or annual subscription. A 7-day free trial is available on monthly;
+14 days on annual. Cancel anytime in your Apple ID settings.
 
 IMPORTANT — MEDICAL DISCLAIMER
 PeptideX is an educational and tracking tool. It is not a medical device and
@@ -107,13 +112,13 @@ stopping any protocol.
 ## Keywords *(100 char limit — comma-separated, NO spaces after commas)*
 
 ```
-peptide,protocol,tracker,bpc157,tb500,biohack,supplement,injection,dose,reminder,hrv,analytics
-```
-*(94 / 100)*
-
-Alternative set emphasizing health:
-```
 peptide,protocol,tracker,bpc,health,fitness,supplement,reminder,dose,hrv,sleep,compliance
+```
+*(91 / 100 — balances general health/fitness discovery with peptide-specific terms)*
+
+More technical alternative (narrower audience, higher intent):
+```
+peptide,protocol,tracker,bpc157,tb500,biohack,supplement,injection,dose,reminder,hrv,analytics
 ```
 
 ---
@@ -211,20 +216,25 @@ Thank you for reviewing PeptideX.
 
 • Sign in with Apple is optional. Every feature works without an account —
   you can skip sign-in on the onboarding screen.
-• HealthKit permission is requested on first entry into the Insights tab.
-  Denying access does not disable any feature; it only hides the HealthKit
-  correlation section.
-• Grant HealthKit read access to see correlation charts. PeptideX does not
-  write to Apple Health — NSHealthUpdateUsageDescription is declared only
-  because the HealthKit framework requires it.
+• HealthKit permission is requested from the Profile tab: tap "Connect
+  Health" in the Health Connection card. It is NOT requested automatically
+  from the Analytics tab. Denying access does not disable any feature; it
+  only hides the HealthKit correlation section.
+• PeptideX does not write to Apple Health — NSHealthUpdateUsageDescription
+  is declared only because the HealthKit framework requires it for any
+  HealthKit use.
 • The peptide database is educational. The in-app medical disclaimer is
   surfaced in onboarding and on every peptide detail screen. Peptides are
   referenced as research chemicals; PeptideX does not sell, prescribe, or
   source any compound.
 • Subscriptions are standard StoreKit 2 auto-renewable in-app purchases.
-  Sandbox accounts work without additional setup.
-• No backend, no analytics, no third-party SDKs. App Privacy manifest
-  declares NSPrivacyTracking=false and an empty collected data array.
+  Sandbox accounts work without additional setup. Full data export (CSV /
+  JSON / PDF) is a Pro feature; uninstalling the app removes all local data
+  regardless of subscription status.
+• No backend of our own, no analytics, no third-party SDKs. Network use is
+  limited to Apple's StoreKit and (optionally) Sign in with Apple. App
+  Privacy manifest declares NSPrivacyTracking=false and an empty collected
+  data array.
 
 Support contact: support@peptidesai.com
 ```
@@ -271,11 +281,11 @@ App Store listing icon.
 
 Monthly:
 - Display Name: `PeptideX Pro Monthly`
-- Description: `Unlimited protocols, full analytics with HealthKit correlation, AI insights, all widgets, and cloud backup. Renews monthly; cancel anytime.`
+- Description: `Unlimited protocols, full analytics with HealthKit correlation, AI insights, all widgets, and full CSV/JSON/PDF export. Renews monthly; cancel anytime.`
 
 Annual:
 - Display Name: `PeptideX Pro Annual`
-- Description: `PeptideX Pro for a full year. Unlimited protocols, full analytics, AI insights, all widgets, cloud backup. Two months free versus monthly.`
+- Description: `PeptideX Pro for a full year. Unlimited protocols, full analytics, AI insights, all widgets, full data export. Two months free versus monthly.`
 
 Auto-renewal disclosure (already shown on the in-app paywall) satisfies
 Apple's requirement.
