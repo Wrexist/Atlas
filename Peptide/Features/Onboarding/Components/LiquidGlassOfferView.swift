@@ -116,7 +116,7 @@ struct LiquidGlassOfferView: View {
 
     private var headline: some View {
         VStack(spacing: Spacing.sm) {
-            Text("ENGÅNGSERBJUDANDE")
+            Text("ONE-TIME OFFER")
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .tracking(2)
                 .foregroundStyle(AppColor.accentLight)
@@ -131,7 +131,7 @@ struct LiquidGlassOfferView: View {
                 }
                 .liquidGlass(.capsule, tint: AppColor.accentPrimary.opacity(0.35), interactive: false)
 
-            Text("3 dagar gratis")
+            Text("3 days free")
                 .font(AppFont.largeTitle)
                 .foregroundStyle(
                     LinearGradient(
@@ -142,7 +142,7 @@ struct LiquidGlassOfferView: View {
                 )
                 .multilineTextAlignment(.center)
 
-            Text("Lås upp PeptideX Pro direkt — utan kort, utan auto-förnyelse")
+            Text("Unlock PeptideX Pro instantly — no card, no auto-renew")
                 .font(AppFont.body)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -189,7 +189,7 @@ struct LiquidGlassOfferView: View {
                         Text("PeptideX Pro")
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
-                        Text("Hela biblioteket. Inga gränser.")
+                        Text("The full library. No limits.")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                     }
@@ -199,9 +199,9 @@ struct LiquidGlassOfferView: View {
                 Divider().background(AppColor.glassBorder)
 
                 HStack(spacing: Spacing.lg) {
-                    counterPill(value: "3", label: "dagar")
-                    counterPill(value: "0 kr", label: "att betala")
-                    counterPill(value: "∞", label: "protokoll")
+                    counterPill(value: "3", label: "days")
+                    counterPill(value: "$0", label: "to pay")
+                    counterPill(value: "∞", label: "protocols")
                 }
             }
             .padding(Spacing.lg)
@@ -244,10 +244,10 @@ struct LiquidGlassOfferView: View {
 
     private var valueRows: some View {
         VStack(spacing: Spacing.sm) {
-            valueRow(icon: "infinity", text: "Obegränsade protokoll och peptider")
-            valueRow(icon: "brain.head.profile.fill", text: "AI-insikter och smart återhämtning")
-            valueRow(icon: "chart.xyaxis.line", text: "Full analys, export och Apple Watch")
-            valueRow(icon: "lock.shield.fill", text: "Avbryt när som helst — inget kort krävs")
+            valueRow(icon: "infinity", text: "Unlimited protocols and peptides")
+            valueRow(icon: "brain.head.profile.fill", text: "AI insights and smart recovery")
+            valueRow(icon: "chart.xyaxis.line", text: "Full analytics, export, and Apple Watch")
+            valueRow(icon: "lock.shield.fill", text: "Cancel anytime — no card required")
         }
     }
 
@@ -287,7 +287,7 @@ struct LiquidGlassOfferView: View {
     private var actionStack: some View {
         VStack(spacing: Spacing.sm) {
             GlassButton(
-                title: "Aktivera 3 dagar gratis",
+                title: "Activate 3 days free",
                 icon: "sparkles",
                 style: .primary,
                 isFullWidth: true
@@ -296,11 +296,11 @@ struct LiquidGlassOfferView: View {
                 onAccept()
             }
 
-            GlassButton(title: "Inte nu", style: .ghost, isFullWidth: true) {
+            GlassButton(title: "Not now", style: .ghost, isFullWidth: true) {
                 onDecline()
             }
 
-            Text("Erbjudandet visas bara en gång — det förnyas inte automatiskt.")
+            Text("This offer is shown only once — it does not auto-renew.")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
