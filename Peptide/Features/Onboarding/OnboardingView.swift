@@ -208,57 +208,56 @@ struct OnboardingView: View {
     }
 
     private var goalGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.sm) {
-            ForEach(goals, id: \.self) { goal in
-                let isSelected = selectedGoals.contains(goal)
-                Button {
-                    toggleGoal(goal)
-                } label: {
-                    HStack(spacing: Spacing.sm) {
-                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 16))
-                            .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
-                            .contentTransition(.symbolEffect(.replace))
-
-                        Text(goal)
-                            .font(AppFont.subheadline)
-                            .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-
-                        Spacer()
-                    }
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.md)
-                    .background {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                .fill(AppColor.surfaceElevated)
-
-                            if isSelected {
-                                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                    .fill(AppColor.accentPrimary.opacity(0.18))
-                                    .matchedGeometryEffect(id: "goal-\(goal)", in: goalNamespace)
-                            }
-
-                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                .strokeBorder(
-                                    isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                    lineWidth: 0.5
-                                )
-                        }
-                    }
-                    .liquidGlass(.rect(cornerRadius: Spacing.smallCornerRadius))
-                    .scaleEffect(isSelected ? 1.02 : 1.0)
-                    .shadow(
-                        color: isSelected ? AppColor.accentPrimary.opacity(0.25) : .clear,
-                        radius: isSelected ? 12 : 0,
-                        y: isSelected ? 4 : 0
-                    )
+        LiquidGlassContainer(spacing: Spacing.sm) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.sm) {
+                ForEach(goals, id: \.self) { goal in
+                    goalCell(goal)
                 }
-                .buttonStyle(.plain)
             }
         }
+    }
+
+    private func goalCell(_ goal: String) -> some View {
+        let isSelected = selectedGoals.contains(goal)
+        return Button {
+            toggleGoal(goal)
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 16))
+                    .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textTertiary)
+                    .contentTransition(.symbolEffect(.replace))
+                    .symbolEffect(.bounce, value: isSelected)
+
+                Text(goal)
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Spacer()
+            }
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.md)
+            .frame(maxWidth: .infinity)
+            .background {
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .fill(AppColor.surfaceElevated)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                            .strokeBorder(
+                                isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
+                                lineWidth: 0.5
+                            )
+                    }
+            }
+            .liquidGlass(
+                .rect(cornerRadius: Spacing.smallCornerRadius),
+                tint: isSelected ? AppColor.accentPrimary.opacity(0.45) : nil,
+                interactive: true
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private func toggleGoal(_ goal: String) {
@@ -291,25 +290,27 @@ struct OnboardingView: View {
                     .foregroundStyle(AppColor.textSecondary)
             }
 
-            VStack(spacing: Spacing.md) {
-                experienceOption(
-                    level: "beginner",
-                    icon: "leaf.fill",
-                    title: "Beginner",
-                    subtitle: "New to peptides"
-                )
-                experienceOption(
-                    level: "intermediate",
-                    icon: "flame.fill",
-                    title: "Intermediate",
-                    subtitle: "Some protocol experience"
-                )
-                experienceOption(
-                    level: "advanced",
-                    icon: "bolt.fill",
-                    title: "Advanced",
-                    subtitle: "Experienced researcher"
-                )
+            LiquidGlassContainer(spacing: Spacing.md) {
+                VStack(spacing: Spacing.md) {
+                    experienceOption(
+                        level: "beginner",
+                        icon: "leaf.fill",
+                        title: "Beginner",
+                        subtitle: "New to peptides"
+                    )
+                    experienceOption(
+                        level: "intermediate",
+                        icon: "flame.fill",
+                        title: "Intermediate",
+                        subtitle: "Some protocol experience"
+                    )
+                    experienceOption(
+                        level: "advanced",
+                        icon: "bolt.fill",
+                        title: "Advanced",
+                        subtitle: "Experienced researcher"
+                    )
+                }
             }
             .padding(.horizontal, Spacing.screenPadding)
 
@@ -336,6 +337,7 @@ struct OnboardingView: View {
                     .font(.system(size: 24))
                     .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                     .frame(width: 40)
+                    .symbolEffect(.bounce, value: isSelected)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(title)
@@ -354,6 +356,7 @@ struct OnboardingView: View {
                     .contentTransition(.symbolEffect(.replace))
             }
             .padding(Spacing.cardPadding)
+            .frame(maxWidth: .infinity)
             .background {
                 ZStack {
                     RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
@@ -362,7 +365,7 @@ struct OnboardingView: View {
                     if isSelected {
                         RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                             .fill(AppColor.accentPrimary.opacity(0.18))
-                            .matchedGeometryEffect(id: "experience", in: experienceNamespace)
+                            .matchedGeometryEffect(id: "experience-pill", in: experienceNamespace)
                     }
 
                     RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
@@ -372,12 +375,10 @@ struct OnboardingView: View {
                         )
                 }
             }
-            .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
-            .scaleEffect(isSelected ? 1.015 : 1.0)
-            .shadow(
-                color: isSelected ? AppColor.accentPrimary.opacity(0.25) : .clear,
-                radius: isSelected ? 14 : 0,
-                y: isSelected ? 6 : 0
+            .liquidGlass(
+                .rect(cornerRadius: Spacing.cardCornerRadius),
+                tint: isSelected ? AppColor.accentPrimary.opacity(0.35) : nil,
+                interactive: true
             )
         }
         .buttonStyle(.plain)
