@@ -63,7 +63,7 @@ extension View {
     /// items that share the same id — same trick the system tab bar uses for
     /// its sliding selection pill.
     @ViewBuilder
-    func liquidGlassID(_ id: some Hashable, in namespace: Namespace.ID) -> some View {
+    func liquidGlassID(_ id: some Hashable & Sendable, in namespace: Namespace.ID) -> some View {
         if #available(iOS 26.0, *) {
             self.glassEffectID(id, in: namespace)
         } else {
