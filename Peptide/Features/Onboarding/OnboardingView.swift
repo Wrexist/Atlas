@@ -113,11 +113,6 @@ struct OnboardingView: View {
             Spacer()
 
             GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                if dataStore.profile.name != trimmed {
-                    dataStore.profile.name = trimmed
-                    dataStore.persistProfile()
-                }
                 advance(to: 2)
             }
             .padding(.horizontal, Spacing.screenPadding)
@@ -147,7 +142,6 @@ struct OnboardingView: View {
             Spacer()
 
             GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                dataStore.updateGoals(selectedGoals)
                 advance(to: 3)
             }
             .opacity(selectedGoals.isEmpty ? 0.5 : 1)
@@ -463,6 +457,14 @@ struct OnboardingView: View {
             Spacer(minLength: Spacing.md)
 
             GlassButton(title: "I Understand — Let's Go", icon: "arrow.right", style: .primary, isFullWidth: true) {
+                let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                if dataStore.profile.name != trimmed {
+                    dataStore.profile.name = trimmed
+                }
+                if !selectedGoals.isEmpty {
+                    dataStore.profile.goals = Array(selectedGoals).sorted()
+                }
+                dataStore.persistProfile()
                 if dataStore.profile.hapticFeedbackEnabled {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                 }
