@@ -5,23 +5,23 @@ enum AppColor {
     static let surfaceElevated = Color(hex: 0x1A1A1A)
     static let surfaceSecondary = Color(hex: 0x141414)
 
-    static let accentPrimary = Color(hex: 0x4A7C59)
-    static let accentLight = Color(hex: 0x6BAF7E)
-    static let accentDark = Color(hex: 0x3A6247)
-    static let accentGlow = Color(hex: 0x4A7C59).opacity(0.3)
-    static let glassTint = Color(hex: 0x4A7C59).opacity(0.15)
+    static var accentPrimary: Color { ThemeManager.shared.theme.primary }
+    static var accentLight: Color { ThemeManager.shared.theme.light }
+    static var accentDark: Color { ThemeManager.shared.theme.dark }
+    static var accentGlow: Color { ThemeManager.shared.theme.primary.opacity(0.3) }
+    static var glassTint: Color { ThemeManager.shared.theme.primary.opacity(0.15) }
 
     static let textPrimary = Color.white
     static let textSecondary = Color(hex: 0xA0A0A0)
     static let textTertiary = Color(hex: 0x666666)
-    static let textHighlight = Color(hex: 0xC8D8C0)
+    static var textHighlight: Color { ThemeManager.shared.theme.highlight }
 
     static let destructive = Color(hex: 0xFF4444)
     static let warning = Color(hex: 0xFFB800)
-    static let success = Color(hex: 0x4A7C59)
+    static var success: Color { ThemeManager.shared.theme.primary }
 
     static let glassBorder = Color.white.opacity(0.08)
-    static let glassBorderActive = Color(hex: 0x4A7C59).opacity(0.3)
+    static var glassBorderActive: Color { ThemeManager.shared.theme.primary.opacity(0.3) }
     static let cardOverlay = Color.white.opacity(0.04)
 }
 
