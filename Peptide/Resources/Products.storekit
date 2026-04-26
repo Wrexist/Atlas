@@ -101,7 +101,12 @@
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "CCB2AF83-14F7-4EEC-807E-8E62193FF6FB",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "internalID" : "B7E3F2A1-C8D4-4E5F-9A2B-1D3E4F5A6B7C",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
           "localizations" : [
             {
               "description" : "Unlock all PeptideX Pro features, billed monthly.",

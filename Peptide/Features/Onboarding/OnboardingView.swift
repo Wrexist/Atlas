@@ -18,7 +18,8 @@ struct OnboardingView: View {
 
     @FocusState private var nameFocused: Bool
 
-    private let totalPages = 8
+    private let totalPages = 9
+    @State private var storeService = StoreService.shared
 
     private struct OnboardingGoal: Identifiable {
         var id: String { title }
@@ -56,7 +57,8 @@ struct OnboardingView: View {
                     healthKitPage.tag(4)
                     notificationsPage.tag(5)
                     signInPage.tag(6)
-                    readyPage.tag(7)
+                    offerPage.tag(7)
+                    readyPage.tag(8)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: currentPage)
@@ -66,6 +68,7 @@ struct OnboardingView: View {
         .onChange(of: currentPage) { _, _ in
             dismissKeyboard()
         }
+        .task { await storeService.loadProducts() }
     }
 
     // MARK: - Page 1: Welcome
@@ -526,7 +529,7 @@ struct OnboardingView: View {
                         Task { @MainActor in
                             AuthService.shared.handleAuthorization(result)
                             if case .success = result, currentPage == 6 {
-                                advance(to: 7)
+                                advance(to: nextAfterSignIn)
                             }
                         }
                     }
@@ -535,20 +538,47 @@ struct OnboardingView: View {
                     .clipShape(Capsule())
 
                     GlassButton(title: "Continue without signing in", style: .ghost, isFullWidth: true) {
-                        advance(to: 7)
+                        advance(to: nextAfterSignIn)
                     }
                 }
             }
         )
     }
 
-    // MARK: - Page 8: Ready
+    // MARK: - Page 8: Free-Trial Funnel
+
+    /// Skip the trial offer when the user is no longer eligible (already
+    /// redeemed an intro offer in this group or already Pro). Keeps the funnel
+    /// clean for re-installs.
+    private var nextAfterSignIn: Int {
+        (storeService.isProUser || !storeService.isEligibleForMonthlyTrial) ? 8 : 7
+    }
+
+    @ViewBuilder
+    private var offerPage: some View {
+        if storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
+            Color.clear.onAppear {
+                if currentPage == 7 { advance(to: 8) }
+            }
+        } else {
+            TrialOfferView(
+                onAccept: { advance(to: 8) },
+                onDecline: { advance(to: 8) }
+            )
+        }
+    }
+
+    // MARK: - Page 9: Ready
 
     private var readyPage: some View {
         pageScaffold(
             hero: ReadyHero(bounceTrigger: bounceTrigger),
             content: {
                 VStack(spacing: Spacing.md) {
+                    if storeService.isProUser {
+                        proCelebrationBadge
+                    }
+
                     Text("You're all set!")
                         .font(AppFont.largeTitle)
                         .foregroundStyle(
@@ -577,6 +607,26 @@ struct OnboardingView: View {
                 }
             }
         )
+    }
+
+    private var proCelebrationBadge: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(AppColor.accentLight)
+            Text("Pro Trial Active — Welcome aboard!")
+                .font(AppFont.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColor.textPrimary)
+        }
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.xs)
+        .background {
+            Capsule()
+                .fill(AppColor.accentPrimary.opacity(0.18))
+                .overlay(Capsule().strokeBorder(AppColor.accentPrimary.opacity(0.4), lineWidth: 0.5))
+        }
+        .transition(.scale.combined(with: .opacity))
     }
 
     private var disclaimerCard: some View {

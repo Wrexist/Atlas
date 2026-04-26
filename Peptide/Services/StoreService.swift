@@ -11,6 +11,11 @@ final class StoreService {
     private(set) var isProUser = false
     private(set) var products: [Product] = []
     private(set) var purchasedProductIDs: Set<String> = []
+    /// Intro-offer eligibility for the monthly subscription. Driven by
+    /// `Product.SubscriptionInfo.isEligibleForIntroOffer` — once the user has
+    /// already redeemed an intro offer in this subscription group, Apple
+    /// reports `false` and the local check matches.
+    private(set) var isEligibleForMonthlyTrial = true
 
     static let monthlyID = "com.peptidesai.app.pro.monthly"
     static let annualID = "com.peptidesai.app.pro.annual"
@@ -42,6 +47,7 @@ final class StoreService {
                 Self.annualID,
                 Self.lifetimeID,
             ])
+            await refreshTrialEligibility()
         } catch {
             log.error("Failed to load products: \(error.localizedDescription, privacy: .public)")
         }
@@ -57,6 +63,23 @@ final class StoreService {
 
     var lifetimeProduct: Product? {
         products.first { $0.id == Self.lifetimeID }
+    }
+
+    /// Display string for the monthly intro offer ("3 days free"). `nil` when
+    /// there is no intro offer or the product hasn't loaded yet.
+    var monthlyTrialDisplay: String? {
+        guard let intro = monthlyProduct?.subscription?.introductoryOffer,
+              intro.paymentMode == .freeTrial
+        else { return nil }
+        let unit = intro.period.unit
+        let count = intro.period.value * intro.periodCount
+        switch unit {
+        case .day: return count == 1 ? "1 day free" : "\(count) days free"
+        case .week: return count == 1 ? "1 week free" : "\(count) weeks free"
+        case .month: return count == 1 ? "1 month free" : "\(count) months free"
+        case .year: return count == 1 ? "1 year free" : "\(count) years free"
+        @unknown default: return nil
+        }
     }
 
     // MARK: - Purchase
@@ -77,6 +100,15 @@ final class StoreService {
         @unknown default:
             return false
         }
+    }
+
+    /// Starts the monthly subscription, which auto-applies the configured
+    /// 3-day free trial intro offer when the user is eligible. After the
+    /// trial Apple auto-renews monthly until the user cancels.
+    @discardableResult
+    func startMonthlyTrial() async throws -> Bool {
+        guard let monthly = monthlyProduct else { return false }
+        return try await purchase(monthly)
     }
 
     func restorePurchases() async throws {
@@ -122,6 +154,15 @@ final class StoreService {
         let proIDs: Set<String> = [Self.monthlyID, Self.annualID, Self.lifetimeID]
         purchasedProductIDs = purchased
         isProUser = !purchased.isDisjoint(with: proIDs)
+        await refreshTrialEligibility()
+    }
+
+    private func refreshTrialEligibility() async {
+        guard let subscription = monthlyProduct?.subscription else {
+            isEligibleForMonthlyTrial = false
+            return
+        }
+        isEligibleForMonthlyTrial = await subscription.isEligibleForIntroOffer
     }
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
