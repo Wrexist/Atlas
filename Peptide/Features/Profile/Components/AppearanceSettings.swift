@@ -75,6 +75,10 @@ struct AppearanceSettings: View {
 
                 Divider().foregroundStyle(AppColor.glassBorder)
 
+                LanguagePickerRow()
+
+                Divider().foregroundStyle(AppColor.glassBorder)
+
                 SettingsInfoRow(
                     icon: "globe",
                     title: "Units",
@@ -125,8 +129,8 @@ struct AppearanceSettings: View {
 
 private struct SettingsToggleRow: View {
     let icon: String
-    let title: String
-    let subtitle: String
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
     @Binding var isOn: Bool
 
     var body: some View {
@@ -221,8 +225,8 @@ private struct ThemePickerRow: View {
 
 private struct SettingsInfoRow: View {
     let icon: String
-    let title: String
-    let value: String
+    let title: LocalizedStringKey
+    let value: LocalizedStringKey
 
     var body: some View {
         HStack(spacing: Spacing.md) {
@@ -251,5 +255,6 @@ private struct SettingsInfoRow: View {
             .padding(Spacing.screenPadding)
     }
     .environment(DataStore(seedSampleData: true))
+    .environment(LocalizationManager.shared)
     .preferredColorScheme(.dark)
 }
