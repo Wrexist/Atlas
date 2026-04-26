@@ -13,6 +13,8 @@ struct ProtocolBuilderView: View {
     @State private var notes = ""
     @State private var selectedDays: Set<Int> = [1, 2, 3, 4, 5]
     @State private var currentStep = 0
+    @State private var peptideOverrides: [UUID: ProtocolSchedule] = [:]
+    @State private var editingOverridePeptide: Peptide?
 
     private let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     private let totalSteps = 2
@@ -25,6 +27,18 @@ struct ProtocolBuilderView: View {
 
     private var canCreate: Bool {
         canProceed && !selectedDays.isEmpty
+    }
+
+    private var orderedSelectedPeptides: [Peptide] {
+        dataStore.peptideDatabase.filter { selectedPeptides.contains($0.id) }
+    }
+
+    private var defaultSchedule: ProtocolSchedule {
+        ProtocolSchedule(
+            daysOfWeek: selectedDays.sorted(),
+            timesPerDay: timesPerDay,
+            preferredTimes: generateDefaultTimes(count: timesPerDay)
+        )
     }
 
     var body: some View {
@@ -101,6 +115,24 @@ struct ProtocolBuilderView: View {
                     timesPerDay = proto.schedule.timesPerDay
                     notes = proto.notes
                     selectedDays = Set(proto.schedule.daysOfWeek)
+                    peptideOverrides = proto.peptideSchedules
+                }
+            }
+            .onChange(of: selectedPeptides) { _, newValue in
+                // Drop overrides for peptides that have been deselected.
+                peptideOverrides = peptideOverrides.filter { newValue.contains($0.key) }
+            }
+            .sheet(item: $editingOverridePeptide) { peptide in
+                PeptideScheduleSheet(
+                    peptide: peptide,
+                    defaultSchedule: defaultSchedule,
+                    initialOverride: peptideOverrides[peptide.id]
+                ) { updated in
+                    if let updated {
+                        peptideOverrides[peptide.id] = updated
+                    } else {
+                        peptideOverrides.removeValue(forKey: peptide.id)
+                    }
                 }
             }
         }
@@ -153,9 +185,21 @@ struct ProtocolBuilderView: View {
             VStack(spacing: Spacing.lg) {
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.lg) {
-                        Label("Schedule", systemImage: "calendar")
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
+                        HStack(alignment: .firstTextBaseline) {
+                            Label("Default Schedule", systemImage: "calendar")
+                                .font(AppFont.headline)
+                                .foregroundStyle(AppColor.textPrimary)
+                            Spacer()
+                            if !peptideOverrides.isEmpty {
+                                Text("\(peptideOverrides.count) custom")
+                                    .font(AppFont.caption)
+                                    .foregroundStyle(AppColor.accentPrimary)
+                            }
+                        }
+
+                        Text("Applies to peptides that don't have a custom schedule.")
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textTertiary)
 
                         ScheduleEditor(
                             selectedDays: $selectedDays,
@@ -166,6 +210,37 @@ struct ProtocolBuilderView: View {
                     }
                 }
                 .sectionAppear(index: 0)
+
+                if !orderedSelectedPeptides.isEmpty {
+                    GlassCard {
+                        VStack(alignment: .leading, spacing: Spacing.md) {
+                            Label("Per-Peptide Schedule", systemImage: "slider.horizontal.3")
+                                .font(AppFont.headline)
+                                .foregroundStyle(AppColor.textPrimary)
+
+                            Text("Tap a peptide to give it its own days and frequency.")
+                                .font(AppFont.caption)
+                                .foregroundStyle(AppColor.textTertiary)
+
+                            VStack(spacing: Spacing.xs) {
+                                ForEach(Array(orderedSelectedPeptides.enumerated()), id: \.element.id) { index, peptide in
+                                    PeptideScheduleRow(
+                                        peptide: peptide,
+                                        schedule: peptideOverrides[peptide.id] ?? defaultSchedule,
+                                        isCustom: peptideOverrides[peptide.id] != nil
+                                    ) {
+                                        editingOverridePeptide = peptide
+                                    }
+
+                                    if index < orderedSelectedPeptides.count - 1 {
+                                        Divider().foregroundStyle(AppColor.glassBorder)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .sectionAppear(index: 1)
+                }
 
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.md) {
@@ -189,7 +264,7 @@ struct ProtocolBuilderView: View {
                             }
                     }
                 }
-                .sectionAppear(index: 1)
+                .sectionAppear(index: 2)
 
                 GlassButton(
                     title: isEditing ? "Save Changes" : "Create Protocol",
@@ -201,7 +276,7 @@ struct ProtocolBuilderView: View {
                 }
                 .opacity(canCreate ? 1.0 : 0.5)
                 .disabled(!canCreate)
-                .sectionAppear(index: 2)
+                .sectionAppear(index: 3)
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
@@ -209,25 +284,15 @@ struct ProtocolBuilderView: View {
     }
 
     private func createProtocol() {
-        let peptides = dataStore.peptideDatabase.filter { selectedPeptides.contains($0.id) }
+        let peptides = orderedSelectedPeptides
         guard !peptides.isEmpty else { return }
-
-        let defaultTimes = (1...timesPerDay).map { index in
-            let hour24 = 8 + (index - 1) * (12 / max(timesPerDay, 1))
-            let hour12 = hour24 > 12 ? hour24 - 12 : (hour24 == 0 ? 12 : hour24)
-            let period = hour24 >= 12 ? "PM" : "AM"
-            return "\(hour12):00 \(period)"
-        }
 
         let newProtocol = PeptideProtocol(
             id: UUID(),
             name: name.trimmingCharacters(in: .whitespaces),
             peptides: peptides,
-            schedule: ProtocolSchedule(
-                daysOfWeek: selectedDays.sorted(),
-                timesPerDay: timesPerDay,
-                preferredTimes: defaultTimes
-            ),
+            schedule: defaultSchedule,
+            peptideSchedules: peptideOverrides,
             cycleLengthWeeks: cycleLengthWeeks,
             startDate: Date(),
             status: .active,
@@ -240,7 +305,7 @@ struct ProtocolBuilderView: View {
 
     private func saveProtocol() {
         guard let proto = editingProtocol else { return }
-        let peptides = dataStore.peptideDatabase.filter { selectedPeptides.contains($0.id) }
+        let peptides = orderedSelectedPeptides
         guard !peptides.isEmpty else { return }
 
         let times: [String]
@@ -259,6 +324,7 @@ struct ProtocolBuilderView: View {
                 timesPerDay: timesPerDay,
                 preferredTimes: times
             ),
+            peptideSchedules: peptideOverrides,
             cycleLengthWeeks: cycleLengthWeeks,
             notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)
         )
@@ -272,6 +338,60 @@ struct ProtocolBuilderView: View {
             let period = hour24 >= 12 ? "PM" : "AM"
             return "\(hour12):00 \(period)"
         }
+    }
+}
+
+private struct PeptideScheduleRow: View {
+    let peptide: Peptide
+    let schedule: ProtocolSchedule
+    let isCustom: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: peptide.imageSystemName)
+                    .font(.system(size: 14))
+                    .foregroundStyle(peptide.category.color)
+                    .frame(width: 32, height: 32)
+                    .background {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(peptide.category.color.opacity(0.15))
+                    }
+
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    HStack(spacing: Spacing.xs) {
+                        Text(peptide.abbreviation)
+                            .font(AppFont.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(AppColor.textPrimary)
+                        if isCustom {
+                            Text("CUSTOM")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(AppColor.accentPrimary)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background {
+                                    Capsule()
+                                        .fill(AppColor.accentPrimary.opacity(0.15))
+                                }
+                        }
+                    }
+                    Text(schedule.summary)
+                        .font(AppFont.caption)
+                        .foregroundStyle(isCustom ? AppColor.accentLight : AppColor.textTertiary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+            .padding(.vertical, Spacing.xs)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 

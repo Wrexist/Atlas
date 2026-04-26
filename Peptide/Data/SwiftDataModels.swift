@@ -26,7 +26,7 @@ final class StoredProtocol {
     var statusRaw: String
     var notes: String
     var peptideData: Data     // JSON-encoded [Peptide]
-    var scheduleData: Data    // JSON-encoded ProtocolSchedule
+    var scheduleData: Data    // JSON-encoded EncodedSchedule (or legacy ProtocolSchedule)
 
     init(id: UUID, name: String, cycleLengthWeeks: Int, startDate: Date,
          statusRaw: String, notes: String, peptideData: Data, scheduleData: Data) {
@@ -42,7 +42,7 @@ final class StoredProtocol {
 
     static func make(from proto: PeptideProtocol) throws -> StoredProtocol {
         let peptideData = try sdEncoder.encode(proto.peptides)
-        let scheduleData = try sdEncoder.encode(proto.schedule)
+        let scheduleData = try sdEncoder.encode(EncodedSchedule(from: proto))
         return StoredProtocol(
             id: proto.id,
             name: proto.name,
@@ -62,23 +62,61 @@ final class StoredProtocol {
         statusRaw = proto.status.rawValue
         notes = proto.notes
         peptideData = try sdEncoder.encode(proto.peptides)
-        scheduleData = try sdEncoder.encode(proto.schedule)
+        scheduleData = try sdEncoder.encode(EncodedSchedule(from: proto))
     }
 
     func toPeptideProtocol() throws -> PeptideProtocol {
         let peptides = try sdDecoder.decode([Peptide].self, from: peptideData)
-        let schedule = try sdDecoder.decode(ProtocolSchedule.self, from: scheduleData)
         let status = ProtocolStatus(rawValue: statusRaw) ?? .active
+
+        // Try the new wrapped format first; fall back to bare ProtocolSchedule for legacy saves.
+        let schedule: ProtocolSchedule
+        let overrides: [UUID: ProtocolSchedule]
+        if let wrapped = try? sdDecoder.decode(EncodedSchedule.self, from: scheduleData) {
+            schedule = wrapped.defaultSchedule
+            overrides = wrapped.decodedOverrides
+        } else {
+            schedule = try sdDecoder.decode(ProtocolSchedule.self, from: scheduleData)
+            overrides = [:]
+        }
+
         return PeptideProtocol(
             id: id,
             name: name,
             peptides: peptides,
             schedule: schedule,
+            peptideSchedules: overrides,
             cycleLengthWeeks: cycleLengthWeeks,
             startDate: startDate,
             status: status,
             notes: notes
         )
+    }
+}
+
+/// Wrapper that lets us store both the protocol-wide default schedule and any
+/// per-peptide overrides inside the existing `scheduleData` blob — avoids a
+/// SwiftData schema migration.
+private struct EncodedSchedule: Codable {
+    let defaultSchedule: ProtocolSchedule
+    let overrides: [String: ProtocolSchedule]?
+
+    init(from proto: PeptideProtocol) {
+        self.defaultSchedule = proto.schedule
+        if proto.peptideSchedules.isEmpty {
+            self.overrides = nil
+        } else {
+            self.overrides = Dictionary(uniqueKeysWithValues:
+                proto.peptideSchedules.map { ($0.key.uuidString, $0.value) }
+            )
+        }
+    }
+
+    var decodedOverrides: [UUID: ProtocolSchedule] {
+        guard let overrides else { return [:] }
+        return Dictionary(uniqueKeysWithValues: overrides.compactMap { key, value in
+            UUID(uuidString: key).map { ($0, value) }
+        })
     }
 }
 

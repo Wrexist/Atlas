@@ -3,18 +3,35 @@ import SwiftUI
 struct ScheduleEditor: View {
     @Binding var selectedDays: Set<Int>
     @Binding var timesPerDay: Int
-    @Binding var cycleLengthWeeks: Int
+    var cycleLengthWeeks: Binding<Int>?
     let dayNames: [String]
 
     var body: some View {
         VStack(spacing: Spacing.lg) {
             // Day selector
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Days of Week")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
+                HStack {
+                    Text("Days of Week")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                    Spacer()
+                    Button {
+                        withAnimation(AppAnimation.springSnappy) {
+                            if selectedDays.count == 7 {
+                                selectedDays = [1, 2, 3, 4, 5]
+                            } else {
+                                selectedDays = Set(1...7)
+                            }
+                        }
+                    } label: {
+                        Text(selectedDays.count == 7 ? "Weekdays" : "Every day")
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.accentPrimary)
+                    }
+                    .buttonStyle(.plain)
+                }
 
-                HStack(spacing: Spacing.sm) {
+                HStack(spacing: 6) {
                     ForEach(1...7, id: \.self) { day in
                         Button {
                             withAnimation(AppAnimation.springSnappy) {
@@ -26,16 +43,17 @@ struct ScheduleEditor: View {
                             }
                         } label: {
                             let isSelected = selectedDays.contains(day)
-                            Text(String(dayNames[day - 1].prefix(1)))
-                                .font(AppFont.footnote)
+                            Text(dayNames[day - 1])
+                                .font(AppFont.caption)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textTertiary)
-                                .frame(width: 36, height: 36)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 36)
                                 .background {
-                                    Circle()
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
                                         .fill(isSelected ? AppColor.accentPrimary.opacity(0.3) : AppColor.surfaceElevated)
                                         .overlay {
-                                            Circle()
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
                                                 .strokeBorder(
                                                     isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
                                                     lineWidth: 0.5
@@ -86,40 +104,42 @@ struct ScheduleEditor: View {
                 }
             }
 
-            Divider().foregroundStyle(AppColor.glassBorder)
+            if let cycleBinding = cycleLengthWeeks {
+                Divider().foregroundStyle(AppColor.glassBorder)
 
-            // Cycle length
-            HStack {
-                Text("Cycle Length")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
+                // Cycle length
+                HStack {
+                    Text("Cycle Length")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
 
-                Spacer()
+                    Spacer()
 
-                HStack(spacing: Spacing.md) {
-                    Button {
-                        withAnimation { cycleLengthWeeks = max(1, cycleLengthWeeks - 1) }
-                    } label: {
-                        Image(systemName: "minus")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(AppColor.textSecondary)
-                            .frame(width: 28, height: 28)
-                            .background(Circle().fill(AppColor.surfaceElevated))
-                    }
+                    HStack(spacing: Spacing.md) {
+                        Button {
+                            withAnimation { cycleBinding.wrappedValue = max(1, cycleBinding.wrappedValue - 1) }
+                        } label: {
+                            Image(systemName: "minus")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(AppColor.textSecondary)
+                                .frame(width: 28, height: 28)
+                                .background(Circle().fill(AppColor.surfaceElevated))
+                        }
 
-                    Text("\(cycleLengthWeeks) wk")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.accentLight)
-                        .frame(width: 48)
+                        Text("\(cycleBinding.wrappedValue) wk")
+                            .font(AppFont.headline)
+                            .foregroundStyle(AppColor.accentLight)
+                            .frame(width: 48)
 
-                    Button {
-                        withAnimation { cycleLengthWeeks = min(24, cycleLengthWeeks + 1) }
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(AppColor.textSecondary)
-                            .frame(width: 28, height: 28)
-                            .background(Circle().fill(AppColor.surfaceElevated))
+                        Button {
+                            withAnimation { cycleBinding.wrappedValue = min(24, cycleBinding.wrappedValue + 1) }
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(AppColor.textSecondary)
+                                .frame(width: 28, height: 28)
+                                .background(Circle().fill(AppColor.surfaceElevated))
+                        }
                     }
                 }
             }

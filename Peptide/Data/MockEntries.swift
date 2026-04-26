@@ -31,9 +31,10 @@ enum MockEntries {
             let dayOfWeek = calendar.component(.weekday, from: date)
             let isoDayOfWeek = dayOfWeek == 1 ? 7 : dayOfWeek - 1
 
-            guard protocol_.schedule.daysOfWeek.contains(isoDayOfWeek) else { continue }
-
             for peptide in protocol_.peptides {
+                let schedule = protocol_.schedule(for: peptide.id)
+                guard schedule.daysOfWeek.contains(isoDayOfWeek) else { continue }
+
                 let completed = Double.random(in: 0...1, using: &rng) < 0.82
                 let entry = ProtocolEntry(
                     id: UUID(),

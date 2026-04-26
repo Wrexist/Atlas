@@ -192,6 +192,7 @@ final class DataStore: DataServiceProtocol {
             name: existing.name,
             peptides: existing.peptides + [peptide],
             schedule: existing.schedule,
+            peptideSchedules: existing.peptideSchedules,
             cycleLengthWeeks: existing.cycleLengthWeeks,
             startDate: existing.startDate,
             status: existing.status,
@@ -216,22 +217,87 @@ final class DataStore: DataServiceProtocol {
         return true
     }
 
-    func updateProtocol(id: UUID, name: String, peptides: [Peptide], schedule: ProtocolSchedule, cycleLengthWeeks: Int, notes: String) {
+    func updateProtocol(
+        id: UUID,
+        name: String,
+        peptides: [Peptide],
+        schedule: ProtocolSchedule,
+        peptideSchedules: [UUID: ProtocolSchedule] = [:],
+        cycleLengthWeeks: Int,
+        notes: String
+    ) {
         guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
         invalidateCache()
+
+        // Drop overrides for peptides that are no longer in the protocol.
+        let remainingIds = Set(peptides.map(\.id))
+        let cleanedOverrides = peptideSchedules.filter { remainingIds.contains($0.key) }
+
         let updated = PeptideProtocol(
             id: id,
             name: name,
             peptides: peptides,
             schedule: schedule,
+            peptideSchedules: cleanedOverrides,
             cycleLengthWeeks: cycleLengthWeeks,
             startDate: protocols[index].startDate,
             status: protocols[index].status,
             notes: notes
         )
         protocols[index] = updated
+
+        // Regenerate today's entries to reflect the new schedule.
+        entries.removeAll { entry in
+            entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
+        }
+        if updated.status == .active {
+            entries.append(contentsOf: Self.generateTodayEntries(for: updated))
+        }
+
         save()
         rescheduleNotificationsIfEnabled()
+    }
+
+    /// Sets a per-peptide schedule override. Pass `nil` to remove it (peptide reverts to the
+    /// protocol's default schedule). Regenerates today's entries and notifications.
+    func setPeptideSchedule(protocolId: UUID, peptideId: UUID, schedule: ProtocolSchedule?) {
+        guard let index = protocols.firstIndex(where: { $0.id == protocolId }) else { return }
+        invalidateCache()
+
+        let existing = protocols[index]
+        var overrides = existing.peptideSchedules
+        if let schedule {
+            overrides[peptideId] = schedule
+        } else {
+            overrides.removeValue(forKey: peptideId)
+        }
+
+        let updated = PeptideProtocol(
+            id: existing.id,
+            name: existing.name,
+            peptides: existing.peptides,
+            schedule: existing.schedule,
+            peptideSchedules: overrides,
+            cycleLengthWeeks: existing.cycleLengthWeeks,
+            startDate: existing.startDate,
+            status: existing.status,
+            notes: existing.notes
+        )
+        protocols[index] = updated
+
+        // Regenerate today's entries for this protocol so the change takes effect immediately.
+        entries.removeAll { entry in
+            entry.protocolId == protocolId && Calendar.current.isDateInToday(entry.date)
+        }
+        if updated.status == .active {
+            entries.append(contentsOf: Self.generateTodayEntries(for: updated))
+        }
+
+        save()
+        rescheduleNotificationsIfEnabled()
+        if profile.hapticFeedbackEnabled {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
     }
 
     func entriesFor(protocolId: UUID, days: Int = 14) -> [ProtocolEntry] {
@@ -322,7 +388,7 @@ final class DataStore: DataServiceProtocol {
         let mondayOffset = weekday == 1 ? -6 : -(weekday - 2)
         guard let monday = calendar.date(byAdding: .day, value: mondayOffset, to: todayStart) else { return [] }
 
-        let dayLabels = ["M", "T", "W", "T", "F", "S", "S"]
+        let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         let grouped = entriesByDay
 
         let result = (0..<7).map { offset -> WeekDayStatus in
@@ -507,55 +573,23 @@ final class DataStore: DataServiceProtocol {
 
     private static func generateTodayEntries(for proto: PeptideProtocol) -> [ProtocolEntry] {
         guard proto.status == .active else { return [] }
-
-        let calendar = Calendar.current
-        let dayOfWeek = calendar.component(.weekday, from: Date())
-        let isoDayOfWeek = dayOfWeek == 1 ? 7 : dayOfWeek - 1
-
-        guard proto.schedule.daysOfWeek.contains(isoDayOfWeek) else { return [] }
-
-        var entries: [ProtocolEntry] = []
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-
-        for peptide in proto.peptides {
-            for timeString in proto.schedule.preferredTimes {
-                if let time = formatter.date(from: timeString) {
-                    let hour = calendar.component(.hour, from: time)
-                    let minute = calendar.component(.minute, from: time)
-                    let entryDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
-
-                    let entry = ProtocolEntry(
-                        id: UUID(),
-                        protocolId: proto.id,
-                        peptide: peptide,
-                        date: entryDate,
-                        dose: peptide.dosageRange.components(separatedBy: "-").last?.trimmingCharacters(in: .whitespaces) ?? peptide.dosageRange,
-                        notes: "",
-                        completed: false
-                    )
-                    entries.append(entry)
-                }
-            }
-        }
-
-        return entries
+        return proto.peptides.flatMap { todayEntries(for: $0, in: proto) }
     }
 
     private static func todayEntries(for peptide: Peptide, in proto: PeptideProtocol) -> [ProtocolEntry] {
         guard proto.status == .active else { return [] }
 
+        let schedule = proto.schedule(for: peptide.id)
         let calendar = Calendar.current
         let dayOfWeek = calendar.component(.weekday, from: Date())
         let isoDayOfWeek = dayOfWeek == 1 ? 7 : dayOfWeek - 1
-        guard proto.schedule.daysOfWeek.contains(isoDayOfWeek) else { return [] }
+        guard schedule.daysOfWeek.contains(isoDayOfWeek) else { return [] }
 
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
         formatter.locale = Locale(identifier: "en_US_POSIX")
 
-        return proto.schedule.preferredTimes.compactMap { timeString in
+        return schedule.preferredTimes.compactMap { timeString in
             guard let time = formatter.date(from: timeString) else { return nil }
             let hour = calendar.component(.hour, from: time)
             let minute = calendar.component(.minute, from: time)

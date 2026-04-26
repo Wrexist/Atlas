@@ -52,13 +52,13 @@ struct ProtocolScoreCard: View {
             streak: 12,
             bestStreak: 18,
             weeklyCompletion: [
-                WeekDayStatus(id: 1, dayLabel: "M", status: .completed),
-                WeekDayStatus(id: 2, dayLabel: "T", status: .completed),
-                WeekDayStatus(id: 3, dayLabel: "W", status: .partial),
-                WeekDayStatus(id: 4, dayLabel: "T", status: .missed),
-                WeekDayStatus(id: 5, dayLabel: "F", status: .today),
-                WeekDayStatus(id: 6, dayLabel: "S", status: .future),
-                WeekDayStatus(id: 7, dayLabel: "S", status: .noSchedule),
+                WeekDayStatus(id: 1, dayLabel: "Mon", status: .completed),
+                WeekDayStatus(id: 2, dayLabel: "Tue", status: .completed),
+                WeekDayStatus(id: 3, dayLabel: "Wed", status: .partial),
+                WeekDayStatus(id: 4, dayLabel: "Thu", status: .missed),
+                WeekDayStatus(id: 5, dayLabel: "Fri", status: .today),
+                WeekDayStatus(id: 6, dayLabel: "Sat", status: .future),
+                WeekDayStatus(id: 7, dayLabel: "Sun", status: .noSchedule),
             ]
         )
         .padding(Spacing.screenPadding)

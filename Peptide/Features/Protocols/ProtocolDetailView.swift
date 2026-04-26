@@ -6,6 +6,7 @@ struct ProtocolDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showDeleteConfirmation = false
     @State private var showEditSheet = false
+    @State private var schedulingPeptide: Peptide?
 
     private var liveProtocol: PeptideProtocol {
         dataStore.protocols.first { $0.id == protocol_.id } ?? protocol_
@@ -64,48 +65,22 @@ struct ProtocolDetailView: View {
                 }
                 .sectionAppear(index: 1)
 
-                // Peptides in protocol
+                // Peptides in protocol — tap row to edit schedule, tap info icon to view details.
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.md) {
-                        Label("Peptides", systemImage: "flask.fill")
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
+                        HStack(alignment: .firstTextBaseline) {
+                            Label("Peptides", systemImage: "flask.fill")
+                                .font(AppFont.headline)
+                                .foregroundStyle(AppColor.textPrimary)
+                            Spacer()
+                            Text("Tap to edit schedule")
+                                .font(AppFont.caption)
+                                .foregroundStyle(AppColor.textTertiary)
+                        }
 
                         let peptides = liveProtocol.peptides
                         ForEach(Array(peptides.enumerated()), id: \.element.id) { index, peptide in
-                            NavigationLink(value: peptide) {
-                                HStack(spacing: Spacing.md) {
-                                    Image(systemName: peptide.imageSystemName)
-                                        .font(.system(size: 16))
-                                        .foregroundStyle(peptide.category.color)
-                                        .frame(width: 32, height: 32)
-                                        .background {
-                                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                                .fill(peptide.category.color.opacity(0.15))
-                                        }
-
-                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                        Text(peptide.abbreviation)
-                                            .font(AppFont.headline)
-                                            .foregroundStyle(AppColor.textPrimary)
-                                        Text(peptide.dosageRange)
-                                            .font(AppFont.caption)
-                                            .foregroundStyle(AppColor.textSecondary)
-                                    }
-
-                                    Spacer()
-
-                                    Text(peptide.frequency)
-                                        .font(AppFont.caption)
-                                        .foregroundStyle(AppColor.textTertiary)
-
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 10, weight: .semibold))
-                                        .foregroundStyle(AppColor.textTertiary)
-                                }
-                            }
-                            .buttonStyle(.plain)
-
+                            peptideRow(peptide, in: liveProtocol)
                             if index < peptides.count - 1 {
                                 Divider().foregroundStyle(AppColor.glassBorder)
                             }
@@ -233,6 +208,90 @@ struct ProtocolDetailView: View {
         }
         .sheet(isPresented: $showEditSheet) {
             ProtocolBuilderView(editingProtocol: liveProtocol)
+        }
+        .sheet(item: $schedulingPeptide) { peptide in
+            PeptideScheduleSheet(
+                peptide: peptide,
+                defaultSchedule: liveProtocol.schedule,
+                initialOverride: liveProtocol.peptideSchedules[peptide.id]
+            ) { updated in
+                dataStore.setPeptideSchedule(
+                    protocolId: liveProtocol.id,
+                    peptideId: peptide.id,
+                    schedule: updated
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func peptideRow(_ peptide: Peptide, in proto: PeptideProtocol) -> some View {
+        let schedule = proto.schedule(for: peptide.id)
+        let isCustom = proto.hasCustomSchedule(for: peptide.id)
+
+        // Sibling buttons (not nested) so SwiftUI routes taps cleanly:
+        // most of the row edits the schedule; the trailing info icon navigates to peptide details.
+        HStack(spacing: Spacing.md) {
+            Button {
+                schedulingPeptide = peptide
+            } label: {
+                HStack(spacing: Spacing.md) {
+                    Image(systemName: peptide.imageSystemName)
+                        .font(.system(size: 16))
+                        .foregroundStyle(peptide.category.color)
+                        .frame(width: 32, height: 32)
+                        .background {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(peptide.category.color.opacity(0.15))
+                        }
+
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        HStack(spacing: Spacing.xs) {
+                            Text(peptide.abbreviation)
+                                .font(AppFont.headline)
+                                .foregroundStyle(AppColor.textPrimary)
+                            if isCustom {
+                                Text("CUSTOM")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(AppColor.accentPrimary)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background {
+                                        Capsule().fill(AppColor.accentPrimary.opacity(0.15))
+                                    }
+                            }
+                        }
+                        Text(peptide.dosageRange)
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+
+                    Spacer(minLength: Spacing.sm)
+
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(schedule.compactDaysDescription)
+                            .font(AppFont.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(isCustom ? AppColor.accentLight : AppColor.textPrimary)
+                            .lineLimit(1)
+                        Text("\(schedule.timesPerDay)x daily")
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textTertiary)
+                    }
+                }
+                .padding(.vertical, Spacing.xs)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink(value: peptide) {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .frame(width: 32, height: 32)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
     }
 
