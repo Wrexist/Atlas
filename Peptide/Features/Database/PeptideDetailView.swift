@@ -261,6 +261,8 @@ struct PeptideDetailView: View {
                     MolecularInfoSection(molecular: mol, categoryColor: peptide.category.color)
                         .sectionAppear(index: staggerIndex(.molecular))
                 }
+
+                disclaimerFooter
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
@@ -271,6 +273,20 @@ struct PeptideDetailView: View {
         .glassSheet(isPresented: $showingBuilder) {
             ProtocolBuilderView(preselectedPeptide: peptide)
         }
+    }
+
+    private var disclaimerFooter: some View {
+        HStack(alignment: .top, spacing: Spacing.sm) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 12))
+                .foregroundStyle(AppColor.textTertiary)
+            Text(PeptideDatabase.disclaimer)
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

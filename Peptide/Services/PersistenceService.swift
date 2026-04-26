@@ -1,4 +1,7 @@
 import Foundation
+import OSLog
+
+private let log = Logger(subsystem: "com.peptidesai.app", category: "PersistenceService")
 
 final class PersistenceService: @unchecked Sendable {
     static let shared = PersistenceService()
@@ -105,7 +108,7 @@ final class PersistenceService: @unchecked Sendable {
             let data = try encoder.encode(value)
             try data.write(to: url, options: .atomic)
         } catch {
-            print("PersistenceService: Failed to save to \(url.lastPathComponent): \(error)")
+            log.error("Failed to save \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
         }
     }
 

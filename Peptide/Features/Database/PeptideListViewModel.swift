@@ -9,7 +9,7 @@ final class PeptideListViewModel {
     private var hasLoadedFromStore = false
 
     init(peptides: [Peptide] = []) {
-        self.allPeptides = peptides.isEmpty ? MockPeptides.all : peptides
+        self.allPeptides = peptides
         self.hasLoadedFromStore = !peptides.isEmpty
         refilter()
     }
