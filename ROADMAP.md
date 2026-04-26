@@ -118,7 +118,7 @@ v3.5.0+ (Growth & Polish)
 - Dose reminders
 - 1 widget
 
-### PeptideX Pro ($6.99/mo or $49.99/yr)
+### PeptideX Pro ($9.99/mo, $49.99/yr, or $169 lifetime)
 - Unlimited protocols
 - Full analytics + HealthKit correlation + export
 - AI insights + recommendations

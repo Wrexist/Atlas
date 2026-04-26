@@ -96,8 +96,9 @@ PRIVATE BY DEFAULT
 PEPTIDEX PRO
 Unlock unlimited protocols, full analytics with HealthKit correlation, AI
 insights, all Home Screen widgets, and full CSV / JSON / PDF export with a
-monthly or annual subscription. A 7-day free trial is available on monthly;
-14 days on annual. Cancel anytime in your Apple ID settings.
+monthly or annual subscription, or a one-time lifetime purchase. A 7-day
+free trial is available on monthly; 14 days on annual. Cancel anytime in
+your Apple ID settings.
 
 IMPORTANT — MEDICAL DISCLAIMER
 PeptideX is an educational and tracking tool. It is not a medical device and
@@ -138,7 +139,7 @@ Version 1.0 ships the full v1 experience:
 • Rich local dose reminders with Mark as Taken / Snooze
 • 14 achievements
 • CSV and JSON export
-• PeptideX Pro subscription with a 7- or 14-day free trial
+• PeptideX Pro subscription with a 7- or 14-day free trial, or one-time lifetime purchase
 
 Private by default: no backend, no analytics, no third-party SDKs.
 
@@ -227,10 +228,11 @@ Thank you for reviewing PeptideX.
   surfaced in onboarding and on every peptide detail screen. Peptides are
   referenced as research chemicals; PeptideX does not sell, prescribe, or
   source any compound.
-• Subscriptions are standard StoreKit 2 auto-renewable in-app purchases.
-  Sandbox accounts work without additional setup. Full data export (CSV /
-  JSON / PDF) is a Pro feature; uninstalling the app removes all local data
-  regardless of subscription status.
+• Subscriptions are standard StoreKit 2 auto-renewable in-app purchases;
+  Lifetime is a non-consumable in-app purchase. Sandbox accounts work
+  without additional setup. Full data export (CSV / JSON / PDF) is a Pro
+  feature; uninstalling the app removes all local data regardless of
+  subscription status.
 • No backend of our own, no analytics, no third-party SDKs. Network use is
   limited to Apple's StoreKit and (optionally) Sign in with Apple. App
   Privacy manifest declares NSPrivacyTracking=false and an empty collected
@@ -270,10 +272,11 @@ App Store listing icon.
 
 ## Subscriptions (In-App Purchases)
 
-| Product | Product ID | Price | Trial |
-|---|---|---|---|
-| PeptideX Pro — Monthly | `com.peptidesai.app.pro.monthly` | $6.99/mo | 7 days |
-| PeptideX Pro — Annual | `com.peptidesai.app.pro.annual` | $49.99/yr | 14 days |
+| Product | Product ID | Type | Price | Trial |
+|---|---|---|---|---|
+| PeptideX Pro — Monthly | `com.peptidesai.app.pro.monthly` | Auto-Renewable | $9.99/mo | 7 days |
+| PeptideX Pro — Annual | `com.peptidesai.app.pro.annual` | Auto-Renewable | $49.99/yr | 14 days |
+| PeptideX Pro — Lifetime | `com.peptidesai.app.pro.lifetime` | Non-Consumable | $169.00 | — |
 
 **Subscription group:** `PeptideX Pro`
 
@@ -285,10 +288,14 @@ Monthly:
 
 Annual:
 - Display Name: `PeptideX Pro Annual`
-- Description: `PeptideX Pro for a full year. Unlimited protocols, full analytics, AI insights, all widgets, full data export. Two months free versus monthly.`
+- Description: `PeptideX Pro for a full year. Unlimited protocols, full analytics, AI insights, all widgets, full data export. Save versus monthly billing.`
+
+Lifetime (non-consumable, listed under In-App Purchases, not Subscriptions):
+- Display Name: `PeptideX Pro Lifetime`
+- Description: `One-time purchase. Unlock PeptideX Pro forever — unlimited protocols, full analytics, AI insights, all widgets, and full data export. No subscription, no renewals.`
 
 Auto-renewal disclosure (already shown on the in-app paywall) satisfies
-Apple's requirement.
+Apple's requirement for the auto-renewable subscriptions.
 
 ---
 
@@ -303,7 +310,7 @@ Tick off before hitting Submit:
 - [ ] TestFlight build uploaded and installable
 - [ ] Install on a real device — HealthKit, Face ID, paywall, widget all work
 - [ ] Screenshots uploaded for 6.9" iPhone + 13" iPad
-- [ ] Subscription products approved in App Store Connect
+- [ ] All three IAP products (Monthly, Annual, Lifetime) approved in App Store Connect
 - [ ] App Privacy questionnaire answered (all No)
 - [ ] Age rating set to 17+
 - [ ] Review notes pasted above
