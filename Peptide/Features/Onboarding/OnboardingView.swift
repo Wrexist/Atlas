@@ -1,8 +1,12 @@
 @preconcurrency import AuthenticationServices
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct OnboardingView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("hasCompletedOnboarding") private var hasCompleted = false
     @AppStorage("experienceLevel") private var experienceLevel = "beginner"
 
@@ -12,6 +16,12 @@ struct OnboardingView: View {
     @State private var appeared = false
     @State private var requestingHealth = false
     @State private var requestingNotifications = false
+    @State private var heroPulse = false
+
+    @FocusState private var nameFocused: Bool
+    @Namespace private var indicatorNamespace
+    @Namespace private var goalNamespace
+    @Namespace private var experienceNamespace
 
     private let totalPages = 8
     private let goals = [
@@ -22,6 +32,7 @@ struct OnboardingView: View {
     var body: some View {
         ZStack {
             AppColor.background.ignoresSafeArea()
+            ambientGlow
 
             VStack(spacing: 0) {
                 TabView(selection: $currentPage) {
@@ -41,7 +52,45 @@ struct OnboardingView: View {
                     .padding(.bottom, Spacing.xl)
             }
         }
-        .onAppear { appeared = true }
+        .onAppear {
+            appeared = true
+            if !reduceMotion {
+                withAnimation(.easeInOut(duration: 3.6).repeatForever(autoreverses: true)) {
+                    heroPulse = true
+                }
+            }
+        }
+        .onChange(of: currentPage) { _, _ in
+            dismissKeyboard()
+        }
+    }
+
+    // MARK: - Ambient background
+
+    private var ambientGlow: some View {
+        GeometryReader { geo in
+            ZStack {
+                Circle()
+                    .fill(AppColor.accentPrimary.opacity(0.18))
+                    .frame(width: geo.size.width * 0.9)
+                    .blur(radius: 90)
+                    .offset(
+                        x: -geo.size.width * 0.25,
+                        y: -geo.size.height * (heroPulse ? 0.32 : 0.28)
+                    )
+
+                Circle()
+                    .fill(AppColor.accentLight.opacity(0.10))
+                    .frame(width: geo.size.width * 0.7)
+                    .blur(radius: 100)
+                    .offset(
+                        x: geo.size.width * 0.30,
+                        y: geo.size.height * (heroPulse ? 0.30 : 0.34)
+                    )
+            }
+            .ignoresSafeArea()
+        }
+        .allowsHitTesting(false)
     }
 
     // MARK: - Page 1: Welcome
@@ -53,9 +102,11 @@ struct OnboardingView: View {
             Image(systemName: "flask.fill")
                 .font(.system(size: 80))
                 .foregroundStyle(AppColor.accentPrimary)
+                .symbolEffect(.pulse.wholeSymbol, options: .repeating, isActive: !reduceMotion)
                 .opacity(appeared ? 1 : 0)
                 .scaleEffect(appeared ? 1 : 0.5)
                 .animation(AppAnimation.springBouncy.delay(0.2), value: appeared)
+                .heroGlow()
 
             VStack(spacing: Spacing.md) {
                 Text("Welcome to PeptideX")
@@ -94,6 +145,7 @@ struct OnboardingView: View {
             Image(systemName: "person.crop.circle.fill")
                 .font(.system(size: 64))
                 .foregroundStyle(AppColor.accentPrimary)
+                .heroGlow()
 
             VStack(spacing: Spacing.md) {
                 Text("What should we call you?")
@@ -108,6 +160,9 @@ struct OnboardingView: View {
             }
 
             GlassTextField(placeholder: "Your name", text: $name, icon: "person.fill")
+                .focused($nameFocused)
+                .submitLabel(.next)
+                .onSubmit { advance(to: 2) }
                 .padding(.horizontal, Spacing.screenPadding)
 
             Spacer()
@@ -146,6 +201,7 @@ struct OnboardingView: View {
             }
             .opacity(selectedGoals.isEmpty ? 0.5 : 1)
             .disabled(selectedGoals.isEmpty)
+            .animation(AppAnimation.springSnappy, value: selectedGoals.isEmpty)
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.lg)
         }
@@ -156,13 +212,7 @@ struct OnboardingView: View {
             ForEach(goals, id: \.self) { goal in
                 let isSelected = selectedGoals.contains(goal)
                 Button {
-                    withAnimation(AppAnimation.springSnappy) {
-                        if isSelected {
-                            selectedGoals.remove(goal)
-                        } else {
-                            selectedGoals.insert(goal)
-                        }
-                    }
+                    toggleGoal(goal)
                 } label: {
                     HStack(spacing: Spacing.sm) {
                         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
@@ -181,19 +231,47 @@ struct OnboardingView: View {
                     .padding(.horizontal, Spacing.md)
                     .padding(.vertical, Spacing.md)
                     .background {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .fill(isSelected ? AppColor.accentPrimary.opacity(0.1) : AppColor.surfaceElevated)
-                            .overlay {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                                .fill(AppColor.surfaceElevated)
+
+                            if isSelected {
                                 RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                    .strokeBorder(
-                                        isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                        lineWidth: 0.5
-                                    )
+                                    .fill(AppColor.accentPrimary.opacity(0.18))
+                                    .matchedGeometryEffect(id: "goal-\(goal)", in: goalNamespace)
                             }
+
+                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                                .strokeBorder(
+                                    isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
+                                    lineWidth: 0.5
+                                )
+                        }
                     }
+                    .liquidGlass(.rect(cornerRadius: Spacing.smallCornerRadius))
+                    .scaleEffect(isSelected ? 1.02 : 1.0)
+                    .shadow(
+                        color: isSelected ? AppColor.accentPrimary.opacity(0.25) : .clear,
+                        radius: isSelected ? 12 : 0,
+                        y: isSelected ? 4 : 0
+                    )
                 }
                 .buttonStyle(.plain)
             }
+        }
+    }
+
+    private func toggleGoal(_ goal: String) {
+        let isSelected = selectedGoals.contains(goal)
+        withAnimation(AppAnimation.springBouncy) {
+            if isSelected {
+                selectedGoals.remove(goal)
+            } else {
+                selectedGoals.insert(goal)
+            }
+        }
+        if dataStore.profile.hapticFeedbackEnabled {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
     }
 
@@ -248,32 +326,59 @@ struct OnboardingView: View {
     private func experienceOption(level: String, icon: String, title: String, subtitle: String) -> some View {
         let isSelected = experienceLevel == level
         return Button {
-            withAnimation(AppAnimation.springSnappy) { experienceLevel = level }
+            withAnimation(AppAnimation.springBouncy) { experienceLevel = level }
+            if dataStore.profile.hapticFeedbackEnabled {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
         } label: {
-            GlassCard(tinted: isSelected) {
-                HStack(spacing: Spacing.lg) {
-                    Image(systemName: icon)
-                        .font(.system(size: 24))
-                        .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
-                        .frame(width: 40)
+            HStack(spacing: Spacing.lg) {
+                Image(systemName: icon)
+                    .font(.system(size: 24))
+                    .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
+                    .frame(width: 40)
 
-                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text(title)
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
-                        Text(subtitle)
-                            .font(AppFont.caption)
-                            .foregroundStyle(AppColor.textSecondary)
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(title)
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(subtitle)
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .padding(Spacing.cardPadding)
+            .background {
+                ZStack {
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .fill(AppColor.surfaceElevated)
+
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                            .fill(AppColor.accentPrimary.opacity(0.18))
+                            .matchedGeometryEffect(id: "experience", in: experienceNamespace)
                     }
 
-                    Spacer()
-
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 22))
-                        .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
-                        .contentTransition(.symbolEffect(.replace))
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .strokeBorder(
+                            isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
+                            lineWidth: 0.5
+                        )
                 }
             }
+            .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
+            .scaleEffect(isSelected ? 1.015 : 1.0)
+            .shadow(
+                color: isSelected ? AppColor.accentPrimary.opacity(0.25) : .clear,
+                radius: isSelected ? 14 : 0,
+                y: isSelected ? 6 : 0
+            )
         }
         .buttonStyle(.plain)
     }
@@ -346,6 +451,7 @@ struct OnboardingView: View {
             Image(systemName: icon)
                 .font(.system(size: 64))
                 .foregroundStyle(AppColor.accentPrimary)
+                .heroGlow()
 
             VStack(spacing: Spacing.md) {
                 Text(title)
@@ -389,6 +495,7 @@ struct OnboardingView: View {
             Image(systemName: "icloud.fill")
                 .font(.system(size: 64))
                 .foregroundStyle(AppColor.accentPrimary)
+                .heroGlow()
 
             VStack(spacing: Spacing.md) {
                 Text("Sync across devices")
@@ -438,6 +545,8 @@ struct OnboardingView: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 72))
                 .foregroundStyle(AppColor.accentPrimary)
+                .symbolEffect(.bounce, options: .nonRepeating, value: currentPage == 7)
+                .heroGlow()
 
             VStack(spacing: Spacing.md) {
                 Text("You're all set!")
@@ -506,17 +615,65 @@ struct OnboardingView: View {
     private var pageIndicator: some View {
         HStack(spacing: Spacing.sm) {
             ForEach(0..<totalPages, id: \.self) { index in
-                Circle()
-                    .fill(index == currentPage ? AppColor.accentPrimary : AppColor.textTertiary)
-                    .frame(width: index == currentPage ? 10 : 6, height: index == currentPage ? 10 : 6)
-                    .animation(AppAnimation.springSnappy, value: currentPage)
+                ZStack {
+                    Capsule()
+                        .fill(AppColor.textTertiary.opacity(0.35))
+                        .frame(width: 6, height: 6)
+
+                    if index == currentPage {
+                        Capsule()
+                            .fill(AppColor.accentPrimary)
+                            .frame(width: 22, height: 8)
+                            .matchedGeometryEffect(id: "active-dot", in: indicatorNamespace)
+                            .shadow(color: AppColor.accentPrimary.opacity(0.5), radius: 8, y: 0)
+                    }
+                }
+                .frame(width: 22, height: 10)
             }
         }
+        .animation(AppAnimation.springSmooth, value: currentPage)
     }
 
     private func advance(to page: Int) {
+        dismissKeyboard()
         withAnimation(AppAnimation.springSnappy) { currentPage = page }
     }
+
+    private func dismissKeyboard() {
+        nameFocused = false
+        #if canImport(UIKit)
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil, from: nil, for: nil
+        )
+        #endif
+    }
+}
+
+// MARK: - Hero glow modifier
+
+private struct HeroGlow: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulse = false
+
+    func body(content: Content) -> some View {
+        content
+            .shadow(
+                color: AppColor.accentPrimary.opacity(pulse ? 0.55 : 0.3),
+                radius: pulse ? 28 : 18,
+                y: 0
+            )
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
+                    pulse = true
+                }
+            }
+    }
+}
+
+private extension View {
+    func heroGlow() -> some View { modifier(HeroGlow()) }
 }
 
 #Preview {
