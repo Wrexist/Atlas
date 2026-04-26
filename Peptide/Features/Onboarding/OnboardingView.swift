@@ -18,8 +18,7 @@ struct OnboardingView: View {
 
     @FocusState private var nameFocused: Bool
 
-    private let totalPages = 9
-    @State private var storeService = StoreService.shared
+    private let totalPages = 8
 
     private struct OnboardingGoal: Identifiable {
         var id: String { title }
@@ -57,8 +56,7 @@ struct OnboardingView: View {
                     healthKitPage.tag(4)
                     notificationsPage.tag(5)
                     signInPage.tag(6)
-                    offerPage.tag(7)
-                    readyPage.tag(8)
+                    readyPage.tag(7)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: currentPage)
@@ -528,7 +526,7 @@ struct OnboardingView: View {
                         Task { @MainActor in
                             AuthService.shared.handleAuthorization(result)
                             if case .success = result, currentPage == 6 {
-                                advance(to: nextAfterSignIn)
+                                advance(to: 7)
                             }
                         }
                     }
@@ -537,35 +535,14 @@ struct OnboardingView: View {
                     .clipShape(Capsule())
 
                     GlassButton(title: "Continue without signing in", style: .ghost, isFullWidth: true) {
-                        advance(to: nextAfterSignIn)
+                        advance(to: 7)
                     }
                 }
             }
         )
     }
 
-    // MARK: - Page 8: Liquid Glass One-Time Offer
-
-    /// Sign-in destination — skips the offer page when the user is ineligible
-    /// (already redeemed, declined, or already Pro).
-    private var nextAfterSignIn: Int {
-        storeService.isEligibleForOnboardingTrial ? 7 : 8
-    }
-
-    private var offerPage: some View {
-        LiquidGlassOfferView(
-            onAccept: {
-                storeService.startFreeTrial()
-                advance(to: 8)
-            },
-            onDecline: {
-                storeService.declineOnboardingOffer()
-                advance(to: 8)
-            }
-        )
-    }
-
-    // MARK: - Page 9: Ready
+    // MARK: - Page 8: Ready
 
     private var readyPage: some View {
         pageScaffold(
