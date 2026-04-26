@@ -53,7 +53,7 @@ struct BenefitTagFlow: View {
 struct StackTagFlow: View {
     let stacks: [String]
     var fallbackColor: Color = AppColor.accentPrimary
-    var excludingPeptideID: UUID? = nil
+    var excludingPeptideID: UUID?
 
     var body: some View {
         FlowLayout(spacing: Spacing.sm) {
