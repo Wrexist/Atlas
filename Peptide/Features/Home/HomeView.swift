@@ -8,6 +8,13 @@ struct HomeView: View {
     @State private var showAchievementToast = false
     @State private var toastAchievement: Achievement?
     @State private var achievementService = AchievementService.shared
+    @Environment(\.requestReview) private var requestReview
+
+    private static let reviewWorthyAchievements: Set<String> = [
+        "streak_7", "streak_14", "streak_30", "streak_90",
+        "fifty_doses", "hundred_doses", "five_hundred_doses",
+        "month_logged"
+    ]
 
     private var todayStats: (entries: [ProtocolEntry], score: Double, completed: Int, total: Int) {
         let entries = dataStore.todayEntries
@@ -197,6 +204,20 @@ struct HomeView: View {
                 if let newId, let achievement = achievementService.achievements.first(where: { $0.id == newId }) {
                     toastAchievement = achievement
                     withAnimation(AppAnimation.springBouncy) { showAchievementToast = true }
+                    if Self.reviewWorthyAchievements.contains(newId) {
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(2))
+                            ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
+                        }
+                    }
+                }
+            }
+            .onChange(of: stats.score) { oldScore, newScore in
+                if oldScore < 1.0, newScore >= 1.0, stats.total > 0 {
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(1))
+                        ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
+                    }
                 }
             }
         }
