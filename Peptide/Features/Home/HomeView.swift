@@ -5,6 +5,7 @@ struct HomeView: View {
     @Environment(AppState.self) private var appState
     @State private var selectedEntry: ProtocolEntry?
     @State private var selectedAlert: StackRecommendationEngine.Warning?
+    @State private var adjustingAlert: StackRecommendationEngine.Warning?
     @State private var showAchievementToast = false
     @State private var toastAchievement: Achievement?
     @State private var achievementService = AchievementService.shared
@@ -189,8 +190,30 @@ struct HomeView: View {
                     peptideDatabase: dataStore.peptideDatabase,
                     hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                     onPrimaryAction: {
-                        appState.selectedTab = .protocols
+                        if canAdjustStack(for: warning) {
+                            // Defer until the alert sheet has finished dismissing — SwiftUI can't
+                            // chain two sheets in the same runloop tick.
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                adjustingAlert = warning
+                            }
+                        } else {
+                            appState.selectedTab = .protocols
+                        }
                     }
+                )
+            }
+            .sheet(item: $adjustingAlert) { warning in
+                let candidates = StackAdjustmentEngine.candidateProtocols(
+                    affectedAbbreviations: warning.peptides,
+                    in: dataStore.activeProtocols
+                )
+                StackAdjustmentSheet(
+                    warning: warning,
+                    candidateProtocols: candidates,
+                    allActiveProtocols: dataStore.activeProtocols,
+                    peptideDatabase: dataStore.peptideDatabase,
+                    hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
+                    onApply: applyStackAdjustment
                 )
             }
             .navigationDestination(for: Peptide.self) { peptide in
@@ -260,6 +283,48 @@ struct HomeView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.lg)
+        }
+    }
+
+    private func canAdjustStack(for warning: StackRecommendationEngine.Warning) -> Bool {
+        let candidates = StackAdjustmentEngine.candidateProtocols(
+            affectedAbbreviations: warning.peptides,
+            in: dataStore.activeProtocols
+        )
+        return !candidates.isEmpty
+    }
+
+    private func applyStackAdjustment(_ result: StackAdjustmentResult) {
+        guard let source = dataStore.activeProtocols.first(where: { $0.id == result.sourceProtocolId }) else { return }
+
+        dataStore.updateProtocol(
+            id: source.id,
+            name: source.name,
+            peptides: result.updatedPeptides,
+            schedule: source.schedule,
+            cycleLengthWeeks: source.cycleLengthWeeks,
+            notes: source.notes
+        )
+
+        for move in result.moves {
+            switch move.destination {
+            case .discard:
+                continue
+            case .moveTo(let protocolId, _, _):
+                dataStore.addPeptide(move.peptide, toProtocolId: protocolId)
+            case .createStack:
+                let newStack = PeptideProtocol(
+                    id: UUID(),
+                    name: "\(move.peptide.abbreviation) Solo",
+                    peptides: [move.peptide],
+                    schedule: source.schedule,
+                    cycleLengthWeeks: source.cycleLengthWeeks,
+                    startDate: Date(),
+                    status: .active,
+                    notes: "Spun off from \(source.name) to reduce compounding side effects."
+                )
+                dataStore.addProtocol(newStack)
+            }
         }
     }
 
