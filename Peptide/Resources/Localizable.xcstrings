@@ -1,0 +1,266 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Accent Color" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "لون التمييز" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Akzentfarbe" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Color de acento" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Couleur d’accent" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "アクセントカラー" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "강조 색상" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Cor de destaque" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Цвет акцента" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "强调色" } }
+      }
+    },
+    "Analytics" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "التحليلات" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Analyse" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Análisis" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Analyse" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "分析" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "분석" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Análise" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Аналитика" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "分析" } }
+      }
+    },
+    "Appearance" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "المظهر" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Erscheinungsbild" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Apariencia" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Apparence" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "外観" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "외관" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Aparência" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Внешний вид" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "外观" } }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "إلغاء" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Abbrechen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cancelar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Annuler" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "キャンセル" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "취소" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Cancelar" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Отмена" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消" } }
+      }
+    },
+    "Choose Language" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "اختر اللغة" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Sprache auswählen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elegir idioma" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Choisir la langue" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "言語を選択" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "언어 선택" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Escolher idioma" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Выберите язык" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "选择语言" } }
+      }
+    },
+    "Dark" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "داكن" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dunkel" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Oscuro" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Sombre" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ダーク" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "어두움" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Escuro" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Тёмная" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "深色" } }
+      }
+    },
+    "Done" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "تم" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fertig" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Listo" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "OK" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "完了" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "완료" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Concluído" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Готово" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "完成" } }
+      }
+    },
+    "Dose Reminders" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "تذكير بالجرعات" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dosiserinnerungen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Recordatorios de dosis" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Rappels de dose" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "用量リマインダー" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "복용 알림" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Lembretes de dose" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Напоминания о дозах" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "剂量提醒" } }
+      }
+    },
+    "Get notified for scheduled doses" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "احصل على إشعار للجرعات المجدولة" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Benachrichtigung für geplante Dosen erhalten" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Recibe avisos de dosis programadas" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Soyez alerté des doses programmées" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "予定された用量を通知" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "예정된 복용 알림 받기" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Receba avisos de doses agendadas" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Уведомления о запланированных дозах" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "收到计划剂量的通知" } }
+      }
+    },
+    "Haptic Feedback" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "ردود فعل لمسية" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Haptisches Feedback" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Vibración háptica" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Retour haptique" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "触覚フィードバック" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "햅틱 피드백" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Vibração tátil" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Тактильная отдача" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "触感反馈" } }
+      }
+    },
+    "Home" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "الرئيسية" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Start" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Inicio" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Accueil" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ホーム" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "홈" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Início" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Главная" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "主页" } }
+      }
+    },
+    "Language" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "اللغة" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Sprache" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Idioma" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Langue" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "言語" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "언어" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Idioma" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Язык" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "语言" } }
+      }
+    },
+    "Metric (mcg)" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "متري (ميكروغرام)" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Metrisch (µg)" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Métrico (mcg)" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Métrique (µg)" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "メートル法 (µg)" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "미터법 (µg)" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Métrico (mcg)" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Метрическая (мкг)" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "公制 (mcg)" } }
+      }
+    },
+    "Peptides" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "الببتيدات" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Peptide" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Péptidos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Peptides" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ペプチド" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "펩타이드" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Peptídeos" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Пептиды" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "多肽" } }
+      }
+    },
+    "Profile" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "الملف الشخصي" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Profil" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Perfil" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Profil" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "プロフィール" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "프로필" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Perfil" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Профиль" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "个人资料" } }
+      }
+    },
+    "Protocols" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "البروتوكولات" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Protokolle" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Protocolos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Protocoles" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "プロトコル" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "프로토콜" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Protocolos" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Протоколы" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "方案" } }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "الإعدادات" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Einstellungen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ajustes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Réglages" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "設定" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "설정" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Ajustes" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Настройки" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设置" } }
+      }
+    },
+    "System Default" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "افتراضي النظام" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Systemstandard" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Predeterminado del sistema" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Système" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "システム標準" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "시스템 기본값" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Padrão do sistema" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Системный" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "系统默认" } }
+      }
+    },
+    "Units" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "الوحدات" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Einheiten" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Unidades" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Unités" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "単位" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "단위" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Unidades" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Единицы" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "单位" } }
+      }
+    },
+    "Vibrate on interactions" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "اهتزاز عند التفاعلات" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bei Interaktionen vibrieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Vibrar al interactuar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Vibrer lors des interactions" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "操作時にバイブレーション" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "터치 시 진동" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Vibrar nas interações" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Вибрация при действиях" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "交互时振动" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

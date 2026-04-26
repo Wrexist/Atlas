@@ -5,6 +5,7 @@ import UserNotifications
 struct PeptideApp: App {
     @State private var appState = AppState()
     @State private var dataStore: DataStore
+    @State private var localization = LocalizationManager.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
     @State private var notificationDelegate: NotificationDelegate?
@@ -37,6 +38,10 @@ struct PeptideApp: App {
                     mainContent
                 }
             }
+            .environment(localization)
+            .environment(\.locale, localization.effectiveLocale)
+            .environment(\.layoutDirection, localization.layoutDirection)
+            .id(localization.selectedCode ?? "system")
             .task(id: dataStore.profile.healthConnected) {
                 if dataStore.profile.healthConnected {
                     await HealthKitService.shared.startBackgroundDelivery()
