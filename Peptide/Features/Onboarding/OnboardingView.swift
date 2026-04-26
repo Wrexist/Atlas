@@ -297,7 +297,7 @@ struct OnboardingView: View {
                     dataStore.profile.healthConnected = granted
                     dataStore.persistProfile()
                 }
-                advance(to: 5)
+                if currentPage == 4 { advance(to: 5) }
             }
         } onSkip: {
             advance(to: 5)
@@ -323,7 +323,7 @@ struct OnboardingView: View {
                     dataStore.profile.doseRemindersEnabled = granted
                     dataStore.persistProfile()
                 }
-                advance(to: 6)
+                if currentPage == 5 { advance(to: 6) }
             }
         } onSkip: {
             advance(to: 6)
@@ -411,7 +411,9 @@ struct OnboardingView: View {
                 } onCompletion: { result in
                     Task { @MainActor in
                         AuthService.shared.handleAuthorization(result)
-                        advance(to: 7)
+                        if case .success = result {
+                            advance(to: 7)
+                        }
                     }
                 }
                 .signInWithAppleButtonStyle(.white)
