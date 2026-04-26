@@ -11,6 +11,43 @@ enum PeptideDatabase {
 
     private static let loaded: (peptides: [Peptide], disclaimer: String) = load()
 
+    /// Resolves a free-form `commonStacks` entry (e.g. "BPC-157",
+    /// "TB-500 (Thymosin Beta-4)", "Growth Hormone (HGH)") to a known peptide.
+    /// Returns nil for non-peptide stack entries like "Alpha-GPC".
+    static func peptide(matching stackEntry: String) -> Peptide? {
+        let trimmed = stackEntry.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        var candidates: [String] = [trimmed]
+        if let parenStart = trimmed.firstIndex(of: "(") {
+            let prefix = trimmed[..<parenStart].trimmingCharacters(in: .whitespacesAndNewlines)
+            if !prefix.isEmpty { candidates.append(prefix) }
+
+            let afterOpen = trimmed.index(after: parenStart)
+            if let parenEnd = trimmed[afterOpen...].firstIndex(of: ")") {
+                let inner = trimmed[afterOpen..<parenEnd].trimmingCharacters(in: .whitespacesAndNewlines)
+                if !inner.isEmpty { candidates.append(inner) }
+            }
+        }
+
+        for candidate in candidates {
+            let key = candidate.lowercased()
+            if let match = lookupIndex.byAbbreviation[key] { return match }
+            if let match = lookupIndex.byName[key] { return match }
+        }
+        return nil
+    }
+
+    private static let lookupIndex: (byAbbreviation: [String: Peptide], byName: [String: Peptide]) = {
+        var byAbbreviation: [String: Peptide] = [:]
+        var byName: [String: Peptide] = [:]
+        for peptide in shared {
+            byAbbreviation[peptide.abbreviation.lowercased()] = peptide
+            byName[peptide.name.lowercased()] = peptide
+        }
+        return (byAbbreviation, byName)
+    }()
+
     private static let fallbackDisclaimer = """
     This information is for educational purposes only. It does not constitute \
     medical advice. Many peptides referenced are research chemicals not approved \
