@@ -24,53 +24,62 @@ final class NotificationService {
         return settings.authorizationStatus
     }
 
-    /// Schedules consolidated dose reminders. One notification per (protocol, time, day) timeslot
-    /// instead of per-peptide, keeping the count manageable within the iOS 64 limit.
+    /// Schedules dose reminders, honoring each peptide's individual schedule. Peptides that
+    /// share the same (day, time) within a protocol get consolidated into one notification
+    /// to stay within the iOS 64-pending-request limit.
     func scheduleNotifications(for protocols: [PeptideProtocol]) {
         center.removeAllPendingNotificationRequests()
 
         var requests: [UNNotificationRequest] = []
 
         for proto in protocols where proto.status == .active {
-            for timeString in proto.schedule.preferredTimes {
-                for day in proto.schedule.daysOfWeek {
-                    guard let (hour, minute) = parseTime(timeString) else { continue }
-
-                    let calendarWeekday = day == 7 ? 1 : day + 1
-
-                    var dateComponents = DateComponents()
-                    dateComponents.weekday = calendarWeekday
-                    dateComponents.hour = hour
-                    dateComponents.minute = minute
-
-                    let content = UNMutableNotificationContent()
-
-                    if proto.peptides.count == 1 {
-                        let peptide = proto.peptides[0]
-                        content.title = "Time for \(peptide.abbreviation)"
-                        content.body = "\(peptide.name) \u{2022} \(peptide.dosageRange)"
-                    } else {
-                        let names = proto.peptides.map(\.abbreviation).joined(separator: ", ")
-                        content.title = proto.name
-                        content.body = names
+            // Group peptides by (day, time) so co-scheduled peptides combine into one notification.
+            var grouped: [TimeslotKey: [Peptide]] = [:]
+            for peptide in proto.peptides {
+                let schedule = proto.schedule(for: peptide.id)
+                for timeString in schedule.preferredTimes {
+                    for day in schedule.daysOfWeek {
+                        let key = TimeslotKey(day: day, time: timeString)
+                        grouped[key, default: []].append(peptide)
                     }
-
-                    content.sound = .default
-                    content.categoryIdentifier = "DOSE_REMINDER"
-                    content.userInfo = [
-                        "protocolId": proto.id.uuidString,
-                        "hour": hour,
-                        "minute": minute,
-                    ]
-
-                    let trigger = UNCalendarNotificationTrigger(
-                        dateMatching: dateComponents,
-                        repeats: true
-                    )
-
-                    let id = "\(proto.id)-\(day)-\(timeString)"
-                    requests.append(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
                 }
+            }
+
+            for (slot, peptides) in grouped {
+                guard let (hour, minute) = parseTime(slot.time) else { continue }
+
+                let calendarWeekday = slot.day == 7 ? 1 : slot.day + 1
+                var dateComponents = DateComponents()
+                dateComponents.weekday = calendarWeekday
+                dateComponents.hour = hour
+                dateComponents.minute = minute
+
+                let content = UNMutableNotificationContent()
+                if peptides.count == 1 {
+                    let peptide = peptides[0]
+                    content.title = "Time for \(peptide.abbreviation)"
+                    content.body = "\(peptide.name) \u{2022} \(peptide.dosageRange)"
+                } else {
+                    let names = peptides.map(\.abbreviation).joined(separator: ", ")
+                    content.title = proto.name
+                    content.body = names
+                }
+
+                content.sound = .default
+                content.categoryIdentifier = "DOSE_REMINDER"
+                content.userInfo = [
+                    "protocolId": proto.id.uuidString,
+                    "hour": hour,
+                    "minute": minute,
+                ]
+
+                let trigger = UNCalendarNotificationTrigger(
+                    dateMatching: dateComponents,
+                    repeats: true
+                )
+
+                let id = "\(proto.id)-\(slot.day)-\(slot.time)"
+                requests.append(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
             }
         }
 
@@ -81,6 +90,11 @@ final class NotificationService {
         for request in limited {
             center.add(request)
         }
+    }
+
+    private struct TimeslotKey: Hashable {
+        let day: Int
+        let time: String
     }
 
     func registerCategories() {
