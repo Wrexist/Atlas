@@ -51,6 +51,7 @@ struct PeptideApp: App {
             }
             if phase == .active {
                 ReviewPromptService.shared.recordLaunch()
+                StoreService.shared.refreshTrialIfNeeded()
             }
         }
     }

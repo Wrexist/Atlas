@@ -26,10 +26,12 @@ final class StoreService {
 
     @ObservationIgnored private var updateTask: Task<Void, Never>?
     @ObservationIgnored private var productsTask: Task<Void, Never>?
+    @ObservationIgnored private var trialExpiryTask: Task<Void, Never>?
 
     private init() {
         recomputeTrial()
         recomputeProAccess()
+        scheduleTrialExpiryRefresh()
         updateTask = Task { [weak self] in
             await self?.listenForTransactions()
         }
@@ -41,6 +43,7 @@ final class StoreService {
     deinit {
         updateTask?.cancel()
         productsTask?.cancel()
+        trialExpiryTask?.cancel()
     }
 
     // MARK: - Products
@@ -118,11 +121,23 @@ final class StoreService {
         UserDefaults.standard.set(true, forKey: Self.offerSeenKey)
         recomputeTrial()
         recomputeProAccess()
+        scheduleTrialExpiryRefresh()
         return true
     }
 
     func declineOnboardingOffer() {
         UserDefaults.standard.set(true, forKey: Self.offerSeenKey)
+    }
+
+    /// Re-evaluates trial validity against wall-clock time. Safe to call from
+    /// scene-phase changes so suspended-then-resumed apps don't keep an expired
+    /// trial unlocked.
+    func refreshTrialIfNeeded() {
+        let wasActive = hasActiveTrial
+        recomputeTrial()
+        if wasActive != hasActiveTrial {
+            recomputeProAccess()
+        }
     }
 
     // MARK: - Entitlement Checking
@@ -185,6 +200,24 @@ final class StoreService {
         let proIDs: Set<String> = [Self.monthlyID, Self.annualID, Self.lifetimeID]
         let hasPaid = !purchasedProductIDs.isDisjoint(with: proIDs)
         isProUser = hasPaid || hasActiveTrial
+    }
+
+    /// Wakes up at trial expiry while the app is in the foreground so Pro
+    /// access drops the moment the 3 days are up — without waiting for a
+    /// scene-phase change or transaction update.
+    private func scheduleTrialExpiryRefresh() {
+        trialExpiryTask?.cancel()
+        guard let started = UserDefaults.standard.object(forKey: Self.trialStartKey) as? Date else { return }
+        let delay = started.addingTimeInterval(Self.trialDuration).timeIntervalSinceNow
+        guard delay > 0 else {
+            refreshTrialIfNeeded()
+            return
+        }
+        trialExpiryTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(delay))
+            guard !Task.isCancelled else { return }
+            self?.refreshTrialIfNeeded()
+        }
     }
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
