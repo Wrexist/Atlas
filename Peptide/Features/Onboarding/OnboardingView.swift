@@ -607,20 +607,28 @@ struct OnboardingView: View {
         @ViewBuilder content: () -> Content,
         @ViewBuilder footer: () -> Footer
     ) -> some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: Spacing.lg)
+        GeometryReader { proxy in
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    Spacer(minLength: Spacing.lg)
 
-            hero
-                .padding(.bottom, Spacing.xl)
+                    hero
+                        .padding(.bottom, Spacing.xl)
 
-            content()
-                .padding(.horizontal, Spacing.screenPadding)
+                    content()
+                        .padding(.horizontal, Spacing.screenPadding)
 
-            Spacer(minLength: Spacing.lg)
-
-            footer()
-                .padding(.horizontal, Spacing.screenPadding)
-                .padding(.bottom, Spacing.xl)
+                    Spacer(minLength: Spacing.lg)
+                }
+                .frame(minHeight: proxy.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                footer()
+                    .padding(.horizontal, Spacing.screenPadding)
+                    .padding(.top, Spacing.md)
+                    .padding(.bottom, Spacing.md)
+            }
         }
     }
 
