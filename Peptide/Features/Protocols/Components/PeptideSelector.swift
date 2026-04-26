@@ -3,7 +3,7 @@ import SwiftUI
 struct PeptideSelector: View {
     @Binding var selectedPeptides: Set<UUID>
     var allPeptides: [Peptide]
-    var onAddCustomPeptide: ((Peptide) -> Void)? = nil
+    var onAddCustomPeptide: ((Peptide) -> Void)?
     @State private var searchText = ""
     @State private var selectedCategory: PeptideCategory?
     @State private var showSelectedOnly = false
