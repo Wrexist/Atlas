@@ -1,0 +1,156 @@
+{
+  "identifier" : "A97C771E-799B-463E-A8E5-4C30B22BBA61",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "169.00",
+      "familyShareable" : false,
+      "internalID" : "5B183092-E9C0-41BD-8D55-670A03624EA6",
+      "localizations" : [
+        {
+          "description" : "One-time purchase that unlocks PeptideX Pro forever.",
+          "displayName" : "PeptideX Pro Lifetime",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "Engångsköp som låser upp PeptideX Pro för alltid.",
+          "displayName" : "PeptideX Pro Livstid",
+          "locale" : "sv_SE"
+        }
+      ],
+      "productID" : "com.peptidesai.app.pro.lifetime",
+      "referenceName" : "PeptideX Pro Lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "0",
+    "_developerTeamID" : "0",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "73E561C3-3E5C-4246-BA5E-C40ABB32278D",
+      "localizations" : [
+        {
+          "description" : "PeptideX Pro subscription group.",
+          "displayName" : "PeptideX Pro",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "PeptideX Pro prenumerationsgrupp.",
+          "displayName" : "PeptideX Pro",
+          "locale" : "sv_SE"
+        }
+      ],
+      "name" : "PeptideX Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "9.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "CCB2AF83-14F7-4EEC-807E-8E62193FF6FB",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unlock all PeptideX Pro features, billed monthly.",
+              "displayName" : "PeptideX Pro Monthly",
+              "locale" : "en_US"
+            },
+            {
+              "description" : "Lås upp alla PeptideX Pro-funktioner, faktureras varje månad.",
+              "displayName" : "PeptideX Pro Månad",
+              "locale" : "sv_SE"
+            }
+          ],
+          "productID" : "com.peptidesai.app.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "PeptideX Pro Monthly",
+          "subscriptionGroupID" : "73E561C3-3E5C-4246-BA5E-C40ABB32278D",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "49.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "F4E0332B-854B-49A9-B176-BE57B6CDA5B2",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unlock all PeptideX Pro features, billed annually.",
+              "displayName" : "PeptideX Pro Annual",
+              "locale" : "en_US"
+            },
+            {
+              "description" : "Lås upp alla PeptideX Pro-funktioner, faktureras varje år.",
+              "displayName" : "PeptideX Pro Årsvis",
+              "locale" : "sv_SE"
+            }
+          ],
+          "productID" : "com.peptidesai.app.pro.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "PeptideX Pro Annual",
+          "subscriptionGroupID" : "73E561C3-3E5C-4246-BA5E-C40ABB32278D",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

@@ -110,8 +110,10 @@ schemes:
         PeptideUITests: [test]
     run:
       config: Debug
+      storeKitConfiguration: Peptide/Resources/Products.storekit
     test:
       config: Debug
+      storeKitConfiguration: Peptide/Resources/Products.storekit
       targets:
         - PeptideTests
         - PeptideUITests
