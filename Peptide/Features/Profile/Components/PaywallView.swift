@@ -184,7 +184,7 @@ struct PaywallView: View {
                             }
                         }
 
-                        Text(product.displayPrice + priceSuffix(for: label))
+                        Text(product.displayPrice + priceSuffix(for: product))
                             .font(AppFont.subheadline)
                             .foregroundStyle(AppColor.textSecondary)
                     }
@@ -203,10 +203,10 @@ struct PaywallView: View {
         .disabled(isPurchasing)
     }
 
-    private func priceSuffix(for label: String) -> String {
-        switch label {
-        case "Annual": "/year"
-        case "Monthly": "/month"
+    private func priceSuffix(for product: Product) -> String {
+        switch product.id {
+        case StoreService.annualID: "/year"
+        case StoreService.monthlyID: "/month"
         default: ""
         }
     }
@@ -223,7 +223,7 @@ struct PaywallView: View {
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
-                    Text("\(storeService.trialDaysRemaining) day\(storeService.trialDaysRemaining == 1 ? "" : "s") remaining — pick a plan to keep Pro forever")
+                    Text("^[\(storeService.trialDaysRemaining) day](inflect: true) remaining — pick a plan to keep Pro forever")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
                 }

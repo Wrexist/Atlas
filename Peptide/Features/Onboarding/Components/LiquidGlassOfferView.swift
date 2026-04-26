@@ -12,7 +12,6 @@ struct LiquidGlassOfferView: View {
 
     @State private var shimmerPhase: CGFloat = -1
     @State private var orbScale: CGFloat = 0.92
-    @State private var bounceTrigger = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -110,7 +109,6 @@ struct LiquidGlassOfferView: View {
                         endPoint: .bottom
                     )
                 )
-                .symbolEffect(.bounce, value: bounceTrigger)
                 .shadow(color: AppColor.accentPrimary.opacity(0.6), radius: 12, x: 0, y: 6)
         }
         .frame(height: 220)
@@ -295,7 +293,6 @@ struct LiquidGlassOfferView: View {
                 isFullWidth: true
             ) {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
-                bounceTrigger &+= 1
                 onAccept()
             }
 

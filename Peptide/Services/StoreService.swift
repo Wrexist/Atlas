@@ -13,6 +13,7 @@ final class StoreService {
     private(set) var trialDaysRemaining: Int = 0
     private(set) var products: [Product] = []
     private(set) var purchasedProductIDs: Set<String> = []
+    private(set) var hasLoadedPurchases = false
 
     static let monthlyID = "com.peptidesai.app.pro.monthly"
     static let annualID = "com.peptidesai.app.pro.annual"
@@ -108,9 +109,14 @@ final class StoreService {
     }
 
     /// Eligibility for the welcome 3-day Liquid Glass trial. Once started or
-    /// declined, the offer never returns.
+    /// declined, the offer never returns. Stays `false` until the first
+    /// entitlement refresh completes so a reinstalling Pro user never briefly
+    /// sees the offer before StoreKit reports their purchase.
     var isEligibleForOnboardingTrial: Bool {
-        !hasUsedTrial && !hasSeenOnboardingOffer && purchasedProductIDs.isEmpty
+        hasLoadedPurchases
+            && !hasUsedTrial
+            && !hasSeenOnboardingOffer
+            && purchasedProductIDs.isEmpty
     }
 
     @discardableResult
@@ -176,6 +182,7 @@ final class StoreService {
             }
         }
         purchasedProductIDs = purchased
+        hasLoadedPurchases = true
         recomputeTrial()
         recomputeProAccess()
     }

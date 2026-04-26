@@ -1,7 +1,5 @@
 import SwiftUI
-#if canImport(UIKit)
 import UIKit
-#endif
 
 /// Step-by-step in-app guide in Swedish. Surfaced automatically the first time
 /// the main app appears after onboarding, and from the Profile screen any time.
@@ -73,6 +71,7 @@ struct TutorialView: View {
                     .liquidGlass(.circle)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Stäng guide")
             .padding(.leading, Spacing.sm)
         }
         .padding(.horizontal, Spacing.screenPadding)

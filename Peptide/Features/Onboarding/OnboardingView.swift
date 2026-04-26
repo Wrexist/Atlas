@@ -528,7 +528,7 @@ struct OnboardingView: View {
                         Task { @MainActor in
                             AuthService.shared.handleAuthorization(result)
                             if case .success = result, currentPage == 6 {
-                                advance(to: 7)
+                                advance(to: nextAfterSignIn)
                             }
                         }
                     }
@@ -537,7 +537,7 @@ struct OnboardingView: View {
                     .clipShape(Capsule())
 
                     GlassButton(title: "Continue without signing in", style: .ghost, isFullWidth: true) {
-                        advance(to: 7)
+                        advance(to: nextAfterSignIn)
                     }
                 }
             }
@@ -546,27 +546,23 @@ struct OnboardingView: View {
 
     // MARK: - Page 8: Liquid Glass One-Time Offer
 
-    @ViewBuilder
+    /// Sign-in destination — skips the offer page when the user is ineligible
+    /// (already redeemed, declined, or already Pro).
+    private var nextAfterSignIn: Int {
+        storeService.isEligibleForOnboardingTrial ? 7 : 8
+    }
+
     private var offerPage: some View {
-        if storeService.isEligibleForOnboardingTrial {
-            LiquidGlassOfferView(
-                onAccept: {
-                    storeService.startFreeTrial()
-                    advance(to: 8)
-                },
-                onDecline: {
-                    storeService.declineOnboardingOffer()
-                    advance(to: 8)
-                }
-            )
-        } else {
-            // User already redeemed/declined the offer; auto-skip if they ever
-            // land here (only triggers when this page is actually selected).
-            Color.clear
-                .onAppear {
-                    if currentPage == 7 { advance(to: 8) }
-                }
-        }
+        LiquidGlassOfferView(
+            onAccept: {
+                storeService.startFreeTrial()
+                advance(to: 8)
+            },
+            onDecline: {
+                storeService.declineOnboardingOffer()
+                advance(to: 8)
+            }
+        )
     }
 
     // MARK: - Page 9: Ready
