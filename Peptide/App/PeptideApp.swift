@@ -47,6 +47,9 @@ struct PeptideApp: App {
             if phase == .background, dataStore.profile.biometricLockEnabled {
                 isUnlocked = false
             }
+            if phase == .active {
+                ReviewPromptService.shared.recordLaunch()
+            }
         }
     }
 
