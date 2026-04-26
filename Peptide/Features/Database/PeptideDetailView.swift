@@ -1,17 +1,25 @@
 import SwiftUI
 
 struct PeptideDetailView: View {
+    @Environment(DataStore.self) private var dataStore
     let peptide: Peptide
+    @State private var showingPicker = false
     @State private var showingBuilder = false
     @AppStorage("experienceLevel") private var experienceLevel = "beginner"
 
     private enum Section: Hashable {
-        case hero, about, mechanism, benefits, dosage, sideEffects,
+        case hero, yourStacks, about, mechanism, benefits, dosage, sideEffects,
              contraindications, stacks, regulatory, research, molecular
     }
 
+    private var memberProtocols: [PeptideProtocol] {
+        dataStore.protocolsContaining(peptideId: peptide.id)
+    }
+
     private var visibleSections: [Section] {
-        var ids: [Section] = [.hero, .about]
+        var ids: [Section] = [.hero]
+        if !memberProtocols.isEmpty { ids.append(.yourStacks) }
+        ids.append(.about)
         if !peptide.mechanism.isEmpty { ids.append(.mechanism) }
         ids.append(contentsOf: [.benefits, .dosage])
         if !peptide.sideEffects.isEmpty { ids.append(.sideEffects) }
@@ -69,12 +77,21 @@ struct PeptideDetailView: View {
                         }
                         .accessibilityElement(children: .combine)
 
-                        GlassButton(title: "Add to Protocol", icon: "plus", style: .primary) {
-                            showingBuilder = true
+                        GlassButton(
+                            title: memberProtocols.isEmpty ? "Add to Stack" : "Add to Another Stack",
+                            icon: "plus",
+                            style: .primary
+                        ) {
+                            showingPicker = true
                         }
                     }
                 }
                 .sectionAppear(index: staggerIndex(.hero))
+
+                if !memberProtocols.isEmpty {
+                    yourStacksSection
+                        .sectionAppear(index: staggerIndex(.yourStacks))
+                }
 
                 // Description
                 GlassCard {
@@ -220,9 +237,10 @@ struct PeptideDetailView: View {
                                     .foregroundStyle(AppColor.textPrimary)
                             }
 
-                            BenefitTagFlow(
-                                benefits: peptide.commonStacks,
-                                color: AppColor.accentPrimary
+                            StackTagFlow(
+                                stacks: peptide.commonStacks,
+                                fallbackColor: AppColor.accentPrimary,
+                                excludingPeptideID: peptide.id
                             )
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -269,9 +287,96 @@ struct PeptideDetailView: View {
         }
         .background(AppColor.background)
         .navigationBarTitleDisplayMode(.inline)
-        .sensoryFeedback(.impact(weight: .medium), trigger: showingBuilder) { _, new in new }
+        .navigationDestination(for: PeptideProtocol.self) { proto in
+            ProtocolDetailView(protocol_: proto)
+        }
+        .sensoryFeedback(.impact(weight: .medium), trigger: showingPicker) { _, new in new }
+        .glassSheet(isPresented: $showingPicker) {
+            AddToStackSheet(peptide: peptide) {
+                showingBuilder = true
+            }
+        }
         .glassSheet(isPresented: $showingBuilder) {
             ProtocolBuilderView(preselectedPeptide: peptide)
+        }
+    }
+
+    private var yourStacksSection: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "square.stack.3d.up.fill")
+                        .foregroundStyle(AppColor.accentLight)
+                        .accessibilityHidden(true)
+                    Text("In Your Stacks")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Spacer()
+                    Text("\(memberProtocols.count)")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(AppColor.accentLight)
+                        .padding(.horizontal, Spacing.sm)
+                        .padding(.vertical, 2)
+                        .background { Capsule().fill(AppColor.accentLight.opacity(0.18)) }
+                }
+
+                VStack(spacing: Spacing.sm) {
+                    ForEach(memberProtocols) { proto in
+                        NavigationLink(value: proto) {
+                            stackChip(proto)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func stackChip(_ proto: PeptideProtocol) -> some View {
+        HStack(spacing: Spacing.md) {
+            Circle()
+                .fill(statusColor(proto.status).opacity(0.25))
+                .frame(width: 8, height: 8)
+                .overlay { Circle().strokeBorder(statusColor(proto.status), lineWidth: 1) }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(proto.name)
+                    .font(AppFont.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(1)
+
+                Text(proto.schedule.daysDescription)
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(AppColor.textTertiary)
+        }
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.sm)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceElevated.opacity(0.8))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                }
+        }
+        .liquidGlass(.rect(cornerRadius: Spacing.smallCornerRadius))
+    }
+
+    private func statusColor(_ status: ProtocolStatus) -> Color {
+        switch status {
+        case .active: AppColor.accentLight
+        case .paused: AppColor.warning
+        case .completed: AppColor.textTertiary
         }
     }
 

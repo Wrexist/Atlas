@@ -4,9 +4,11 @@ struct AppearanceSettings: View {
     @Environment(DataStore.self) private var dataStore
     @State private var notificationService = NotificationService.shared
     @State private var biometricService = BiometricService.shared
+    @State private var themeManager = ThemeManager.shared
 
     var body: some View {
         @Bindable var store = dataStore
+        @Bindable var themeBinding = themeManager
 
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
@@ -55,6 +57,13 @@ struct AppearanceSettings: View {
                         dataStore.persistProfile()
                     }
                 }
+
+                Divider().foregroundStyle(AppColor.glassBorder)
+
+                ThemePickerRow(
+                    selection: $themeBinding.theme,
+                    hapticEnabled: dataStore.profile.hapticFeedbackEnabled
+                )
 
                 Divider().foregroundStyle(AppColor.glassBorder)
 
@@ -142,6 +151,71 @@ private struct SettingsToggleRow: View {
                 .labelsHidden()
                 .tint(AppColor.accentPrimary)
         }
+    }
+}
+
+private struct ThemePickerRow: View {
+    @Binding var selection: AppThemeColor
+    let hapticEnabled: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: "paintpalette.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(AppColor.accentPrimary)
+                    .frame(width: 24)
+
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text("Accent Color")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(selection.displayName)
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+
+                Spacer()
+            }
+
+            HStack(spacing: Spacing.md) {
+                ForEach(AppThemeColor.allCases) { theme in
+                    swatch(for: theme)
+                }
+            }
+            .padding(.leading, 36)
+        }
+    }
+
+    private func swatch(for theme: AppThemeColor) -> some View {
+        let isSelected = selection == theme
+        return Button {
+            guard selection != theme else { return }
+            withAnimation(.snappy(duration: 0.2)) {
+                selection = theme
+            }
+            if hapticEnabled {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+        } label: {
+            Circle()
+                .fill(theme.primary)
+                .frame(width: 30, height: 30)
+                .overlay(
+                    Circle()
+                        .strokeBorder(Color.white.opacity(isSelected ? 0.95 : 0.0), lineWidth: 2)
+                        .padding(-3)
+                )
+                .overlay(
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.white)
+                        .opacity(isSelected ? 1 : 0)
+                )
+                .accessibilityLabel(theme.displayName)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+        }
+        .buttonStyle(.plain)
     }
 }
 

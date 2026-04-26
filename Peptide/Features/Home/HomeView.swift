@@ -4,6 +4,7 @@ struct HomeView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
     @State private var selectedEntry: ProtocolEntry?
+    @State private var selectedAlert: StackRecommendationEngine.Warning?
     @State private var showAchievementToast = false
     @State private var toastAchievement: Achievement?
     @State private var achievementService = AchievementService.shared
@@ -108,13 +109,18 @@ struct HomeView: View {
                         }
 
                         if !warnings.isEmpty {
-                            StackWarningCard(warnings: warnings)
-                                .sectionAppear(index: 6)
+                            StackWarningCard(
+                                warnings: warnings,
+                                hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
+                                onSelect: { selectedAlert = $0 }
+                            )
+                            .sectionAppear(index: 6)
                         }
 
                         if !recommendations.isEmpty {
                             RecommendedPeptidesCard(
                                 recommendations: recommendations,
+                                activeProtocols: dataStore.activeProtocols,
                                 hapticEnabled: dataStore.profile.hapticFeedbackEnabled
                             )
                             .sectionAppear(index: 7)
@@ -169,6 +175,16 @@ struct HomeView: View {
                         notes: notes
                     )
                 }
+            }
+            .sheet(item: $selectedAlert) { warning in
+                StackAlertDetailSheet(
+                    warning: warning,
+                    peptideDatabase: dataStore.peptideDatabase,
+                    hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
+                    onPrimaryAction: {
+                        appState.selectedTab = .protocols
+                    }
+                )
             }
             .navigationDestination(for: Peptide.self) { peptide in
                 PeptideDetailView(peptide: peptide)
