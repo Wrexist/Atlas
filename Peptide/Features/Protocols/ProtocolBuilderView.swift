@@ -138,7 +138,11 @@ struct ProtocolBuilderView: View {
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
 
-                        PeptideSelector(selectedPeptides: $selectedPeptides, allPeptides: dataStore.peptideDatabase)
+                        PeptideSelector(
+                            selectedPeptides: $selectedPeptides,
+                            allPeptides: dataStore.peptideDatabase,
+                            onAddCustomPeptide: { dataStore.addCustomPeptide($0) }
+                        )
                     }
                 }
                 .sectionAppear(index: 1)
