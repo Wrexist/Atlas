@@ -87,7 +87,7 @@ Samma som 3a men:
 - **Reference Name:** `Pro Annual`
 - **Product ID:** `com.peptidesai.app.pro.annual`
 - **Subscription Duration:** `1 Year`
-- **Price:** ca 40% rabatt mot månad (t.ex. `$59.99/år` om månad är `$9.99`)
+- **Price:** `$49.99/år` (≈58 % rabatt mot månad om månad är `$9.99`)
 - **Display Name (SE):** `PeptideX Pro – År`
 - **Display Name (EN):** `PeptideX Pro – Annual`
 
@@ -97,7 +97,7 @@ Samma som 3a men:
 2. Tryck **+** → **Non-Consumable**
 3. **Reference Name:** `Pro Lifetime`
 4. **Product ID:** `com.peptidesai.app.pro.lifetime`
-5. **Price:** typiskt 3–4× årspris (t.ex. `$199.99`)
+5. **Price:** `$169.00` (≈3,4× årspris)
 6. **Localizations:**
    - **Display Name (SE):** `PeptideX Pro – Livstid`
    - **Description (SE):** `Engångsköp. Lås upp PeptideX Pro för alltid – inga prenumerationer.`
@@ -127,20 +127,28 @@ Om du vill ersätta den lokala 3-dagars trialen med en **riktig** Apple-trial:
 
 ## Steg 5 — StoreKit Configuration-fil (lokal testning)
 
-Innan sandbox fungerar vill du iterera lokalt utan App Store Connect.
+`Peptide/Resources/Products.storekit` finns redan i repot och innehåller
+samtliga tre produkter samt subscription-gruppen `PeptideX Pro`. Filen är
+kopplad till `Peptide`-schemat via `project.yml`
+(`schemes.Peptide.run.storeKitConfiguration`), så efter `xcodegen generate`
+laddas den automatiskt i simulator och på enhet under Debug.
 
-1. Xcode → **File → New → File → StoreKit Configuration File**
-2. Spara som `Peptide/Resources/Products.storekit`
-3. Lägg till tre produkter med exakt samma ID som ovan:
-   - `com.peptidesai.app.pro.monthly` (Auto-Renewable, 1 Month, $9.99)
-   - `com.peptidesai.app.pro.annual` (Auto-Renewable, 1 Year, $59.99)
-   - `com.peptidesai.app.pro.lifetime` (Non-Consumable, $199.99)
-4. För prenumerationerna: skapa en grupp `PeptideX Pro` och lägg båda i den
-5. Edit Scheme → **Run → Options → StoreKit Configuration:** välj `Products.storekit`
-6. Kör appen i simulator → öppna paywall → produkterna ska dyka upp
+| Produkt                              | Typ                | Period   | Pris      |
+| ------------------------------------ | ------------------ | -------- | --------- |
+| `com.peptidesai.app.pro.monthly`     | Auto-Renewable     | 1 Month  | `$9.99`   |
+| `com.peptidesai.app.pro.annual`      | Auto-Renewable     | 1 Year   | `$49.99`  |
+| `com.peptidesai.app.pro.lifetime`    | Non-Consumable     | —        | `$169.00` |
 
-> Lägg till `Products.storekit` i `.gitignore` om den innehåller test-priser
-> du inte vill committa, eller committa den för reproducerbar teamtestning.
+För att verifiera manuellt:
+
+1. Kör `xcodegen generate`
+2. Öppna `Peptide.xcodeproj`
+3. **Edit Scheme → Run → Options → StoreKit Configuration:** ska redan vara `Products.storekit`
+4. Kör appen i simulator → öppna paywall → de tre produkterna ska dyka upp med rätt priser
+
+> Filen är committad för reproducerbar teamtestning. Vill du iterera med
+> egna priser lokalt utan att påverka teamet — kopiera till
+> `Products.local.storekit` och peka schemat dit istället.
 
 ---
 

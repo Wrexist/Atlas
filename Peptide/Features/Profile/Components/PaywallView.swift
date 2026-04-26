@@ -62,7 +62,7 @@ struct PaywallView: View {
                             pricingCard(
                                 product: annual,
                                 label: "Annual",
-                                badge: "Save 40%",
+                                badge: annualSavingsBadge,
                                 isBest: true
                             )
                         }
@@ -209,6 +209,18 @@ struct PaywallView: View {
         case StoreService.monthlyID: "/month"
         default: ""
         }
+    }
+
+    private var annualSavingsBadge: String? {
+        guard
+            let monthly = storeService.monthlyProduct,
+            let annual = storeService.annualProduct
+        else { return nil }
+        let yearAtMonthly = monthly.price * 12
+        guard yearAtMonthly > 0 else { return nil }
+        let savings = (yearAtMonthly - annual.price) / yearAtMonthly
+        let percent = Int((savings as NSDecimalNumber).doubleValue * 100)
+        return percent > 0 ? "Save \(percent)%" : nil
     }
 
     private var trialBanner: some View {
