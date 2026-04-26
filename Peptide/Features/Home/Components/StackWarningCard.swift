@@ -2,6 +2,8 @@ import SwiftUI
 
 struct StackWarningCard: View {
     let warnings: [StackRecommendationEngine.Warning]
+    var hapticEnabled: Bool = true
+    var onSelect: (StackRecommendationEngine.Warning) -> Void
 
     var body: some View {
         GlassCard(tinted: true) {
@@ -12,7 +14,12 @@ struct StackWarningCard: View {
 
                 VStack(spacing: Spacing.md) {
                     ForEach(warnings) { warning in
-                        warningRow(warning)
+                        Button {
+                            onSelect(warning)
+                        } label: {
+                            warningRow(warning)
+                        }
+                        .buttonStyle(WarningRowPressStyle(hapticEnabled: hapticEnabled))
 
                         if warning.id != warnings.last?.id {
                             Divider().foregroundStyle(AppColor.glassBorder)
@@ -47,15 +54,25 @@ struct StackWarningCard: View {
                 .padding(.top, 2)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text(warning.title)
-                    .font(AppFont.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.textPrimary)
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
+                    Text(warning.title)
+                        .font(AppFont.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .multilineTextAlignment(.leading)
+
+                    Spacer(minLength: Spacing.xs)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(AppColor.textTertiary)
+                }
 
                 Text(warning.detail)
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineSpacing(2)
+                    .multilineTextAlignment(.leading)
 
                 // Actionable suggestion
                 HStack(alignment: .top, spacing: Spacing.xs) {
@@ -68,6 +85,8 @@ struct StackWarningCard: View {
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.accentLight)
                         .lineSpacing(2)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
                 }
                 .padding(.top, Spacing.xxs)
 
@@ -88,6 +107,23 @@ struct StackWarningCard: View {
                 .padding(.top, Spacing.xxs)
             }
         }
+        .contentShape(Rectangle())
+    }
+}
+
+private struct WarningRowPressStyle: ButtonStyle {
+    var hapticEnabled: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(configuration.isPressed ? 0.85 : 1.0)
+            .animation(AppAnimation.springSnappy, value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, pressed in
+                if pressed && hapticEnabled {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+            }
     }
 }
 
@@ -120,7 +156,8 @@ struct StackWarningCard: View {
                     peptides: ["BPC-157", "TB-500", "CJC-1295", "Ipamorelin", "IGF-1"],
                     icon: "syringe.fill"
                 ),
-            ]
+            ],
+            onSelect: { _ in }
         )
         .padding(Spacing.screenPadding)
     }
