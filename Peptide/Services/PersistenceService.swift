@@ -22,6 +22,7 @@ final class PersistenceService: @unchecked Sendable {
     private var protocolsURL: URL { documentsDirectory.appendingPathComponent("protocols.json") }
     private var entriesURL: URL { documentsDirectory.appendingPathComponent("entries.json") }
     private var profileURL: URL { documentsDirectory.appendingPathComponent("profile.json") }
+    private var customPeptidesURL: URL { documentsDirectory.appendingPathComponent("custom-peptides.json") }
     private var widgetDataURL: URL? { sharedContainerURL?.appendingPathComponent("widget-data.json") }
 
     private let encoder: JSONEncoder = {
@@ -53,6 +54,10 @@ final class PersistenceService: @unchecked Sendable {
         save(profile, to: profileURL)
     }
 
+    func saveCustomPeptides(_ peptides: [Peptide]) {
+        save(peptides, to: customPeptidesURL)
+    }
+
     // MARK: - Load
 
     func loadProtocols() -> [PeptideProtocol]? {
@@ -65,6 +70,10 @@ final class PersistenceService: @unchecked Sendable {
 
     func loadProfile() -> UserProfile? {
         load(UserProfile.self, from: profileURL)
+    }
+
+    func loadCustomPeptides() -> [Peptide]? {
+        load([Peptide].self, from: customPeptidesURL)
     }
 
     // MARK: - Widget Data (Shared Container)
@@ -86,6 +95,7 @@ final class PersistenceService: @unchecked Sendable {
         try? fileManager.removeItem(at: protocolsURL)
         try? fileManager.removeItem(at: entriesURL)
         try? fileManager.removeItem(at: profileURL)
+        try? fileManager.removeItem(at: customPeptidesURL)
         if let url = widgetDataURL {
             try? fileManager.removeItem(at: url)
         }

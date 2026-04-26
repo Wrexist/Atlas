@@ -6,6 +6,7 @@ final class DataStore: DataServiceProtocol {
     var protocols: [PeptideProtocol]
     var entries: [ProtocolEntry]
     var profile: UserProfile
+    var customPeptides: [Peptide]
 
     private let repo: SwiftDataRepository
     private let _peptideDatabase: [Peptide] = PeptideDatabase.shared
@@ -57,6 +58,7 @@ final class DataStore: DataServiceProtocol {
         self.protocols = []
         self.entries   = []
         self.profile   = .fresh
+        self.customPeptides = PersistenceService.shared.loadCustomPeptides() ?? []
 
         // Phase 2: self is fully initialized — safe to call methods.
         let savedProtocols = repo.loadProtocols()
@@ -84,7 +86,15 @@ final class DataStore: DataServiceProtocol {
 
     // MARK: - Peptide Database
 
-    var peptideDatabase: [Peptide] { _peptideDatabase }
+    var peptideDatabase: [Peptide] { _peptideDatabase + customPeptides }
+
+    func addCustomPeptide(_ peptide: Peptide) {
+        customPeptides.append(peptide)
+        PersistenceService.shared.saveCustomPeptides(customPeptides)
+        if profile.hapticFeedbackEnabled {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+    }
 
     // MARK: - Protocols
 

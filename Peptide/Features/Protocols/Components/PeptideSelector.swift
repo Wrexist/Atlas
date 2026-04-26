@@ -3,9 +3,11 @@ import SwiftUI
 struct PeptideSelector: View {
     @Binding var selectedPeptides: Set<UUID>
     var allPeptides: [Peptide]
+    var onAddCustomPeptide: ((Peptide) -> Void)?
     @State private var searchText = ""
     @State private var selectedCategory: PeptideCategory?
     @State private var showSelectedOnly = false
+    @State private var showCustomForm = false
 
     private var availableCategories: [PeptideCategory] {
         let present = Set(allPeptides.map(\.category))
@@ -52,7 +54,47 @@ struct PeptideSelector: View {
                     }
                 }
             }
+
+            if onAddCustomPeptide != nil {
+                addCustomButton
+            }
         }
+        .sheet(isPresented: $showCustomForm) {
+            CustomPeptideForm { peptide in
+                onAddCustomPeptide?(peptide)
+                selectedPeptides.insert(peptide.id)
+            }
+        }
+    }
+
+    private var addCustomButton: some View {
+        Button {
+            showCustomForm = true
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                Text("Add Custom Peptide")
+                    .font(AppFont.subheadline)
+                    .fontWeight(.medium)
+            }
+            .foregroundStyle(AppColor.accentPrimary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.md)
+            .background {
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .fill(AppColor.accentPrimary.opacity(0.08))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                            .strokeBorder(
+                                AppColor.accentPrimary.opacity(0.4),
+                                style: StrokeStyle(lineWidth: 0.8, dash: [4, 3])
+                            )
+                    }
+            }
+        }
+        .buttonStyle(.plain)
+        .padding(.top, Spacing.xs)
     }
 
     private var searchBar: some View {
