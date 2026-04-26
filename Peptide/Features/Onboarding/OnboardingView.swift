@@ -9,21 +9,40 @@ struct OnboardingView: View {
     @State private var currentPage = 0
     @State private var name: String = ""
     @State private var selectedGoals: Set<String> = []
-    @State private var appeared = false
     @State private var requestingHealth = false
     @State private var requestingNotifications = false
+    @State private var bounceTrigger = 0
 
     private let totalPages = 8
-    private let goals = [
-        "Muscle Recovery", "Better Sleep", "Cognitive Enhancement", "Anti-Aging",
-        "Fat Loss", "Immune Support", "Joint Health", "Stress Reduction",
+
+    private struct OnboardingGoal: Identifiable {
+        var id: String { title }
+        let title: String
+        let icon: String
+        let tint: Color
+    }
+
+    private let goals: [OnboardingGoal] = [
+        .init(title: "Muscle Recovery", icon: "figure.strengthtraining.traditional", tint: Color(hex: 0x5B8FB9)),
+        .init(title: "Better Sleep", icon: "moon.stars.fill", tint: Color(hex: 0x9B72CF)),
+        .init(title: "Cognitive Edge", icon: "brain.head.profile.fill", tint: Color(hex: 0x9B72CF)),
+        .init(title: "Anti-Aging", icon: "sparkles", tint: Color(hex: 0xD4A844)),
+        .init(title: "Fat Loss", icon: "flame.fill", tint: Color(hex: 0xE88D4F)),
+        .init(title: "Immune Support", icon: "shield.lefthalf.filled", tint: Color(hex: 0xCF7272)),
+        .init(title: "Joint Health", icon: "figure.flexibility", tint: AppColor.accentPrimary),
+        .init(title: "Stress Reduction", icon: "leaf.fill", tint: AppColor.accentLight),
     ]
 
     var body: some View {
         ZStack {
-            AppColor.background.ignoresSafeArea()
+            OnboardingBackground(step: currentPage)
 
             VStack(spacing: 0) {
+                OnboardingProgressBar(current: currentPage, total: totalPages)
+                    .padding(.horizontal, Spacing.screenPadding)
+                    .padding(.top, Spacing.lg)
+                    .padding(.bottom, Spacing.sm)
+
                 TabView(selection: $currentPage) {
                     welcomePage.tag(0)
                     namePage.tag(1)
@@ -36,243 +55,276 @@ struct OnboardingView: View {
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: currentPage)
-
-                pageIndicator
-                    .padding(.bottom, Spacing.xl)
             }
         }
-        .onAppear { appeared = true }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Page 1: Welcome
 
     private var welcomePage: some View {
-        VStack(spacing: Spacing.xxl) {
-            Spacer()
+        pageScaffold(
+            hero: HeroIcon(symbol: "flask.fill", size: 110, bounceTrigger: bounceTrigger),
+            content: {
+                VStack(spacing: Spacing.md) {
+                    Text("Welcome to PeptideX")
+                        .font(AppFont.largeTitle)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [AppColor.textPrimary, AppColor.accentLight],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .multilineTextAlignment(.center)
 
-            Image(systemName: "flask.fill")
-                .font(.system(size: 80))
-                .foregroundStyle(AppColor.accentPrimary)
-                .opacity(appeared ? 1 : 0)
-                .scaleEffect(appeared ? 1 : 0.5)
-                .animation(AppAnimation.springBouncy.delay(0.2), value: appeared)
+                    (Text("Track your ")
+                        .font(AppFont.body)
+                        .foregroundStyle(AppColor.textSecondary)
+                    + Text("peptide protocols")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(AppColor.accentLight)
+                    + Text(" with precision")
+                        .font(AppFont.body)
+                        .foregroundStyle(AppColor.textSecondary))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Spacing.xl)
 
-            VStack(spacing: Spacing.md) {
-                Text("Welcome to PeptideX")
-                    .font(AppFont.largeTitle)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-
-                (Text("Track your ")
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.textSecondary)
-                + Text("peptide protocols")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(AppColor.accentLight)
-                + Text(" with precision")
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.textSecondary))
-                    .multilineTextAlignment(.center)
+                    HStack(spacing: Spacing.md) {
+                        WelcomeFeatureBadge(icon: "calendar.badge.clock", label: "Smart\nScheduling")
+                        WelcomeFeatureBadge(icon: "heart.text.square.fill", label: "Health\nInsights")
+                        WelcomeFeatureBadge(icon: "lock.shield.fill", label: "Private &\nSecure")
+                    }
+                    .padding(.top, Spacing.md)
+                }
+            },
+            footer: {
+                GlassButton(title: "Get Started", icon: "arrow.right", style: .primary, isFullWidth: true) {
+                    advance(to: 1)
+                }
             }
-
-            Spacer()
-
-            GlassButton(title: "Get Started", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                advance(to: 1)
-            }
-            .padding(.horizontal, Spacing.screenPadding)
-            .padding(.bottom, Spacing.lg)
-        }
+        )
     }
 
     // MARK: - Page 2: Name
 
     private var namePage: some View {
-        VStack(spacing: Spacing.xxl) {
-            Spacer()
+        pageScaffold(
+            hero: HeroIcon(symbol: "person.crop.circle.fill", size: 96, bounceTrigger: bounceTrigger),
+            content: {
+                VStack(spacing: Spacing.md) {
+                    Text("What should we call you?")
+                        .font(AppFont.title)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .multilineTextAlignment(.center)
 
-            Image(systemName: "person.crop.circle.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(AppColor.accentPrimary)
+                    Text("Optional — we'll use it to personalize your dashboard")
+                        .font(AppFont.body)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Spacing.xl)
 
-            VStack(spacing: Spacing.md) {
-                Text("What should we call you?")
-                    .font(AppFont.title)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-
-                Text("Optional — used to personalize your dashboard")
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
+                    GlassTextField(placeholder: "Your name", text: $name, icon: "person.fill")
+                        .padding(.top, Spacing.lg)
+                }
+            },
+            footer: {
+                GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
+                    advance(to: 2)
+                }
             }
-
-            GlassTextField(placeholder: "Your name", text: $name, icon: "person.fill")
-                .padding(.horizontal, Spacing.screenPadding)
-
-            Spacer()
-
-            GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                advance(to: 2)
-            }
-            .padding(.horizontal, Spacing.screenPadding)
-            .padding(.bottom, Spacing.lg)
-        }
+        )
     }
 
     // MARK: - Page 3: Goals
 
     private var goalsPage: some View {
-        VStack(spacing: Spacing.xxl) {
-            Spacer()
+        pageScaffold(
+            hero: HeroIcon(symbol: "target", size: 80, bounceTrigger: bounceTrigger),
+            content: {
+                VStack(spacing: Spacing.md) {
+                    Text("What are your goals?")
+                        .font(AppFont.title)
+                        .foregroundStyle(AppColor.textPrimary)
 
-            VStack(spacing: Spacing.md) {
-                Text("What are your goals?")
-                    .font(AppFont.title)
-                    .foregroundStyle(AppColor.textPrimary)
+                    Text(selectedGoals.isEmpty
+                         ? "Select all that apply"
+                         : "\(selectedGoals.count) selected — tap any tile")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(selectedGoals.isEmpty ? AppColor.textSecondary : AppColor.accentLight)
+                        .contentTransition(.numericText())
+                        .animation(AppAnimation.springSnappy, value: selectedGoals.count)
 
-                Text("Select all that apply")
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.textSecondary)
+                    goalGrid
+                        .padding(.top, Spacing.sm)
+                }
+            },
+            footer: {
+                GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
+                    advance(to: 3)
+                }
+                .opacity(selectedGoals.isEmpty ? 0.4 : 1)
+                .disabled(selectedGoals.isEmpty)
+                .animation(AppAnimation.springSnappy, value: selectedGoals.isEmpty)
             }
-
-            goalGrid
-                .padding(.horizontal, Spacing.screenPadding)
-
-            Spacer()
-
-            GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                advance(to: 3)
-            }
-            .opacity(selectedGoals.isEmpty ? 0.5 : 1)
-            .disabled(selectedGoals.isEmpty)
-            .padding(.horizontal, Spacing.screenPadding)
-            .padding(.bottom, Spacing.lg)
-        }
+        )
     }
 
     private var goalGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.sm) {
-            ForEach(goals, id: \.self) { goal in
-                let isSelected = selectedGoals.contains(goal)
-                Button {
-                    withAnimation(AppAnimation.springSnappy) {
-                        if isSelected {
-                            selectedGoals.remove(goal)
-                        } else {
-                            selectedGoals.insert(goal)
-                        }
-                    }
-                } label: {
-                    HStack(spacing: Spacing.sm) {
-                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 16))
-                            .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
-                            .contentTransition(.symbolEffect(.replace))
-
-                        Text(goal)
-                            .font(AppFont.subheadline)
-                            .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-
-                        Spacer()
-                    }
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.md)
-                    .background {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .fill(isSelected ? AppColor.accentPrimary.opacity(0.1) : AppColor.surfaceElevated)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                    .strokeBorder(
-                                        isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                        lineWidth: 0.5
-                                    )
-                            }
-                    }
-                }
-                .buttonStyle(.plain)
+        LazyVGrid(
+            columns: [GridItem(.flexible(), spacing: Spacing.sm), GridItem(.flexible(), spacing: Spacing.sm)],
+            spacing: Spacing.sm
+        ) {
+            ForEach(goals) { goal in
+                goalTile(goal)
             }
         }
+    }
+
+    private func goalTile(_ goal: OnboardingGoal) -> some View {
+        let isSelected = selectedGoals.contains(goal.title)
+        return Button {
+            withAnimation(AppAnimation.springSnappy) {
+                if isSelected {
+                    selectedGoals.remove(goal.title)
+                } else {
+                    selectedGoals.insert(goal.title)
+                }
+            }
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        } label: {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                HStack {
+                    Image(systemName: goal.icon)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(isSelected ? goal.tint : AppColor.textSecondary)
+                        .frame(width: 36, height: 36)
+                        .background {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(isSelected ? goal.tint.opacity(0.18) : AppColor.surfaceElevated)
+                        }
+                        .symbolEffect(.bounce, value: isSelected)
+
+                    Spacer()
+
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 18))
+                        .foregroundStyle(isSelected ? goal.tint : AppColor.textTertiary)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+
+                Text(goal.title)
+                    .font(AppFont.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(Spacing.md)
+            .frame(maxWidth: .infinity, minHeight: 110, alignment: .topLeading)
+            .background {
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .fill(isSelected ? goal.tint.opacity(0.10) : AppColor.surfaceSecondary.opacity(0.6))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                            .strokeBorder(
+                                isSelected ? goal.tint.opacity(0.45) : AppColor.glassBorder,
+                                lineWidth: isSelected ? 1.0 : 0.5
+                            )
+                    }
+            }
+            .scaleEffect(isSelected ? 1.0 : 0.985)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Page 4: Experience Level
 
     private var experiencePage: some View {
-        VStack(spacing: Spacing.xxl) {
-            Spacer()
+        pageScaffold(
+            hero: HeroIcon(symbol: "graduationcap.fill", size: 84, bounceTrigger: bounceTrigger),
+            content: {
+                VStack(spacing: Spacing.md) {
+                    Text("How experienced are you?")
+                        .font(AppFont.title)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .multilineTextAlignment(.center)
 
-            VStack(spacing: Spacing.md) {
-                Text("How experienced are you?")
-                    .font(AppFont.title)
-                    .foregroundStyle(AppColor.textPrimary)
+                    Text("This adjusts the level of detail shown")
+                        .font(AppFont.body)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
 
-                Text("This adjusts the level of detail shown")
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.textSecondary)
+                    VStack(spacing: Spacing.md) {
+                        experienceOption(level: "beginner", icon: "leaf.fill",
+                                          title: "Beginner", subtitle: "New to peptides")
+                        experienceOption(level: "intermediate", icon: "flame.fill",
+                                          title: "Intermediate", subtitle: "Some protocol experience")
+                        experienceOption(level: "advanced", icon: "bolt.fill",
+                                          title: "Advanced", subtitle: "Experienced researcher")
+                    }
+                    .padding(.top, Spacing.sm)
+                }
+            },
+            footer: {
+                GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
+                    advance(to: 4)
+                }
             }
-
-            VStack(spacing: Spacing.md) {
-                experienceOption(
-                    level: "beginner",
-                    icon: "leaf.fill",
-                    title: "Beginner",
-                    subtitle: "New to peptides"
-                )
-                experienceOption(
-                    level: "intermediate",
-                    icon: "flame.fill",
-                    title: "Intermediate",
-                    subtitle: "Some protocol experience"
-                )
-                experienceOption(
-                    level: "advanced",
-                    icon: "bolt.fill",
-                    title: "Advanced",
-                    subtitle: "Experienced researcher"
-                )
-            }
-            .padding(.horizontal, Spacing.screenPadding)
-
-            Spacer()
-
-            GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                advance(to: 4)
-            }
-            .padding(.horizontal, Spacing.screenPadding)
-            .padding(.bottom, Spacing.lg)
-        }
+        )
     }
 
     private func experienceOption(level: String, icon: String, title: String, subtitle: String) -> some View {
         let isSelected = experienceLevel == level
         return Button {
             withAnimation(AppAnimation.springSnappy) { experienceLevel = level }
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         } label: {
-            GlassCard(tinted: isSelected) {
-                HStack(spacing: Spacing.lg) {
-                    Image(systemName: icon)
-                        .font(.system(size: 24))
-                        .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
-                        .frame(width: 40)
-
-                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text(title)
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
-                        Text(subtitle)
-                            .font(AppFont.caption)
-                            .foregroundStyle(AppColor.textSecondary)
+            HStack(spacing: Spacing.lg) {
+                Image(systemName: icon)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
+                    .frame(width: 44, height: 44)
+                    .background {
+                        Circle()
+                            .fill(isSelected ? AppColor.glassTint : AppColor.surfaceElevated)
+                            .overlay {
+                                Circle().strokeBorder(
+                                    isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
+                                    lineWidth: 0.5
+                                )
+                            }
                     }
+                    .symbolEffect(.bounce, value: isSelected)
 
-                    Spacer()
-
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 22))
-                        .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
-                        .contentTransition(.symbolEffect(.replace))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(subtitle)
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
                 }
+
+                Spacer()
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .padding(Spacing.md)
+            .background {
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .fill(isSelected ? AppColor.accentPrimary.opacity(0.10) : AppColor.surfaceSecondary.opacity(0.6))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                            .strokeBorder(
+                                isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
+                                lineWidth: isSelected ? 1.0 : 0.5
+                            )
+                    }
             }
         }
         .buttonStyle(.plain)
@@ -285,6 +337,11 @@ struct OnboardingView: View {
             icon: "heart.text.square.fill",
             title: "Connect Apple Health",
             subtitle: "Correlate protocol compliance with HRV, sleep, and activity. PeptideX never writes to your health data.",
+            bullets: [
+                ("waveform.path.ecg", "HRV & resting heart rate"),
+                ("bed.double.fill", "Sleep quality trends"),
+                ("figure.walk", "Activity & recovery load"),
+            ],
             primaryTitle: "Connect Health",
             primaryIcon: "heart.fill",
             requesting: requestingHealth
@@ -309,8 +366,13 @@ struct OnboardingView: View {
     private var notificationsPage: some View {
         permissionPage(
             icon: "bell.badge.fill",
-            title: "Enable dose reminders",
-            subtitle: "Get a notification at each scheduled dose so you never miss a window.",
+            title: "Never miss a dose",
+            subtitle: "We'll quietly remind you at each scheduled dose so your protocol stays on track.",
+            bullets: [
+                ("clock.fill", "Precise dose-time alerts"),
+                ("calendar", "Weekly schedule recap"),
+                ("moon.fill", "Quiet hours respected"),
+            ],
             primaryTitle: "Enable Reminders",
             primaryIcon: "bell.fill",
             requesting: requestingNotifications
@@ -334,150 +396,166 @@ struct OnboardingView: View {
         icon: String,
         title: String,
         subtitle: String,
+        bullets: [(String, String)],
         primaryTitle: String,
         primaryIcon: String,
         requesting: Bool,
         onConnect: @escaping () -> Void,
         onSkip: @escaping () -> Void
     ) -> some View {
-        VStack(spacing: Spacing.xl) {
-            Spacer()
+        pageScaffold(
+            hero: HeroIcon(symbol: icon, size: 92, bounceTrigger: bounceTrigger),
+            content: {
+                VStack(spacing: Spacing.lg) {
+                    VStack(spacing: Spacing.md) {
+                        Text(title)
+                            .font(AppFont.title)
+                            .foregroundStyle(AppColor.textPrimary)
+                            .multilineTextAlignment(.center)
 
-            Image(systemName: icon)
-                .font(.system(size: 64))
-                .foregroundStyle(AppColor.accentPrimary)
+                        Text(subtitle)
+                            .font(AppFont.body)
+                            .foregroundStyle(AppColor.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, Spacing.lg)
+                    }
 
-            VStack(spacing: Spacing.md) {
-                Text(title)
-                    .font(AppFont.title)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-
-                Text(subtitle)
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.screenPadding)
-            }
-
-            Spacer()
-
-            VStack(spacing: Spacing.sm) {
-                GlassButton(
-                    title: requesting ? "Requesting..." : primaryTitle,
-                    icon: primaryIcon,
-                    style: .primary,
-                    isFullWidth: true,
-                    action: onConnect
-                )
-                .disabled(requesting)
-
-                GlassButton(title: "Skip", style: .ghost, isFullWidth: true, action: onSkip)
+                    VStack(spacing: Spacing.sm) {
+                        ForEach(Array(bullets.enumerated()), id: \.offset) { _, bullet in
+                            permissionBullet(icon: bullet.0, label: bullet.1)
+                        }
+                    }
+                    .padding(.top, Spacing.sm)
+                }
+            },
+            footer: {
+                VStack(spacing: Spacing.sm) {
+                    GlassButton(
+                        title: requesting ? "Requesting..." : primaryTitle,
+                        icon: primaryIcon,
+                        style: .primary,
+                        isFullWidth: true,
+                        action: onConnect
+                    )
                     .disabled(requesting)
+
+                    GlassButton(title: "Skip", style: .ghost, isFullWidth: true, action: onSkip)
+                        .disabled(requesting)
+                }
             }
-            .padding(.horizontal, Spacing.screenPadding)
-            .padding(.bottom, Spacing.lg)
+        )
+    }
+
+    private func permissionBullet(icon: String, label: String) -> some View {
+        HStack(spacing: Spacing.md) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+                .frame(width: 28, height: 28)
+                .background {
+                    Circle()
+                        .fill(AppColor.glassTint)
+                        .overlay {
+                            Circle().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                        }
+                }
+
+            Text(label)
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textPrimary)
+
+            Spacer()
+        }
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.sm)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.5))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                }
         }
     }
 
-    // MARK: - Page 7: Sign in with Apple (optional)
+    // MARK: - Page 7: Sign in with Apple
 
     private var signInPage: some View {
-        VStack(spacing: Spacing.xl) {
-            Spacer()
+        pageScaffold(
+            hero: HeroIcon(symbol: "icloud.fill", size: 92, bounceTrigger: bounceTrigger),
+            content: {
+                VStack(spacing: Spacing.md) {
+                    Text("Sync across devices")
+                        .font(AppFont.title)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .multilineTextAlignment(.center)
 
-            Image(systemName: "icloud.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(AppColor.accentPrimary)
-
-            VStack(spacing: Spacing.md) {
-                Text("Sync across devices")
-                    .font(AppFont.title)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-
-                Text("Sign in with your Apple ID to back up and sync your protocols. All features work without signing in.")
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.screenPadding)
-            }
-
-            Spacer()
-
-            VStack(spacing: Spacing.sm) {
-                SignInWithAppleButton(.signIn) { request in
-                    request.requestedScopes = [.fullName, .email]
-                } onCompletion: { result in
-                    Task { @MainActor in
-                        AuthService.shared.handleAuthorization(result)
-                        if case .success = result, currentPage == 6 {
-                            advance(to: 7)
+                    Text("Sign in with your Apple ID to back up and sync your protocols. All features work without signing in.")
+                        .font(AppFont.body)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Spacing.lg)
+                }
+            },
+            footer: {
+                VStack(spacing: Spacing.sm) {
+                    SignInWithAppleButton(.signIn) { request in
+                        request.requestedScopes = [.fullName, .email]
+                    } onCompletion: { result in
+                        Task { @MainActor in
+                            AuthService.shared.handleAuthorization(result)
+                            if case .success = result, currentPage == 6 {
+                                advance(to: 7)
+                            }
                         }
                     }
-                }
-                .signInWithAppleButtonStyle(.white)
-                .frame(height: 50)
-                .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius))
+                    .signInWithAppleButtonStyle(.white)
+                    .frame(height: 52)
+                    .clipShape(Capsule())
 
-                GlassButton(title: "Skip", style: .ghost, isFullWidth: true) {
-                    advance(to: 7)
+                    GlassButton(title: "Continue without signing in", style: .ghost, isFullWidth: true) {
+                        advance(to: 7)
+                    }
                 }
             }
-            .padding(.horizontal, Spacing.screenPadding)
-            .padding(.bottom, Spacing.lg)
-        }
+        )
     }
 
     // MARK: - Page 8: Ready
 
     private var readyPage: some View {
-        VStack(spacing: Spacing.xl) {
-            Spacer(minLength: Spacing.lg)
+        pageScaffold(
+            hero: ReadyHero(bounceTrigger: bounceTrigger),
+            content: {
+                VStack(spacing: Spacing.md) {
+                    Text("You're all set!")
+                        .font(AppFont.largeTitle)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [AppColor.textPrimary, AppColor.accentLight],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
 
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 72))
-                .foregroundStyle(AppColor.accentPrimary)
+                    (Text("Start tracking your ")
+                        .font(AppFont.body)
+                        .foregroundStyle(AppColor.textSecondary)
+                    + Text("peptide protocols")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(AppColor.accentLight))
+                        .multilineTextAlignment(.center)
 
-            VStack(spacing: Spacing.md) {
-                Text("You're all set!")
-                    .font(AppFont.largeTitle)
-                    .foregroundStyle(AppColor.textPrimary)
-
-                (Text("Start tracking your ")
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.textSecondary)
-                + Text("peptide protocols")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(AppColor.accentLight))
-                    .multilineTextAlignment(.center)
-            }
-
-            disclaimerCard
-                .padding(.horizontal, Spacing.screenPadding)
-
-            Spacer(minLength: Spacing.md)
-
-            GlassButton(title: "I Understand — Let's Go", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                let resolved = trimmed.isEmpty ? (AuthService.shared.userDisplayName ?? "") : trimmed
-                if dataStore.profile.name != resolved {
-                    dataStore.profile.name = resolved
+                    disclaimerCard
+                        .padding(.top, Spacing.md)
                 }
-                if !selectedGoals.isEmpty {
-                    dataStore.profile.goals = Array(selectedGoals).sorted()
-                }
-                dataStore.persistProfile()
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                }
-                withAnimation(AppAnimation.springSnappy) {
-                    hasCompleted = true
+            },
+            footer: {
+                GlassButton(title: "I Understand — Let's Go", icon: "arrow.right", style: .primary, isFullWidth: true) {
+                    finishOnboarding()
                 }
             }
-            .padding(.horizontal, Spacing.screenPadding)
-            .padding(.bottom, Spacing.lg)
-        }
+        )
     }
 
     private var disclaimerCard: some View {
@@ -501,21 +579,113 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Page Indicator
+    // MARK: - Helpers
 
-    private var pageIndicator: some View {
-        HStack(spacing: Spacing.sm) {
-            ForEach(0..<totalPages, id: \.self) { index in
-                Circle()
-                    .fill(index == currentPage ? AppColor.accentPrimary : AppColor.textTertiary)
-                    .frame(width: index == currentPage ? 10 : 6, height: index == currentPage ? 10 : 6)
-                    .animation(AppAnimation.springSnappy, value: currentPage)
-            }
+    private func pageScaffold<Hero: View, Content: View, Footer: View>(
+        hero: Hero,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) -> some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: Spacing.lg)
+
+            hero
+                .padding(.bottom, Spacing.xl)
+
+            content()
+                .padding(.horizontal, Spacing.screenPadding)
+
+            Spacer(minLength: Spacing.lg)
+
+            footer()
+                .padding(.horizontal, Spacing.screenPadding)
+                .padding(.bottom, Spacing.xl)
         }
     }
 
     private func advance(to page: Int) {
-        withAnimation(AppAnimation.springSnappy) { currentPage = page }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        withAnimation(AppAnimation.springSmooth) {
+            currentPage = page
+            bounceTrigger &+= 1
+        }
+    }
+
+    private func finishOnboarding() {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolved = trimmed.isEmpty ? (AuthService.shared.userDisplayName ?? "") : trimmed
+        if dataStore.profile.name != resolved {
+            dataStore.profile.name = resolved
+        }
+        if !selectedGoals.isEmpty {
+            dataStore.profile.goals = Array(selectedGoals).sorted()
+        }
+        dataStore.persistProfile()
+        if dataStore.profile.hapticFeedbackEnabled {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+        withAnimation(AppAnimation.springSnappy) {
+            hasCompleted = true
+        }
+    }
+}
+
+// MARK: - Welcome Feature Badge
+
+private struct WelcomeFeatureBadge: View {
+    let icon: String
+    let label: String
+
+    var body: some View {
+        VStack(spacing: Spacing.xs) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+                .frame(width: 40, height: 40)
+                .background {
+                    Circle()
+                        .fill(AppColor.glassTint)
+                        .overlay {
+                            Circle().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                        }
+                }
+
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Ready Hero
+
+private struct ReadyHero: View {
+    let bounceTrigger: Int
+    @State private var ringScale: CGFloat = 0.8
+    @State private var ringOpacity: Double = 0.6
+
+    var body: some View {
+        ZStack {
+            ForEach(0..<3, id: \.self) { index in
+                Circle()
+                    .strokeBorder(AppColor.accentPrimary.opacity(0.5), lineWidth: 1)
+                    .frame(width: 130, height: 130)
+                    .scaleEffect(ringScale + CGFloat(index) * 0.15)
+                    .opacity(ringOpacity - Double(index) * 0.15)
+            }
+
+            HeroIcon(symbol: "checkmark.circle.fill", size: 100, bounceTrigger: bounceTrigger)
+        }
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.8).repeatForever(autoreverses: false)) {
+                ringScale = 1.7
+                ringOpacity = 0
+            }
+        }
     }
 }
 
