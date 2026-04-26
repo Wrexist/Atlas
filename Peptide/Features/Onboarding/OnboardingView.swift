@@ -1,14 +1,19 @@
+@preconcurrency import AuthenticationServices
 import SwiftUI
 
 struct OnboardingView: View {
     @Environment(DataStore.self) private var dataStore
     @AppStorage("hasCompletedOnboarding") private var hasCompleted = false
     @AppStorage("experienceLevel") private var experienceLevel = "beginner"
+
     @State private var currentPage = 0
+    @State private var name: String = ""
     @State private var selectedGoals: Set<String> = []
     @State private var appeared = false
+    @State private var requestingHealth = false
+    @State private var requestingNotifications = false
 
-    private let totalPages = 4
+    private let totalPages = 8
     private let goals = [
         "Muscle Recovery", "Better Sleep", "Cognitive Enhancement", "Anti-Aging",
         "Fat Loss", "Immune Support", "Joint Health", "Stress Reduction",
@@ -21,9 +26,13 @@ struct OnboardingView: View {
             VStack(spacing: 0) {
                 TabView(selection: $currentPage) {
                     welcomePage.tag(0)
-                    goalsPage.tag(1)
-                    experiencePage.tag(2)
-                    readyPage.tag(3)
+                    namePage.tag(1)
+                    goalsPage.tag(2)
+                    experiencePage.tag(3)
+                    healthKitPage.tag(4)
+                    notificationsPage.tag(5)
+                    signInPage.tag(6)
+                    readyPage.tag(7)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: currentPage)
@@ -69,14 +78,49 @@ struct OnboardingView: View {
             Spacer()
 
             GlassButton(title: "Get Started", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                withAnimation(AppAnimation.springSnappy) { currentPage = 1 }
+                advance(to: 1)
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.lg)
         }
     }
 
-    // MARK: - Page 2: Goals
+    // MARK: - Page 2: Name
+
+    private var namePage: some View {
+        VStack(spacing: Spacing.xxl) {
+            Spacer()
+
+            Image(systemName: "person.crop.circle.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(AppColor.accentPrimary)
+
+            VStack(spacing: Spacing.md) {
+                Text("What should we call you?")
+                    .font(AppFont.title)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+
+                Text("Optional — used to personalize your dashboard")
+                    .font(AppFont.body)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            GlassTextField(placeholder: "Your name", text: $name, icon: "person.fill")
+                .padding(.horizontal, Spacing.screenPadding)
+
+            Spacer()
+
+            GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
+                advance(to: 2)
+            }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.bottom, Spacing.lg)
+        }
+    }
+
+    // MARK: - Page 3: Goals
 
     private var goalsPage: some View {
         VStack(spacing: Spacing.xxl) {
@@ -98,7 +142,7 @@ struct OnboardingView: View {
             Spacer()
 
             GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                withAnimation(AppAnimation.springSnappy) { currentPage = 2 }
+                advance(to: 3)
             }
             .opacity(selectedGoals.isEmpty ? 0.5 : 1)
             .disabled(selectedGoals.isEmpty)
@@ -153,7 +197,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Page 3: Experience Level
+    // MARK: - Page 4: Experience Level
 
     private var experiencePage: some View {
         VStack(spacing: Spacing.xxl) {
@@ -194,7 +238,7 @@ struct OnboardingView: View {
             Spacer()
 
             GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                withAnimation(AppAnimation.springSnappy) { currentPage = 3 }
+                advance(to: 4)
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.lg)
@@ -234,7 +278,158 @@ struct OnboardingView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Page 4: Ready
+    // MARK: - Page 5: HealthKit
+
+    private var healthKitPage: some View {
+        permissionPage(
+            icon: "heart.text.square.fill",
+            title: "Connect Apple Health",
+            subtitle: "Correlate protocol compliance with HRV, sleep, and activity. PeptideX never writes to your health data.",
+            primaryTitle: "Connect Health",
+            primaryIcon: "heart.fill",
+            requesting: requestingHealth
+        ) {
+            requestingHealth = true
+            Task {
+                let granted = await HealthKitService.shared.requestAuthorization()
+                requestingHealth = false
+                if dataStore.profile.healthConnected != granted {
+                    dataStore.profile.healthConnected = granted
+                    dataStore.persistProfile()
+                }
+                if currentPage == 4 { advance(to: 5) }
+            }
+        } onSkip: {
+            advance(to: 5)
+        }
+    }
+
+    // MARK: - Page 6: Notifications
+
+    private var notificationsPage: some View {
+        permissionPage(
+            icon: "bell.badge.fill",
+            title: "Enable dose reminders",
+            subtitle: "Get a notification at each scheduled dose so you never miss a window.",
+            primaryTitle: "Enable Reminders",
+            primaryIcon: "bell.fill",
+            requesting: requestingNotifications
+        ) {
+            requestingNotifications = true
+            Task {
+                let granted = await NotificationService.shared.requestAuthorization()
+                requestingNotifications = false
+                if dataStore.profile.doseRemindersEnabled != granted {
+                    dataStore.profile.doseRemindersEnabled = granted
+                    dataStore.persistProfile()
+                }
+                if currentPage == 5 { advance(to: 6) }
+            }
+        } onSkip: {
+            advance(to: 6)
+        }
+    }
+
+    private func permissionPage(
+        icon: String,
+        title: String,
+        subtitle: String,
+        primaryTitle: String,
+        primaryIcon: String,
+        requesting: Bool,
+        onConnect: @escaping () -> Void,
+        onSkip: @escaping () -> Void
+    ) -> some View {
+        VStack(spacing: Spacing.xl) {
+            Spacer()
+
+            Image(systemName: icon)
+                .font(.system(size: 64))
+                .foregroundStyle(AppColor.accentPrimary)
+
+            VStack(spacing: Spacing.md) {
+                Text(title)
+                    .font(AppFont.title)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+
+                Text(subtitle)
+                    .font(AppFont.body)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.screenPadding)
+            }
+
+            Spacer()
+
+            VStack(spacing: Spacing.sm) {
+                GlassButton(
+                    title: requesting ? "Requesting..." : primaryTitle,
+                    icon: primaryIcon,
+                    style: .primary,
+                    isFullWidth: true,
+                    action: onConnect
+                )
+                .disabled(requesting)
+
+                GlassButton(title: "Skip", style: .ghost, isFullWidth: true, action: onSkip)
+                    .disabled(requesting)
+            }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.bottom, Spacing.lg)
+        }
+    }
+
+    // MARK: - Page 7: Sign in with Apple (optional)
+
+    private var signInPage: some View {
+        VStack(spacing: Spacing.xl) {
+            Spacer()
+
+            Image(systemName: "icloud.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(AppColor.accentPrimary)
+
+            VStack(spacing: Spacing.md) {
+                Text("Sync across devices")
+                    .font(AppFont.title)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+
+                Text("Sign in with your Apple ID to back up and sync your protocols. All features work without signing in.")
+                    .font(AppFont.body)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.screenPadding)
+            }
+
+            Spacer()
+
+            VStack(spacing: Spacing.sm) {
+                SignInWithAppleButton(.signIn) { request in
+                    request.requestedScopes = [.fullName, .email]
+                } onCompletion: { result in
+                    Task { @MainActor in
+                        AuthService.shared.handleAuthorization(result)
+                        if case .success = result, currentPage == 6 {
+                            advance(to: 7)
+                        }
+                    }
+                }
+                .signInWithAppleButtonStyle(.white)
+                .frame(height: 50)
+                .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius))
+
+                GlassButton(title: "Skip", style: .ghost, isFullWidth: true) {
+                    advance(to: 7)
+                }
+            }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.bottom, Spacing.lg)
+        }
+    }
+
+    // MARK: - Page 8: Ready
 
     private var readyPage: some View {
         VStack(spacing: Spacing.xl) {
@@ -264,8 +459,17 @@ struct OnboardingView: View {
             Spacer(minLength: Spacing.md)
 
             GlassButton(title: "I Understand — Let's Go", icon: "arrow.right", style: .primary, isFullWidth: true) {
+                let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                let resolved = trimmed.isEmpty ? (AuthService.shared.userDisplayName ?? "") : trimmed
+                if dataStore.profile.name != resolved {
+                    dataStore.profile.name = resolved
+                }
                 if !selectedGoals.isEmpty {
-                    dataStore.updateGoals(selectedGoals)
+                    dataStore.profile.goals = Array(selectedGoals).sorted()
+                }
+                dataStore.persistProfile()
+                if dataStore.profile.hapticFeedbackEnabled {
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
                 }
                 withAnimation(AppAnimation.springSnappy) {
                     hasCompleted = true
@@ -308,6 +512,10 @@ struct OnboardingView: View {
                     .animation(AppAnimation.springSnappy, value: currentPage)
             }
         }
+    }
+
+    private func advance(to page: Int) {
+        withAnimation(AppAnimation.springSnappy) { currentPage = page }
     }
 }
 
