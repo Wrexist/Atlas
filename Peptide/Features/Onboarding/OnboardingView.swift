@@ -1,5 +1,8 @@
 @preconcurrency import AuthenticationServices
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct OnboardingView: View {
     @Environment(DataStore.self) private var dataStore
@@ -12,6 +15,8 @@ struct OnboardingView: View {
     @State private var requestingHealth = false
     @State private var requestingNotifications = false
     @State private var bounceTrigger = 0
+
+    @FocusState private var nameFocused: Bool
 
     private let totalPages = 8
 
@@ -58,6 +63,9 @@ struct OnboardingView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onChange(of: currentPage) { _, _ in
+            dismissKeyboard()
+        }
     }
 
     // MARK: - Page 1: Welcome
@@ -125,6 +133,9 @@ struct OnboardingView: View {
                         .padding(.horizontal, Spacing.xl)
 
                     GlassTextField(placeholder: "Your name", text: $name, icon: "person.fill")
+                        .focused($nameFocused)
+                        .submitLabel(.next)
+                        .onSubmit { advance(to: 2) }
                         .padding(.top, Spacing.lg)
                 }
             },
@@ -234,6 +245,11 @@ struct OnboardingView: View {
                             )
                     }
             }
+            .liquidGlass(
+                .rect(cornerRadius: Spacing.smallCornerRadius),
+                tint: isSelected ? goal.tint.opacity(0.45) : nil,
+                interactive: true
+            )
             .scaleEffect(isSelected ? 1.0 : 0.985)
         }
         .buttonStyle(.plain)
@@ -326,6 +342,11 @@ struct OnboardingView: View {
                             )
                     }
             }
+            .liquidGlass(
+                .rect(cornerRadius: Spacing.cardCornerRadius),
+                tint: isSelected ? AppColor.accentPrimary.opacity(0.35) : nil,
+                interactive: true
+            )
         }
         .buttonStyle(.plain)
     }
@@ -604,11 +625,22 @@ struct OnboardingView: View {
     }
 
     private func advance(to page: Int) {
+        dismissKeyboard()
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         withAnimation(AppAnimation.springSmooth) {
             currentPage = page
             bounceTrigger &+= 1
         }
+    }
+
+    private func dismissKeyboard() {
+        nameFocused = false
+        #if canImport(UIKit)
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil, from: nil, for: nil
+        )
+        #endif
     }
 
     private func finishOnboarding() {
