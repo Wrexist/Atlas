@@ -120,6 +120,7 @@ struct HomeView: View {
                         if !recommendations.isEmpty {
                             RecommendedPeptidesCard(
                                 recommendations: recommendations,
+                                activeProtocols: dataStore.activeProtocols,
                                 hapticEnabled: dataStore.profile.hapticFeedbackEnabled
                             )
                             .sectionAppear(index: 7)

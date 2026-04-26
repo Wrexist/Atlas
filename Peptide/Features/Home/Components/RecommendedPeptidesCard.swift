@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RecommendedPeptidesCard: View {
     let recommendations: [StackRecommendationEngine.Recommendation]
+    var activeProtocols: [PeptideProtocol] = []
     var hapticEnabled: Bool = true
 
     var body: some View {
@@ -25,7 +26,7 @@ struct RecommendedPeptidesCard: View {
                     VStack(spacing: Spacing.sm) {
                         ForEach(recommendations) { rec in
                             NavigationLink(value: rec.peptide) {
-                                recommendationRow(rec)
+                                recommendationRow(rec, stacks: stacks(for: rec.peptide))
                             }
                             .buttonStyle(RecommendationPressStyle(hapticEnabled: hapticEnabled))
 
@@ -37,6 +38,12 @@ struct RecommendedPeptidesCard: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func stacks(for peptide: Peptide) -> [PeptideProtocol] {
+        activeProtocols.filter { proto in
+            proto.peptides.contains(where: { $0.id == peptide.id })
         }
     }
 
@@ -61,8 +68,11 @@ struct RecommendedPeptidesCard: View {
         }
     }
 
-    private func recommendationRow(_ rec: StackRecommendationEngine.Recommendation) -> some View {
-        HStack(spacing: Spacing.md) {
+    private func recommendationRow(
+        _ rec: StackRecommendationEngine.Recommendation,
+        stacks: [PeptideProtocol]
+    ) -> some View {
+        HStack(alignment: .top, spacing: Spacing.md) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(rec.peptide.category.color.opacity(0.15))
@@ -85,7 +95,6 @@ struct RecommendedPeptidesCard: View {
                     confidenceBadge(rec.confidence)
                 }
 
-                // Show up to 2 reasons with icons
                 ForEach(Array(rec.reasons.prefix(2).enumerated()), id: \.offset) { _, reason in
                     HStack(spacing: Spacing.xs) {
                         Image(systemName: reason.icon)
@@ -98,15 +107,79 @@ struct RecommendedPeptidesCard: View {
                             .lineLimit(1)
                     }
                 }
+
+                stackMembership(stacks)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            Image(systemName: "chevron.right")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(AppColor.textTertiary)
+            trailingAffordance(inStacks: !stacks.isEmpty)
         }
         .padding(.vertical, Spacing.xs)
+        .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private func stackMembership(_ stacks: [PeptideProtocol]) -> some View {
+        if !stacks.isEmpty {
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: "square.stack.3d.up.fill")
+                    .font(.system(size: 8))
+                    .foregroundStyle(AppColor.accentLight)
+
+                ForEach(Array(stacks.prefix(2).enumerated()), id: \.element.id) { index, proto in
+                    stackPill(proto.name)
+                    if index < min(stacks.count, 2) - 1 {
+                        Text("·")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(AppColor.textTertiary)
+                    }
+                }
+
+                if stacks.count > 2 {
+                    Text("+\(stacks.count - 2)")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+            }
+        }
+    }
+
+    private func stackPill(_ name: String) -> some View {
+        Text(name)
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(AppColor.accentLight)
+            .lineLimit(1)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background {
+                Capsule()
+                    .fill(AppColor.accentPrimary.opacity(0.18))
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(AppColor.accentPrimary.opacity(0.3), lineWidth: 0.5)
+                    }
+            }
+            .liquidGlass(.capsule)
+    }
+
+    @ViewBuilder
+    private func trailingAffordance(inStacks: Bool) -> some View {
+        ZStack {
+            Circle()
+                .fill(AppColor.accentPrimary.opacity(inStacks ? 0.12 : 0.22))
+                .frame(width: 28, height: 28)
+                .overlay {
+                    Circle()
+                        .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                }
+
+            Image(systemName: inStacks ? "chevron.right" : "plus")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(AppColor.accentLight)
+        }
+        .liquidGlass(.circle)
+        .padding(.top, 4)
     }
 }
 
@@ -153,7 +226,8 @@ private struct RecommendationPressStyle: ButtonStyle {
                         ],
                         confidence: .medium
                     ),
-                ]
+                ],
+                activeProtocols: MockProtocols.all
             )
             .padding(Spacing.screenPadding)
         }
