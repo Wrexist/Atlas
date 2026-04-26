@@ -9,16 +9,27 @@ final class StoreService {
     static let shared = StoreService()
 
     private(set) var isProUser = false
+    private(set) var hasActiveTrial = false
+    private(set) var trialDaysRemaining: Int = 0
     private(set) var products: [Product] = []
     private(set) var purchasedProductIDs: Set<String> = []
 
     static let monthlyID = "com.peptidesai.app.pro.monthly"
     static let annualID = "com.peptidesai.app.pro.annual"
+    static let lifetimeID = "com.peptidesai.app.pro.lifetime"
+
+    static let trialDuration: TimeInterval = 3 * 24 * 60 * 60
+
+    private static let trialStartKey = "store.trialStartedAt"
+    private static let trialUsedKey = "store.trialUsed"
+    private static let offerSeenKey = "store.onboardingOfferSeen"
 
     @ObservationIgnored private var updateTask: Task<Void, Never>?
     @ObservationIgnored private var productsTask: Task<Void, Never>?
 
     private init() {
+        recomputeTrial()
+        recomputeProAccess()
         updateTask = Task { [weak self] in
             await self?.listenForTransactions()
         }
@@ -39,6 +50,7 @@ final class StoreService {
             products = try await Product.products(for: [
                 Self.monthlyID,
                 Self.annualID,
+                Self.lifetimeID,
             ])
         } catch {
             log.error("Failed to load products: \(error.localizedDescription, privacy: .public)")
@@ -51,6 +63,10 @@ final class StoreService {
 
     var annualProduct: Product? {
         products.first { $0.id == Self.annualID }
+    }
+
+    var lifetimeProduct: Product? {
+        products.first { $0.id == Self.lifetimeID }
     }
 
     // MARK: - Purchase
@@ -76,6 +92,37 @@ final class StoreService {
     func restorePurchases() async throws {
         try await AppStore.sync()
         await updatePurchasedProducts()
+    }
+
+    // MARK: - Free Trial
+
+    var hasUsedTrial: Bool {
+        UserDefaults.standard.bool(forKey: Self.trialUsedKey)
+    }
+
+    var hasSeenOnboardingOffer: Bool {
+        UserDefaults.standard.bool(forKey: Self.offerSeenKey)
+    }
+
+    /// Eligibility for the welcome 3-day Liquid Glass trial. Once started or
+    /// declined, the offer never returns.
+    var isEligibleForOnboardingTrial: Bool {
+        !hasUsedTrial && !hasSeenOnboardingOffer && purchasedProductIDs.isEmpty
+    }
+
+    @discardableResult
+    func startFreeTrial() -> Bool {
+        guard !hasUsedTrial else { return false }
+        UserDefaults.standard.set(Date(), forKey: Self.trialStartKey)
+        UserDefaults.standard.set(true, forKey: Self.trialUsedKey)
+        UserDefaults.standard.set(true, forKey: Self.offerSeenKey)
+        recomputeTrial()
+        recomputeProAccess()
+        return true
+    }
+
+    func declineOnboardingOffer() {
+        UserDefaults.standard.set(true, forKey: Self.offerSeenKey)
     }
 
     // MARK: - Entitlement Checking
@@ -113,9 +160,31 @@ final class StoreService {
                 purchased.insert(transaction.productID)
             }
         }
-        let proIDs: Set<String> = [Self.monthlyID, Self.annualID]
         purchasedProductIDs = purchased
-        isProUser = !purchased.isDisjoint(with: proIDs)
+        recomputeTrial()
+        recomputeProAccess()
+    }
+
+    private func recomputeTrial() {
+        guard let started = UserDefaults.standard.object(forKey: Self.trialStartKey) as? Date else {
+            hasActiveTrial = false
+            trialDaysRemaining = 0
+            return
+        }
+        let remaining = Self.trialDuration - Date().timeIntervalSince(started)
+        if remaining > 0 {
+            hasActiveTrial = true
+            trialDaysRemaining = max(1, Int(ceil(remaining / 86_400)))
+        } else {
+            hasActiveTrial = false
+            trialDaysRemaining = 0
+        }
+    }
+
+    private func recomputeProAccess() {
+        let proIDs: Set<String> = [Self.monthlyID, Self.annualID, Self.lifetimeID]
+        let hasPaid = !purchasedProductIDs.isDisjoint(with: proIDs)
+        isProUser = hasPaid || hasActiveTrial
     }
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {

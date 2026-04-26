@@ -35,6 +35,9 @@ struct ProfileView: View {
                             .sectionAppear(index: 1)
                     }
 
+                    TutorialCard()
+                        .sectionAppear(index: 2)
+
                     AchievementsSection(achievements: achievementService.achievements)
                         .sectionAppear(index: 2)
 

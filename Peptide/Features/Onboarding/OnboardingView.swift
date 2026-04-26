@@ -18,7 +18,8 @@ struct OnboardingView: View {
 
     @FocusState private var nameFocused: Bool
 
-    private let totalPages = 8
+    private let totalPages = 9
+    @State private var storeService = StoreService.shared
 
     private struct OnboardingGoal: Identifiable {
         var id: String { title }
@@ -56,7 +57,8 @@ struct OnboardingView: View {
                     healthKitPage.tag(4)
                     notificationsPage.tag(5)
                     signInPage.tag(6)
-                    readyPage.tag(7)
+                    offerPage.tag(7)
+                    readyPage.tag(8)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: currentPage)
@@ -542,7 +544,32 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Page 8: Ready
+    // MARK: - Page 8: Liquid Glass One-Time Offer
+
+    @ViewBuilder
+    private var offerPage: some View {
+        if storeService.isEligibleForOnboardingTrial {
+            LiquidGlassOfferView(
+                onAccept: {
+                    storeService.startFreeTrial()
+                    advance(to: 8)
+                },
+                onDecline: {
+                    storeService.declineOnboardingOffer()
+                    advance(to: 8)
+                }
+            )
+        } else {
+            // User already redeemed/declined the offer; auto-skip if they ever
+            // land here (only triggers when this page is actually selected).
+            Color.clear
+                .onAppear {
+                    if currentPage == 7 { advance(to: 8) }
+                }
+        }
+    }
+
+    // MARK: - Page 9: Ready
 
     private var readyPage: some View {
         pageScaffold(
