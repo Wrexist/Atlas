@@ -604,8 +604,8 @@ struct OnboardingView: View {
 
     private func pageScaffold<Hero: View, Content: View, Footer: View>(
         hero: Hero,
-        @ViewBuilder content: () -> Content,
-        @ViewBuilder footer: () -> Footer
+        @ViewBuilder content: @escaping () -> Content,
+        @ViewBuilder footer: @escaping () -> Footer
     ) -> some View {
         GeometryReader { proxy in
             ScrollView(showsIndicators: false) {
