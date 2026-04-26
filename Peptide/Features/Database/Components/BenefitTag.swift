@@ -46,6 +46,33 @@ struct BenefitTagFlow: View {
     }
 }
 
+/// A flow of "Commonly Stacked With" tags. Tags whose label resolves to a
+/// known peptide become NavigationLinks, so the user can jump directly to the
+/// stacked peptide's detail view. Tags that don't match any peptide
+/// (e.g. supplements like "Alpha-GPC") render as plain badges.
+struct StackTagFlow: View {
+    let stacks: [String]
+    var fallbackColor: Color = AppColor.accentPrimary
+    var excludingPeptideID: UUID?
+
+    var body: some View {
+        FlowLayout(spacing: Spacing.sm) {
+            ForEach(stacks, id: \.self) { stack in
+                let style = BenefitStyleMap.style(for: stack, fallbackColor: fallbackColor)
+                if let target = PeptideDatabase.peptide(matching: stack), target.id != excludingPeptideID {
+                    NavigationLink(value: target) {
+                        BenefitTag(text: stack, icon: style.icon, color: style.color)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Opens \(target.abbreviation) details")
+                } else {
+                    BenefitTag(text: stack, icon: style.icon, color: style.color)
+                }
+            }
+        }
+    }
+}
+
 struct FlowLayout: Layout {
     var spacing: CGFloat = 8
 

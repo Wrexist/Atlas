@@ -237,9 +237,10 @@ struct PeptideDetailView: View {
                                     .foregroundStyle(AppColor.textPrimary)
                             }
 
-                            BenefitTagFlow(
-                                benefits: peptide.commonStacks,
-                                color: AppColor.accentPrimary
+                            StackTagFlow(
+                                stacks: peptide.commonStacks,
+                                fallbackColor: AppColor.accentPrimary,
+                                excludingPeptideID: peptide.id
                             )
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
