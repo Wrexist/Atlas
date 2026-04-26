@@ -411,7 +411,7 @@ struct OnboardingView: View {
                 } onCompletion: { result in
                     Task { @MainActor in
                         AuthService.shared.handleAuthorization(result)
-                        if case .success = result {
+                        if case .success = result, currentPage == 6 {
                             advance(to: 7)
                         }
                     }
@@ -460,8 +460,9 @@ struct OnboardingView: View {
 
             GlassButton(title: "I Understand — Let's Go", icon: "arrow.right", style: .primary, isFullWidth: true) {
                 let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                if dataStore.profile.name != trimmed {
-                    dataStore.profile.name = trimmed
+                let resolved = trimmed.isEmpty ? (AuthService.shared.userDisplayName ?? "") : trimmed
+                if dataStore.profile.name != resolved {
+                    dataStore.profile.name = resolved
                 }
                 if !selectedGoals.isEmpty {
                     dataStore.profile.goals = Array(selectedGoals).sorted()
