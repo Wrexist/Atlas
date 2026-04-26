@@ -6,8 +6,10 @@ struct PeptideApp: App {
     @State private var appState = AppState()
     @State private var dataStore: DataStore
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
     @State private var notificationDelegate: NotificationDelegate?
     @State private var isUnlocked = false
+    @State private var showTutorial = false
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -49,6 +51,7 @@ struct PeptideApp: App {
             }
             if phase == .active {
                 ReviewPromptService.shared.recordLaunch()
+                StoreService.shared.refreshTrialIfNeeded()
             }
         }
     }
@@ -88,6 +91,15 @@ struct PeptideApp: App {
         .environment(dataStore)
         .preferredColorScheme(.dark)
         .tint(AppColor.accentPrimary)
+        .sheet(isPresented: $showTutorial) {
+            TutorialView()
+        }
+        .task {
+            if !hasSeenTutorial {
+                try? await Task.sleep(for: .milliseconds(600))
+                showTutorial = true
+            }
+        }
         .task {
             let delegate = NotificationDelegate(dataStore: dataStore)
             notificationDelegate = delegate

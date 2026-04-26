@@ -52,6 +52,10 @@ struct PaywallView: View {
                         }
                     }
 
+                    if storeService.hasActiveTrial {
+                        trialBanner
+                    }
+
                     // Pricing
                     VStack(spacing: Spacing.md) {
                         if let annual = storeService.annualProduct {
@@ -68,6 +72,15 @@ struct PaywallView: View {
                                 product: monthly,
                                 label: "Monthly",
                                 badge: nil,
+                                isBest: false
+                            )
+                        }
+
+                        if let lifetime = storeService.lifetimeProduct {
+                            pricingCard(
+                                product: lifetime,
+                                label: "Lifetime",
+                                badge: "One-Time",
                                 isBest: false
                             )
                         }
@@ -171,7 +184,7 @@ struct PaywallView: View {
                             }
                         }
 
-                        Text(product.displayPrice + (label == "Annual" ? "/year" : "/month"))
+                        Text(product.displayPrice + priceSuffix(for: product))
                             .font(AppFont.subheadline)
                             .foregroundStyle(AppColor.textSecondary)
                     }
@@ -188,6 +201,35 @@ struct PaywallView: View {
         }
         .buttonStyle(.plain)
         .disabled(isPurchasing)
+    }
+
+    private func priceSuffix(for product: Product) -> String {
+        switch product.id {
+        case StoreService.annualID: "/year"
+        case StoreService.monthlyID: "/month"
+        default: ""
+        }
+    }
+
+    private var trialBanner: some View {
+        GlassCard(tinted: true) {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
+
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text("Free Trial Active")
+                        .font(AppFont.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text("^[\(storeService.trialDaysRemaining) day](inflect: true) remaining — pick a plan to keep Pro forever")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                Spacer()
+            }
+        }
     }
 }
 
