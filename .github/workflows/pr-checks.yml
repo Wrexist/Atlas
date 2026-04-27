@@ -156,7 +156,6 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             -only-testing:PeptideUITests \
             -resultBundlePath UITestResults.xcresult
-        continue-on-error: true
 
       - name: Upload test results
         if: failure()

@@ -172,4 +172,36 @@ final class InsightEngineTests: XCTestCase {
         let insights = InsightEngine.generateInsights(from: [], protocols: [])
         XCTAssertTrue(insights.isEmpty)
     }
+
+    // MARK: - Day-of-week pattern
+
+    /// When more than 30% of entries on a specific weekday are missed, the
+    /// engine should surface the "Pattern detected" insight naming that day.
+    func test_generateInsights_consistentMissOnSpecificWeekday_returnsPatternInsight() {
+        var entries: [ProtocolEntry] = []
+        // 10 Wednesday entries, 7 missed (70% miss rate)
+        for i in 0..<10 {
+            entries.append(makeEntry(daysAgo: Double(i * 7), completed: i < 3, weekday: 3))
+        }
+        // Other days are clean (full compliance) so Wednesday is the clear outlier
+        for weekday in [1, 2, 4, 5] {
+            for i in 0..<5 {
+                entries.append(makeEntry(daysAgo: Double(i * 7), completed: true, weekday: weekday))
+            }
+        }
+        let insights = InsightEngine.generateInsights(from: entries, protocols: [makeProtocol()])
+        XCTAssertTrue(insights.contains { $0.title == "Pattern detected" })
+    }
+
+    /// Below the 30% miss threshold, no pattern warning fires.
+    func test_generateInsights_lowMissRate_noPatternInsight() {
+        var entries: [ProtocolEntry] = []
+        for weekday in 1...5 {
+            for i in 0..<10 {
+                entries.append(makeEntry(daysAgo: Double(i * 7), completed: i != 0, weekday: weekday))
+            }
+        }
+        let insights = InsightEngine.generateInsights(from: entries, protocols: [makeProtocol()])
+        XCTAssertFalse(insights.contains { $0.title == "Pattern detected" })
+    }
 }
