@@ -77,6 +77,14 @@ struct HomeView: View {
                     )
                     .sectionAppear(index: 0)
 
+                    if let report = dataStore.notificationReport, report.hasAnyIssue {
+                        NotificationIssueBanner(
+                            report: report,
+                            droppedProtocolNames: dataStore.droppedReminderProtocolNames
+                        )
+                        .sectionAppear(index: 0)
+                    }
+
                     if dataStore.protocols.isEmpty {
                         gettingStartedCard
                             .sectionAppear(index: 1)

@@ -499,6 +499,21 @@ final class DataStore: DataServiceProtocol {
 
     // MARK: - Notifications
 
+    /// Latest scheduling outcome so the UI can surface dropped reminders.
+    /// `nil` means notifications haven't been scheduled this session yet.
+    var notificationReport: ScheduleReport? {
+        let report = NotificationService.shared.lastReport
+        return report.requested == 0 && report.scheduled == 0 ? nil : report
+    }
+
+    /// Names of active protocols whose reminders were partially or fully dropped
+    /// in the most recent reschedule. Empty when everything fit under the limit.
+    var droppedReminderProtocolNames: [String] {
+        let dropped = NotificationService.shared.lastReport.droppedProtocolIDs
+        guard !dropped.isEmpty else { return [] }
+        return protocols.filter { dropped.contains($0.id) }.map(\.name).sorted()
+    }
+
     private func rescheduleNotificationsIfEnabled() {
         guard profile.doseRemindersEnabled else { return }
         NotificationService.shared.scheduleNotifications(for: activeProtocols)

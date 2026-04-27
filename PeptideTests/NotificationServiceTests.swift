@@ -152,6 +152,64 @@ final class NotificationServiceTests: XCTestCase {
         XCTAssertEqual(service.scheduledCount, 1)
     }
 
+    // MARK: - ScheduleReport
+
+    func test_scheduleNotifications_returnsReportSummary() {
+        let proto = makeProtocol(times: ["8:00 AM", "10:00 AM"], days: [1, 2])
+        let report = service.scheduleNotifications(for: [proto])
+        XCTAssertEqual(report.requested, 4)
+        XCTAssertEqual(report.scheduled, 4)
+        XCTAssertTrue(report.droppedProtocolIDs.isEmpty)
+        XCTAssertTrue(report.invalidTimes.isEmpty)
+        XCTAssertFalse(report.hasAnyIssue)
+    }
+
+    func test_scheduleNotifications_overLimit_reportsDroppedProtocols() {
+        // 8 times × 7 days = 56, plus 9 times × 1 day = 9, total 65 requests
+        let weeklyTimes = ["6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM", "12:00 PM", "3:00 PM", "6:00 PM", "9:00 PM"]
+        let weekly = makeProtocol(times: weeklyTimes, days: [1, 2, 3, 4, 5, 6, 7])
+        let overflow = makeProtocol(times: weeklyTimes + ["10:00 PM"], days: [1])
+        let report = service.scheduleNotifications(for: [weekly, overflow])
+        XCTAssertEqual(report.requested, 65)
+        XCTAssertEqual(report.scheduled, 64)
+        XCTAssertFalse(report.droppedProtocolIDs.isEmpty,
+                       "At least one protocol must be reported as having dropped reminders")
+        XCTAssertTrue(report.hasAnyIssue)
+    }
+
+    func test_scheduleNotifications_invalidTimes_reportedInReport() {
+        let proto = makeProtocol(times: ["8:00 AM", "bad-time", "also-bad"], days: [1])
+        let report = service.scheduleNotifications(for: [proto])
+        XCTAssertEqual(report.scheduled, 1)
+        XCTAssertEqual(report.invalidTimes.count, 2)
+        XCTAssertTrue(report.invalidTimes.contains("bad-time"))
+        XCTAssertTrue(report.invalidTimes.contains("also-bad"))
+    }
+
+    func test_scheduleNotifications_invalidWeekdays_reportedAndSkipped() {
+        // Day 0 and day 8 are out of ISO 1...7 range
+        let proto = makeProtocol(times: ["8:00 AM"], days: [0, 8, 3])
+        let report = service.scheduleNotifications(for: [proto])
+        XCTAssertEqual(report.scheduled, 1, "Only weekday 3 is valid")
+        XCTAssertEqual(report.invalidWeekdays.count, 2)
+        XCTAssertTrue(report.invalidWeekdays.contains(0))
+        XCTAssertTrue(report.invalidWeekdays.contains(8))
+    }
+
+    func test_scheduleNotifications_lastReportMatchesReturnValue() {
+        let proto = makeProtocol(times: ["8:00 AM"], days: [1])
+        let report = service.scheduleNotifications(for: [proto])
+        XCTAssertEqual(service.lastReport, report)
+    }
+
+    func test_cancelAll_resetsLastReport() {
+        let proto = makeProtocol(times: ["8:00 AM"], days: [1])
+        service.scheduleNotifications(for: [proto])
+        XCTAssertEqual(service.lastReport.scheduled, 1)
+        service.cancelAll()
+        XCTAssertEqual(service.lastReport, .empty)
+    }
+
     // MARK: - Helpers
 
     private func makeProtocol(
