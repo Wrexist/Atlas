@@ -24,20 +24,43 @@ final class MigrationService {
         // Skip if there are no legacy JSON files to migrate
         guard persistence.hasPersistedData else { return }
 
-        let protocols = persistence.loadProtocols() ?? []
-        let entries   = persistence.loadEntries() ?? []
+        // Track per-file integrity. A file that exists on disk but fails to decode
+        // is a hard failure — leave the source intact so the user can recover or
+        // export it manually before the next launch retries.
+        let hadProtocolsFile = persistence.protocolsFileExists
+        let hadEntriesFile   = persistence.entriesFileExists
+        let hadProfileFile   = persistence.profileFileExists
+
+        let protocols = persistence.loadProtocols()
+        let entries   = persistence.loadEntries()
         let profile   = persistence.loadProfile()
 
-        // Import into SwiftData
-        repo.saveProtocols(protocols)
-        repo.saveEntries(entries)
-        if let profile { repo.saveProfile(profile) }
+        let protocolsOK = !hadProtocolsFile || protocols != nil
+        let entriesOK   = !hadEntriesFile   || entries   != nil
+        let profileOK   = !hadProfileFile   || profile   != nil
 
-        // Only archive if data landed in SwiftData (guards against silent save failures)
-        let nothingToImport = protocols.isEmpty && entries.isEmpty && profile == nil
-        guard repo.hasAnyData || nothingToImport else { return }
+        // Import what we have. Empty arrays are fine; nil means decode failed.
+        if let protocols { repo.saveProtocols(protocols) }
+        if let entries   { repo.saveEntries(entries)     }
+        if let profile   { repo.saveProfile(profile)     }
 
-        // Rename source files to mark migration complete
+        guard protocolsOK, entriesOK, profileOK else {
+            AppLog.persistence.error(
+                "Migration partial failure (protocols: \(protocolsOK, privacy: .public), entries: \(entriesOK, privacy: .public), profile: \(profileOK, privacy: .public)) — leaving JSON files in place for retry"
+            )
+            return
+        }
+
+        // Sanity check: if we expected data but SwiftData ended up empty, something
+        // went wrong silently. Don't archive in that case.
+        let expectedData = (protocols ?? []).isEmpty == false
+            || (entries ?? []).isEmpty == false
+            || profile != nil
+        if expectedData && !repo.hasAnyData {
+            AppLog.persistence.error("Migration imported nothing despite source files — leaving JSON files in place")
+            return
+        }
+
         persistence.archiveLegacyFiles()
     }
 }

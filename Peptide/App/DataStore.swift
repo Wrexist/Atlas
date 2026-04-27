@@ -3,8 +3,12 @@ import WidgetKit
 
 @MainActor @Observable
 final class DataStore: DataServiceProtocol {
-    var protocols: [PeptideProtocol]
-    var entries: [ProtocolEntry]
+    var protocols: [PeptideProtocol] {
+        didSet { cacheVersion &+= 1 }
+    }
+    var entries: [ProtocolEntry] {
+        didSet { cacheVersion &+= 1 }
+    }
     var profile: UserProfile
     var customPeptides: [Peptide]
 
@@ -16,42 +20,36 @@ final class DataStore: DataServiceProtocol {
     private let _peptideDatabase: [Peptide] = PeptideDatabase.shared
 
     // MARK: - Cache (avoids recomputing expensive stats on every toggle)
-    @ObservationIgnored private var _cachedTodayEntries: [ProtocolEntry]?
-    @ObservationIgnored private var _cachedCurrentStreak: Int?
-    @ObservationIgnored private var _cachedTotalDaysLogged: Int?
-    @ObservationIgnored private var _cachedBestStreak: Int?
-    @ObservationIgnored private var _cachedNextDose: ProtocolEntry??
-    @ObservationIgnored private var _cachedWeeklyCompletion: [WeekDayStatus]?
-    @ObservationIgnored private var _entriesByDay: [Date: [ProtocolEntry]]?
-    @ObservationIgnored private var _cacheDate: Date?
+    //
+    // Each cached field stores the cacheVersion it was computed at. didSet on
+    // `protocols`/`entries` increments cacheVersion automatically — readers
+    // recompute when their stored version is stale. `bumpVersionIfDayChanged`
+    // covers caches that depend on "today" (todayEntries, weeklyCompletion,
+    // streaks) so they invalidate on midnight rollover.
+    @ObservationIgnored private var cacheVersion: Int = 0
+    @ObservationIgnored private var versionedDay: Date = Calendar.current.startOfDay(for: Date())
 
-    private func invalidateCache() {
-        _cachedTodayEntries = nil
-        _cachedCurrentStreak = nil
-        _cachedTotalDaysLogged = nil
-        _cachedBestStreak = nil
-        _cachedNextDose = nil
-        _cachedWeeklyCompletion = nil
-        _entriesByDay = nil
-        _cacheDate = nil
-    }
+    @ObservationIgnored private var _todayEntries: (version: Int, value: [ProtocolEntry])?
+    @ObservationIgnored private var _currentStreak: (version: Int, value: Int)?
+    @ObservationIgnored private var _totalDaysLogged: (version: Int, value: Int)?
+    @ObservationIgnored private var _bestStreak: (version: Int, value: Int)?
+    @ObservationIgnored private var _nextDose: (version: Int, value: ProtocolEntry?)?
+    @ObservationIgnored private var _weeklyCompletion: (version: Int, value: [WeekDayStatus])?
+    @ObservationIgnored private var _entriesByDay: (version: Int, value: [Date: [ProtocolEntry]])?
 
-    private func invalidateCacheIfDayChanged() {
-        guard let cacheDate = _cacheDate else {
-            _cacheDate = Date()
-            return
-        }
-        if !Calendar.current.isDateInToday(cacheDate) {
-            invalidateCache()
-            _cacheDate = Date()
+    private func bumpVersionIfDayChanged() {
+        let today = Calendar.current.startOfDay(for: Date())
+        if today != versionedDay {
+            versionedDay = today
+            cacheVersion &+= 1
         }
     }
 
     private var entriesByDay: [Date: [ProtocolEntry]] {
-        if let cached = _entriesByDay { return cached }
+        if let cached = _entriesByDay, cached.version == cacheVersion { return cached.value }
         let calendar = Calendar.current
         let grouped = Dictionary(grouping: entries) { calendar.startOfDay(for: $0.date) }
-        _entriesByDay = grouped
+        _entriesByDay = (cacheVersion, grouped)
         return grouped
     }
 
@@ -118,7 +116,6 @@ final class DataStore: DataServiceProtocol {
     }
 
     func addProtocol(_ newProtocol: PeptideProtocol) {
-        invalidateCache()
         protocols.insert(newProtocol, at: 0)
         appendTodayEntries(for: newProtocol)
         save()
@@ -129,7 +126,6 @@ final class DataStore: DataServiceProtocol {
     }
 
     func deleteProtocol(id: UUID) {
-        invalidateCache()
         protocols.removeAll { $0.id == id }
         entries.removeAll { $0.protocolId == id }
         save()
@@ -138,7 +134,6 @@ final class DataStore: DataServiceProtocol {
 
     func updateProtocolStatus(id: UUID, to status: ProtocolStatus) {
         guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
-        invalidateCache()
         protocols[index].status = status
         if status == .active {
             appendTodayEntries(for: protocols[index])
@@ -150,21 +145,20 @@ final class DataStore: DataServiceProtocol {
     // MARK: - Entries
 
     var todayEntries: [ProtocolEntry] {
-        invalidateCacheIfDayChanged()
-        if let cached = _cachedTodayEntries { return cached }
+        bumpVersionIfDayChanged()
+        if let cached = _todayEntries, cached.version == cacheVersion { return cached.value }
         let calendar = Calendar.current
         let activeIds = Set(activeProtocols.map(\.id))
         let result = entries
             .filter { calendar.isDateInToday($0.date) && activeIds.contains($0.protocolId) }
             .sorted { $0.date < $1.date }
-        _cachedTodayEntries = result
+        _todayEntries = (cacheVersion, result)
         return result
     }
 
     func toggleEntry(_ entryId: UUID) {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
         let becoming = !entries[index].completed
-        invalidateCache()
         entries[index].completed.toggle()
         save()
         if profile.hapticFeedbackEnabled {
@@ -174,7 +168,6 @@ final class DataStore: DataServiceProtocol {
 
     func logDose(entryId: UUID, actualDose: String?, actualTime: Date?, injectionSite: String?, notes: String) {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
-        invalidateCache()
         let existing = entries[index]
         entries[index] = ProtocolEntry(
             id: existing.id,
@@ -202,7 +195,6 @@ final class DataStore: DataServiceProtocol {
         guard let index = protocols.firstIndex(where: { $0.id == protocolId }) else { return false }
         if protocols[index].peptides.contains(where: { $0.id == peptide.id }) { return false }
 
-        invalidateCache()
         let existing = protocols[index]
         let updated = PeptideProtocol(
             id: existing.id,
@@ -244,7 +236,6 @@ final class DataStore: DataServiceProtocol {
         notes: String
     ) {
         guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
-        invalidateCache()
 
         // Drop overrides for peptides that are no longer in the protocol.
         let remainingIds = Set(peptides.map(\.id))
@@ -279,7 +270,6 @@ final class DataStore: DataServiceProtocol {
     /// protocol's default schedule). Regenerates today's entries and notifications.
     func setPeptideSchedule(protocolId: UUID, peptideId: UUID, schedule: ProtocolSchedule?) {
         guard let index = protocols.firstIndex(where: { $0.id == protocolId }) else { return }
-        invalidateCache()
 
         let existing = protocols[index]
         var overrides = existing.peptideSchedules
@@ -330,7 +320,8 @@ final class DataStore: DataServiceProtocol {
     // MARK: - Computed Stats
 
     var currentStreak: Int {
-        if let cached = _cachedCurrentStreak { return cached }
+        bumpVersionIfDayChanged()
+        if let cached = _currentStreak, cached.version == cacheVersion { return cached.value }
         let calendar = Calendar.current
         let grouped = entriesByDay
         let todayStart = calendar.startOfDay(for: Date())
@@ -355,16 +346,16 @@ final class DataStore: DataServiceProtocol {
             streak += 1
         }
 
-        _cachedCurrentStreak = streak
+        _currentStreak = (cacheVersion, streak)
         return streak
     }
 
     var totalDaysLogged: Int {
-        if let cached = _cachedTotalDaysLogged { return cached }
+        if let cached = _totalDaysLogged, cached.version == cacheVersion { return cached.value }
         let result = entriesByDay.values.filter { dayEntries in
             dayEntries.contains(where: \.completed)
         }.count
-        _cachedTotalDaysLogged = result
+        _totalDaysLogged = (cacheVersion, result)
         return result
     }
 
@@ -373,7 +364,7 @@ final class DataStore: DataServiceProtocol {
     }
 
     var bestStreak: Int {
-        if let cached = _cachedBestStreak { return cached }
+        if let cached = _bestStreak, cached.version == cacheVersion { return cached.value }
         let grouped = entriesByDay
         let scheduledDays = grouped.keys.sorted()
         guard !scheduledDays.isEmpty else { return 0 }
@@ -390,13 +381,13 @@ final class DataStore: DataServiceProtocol {
             }
         }
 
-        _cachedBestStreak = best
+        _bestStreak = (cacheVersion, best)
         return best
     }
 
     var weeklyCompletion: [WeekDayStatus] {
-        invalidateCacheIfDayChanged()
-        if let cached = _cachedWeeklyCompletion { return cached }
+        bumpVersionIfDayChanged()
+        if let cached = _weeklyCompletion, cached.version == cacheVersion { return cached.value }
         let calendar = Calendar.current
         let today = Date()
         let todayStart = calendar.startOfDay(for: today)
@@ -438,7 +429,7 @@ final class DataStore: DataServiceProtocol {
             return WeekDayStatus(id: offset + 1, dayLabel: dayLabels[offset], status: status)
         }
 
-        _cachedWeeklyCompletion = result
+        _weeklyCompletion = (cacheVersion, result)
         return result
     }
 
@@ -478,13 +469,13 @@ final class DataStore: DataServiceProtocol {
     // MARK: - Next Dose
 
     var nextDose: ProtocolEntry? {
-        invalidateCacheIfDayChanged()
-        if let cached = _cachedNextDose { return cached }
+        bumpVersionIfDayChanged()
+        if let cached = _nextDose, cached.version == cacheVersion { return cached.value }
         let now = Date()
         let today = todayEntries
         let result = today.first { !$0.completed && $0.date > now }
             ?? today.first { !$0.completed }
-        _cachedNextDose = .some(result)
+        _nextDose = (cacheVersion, result)
         return result
     }
 
@@ -559,7 +550,10 @@ final class DataStore: DataServiceProtocol {
         }
     }
 
-    private func regenerateTodayEntries() {
+    /// Idempotent: appends today's scheduled entries for any active protocol that
+    /// doesn't already have one for today. Safe to call any time the user opens
+    /// the app — handles cold launch and day rollovers without duplicating.
+    func regenerateTodayEntries() {
         let calendar = Calendar.current
         let existingProtocolIds = Set(
             entries.filter { calendar.isDateInToday($0.date) }.map(\.protocolId)
@@ -570,6 +564,13 @@ final class DataStore: DataServiceProtocol {
             added = true
         }
         if added { save() }
+    }
+
+    /// Called when the app becomes active. Detects calendar-day changes since the
+    /// last check and regenerates today's entries when needed. Idempotent.
+    func handleAppActivation() {
+        bumpVersionIfDayChanged()
+        regenerateTodayEntries()
     }
 
     // MARK: - Entry Generation

@@ -95,6 +95,10 @@ final class PersistenceService: @unchecked Sendable {
             .contains { fileManager.fileExists(atPath: $0.path) }
     }
 
+    var protocolsFileExists: Bool { protocolsURL.map { fileManager.fileExists(atPath: $0.path) } ?? false }
+    var entriesFileExists: Bool { entriesURL.map { fileManager.fileExists(atPath: $0.path) } ?? false }
+    var profileFileExists: Bool { profileURL.map { fileManager.fileExists(atPath: $0.path) } ?? false }
+
     func clearAll() {
         for url in [protocolsURL, entriesURL, profileURL, customPeptidesURL, widgetDataURL].compactMap({ $0 }) {
             guard fileManager.fileExists(atPath: url.path) else { continue }

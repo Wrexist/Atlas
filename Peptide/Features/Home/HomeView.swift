@@ -193,7 +193,8 @@ struct HomeView: View {
                         if canAdjustStack(for: warning) {
                             // Defer until the alert sheet has finished dismissing — SwiftUI can't
                             // chain two sheets in the same runloop tick.
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            Task { @MainActor in
+                                try? await Task.sleep(for: .milliseconds(350))
                                 adjustingAlert = warning
                             }
                         } else {

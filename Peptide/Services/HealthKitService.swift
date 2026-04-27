@@ -19,6 +19,9 @@ final class HealthKitService {
     @ObservationIgnored private let store = HKHealthStore()
     private(set) var cachedSnapshot: HealthSnapshot?
     private var isBackgroundDeliveryStarted = false
+    /// Active observer queries. Tracked so stopBackgroundDelivery can stop them
+    /// — disableAllBackgroundDelivery alone leaves the observer queries running.
+    @ObservationIgnored private var activeObserverQueries: [HKObserverQuery] = []
 
     private init() {}
 
@@ -73,6 +76,10 @@ final class HealthKitService {
     }
 
     func stopBackgroundDelivery() {
+        for query in activeObserverQueries {
+            store.stop(query)
+        }
+        activeObserverQueries.removeAll()
         store.disableAllBackgroundDelivery { _, _ in }
         isBackgroundDeliveryStarted = false
     }
@@ -129,6 +136,7 @@ final class HealthKitService {
             }
         }
         store.execute(query)
+        activeObserverQueries.append(query)
     }
 
     // MARK: - Heart Rate

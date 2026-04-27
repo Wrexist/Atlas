@@ -9,16 +9,15 @@ struct NextDoseIntent: AppIntent {
     static let openAppWhenRun: Bool = false
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let persistence = PersistenceService.shared
-        guard let protocols = persistence.loadProtocols(),
-              let entries = persistence.loadEntries() else {
+        let snapshot = await IntentDataSnapshot.load()
+        guard !snapshot.protocols.isEmpty else {
             return .result(dialog: "No protocols found. Open PeptideX to get started.")
         }
 
         let calendar = Calendar.current
         let now = Date()
-        let activeIds = Set(protocols.filter { $0.status == .active }.map(\.id))
-        let todayEntries = entries
+        let activeIds = Set(snapshot.protocols.filter { $0.status == .active }.map(\.id))
+        let todayEntries = snapshot.entries
             .filter { calendar.isDateInToday($0.date) && activeIds.contains($0.protocolId) && !$0.completed }
             .sorted { $0.date < $1.date }
 
@@ -39,13 +38,9 @@ struct ComplianceIntent: AppIntent {
     static let openAppWhenRun: Bool = false
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let persistence = PersistenceService.shared
-        guard let entries = persistence.loadEntries() else {
-            return .result(dialog: "No data found. Open PeptideX to start tracking.")
-        }
-
+        let snapshot = await IntentDataSnapshot.load()
         let calendar = Calendar.current
-        let last7Days = entries.filter {
+        let last7Days = snapshot.entries.filter {
             guard let cutoff = calendar.date(byAdding: .day, value: -7, to: Date()) else { return false }
             return $0.date >= cutoff
         }
@@ -68,6 +63,34 @@ struct LogDoseIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         return .result(dialog: "Opening PeptideX...")
+    }
+}
+
+// MARK: - Snapshot
+
+/// Reads protocols/entries from the SwiftData store on the main actor so AppIntents
+/// see the same data the live app does. Falls back to legacy JSON files only when
+/// SwiftData is empty (pre-migration), to maintain compatibility for users who haven't
+/// reopened the app after upgrading.
+private struct IntentDataSnapshot {
+    let protocols: [PeptideProtocol]
+    let entries: [ProtocolEntry]
+
+    @MainActor
+    static func load() -> IntentDataSnapshot {
+        let repo = SwiftDataRepository.shared
+        let protocols = repo.loadProtocols()
+        let entries = repo.loadEntries()
+        if !protocols.isEmpty || !entries.isEmpty {
+            return IntentDataSnapshot(protocols: protocols, entries: entries)
+        }
+
+        // Fallback: data is still in legacy JSON (migration hasn't run yet).
+        let persistence = PersistenceService.shared
+        return IntentDataSnapshot(
+            protocols: persistence.loadProtocols() ?? [],
+            entries: persistence.loadEntries() ?? []
+        )
     }
 }
 

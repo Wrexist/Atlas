@@ -124,6 +124,34 @@ final class NotificationServiceTests: XCTestCase {
         XCTAssertEqual(service.scheduledCount, 0)
     }
 
+    // MARK: - Incremental reschedule (no zero-pending window)
+
+    /// Invariant: rescheduling with the SAME protocol must keep the same identifiers
+    /// pending. The previous implementation called removeAllPendingNotificationRequests
+    /// before adding, briefly leaving zero pending — now we only diff and remove
+    /// stale IDs.
+    func test_rescheduleSameProtocol_keepsScheduledCountStable() {
+        let proto = makeProtocol(times: ["8:00 AM"], days: [1])
+        service.scheduleNotifications(for: [proto])
+        XCTAssertEqual(service.scheduledCount, 1)
+
+        service.scheduleNotifications(for: [proto])
+        XCTAssertEqual(service.scheduledCount, 1,
+                       "Re-scheduling the same protocol must not reset scheduledCount to 0")
+    }
+
+    /// When the new schedule omits IDs that were previously scheduled, only those
+    /// stale IDs are removed; the others remain.
+    func test_reschedule_removesOnlyStaleIDs() {
+        let protoA = makeProtocol(times: ["8:00 AM"], days: [1])
+        let protoB = makeProtocol(times: ["9:00 AM"], days: [2])
+        service.scheduleNotifications(for: [protoA, protoB])
+        XCTAssertEqual(service.scheduledCount, 2)
+
+        service.scheduleNotifications(for: [protoA])  // protoB now stale
+        XCTAssertEqual(service.scheduledCount, 1)
+    }
+
     // MARK: - Helpers
 
     private func makeProtocol(

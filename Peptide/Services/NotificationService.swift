@@ -9,6 +9,10 @@ final class NotificationService {
     private(set) var scheduledCount = 0
     private(set) var requestedCount = 0
 
+    /// Identifiers we believe are currently pending. Used to compute the delta
+    /// against new schedules so we never go through a zero-pending window.
+    @ObservationIgnored private var currentIDs: Set<String> = []
+
     private init() {}
 
     func requestAuthorization() async -> Bool {
@@ -28,9 +32,12 @@ final class NotificationService {
     /// Schedules dose reminders, honoring each peptide's individual schedule. Peptides that
     /// share the same (day, time) within a protocol get consolidated into one notification
     /// to stay within the iOS 64-pending-request limit.
+    ///
+    /// Builds the new request set first, then removes only IDs that are gone in the new
+    /// set and (re)adds the rest. Adding a request with an existing identifier replaces
+    /// it atomically per Apple's UNUserNotificationCenter contract — pending count never
+    /// drops to zero mid-reschedule.
     func scheduleNotifications(for protocols: [PeptideProtocol]) {
-        center.removeAllPendingNotificationRequests()
-
         var requests: [UNNotificationRequest] = []
 
         for proto in protocols where proto.status == .active {
@@ -84,13 +91,28 @@ final class NotificationService {
             }
         }
 
-        requestedCount = requests.count
-        scheduledCount = min(requests.count, 64)
-
         let limited = Array(requests.prefix(64))
+        let newIDs = Set(limited.map(\.identifier))
+        let toRemove = currentIDs.subtracting(newIDs)
+
+        if !toRemove.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: Array(toRemove))
+        }
         for request in limited {
             center.add(request)
         }
+
+        currentIDs = newIDs
+        requestedCount = requests.count
+        scheduledCount = limited.count
+    }
+
+    /// Reconciles in-memory tracker against actual pending requests. Call on app
+    /// activation to recover from force-quit states where stale pending requests
+    /// from a previous run exist that we no longer track.
+    func reconcilePendingState() async {
+        let pending = await center.pendingNotificationRequests()
+        currentIDs = Set(pending.map(\.identifier))
     }
 
     private struct TimeslotKey: Hashable {
@@ -119,6 +141,7 @@ final class NotificationService {
 
     func cancelAll() {
         center.removeAllPendingNotificationRequests()
+        currentIDs.removeAll()
         scheduledCount = 0
         requestedCount = 0
     }

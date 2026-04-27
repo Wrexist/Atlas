@@ -167,4 +167,48 @@ final class DataStoreTests: XCTestCase {
         store.toggleHealthConnection()
         XCTAssertEqual(store.profile.healthConnected, !was)
     }
+
+    // MARK: - Cache invalidation via didSet
+
+    /// Mutating `entries` directly (e.g. via toggleEntry) must invalidate the
+    /// cached todayEntries so subsequent reads reflect the change. The previous
+    /// implementation relied on manual `invalidateCache()` calls; the regression
+    /// would be a stale cached value persisting after a mutation.
+    func test_mutation_invalidatesCachedTodayEntries() {
+        guard let entry = store.todayEntries.first else {
+            XCTFail("Expected at least one of today's entries from sample data")
+            return
+        }
+        let wasCompleted = entry.completed
+        let priorCompletedCount = store.todayEntries.filter(\.completed).count
+        store.toggleEntry(entry.id)
+        let newCompletedCount = store.todayEntries.filter(\.completed).count
+        let expectedDelta = wasCompleted ? -1 : 1
+        XCTAssertEqual(newCompletedCount, priorCompletedCount + expectedDelta)
+    }
+
+    /// Invariant: every supported cached stat reads from the same view of
+    /// in-memory state, so totalDoses must equal totalDoses-of-completed across
+    /// repeated reads with no mutations between them.
+    func test_cachedStats_areStableAcrossReads() {
+        let a = store.totalDoses
+        let b = store.totalDoses
+        let c = store.currentStreak
+        let d = store.currentStreak
+        XCTAssertEqual(a, b)
+        XCTAssertEqual(c, d)
+    }
+
+    // MARK: - Activation idempotency
+
+    /// regenerateTodayEntries must not duplicate entries when called twice on
+    /// the same calendar day. handleAppActivation wraps this — it should be
+    /// safe to call repeatedly.
+    func test_handleAppActivation_isIdempotent() {
+        store.handleAppActivation()
+        let countAfterFirst = store.entries.filter { Calendar.current.isDateInToday($0.date) }.count
+        store.handleAppActivation()
+        let countAfterSecond = store.entries.filter { Calendar.current.isDateInToday($0.date) }.count
+        XCTAssertEqual(countAfterFirst, countAfterSecond)
+    }
 }

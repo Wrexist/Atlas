@@ -37,7 +37,8 @@ struct AddToStackSheet: View {
                         isFullWidth: true
                     ) {
                         dismiss()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .milliseconds(250))
                             onCreateNew()
                         }
                     }
@@ -117,7 +118,8 @@ struct AddToStackSheet: View {
                 withAnimation(AppAnimation.springSnappy) {
                     justAddedTo = proto.id
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(600))
                     dismiss()
                 }
             }
