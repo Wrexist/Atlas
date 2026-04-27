@@ -32,6 +32,9 @@ struct ProtocolScoreCard: View {
 
                 GlassProgressRing(progress: score, size: 180, lineWidth: 14)
                     .frame(height: 180)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Today's compliance")
+                    .accessibilityValue(complianceVoiceOverValue)
 
                 StreakCounterView(currentStreak: streak, bestStreak: bestStreak)
 
@@ -39,6 +42,12 @@ struct ProtocolScoreCard: View {
                     .padding(.horizontal, Spacing.sm)
             }
         }
+    }
+
+    private var complianceVoiceOverValue: String {
+        let percent = Int((score * 100).rounded())
+        guard total > 0 else { return "No doses scheduled today" }
+        return "\(percent) percent, \(completed) of \(total) doses logged"
     }
 }
 

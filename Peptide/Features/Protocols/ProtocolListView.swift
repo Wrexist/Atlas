@@ -49,7 +49,7 @@ struct ProtocolListView: View {
                 .background(AppColor.background)
 
                 // Floating add button
-                GlassIconButton(icon: "plus", size: 56, tinted: true) {
+                GlassIconButton(icon: "plus", accessibilityLabel: "New protocol", size: 56, tinted: true) {
                     preselectedPeptide = nil
                     if StoreService.shared.requiresPro(activeProtocolCount: dataStore.activeProtocols.count) {
                         showingPaywall = true

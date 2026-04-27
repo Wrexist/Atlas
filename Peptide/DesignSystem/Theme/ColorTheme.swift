@@ -13,7 +13,9 @@ enum AppColor {
 
     static let textPrimary = Color.white
     static let textSecondary = Color(hex: 0xA0A0A0)
-    static let textTertiary = Color(hex: 0x666666)
+    // Deepened from #666666 to clear WCAG AA (4.5:1) against the dark
+    // background and elevated surfaces. The previous value sat at ~3:1.
+    static let textTertiary = Color(hex: 0x888888)
     static var textHighlight: Color { ThemeManager.shared.theme.highlight }
 
     static let destructive = Color(hex: 0xFF4444)

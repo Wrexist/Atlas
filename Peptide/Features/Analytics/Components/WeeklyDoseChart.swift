@@ -68,8 +68,18 @@ struct WeeklyDoseChart: View {
                 .chartPlotStyle { plot in
                     plot.frame(height: 160)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Weekly doses chart")
+                .accessibilityValue(voiceOverSummary)
             }
         }
+    }
+
+    private var voiceOverSummary: String {
+        guard !data.isEmpty else { return "No dose data this week." }
+        let total = data.reduce(0) { $0 + $1.count }
+        let parts = data.map { "\($0.day) \($0.count)" }.joined(separator: ", ")
+        return "\(total) doses this week. " + parts + "."
     }
 }
 

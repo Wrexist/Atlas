@@ -32,6 +32,9 @@ struct CalendarHeatmap: View {
                             .aspectRatio(1, contentMode: .fit)
                     }
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(days)-day activity heatmap")
+                .accessibilityValue(heatmapVoiceOverValue(data: data))
 
                 // Legend
                 HStack(spacing: Spacing.sm) {
@@ -63,6 +66,14 @@ struct CalendarHeatmap: View {
         case 0.50..<0.75: return AppColor.accentPrimary.opacity(0.7)
         default: return AppColor.accentPrimary
         }
+    }
+
+    private func heatmapVoiceOverValue(data: [(date: Date, intensity: Double)]) -> String {
+        let active = data.filter { $0.intensity > 0 }
+        guard !active.isEmpty else { return "No activity in this period" }
+        let avg = active.reduce(0.0) { $0 + $1.intensity } / Double(active.count)
+        let pct = Int((avg * 100).rounded())
+        return "\(active.count) of \(data.count) days active. Average compliance \(pct) percent."
     }
 }
 

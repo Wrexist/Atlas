@@ -23,4 +23,12 @@ enum AppAnimation {
     static func sectionStaggered(index: Int) -> Animation {
         springSmooth.delay(Double(min(index, maxSectionIndex)) * sectionDelay)
     }
+
+    /// Returns `nil` when Reduce Motion is on so callers can pass the result
+    /// directly to `withAnimation(_:)` and have iOS skip the animation.
+    /// Read `accessibilityReduceMotion` from the View's environment and pass it in.
+    static func motionAware(_ animation: Animation, reduceMotion: Bool) -> Animation? {
+        reduceMotion ? nil : animation
+    }
 }
+

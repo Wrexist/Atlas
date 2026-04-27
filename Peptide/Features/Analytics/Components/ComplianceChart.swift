@@ -52,8 +52,18 @@ struct ComplianceChart: View {
                 .chartPlotStyle { plot in
                     plot.frame(height: 180)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Daily compliance chart")
+                .accessibilityValue(voiceOverSummary)
             }
         }
+    }
+
+    private var voiceOverSummary: String {
+        guard !data.isEmpty else { return "No compliance data yet." }
+        let avg = data.reduce(0.0) { $0 + $1.compliance } / Double(data.count)
+        let pct = Int((avg * 100).rounded())
+        return "\(data.count) days tracked. Average compliance \(pct) percent."
     }
 }
 
