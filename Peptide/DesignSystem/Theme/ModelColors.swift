@@ -19,6 +19,7 @@ extension PeptideCategory {
         case .antiAging: Color(hex: 0xD4A844)
         case .immune: Color(hex: 0xCF7272)
         case .metabolic: Color(hex: 0xE88D4F)
+        case .other: Color(hex: 0x808080)
         }
     }
 }

@@ -46,6 +46,13 @@ final class BiometricService {
                 localizedReason: "Unlock PeptideX"
             )
         } catch {
+            // LAError.userCancel is expected and routine; log at debug.
+            // Other failures (lockout, biometryLockout, system cancel) at error.
+            if let laError = error as? LAError, laError.code == .userCancel {
+                AppLog.biometrics.debug("User cancelled biometric prompt")
+            } else {
+                AppLog.biometrics.error("Authentication failed: \(error.localizedDescription, privacy: .public)")
+            }
             return false
         }
     }

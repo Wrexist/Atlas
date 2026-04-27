@@ -50,13 +50,18 @@ final class ExportService {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return try? encoder.encode(backup)
+        do {
+            return try encoder.encode(backup)
+        } catch {
+            AppLog.export.error("exportFullBackup encode failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 
     // MARK: - PDF Export
 
     // swiftlint:disable:next function_body_length
-    func exportPDF(protocols: [PeptideProtocol], entries: [ProtocolEntry], profile: UserProfile) -> Data {
+    func exportPDF(protocols: [PeptideProtocol], entries: [ProtocolEntry], profile: UserProfile) throws -> Data {
         let pageWidth: CGFloat = 612
         let pageHeight: CGFloat = 792
         let margin: CGFloat = 48
@@ -71,7 +76,7 @@ final class ExportService {
 
         let renderer = UIGraphicsPDFRenderer(bounds: pageRect, format: format)
 
-        return renderer.pdfData { ctx in
+        let data = renderer.pdfData { ctx in
             var y: CGFloat = margin
 
             // MARK: Helpers
@@ -295,6 +300,12 @@ final class ExportService {
                 font: captionFont, color: mutedColor, align: .center
             )
         }
+
+        guard !data.isEmpty else {
+            AppLog.export.error("exportPDF produced empty data")
+            throw ExportError.pdfGenerationFailed
+        }
+        return data
     }
 
     // MARK: - File URLs
@@ -305,6 +316,7 @@ final class ExportService {
             try content.write(to: url, atomically: true, encoding: .utf8)
             return url
         } catch {
+            AppLog.export.error("writeCSV \(filename, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -315,6 +327,7 @@ final class ExportService {
             try data.write(to: url, options: .atomic)
             return url
         } catch {
+            AppLog.export.error("writeJSON \(filename, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -325,6 +338,7 @@ final class ExportService {
             try data.write(to: url, options: .atomic)
             return url
         } catch {
+            AppLog.export.error("writePDF \(filename, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -343,4 +357,14 @@ struct AppBackup: Codable {
     let protocols: [PeptideProtocol]
     let entries: [ProtocolEntry]
     let profile: UserProfile
+}
+
+enum ExportError: Error, LocalizedError {
+    case pdfGenerationFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .pdfGenerationFailed: "PDF report could not be generated."
+        }
+    }
 }

@@ -1,8 +1,5 @@
 import Foundation
-import OSLog
 import StoreKit
-
-private let log = Logger(subsystem: "com.peptidesai.app", category: "StoreService")
 
 @MainActor @Observable
 final class StoreService {
@@ -49,7 +46,7 @@ final class StoreService {
             ])
             await refreshTrialEligibility()
         } catch {
-            log.error("Failed to load products: \(error.localizedDescription, privacy: .public)")
+            AppLog.storeKit.error("Failed to load products: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -112,7 +109,12 @@ final class StoreService {
     }
 
     func restorePurchases() async throws {
-        try await AppStore.sync()
+        do {
+            try await AppStore.sync()
+        } catch {
+            AppLog.storeKit.error("AppStore.sync failed: \(error.localizedDescription, privacy: .public)")
+            throw error
+        }
         await updatePurchasedProducts()
     }
 
@@ -137,9 +139,12 @@ final class StoreService {
 
     private func listenForTransactions() async {
         for await result in Transaction.updates {
-            if let transaction = try? checkVerified(result) {
+            do {
+                let transaction = try checkVerified(result)
                 await transaction.finish()
                 await updatePurchasedProducts()
+            } catch {
+                AppLog.storeKit.error("Transaction.updates verification failed: \(error.localizedDescription, privacy: .public)")
             }
         }
     }
@@ -147,8 +152,11 @@ final class StoreService {
     private func updatePurchasedProducts() async {
         var purchased: Set<String> = []
         for await result in Transaction.currentEntitlements {
-            if let transaction = try? checkVerified(result) {
+            do {
+                let transaction = try checkVerified(result)
                 purchased.insert(transaction.productID)
+            } catch {
+                AppLog.storeKit.error("Entitlement verification failed: \(error.localizedDescription, privacy: .public)")
             }
         }
         let proIDs: Set<String> = [Self.monthlyID, Self.annualID, Self.lifetimeID]
@@ -167,7 +175,9 @@ final class StoreService {
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
         switch result {
-        case .unverified:
+        case .unverified(let value, let verificationError):
+            let productID = (value as? Transaction)?.productID ?? "unknown"
+            AppLog.storeKit.error("Verification failed for product \(productID, privacy: .public): \(verificationError.localizedDescription, privacy: .public)")
             throw StoreError.failedVerification
         case .verified(let value):
             return value

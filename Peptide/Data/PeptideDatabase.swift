@@ -119,6 +119,7 @@ enum PeptideDatabase {
 
     private static func load() -> (peptides: [Peptide], disclaimer: String) {
         guard let url = Bundle.main.url(forResource: "peptides", withExtension: "json") else {
+            AppLog.database.error("peptides.json not found in bundle — using fallback mocks")
             assertionFailure("peptides.json not found in bundle — using fallback mocks")
             return (MockPeptides.fallback, fallbackDisclaimer)
         }
@@ -128,6 +129,7 @@ enum PeptideDatabase {
             let payload = try JSONDecoder().decode(Payload.self, from: data)
             return (payload.peptides.map(map), payload.disclaimer)
         } catch {
+            AppLog.database.error("Failed to decode peptides.json: \(error.localizedDescription, privacy: .public)")
             assertionFailure("Failed to decode peptides.json: \(error)")
             return (MockPeptides.fallback, fallbackDisclaimer)
         }
@@ -183,8 +185,8 @@ enum PeptideDatabase {
 
     private static func mapCategory(_ raw: String) -> PeptideCategory {
         guard let category = PeptideCategory(rawValue: raw) else {
-            assertionFailure("Unknown peptide category: \(raw)")
-            return .recovery
+            AppLog.database.warning("Unknown peptide category \"\(raw, privacy: .public)\" — bucketing as .other")
+            return .other
         }
         return category
     }

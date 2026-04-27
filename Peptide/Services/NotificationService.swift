@@ -15,6 +15,7 @@ final class NotificationService {
         do {
             return try await center.requestAuthorization(options: [.alert, .sound, .badge])
         } catch {
+            AppLog.notifications.error("Authorization request failed: \(error.localizedDescription, privacy: .public)")
             return false
         }
     }

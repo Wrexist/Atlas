@@ -8,6 +8,10 @@ final class DataStore: DataServiceProtocol {
     var profile: UserProfile
     var customPeptides: [Peptide]
 
+    /// Non-fatal banner message for the UI. Set when persistence falls back to
+    /// in-memory storage so the user knows changes won't survive relaunch.
+    var lastError: String?
+
     private let repo: SwiftDataRepository
     private let _peptideDatabase: [Peptide] = PeptideDatabase.shared
 
@@ -61,6 +65,9 @@ final class DataStore: DataServiceProtocol {
         self.customPeptides = PersistenceService.shared.loadCustomPeptides() ?? []
 
         // Phase 2: self is fully initialized — safe to call methods.
+        if repo.isUsingFallbackStore {
+            self.lastError = "Storage unavailable — changes won't be saved between launches."
+        }
         let savedProtocols = repo.loadProtocols()
         let savedEntries   = repo.loadEntries()
         let savedProfile   = repo.loadProfile()

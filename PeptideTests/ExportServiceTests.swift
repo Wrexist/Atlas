@@ -20,8 +20,8 @@ final class ExportServiceTests: XCTestCase {
 
     // MARK: - PDF
 
-    func test_pdfExport_producesNonEmptyData() {
-        let data = ExportService.shared.exportPDF(
+    func test_pdfExport_producesNonEmptyData() throws {
+        let data = try ExportService.shared.exportPDF(
             protocols: dataStore.protocols,
             entries: dataStore.entries,
             profile: dataStore.profile
@@ -29,8 +29,8 @@ final class ExportServiceTests: XCTestCase {
         XCTAssertFalse(data.isEmpty)
     }
 
-    func test_pdfExport_producesPDFHeader() {
-        let data = ExportService.shared.exportPDF(
+    func test_pdfExport_producesPDFHeader() throws {
+        let data = try ExportService.shared.exportPDF(
             protocols: dataStore.protocols,
             entries: dataStore.entries,
             profile: dataStore.profile
@@ -40,8 +40,8 @@ final class ExportServiceTests: XCTestCase {
         XCTAssertEqual(String(bytes: magic, encoding: .ascii), "%PDF-")
     }
 
-    func test_pdfExport_withEmptyData_stillProducesValidPDF() {
-        let data = ExportService.shared.exportPDF(
+    func test_pdfExport_withEmptyData_stillProducesValidPDF() throws {
+        let data = try ExportService.shared.exportPDF(
             protocols: [],
             entries: [],
             profile: .fresh
@@ -50,8 +50,8 @@ final class ExportServiceTests: XCTestCase {
         XCTAssertEqual(String(bytes: magic, encoding: .ascii), "%PDF-")
     }
 
-    func test_writePDF_returnsURL_andFileExists() {
-        let data = ExportService.shared.exportPDF(
+    func test_writePDF_returnsURL_andFileExists() throws {
+        let data = try ExportService.shared.exportPDF(
             protocols: dataStore.protocols,
             entries: dataStore.entries,
             profile: dataStore.profile
@@ -61,5 +61,12 @@ final class ExportServiceTests: XCTestCase {
         if let url {
             XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
         }
+    }
+
+    // MARK: - Error type
+
+    func test_exportError_localizedDescription_isHumanReadable() {
+        let error = ExportError.pdfGenerationFailed
+        XCTAssertEqual(error.errorDescription, "PDF report could not be generated.")
     }
 }
