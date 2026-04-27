@@ -43,12 +43,11 @@ struct PaywallView: View {
                     // Features
                     GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.lg) {
-                            featureRow(icon: "infinity", title: "Unlimited Protocols", description: "Create as many protocols as you need")
-                            featureRow(icon: "chart.xyaxis.line", title: "Full Analytics", description: "All time ranges, HealthKit correlation, export")
-                            featureRow(icon: "brain.head.profile.fill", title: "AI Insights", description: "Smart recommendations and research assistant")
-                            featureRow(icon: "icloud.fill", title: "Cloud Sync", description: "Backup and sync across devices")
-                            featureRow(icon: "square.grid.2x2.fill", title: "All Widgets", description: "Every widget type + Apple Watch")
-                            featureRow(icon: "square.and.arrow.up", title: "Data Export", description: "CSV reports and JSON backups")
+                            featureRow(icon: "infinity", title: "Unlimited Protocols", description: "Create as many active protocols as you need")
+                            featureRow(icon: "chart.xyaxis.line", title: "Full Analytics", description: "All time ranges and HealthKit correlation on-device")
+                            featureRow(icon: "sparkles.rectangle.stack", title: "Smart Insights", description: "Adherence patterns, milestones, and stack guidance")
+                            featureRow(icon: "square.grid.2x2.fill", title: "Home Screen Widgets", description: "Small and medium widgets for next dose and compliance")
+                            featureRow(icon: "square.and.arrow.up", title: "Data Export", description: "CSV, JSON backup, and PDF report from the Profile tab")
                         }
                     }
 

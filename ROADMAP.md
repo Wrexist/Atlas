@@ -18,25 +18,26 @@ PeptideX is a native iOS SwiftUI app for tracking peptide supplementation protoc
 | **Notifications** | Complete | Dose reminders, actionable (Mark as Taken / Snooze), 64-limit handling, per-timeslot consolidation |
 | **Widgets** | Complete | Small (next dose) + Medium (compliance ring + schedule), real data via App Groups |
 | **Achievements** | Complete | 14 achievements (dose milestones, streaks, protocol, logging), toast notifications |
-| **Export** | Complete | CSV + JSON full backup via share sheet |
+| **Export** | Complete | CSV + JSON full backup + PDF report via share sheet |
+| **Biometric lock** | Complete | Optional Face ID / Touch ID; Profile → Appearance |
 | **Onboarding** | Complete | 4-page flow: welcome, goal selection (8 goals), experience level, ready |
 | **HealthKit** | On-demand | Reads 7 data types (HR, HRV, sleep, weight, steps, energy). No background delivery |
 | **Persistence** | JSON files | PersistenceService writes protocols/entries/profile to Documents. Atomic writes, ISO8601 dates |
 | **StoreKit 2** | Complete | Monthly + annual subscriptions, paywall, transaction verification, restore purchases |
-| **Testing** | 82 tests | DataStoreTests (20), StackRecommendationEngineTests (39), PersistenceRoundTripTests (23) |
+| **Testing** | 150+ tests | Unit tests across engines, services, persistence; UI smoke tests |
 | **CI/CD** | Complete | XcodeGen, SwiftLint, build + test in GitHub Actions, TestFlight via Fastlane |
 
 ---
 
-## Next: v1.1.0 — Reliability & Security
+## Next: v1.1.0 — Reliability & Polish
 
-> Harden the app for real users. Small effort, high trust impact.
+> Items not yet shipped in v1.0.0; biometric lock and PDF export are already in the app.
 
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
-| 1.1 | **Biometric lock** | Hours | Optional Face ID / Touch ID via `LocalAuthentication`. Toggle in Profile settings. Protects health-adjacent data |
-| 1.2 | **PDF export** | Hours | Add PDF report generation to existing export service (CSV + JSON already work) |
-| 1.3 | **HealthKit background delivery** | 1-2 days | Add `HKObserverQuery` and `enableBackgroundDelivery` so widgets and insights update without opening the app |
+| 1.1 | **HealthKit background delivery** | 1-2 days | Add `HKObserverQuery` and `enableBackgroundDelivery` so widgets and insights update without opening the app |
+| 1.2 | **Paywall / metadata hygiene** | Hours | Keep App Store copy, `Products.storekit`, and in-app Pro bullets aligned with shipped features (ongoing) |
+| 1.3 | **Optional: iPad layout pass** | 1-2 days | `NavigationSplitView` and wider analytics where it helps |
 
 ---
 
@@ -104,7 +105,7 @@ v3.0.0 (Community & AI)
 v3.5.0+ (Growth & Polish)
 ```
 
-**Parallelism:** v1.1.0 items (biometric, PDF, HealthKit background) are independent and can run in parallel. v2.5.0 ecosystem features are independent of v2.0.0 sync features. v3.0.0 AI features are independent of community features.
+**Parallelism:** v1.1.0 items (HealthKit background delivery, layout polish) are independent where noted. v2.5.0 ecosystem features are independent of v2.0.0 sync features. v3.0.0 AI features are independent of community features.
 
 ---
 
@@ -120,9 +121,10 @@ v3.5.0+ (Growth & Polish)
 
 ### PeptideX Pro ($9.99/mo, $49.99/yr, or $169 lifetime)
 - Unlimited protocols
-- Full analytics + HealthKit correlation + export
-- AI insights + recommendations
-- All widgets + Apple Watch
-- Cloud sync + backup
-- Community features + templates
-- 7-day free trial (monthly), 14-day (annual)
+- Full analytics + HealthKit correlation + CSV / JSON / PDF export
+- On-device smart insights + stack recommendation engine
+- Both Home Screen widget sizes (small + medium)
+- 7-day free trial (monthly), 14-day (annual) — must match App Store Connect
+
+### Planned later (not v1 marketing)
+- Apple Watch, iCloud sync, community/templates: see v2+ sections below

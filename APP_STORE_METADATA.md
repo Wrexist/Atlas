@@ -8,15 +8,17 @@ All text respects Apple's current character limits. Placeholders are marked
 
 ## App Information
 
-| Field | Value |
-|---|---|
-| App Name | `PeptideX` *(12 / 30)* |
-| Subtitle | `Peptide protocol tracker` *(24 / 30)* |
-| Primary Category | **Health & Fitness** |
+
+| Field              | Value                                                               |
+| ------------------ | ------------------------------------------------------------------- |
+| App Name           | `PeptideX` *(12 / 30)*                                              |
+| Subtitle           | `Peptide protocol tracker` *(24 / 30)*                              |
+| Primary Category   | **Health & Fitness**                                                |
 | Secondary Category | **Medical** *(optional — leave blank if you want a lighter review)* |
-| Bundle ID | `com.peptidesai.app` |
-| SKU | `peptidex-ios-1` |
-| Primary Language | English (U.S.) |
+| Bundle ID          | `com.peptidesai.app`                                                |
+| SKU                | `peptidex-ios-1`                                                    |
+| Primary Language   | English (U.S.)                                                      |
+
 
 ## URLs
 
@@ -25,11 +27,13 @@ All text respects Apple's current character limits. Placeholders are marked
 > Connect validates the Privacy Policy URL at submission time, so publish the
 > site before hitting Submit.
 
-| Field | Value |
-|---|---|
-| Marketing URL | `https://wrexist.github.io/Peptide-ai/` |
+
+| Field              | Value                                               |
+| ------------------ | --------------------------------------------------- |
+| Marketing URL      | `https://wrexist.github.io/Peptide-ai/`             |
 | Privacy Policy URL | `https://wrexist.github.io/Peptide-ai/privacy.html` |
-| Support URL | `https://wrexist.github.io/Peptide-ai/support.html` |
+| Support URL        | `https://wrexist.github.io/Peptide-ai/support.html` |
+
 
 *(If you later move to a custom domain, swap all three.)*
 
@@ -41,6 +45,7 @@ All text respects Apple's current character limits. Placeholders are marked
 Track every dose, see the patterns behind your compliance, and correlate with
 HealthKit — all on-device, with no tracking and no backend.
 ```
+
 *(162 / 170)*
 
 ---
@@ -85,6 +90,7 @@ HOME SCREEN WIDGETS
 EXPORT WHATEVER YOU NEED
 • One-tap CSV export for spreadsheets
 • Full JSON backup for portability
+• PDF protocol report (PeptideX Pro)
 • Nothing is ever uploaded unless you choose to share it
 
 PRIVATE BY DEFAULT
@@ -94,11 +100,12 @@ PRIVATE BY DEFAULT
 • Privacy manifest declares zero collected data types
 
 PEPTIDEX PRO
-Unlock unlimited protocols, full analytics with HealthKit correlation, AI
-insights, all Home Screen widgets, and full CSV / JSON / PDF export with a
-monthly or annual subscription, or a one-time lifetime purchase. A 7-day
-free trial is available on monthly; 14 days on annual. Cancel anytime in
-your Apple ID settings.
+Unlock unlimited protocols, full analytics with HealthKit correlation,
+on-device smart insights (adherence patterns and stack guidance), both Home
+Screen widget sizes, and full CSV / JSON / PDF export with a monthly or annual
+subscription, or a one-time lifetime purchase. A 7-day free trial is
+available on monthly; 14 days on annual. Cancel anytime in your Apple ID
+settings.
 
 IMPORTANT — MEDICAL DISCLAIMER
 PeptideX is an educational and tracking tool. It is not a medical device and
@@ -115,9 +122,11 @@ stopping any protocol.
 ```
 peptide,protocol,tracker,bpc,health,fitness,supplement,reminder,dose,hrv,sleep,compliance
 ```
+
 *(91 / 100 — balances general health/fitness discovery with peptide-specific terms)*
 
 More technical alternative (narrower audience, higher intent):
+
 ```
 peptide,protocol,tracker,bpc157,tb500,biohack,supplement,injection,dose,reminder,hrv,analytics
 ```
@@ -138,7 +147,7 @@ Version 1.0 ships the full v1 experience:
 • Home Screen widgets for next dose and compliance ring
 • Rich local dose reminders with Mark as Taken / Snooze
 • 14 achievements
-• CSV and JSON export
+• CSV, JSON, and PDF export (Pro)
 • PeptideX Pro subscription with a 7- or 14-day free trial, or one-time lifetime purchase
 
 Private by default: no backend, no analytics, no third-party SDKs.
@@ -155,15 +164,17 @@ Recommended: **17+**
 
 Apple's questionnaire answers:
 
-| Question | Answer |
-|---|---|
-| Unrestricted Web Access | No |
-| Gambling | No |
-| Contests | No |
-| Medical/Treatment Information | **Frequent/Intense** *(the app centers on dosing and protocols)* |
-| Drug, Alcohol, or Tobacco Use or References | **Infrequent/Mild** *(references peptides and research chemicals)* |
-| Sexual Content, Nudity, Violence, Profanity, Horror | None |
-| User-Generated Content | No |
+
+| Question                                            | Answer                                                             |
+| --------------------------------------------------- | ------------------------------------------------------------------ |
+| Unrestricted Web Access                             | No                                                                 |
+| Gambling                                            | No                                                                 |
+| Contests                                            | No                                                                 |
+| Medical/Treatment Information                       | **Frequent/Intense** *(the app centers on dosing and protocols)*   |
+| Drug, Alcohol, or Tobacco Use or References         | **Infrequent/Mild** *(references peptides and research chemicals)* |
+| Sexual Content, Nudity, Violence, Profanity, Horror | None                                                               |
+| User-Generated Content                              | No                                                                 |
+
 
 Medical/Treatment + references typically yields a **17+** rating, which is
 appropriate for this audience and avoids back-and-forth with App Review.
@@ -175,10 +186,12 @@ appropriate for this audience and avoids back-and-forth with App Review.
 Your `PrivacyInfo.xcprivacy` already declares this, but App Store Connect
 will ask again. Answers:
 
-| Question | Answer |
-|---|---|
+
+| Question                                                        | Answer |
+| --------------------------------------------------------------- | ------ |
 | Do you or your third-party partners collect data from this app? | **No** |
-| Tracking (ATT)? | **No** |
+| Tracking (ATT)?                                                 | **No** |
+
 
 Since the answer is "No", no data categories need to be disclosed.
 
@@ -200,11 +213,13 @@ App Store Connect will not ask further questions.
 ## Review Information
 
 ### Sign-in credentials
+
 *(Provide only if the reviewer must sign in. PeptideX works without sign-in,
 so this is optional. If you leave it off, add a line to Notes explaining
 "Sign in with Apple is optional — every feature works without an account.")*
 
 ### Contact Information
+
 - First name: `<YOUR FIRST NAME>`
 - Last name: `<YOUR LAST NAME>`
 - Phone: `<YOUR PHONE>`
@@ -233,6 +248,11 @@ Thank you for reviewing PeptideX.
   without additional setup. Full data export (CSV / JSON / PDF) is a Pro
   feature; uninstalling the app removes all local data regardless of
   subscription status.
+• "Insights" in the app are generated on-device from the user's own logs
+  (streaks, patterns, milestones) plus the bundled stack recommendation
+  engine — not a generative-AI chat or cloud research assistant. There is no
+  iCloud sync or Apple Watch app in v1.0; data stays on-device unless the user
+  exports it.
 • No backend of our own, no analytics, no third-party SDKs. Network use is
   limited to Apple's StoreKit and (optionally) Sign in with Apple. App
   Privacy manifest declares NSPrivacyTracking=false and an empty collected
@@ -248,11 +268,13 @@ Support contact: support@peptidesai.com
 iOS requires at least the following (take in Simulator with
 `xcrun simctl io <device> screenshot`):
 
-| Device class | Size | Count |
-|---|---|---|
-| iPhone 6.9" (iPhone 16 Pro Max) | 1320 × 2868 | 3–10 |
+
+| Device class                    | Size        | Count                                               |
+| ------------------------------- | ----------- | --------------------------------------------------- |
+| iPhone 6.9" (iPhone 16 Pro Max) | 1320 × 2868 | 3–10                                                |
 | iPhone 6.5" (iPhone 11 Pro Max) | 1242 × 2688 | 3–10 *(legacy fallback, optional if 6.9" provided)* |
-| iPad Pro 13" (M4) | 2064 × 2752 | 3–10 *(required since you target iPad)* |
+| iPad Pro 13" (M4)               | 2064 × 2752 | 3–10 *(required since you target iPad)*             |
+
 
 Suggested screen order (per device):
 
@@ -272,27 +294,32 @@ App Store listing icon.
 
 ## Subscriptions (In-App Purchases)
 
-| Product | Product ID | Type | Price | Trial |
-|---|---|---|---|---|
-| PeptideX Pro — Monthly | `com.peptidesai.app.pro.monthly` | Auto-Renewable | $9.99/mo | 7 days |
-| PeptideX Pro — Annual | `com.peptidesai.app.pro.annual` | Auto-Renewable | $49.99/yr | 14 days |
-| PeptideX Pro — Lifetime | `com.peptidesai.app.pro.lifetime` | Non-Consumable | $169.00 | — |
+
+| Product                 | Product ID                        | Type           | Price     | Trial   |
+| ----------------------- | --------------------------------- | -------------- | --------- | ------- |
+| PeptideX Pro — Monthly  | `com.peptidesai.app.pro.monthly`  | Auto-Renewable | $9.99/mo  | 7 days  |
+| PeptideX Pro — Annual   | `com.peptidesai.app.pro.annual`   | Auto-Renewable | $49.99/yr | 14 days |
+| PeptideX Pro — Lifetime | `com.peptidesai.app.pro.lifetime` | Non-Consumable | $169.00   | —       |
+
 
 **Subscription group:** `PeptideX Pro`
 
 **Localization (display name and description) for each subscription:**
 
 Monthly:
+
 - Display Name: `PeptideX Pro Monthly`
-- Description: `Unlimited protocols, full analytics with HealthKit correlation, AI insights, all widgets, and full CSV/JSON/PDF export. Renews monthly; cancel anytime.`
+- Description: `Unlimited protocols, full analytics with HealthKit correlation, on-device insights and stack guidance, both widget sizes, and full CSV/JSON/PDF export. Renews monthly; cancel anytime.`
 
 Annual:
+
 - Display Name: `PeptideX Pro Annual`
-- Description: `PeptideX Pro for a full year. Unlimited protocols, full analytics, AI insights, all widgets, full data export. Save versus monthly billing.`
+- Description: `PeptideX Pro for a full year. Unlimited protocols, full analytics, on-device insights, both widget sizes, full data export. Save versus monthly billing.`
 
 Lifetime (non-consumable, listed under In-App Purchases, not Subscriptions):
+
 - Display Name: `PeptideX Pro Lifetime`
-- Description: `One-time purchase. Unlock PeptideX Pro forever — unlimited protocols, full analytics, AI insights, all widgets, and full data export. No subscription, no renewals.`
+- Description: `One-time purchase. Unlock PeptideX Pro forever — unlimited protocols, full analytics, on-device insights, both widget sizes, and full data export. No subscription, no renewals.`
 
 Auto-renewal disclosure (already shown on the in-app paywall) satisfies
 Apple's requirement for the auto-renewable subscriptions.
@@ -303,18 +330,18 @@ Apple's requirement for the auto-renewable subscriptions.
 
 Tick off before hitting Submit:
 
-- [ ] GitHub Pages deployed — `https://wrexist.github.io/Peptide-ai/privacy.html` returns **200** (Cayman uses default permalinks, so `.html` is correct — verify with `curl -I` before pasting into App Store Connect; the privacy URL is hard to change after submission)
-- [ ] Support URL `/support.html` returns **200**
-- [ ] Marketing URL `/` returns **200**
-- [ ] Privacy page is publicly accessible (no auth, no JS dependency for content — Apple's review crawler must read it)
-- [ ] TestFlight build uploaded and installable
-- [ ] Install on a real device — HealthKit, Face ID, paywall, widget all work
-- [ ] Screenshots uploaded for 6.9" iPhone + 13" iPad
-- [ ] All three IAP products (Monthly, Annual, Lifetime) approved in App Store Connect
-- [ ] App Privacy questionnaire answered (all No)
-- [ ] Age rating set to 17+
-- [ ] Review notes pasted above
-- [ ] `review@peptidesai.com` inbox monitored
+- GitHub Pages deployed — `https://wrexist.github.io/Peptide-ai/privacy.html` returns **200** (Cayman uses default permalinks, so `.html` is correct — verify with `curl -I` before pasting into App Store Connect; the privacy URL is hard to change after submission)
+- Support URL `/support.html` returns **200**
+- Marketing URL `/` returns **200**
+- Privacy page is publicly accessible (no auth, no JS dependency for content — Apple's review crawler must read it)
+- TestFlight build uploaded and installable
+- Install on a real device — HealthKit, Face ID, paywall, widget all work
+- Screenshots uploaded for 6.9" iPhone + 13" iPad
+- All three IAP products (Monthly, Annual, Lifetime) approved in App Store Connect
+- App Privacy questionnaire answered (all No)
+- Age rating set to 17+
+- Review notes pasted above
+- `review@peptidesai.com` inbox monitored
 
 ### Quick URL verification (run after enabling Pages, before Submit)
 

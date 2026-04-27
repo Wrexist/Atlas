@@ -65,7 +65,7 @@ final class StoreService {
         products.first { $0.id == Self.lifetimeID }
     }
 
-    /// Display string for the monthly intro offer ("3 days free"). `nil` when
+    /// Display string for the monthly intro offer (e.g. "7 days free"). `nil` when
     /// there is no intro offer or the product hasn't loaded yet.
     var monthlyTrialDisplay: String? {
         guard let intro = monthlyProduct?.subscription?.introductoryOffer,
@@ -103,8 +103,8 @@ final class StoreService {
     }
 
     /// Starts the monthly subscription, which auto-applies the configured
-    /// 3-day free trial intro offer when the user is eligible. After the
-    /// trial Apple auto-renews monthly until the user cancels.
+    /// free-trial intro offer from App Store Connect when the user is eligible.
+    /// After the trial Apple auto-renews monthly until the user cancels.
     @discardableResult
     func startMonthlyTrial() async throws -> Bool {
         guard let monthly = monthlyProduct else { return false }
@@ -124,8 +124,8 @@ final class StoreService {
 
     var canAccessUnlimitedProtocols: Bool { isProUser }
     var canAccessFullAnalytics: Bool { isProUser }
-    var canAccessAIFeatures: Bool { isProUser }
-    var canAccessCloudSync: Bool { isProUser }
+    /// Pro-gated smart insights (rule-based `InsightEngine`, stack guidance) — not a cloud LLM.
+    var canAccessSmartInsights: Bool { isProUser }
     var canAccessExport: Bool { isProUser }
     var canAccessAllWidgets: Bool { isProUser }
 

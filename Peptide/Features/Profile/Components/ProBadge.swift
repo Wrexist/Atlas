@@ -37,7 +37,7 @@ struct UpgradePromptCard: View {
                         Text("Upgrade to Pro")
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
-                        Text("Unlimited protocols, AI insights, and more")
+                        Text("Unlimited protocols, full analytics, and more")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                     }

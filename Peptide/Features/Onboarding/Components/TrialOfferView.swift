@@ -3,10 +3,10 @@ import SwiftUI
 import UIKit
 #endif
 
-/// Conversion-optimized 3-day free trial paywall surfaced at the end of
-/// onboarding. Calls `StoreService.startMonthlyTrial()` which delegates to
-/// `Product.purchase()` — Apple presents the intro offer sheet and, after the
-/// 3-day free period, auto-renews the monthly subscription until cancellation.
+/// Free-trial offer surfaced at the end of onboarding. Calls
+/// `StoreService.startMonthlyTrial()` which delegates to `Product.purchase()` —
+/// Apple presents the intro offer sheet; trial length comes from App Store
+/// Connect (local StoreKit config mirrors production for development).
 struct TrialOfferView: View {
     let onAccept: () -> Void
     let onDecline: () -> Void
@@ -25,7 +25,7 @@ struct TrialOfferView: View {
     private var trialDays: Int {
         guard let intro = storeService.monthlyProduct?.subscription?.introductoryOffer,
               intro.paymentMode == .freeTrial
-        else { return 3 }
+        else { return 7 }
         return intro.period.value * intro.periodCount
     }
 
@@ -137,8 +137,8 @@ struct TrialOfferView: View {
     private let benefits: [(String, String)] = [
         ("infinity", "Unlimited protocols & stacks"),
         ("chart.xyaxis.line", "Full analytics + HealthKit correlation"),
-        ("brain.head.profile.fill", "AI insights & smart recommendations"),
-        ("icloud.fill", "Cloud sync across all your devices"),
+        ("sparkles.rectangle.stack", "Smart insights & stack guidance on-device"),
+        ("square.grid.2x2.fill", "Home Screen widgets for doses & compliance"),
     ]
 
     private func benefitRow(icon: String, title: String, index: Int) -> some View {

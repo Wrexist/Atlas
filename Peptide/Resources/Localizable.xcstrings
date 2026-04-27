@@ -1,60 +1,60 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "3 days free": {
+    "7 days free": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "3 días gratis"
+            "value": "7 días gratis"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "3天免费"
+            "value": "7天免费"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "3日間無料"
+            "value": "7日間無料"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "3 Tage kostenlos"
+            "value": "7 Tage kostenlos"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "3 jours gratuits"
+            "value": "7 jours gratuits"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "3 dias grátis"
+            "value": "7 dias grátis"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "3일 무료"
+            "value": "7일 무료"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "3 дня бесплатно"
+            "value": "7 дней бесплатно"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "3 أيام مجانا"
+            "value": "7 أيام مجانا"
           }
         }
       }
