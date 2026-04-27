@@ -29,12 +29,12 @@ struct OnboardingView: View {
     }
 
     private let goals: [OnboardingGoal] = [
-        .init(title: "Muscle Recovery", icon: "figure.strengthtraining.traditional", tint: Color(hex: 0x5B8FB9)),
-        .init(title: "Better Sleep", icon: "moon.stars.fill", tint: Color(hex: 0x9B72CF)),
-        .init(title: "Cognitive Edge", icon: "brain.head.profile.fill", tint: Color(hex: 0x9B72CF)),
-        .init(title: "Anti-Aging", icon: "sparkles", tint: Color(hex: 0xD4A844)),
-        .init(title: "Fat Loss", icon: "flame.fill", tint: Color(hex: 0xE88D4F)),
-        .init(title: "Immune Support", icon: "shield.lefthalf.filled", tint: Color(hex: 0xCF7272)),
+        .init(title: "Muscle Recovery", icon: "figure.strengthtraining.traditional", tint: OnboardingTint.muscleRecovery),
+        .init(title: "Better Sleep", icon: "moon.stars.fill", tint: OnboardingTint.sleep),
+        .init(title: "Cognitive Edge", icon: "brain.head.profile.fill", tint: OnboardingTint.cognitive),
+        .init(title: "Anti-Aging", icon: "sparkles", tint: OnboardingTint.antiAging),
+        .init(title: "Fat Loss", icon: "flame.fill", tint: OnboardingTint.fatLoss),
+        .init(title: "Immune Support", icon: "shield.lefthalf.filled", tint: OnboardingTint.immune),
         .init(title: "Joint Health", icon: "figure.flexibility", tint: AppColor.accentPrimary),
         .init(title: "Stress Reduction", icon: "leaf.fill", tint: AppColor.accentLight),
     ]
@@ -720,64 +720,7 @@ struct OnboardingView: View {
     }
 }
 
-// MARK: - Welcome Feature Badge
-
-private struct WelcomeFeatureBadge: View {
-    let icon: String
-    let label: String
-
-    var body: some View {
-        VStack(spacing: Spacing.xs) {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
-                .frame(width: 40, height: 40)
-                .background {
-                    Circle()
-                        .fill(AppColor.glassTint)
-                        .overlay {
-                            Circle().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
-                        }
-                }
-
-            Text(label)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
-// MARK: - Ready Hero
-
-private struct ReadyHero: View {
-    let bounceTrigger: Int
-    @State private var ringScale: CGFloat = 0.8
-    @State private var ringOpacity: Double = 0.6
-
-    var body: some View {
-        ZStack {
-            ForEach(0..<3, id: \.self) { index in
-                Circle()
-                    .strokeBorder(AppColor.accentPrimary.opacity(0.5), lineWidth: 1)
-                    .frame(width: 130, height: 130)
-                    .scaleEffect(ringScale + CGFloat(index) * 0.15)
-                    .opacity(ringOpacity - Double(index) * 0.15)
-            }
-
-            HeroIcon(symbol: "checkmark.circle.fill", size: 100, bounceTrigger: bounceTrigger)
-        }
-        .onAppear {
-            withAnimation(.easeOut(duration: 1.8).repeatForever(autoreverses: false)) {
-                ringScale = 1.7
-                ringOpacity = 0
-            }
-        }
-    }
-}
+// WelcomeFeatureBadge and ReadyHero live in Onboarding/Components/.
 
 #Preview {
     OnboardingView()

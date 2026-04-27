@@ -47,8 +47,7 @@ final class DataStore: DataServiceProtocol {
 
     private var entriesByDay: [Date: [ProtocolEntry]] {
         if let cached = _entriesByDay, cached.version == cacheVersion { return cached.value }
-        let calendar = Calendar.current
-        let grouped = Dictionary(grouping: entries) { calendar.startOfDay(for: $0.date) }
+        let grouped = entries.groupedByDay
         _entriesByDay = (cacheVersion, grouped)
         return grouped
     }
@@ -434,10 +433,9 @@ final class DataStore: DataServiceProtocol {
     }
 
     var averageCompliance: Double {
-        let calendar = Calendar.current
         let now = Date()
         let pastEntries = entries.filter { $0.date <= now }
-        let grouped = Dictionary(grouping: pastEntries) { calendar.startOfDay(for: $0.date) }
+        let grouped = pastEntries.groupedByDay
         guard !grouped.isEmpty else { return 0 }
 
         let dailyCompliance = grouped.map { _, dayEntries in

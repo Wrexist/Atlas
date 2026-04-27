@@ -73,15 +73,17 @@ struct InsightEngine {
 
     private static func calculateStreak(entries: [ProtocolEntry]) -> Int {
         let calendar = Calendar.current
+        let grouped = entries.groupedByDay
+        let todayStart = calendar.startOfDay(for: Date())
         var streak = 0
         var consecutiveEmptyDays = 0
 
-        let todayEntries = entries.filter { calendar.isDateInToday($0.date) }
+        let todayEntries = grouped[todayStart] ?? []
         let startOffset = todayEntries.contains(where: \.completed) ? 0 : 1
 
         for dayOffset in startOffset..<365 {
-            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { break }
-            let dayEntries = entries.filter { calendar.isDate($0.date, inSameDayAs: date) }
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: todayStart) else { break }
+            let dayEntries = grouped[date] ?? []
 
             if dayEntries.isEmpty {
                 consecutiveEmptyDays += 1
