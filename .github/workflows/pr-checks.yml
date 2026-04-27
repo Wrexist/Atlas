@@ -91,6 +91,19 @@ jobs:
           print(f"Generated {out}")
           EOF
 
+      - name: Validate resource files
+        run: |
+          # Fail fast on malformed property lists. plutil -lint exits non-zero
+          # if any of these can't be parsed.
+          plutil -lint Peptide/Resources/Info.plist
+          plutil -lint PeptideWidgets/Info.plist
+          plutil -lint Peptide/Resources/PrivacyInfo.xcprivacy
+          # String catalogs are JSON; plutil parses them too.
+          plutil -lint Peptide/Resources/Localizable.xcstrings
+          # Entitlements are plists.
+          plutil -lint Peptide/Peptide.entitlements
+          plutil -lint PeptideWidgets/PeptideWidgets.entitlements
+
       - name: Build
         run: |
           xcodebuild build \
@@ -124,11 +137,64 @@ jobs:
             -scheme Peptide \
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
             -configuration Debug \
+            -enableCodeCoverage YES \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             -only-testing:PeptideTests \
             -resultBundlePath UnitTestResults.xcresult 2>&1 | tee test-output.log
+
+      - name: Coverage report
+        if: always()
+        run: |
+          if [ ! -d UnitTestResults.xcresult ]; then
+            echo "No xcresult bundle — skipping coverage."
+            exit 0
+          fi
+
+          # xccov is the supported, version-stable interface for coverage data.
+          if ! xcrun xccov view --report --json UnitTestResults.xcresult > coverage.json 2>/dev/null; then
+            echo "xccov could not read coverage from the bundle."
+            exit 0
+          fi
+
+          PCT=$(python3 -c '
+          import json
+          c = json.load(open("coverage.json"))
+          line = c.get("lineCoverage")
+          if isinstance(line, (int, float)):
+              print(f"{line * 100:.1f}")
+          else:
+              print("0.0")
+          ')
+
+          echo "Total line coverage: ${PCT}%"
+          {
+            echo "## Code coverage"
+            echo ""
+            echo "Total line coverage: **${PCT}%**"
+            echo ""
+            echo "Per-target breakdown:"
+            echo ""
+            echo "| Target | Coverage |"
+            echo "|--------|----------|"
+            python3 -c '
+          import json
+          c = json.load(open("coverage.json"))
+          for t in c.get("targets", []):
+              name = t.get("name", "?")
+              cov = t.get("lineCoverage", 0) * 100
+              print(f"| {name} | {cov:.1f}% |")
+          '
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Soft gate: warn (but don't fail) below 25%. Raise this number once
+          # the suite grows. Track in the PR summary either way.
+          MIN="25.0"
+          BELOW=$(python3 -c "print(1 if float('${PCT}') < float('${MIN}') else 0)")
+          if [ "$BELOW" = "1" ]; then
+            echo "::warning::Line coverage ${PCT}% is below the ${MIN}% threshold."
+          fi
 
       - name: Print test failures
         if: failure()

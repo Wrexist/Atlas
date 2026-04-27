@@ -1,0 +1,147 @@
+name: Binary Size Guard
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "Peptide/**"
+      - "PeptideWidgets/**"
+      - "Shared/**"
+      - "project.yml"
+      - ".github/workflows/binary-size.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: binary-size-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  size-check:
+    runs-on: macos-15
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need both PR HEAD and main so we can build each in turn.
+          fetch-depth: 0
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Cache Homebrew packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /usr/local/Cellar/xcodegen
+            /opt/homebrew/Cellar/xcodegen
+          key: brew-xcodegen-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install XcodeGen
+        run: |
+          brew list xcodegen &>/dev/null || brew install xcodegen
+          echo "$(brew --prefix)/bin" >> $GITHUB_PATH
+
+      - name: Build PR HEAD
+        id: pr_size
+        run: |
+          xcodegen generate
+          xcodebuild build \
+            -project Peptide.xcodeproj \
+            -scheme Peptide \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            -derivedDataPath build-pr \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+          APP=$(find build-pr/Build/Products/Release-iphoneos -name "Peptide.app" -type d | head -1)
+          if [ -z "$APP" ] || [ ! -d "$APP" ]; then
+            echo "FATAL: Could not locate Peptide.app in build-pr"
+            exit 1
+          fi
+          PR_BYTES=$(du -sk "$APP" | awk '{print $1 * 1024}')
+          echo "pr_bytes=$PR_BYTES" >> "$GITHUB_OUTPUT"
+          echo "PR HEAD .app size: $(numfmt --to=iec-i --suffix=B $PR_BYTES 2>/dev/null || echo "$PR_BYTES bytes")"
+
+      - name: Build main baseline
+        id: main_size
+        run: |
+          # Stash any project changes from xcodegen generate
+          git stash --include-untracked --quiet || true
+          git checkout origin/main -- .
+          xcodegen generate
+
+          xcodebuild build \
+            -project Peptide.xcodeproj \
+            -scheme Peptide \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            -derivedDataPath build-main \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+          APP=$(find build-main/Build/Products/Release-iphoneos -name "Peptide.app" -type d | head -1)
+          if [ -z "$APP" ] || [ ! -d "$APP" ]; then
+            echo "Could not locate Peptide.app in main build — comparison skipped."
+            echo "main_bytes=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          MAIN_BYTES=$(du -sk "$APP" | awk '{print $1 * 1024}')
+          echo "main_bytes=$MAIN_BYTES" >> "$GITHUB_OUTPUT"
+          echo "main .app size: $(numfmt --to=iec-i --suffix=B $MAIN_BYTES 2>/dev/null || echo "$MAIN_BYTES bytes")"
+
+      - name: Compare and gate
+        if: always()
+        env:
+          PR_BYTES: ${{ steps.pr_size.outputs.pr_bytes }}
+          MAIN_BYTES: ${{ steps.main_size.outputs.main_bytes }}
+        run: |
+          if [ -z "$PR_BYTES" ]; then
+            echo "PR build did not produce a .app — nothing to compare."
+            exit 0
+          fi
+
+          PR_HUMAN=$(numfmt --to=iec-i --suffix=B "$PR_BYTES" 2>/dev/null || echo "$PR_BYTES bytes")
+
+          if [ -z "$MAIN_BYTES" ] || [ "$MAIN_BYTES" = "0" ]; then
+            {
+              echo "## Binary size"
+              echo ""
+              echo "PR Peptide.app: **$PR_HUMAN**"
+              echo ""
+              echo "_main baseline unavailable — first run on this branch._"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          MAIN_HUMAN=$(numfmt --to=iec-i --suffix=B "$MAIN_BYTES" 2>/dev/null || echo "$MAIN_BYTES bytes")
+          DELTA=$((PR_BYTES - MAIN_BYTES))
+          DELTA_HUMAN=$(numfmt --to=iec-i --suffix=B "${DELTA#-}" 2>/dev/null || echo "${DELTA} bytes")
+          [ "$DELTA" -lt 0 ] && DELTA_HUMAN="-$DELTA_HUMAN" || DELTA_HUMAN="+$DELTA_HUMAN"
+          PCT=$(python3 -c "print(f'{(${PR_BYTES} - ${MAIN_BYTES}) / ${MAIN_BYTES} * 100:+.1f}')")
+
+          {
+            echo "## Binary size"
+            echo ""
+            echo "| | Size |"
+            echo "|---|------|"
+            echo "| PR HEAD | $PR_HUMAN |"
+            echo "| main | $MAIN_HUMAN |"
+            echo "| Delta | $DELTA_HUMAN ($PCT%) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Hard fail at >10% growth so unintended bloat blocks the PR.
+          OVER=$(python3 -c "print(1 if (${PR_BYTES} - ${MAIN_BYTES}) / ${MAIN_BYTES} > 0.10 else 0)")
+          if [ "$OVER" = "1" ]; then
+            echo "::error::Binary grew $PCT% vs main (limit: +10%). Investigate before merging."
+            exit 1
+          fi
+
+          echo "Binary size delta: $PCT% — within budget."
