@@ -49,24 +49,10 @@ struct AccountSection: View {
             + Text("Apple ID")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(AppColor.accentLight)
-            + Text(" to enable ")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            + Text("cloud sync")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(AppColor.accentLight)
-            + Text(" across your devices. Your data stays ")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            + Text("private and encrypted")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(AppColor.accentLight)
-            + Text(".")
+            + Text(" to keep your PeptideX account associated with your device. All your protocols, entries, and settings stay on this device.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary))
                 .lineSpacing(3)
-
-            featurePreview
 
             SignInWithAppleButton(.signIn) { request in
                 request.requestedScopes = [.fullName, .email]
@@ -87,30 +73,6 @@ struct AccountSection: View {
         }
     }
 
-    // MARK: - Feature Preview
-
-    private var featurePreview: some View {
-        HStack(spacing: Spacing.md) {
-            featureItem(icon: "icloud", label: "Cloud\nBackup")
-            featureItem(icon: "arrow.triangle.2.circlepath", label: "Multi-\nDevice")
-            featureItem(icon: "lock.shield", label: "Encrypted\nSync")
-        }
-    }
-
-    private func featureItem(icon: String, label: String) -> some View {
-        VStack(spacing: Spacing.xs) {
-            Image(systemName: icon)
-                .font(.system(size: 18))
-                .foregroundStyle(AppColor.accentLight)
-            Text(label)
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textTertiary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
     // MARK: - Signed In
 
     private var signedInContent: some View {
@@ -121,29 +83,6 @@ struct AccountSection: View {
 
             if let name = authService.userDisplayName {
                 accountRow(icon: "person.fill", label: name)
-            }
-
-            Divider()
-                .overlay(AppColor.glassBorder)
-
-            HStack(spacing: Spacing.md) {
-                Image(systemName: "checkmark.icloud.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(AppColor.accentPrimary)
-
-                Text("Cloud sync ready")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-
-                Spacer()
-
-                Text("Coming soon")
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textTertiary)
-                    .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, Spacing.xxs)
-                    .background(AppColor.glassBorder.opacity(0.3))
-                    .clipShape(Capsule())
             }
 
             Divider()

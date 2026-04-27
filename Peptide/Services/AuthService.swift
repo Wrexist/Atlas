@@ -4,7 +4,7 @@ import Security
 /// Manages Sign in with Apple identity and Keychain-backed credential persistence.
 ///
 /// Fully optional — every feature works without sign-in. The stored user identifier
-/// gates cloud sync eligibility in future releases.
+/// is reserved for future server-backed features; the v1.x app does not transmit it.
 @MainActor @Observable
 final class AuthService {
     static let shared = AuthService()
