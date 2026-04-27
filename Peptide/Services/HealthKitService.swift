@@ -19,6 +19,8 @@ final class HealthKitService {
     @ObservationIgnored private let store = HKHealthStore()
     private(set) var cachedSnapshot: HealthSnapshot?
     private var isBackgroundDeliveryStarted = false
+    /// Strong references until `stopBackgroundDelivery()` — required so observer callbacks stay registered.
+    @ObservationIgnored private var activeObserverQueries: [HKQuery] = []
 
     private init() {}
 
@@ -67,11 +69,20 @@ final class HealthKitService {
         }
         await enableAndObserve(HKCategoryType(.sleepAnalysis), frequency: .daily)
 
+        if activeObserverQueries.isEmpty {
+            isBackgroundDeliveryStarted = false
+            return
+        }
+
         // Populate cache immediately so Analytics has data on first open
         await refreshSnapshot()
     }
 
     func stopBackgroundDelivery() {
+        for query in activeObserverQueries {
+            store.stop(query)
+        }
+        activeObserverQueries.removeAll()
         store.disableAllBackgroundDelivery { _, _ in }
         isBackgroundDeliveryStarted = false
     }
@@ -115,7 +126,7 @@ final class HealthKitService {
         }
 
         let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { _, completionHandler, error in
-            // Call immediately — our refresh runs in a separate Task per Apple's guidance
+            // Call completionHandler first — Apple recommends not blocking the callback
             completionHandler()
             guard error == nil else { return }
             Task { @MainActor [weak self] in
@@ -123,6 +134,7 @@ final class HealthKitService {
             }
         }
         store.execute(query)
+        activeObserverQueries.append(query)
     }
 
     // MARK: - Heart Rate

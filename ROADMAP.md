@@ -21,7 +21,7 @@ PeptideX is a native iOS SwiftUI app for tracking peptide supplementation protoc
 | **Export** | Complete | CSV + JSON full backup + PDF report via share sheet |
 | **Biometric lock** | Complete | Optional Face ID / Touch ID; Profile → Appearance |
 | **Onboarding** | Complete | 4-page flow: welcome, goal selection (8 goals), experience level, ready |
-| **HealthKit** | On-demand | Reads 7 data types (HR, HRV, sleep, weight, steps, energy). No background delivery |
+| **HealthKit** | Complete | Reads 7 data types (HR, HRV, sleep, weight, steps, energy). When the user connects Health in Profile, enables background delivery + `HKObserverQuery` per type, refreshes snapshot, reloads widgets; observers stop cleanly on disconnect |
 | **Persistence** | JSON files | PersistenceService writes protocols/entries/profile to Documents. Atomic writes, ISO8601 dates |
 | **StoreKit 2** | Complete | Monthly + annual subscriptions, paywall, transaction verification, restore purchases |
 | **Testing** | 150+ tests | Unit tests across engines, services, persistence; UI smoke tests |
@@ -31,13 +31,13 @@ PeptideX is a native iOS SwiftUI app for tracking peptide supplementation protoc
 
 ## Next: v1.1.0 — Reliability & Polish
 
-> Items not yet shipped in v1.0.0; biometric lock and PDF export are already in the app.
+> Paywall / metadata hygiene is an ongoing App Store Connect task. HealthKit background delivery ships with v1 when Health is connected (`HealthKitService` + `PeptideApp`).
 
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
-| 1.1 | **HealthKit background delivery** | 1-2 days | Add `HKObserverQuery` and `enableBackgroundDelivery` so widgets and insights update without opening the app |
-| 1.2 | **Paywall / metadata hygiene** | Hours | Keep App Store copy, `Products.storekit`, and in-app Pro bullets aligned with shipped features (ongoing) |
-| 1.3 | **Optional: iPad layout pass** | 1-2 days | `NavigationSplitView` and wider analytics where it helps |
+| 1.1 | **Paywall / metadata hygiene** | Ongoing | Keep App Store copy, `Products.storekit`, and in-app Pro bullets aligned with shipped features |
+| 1.2 | **Optional: iPad layout pass** | 1-2 days | `NavigationSplitView` and wider analytics where it helps |
+| 1.3 | **Optional: HealthKit edge cases** | Hours | e.g. finer handling when the user revokes read access for only some types |
 
 ---
 
@@ -105,7 +105,7 @@ v3.0.0 (Community & AI)
 v3.5.0+ (Growth & Polish)
 ```
 
-**Parallelism:** v1.1.0 items (HealthKit background delivery, layout polish) are independent where noted. v2.5.0 ecosystem features are independent of v2.0.0 sync features. v3.0.0 AI features are independent of community features.
+**Parallelism:** v1.1.0 items (metadata hygiene, optional iPad polish) are independent where noted. v2.5.0 ecosystem features are independent of v2.0.0 sync features. v3.0.0 AI features are independent of community features.
 
 ---
 
