@@ -17,6 +17,44 @@ final class PeptideUITests: XCTestCase {
         super.tearDown()
     }
 
+    /// iPhone: tab bar. iPad: sidebar list in `NavigationSplitView`.
+    private func selectTab(named title: String) {
+        if XCUIDevice.shared.orientation == .portrait,
+           UIDevice.current.userInterfaceIdiom == .pad {
+            app.navigationBars.buttons["PeptideX"].firstMatch.tap()
+        }
+
+        let tabButton = app.tabBars.buttons[title]
+        if tabButton.exists {
+            tabButton.tap()
+            return
+        }
+
+        let sidebarRow = app.tables.cells.containing(.staticText, identifier: title).element(boundBy: 0)
+        if sidebarRow.waitForExistence(timeout: 3) {
+            sidebarRow.tap()
+            return
+        }
+
+        let sidebarStatic = app.tables.staticTexts[title].firstMatch
+        XCTAssertTrue(
+            sidebarStatic.waitForExistence(timeout: 3),
+            "Could not find tab '\(title)' in tab bar or sidebar"
+        )
+        sidebarStatic.tap()
+    }
+
+    private func assertTabSelected(named title: String) {
+        let tabButton = app.tabBars.buttons[title]
+        if tabButton.exists {
+            XCTAssertTrue(tabButton.isSelected, "\(title) tab should be selected")
+            return
+        }
+        let cell = app.tables.cells.containing(.staticText, identifier: title).element(boundBy: 0)
+        XCTAssertTrue(cell.waitForExistence(timeout: 2))
+        XCTAssertTrue(cell.isSelected, "\(title) sidebar row should be selected")
+    }
+
     func test_appLaunches() {
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5))
     }
@@ -24,28 +62,28 @@ final class PeptideUITests: XCTestCase {
     func test_allTabsAreReachable() {
         let tabs = ["Home", "Peptides", "Protocols", "Analytics", "Profile"]
         for tab in tabs {
-            app.tabBars.buttons[tab].tap()
-            XCTAssertTrue(app.tabBars.buttons[tab].isSelected, "\(tab) tab should be selected")
+            selectTab(named: tab)
+            assertTabSelected(named: tab)
         }
     }
 
     func test_peptidesTab_loads() {
-        app.tabBars.buttons["Peptides"].tap()
-        XCTAssertTrue(app.tabBars.buttons["Peptides"].isSelected)
+        selectTab(named: "Peptides")
+        assertTabSelected(named: "Peptides")
     }
 
     func test_protocolsTab_loads() {
-        app.tabBars.buttons["Protocols"].tap()
-        XCTAssertTrue(app.tabBars.buttons["Protocols"].isSelected)
+        selectTab(named: "Protocols")
+        assertTabSelected(named: "Protocols")
     }
 
     func test_analyticsTab_loads() {
-        app.tabBars.buttons["Analytics"].tap()
-        XCTAssertTrue(app.tabBars.buttons["Analytics"].isSelected)
+        selectTab(named: "Analytics")
+        assertTabSelected(named: "Analytics")
     }
 
     func test_profileTab_loads() {
-        app.tabBars.buttons["Profile"].tap()
-        XCTAssertTrue(app.tabBars.buttons["Profile"].isSelected)
+        selectTab(named: "Profile")
+        assertTabSelected(named: "Profile")
     }
 }

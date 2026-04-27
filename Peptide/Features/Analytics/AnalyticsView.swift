@@ -16,6 +16,14 @@ enum TimeRange: String, CaseIterable, CustomStringConvertible {
     }
 }
 
+struct AnalyticsRootView: View {
+    var body: some View {
+        NavigationStack {
+            AnalyticsView()
+        }
+    }
+}
+
 struct AnalyticsView: View {
     @Environment(DataStore.self) private var dataStore
     @State private var selectedRange: TimeRange = .week
@@ -27,9 +35,8 @@ struct AnalyticsView: View {
         let compliance = complianceData
         let avgCompliance = compliance.isEmpty ? 0 : compliance.map(\.compliance).reduce(0, +) / Double(compliance.count)
 
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: Spacing.lg) {
+        ScrollView {
+            VStack(spacing: Spacing.lg) {
                     GlassSegmentedControl(
                         options: TimeRange.allCases,
                         selected: Binding(
@@ -76,14 +83,13 @@ struct AnalyticsView: View {
                         )
                     )
                     .sectionAppear(index: 6)
-                }
-                .padding(.horizontal, Spacing.screenPadding)
-                .padding(.bottom, Spacing.xxxxl)
             }
-            .background(AppColor.background)
-            .navigationTitle("Analytics")
-            .sheet(isPresented: $showPaywall) { PaywallView() }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.bottom, Spacing.xxxxl)
         }
+        .background(AppColor.background)
+        .navigationTitle("Analytics")
+        .sheet(isPresented: $showPaywall) { PaywallView() }
     }
 
     private var complianceData: [(date: Date, compliance: Double)] {
@@ -119,7 +125,7 @@ struct AnalyticsView: View {
 }
 
 #Preview {
-    AnalyticsView()
+    AnalyticsRootView()
         .environment(DataStore(seedSampleData: true))
         .preferredColorScheme(.dark)
 }

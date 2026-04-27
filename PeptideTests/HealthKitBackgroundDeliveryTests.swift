@@ -58,4 +58,9 @@ final class HealthKitBackgroundDeliveryTests: XCTestCase {
         await HealthKitService.shared.refreshSnapshot()
         XCTAssertNil(HealthKitService.shared.cachedSnapshot)
     }
+
+    func test_hasReadAuthorizationForAllTrackedTypes_falseWhenHealthKitUnavailable() {
+        guard !HealthKitService.shared.isAvailable else { return }
+        XCTAssertFalse(HealthKitService.shared.hasReadAuthorizationForAllTrackedTypes())
+    }
 }

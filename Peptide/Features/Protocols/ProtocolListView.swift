@@ -1,5 +1,13 @@
 import SwiftUI
 
+struct ProtocolListRootView: View {
+    var body: some View {
+        NavigationStack {
+            ProtocolListView()
+        }
+    }
+}
+
 struct ProtocolListView: View {
     @Environment(DataStore.self) private var dataStore
     @State private var showingBuilder = false
@@ -7,10 +15,9 @@ struct ProtocolListView: View {
     @State private var preselectedPeptide: Peptide?
 
     var body: some View {
-        NavigationStack {
-            ZStack(alignment: .bottomTrailing) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: Spacing.xl) {
+        ZStack(alignment: .bottomTrailing) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.xl) {
                         if dataStore.protocols.isEmpty {
                             VStack(spacing: Spacing.lg) {
                                 Image(systemName: "list.clipboard")
@@ -42,34 +49,33 @@ struct ProtocolListView: View {
                                 ProtocolSection(title: "Completed", protocols: dataStore.completedProtocols)
                             }
                         }
-                    }
-                    .padding(.horizontal, Spacing.screenPadding)
-                    .padding(.bottom, 100)
                 }
-                .background(AppColor.background)
+                .padding(.horizontal, Spacing.screenPadding)
+                .padding(.bottom, 100)
+            }
+            .background(AppColor.background)
 
-                // Floating add button
-                GlassIconButton(icon: "plus", size: 56, tinted: true) {
-                    preselectedPeptide = nil
-                    if StoreService.shared.requiresPro(activeProtocolCount: dataStore.activeProtocols.count) {
-                        showingPaywall = true
-                    } else {
-                        showingBuilder = true
-                    }
+            // Floating add button
+            GlassIconButton(icon: "plus", size: 56, tinted: true) {
+                preselectedPeptide = nil
+                if StoreService.shared.requiresPro(activeProtocolCount: dataStore.activeProtocols.count) {
+                    showingPaywall = true
+                } else {
+                    showingBuilder = true
                 }
-                .appShadow(AppShadow.accentGlow)
-                .padding(Spacing.xxl)
             }
-            .navigationTitle("Protocols")
-            .navigationDestination(for: PeptideProtocol.self) { protocol_ in
-                ProtocolDetailView(protocol_: protocol_)
-            }
-            .glassSheet(isPresented: $showingBuilder) {
-                ProtocolBuilderView(preselectedPeptide: preselectedPeptide)
-            }
-            .sheet(isPresented: $showingPaywall) {
-                PaywallView()
-            }
+            .appShadow(AppShadow.accentGlow)
+            .padding(Spacing.xxl)
+        }
+        .navigationTitle("Protocols")
+        .navigationDestination(for: PeptideProtocol.self) { protocol_ in
+            ProtocolDetailView(protocol_: protocol_)
+        }
+        .glassSheet(isPresented: $showingBuilder) {
+            ProtocolBuilderView(preselectedPeptide: preselectedPeptide)
+        }
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView()
         }
     }
 }
@@ -98,7 +104,7 @@ private struct ProtocolSection: View {
 }
 
 #Preview {
-    ProtocolListView()
+    ProtocolListRootView()
         .environment(DataStore(seedSampleData: true))
         .preferredColorScheme(.dark)
 }

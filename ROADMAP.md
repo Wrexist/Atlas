@@ -25,7 +25,8 @@ PeptideX is a native iOS SwiftUI app for tracking peptide supplementation protoc
 | **Persistence** | JSON files | PersistenceService writes protocols/entries/profile to Documents. Atomic writes, ISO8601 dates |
 | **StoreKit 2** | Complete | Monthly + annual subscriptions, paywall, transaction verification, restore purchases |
 | **Testing** | 150+ tests | Unit tests across engines, services, persistence; UI smoke tests |
-| **CI/CD** | Complete | XcodeGen, SwiftLint, build + test in GitHub Actions, TestFlight via Fastlane |
+| **CI/CD** | Complete | XcodeGen, SwiftLint, build + unit + UI tests (iPhone + iPad simulators) in GitHub Actions, TestFlight via Fastlane |
+| **iPad** | Complete | `NavigationSplitView` sidebar tab switcher + shared `NavigationStack` per tab (`MainTabRootView`) |
 
 ---
 
@@ -36,8 +37,8 @@ PeptideX is a native iOS SwiftUI app for tracking peptide supplementation protoc
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
 | 1.1 | **Paywall / metadata hygiene** | Ongoing | Keep App Store copy, `Products.storekit`, and in-app Pro bullets aligned with shipped features |
-| 1.2 | **Optional: iPad layout pass** | 1-2 days | `NavigationSplitView` and wider analytics where it helps |
-| 1.3 | **Optional: HealthKit edge cases** | Hours | e.g. finer handling when the user revokes read access for only some types |
+| 1.2 | **Optional: iPad analytics width** | Hours–1 day | Wider chart layout / two-column analytics on regular width |
+| 1.3 | **Optional: HealthKit partial revoke** | Hours | Surface which categories are denied if Apple adds per-type UX worth mirroring |
 
 ---
 

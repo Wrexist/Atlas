@@ -58,37 +58,15 @@ struct PeptideApp: App {
         }
     }
 
-    private var coreTabView: some View {
-        TabView(selection: $appState.selectedTab) {
-            Tab("Home", systemImage: "house.fill", value: .home) {
-                HomeView()
-            }
-            Tab("Peptides", systemImage: "flask.fill", value: .database) {
-                PeptideListView()
-            }
-            Tab("Protocols", systemImage: "list.clipboard.fill", value: .protocols) {
-                ProtocolListView()
-            }
-            Tab("Analytics", systemImage: "chart.bar.fill", value: .analytics) {
-                AnalyticsView()
-            }
-            Tab("Profile", systemImage: "person.fill", value: .profile) {
-                ProfileView()
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var tabViewWithAccessory: some View {
-        if #available(iOS 26.0, *) {
-            coreTabView.tabViewBottomAccessory { NextDoseAccessoryView() }
-        } else {
-            coreTabView
-        }
-    }
-
     private var mainContent: some View {
-        tabViewWithAccessory
+        Group {
+            if #available(iOS 26.0, *), UIDevice.current.userInterfaceIdiom != .pad {
+                MainTabRootView()
+                    .tabViewBottomAccessory { NextDoseAccessoryView() }
+            } else {
+                MainTabRootView()
+            }
+        }
         .environment(appState)
         .environment(dataStore)
         .preferredColorScheme(.dark)

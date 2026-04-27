@@ -144,7 +144,7 @@ jobs:
             echo "::error::$line"
           done || true
 
-      - name: UI Tests
+      - name: UI Tests (iPhone)
         run: |
           xcodebuild test \
             -project Peptide.xcodeproj \
@@ -155,8 +155,20 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             -only-testing:PeptideUITests \
-            -resultBundlePath UITestResults.xcresult
-        continue-on-error: true
+            -resultBundlePath UITestResults-iPhone.xcresult
+
+      - name: UI Tests (iPad)
+        run: |
+          xcodebuild test \
+            -project Peptide.xcodeproj \
+            -scheme Peptide \
+            -destination 'platform=iOS Simulator,name=iPad Pro 13-inch (M4),OS=latest' \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -only-testing:PeptideUITests \
+            -resultBundlePath UITestResults-iPad.xcresult
 
       - name: Upload test results
         if: failure()
@@ -165,7 +177,8 @@ jobs:
           name: test-results-${{ github.run_number }}
           path: |
             UnitTestResults.xcresult
-            UITestResults.xcresult
+            UITestResults-iPhone.xcresult
+            UITestResults-iPad.xcresult
             test-output.log
           retention-days: 7
           if-no-files-found: warn

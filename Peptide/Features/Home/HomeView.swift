@@ -1,5 +1,13 @@
 import SwiftUI
 
+struct HomeRootView: View {
+    var body: some View {
+        NavigationStack {
+            HomeView()
+        }
+    }
+}
+
 struct HomeView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
@@ -67,9 +75,8 @@ struct HomeView: View {
         let completeness = stackCompleteness
         let transitions = cycleTransitions
 
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: Spacing.xl) {
+        ScrollView {
+            VStack(spacing: Spacing.xl) {
                     WelcomeHeader(
                         greeting: greeting,
                         name: dataStore.profile.name,
@@ -167,81 +174,80 @@ struct HomeView: View {
                             .sectionAppear(index: 9)
                         }
                     }
-                }
-                .padding(.horizontal, Spacing.screenPadding)
-                .padding(.bottom, Spacing.xxxxl)
             }
-            .background(AppColor.background)
-            .navigationBarTitleDisplayMode(.inline)
-            .sheet(item: $selectedEntry) { entry in
-                DoseLoggingSheet(entry: entry) { actualDose, actualTime, site, notes in
-                    dataStore.logDose(
-                        entryId: entry.id,
-                        actualDose: actualDose,
-                        actualTime: actualTime,
-                        injectionSite: site,
-                        notes: notes
-                    )
-                }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.bottom, Spacing.xxxxl)
+        }
+        .background(AppColor.background)
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $selectedEntry) { entry in
+            DoseLoggingSheet(entry: entry) { actualDose, actualTime, site, notes in
+                dataStore.logDose(
+                    entryId: entry.id,
+                    actualDose: actualDose,
+                    actualTime: actualTime,
+                    injectionSite: site,
+                    notes: notes
+                )
             }
-            .sheet(item: $selectedAlert) { warning in
-                StackAlertDetailSheet(
-                    warning: warning,
-                    peptideDatabase: dataStore.peptideDatabase,
-                    hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
-                    onPrimaryAction: {
-                        if canAdjustStack(for: warning) {
-                            // Defer until the alert sheet has finished dismissing — SwiftUI can't
-                            // chain two sheets in the same runloop tick.
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                                adjustingAlert = warning
-                            }
-                        } else {
-                            appState.selectedTab = .protocols
+        }
+        .sheet(item: $selectedAlert) { warning in
+            StackAlertDetailSheet(
+                warning: warning,
+                peptideDatabase: dataStore.peptideDatabase,
+                hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
+                onPrimaryAction: {
+                    if canAdjustStack(for: warning) {
+                        // Defer until the alert sheet has finished dismissing — SwiftUI can't
+                        // chain two sheets in the same runloop tick.
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            adjustingAlert = warning
                         }
-                    }
-                )
-            }
-            .sheet(item: $adjustingAlert) { warning in
-                let candidates = StackAdjustmentEngine.candidateProtocols(
-                    affectedAbbreviations: warning.peptides,
-                    in: dataStore.activeProtocols
-                )
-                StackAdjustmentSheet(
-                    warning: warning,
-                    candidateProtocols: candidates,
-                    allActiveProtocols: dataStore.activeProtocols,
-                    peptideDatabase: dataStore.peptideDatabase,
-                    hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
-                    onApply: applyStackAdjustment
-                )
-            }
-            .navigationDestination(for: Peptide.self) { peptide in
-                PeptideDetailView(peptide: peptide)
-            }
-            .overlay {
-                if let achievement = toastAchievement {
-                    AchievementToastView(achievement: achievement, isShowing: $showAchievementToast)
-                }
-            }
-            .onChange(of: achievementService.latestUnlock?.id) { _, newId in
-                if let newId, let achievement = achievementService.achievements.first(where: { $0.id == newId }) {
-                    toastAchievement = achievement
-                    withAnimation(AppAnimation.springBouncy) { showAchievementToast = true }
-                    if Self.reviewWorthyAchievements.contains(newId) {
-                        Task { @MainActor in
-                            try? await Task.sleep(for: .seconds(2))
-                            ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
-                        }
+                    } else {
+                        appState.selectedTab = .protocols
                     }
                 }
+            )
+        }
+        .sheet(item: $adjustingAlert) { warning in
+            let candidates = StackAdjustmentEngine.candidateProtocols(
+                affectedAbbreviations: warning.peptides,
+                in: dataStore.activeProtocols
+            )
+            StackAdjustmentSheet(
+                warning: warning,
+                candidateProtocols: candidates,
+                allActiveProtocols: dataStore.activeProtocols,
+                peptideDatabase: dataStore.peptideDatabase,
+                hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
+                onApply: applyStackAdjustment
+            )
+        }
+        .navigationDestination(for: Peptide.self) { peptide in
+            PeptideDetailView(peptide: peptide)
+        }
+        .overlay {
+            if let achievement = toastAchievement {
+                AchievementToastView(achievement: achievement, isShowing: $showAchievementToast)
             }
-            .onChange(of: stats.score) { oldScore, newScore in
-                if oldScore < 1.0, newScore >= 1.0, stats.total > 0 {
+        }
+        .onChange(of: achievementService.latestUnlock?.id) { _, newId in
+            if let newId, let achievement = achievementService.achievements.first(where: { $0.id == newId }) {
+                toastAchievement = achievement
+                withAnimation(AppAnimation.springBouncy) { showAchievementToast = true }
+                if Self.reviewWorthyAchievements.contains(newId) {
                     Task { @MainActor in
-                        try? await Task.sleep(for: .seconds(1))
+                        try? await Task.sleep(for: .seconds(2))
                         ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
                     }
+                }
+            }
+        }
+        .onChange(of: stats.score) { oldScore, newScore in
+            if oldScore < 1.0, newScore >= 1.0, stats.total > 0 {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(1))
+                    ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
                 }
             }
         }
@@ -344,14 +350,14 @@ struct HomeView: View {
 }
 
 #Preview("With Data") {
-    HomeView()
+    HomeRootView()
         .environment(DataStore(seedSampleData: true))
         .environment(AppState())
         .preferredColorScheme(.dark)
 }
 
 #Preview("Empty State") {
-    HomeView()
+    HomeRootView()
         .environment(DataStore())
         .environment(AppState())
         .preferredColorScheme(.dark)

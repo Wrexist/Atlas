@@ -1,5 +1,13 @@
 import SwiftUI
 
+struct ProfileRootView: View {
+    var body: some View {
+        NavigationStack {
+            ProfileView()
+        }
+    }
+}
+
 struct ProfileView: View {
     @Environment(DataStore.self) private var dataStore
     @State private var storeService = StoreService.shared
@@ -18,9 +26,8 @@ struct ProfileView: View {
     ]
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: Spacing.lg) {
+        ScrollView {
+            VStack(spacing: Spacing.lg) {
                     ProfileHeader(
                         name: dataStore.profile.name,
                         memberDuration: memberDuration,
@@ -62,14 +69,13 @@ struct ProfileView: View {
 
                     AboutSection()
                         .sectionAppear(index: 8)
-                }
-                .padding(.horizontal, Spacing.screenPadding)
-                .padding(.bottom, Spacing.xxxxl)
             }
-            .background(AppColor.background)
-            .navigationTitle("Profile")
-            .task { await authService.validateCredential() }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.bottom, Spacing.xxxxl)
         }
+        .background(AppColor.background)
+        .navigationTitle("Profile")
+        .task { await authService.validateCredential() }
     }
 
     private var memberDuration: String {
@@ -98,7 +104,7 @@ struct ProfileView: View {
 }
 
 #Preview {
-    ProfileView()
+    ProfileRootView()
         .environment(DataStore(seedSampleData: true))
         .preferredColorScheme(.dark)
 }

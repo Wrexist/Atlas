@@ -28,10 +28,8 @@ final class HealthKitService {
         HKHealthStore.isHealthDataAvailable()
     }
 
-    func requestAuthorization() async -> Bool {
-        guard isAvailable else { return false }
-
-        let readTypes: Set<HKObjectType> = [
+    private var readTypesForBackground: [HKObjectType] {
+        [
             HKQuantityType(.heartRate),
             HKQuantityType(.heartRateVariabilitySDNN),
             HKQuantityType(.restingHeartRate),
@@ -40,6 +38,18 @@ final class HealthKitService {
             HKQuantityType(.activeEnergyBurned),
             HKCategoryType(.sleepAnalysis),
         ]
+    }
+
+    /// True when the user has granted read access for every type we use for snapshots and observers.
+    func hasReadAuthorizationForAllTrackedTypes() -> Bool {
+        guard isAvailable else { return false }
+        return readTypesForBackground.allSatisfy { store.authorizationStatus(for: $0) == .sharingAuthorized }
+    }
+
+    func requestAuthorization() async -> Bool {
+        guard isAvailable else { return false }
+
+        let readTypes = Set(readTypesForBackground)
 
         do {
             try await store.requestAuthorization(toShare: [], read: readTypes)
@@ -53,6 +63,8 @@ final class HealthKitService {
 
     func startBackgroundDelivery() async {
         guard isAvailable, !isBackgroundDeliveryStarted else { return }
+        guard hasReadAuthorizationForAllTrackedTypes() else { return }
+
         isBackgroundDeliveryStarted = true
 
         let quantityTypes: [(HKQuantityTypeIdentifier, HKUpdateFrequency)] = [
