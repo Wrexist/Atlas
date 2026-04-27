@@ -52,10 +52,6 @@ struct PaywallView: View {
                         }
                     }
 
-                    if storeService.hasActiveTrial {
-                        trialBanner
-                    }
-
                     // Pricing
                     VStack(spacing: Spacing.md) {
                         if let annual = storeService.annualProduct {
@@ -221,27 +217,6 @@ struct PaywallView: View {
         let savings = (yearAtMonthly - annual.price) / yearAtMonthly
         let percent = Int((savings as NSDecimalNumber).doubleValue * 100)
         return percent > 0 ? "Save \(percent)%" : nil
-    }
-
-    private var trialBanner: some View {
-        GlassCard(tinted: true) {
-            HStack(spacing: Spacing.md) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
-
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text("Free Trial Active")
-                        .font(AppFont.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text("^[\(storeService.trialDaysRemaining) day](inflect: true) remaining — pick a plan to keep Pro forever")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                }
-                Spacer()
-            }
-        }
     }
 }
 

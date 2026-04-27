@@ -35,36 +35,33 @@ struct ProfileView: View {
                             .sectionAppear(index: 1)
                     }
 
-                    TutorialCard()
-                        .sectionAppear(index: 2)
-
                     AchievementsSection(achievements: achievementService.achievements)
-                        .sectionAppear(index: 3)
+                        .sectionAppear(index: 2)
 
                     GoalsSectionCard(
                         availableGoals: availableGoals,
                         selectedGoals: Set(dataStore.profile.goals),
                         onToggle: toggleGoal
                     )
-                    .sectionAppear(index: 4)
+                    .sectionAppear(index: 3)
 
                     HealthConnectionCard(
                         isConnected: dataStore.profile.healthConnected,
                         onConnect: { connectHealthKit() }
                     )
-                    .sectionAppear(index: 5)
+                    .sectionAppear(index: 4)
 
                     ExportSection()
-                        .sectionAppear(index: 6)
+                        .sectionAppear(index: 5)
 
                     AccountSection()
-                        .sectionAppear(index: 7)
+                        .sectionAppear(index: 6)
 
                     AppearanceSettings()
-                        .sectionAppear(index: 8)
+                        .sectionAppear(index: 7)
 
                     AboutSection()
-                        .sectionAppear(index: 9)
+                        .sectionAppear(index: 8)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)

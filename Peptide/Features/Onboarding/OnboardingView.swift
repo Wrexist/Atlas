@@ -68,6 +68,7 @@ struct OnboardingView: View {
         .onChange(of: currentPage) { _, _ in
             dismissKeyboard()
         }
+        .task { await storeService.loadProducts() }
     }
 
     // MARK: - Page 1: Welcome
@@ -544,25 +545,27 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Page 8: Liquid Glass One-Time Offer
+    // MARK: - Page 8: Free-Trial Funnel
 
-    /// Sign-in destination — skips the offer page when the user is ineligible
-    /// (already redeemed, declined, or already Pro).
+    /// Skip the trial offer when the user is no longer eligible (already
+    /// redeemed an intro offer in this group or already Pro). Keeps the funnel
+    /// clean for re-installs.
     private var nextAfterSignIn: Int {
-        storeService.isEligibleForOnboardingTrial ? 7 : 8
+        (storeService.isProUser || !storeService.isEligibleForMonthlyTrial) ? 8 : 7
     }
 
+    @ViewBuilder
     private var offerPage: some View {
-        LiquidGlassOfferView(
-            onAccept: {
-                storeService.startFreeTrial()
-                advance(to: 8)
-            },
-            onDecline: {
-                storeService.declineOnboardingOffer()
-                advance(to: 8)
+        if storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
+            Color.clear.onAppear {
+                if currentPage == 7 { advance(to: 8) }
             }
-        )
+        } else {
+            TrialOfferView(
+                onAccept: { advance(to: 8) },
+                onDecline: { advance(to: 8) }
+            )
+        }
     }
 
     // MARK: - Page 9: Ready
@@ -572,6 +575,10 @@ struct OnboardingView: View {
             hero: ReadyHero(bounceTrigger: bounceTrigger),
             content: {
                 VStack(spacing: Spacing.md) {
+                    if storeService.isProUser {
+                        proCelebrationBadge
+                    }
+
                     Text("You're all set!")
                         .font(AppFont.largeTitle)
                         .foregroundStyle(
@@ -600,6 +607,26 @@ struct OnboardingView: View {
                 }
             }
         )
+    }
+
+    private var proCelebrationBadge: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(AppColor.accentLight)
+            Text("Pro Trial Active — Welcome aboard!")
+                .font(AppFont.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColor.textPrimary)
+        }
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.xs)
+        .background {
+            Capsule()
+                .fill(AppColor.accentPrimary.opacity(0.18))
+                .overlay(Capsule().strokeBorder(AppColor.accentPrimary.opacity(0.4), lineWidth: 0.5))
+        }
+        .transition(.scale.combined(with: .opacity))
     }
 
     private var disclaimerCard: some View {
