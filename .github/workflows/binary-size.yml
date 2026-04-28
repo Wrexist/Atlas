@@ -21,19 +21,15 @@ jobs:
   size-check:
     runs-on: macos-15
     timeout-minutes: 25
-    # Gate the entire job until the workflow is proven stable. Once we see a
-    # green run, drop continue-on-error to make size regressions block merge.
-    continue-on-error: true
 
     steps:
+      # Every step in this job is `continue-on-error: true` while we shake
+      # out workflow regressions. Once we see a green run end-to-end, drop
+      # the flags from the steps we want to gate on (Build PR HEAD, Compare).
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Ensure origin/main is available
-        run: |
-          git fetch --no-tags --depth=1 origin main:refs/remotes/origin/main || \
-          git fetch --no-tags origin main
 
       - uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -49,6 +45,7 @@ jobs:
           key: brew-xcodegen-${{ runner.os }}-${{ runner.arch }}
 
       - name: Install XcodeGen
+        continue-on-error: true
         run: |
           if ! command -v xcodegen &>/dev/null; then
             brew install xcodegen || brew reinstall xcodegen
@@ -58,6 +55,7 @@ jobs:
 
       - name: Build PR HEAD
         id: pr_size
+        continue-on-error: true
         run: |
           xcodegen generate
           xcodebuild build \
@@ -70,9 +68,9 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
-          APP=$(find build-pr/Build/Products/Release-iphoneos -name "Peptide.app" -type d | head -1)
+          APP=$(find build-pr/Build/Products/Release-iphoneos -name "Peptide.app" -type d 2>/dev/null | head -1)
           if [ -z "$APP" ] || [ ! -d "$APP" ]; then
-            echo "Could not locate Peptide.app in build-pr — skipping comparison."
+            echo "Could not locate Peptide.app in build-pr."
             echo "pr_bytes=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -82,19 +80,18 @@ jobs:
 
       - name: Build main baseline
         id: main_size
+        continue-on-error: true
         if: steps.pr_size.outputs.pr_bytes != ''
         run: |
-          # Reset to a clean main checkout. Discard the regenerated project
-          # files from the previous step.
           git stash --include-untracked --quiet || true
-          git checkout origin/main -- . || {
+          if ! git checkout origin/main -- . 2>/dev/null; then
             echo "Could not check out origin/main — skipping comparison."
             echo "main_bytes=" >> "$GITHUB_OUTPUT"
             exit 0
-          }
+          fi
           xcodegen generate
 
-          xcodebuild build \
+          if ! xcodebuild build \
             -project Peptide.xcodeproj \
             -scheme Peptide \
             -destination 'generic/platform=iOS' \
@@ -102,13 +99,13 @@ jobs:
             -derivedDataPath build-main \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO || {
+            CODE_SIGNING_ALLOWED=NO; then
             echo "main build failed — skipping comparison."
             echo "main_bytes=" >> "$GITHUB_OUTPUT"
             exit 0
-          }
+          fi
 
-          APP=$(find build-main/Build/Products/Release-iphoneos -name "Peptide.app" -type d | head -1)
+          APP=$(find build-main/Build/Products/Release-iphoneos -name "Peptide.app" -type d 2>/dev/null | head -1)
           if [ -z "$APP" ] || [ ! -d "$APP" ]; then
             echo "main build produced no .app — skipping comparison."
             echo "main_bytes=" >> "$GITHUB_OUTPUT"
@@ -120,6 +117,7 @@ jobs:
 
       - name: Report size
         if: always()
+        continue-on-error: true
         env:
           PR_BYTES: ${{ steps.pr_size.outputs.pr_bytes }}
           MAIN_BYTES: ${{ steps.main_size.outputs.main_bytes }}
@@ -141,7 +139,6 @@ jobs:
           fi
 
           DELTA=$((PR_BYTES - MAIN_BYTES))
-          # Integer percent ×10 (one decimal). Avoids python/bc dependencies.
           PCT_X10=$(( (DELTA * 1000) / MAIN_BYTES ))
           PCT_INT=$((PCT_X10 / 10))
           PCT_FRAC=$((PCT_X10 % 10))
@@ -159,9 +156,6 @@ jobs:
             echo "| Delta | ${DELTA} (${PCT_HUMAN}) |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          # Soft warn at >10%. Once continue-on-error is removed at the job
-          # level, swap this `::warning::` for `exit 1` to make the regression
-          # block the PR.
           if [ "$PCT_X10" -gt 100 ]; then
             echo "::warning::Binary grew ${PCT_HUMAN} vs main (limit: +10%)."
           else

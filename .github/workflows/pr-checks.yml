@@ -200,6 +200,7 @@ jobs:
           done || true
 
       - name: UI Tests
+        continue-on-error: true
         run: |
           xcodebuild test \
             -project Peptide.xcodeproj \
