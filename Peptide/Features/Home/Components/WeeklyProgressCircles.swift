@@ -38,6 +38,19 @@ private struct DayCircle: View {
             circleView
                 .frame(width: 28, height: 28)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(day.dayLabel): \(statusVoiceOverLabel)")
+    }
+
+    private var statusVoiceOverLabel: String {
+        switch day.status {
+        case .completed:  return "all doses completed"
+        case .partial:    return "partially completed"
+        case .missed:     return "missed"
+        case .today:      return "today, in progress"
+        case .future:     return "upcoming"
+        case .noSchedule: return "no doses scheduled"
+        }
     }
 
     @ViewBuilder

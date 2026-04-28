@@ -108,6 +108,33 @@ final class MigrationServiceTests: XCTestCase {
                        "JSON files should be renamed after migration")
     }
 
+    /// If protocols.json is corrupt at migration time, leave all source files
+    /// in place so the next launch can retry rather than silently archiving
+    /// (which would lose the user's data permanently).
+    func test_migration_partialFailure_leavesJSONFilesIntact() throws {
+        // Write valid profile + entries, but corrupt the protocols.json
+        let store = DataStore(seedSampleData: true)
+        let entries = store.entries
+        let profile = store.profile
+        repo.deleteAll()                         // clear SwiftData written by DataStore
+        persistence.saveEntries(entries)
+        persistence.saveProfile(profile)
+
+        // Corrupt protocols.json
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let protocolsURL = docs.appendingPathComponent("protocols.json")
+        try Data("{ not valid json".utf8).write(to: protocolsURL, options: .atomic)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: protocolsURL.path))
+
+        migration.migrateIfNeeded()
+
+        // Source files should still be there for retry — we did NOT archive
+        XCTAssertTrue(FileManager.default.fileExists(atPath: protocolsURL.path),
+                      "Corrupt protocols.json must not be archived")
+        XCTAssertTrue(persistence.hasPersistedData,
+                      "Other JSON files must also remain for next-launch retry")
+    }
+
     // MARK: - SwiftData round-trip
 
     func test_swiftData_protocolRoundTrip_preservesAllFields() {

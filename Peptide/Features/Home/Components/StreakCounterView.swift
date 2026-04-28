@@ -56,6 +56,23 @@ struct StreakCounterView: View {
                     .foregroundStyle(AppColor.textTertiary)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(voiceOverLabel)
+    }
+
+    private var voiceOverLabel: String {
+        if currentStreak == 0 {
+            return bestStreak > 0
+                ? "No active streak. Best streak \(bestStreak) days."
+                : "No active streak. Log a dose today to start one."
+        }
+        if isNewBest && currentStreak > 1 {
+            return "\(currentStreak) day streak. New personal best."
+        }
+        if bestStreak > currentStreak {
+            return "\(currentStreak) day streak. Best streak \(bestStreak) days."
+        }
+        return "\(currentStreak) day streak."
     }
 }
 

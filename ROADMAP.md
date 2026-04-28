@@ -119,10 +119,14 @@ v3.5.0+ (Growth & Polish)
 - 1 widget
 
 ### PeptideX Pro ($9.99/mo, $49.99/yr, or $169 lifetime)
+
+> Items marked _(planned)_ are scheduled for the indicated milestone and are
+> not part of the current v1.x build. The paywall does not advertise them.
+
 - Unlimited protocols
 - Full analytics + HealthKit correlation + export
-- AI insights + recommendations
-- All widgets + Apple Watch
-- Cloud sync + backup
-- Community features + templates
+- AI insights + recommendations _(planned, v3.0)_
+- All widgets + Apple Watch _(Watch planned, v2.5)_
+- Cloud sync + backup _(planned, v2.0)_
+- Community features + templates _(planned, v3.0)_
 - 7-day free trial (monthly), 14-day (annual)

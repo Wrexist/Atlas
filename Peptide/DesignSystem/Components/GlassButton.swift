@@ -80,6 +80,7 @@ struct GlassButton: View {
 
 struct GlassIconButton: View {
     let icon: String
+    let accessibilityLabel: String
     var size: CGFloat = 44
     var tinted: Bool = false
     var action: () -> Void
@@ -108,6 +109,7 @@ struct GlassIconButton: View {
                 .liquidGlass(.circle)
         }
         .buttonStyle(GlassPressStyle())
+        .accessibilityLabel(accessibilityLabel)
     }
 }
 
@@ -130,9 +132,9 @@ private struct GlassPressStyle: ButtonStyle {
             GlassButton(title: "Delete", icon: "trash", style: .destructive) {}
             GlassButton(title: "Full Width", style: .primary, isFullWidth: true) {}
             HStack(spacing: Spacing.md) {
-                GlassIconButton(icon: "heart.fill", tinted: true) {}
-                GlassIconButton(icon: "square.and.arrow.up") {}
-                GlassIconButton(icon: "ellipsis") {}
+                GlassIconButton(icon: "heart.fill", accessibilityLabel: "Favorite", tinted: true) {}
+                GlassIconButton(icon: "square.and.arrow.up", accessibilityLabel: "Share") {}
+                GlassIconButton(icon: "ellipsis", accessibilityLabel: "More options") {}
             }
         }
         .padding(Spacing.screenPadding)

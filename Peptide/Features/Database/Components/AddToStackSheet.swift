@@ -3,6 +3,7 @@ import SwiftUI
 struct AddToStackSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let peptide: Peptide
     var onCreateNew: () -> Void
@@ -37,7 +38,9 @@ struct AddToStackSheet: View {
                         isFullWidth: true
                     ) {
                         dismiss()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        let delayMs: UInt64 = reduceMotion ? 0 : 250
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .milliseconds(delayMs))
                             onCreateNew()
                         }
                     }
@@ -117,7 +120,9 @@ struct AddToStackSheet: View {
                 withAnimation(AppAnimation.springSnappy) {
                     justAddedTo = proto.id
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                let delayMs: UInt64 = reduceMotion ? 0 : 600
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(delayMs))
                     dismiss()
                 }
             }

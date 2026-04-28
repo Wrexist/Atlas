@@ -1,28 +1,24 @@
 import Foundation
-import OSLog
-
-private let log = Logger(subsystem: "com.peptidesai.app", category: "PersistenceService")
 
 final class PersistenceService: @unchecked Sendable {
     static let shared = PersistenceService()
 
     private let fileManager = FileManager.default
 
-    private var documentsDirectory: URL {
-        guard let url = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            fatalError("Documents directory unavailable")
-        }
-        return url
+    /// Documents directory. `nil` only on the rare devices/sandboxes where the
+    /// container is unavailable; callers must handle nil by skipping IO.
+    private var documentsDirectory: URL? {
+        fileManager.urls(for: .documentDirectory, in: .userDomainMask).first
     }
 
     private var sharedContainerURL: URL? {
         fileManager.containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)
     }
 
-    private var protocolsURL: URL { documentsDirectory.appendingPathComponent("protocols.json") }
-    private var entriesURL: URL { documentsDirectory.appendingPathComponent("entries.json") }
-    private var profileURL: URL { documentsDirectory.appendingPathComponent("profile.json") }
-    private var customPeptidesURL: URL { documentsDirectory.appendingPathComponent("custom-peptides.json") }
+    private var protocolsURL: URL? { documentsDirectory?.appendingPathComponent("protocols.json") }
+    private var entriesURL: URL? { documentsDirectory?.appendingPathComponent("entries.json") }
+    private var profileURL: URL? { documentsDirectory?.appendingPathComponent("profile.json") }
+    private var customPeptidesURL: URL? { documentsDirectory?.appendingPathComponent("custom-peptides.json") }
     private var widgetDataURL: URL? { sharedContainerURL?.appendingPathComponent("widget-data.json") }
 
     private let encoder: JSONEncoder = {
@@ -43,37 +39,45 @@ final class PersistenceService: @unchecked Sendable {
     // MARK: - Save
 
     func saveProtocols(_ protocols: [PeptideProtocol]) {
-        save(protocols, to: protocolsURL)
+        guard let url = protocolsURL else { return }
+        save(protocols, to: url)
     }
 
     func saveEntries(_ entries: [ProtocolEntry]) {
-        save(entries, to: entriesURL)
+        guard let url = entriesURL else { return }
+        save(entries, to: url)
     }
 
     func saveProfile(_ profile: UserProfile) {
-        save(profile, to: profileURL)
+        guard let url = profileURL else { return }
+        save(profile, to: url)
     }
 
     func saveCustomPeptides(_ peptides: [Peptide]) {
-        save(peptides, to: customPeptidesURL)
+        guard let url = customPeptidesURL else { return }
+        save(peptides, to: url)
     }
 
     // MARK: - Load
 
     func loadProtocols() -> [PeptideProtocol]? {
-        load([PeptideProtocol].self, from: protocolsURL)
+        guard let url = protocolsURL else { return nil }
+        return load([PeptideProtocol].self, from: url)
     }
 
     func loadEntries() -> [ProtocolEntry]? {
-        load([ProtocolEntry].self, from: entriesURL)
+        guard let url = entriesURL else { return nil }
+        return load([ProtocolEntry].self, from: url)
     }
 
     func loadProfile() -> UserProfile? {
-        load(UserProfile.self, from: profileURL)
+        guard let url = profileURL else { return nil }
+        return load(UserProfile.self, from: url)
     }
 
     func loadCustomPeptides() -> [Peptide]? {
-        load([Peptide].self, from: customPeptidesURL)
+        guard let url = customPeptidesURL else { return nil }
+        return load([Peptide].self, from: url)
     }
 
     // MARK: - Widget Data (Shared Container)
@@ -86,28 +90,37 @@ final class PersistenceService: @unchecked Sendable {
     // MARK: - State
 
     var hasPersistedData: Bool {
-        fileManager.fileExists(atPath: protocolsURL.path) ||
-        fileManager.fileExists(atPath: entriesURL.path) ||
-        fileManager.fileExists(atPath: profileURL.path)
+        [protocolsURL, entriesURL, profileURL]
+            .compactMap { $0 }
+            .contains { fileManager.fileExists(atPath: $0.path) }
     }
 
+    var protocolsFileExists: Bool { protocolsURL.map { fileManager.fileExists(atPath: $0.path) } ?? false }
+    var entriesFileExists: Bool { entriesURL.map { fileManager.fileExists(atPath: $0.path) } ?? false }
+    var profileFileExists: Bool { profileURL.map { fileManager.fileExists(atPath: $0.path) } ?? false }
+
     func clearAll() {
-        try? fileManager.removeItem(at: protocolsURL)
-        try? fileManager.removeItem(at: entriesURL)
-        try? fileManager.removeItem(at: profileURL)
-        try? fileManager.removeItem(at: customPeptidesURL)
-        if let url = widgetDataURL {
-            try? fileManager.removeItem(at: url)
+        for url in [protocolsURL, entriesURL, profileURL, customPeptidesURL, widgetDataURL].compactMap({ $0 }) {
+            guard fileManager.fileExists(atPath: url.path) else { continue }
+            do {
+                try fileManager.removeItem(at: url)
+            } catch {
+                AppLog.persistence.error("Failed to remove \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 
     /// Renames legacy JSON files to `.migrated` so MigrationService knows not to re-run.
-    /// Silently ignores files that don't exist.
+    /// Logs (but does not propagate) move failures.
     func archiveLegacyFiles() {
-        for url in [protocolsURL, entriesURL, profileURL] {
+        for url in [protocolsURL, entriesURL, profileURL].compactMap({ $0 }) {
             guard fileManager.fileExists(atPath: url.path) else { continue }
             let archived = url.deletingPathExtension().appendingPathExtension("migrated")
-            try? fileManager.moveItem(at: url, to: archived)
+            do {
+                try fileManager.moveItem(at: url, to: archived)
+            } catch {
+                AppLog.persistence.error("Failed to archive \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 
@@ -118,12 +131,21 @@ final class PersistenceService: @unchecked Sendable {
             let data = try encoder.encode(value)
             try data.write(to: url, options: .atomic)
         } catch {
-            log.error("Failed to save \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            AppLog.persistence.error("Failed to save \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
         }
     }
 
+    /// Returns `nil` for both "file absent" and "decode failed". Callers needing to
+    /// distinguish the two cases should check `fileManager.fileExists(atPath:)` first.
+    /// Decode failures (data corruption) are logged; absence is silent.
     private func load<T: Decodable>(_ type: T.Type, from url: URL) -> T? {
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return try? decoder.decode(type, from: data)
+        guard fileManager.fileExists(atPath: url.path) else { return nil }
+        do {
+            let data = try Data(contentsOf: url)
+            return try decoder.decode(type, from: data)
+        } catch {
+            AppLog.persistence.error("Failed to load \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 }

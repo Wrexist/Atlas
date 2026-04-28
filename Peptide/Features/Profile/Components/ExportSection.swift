@@ -5,6 +5,7 @@ struct ExportSection: View {
     @State private var showShareSheet = false
     @State private var showPaywall = false
     @State private var exportURL: URL?
+    @State private var exportError: String?
     private var isPro: Bool { StoreService.shared.isProUser }
 
     var body: some View {
@@ -53,6 +54,14 @@ struct ExportSection: View {
             }
         }
         .sheet(isPresented: $showPaywall) { PaywallView() }
+        .alert("Export Failed", isPresented: Binding(
+            get: { exportError != nil },
+            set: { if !$0 { exportError = nil } }
+        )) {
+            Button("OK") { exportError = nil }
+        } message: {
+            Text(exportError ?? "")
+        }
     }
 
     private func exportCSV() {
@@ -82,15 +91,21 @@ struct ExportSection: View {
     }
 
     private func exportPDF() {
-        let data = ExportService.shared.exportPDF(
-            protocols: dataStore.protocols,
-            entries: dataStore.entries,
-            profile: dataStore.profile
-        )
-        let dateStr = Date().formatted(.iso8601.year().month().day())
-        if let url = ExportService.shared.writePDF(data, filename: "peptidex-report-\(dateStr).pdf") {
-            exportURL = url
-            showShareSheet = true
+        do {
+            let data = try ExportService.shared.exportPDF(
+                protocols: dataStore.protocols,
+                entries: dataStore.entries,
+                profile: dataStore.profile
+            )
+            let dateStr = Date().formatted(.iso8601.year().month().day())
+            if let url = ExportService.shared.writePDF(data, filename: "peptidex-report-\(dateStr).pdf") {
+                exportURL = url
+                showShareSheet = true
+            } else {
+                exportError = "Couldn't write the PDF to disk."
+            }
+        } catch {
+            exportError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
     }
 }

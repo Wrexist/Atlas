@@ -1,0 +1,163 @@
+name: Binary Size Guard
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "Peptide/**"
+      - "PeptideWidgets/**"
+      - "Shared/**"
+      - "project.yml"
+      - ".github/workflows/binary-size.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: binary-size-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  size-check:
+    runs-on: macos-15
+    timeout-minutes: 25
+
+    steps:
+      # Every step in this job is `continue-on-error: true` while we shake
+      # out workflow regressions. Once we see a green run end-to-end, drop
+      # the flags from the steps we want to gate on (Build PR HEAD, Compare).
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Cache Homebrew packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /usr/local/Cellar/xcodegen
+            /opt/homebrew/Cellar/xcodegen
+          key: brew-xcodegen-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install XcodeGen
+        continue-on-error: true
+        run: |
+          if ! command -v xcodegen &>/dev/null; then
+            brew install xcodegen || brew reinstall xcodegen
+          fi
+          echo "$(brew --prefix)/bin" >> $GITHUB_PATH
+          echo "XcodeGen: $(xcodegen --version)"
+
+      - name: Build PR HEAD
+        id: pr_size
+        continue-on-error: true
+        run: |
+          xcodegen generate
+          xcodebuild build \
+            -project Peptide.xcodeproj \
+            -scheme Peptide \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            -derivedDataPath build-pr \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+          APP=$(find build-pr/Build/Products/Release-iphoneos -name "Peptide.app" -type d 2>/dev/null | head -1)
+          if [ -z "$APP" ] || [ ! -d "$APP" ]; then
+            echo "Could not locate Peptide.app in build-pr."
+            echo "pr_bytes=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          PR_BYTES=$(du -sk "$APP" | awk '{print $1 * 1024}')
+          echo "pr_bytes=$PR_BYTES" >> "$GITHUB_OUTPUT"
+          echo "PR HEAD .app size: ${PR_BYTES} bytes"
+
+      - name: Build main baseline
+        id: main_size
+        continue-on-error: true
+        if: steps.pr_size.outputs.pr_bytes != ''
+        run: |
+          git stash --include-untracked --quiet || true
+          if ! git checkout origin/main -- . 2>/dev/null; then
+            echo "Could not check out origin/main — skipping comparison."
+            echo "main_bytes=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          xcodegen generate
+
+          if ! xcodebuild build \
+            -project Peptide.xcodeproj \
+            -scheme Peptide \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            -derivedDataPath build-main \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO; then
+            echo "main build failed — skipping comparison."
+            echo "main_bytes=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          APP=$(find build-main/Build/Products/Release-iphoneos -name "Peptide.app" -type d 2>/dev/null | head -1)
+          if [ -z "$APP" ] || [ ! -d "$APP" ]; then
+            echo "main build produced no .app — skipping comparison."
+            echo "main_bytes=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          MAIN_BYTES=$(du -sk "$APP" | awk '{print $1 * 1024}')
+          echo "main_bytes=$MAIN_BYTES" >> "$GITHUB_OUTPUT"
+          echo "main .app size: ${MAIN_BYTES} bytes"
+
+      - name: Report size
+        if: always()
+        continue-on-error: true
+        env:
+          PR_BYTES: ${{ steps.pr_size.outputs.pr_bytes }}
+          MAIN_BYTES: ${{ steps.main_size.outputs.main_bytes }}
+        run: |
+          if [ -z "$PR_BYTES" ]; then
+            echo "PR build did not produce a .app — nothing to report."
+            exit 0
+          fi
+
+          if [ -z "$MAIN_BYTES" ] || [ "$MAIN_BYTES" = "0" ]; then
+            {
+              echo "## Binary size"
+              echo ""
+              echo "PR Peptide.app: **${PR_BYTES} bytes**"
+              echo ""
+              echo "_main baseline unavailable — comparison skipped._"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          DELTA=$((PR_BYTES - MAIN_BYTES))
+          PCT_X10=$(( (DELTA * 1000) / MAIN_BYTES ))
+          PCT_INT=$((PCT_X10 / 10))
+          PCT_FRAC=$((PCT_X10 % 10))
+          [ "$PCT_FRAC" -lt 0 ] && PCT_FRAC=$((-PCT_FRAC))
+          SIGN="+"; [ "$DELTA" -lt 0 ] && SIGN=""
+          PCT_HUMAN="${SIGN}${PCT_INT}.${PCT_FRAC}%"
+
+          {
+            echo "## Binary size"
+            echo ""
+            echo "| | Bytes |"
+            echo "|---|------|"
+            echo "| PR HEAD | ${PR_BYTES} |"
+            echo "| main | ${MAIN_BYTES} |"
+            echo "| Delta | ${DELTA} (${PCT_HUMAN}) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$PCT_X10" -gt 100 ]; then
+            echo "::warning::Binary grew ${PCT_HUMAN} vs main (limit: +10%)."
+          else
+            echo "Binary size delta: ${PCT_HUMAN} — within budget."
+          fi

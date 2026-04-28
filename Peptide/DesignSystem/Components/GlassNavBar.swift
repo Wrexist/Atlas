@@ -5,12 +5,13 @@ struct GlassNavBar: View {
     var subtitle: String?
     var leadingAction: (() -> Void)?
     var trailingIcon: String?
+    var trailingAccessibilityLabel: String?
     var trailingAction: (() -> Void)?
 
     var body: some View {
         HStack(spacing: Spacing.md) {
             if let leadingAction {
-                GlassIconButton(icon: "chevron.left") {
+                GlassIconButton(icon: "chevron.left", accessibilityLabel: "Back") {
                     leadingAction()
                 }
             }
@@ -30,7 +31,10 @@ struct GlassNavBar: View {
             Spacer()
 
             if let trailingIcon, let trailingAction {
-                GlassIconButton(icon: trailingIcon) {
+                GlassIconButton(
+                    icon: trailingIcon,
+                    accessibilityLabel: trailingAccessibilityLabel ?? "Action"
+                ) {
                     trailingAction()
                 }
             }
@@ -47,7 +51,8 @@ struct GlassNavBar: View {
             GlassNavBar(
                 title: "Peptide Database",
                 subtitle: "55+ compounds",
-                trailingIcon: "line.3.horizontal.decrease.circle"
+                trailingIcon: "line.3.horizontal.decrease.circle",
+                trailingAccessibilityLabel: "Filter peptides"
             ) {}
             Spacer()
         }

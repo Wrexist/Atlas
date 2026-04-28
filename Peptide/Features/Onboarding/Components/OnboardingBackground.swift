@@ -8,10 +8,10 @@ struct OnboardingBackground: View {
 
     private var palette: [Color] {
         switch step % 4 {
-        case 0: [AppColor.accentPrimary, AppColor.accentLight, Color(hex: 0x5B8FB9)]
-        case 1: [Color(hex: 0x9B72CF), AppColor.accentPrimary, AppColor.accentLight]
-        case 2: [AppColor.accentLight, Color(hex: 0xD4A844), AppColor.accentPrimary]
-        default: [AppColor.accentPrimary, Color(hex: 0x5B8FB9), AppColor.accentLight]
+        case 0: [AppColor.accentPrimary, AppColor.accentLight, OnboardingTint.muscleRecovery]
+        case 1: [OnboardingTint.sleep, AppColor.accentPrimary, AppColor.accentLight]
+        case 2: [AppColor.accentLight, OnboardingTint.antiAging, AppColor.accentPrimary]
+        default: [AppColor.accentPrimary, OnboardingTint.muscleRecovery, AppColor.accentLight]
         }
     }
 

@@ -82,4 +82,14 @@ final class AuthServiceTests: XCTestCase {
         await auth.validateCredential()
         XCTAssertFalse(auth.isSignedIn)
     }
+
+    /// validateCredential must not toggle isSignedIn when there is nothing to validate.
+    /// This guards the regression where transient errors used to be conflated with
+    /// definitive negative states (notFound / revoked / transferred).
+    func test_validateCredential_whenNotSignedIn_keepsSignedOutFalse() async {
+        XCTAssertFalse(auth.isSignedIn)
+        await auth.validateCredential()
+        XCTAssertFalse(auth.isSignedIn)
+        XCTAssertNil(auth.userIdentifier)
+    }
 }

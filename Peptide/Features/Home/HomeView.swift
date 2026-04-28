@@ -77,6 +77,14 @@ struct HomeView: View {
                     )
                     .sectionAppear(index: 0)
 
+                    if let report = dataStore.notificationReport, report.hasAnyIssue {
+                        NotificationIssueBanner(
+                            report: report,
+                            droppedProtocolNames: dataStore.droppedReminderProtocolNames
+                        )
+                        .sectionAppear(index: 0)
+                    }
+
                     if dataStore.protocols.isEmpty {
                         gettingStartedCard
                             .sectionAppear(index: 1)
@@ -193,7 +201,8 @@ struct HomeView: View {
                         if canAdjustStack(for: warning) {
                             // Defer until the alert sheet has finished dismissing — SwiftUI can't
                             // chain two sheets in the same runloop tick.
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            Task { @MainActor in
+                                try? await Task.sleep(for: .milliseconds(350))
                                 adjustingAlert = warning
                             }
                         } else {

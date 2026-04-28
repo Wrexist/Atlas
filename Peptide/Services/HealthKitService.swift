@@ -19,6 +19,9 @@ final class HealthKitService {
     @ObservationIgnored private let store = HKHealthStore()
     private(set) var cachedSnapshot: HealthSnapshot?
     private var isBackgroundDeliveryStarted = false
+    /// Active observer queries. Tracked so stopBackgroundDelivery can stop them
+    /// — disableAllBackgroundDelivery alone leaves the observer queries running.
+    @ObservationIgnored private var activeObserverQueries: [HKObserverQuery] = []
 
     private init() {}
 
@@ -43,6 +46,7 @@ final class HealthKitService {
             try await store.requestAuthorization(toShare: [], read: readTypes)
             return true
         } catch {
+            AppLog.healthKit.error("Authorization request failed: \(error.localizedDescription, privacy: .public)")
             return false
         }
     }
@@ -72,6 +76,10 @@ final class HealthKitService {
     }
 
     func stopBackgroundDelivery() {
+        for query in activeObserverQueries {
+            store.stop(query)
+        }
+        activeObserverQueries.removeAll()
         store.disableAllBackgroundDelivery { _, _ in }
         isBackgroundDeliveryStarted = false
     }
@@ -111,18 +119,24 @@ final class HealthKitService {
                 }
             }
         } catch {
-            return  // Simulator or authorization not granted — skip silently
+            // Routine on simulator and when the user denied authorization.
+            AppLog.healthKit.debug("enableBackgroundDelivery skipped for \(sampleType.identifier, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return
         }
 
-        let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { _, completionHandler, error in
+        let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { [weak self] _, completionHandler, error in
             // Call immediately — our refresh runs in a separate Task per Apple's guidance
             completionHandler()
-            guard error == nil else { return }
-            Task { @MainActor [weak self] in
+            if let error {
+                AppLog.healthKit.error("Observer query error: \(error.localizedDescription, privacy: .public)")
+                return
+            }
+            Task { @MainActor in
                 await self?.refreshSnapshot()
             }
         }
         store.execute(query)
+        activeObserverQueries.append(query)
     }
 
     // MARK: - Heart Rate
@@ -167,6 +181,7 @@ final class HealthKitService {
             guard let total = result?.sumQuantity()?.doubleValue(for: .count()) else { return nil }
             return total / Double(days)
         } catch {
+            AppLog.healthKit.error("averageSteps query failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -196,6 +211,7 @@ final class HealthKitService {
             let totalSeconds = asleepSamples.reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
             return totalSeconds / 3600.0 / Double(days)
         } catch {
+            AppLog.healthKit.error("averageSleepHours query failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -219,6 +235,7 @@ final class HealthKitService {
             let result = try await descriptor.result(for: store)
             return result?.averageQuantity()?.doubleValue(for: unit)
         } catch {
+            AppLog.healthKit.error("averageQuantity \(type.rawValue, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -236,6 +253,7 @@ final class HealthKitService {
             let samples = try await descriptor.result(for: store)
             return samples.first?.quantity.doubleValue(for: unit)
         } catch {
+            AppLog.healthKit.error("latestQuantity \(type.rawValue, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }

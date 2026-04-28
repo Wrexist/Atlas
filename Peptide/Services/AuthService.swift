@@ -4,7 +4,7 @@ import Security
 /// Manages Sign in with Apple identity and Keychain-backed credential persistence.
 ///
 /// Fully optional — every feature works without sign-in. The stored user identifier
-/// gates cloud sync eligibility in future releases.
+/// is reserved for future server-backed features; the v1.x app does not transmit it.
 @MainActor @Observable
 final class AuthService {
     static let shared = AuthService()
@@ -82,7 +82,8 @@ final class AuthService {
     // MARK: - Credential Validation
 
     /// Checks whether the stored Apple ID credential is still valid.
-    /// If the user revoked app access in Settings, this signs them out.
+    /// Sign out only on definitive negative states (notFound / revoked / transferred);
+    /// transient errors keep the session and log for diagnostics.
     func validateCredential() async {
         guard let userId = userIdentifier else { return }
 
@@ -90,11 +91,16 @@ final class AuthService {
         do {
             let state = try await provider.credentialState(forUserID: userId)
             guard userIdentifier == userId else { return }
-            if state != .authorized {
+            switch state {
+            case .authorized:
+                return
+            case .notFound, .revoked, .transferred:
                 signOut()
+            @unknown default:
+                AppLog.auth.error("Unknown credential state \(state.rawValue, privacy: .public); keeping session")
             }
         } catch {
-            // Network error — keep signed in, recheck next launch
+            AppLog.auth.error("credentialState lookup failed (keeping session): \(error.localizedDescription, privacy: .public)")
         }
     }
 

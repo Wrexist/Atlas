@@ -7,6 +7,8 @@ enum PeptideCategory: String, CaseIterable, Identifiable, Codable {
     case antiAging
     case immune
     case metabolic
+    /// Fallback bucket for peptides whose category is unrecognized.
+    case other
 
     var id: String { rawValue }
 
@@ -18,6 +20,7 @@ enum PeptideCategory: String, CaseIterable, Identifiable, Codable {
         case .antiAging: "Anti-Aging"
         case .immune: "Immune"
         case .metabolic: "Metabolic"
+        case .other: "Other"
         }
     }
 
@@ -29,6 +32,7 @@ enum PeptideCategory: String, CaseIterable, Identifiable, Codable {
         case .antiAging: "sparkles"
         case .immune: "shield.checkered"
         case .metabolic: "flame.fill"
+        case .other: "square.grid.2x2.fill"
         }
     }
 }

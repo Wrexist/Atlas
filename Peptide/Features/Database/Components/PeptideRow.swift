@@ -33,8 +33,13 @@ struct PeptideRow: View {
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
+                .accessibilityHidden(true)
         }
         .glassCard(cornerRadius: Spacing.smallCornerRadius, padding: Spacing.md)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(peptide.abbreviation), \(peptide.name)")
+        .accessibilityValue(peptide.category.displayName)
+        .accessibilityHint("Opens peptide details")
     }
 }
 

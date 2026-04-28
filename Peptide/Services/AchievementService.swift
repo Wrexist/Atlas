@@ -70,17 +70,25 @@ final class AchievementService {
     }
 
     private func loadAchievements() {
-        if let data = defaults.data(forKey: persistenceKey),
-           let saved = try? JSONDecoder().decode([Achievement].self, from: data) {
+        guard let data = defaults.data(forKey: persistenceKey) else {
+            achievements = Self.defaultAchievements
+            return
+        }
+        do {
+            let saved = try JSONDecoder().decode([Achievement].self, from: data)
             achievements = mergeWithDefaults(saved)
-        } else {
+        } catch {
+            AppLog.achievements.error("Failed to decode achievements; reverting to defaults: \(error.localizedDescription, privacy: .public)")
             achievements = Self.defaultAchievements
         }
     }
 
     private func saveAchievements() {
-        if let data = try? JSONEncoder().encode(achievements) {
+        do {
+            let data = try JSONEncoder().encode(achievements)
             defaults.set(data, forKey: persistenceKey)
+        } catch {
+            AppLog.achievements.error("Failed to encode achievements: \(error.localizedDescription, privacy: .public)")
         }
     }
 

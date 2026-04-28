@@ -47,6 +47,10 @@ struct AchievementToastView: View {
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .transition(.move(edge: .top).combined(with: .opacity))
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Achievement unlocked: \(achievement.title)")
+                .accessibilityValue(achievement.description)
+                .accessibilityAddTraits(.isStaticText)
 
                 Spacer()
             }

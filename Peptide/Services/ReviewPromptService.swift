@@ -44,7 +44,9 @@ final class ReviewPromptService {
         defaults.set(currentVersion, forKey: lastPromptVersionKey)
     }
 
-    private var isEligible: Bool {
+    /// Internal (not private) so tests can validate the gating rules without
+    /// having to construct a SwiftUI `RequestReviewAction`.
+    var isEligible: Bool {
         let installDate = (defaults.object(forKey: installDateKey) as? Date) ?? Date()
         let daysSinceInstall = Calendar.current.dateComponents([.day], from: installDate, to: Date()).day ?? 0
         guard daysSinceInstall >= minDaysSinceInstall else { return false }
