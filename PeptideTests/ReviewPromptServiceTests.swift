@@ -17,21 +17,23 @@ final class ReviewPromptServiceTests: XCTestCase {
         // Each test starts from a known UserDefaults state. The service is a
         // singleton so we cannot recreate it; the eligibility check reads
         // defaults each time, so manipulating defaults is enough.
-        clearReviewDefaults()
-        service = ReviewPromptService.shared
-    }
-
-    override func tearDown() {
-        clearReviewDefaults()
-        service = nil
-        super.tearDown()
-    }
-
-    private func clearReviewDefaults() {
+        // Inlined rather than calling a helper because helpers on a @MainActor
+        // XCTestCase can't be called from the nonisolated setUp/tearDown
+        // overrides without tripping Swift 6's data-race checker.
         defaults.removeObject(forKey: Self.installDateKey)
         defaults.removeObject(forKey: Self.lastPromptDateKey)
         defaults.removeObject(forKey: Self.lastPromptVersionKey)
         defaults.removeObject(forKey: Self.launchCountKey)
+        service = ReviewPromptService.shared
+    }
+
+    override func tearDown() {
+        defaults.removeObject(forKey: Self.installDateKey)
+        defaults.removeObject(forKey: Self.lastPromptDateKey)
+        defaults.removeObject(forKey: Self.lastPromptVersionKey)
+        defaults.removeObject(forKey: Self.launchCountKey)
+        service = nil
+        super.tearDown()
     }
 
     // MARK: - recordLaunch
