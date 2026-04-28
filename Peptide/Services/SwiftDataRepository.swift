@@ -7,27 +7,57 @@ import SwiftData
 final class SwiftDataRepository {
     static let shared = SwiftDataRepository()
 
-    private var container: ModelContainer
+    private var container: ModelContainer?
 
     /// True when the on-disk store could not be opened and we fell back to an
     /// in-memory container. The app remains usable, but mutations won't persist
     /// across launches. DataStore surfaces this to the user via `lastError`.
     private(set) var isUsingFallbackStore = false
 
-    private var context: ModelContext {
-        container.mainContext
+    /// True when neither on-disk nor in-memory containers could be created.
+    /// All reads return empty and writes are no-ops. DataStore surfaces this
+    /// to the user via `lastError`.
+    private(set) var isInoperable = false
+
+    private var context: ModelContext? {
+        container?.mainContext
     }
 
     private init() {
-        if let onDisk = Self.makePersistentContainer() {
-            container = onDisk
-        } else {
-            container = Self.makeInMemoryContainer()
+        let iCloudAvailable = FileManager.default.ubiquityIdentityToken != nil
+        if iCloudAvailable, let ck = Self.makeCloudContainer() {
+            container = ck
+            isCloudSyncEnabled = true
+        } else if let local = Self.makeLocalContainer() {
+            container = local
+        } else if let inMemory = Self.makeInMemoryContainer() {
+            container = inMemory
             isUsingFallbackStore = true
+        } else {
+            container = nil
+            isInoperable = true
+            assertionFailure("SwiftDataRepository: both on-disk and in-memory ModelContainer creation failed")
         }
     }
 
-    private static func makePersistentContainer() -> ModelContainer? {
+    private(set) var isCloudSyncEnabled = false
+
+    private static func makeCloudContainer() -> ModelContainer? {
+        do {
+            let config = ModelConfiguration(cloudKitDatabase: .private("iCloud.com.peptidesai.app"))
+            let container = try ModelContainer(
+                for: StoredProtocol.self, StoredEntry.self, StoredProfile.self,
+                configurations: config
+            )
+            AppLog.swiftData.info("Using CloudKit-backed store")
+            return container
+        } catch {
+            AppLog.swiftData.error("CloudKit store failed, falling back to local: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    private static func makeLocalContainer() -> ModelContainer? {
         do {
             return try ModelContainer(
                 for: StoredProtocol.self, StoredEntry.self, StoredProfile.self
@@ -38,7 +68,7 @@ final class SwiftDataRepository {
         }
     }
 
-    private static func makeInMemoryContainer() -> ModelContainer {
+    private static func makeInMemoryContainer() -> ModelContainer? {
         do {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
             return try ModelContainer(
@@ -46,10 +76,8 @@ final class SwiftDataRepository {
                 configurations: config
             )
         } catch {
-            // In-memory container creation failing means the schema itself is
-            // unusable — there's no recovery path. This only fires in catastrophic
-            // misconfiguration, never on a real device.
-            fatalError("SwiftDataRepository: in-memory fallback also failed — \(error)")
+            AppLog.swiftData.error("Failed to create in-memory ModelContainer: \(error.localizedDescription, privacy: .public)")
+            return nil
         }
     }
 
@@ -59,10 +87,12 @@ final class SwiftDataRepository {
     func configureForTesting() {
         container = Self.makeInMemoryContainer()
         isUsingFallbackStore = false
+        isInoperable = container == nil
     }
 
     /// Removes all records. Call in test tearDown only.
     func deleteAll() {
+        guard let context else { return }
         do {
             try context.delete(model: StoredProtocol.self)
             try context.delete(model: StoredEntry.self)
@@ -76,6 +106,7 @@ final class SwiftDataRepository {
     // MARK: - Protocols
 
     func saveProtocols(_ protocols: [PeptideProtocol]) {
+        guard let context else { return }
         let existing: [StoredProtocol]
         do {
             existing = try context.fetch(FetchDescriptor<StoredProtocol>())
@@ -111,6 +142,7 @@ final class SwiftDataRepository {
     }
 
     func loadProtocols() -> [PeptideProtocol] {
+        guard let context else { return [] }
         let descriptor = FetchDescriptor<StoredProtocol>(
             sortBy: [SortDescriptor(\.startDate, order: .reverse)]
         )
@@ -134,6 +166,7 @@ final class SwiftDataRepository {
     // MARK: - Entries
 
     func saveEntries(_ entries: [ProtocolEntry]) {
+        guard let context else { return }
         let existing: [StoredEntry]
         do {
             existing = try context.fetch(FetchDescriptor<StoredEntry>())
@@ -169,6 +202,7 @@ final class SwiftDataRepository {
     }
 
     func loadEntries() -> [ProtocolEntry] {
+        guard let context else { return [] }
         let stored: [StoredEntry]
         do {
             stored = try context.fetch(FetchDescriptor<StoredEntry>())
@@ -189,6 +223,7 @@ final class SwiftDataRepository {
     // MARK: - Profile
 
     func saveProfile(_ profile: UserProfile) {
+        guard let context else { return }
         let existing: StoredProfile?
         do {
             existing = try context.fetch(FetchDescriptor<StoredProfile>()).first
@@ -215,6 +250,7 @@ final class SwiftDataRepository {
     }
 
     func loadProfile() -> UserProfile? {
+        guard let context else { return nil }
         let stored: StoredProfile?
         do {
             stored = try context.fetch(FetchDescriptor<StoredProfile>()).first
@@ -234,10 +270,11 @@ final class SwiftDataRepository {
     // MARK: - State
 
     var hasAnyData: Bool {
+        guard let context else { return false }
         let descriptors: [() throws -> Int] = [
-            { try self.context.fetchCount(FetchDescriptor<StoredProtocol>()) },
-            { try self.context.fetchCount(FetchDescriptor<StoredEntry>()) },
-            { try self.context.fetchCount(FetchDescriptor<StoredProfile>()) },
+            { try context.fetchCount(FetchDescriptor<StoredProtocol>()) },
+            { try context.fetchCount(FetchDescriptor<StoredEntry>()) },
+            { try context.fetchCount(FetchDescriptor<StoredProfile>()) },
         ]
         for descriptor in descriptors {
             do {
@@ -252,6 +289,7 @@ final class SwiftDataRepository {
     // MARK: - Private
 
     private func commit() {
+        guard let context else { return }
         do {
             try context.save()
         } catch {
