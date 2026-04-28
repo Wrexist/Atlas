@@ -31,4 +31,3 @@ enum AppAnimation {
         reduceMotion ? nil : animation
     }
 }
-
