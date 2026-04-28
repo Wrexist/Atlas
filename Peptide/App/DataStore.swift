@@ -62,7 +62,9 @@ final class DataStore: DataServiceProtocol {
         self.customPeptides = PersistenceService.shared.loadCustomPeptides() ?? []
 
         // Phase 2: self is fully initialized — safe to call methods.
-        if repo.isUsingFallbackStore {
+        if repo.isInoperable {
+            self.lastError = "Storage unavailable — please reinstall the app to restore data persistence."
+        } else if repo.isUsingFallbackStore {
             self.lastError = "Storage unavailable — changes won't be saved between launches."
         }
         let savedProtocols = repo.loadProtocols()

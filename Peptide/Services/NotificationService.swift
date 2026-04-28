@@ -111,8 +111,7 @@ final class NotificationService {
                 dateComponents.minute = minute
 
                 let content = UNMutableNotificationContent()
-                if peptides.count == 1 {
-                    let peptide = peptides[0]
+                if let peptide = peptides.first, peptides.count == 1 {
                     content.title = "Time for \(peptide.abbreviation)"
                     content.body = "\(peptide.name) \u{2022} \(peptide.dosageRange)"
                 } else {
