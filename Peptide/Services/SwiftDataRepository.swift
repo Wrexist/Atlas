@@ -24,8 +24,12 @@ final class SwiftDataRepository {
     }
 
     private init() {
-        if let onDisk = Self.makePersistentContainer() {
-            container = onDisk
+        let iCloudAvailable = FileManager.default.ubiquityIdentityToken != nil
+        if iCloudAvailable, let ck = Self.makeCloudContainer() {
+            container = ck
+            isCloudSyncEnabled = true
+        } else if let local = Self.makeLocalContainer() {
+            container = local
         } else if let inMemory = Self.makeInMemoryContainer() {
             container = inMemory
             isUsingFallbackStore = true
@@ -36,7 +40,24 @@ final class SwiftDataRepository {
         }
     }
 
-    private static func makePersistentContainer() -> ModelContainer? {
+    private(set) var isCloudSyncEnabled = false
+
+    private static func makeCloudContainer() -> ModelContainer? {
+        do {
+            let config = ModelConfiguration(cloudKitDatabase: .private("iCloud.com.peptidesai.app"))
+            let container = try ModelContainer(
+                for: StoredProtocol.self, StoredEntry.self, StoredProfile.self,
+                configurations: config
+            )
+            AppLog.swiftData.info("Using CloudKit-backed store")
+            return container
+        } catch {
+            AppLog.swiftData.error("CloudKit store failed, falling back to local: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    private static func makeLocalContainer() -> ModelContainer? {
         do {
             return try ModelContainer(
                 for: StoredProtocol.self, StoredEntry.self, StoredProfile.self

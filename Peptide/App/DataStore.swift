@@ -16,6 +16,9 @@ final class DataStore: DataServiceProtocol {
     /// in-memory storage so the user knows changes won't survive relaunch.
     var lastError: String?
 
+    /// True when data is being synced to iCloud via CloudKit.
+    var isCloudSyncEnabled: Bool { repo.isCloudSyncEnabled }
+
     private let repo: SwiftDataRepository
     private let _peptideDatabase: [Peptide] = PeptideDatabase.shared
 
@@ -528,6 +531,7 @@ final class DataStore: DataServiceProtocol {
         repo.saveEntries(entries)
         repo.saveProfile(profile)
         updateWidgetData()
+        updateWatchData()
         scheduleAchievementCheck()
     }
 
@@ -547,6 +551,10 @@ final class DataStore: DataServiceProtocol {
 
         PersistenceService.shared.updateWidgetData(data)
         WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    private func updateWatchData() {
+        WatchSyncService.shared.updateWatchData(entries: entries, protocols: protocols)
     }
 
     private func scheduleAchievementCheck() {

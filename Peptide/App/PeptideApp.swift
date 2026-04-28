@@ -16,7 +16,16 @@ struct PeptideApp: App {
         // bridges to @MainActor safely since @main always runs on the main thread.
         _dataStore = State(wrappedValue: MainActor.assumeIsolated {
             MigrationService.shared.migrateIfNeeded()
-            return DataStore()
+            let store = DataStore()
+            WatchSyncService.shared.onMarkComplete = { entryId, _ in
+                store.toggleEntry(entryId)
+            }
+            WatchSyncService.shared.onMarkIncomplete = { entryId, _ in
+                if store.entries.first(where: { $0.id == entryId })?.completed == true {
+                    store.toggleEntry(entryId)
+                }
+            }
+            return store
         })
     }
 

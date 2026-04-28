@@ -16,5 +16,13 @@
 	<array>
 		<string>group.com.peptidesai.app</string>
 	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudKit</string>
+	</array>
+	<key>com.apple.developer.icloud-containers</key>
+	<array>
+		<string>iCloud.com.peptidesai.app</string>
+	</array>
 </dict>
 </plist>
