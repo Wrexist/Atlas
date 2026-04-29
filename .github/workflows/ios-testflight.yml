@@ -96,29 +96,6 @@ jobs:
           fi
           xcodegen --version
 
-      - name: Stamp build number + verify Info.plist
-        env:
-          BUILD_NUMBER: ${{ github.run_number }}
-        run: |
-          set -euo pipefail
-          PLIST="Peptide/Resources/Info.plist"
-          # CFBundleVersion is currently $(CURRENT_PROJECT_VERSION) — replace it
-          # with a concrete monotonic build number sourced from the GitHub run
-          # counter so TestFlight doesn't reject duplicate uploads.
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$PLIST"
-          STAMPED=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST")
-          echo "CFBundleVersion now = $STAMPED"
-          if [ "$STAMPED" != "$BUILD_NUMBER" ]; then
-            echo "FATAL: stamping failed; CFBundleVersion is '$STAMPED' but expected '$BUILD_NUMBER'"
-            exit 1
-          fi
-          # Required UI keys (TestFlight rejects missing UILaunchScreen).
-          /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations" "$PLIST" >/dev/null \
-            || { echo "FATAL: UISupportedInterfaceOrientations missing"; exit 1; }
-          /usr/libexec/PlistBuddy -c "Print :UILaunchScreen" "$PLIST" >/dev/null \
-            || { echo "FATAL: UILaunchScreen missing"; exit 1; }
-          echo "Info.plist required keys present."
-
       - name: Generate Xcode project
         run: |
           set -euo pipefail
@@ -144,6 +121,50 @@ jobs:
           xcodegen generate
           test -d "$PROJECT" || { echo "FATAL: xcodegen did not produce $PROJECT"; exit 1; }
           echo "Project ready: $PROJECT"
+
+      - name: Stamp build number + verify Info.plist
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          # IMPORTANT: this step MUST run AFTER xcodegen. xcodegen overwrites
+          # the source Info.plist with its own template; the default it
+          # writes for CFBundleVersion is the literal string "1" (not the
+          # $(CURRENT_PROJECT_VERSION) placeholder one might expect). Stamp
+          # post-xcodegen so the literal build number survives until
+          # xcodebuild reads the file.
+          PLIST="Peptide/Resources/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$PLIST"
+          STAMPED=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST")
+          echo "CFBundleVersion now = $STAMPED"
+          if [ "$STAMPED" != "$BUILD_NUMBER" ]; then
+            echo "FATAL: stamping failed; CFBundleVersion is '$STAMPED' but expected '$BUILD_NUMBER'"
+            exit 1
+          fi
+          # Required UI keys (TestFlight rejects missing UILaunchScreen).
+          /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations" "$PLIST" >/dev/null \
+            || { echo "FATAL: UISupportedInterfaceOrientations missing"; exit 1; }
+          /usr/libexec/PlistBuddy -c "Print :UILaunchScreen" "$PLIST" >/dev/null \
+            || { echo "FATAL: UILaunchScreen missing"; exit 1; }
+          echo "Info.plist required keys present."
+
+          # Widgets target also has GENERATE_INFOPLIST_FILE: NO and its source
+          # Info.plist has no CFBundleVersion. xcodegen writes it as literal
+          # "1" too. Stamp it directly so the embedded widgets bundle in the
+          # archive carries the matching build number (Apple requires every
+          # bundle in the IPA to share CFBundleVersion).
+          WPLIST="PeptideWidgets/Info.plist"
+          if [ -f "$WPLIST" ]; then
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$WPLIST" 2>/dev/null \
+              || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUMBER" "$WPLIST"
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.0" "$WPLIST" 2>/dev/null \
+              || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.0.0" "$WPLIST"
+            echo "Widgets CFBundleVersion = $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$WPLIST")"
+          fi
+          # The watch app uses GENERATE_INFOPLIST_FILE: YES, so xcodebuild
+          # generates its Info.plist on the fly from CURRENT_PROJECT_VERSION.
+          # Our archive command passes CURRENT_PROJECT_VERSION=$BUILD_NUMBER
+          # which gets picked up by the auto-generated path. No file to stamp.
 
       - name: Install Python deps for ASC scripts
         run: |
