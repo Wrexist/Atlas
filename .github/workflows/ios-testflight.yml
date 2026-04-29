@@ -100,11 +100,13 @@ jobs:
         run: |
           set -euo pipefail
           # Project is gitignored; XcodeGen materialises it from project.yml.
-          # Make sure the AppIcon asset exists or asset compilation will fail.
-          ICON="Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
-          if [ ! -f "$ICON" ]; then
-            python3 - <<'PY'
-          import struct, zlib, os
+          # Make sure the AppIcon assets exist (iOS + watchOS) or asset
+          # compilation fails and TestFlight rejects the build for missing
+          # icons. We generate solid-colour 1024x1024 PNGs so CI always
+          # produces uploadable artifacts; replace these with real artwork
+          # before public release.
+          python3 - <<'PY'
+          import struct, zlib, os, pathlib
           def make_png(w, h, r, g, b):
               def chunk(name, data):
                   c = zlib.crc32(name + data) & 0xffffffff
@@ -112,12 +114,17 @@ jobs:
               ihdr = struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)
               raw  = (b'\x00' + bytes([r, g, b]) * w) * h
               return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
-          out = 'Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png'
-          os.makedirs(os.path.dirname(out), exist_ok=True)
-          open(out, 'wb').write(make_png(1024, 1024, 0, 102, 204))
-          print(f'generated fallback icon at {out}')
+          for path, rgb in [
+              ('Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png', (0, 102, 204)),
+              ('PeptideWatch/Assets.xcassets/AppIcon.appiconset/AppIcon.png',     (0, 102, 204)),
+          ]:
+              if not os.path.exists(path):
+                  os.makedirs(os.path.dirname(path), exist_ok=True)
+                  pathlib.Path(path).write_bytes(make_png(1024, 1024, *rgb))
+                  print(f'generated fallback icon at {path}')
+              else:
+                  print(f'icon already present: {path}')
           PY
-          fi
           xcodegen generate
           test -d "$PROJECT" || { echo "FATAL: xcodegen did not produce $PROJECT"; exit 1; }
           echo "Project ready: $PROJECT"
