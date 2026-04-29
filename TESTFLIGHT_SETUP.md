@@ -4,7 +4,9 @@
 - **App Name:** PeptideX
 - **Bundle ID:** `com.peptidesai.app`
 - **Widget Bundle ID:** `com.peptidesai.app.widgets`
+- **Watch Bundle ID:** `com.peptidesai.app.watchkitapp`
 - **App Group:** `group.com.peptidesai.app`
+- **iCloud Container:** `iCloud.com.peptidesai.app`
 
 ---
 
@@ -14,10 +16,14 @@ Work through this top-to-bottom before running the workflow. Each item maps to a
 
 - [ ] Apple Developer Program active ($99/year membership)
 - [ ] App Group `group.com.peptidesai.app` registered in Developer Portal
-- [ ] App ID `com.peptidesai.app` registered with App Groups + HealthKit + Sign In with Apple
+- [ ] iCloud Container `iCloud.com.peptidesai.app` registered in Developer Portal
+- [ ] App ID `com.peptidesai.app` registered with App Groups + HealthKit + Sign In with Apple + iCloud
 - [ ] App Group linked to `com.peptidesai.app` (click Configure → tick the group → Save)
+- [ ] iCloud Container linked to `com.peptidesai.app` (Configure iCloud → tick CloudKit + the container → Save)
 - [ ] App ID `com.peptidesai.app.widgets` registered with App Groups
 - [ ] App Group linked to `com.peptidesai.app.widgets`
+- [ ] App ID `com.peptidesai.app.watchkitapp` registered with App Groups
+- [ ] App Group linked to `com.peptidesai.app.watchkitapp`
 - [ ] App created in App Store Connect with bundle ID `com.peptidesai.app`
 - [ ] Apple Distribution certificate downloaded and exported as `.p12`
 - [ ] App Store Connect API key created with App Manager access, `.p8` file saved
@@ -26,9 +32,9 @@ Work through this top-to-bottom before running the workflow. Each item maps to a
 
 ---
 
-## Step 1: Register App Group and App IDs in the Developer Portal
+## Step 1: Register Shared Resources and App IDs in the Developer Portal
 
-> **Do this in order.** The App Group must exist before you can link it to App IDs.
+> **Do this in order.** Shared resources (App Group + iCloud Container) must exist before you can link them to App IDs.
 
 ### 1a. Create the App Group
 
@@ -38,19 +44,28 @@ Work through this top-to-bottom before running the workflow. Each item maps to a
 4. Identifier: `group.com.peptidesai.app`
 5. Click **Continue** → **Register**
 
-### 1b. Register the main App ID (`com.peptidesai.app`)
+### 1b. Create the iCloud Container
+
+1. Identifiers → **+** → select **iCloud Containers** → **Continue**
+2. Description: `PeptideX`
+3. Identifier: `iCloud.com.peptidesai.app`
+4. Click **Continue** → **Register**
+
+### 1c. Register the main App ID (`com.peptidesai.app`)
 
 1. Identifiers → **+** → **App IDs** → **App** → **Continue**
 2. Description: `PeptideX`
 3. Bundle ID: **Explicit** → `com.peptidesai.app`
-4. Under **Capabilities**, tick all three:
+4. Under **Capabilities**, tick all four:
    - ☑ **App Groups**
    - ☑ **HealthKit**
    - ☑ **Sign In with Apple**
+   - ☑ **iCloud** (tick **Include CloudKit support** in the Configure dialog)
 5. Click **Configure** (or **Edit**) next to **App Groups** → tick `group.com.peptidesai.app` → **Continue**
-6. Click **Continue** → **Register**
+6. Click **Configure** (or **Edit**) next to **iCloud** → tick **CloudKit** and `iCloud.com.peptidesai.app` → **Continue**
+7. Click **Continue** → **Register**
 
-### 1c. Register the widget App ID (`com.peptidesai.app.widgets`)
+### 1d. Register the widget App ID (`com.peptidesai.app.widgets`)
 
 1. Identifiers → **+** → **App IDs** → **App** → **Continue**
 2. Description: `PeptideX Widgets`
@@ -60,7 +75,17 @@ Work through this top-to-bottom before running the workflow. Each item maps to a
 5. Click **Configure** next to **App Groups** → tick `group.com.peptidesai.app` → **Continue**
 6. Click **Continue** → **Register**
 
-> **Common mistake:** Forgetting to click **Configure** and actually tick the group after enabling the App Groups capability. The capability checkbox alone is not enough — the group must be explicitly linked. If the archive fails with an `application-groups entitlement` mismatch, this is the cause.
+### 1e. Register the watch App ID (`com.peptidesai.app.watchkitapp`)
+
+1. Identifiers → **+** → **App IDs** → **App** → **Continue**
+2. Description: `PeptideX Watch`
+3. Bundle ID: **Explicit** → `com.peptidesai.app.watchkitapp`
+4. Under **Capabilities**, tick:
+   - ☑ **App Groups**
+5. Click **Configure** next to **App Groups** → tick `group.com.peptidesai.app` → **Continue**
+6. Click **Continue** → **Register**
+
+> **Common mistake:** Forgetting to click **Configure** and actually tick the group/container after enabling a capability. The capability checkbox alone is not enough — the group/container must be explicitly linked. If the archive fails with an `application-groups entitlement` mismatch or `Entitlement com.apple.developer.icloud-containers not found`, this is the cause.
 
 ---
 
@@ -70,7 +95,7 @@ Work through this top-to-bottom before running the workflow. Each item maps to a
 2. Click **+** → **New App**
 3. Platform: **iOS**
 4. Name: `PeptideX`
-5. Bundle ID: select `com.peptidesai.app` (must appear after Step 1b)
+5. Bundle ID: select `com.peptidesai.app` (must appear after Step 1c)
 6. SKU: `peptidex` (any unique string works)
 7. Primary Language: your language of choice
 8. Click **Create**
@@ -237,7 +262,7 @@ This is fixed in the current workflow — the Homebrew bin directory is now writ
 
 ### "Preflight — MISSING: App ID com.peptidesai.app"
 
-The bundle ID `com.peptidesai.app` has not been registered. Follow **Step 1b** exactly.
+The bundle ID has not been registered. Follow **Step 1c** for the main app, **1d** for widgets, or **1e** for the watch app.
 
 ### "Preflight — MISSING capability: APP_GROUPS"
 
@@ -255,15 +280,28 @@ Open the App ID `com.peptidesai.app` → tick **HealthKit** → **Save**.
 
 Open the App ID `com.peptidesai.app` → tick **Sign In with Apple** → **Save**.
 
+### "Preflight — MISSING capability: ICLOUD"
+
+Open the App ID `com.peptidesai.app` → tick **iCloud** → click **Configure** next to iCloud → tick **CloudKit (Include CloudKit support)** and `iCloud.com.peptidesai.app` → **Continue** → **Save**.
+
 ### Archive fails: "doesn't match the entitlements file's value for com.apple.security.application-groups"
 
-The App Group is not linked to the App ID in the Developer Portal. The workflow's preflight can't verify App Group linkage (the ASC public API doesn't expose it), so this error is only caught at archive time.
+The App Group is not linked to the App ID in the Developer Portal. The workflow's preflight can't verify App Group linkage (the ASC public API doesn't expose it), so this error is only caught at archive time. The error message names the offending profile (e.g. `com.peptidesai.app.watchkitapp`); fix that App ID specifically.
 
 Fix:
-1. Developer Portal → Identifiers → click `com.peptidesai.app`
+1. Developer Portal → Identifiers → click the named App ID
 2. App Groups → **Configure** → tick `group.com.peptidesai.app` → **Continue** → **Save**
-3. Repeat for `com.peptidesai.app.widgets`
+3. Repeat for any other App ID listed in the error or whose dumped profile shows `(none)` for application-groups
 4. Re-run the workflow
+
+### Archive fails: "Entitlement com.apple.developer.icloud-containers not found and could not be included in profile"
+
+The iCloud Container `iCloud.com.peptidesai.app` is missing or not linked to `com.peptidesai.app`. The preflight can verify the iCloud capability is enabled, but not container linkage.
+
+Fix:
+1. Developer Portal → Identifiers → iCloud Containers — verify `iCloud.com.peptidesai.app` exists (Step 1b). If not, register it.
+2. Identifiers → click `com.peptidesai.app` → tick **iCloud** → click **Configure** → tick **CloudKit** and `iCloud.com.peptidesai.app` → **Continue** → **Save**
+3. Re-run the workflow
 
 ### Archive fails: "No signing certificate 'iOS Distribution' found"
 

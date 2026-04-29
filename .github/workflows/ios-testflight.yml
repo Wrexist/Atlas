@@ -225,15 +225,17 @@ jobs:
           python3 -m pip install --quiet --disable-pip-version-check cryptography >/dev/null 2>&1 || true
           python3 - <<'PY'
           # Verifies what the public App Store Connect API can see:
-          #   - both bundle IDs are registered
+          #   - all bundle IDs are registered
           #   - each bundle has the capabilities its entitlements need
           #
           # Apple's public ASC API does NOT expose AppGroup resources
           # (GET /v1/appGroups returns 404, "path does not match a defined resource
           # type"). App Group creation and linkage to an App ID must be done in
           # the Developer Portal web UI (or via fastlane's private session API).
-          # So we can't verify App Group linkage here — that gets caught by the
-          # archive step with a clear error message pointing back to the setup doc.
+          # Same caveat for iCloud Container linkage — the API exposes the ICLOUD
+          # capability flag on a bundle, but not which containers are linked to it.
+          # Those gaps get caught by the archive step with a clear error message
+          # pointing back to the setup doc.
 
           import base64, json, os, sys, time, urllib.request, urllib.error
           from cryptography.hazmat.primitives import hashes, serialization
@@ -284,11 +286,16 @@ jobs:
                       yield d
                   url = body.get("links", {}).get("next")
 
-          REQUIRED_BUNDLES = ["com.peptidesai.app", "com.peptidesai.app.widgets"]
+          REQUIRED_BUNDLES = [
+              "com.peptidesai.app",
+              "com.peptidesai.app.widgets",
+              "com.peptidesai.app.watchkitapp",
+          ]
           # Capability types we need enabled per bundle, per its entitlements file.
           WANT_CAPS = {
-              "com.peptidesai.app":         {"APP_GROUPS", "HEALTHKIT", "APPLE_ID_AUTH"},
-              "com.peptidesai.app.widgets": {"APP_GROUPS"},
+              "com.peptidesai.app":             {"APP_GROUPS", "HEALTHKIT", "APPLE_ID_AUTH", "ICLOUD"},
+              "com.peptidesai.app.widgets":     {"APP_GROUPS"},
+              "com.peptidesai.app.watchkitapp": {"APP_GROUPS"},
           }
 
           bundle_map = {
@@ -343,12 +350,17 @@ jobs:
                           "APP_GROUPS": "App Groups",
                           "HEALTHKIT": "HealthKit",
                           "APPLE_ID_AUTH": "Sign In with Apple",
+                          "ICLOUD": "iCloud (enable CloudKit)",
                       }.get(c, c) for c in caps))
                       print(f"       - {bundle_name}: {pretty}")
               print()
-              print("Then ensure the App Group 'group.com.peptidesai.app' exists and is linked:")
-              print("  - Identifiers → + → App Groups → identifier group.com.peptidesai.app")
-              print("  - For each App ID above, open App Groups capability → Edit → tick the group → Save")
+              print("Then ensure these shared resources exist and are linked:")
+              print("  App Group 'group.com.peptidesai.app':")
+              print("    - Identifiers → + → App Groups → identifier group.com.peptidesai.app")
+              print("    - For each App ID above, open App Groups capability → Edit → tick the group → Save")
+              print("  iCloud Container 'iCloud.com.peptidesai.app':")
+              print("    - Identifiers → + → iCloud Containers → identifier iCloud.com.peptidesai.app")
+              print("    - On App ID com.peptidesai.app, open iCloud capability → Edit → tick the container → Save")
               print()
               print("See TESTFLIGHT_SETUP.md → 'Step 1: Register App IDs & Capabilities'.")
               sys.exit(1)
@@ -393,15 +405,16 @@ jobs:
             echo "=================================================================="
             echo "Archive failed. Scanning log for known signing/entitlement issues…"
             echo "=================================================================="
-            if grep -E "doesn't match the entitlements file's value|doesn't include the .* (capability|entitlement)" \
+            ENT_ERROR_REGEX="doesn't match the entitlements file's value|doesn't include the .* (capability|entitlement)|Entitlement .* not found and could not be included in profile"
+            if grep -E "$ENT_ERROR_REGEX" \
                  "$RUNNER_TEMP/xcodebuild-archive.log" >/dev/null 2>&1; then
               echo ""
               echo "Detected a capability/entitlement mismatch. Xcode's -allowProvisioningUpdates"
               echo "fetched profiles from Apple, but they don't contain the entitlements your app"
               echo "requests. The profiles below are what Apple actually returned — check their"
-              echo "application-groups array to see whether group.com.peptidesai.app is linked."
+              echo "application-groups and iCloud entries against the requested entitlements."
               echo ""
-              grep -E "doesn't match the entitlements file's value|doesn't include the .* (capability|entitlement)" \
+              grep -E "$ENT_ERROR_REGEX" \
                    "$RUNNER_TEMP/xcodebuild-archive.log" || true
               echo ""
               echo "=================================================================="
@@ -422,6 +435,9 @@ jobs:
                   echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.security.application-groups' /dev/stdin 2>/dev/null | sed 's/^/  /' || echo "  (none — App Group is NOT linked to this App ID in the Developer Portal)"
                   echo "healthkit:  $(echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.healthkit' /dev/stdin 2>/dev/null || echo '(not enabled)')"
                   echo "applesignin: $(echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.applesignin' /dev/stdin 2>/dev/null || echo '(not enabled)')"
+                  echo "icloud-services: $(echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.icloud-services' /dev/stdin 2>/dev/null | tr '\n' ' ' || echo '(not enabled)')"
+                  echo "icloud-containers:"
+                  echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.icloud-container-identifiers' /dev/stdin 2>/dev/null | sed 's/^/  /' || echo "  (none — iCloud container is NOT linked to this App ID in the Developer Portal)"
                 done
               else
                 echo "(no profiles fetched — likely failed before provisioning step)"
@@ -432,17 +448,31 @@ jobs:
               echo "=================================================================="
               echo "Go to https://developer.apple.com/account/resources/identifiers/list"
               echo ""
+              echo "App Group 'group.com.peptidesai.app' must be linked to all three App IDs:"
+              echo ""
               echo "1. Identifiers → App Groups → verify 'group.com.peptidesai.app' exists."
               echo "   If not, click + → App Groups → identifier 'group.com.peptidesai.app' → Continue → Register."
               echo ""
-              echo "2. Click the App ID 'com.peptidesai.app' → check 'App Groups' capability."
-              echo "   Click the 'Configure' (or 'Edit') button next to App Groups → tick"
-              echo "   'group.com.peptidesai.app' → Continue → Save."
+              echo "2. For each of the App IDs below, click it → tick 'App Groups' →"
+              echo "   click 'Configure' (or 'Edit') next to App Groups → tick"
+              echo "   'group.com.peptidesai.app' → Continue → Save:"
+              echo "     - com.peptidesai.app"
+              echo "     - com.peptidesai.app.widgets"
+              echo "     - com.peptidesai.app.watchkitapp"
               echo ""
-              echo "3. Repeat step 2 for App ID 'com.peptidesai.app.widgets'."
+              echo "iCloud Container 'iCloud.com.peptidesai.app' must be linked to the main App ID:"
               echo ""
-              echo "4. Re-run this workflow. The dumped profile above should now show"
-              echo "   'group.com.peptidesai.app' in its application-groups array."
+              echo "3. Identifiers → iCloud Containers → verify 'iCloud.com.peptidesai.app' exists."
+              echo "   If not, click + → iCloud Containers → description 'Peptide' →"
+              echo "   identifier 'iCloud.com.peptidesai.app' → Continue → Register."
+              echo ""
+              echo "4. Click the App ID 'com.peptidesai.app' → tick 'iCloud' → click"
+              echo "   'Configure' (or 'Edit') next to iCloud → tick 'CloudKit' (Include CloudKit"
+              echo "   support) and 'iCloud.com.peptidesai.app' → Continue → Save."
+              echo ""
+              echo "5. Re-run this workflow. The dumped main-app profile above should now show"
+              echo "   'group.com.peptidesai.app' in its application-groups array, and"
+              echo "   'iCloud.com.peptidesai.app' in its icloud-container-identifiers array."
             fi
             echo "FATAL: Archive was not created"
             exit 1
