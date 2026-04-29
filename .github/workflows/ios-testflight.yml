@@ -691,6 +691,11 @@ jobs:
           APPLE_CONNECT_ISSUER_ID: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
         run: |
           set -euo pipefail
+          # exportOptions.plist sets destination=upload, so xcodebuild streams
+          # the IPA directly to App Store Connect and does NOT write it to
+          # -exportPath. We capture the log; success is determined by
+          # xcodebuild's exit code + the "Upload succeeded" line.
+          UPLOAD_LOG="build/upload.log"
           xcodebuild \
             -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
@@ -699,8 +704,27 @@ jobs:
             -allowProvisioningUpdates \
             -authenticationKeyID       "$APPLE_CONNECT_KEY_ID" \
             -authenticationKeyIssuerID "$APPLE_CONNECT_ISSUER_ID" \
-            -authenticationKeyPath     "$ASC_KEY_PATH"
-          ls -la "$EXPORT_DIR"
+            -authenticationKeyPath     "$ASC_KEY_PATH" \
+            2>&1 | tee "$UPLOAD_LOG"
+
+          # Hard-confirm the upload actually completed. xcodebuild's exit code
+          # is already gated by `set -e`, but the explicit grep makes the
+          # success criterion visible in the log.
+          if grep -q "Upload succeeded" "$UPLOAD_LOG"; then
+            echo "Upload to App Store Connect: confirmed"
+          else
+            echo "FATAL: xcodebuild exited 0 but no 'Upload succeeded' marker in log"
+            exit 1
+          fi
+
+          # destination=upload doesn't produce a local IPA. Surface the export
+          # directory state for forensic completeness without failing.
+          if [ -d "$EXPORT_DIR" ]; then
+            echo "Export dir contents:"
+            ls -la "$EXPORT_DIR"
+          else
+            echo "(no local IPA: destination=upload streams straight to ASC)"
+          fi
 
       - name: Upload archive log + IPA on any outcome
         if: always()
@@ -709,6 +733,7 @@ jobs:
           name: ios-build-${{ github.run_number }}
           path: |
             build/archive.log
+            build/upload.log
             build/export/*.ipa
             build/exportOptions.plist
           if-no-files-found: warn
