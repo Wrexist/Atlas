@@ -45,23 +45,29 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 3)
 
+                    BodyMetricsCard(
+                        metrics: dataStore.profile.bodyMetrics,
+                        onUpdate: { dataStore.updateBodyMetrics($0) }
+                    )
+                    .sectionAppear(index: 4)
+
                     HealthConnectionCard(
                         isConnected: dataStore.profile.healthConnected,
                         onConnect: { connectHealthKit() }
                     )
-                    .sectionAppear(index: 4)
+                    .sectionAppear(index: 5)
 
                     ExportSection()
-                        .sectionAppear(index: 5)
-
-                    AccountSection()
                         .sectionAppear(index: 6)
 
-                    AppearanceSettings()
+                    AccountSection()
                         .sectionAppear(index: 7)
 
-                    AboutSection()
+                    AppearanceSettings()
                         .sectionAppear(index: 8)
+
+                    AboutSection()
+                        .sectionAppear(index: 9)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)

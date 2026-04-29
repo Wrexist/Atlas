@@ -489,9 +489,42 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
+    func updateBodyMetrics(_ metrics: BodyMetrics) {
+        profile.bodyMetrics = metrics
+        save()
+    }
+
     func toggleHealthConnection() {
         profile.healthConnected.toggle()
         save()
+    }
+
+    /// One-tap adoption of an onboarding-recommended starter stack. Creates a
+    /// gentle 8-week protocol on a 5-days-on / 2-days-off cadence, mornings
+    /// only — the most forgiving default. The user can edit it immediately.
+    @discardableResult
+    func adoptStarterProtocol(
+        name: String = "Starter Stack",
+        peptides: [Peptide]
+    ) -> PeptideProtocol? {
+        guard !peptides.isEmpty else { return nil }
+        let schedule = ProtocolSchedule(
+            daysOfWeek: [1, 2, 3, 4, 5],
+            timesPerDay: 1,
+            preferredTimes: ["8:00 AM"]
+        )
+        let proto = PeptideProtocol(
+            id: UUID(),
+            name: name,
+            peptides: peptides,
+            schedule: schedule,
+            cycleLengthWeeks: 8,
+            startDate: Date(),
+            status: .active,
+            notes: "Generated from your onboarding goals. Review and adjust before starting."
+        )
+        addProtocol(proto)
+        return proto
     }
 
     /// Persists the current profile state. Call after direct property mutations

@@ -12,13 +12,16 @@ struct OnboardingView: View {
     @State private var currentPage = 0
     @State private var name: String = ""
     @State private var selectedGoals: Set<String> = []
+    @State private var bodyMetrics: BodyMetrics = .unspecified
+    @State private var selectedRecommendationIds: Set<UUID> = []
+    @State private var hasAutoSelectedRecommendations = false
     @State private var requestingHealth = false
     @State private var requestingNotifications = false
     @State private var bounceTrigger = 0
 
     @FocusState private var nameFocused: Bool
 
-    private let totalPages = 9
+    private let totalPages = 11
     @State private var storeService = StoreService.shared
 
     private struct OnboardingGoal: Identifiable {
@@ -53,20 +56,31 @@ struct OnboardingView: View {
                     welcomePage.tag(0)
                     namePage.tag(1)
                     goalsPage.tag(2)
-                    experiencePage.tag(3)
-                    healthKitPage.tag(4)
-                    notificationsPage.tag(5)
-                    signInPage.tag(6)
-                    offerPage.tag(7)
-                    readyPage.tag(8)
+                    bodyMetricsPage.tag(3)
+                    recommendationsPage.tag(4)
+                    experiencePage.tag(5)
+                    healthKitPage.tag(6)
+                    notificationsPage.tag(7)
+                    signInPage.tag(8)
+                    offerPage.tag(9)
+                    readyPage.tag(10)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: currentPage)
             }
         }
         .preferredColorScheme(.dark)
-        .onChange(of: currentPage) { _, _ in
+        .onChange(of: currentPage) { _, newValue in
             dismissKeyboard()
+            if newValue == 4 && !hasAutoSelectedRecommendations {
+                let top = currentSuggestions.prefix(2).map(\.peptide.id)
+                selectedRecommendationIds = Set(top)
+                hasAutoSelectedRecommendations = true
+            }
+        }
+        .onChange(of: selectedGoals) { _, _ in
+            hasAutoSelectedRecommendations = false
+            selectedRecommendationIds.removeAll()
         }
         .task { await storeService.loadProducts() }
     }
@@ -184,6 +198,73 @@ struct OnboardingView: View {
         )
     }
 
+    // MARK: - Page 4: Body Metrics
+
+    private var bodyMetricsPage: some View {
+        pageScaffold(
+            hero: HeroIcon(symbol: "figure.arms.open", size: 88, bounceTrigger: bounceTrigger),
+            content: {
+                BodyMetricsPage(metrics: $bodyMetrics)
+            },
+            footer: {
+                VStack(spacing: Spacing.sm) {
+                    GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
+                        advance(to: 4)
+                    }
+                    GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
+                        advance(to: 4)
+                    }
+                }
+            }
+        )
+    }
+
+    // MARK: - Page 5: Recommended Stack
+
+    private var recommendationsPage: some View {
+        pageScaffold(
+            hero: HeroIcon(symbol: "sparkle.magnifyingglass", size: 88, bounceTrigger: bounceTrigger),
+            content: {
+                RecommendationsPage(
+                    suggestions: currentSuggestions,
+                    selectedIds: $selectedRecommendationIds,
+                    metricsAvailable: bodyMetrics.hasWeight
+                )
+            },
+            footer: {
+                VStack(spacing: Spacing.sm) {
+                    GlassButton(
+                        title: starterButtonTitle,
+                        icon: selectedRecommendationIds.isEmpty ? "arrow.right" : "checkmark.circle.fill",
+                        style: .primary,
+                        isFullWidth: true
+                    ) {
+                        advance(to: 5)
+                    }
+                    GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
+                        selectedRecommendationIds.removeAll()
+                        advance(to: 5)
+                    }
+                }
+            }
+        )
+    }
+
+    private var currentSuggestions: [OnboardingRecommendationEngine.Suggestion] {
+        OnboardingRecommendationEngine.recommend(
+            goals: Array(selectedGoals),
+            metrics: bodyMetrics,
+            from: dataStore.peptideDatabase
+        )
+    }
+
+    private var starterButtonTitle: String {
+        let count = selectedRecommendationIds.count
+        if count == 0 { return "Continue without a stack" }
+        if count == 1 { return "Add 1 peptide & continue" }
+        return "Add \(count) peptides & continue"
+    }
+
     private var goalGrid: some View {
         LazyVGrid(
             columns: [GridItem(.flexible(), spacing: Spacing.sm), GridItem(.flexible(), spacing: Spacing.sm)],
@@ -288,7 +369,7 @@ struct OnboardingView: View {
             },
             footer: {
                 GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                    advance(to: 4)
+                    advance(to: 6)
                 }
             }
         )
@@ -378,10 +459,10 @@ struct OnboardingView: View {
                     dataStore.profile.healthConnected = granted
                     dataStore.persistProfile()
                 }
-                if currentPage == 4 { advance(to: 5) }
+                if currentPage == 6 { advance(to: 7) }
             }
         } onSkip: {
-            advance(to: 5)
+            advance(to: 7)
         }
     }
 
@@ -409,10 +490,10 @@ struct OnboardingView: View {
                     dataStore.profile.doseRemindersEnabled = granted
                     dataStore.persistProfile()
                 }
-                if currentPage == 5 { advance(to: 6) }
+                if currentPage == 7 { advance(to: 8) }
             }
         } onSkip: {
-            advance(to: 6)
+            advance(to: 8)
         }
     }
 
@@ -528,7 +609,7 @@ struct OnboardingView: View {
                     } onCompletion: { result in
                         Task { @MainActor in
                             AuthService.shared.handleAuthorization(result)
-                            if case .success = result, currentPage == 6 {
+                            if case .success = result, currentPage == 8 {
                                 advance(to: nextAfterSignIn)
                             }
                         }
@@ -551,19 +632,19 @@ struct OnboardingView: View {
     /// redeemed an intro offer in this group or already Pro). Keeps the funnel
     /// clean for re-installs.
     private var nextAfterSignIn: Int {
-        (storeService.isProUser || !storeService.isEligibleForMonthlyTrial) ? 8 : 7
+        (storeService.isProUser || !storeService.isEligibleForMonthlyTrial) ? 10 : 9
     }
 
     @ViewBuilder
     private var offerPage: some View {
         if storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
             Color.clear.onAppear {
-                if currentPage == 7 { advance(to: 8) }
+                if currentPage == 9 { advance(to: 10) }
             }
         } else {
             TrialOfferView(
-                onAccept: { advance(to: 8) },
-                onDecline: { advance(to: 8) }
+                onAccept: { advance(to: 10) },
+                onDecline: { advance(to: 10) }
             )
         }
     }
@@ -710,7 +791,18 @@ struct OnboardingView: View {
         if !selectedGoals.isEmpty {
             dataStore.profile.goals = Array(selectedGoals).sorted()
         }
+        dataStore.profile.bodyMetrics = bodyMetrics
         dataStore.persistProfile()
+
+        if !selectedRecommendationIds.isEmpty {
+            let chosen = currentSuggestions
+                .filter { selectedRecommendationIds.contains($0.peptide.id) }
+                .map(\.peptide)
+            if !chosen.isEmpty {
+                dataStore.adoptStarterProtocol(peptides: chosen)
+            }
+        }
+
         if dataStore.profile.hapticFeedbackEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
