@@ -469,6 +469,10 @@ jobs:
 
           cat > ci/scripts/dump_local_profiles.sh <<'SHEOF'
           #!/usr/bin/env bash
+          # Dump every .mobileprovision xcodebuild has dropped on disk along
+          # with its decoded entitlements. Used as both pre- and post-archive
+          # diagnostics. Must always exit 0 — never fail the workflow on a
+          # diagnostic-only step.
           set -u
           paths=(
             "$HOME/Library/MobileDevice/Provisioning Profiles"
@@ -491,7 +495,11 @@ jobs:
               rm -f "$tmp"
             done
           done
-          [[ $found -eq 0 ]] && echo "::warning::No .mobileprovision files - xcodebuild never wrote any."
+          if [[ $found -eq 0 ]]; then
+            echo "::warning::No .mobileprovision files - xcodebuild never wrote any."
+          fi
+          # Defense: a diagnostic must never fail the build.
+          exit 0
           SHEOF
 
           chmod +x ci/scripts/*.py ci/scripts/*.sh
@@ -615,9 +623,12 @@ jobs:
 
       - name: Diagnostic - profile cache state AFTER archive
         if: always()
+        continue-on-error: true
         run: |
           # Runs even when an earlier step failed. Guard against the script-
           # write step having been skipped (e.g. pip-install step blew up).
+          # Marked continue-on-error so a diagnostic regression cannot fail
+          # an otherwise-successful upload.
           if [ -f ci/scripts/dump_local_profiles.sh ]; then
             bash ci/scripts/dump_local_profiles.sh
           else
