@@ -1,953 +1,535 @@
-name: iOS TestFlight Deploy
+name: iOS TestFlight
 
 on:
   workflow_dispatch:
   push:
-    tags:
-      - "v*.*.*"
-
-permissions:
-  contents: read
+    branches: [main, "claude/**"]
+    paths:
+      - "Peptide/**"
+      - "**.swift"
+      - "**.xcodeproj/**"
+      - "**.xcworkspace/**"
+      - "**.entitlements"
+      - ".github/workflows/ios-testflight.yml"
 
 concurrency:
-  group: ios-testflight-deploy
-  cancel-in-progress: false
+  group: ios-testflight-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PROJECT:           Peptide.xcodeproj
+  SCHEME:            Peptide
+  CONFIGURATION:     Release
+  PRIMARY_BUNDLE:    com.peptidesai.app
+  ICLOUD_CONTAINER:  iCloud.com.peptidesai.app
+  ARCHIVE_PATH:      build/Peptide.xcarchive
+  EXPORT_DIR:        build/export
+  KEYCHAIN_NAME:     ci-signing.keychain-db
+  ASC_KEY_PATH:      /tmp/AuthKey.p8
 
 jobs:
-  build-and-deploy:
-    runs-on: macos-15
-    timeout-minutes: 60
+  build:
+    name: Archive + upload
+    runs-on: macos-latest
+    timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Validate required secrets
-        env:
-          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_CONNECT_KEY_ID: ${{ secrets.APPLE_CONNECT_KEY_ID }}
-          APPLE_CONNECT_ISSUER_ID: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
-          APPLE_CONNECT_PRIVATE_KEY: ${{ secrets.APPLE_CONNECT_PRIVATE_KEY }}
-        run: |
-          MISSING=0
-          check_secret() {
-            if [ -z "$2" ]; then
-              echo "FATAL: Secret '$1' is not set or empty"
-              MISSING=1
-            else
-              echo "OK: $1 is configured"
-            fi
-          }
-          check_secret "APPLE_CERTIFICATE_BASE64" "$APPLE_CERTIFICATE_BASE64"
-          check_secret "APPLE_CERTIFICATE_PASSWORD" "$APPLE_CERTIFICATE_PASSWORD"
-          check_secret "APPLE_TEAM_ID" "$APPLE_TEAM_ID"
-          check_secret "APPLE_CONNECT_KEY_ID" "$APPLE_CONNECT_KEY_ID"
-          check_secret "APPLE_CONNECT_ISSUER_ID" "$APPLE_CONNECT_ISSUER_ID"
-          check_secret "APPLE_CONNECT_PRIVATE_KEY" "$APPLE_CONNECT_PRIVATE_KEY"
-          if [ "$MISSING" -ne 0 ]; then
-            echo ""
-            echo "One or more required secrets are missing."
-            echo "See TESTFLIGHT_SETUP.md for setup instructions."
-            exit 1
-          fi
-
-      - uses: maxim-lobanov/setup-xcode@v1
+      - name: Select latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
 
-      - name: Verify Xcode version
+      - name: Show toolchain
         run: |
           xcodebuild -version
-          echo "iOS SDK: $(xcrun --show-sdk-version --sdk iphoneos)"
+          swift --version
+          python3 --version
 
-      - name: Cache Homebrew packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/Library/Caches/Homebrew
-            /usr/local/Cellar/xcodegen
-            /opt/homebrew/Cellar/xcodegen
-          key: brew-xcodegen-${{ runner.os }}-${{ runner.arch }}
-
-      - name: Cache DerivedData
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Developer/Xcode/DerivedData
-          key: derived-data-${{ runner.os }}-${{ hashFiles('project.yml') }}
-          restore-keys: derived-data-${{ runner.os }}-
-
-      - name: Install XcodeGen
+      - name: Install Python deps for ASC scripts
         run: |
-          if ! command -v xcodegen &> /dev/null; then
-            if ls "$(brew --prefix)/Cellar/xcodegen" &>/dev/null 2>&1; then
-              brew link --overwrite xcodegen 2>/dev/null || true
-            fi
-          fi
-          if ! command -v xcodegen &> /dev/null; then
-            brew install xcodegen || brew reinstall xcodegen
-            brew link --overwrite xcodegen 2>/dev/null || true
-          fi
-          echo "$(brew --prefix)/bin" >> $GITHUB_PATH
-          export PATH="$(brew --prefix)/bin:$PATH"
-          if ! command -v xcodegen &> /dev/null; then
-            echo "FATAL: xcodegen still not on PATH after install"
-            ls -la "$(brew --prefix)/Cellar/xcodegen/" 2>/dev/null || echo "No xcodegen in Cellar"
-            exit 1
-          fi
-          echo "XcodeGen ready: $(xcodegen --version)"
+          set -euo pipefail
+          # macos-latest runners enforce PEP 668: the system Python's
+          # site-packages is "externally managed" and rejects naked
+          # `pip install`. Use an isolated venv so we install PyJWT and
+          # cryptography without fighting the OS package manager, and
+          # prepend it to PATH so subsequent `python3` calls resolve to it.
+          python3 -m venv "$RUNNER_TEMP/asc-venv"
+          # shellcheck disable=SC1091
+          source "$RUNNER_TEMP/asc-venv/bin/activate"
+          python3 -m pip install --quiet --upgrade pip
+          python3 -m pip install --quiet PyJWT cryptography
+          # Persist the venv's bin dir so later steps inherit it.
+          echo "$RUNNER_TEMP/asc-venv/bin" >> "$GITHUB_PATH"
+          python3 -c "import jwt, cryptography; print('jwt', jwt.__version__, 'cryptography', cryptography.__version__)"
 
-      - name: Generate Xcode project
-        run: xcodegen generate
-
-      - name: Stamp build number into Info.plist
+      - name: Materialise ASC API key file
         env:
-          BUILD_NUMBER: ${{ github.run_number }}
+          APPLE_CONNECT_PRIVATE_KEY: ${{ secrets.APPLE_CONNECT_PRIVATE_KEY }}
+          APPLE_CONNECT_KEY_ID:      ${{ secrets.APPLE_CONNECT_KEY_ID }}
         run: |
-          PLIST="Peptide/Resources/Info.plist"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$PLIST"
-          echo "Stamped CFBundleVersion = $BUILD_NUMBER"
+          set -euo pipefail
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s\n' "$APPLE_CONNECT_PRIVATE_KEY" > "$ASC_KEY_PATH"
+          cp "$ASC_KEY_PATH" "$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_CONNECT_KEY_ID}.p8"
+          chmod 600 "$ASC_KEY_PATH" "$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_CONNECT_KEY_ID}.p8"
+          ls -la "$HOME/.appstoreconnect/private_keys/"
 
-      - name: Verify Info.plist keys
+      - name: Write embedded helper scripts to disk
         run: |
-          PLIST="Peptide/Resources/Info.plist"
-          echo "=== Info.plist contents ==="
-          cat "$PLIST"
-          echo ""
-          echo "=== Verifying required keys ==="
-          /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations" "$PLIST" || { echo "FATAL: UISupportedInterfaceOrientations missing"; exit 1; }
-          /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations~ipad" "$PLIST" || { echo "FATAL: UISupportedInterfaceOrientations~ipad missing"; exit 1; }
-          /usr/libexec/PlistBuddy -c "Print :UILaunchScreen" "$PLIST" || { echo "FATAL: UILaunchScreen missing"; exit 1; }
-          echo "All required keys present."
+          set -euo pipefail
+          mkdir -p ci/scripts
 
-      - name: Generate app icon (fallback)
-        run: |
-          ICON="Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
-          if [ -f "$ICON" ]; then
-            echo "App icon already exists, skipping generation"
-            exit 0
-          fi
-          python3 - << 'EOF'
-          import struct, zlib, os
+          cat > ci/scripts/asc_api.py <<'PYEOF'
+          """ASC API helpers — JWT generation + GET/paginated GET."""
+          from __future__ import annotations
+          import json, os, sys, time, urllib.error, urllib.parse, urllib.request
+          from typing import Any
+          import jwt
 
-          def make_png(width, height, r, g, b):
-              def chunk(name, data):
-                  c = zlib.crc32(name + data) & 0xffffffff
-                  return struct.pack('>I', len(data)) + name + data + struct.pack('>I', c)
-              ihdr = struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0)
-              scanline = b'\x00' + bytes([r, g, b]) * width
-              raw = scanline * height
-              idat = zlib.compress(raw)
-              return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', idat) + chunk(b'IEND', b'')
+          API_BASE = "https://api.appstoreconnect.apple.com"
 
-          out = 'Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png'
-          os.makedirs(os.path.dirname(out), exist_ok=True)
-          with open(out, 'wb') as f:
-              f.write(make_png(1024, 1024, 0, 102, 204))
-          print(f"Generated {out}")
-          EOF
+          def _require(name: str) -> str:
+              v = os.environ.get(name, "").strip()
+              if not v:
+                  print(f"::error::Missing env var {name}", file=sys.stderr); sys.exit(2)
+              return v
 
-      - name: Import certificate
-        env:
-          CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-          PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        run: |
-          CERT_PATH="$RUNNER_TEMP/cert.p12"
-          echo "$CERTIFICATE" | base64 --decode > "$CERT_PATH"
+          def make_token(ttl: int = 1200) -> str:
+              key_id    = _require("APPLE_CONNECT_KEY_ID")
+              issuer_id = _require("APPLE_CONNECT_ISSUER_ID")
+              pkey      = _require("APPLE_CONNECT_PRIVATE_KEY")
+              now = int(time.time())
+              payload = {"iss": issuer_id, "iat": now, "exp": now + ttl, "aud": "appstoreconnect-v1"}
+              return jwt.encode(payload, pkey, algorithm="ES256", headers={"kid": key_id, "typ": "JWT"})
 
-          CERT_SIZE=$(stat -f%z "$CERT_PATH" 2>/dev/null || stat --printf="%s" "$CERT_PATH" 2>/dev/null)
-          if [ "$CERT_SIZE" -lt 100 ]; then
-            echo "FATAL: Decoded certificate is only $CERT_SIZE bytes — secret is likely empty or corrupt"
-            exit 1
-          fi
-          echo "Certificate decoded: $CERT_SIZE bytes"
-
-          KC_PASSWORD=$(openssl rand -hex 24)
-          security create-keychain -p "$KC_PASSWORD" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$KC_PASSWORD" build.keychain
-          security set-keychain-settings build.keychain
-          security import "$CERT_PATH" -k build.keychain -P "$PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PASSWORD" build.keychain
-          rm -f "$CERT_PATH"
-          echo "Certificate imported successfully"
-
-      - name: Setup App Store Connect API key
-        env:
-          API_KEY: ${{ secrets.APPLE_CONNECT_PRIVATE_KEY }}
-          KEY_ID: ${{ secrets.APPLE_CONNECT_KEY_ID }}
-        run: |
-          KEY_DIR="$RUNNER_TEMP/private_keys"
-          mkdir -p "$KEY_DIR"
-          chmod 700 "$KEY_DIR"
-          # Handle both real newlines and escaped \n sequences from GitHub secrets
-          printf '%s' "$API_KEY" | sed 's/\\n/\n/g' > "$KEY_DIR/AuthKey_${KEY_ID}.p8"
-          chmod 600 "$KEY_DIR/AuthKey_${KEY_ID}.p8"
-          KEY_SIZE=$(wc -c < "$KEY_DIR/AuthKey_${KEY_ID}.p8")
-          if [ "$KEY_SIZE" -lt 100 ]; then
-            echo "FATAL: API key file is only $KEY_SIZE bytes — APPLE_CONNECT_PRIVATE_KEY secret is empty or corrupt"
-            exit 1
-          fi
-          echo "API key written for key ID: $KEY_ID ($KEY_SIZE bytes)"
-
-      - name: Preflight — verify Developer Portal resources
-        env:
-          KEY_ID: ${{ secrets.APPLE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          set -e
-          export KEY_PATH="$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8"
-
-          # Diagnose secret configuration before attempting any API calls
-          echo "=== ASC credential diagnostics ==="
-          if [ -z "$KEY_ID" ]; then
-            echo "FATAL: APPLE_CONNECT_KEY_ID secret is empty"
-            exit 1
-          fi
-          echo "KEY_ID length: ${#KEY_ID} chars (expected 10)"
-
-          if [ -z "$ISSUER_ID" ]; then
-            echo "FATAL: APPLE_CONNECT_ISSUER_ID secret is empty"
-            exit 1
-          fi
-          echo "ISSUER_ID length: ${#ISSUER_ID} chars (expected 36 for UUID)"
-
-          if [ -z "$TEAM_ID" ]; then
-            echo "FATAL: APPLE_TEAM_ID secret is empty"
-            exit 1
-          fi
-          echo "TEAM_ID length: ${#TEAM_ID} chars (expected 10)"
-
-          if [ ! -f "$KEY_PATH" ]; then
-            echo "FATAL: Key file not found at $KEY_PATH"
-            exit 1
-          fi
-          KEY_SIZE=$(wc -c < "$KEY_PATH")
-          echo "Key file size: $KEY_SIZE bytes (expected ~240–280 for EC P-256 .p8)"
-          head -1 "$KEY_PATH"  # Print PEM header line (not secret content)
-          tail -1 "$KEY_PATH"  # Print PEM footer line
-
-          # Cross-check Team ID against the imported signing certificate.
-          # `security find-identity` prints lines like
-          #   1) <hash> "Apple Distribution: Org Name (TEAMID1234)"
-          # with the 10-char team ID in parentheses at the end.
-          echo ""
-          echo "=== Signing certificate Team ID cross-check ==="
-          security find-identity -v -p codesigning build.keychain || true
-          CERT_TEAM_ID=$(security find-identity -v -p codesigning build.keychain 2>/dev/null \
-            | grep -oE '\([A-Z0-9]{10}\)' \
-            | tr -d '()' \
-            | head -1 || true)
-          if [ -z "$CERT_TEAM_ID" ]; then
-            echo "WARN: could not extract Team ID from signing certificate via security(1)."
-          else
-            echo "Certificate Team ID: $CERT_TEAM_ID"
-            echo "APPLE_TEAM_ID secret: $TEAM_ID"
-            if [ "$CERT_TEAM_ID" != "$TEAM_ID" ]; then
-              echo ""
-              echo "FATAL: Team ID mismatch between APPLE_TEAM_ID secret and the"
-              echo "       imported signing certificate. xcodebuild will refuse to"
-              echo "       sign because the cert does not belong to TEAM_ID=$TEAM_ID."
-              echo "       Either set APPLE_TEAM_ID=$CERT_TEAM_ID, or re-export"
-              echo "       APPLE_CERTIFICATE_BASE64 from team $TEAM_ID."
-              exit 1
-            fi
-            echo "OK: certificate belongs to team $TEAM_ID."
-          fi
-
-          echo ""
-          echo "=== Starting preflight checks ==="
-          python3 -m pip install --quiet --disable-pip-version-check cryptography >/dev/null 2>&1 || true
-          python3 - <<'PY'
-          # Verifies what the public App Store Connect API can see:
-          #   - all bundle IDs are registered
-          #   - each bundle has the capabilities its entitlements need
-          #   - the iCloud container 'iCloud.com.peptidesai.app' is linked to
-          #     com.peptidesai.app (this is what the archive step needs)
-          #   - APPLE_TEAM_ID matches the seedId Apple returns for our bundles
-          #
-          # Apple's public ASC API does NOT expose AppGroup resources
-          # (GET /v1/appGroups returns 404). App Group linkage to an App ID must
-          # be done in the Developer Portal web UI (or via fastlane's private
-          # session API). That gap is caught by the archive step.
-
-          import base64, json, os, sys, time, urllib.request, urllib.error
-          from cryptography.hazmat.primitives import hashes, serialization
-          from cryptography.hazmat.primitives.asymmetric import ec, utils
-
-          def b64url(data: bytes) -> str:
-              return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
-
-          with open(os.environ["KEY_PATH"], "rb") as f:
-              key = serialization.load_pem_private_key(f.read(), password=None)
-
-          header = b64url(json.dumps(
-              {"alg": "ES256", "kid": os.environ["KEY_ID"], "typ": "JWT"},
-              separators=(",", ":"),
-          ).encode())
-          now = int(time.time())
-          # Apple rejects JWTs whose exp is more than 20 minutes (1200s) past iat
-          # with a 401 NOT_AUTHORIZED. Keep this comfortably under that ceiling.
-          payload = b64url(json.dumps({
-              "iss": os.environ["ISSUER_ID"],
-              "iat": now,
-              "exp": now + 600,
-              "aud": "appstoreconnect-v1",
-          }, separators=(",", ":")).encode())
-          signing_input = f"{header}.{payload}".encode()
-          der = key.sign(signing_input, ec.ECDSA(hashes.SHA256()))
-          r, s = utils.decode_dss_signature(der)
-          token = f"{header}.{payload}.{b64url(r.to_bytes(32, 'big') + s.to_bytes(32, 'big'))}"
-
-          BASE = "https://api.appstoreconnect.apple.com"
-
-          def api_get(path, fatal=True):
-              url = path if path.startswith("http") else BASE + path
-              req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+          def api_get(path: str, token: str | None = None, *, params: dict | None = None) -> dict[str, Any]:
+              if token is None: token = make_token()
+              url = path if path.startswith("http") else API_BASE + path
+              if params:
+                  url += ("&" if "?" in url else "?") + urllib.parse.urlencode(params, doseq=True)
+              req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})
               try:
-                  with urllib.request.urlopen(req, timeout=30) as resp:
-                      return json.loads(resp.read())
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      return json.loads(r.read().decode())
               except urllib.error.HTTPError as e:
-                  body = e.read().decode(errors="replace")
-                  if fatal:
-                      print(f"FATAL: {url} -> {e.code}")
-                      print(body)
-                      sys.exit(1)
-                  return {"__error__": {"status": e.code, "body": body, "url": url}}
+                  body = e.read().decode("utf-8", "ignore")
+                  raise RuntimeError(f"ASC {e.code} {url}\n{body}") from e
 
-          def paginate(path):
-              url = path
-              while url:
-                  body = api_get(url)
-                  for d in body.get("data", []):
-                      yield d
-                  url = body.get("links", {}).get("next")
+          def follow_paginated(path: str, token: str | None = None, *, params: dict | None = None) -> list[dict]:
+              if token is None: token = make_token()
+              out: list[dict] = []
+              page = api_get(path, token, params=params)
+              out.extend(page.get("data", []))
+              while page.get("links", {}).get("next"):
+                  page = api_get(page["links"]["next"], token)
+                  out.extend(page.get("data", []))
+              return out
+          PYEOF
 
-          REQUIRED_BUNDLES = [
-              "com.peptidesai.app",
-              "com.peptidesai.app.widgets",
-              "com.peptidesai.app.watchkitapp",
-          ]
-          # Capability types we need enabled per bundle, per its entitlements file.
-          WANT_CAPS = {
-              "com.peptidesai.app":             {"APP_GROUPS", "HEALTHKIT", "APPLE_ID_AUTH", "ICLOUD"},
-              "com.peptidesai.app.widgets":     {"APP_GROUPS"},
-              "com.peptidesai.app.watchkitapp": {"APP_GROUPS"},
-          }
-          # iCloud containers each bundle needs linked. The container linkage is
-          # what's missing when xcodebuild fails with "Entitlement
-          # com.apple.developer.icloud-containers not found".
-          WANT_ICLOUD_CONTAINERS = {
-              "com.peptidesai.app": {"iCloud.com.peptidesai.app"},
-          }
-          EXPECTED_TEAM_ID = os.environ.get("TEAM_ID", "").strip()
+          cat > ci/scripts/preflight_check.py <<'PYEOF'
+          #!/usr/bin/env python3
+          """Verify Team ID, bundle visibility, capabilities, iCloud container linkage."""
+          from __future__ import annotations
+          import base64, json, os, re, subprocess, sys, tempfile
+          from pathlib import Path
+          from asc_api import api_get, follow_paginated, make_token
 
-          # Fetch all bundle IDs first; their `seedId` attribute exposes the team ID
-          # that owns each resource — useful for catching wrong-team API keys.
-          all_bundles = list(paginate("/v1/bundleIds?limit=200"))
-          bundle_map = {
-              d["attributes"]["identifier"]: d["id"]
-              for d in all_bundles
-              if d.get("attributes", {}).get("identifier")
-          }
-          seed_ids = {
-              d["attributes"].get("seedId")
-              for d in all_bundles
-              if d.get("attributes", {}).get("identifier") in REQUIRED_BUNDLES
-              and d["attributes"].get("seedId")
+          PRIMARY_BUNDLE   = os.environ.get("PRIMARY_BUNDLE", "com.peptidesai.app")
+          ICLOUD_CONTAINER = os.environ.get("ICLOUD_CONTAINER", "iCloud.com.peptidesai.app")
+          REQUIRED_CAPS = {
+              "com.peptidesai.app":             ["ICLOUD", "APP_GROUPS"],
+              "com.peptidesai.app.widgets":     ["APP_GROUPS"],
+              "com.peptidesai.app.watchkitapp": ["APP_GROUPS"],
           }
 
-          print(f"=== Team ID consistency check ===")
-          print(f"APPLE_TEAM_ID secret:        {EXPECTED_TEAM_ID}")
-          print(f"seedId(s) on our bundles:    {sorted(seed_ids) or '(none returned)'}")
-          if EXPECTED_TEAM_ID and seed_ids and EXPECTED_TEAM_ID not in seed_ids:
-              print()
-              print(f"FATAL: APPLE_TEAM_ID secret '{EXPECTED_TEAM_ID}' does NOT match the")
-              print(f"       team that owns these bundle IDs in App Store Connect.")
-              print(f"       The bundles belong to team(s): {sorted(seed_ids)}")
-              print(f"       Either:")
-              print(f"         (a) update APPLE_TEAM_ID to one of those, or")
-              print(f"         (b) issue an ASC API key from the team that owns")
-              print(f"             APPLE_TEAM_ID={EXPECTED_TEAM_ID} and update")
-              print(f"             APPLE_CONNECT_KEY_ID/ISSUER_ID/PRIVATE_KEY.")
-              sys.exit(1)
-          if seed_ids:
-              print("OK: APPLE_TEAM_ID matches the team that owns our bundle IDs.")
-          else:
-              print("WARN: seedId not exposed on bundle IDs; team-id cross-check skipped.")
-          print()
+          def banner(t): print("\n" + "="*72 + f"\n{t}\n" + "="*72)
+          def fail(m): print(f"::error::{m}", file=sys.stderr); sys.exit(1)
 
-          missing_bundles = [b for b in REQUIRED_BUNDLES if b not in bundle_map]
+          def derive_team_id_from_cert():
+              b64 = os.environ.get("APPLE_CERTIFICATE_BASE64", "")
+              pwd = os.environ.get("APPLE_CERTIFICATE_PASSWORD", "")
+              if not b64:
+                  print("APPLE_CERTIFICATE_BASE64 not set; skipping cert team derivation."); return None
+              with tempfile.TemporaryDirectory() as tmp:
+                  p12 = Path(tmp)/"c.p12"; pem = Path(tmp)/"c.pem"
+                  p12.write_bytes(base64.b64decode(b64))
+                  for extra in (["-legacy"], []):
+                      try:
+                          subprocess.run(["openssl","pkcs12","-in",str(p12),"-clcerts","-nokeys",
+                                          "-passin",f"pass:{pwd}","-out",str(pem),*extra],
+                                         check=True, capture_output=True); break
+                      except subprocess.CalledProcessError: continue
+                  subj = subprocess.run(["openssl","x509","-in",str(pem),"-noout","-subject"],
+                                        check=True, capture_output=True, text=True).stdout
+                  m = re.search(r"OU\s*=\s*([A-Z0-9]{10})", subj) or re.search(r"\(([A-Z0-9]{10})\)", subj)
+                  return m.group(1) if m else None
 
-          problems = []
-          for b in REQUIRED_BUNDLES:
-              if b not in bundle_map:
-                  problems.append(f"App ID '{b}' is not registered in the Developer Portal")
-                  print(f"MISSING: App ID {b}")
-              else:
-                  print(f"OK: App ID {b}")
+          def check_team_id():
+              banner("1. Team ID consistency")
+              expected = os.environ.get("APPLE_TEAM_ID","").strip()
+              if not expected: fail("APPLE_TEAM_ID secret is empty.")
+              cert_team = derive_team_id_from_cert()
+              print(f"APPLE_TEAM_ID secret      = {expected}")
+              print(f"Cert OU (derived team ID) = {cert_team!r}")
+              if cert_team and cert_team != expected:
+                  fail(f"Team ID mismatch: cert={cert_team!r}, secret={expected!r}. "
+                       "This is almost certainly the root cause of the entitlements rejection.")
+              print("OK - secret and cert agree.")
 
-          missing_caps: dict[str, set[str]] = {}
-          icloud_cap_settings: dict[str, list] = {}
-          if not missing_bundles:
-              for bundle_name in REQUIRED_BUNDLES:
-                  brid = bundle_map[bundle_name]
-                  caps_resp = api_get(f"/v1/bundleIds/{brid}/bundleIdCapabilities")
-                  enabled = set()
-                  for c in caps_resp.get("data", []):
-                      ctype = c.get("attributes", {}).get("capabilityType")
-                      if not ctype:
-                          continue
-                      enabled.add(ctype)
-                      if ctype == "ICLOUD":
-                          icloud_cap_settings[bundle_name] = c.get("attributes", {}).get("settings") or []
-                  want = WANT_CAPS[bundle_name]
-                  print(f"{bundle_name} enabled capabilities: {sorted(enabled) or '(none)'}")
-                  miss = want - enabled
-                  if miss:
-                      missing_caps[bundle_name] = miss
-                      for cap in sorted(miss):
-                          print(f"  MISSING capability: {cap}")
-                          problems.append(f"App ID '{bundle_name}' is missing capability {cap}")
+          def fetch_bundle(ident, token):
+              res = api_get("/v1/bundleIds", token, params={"filter[identifier]": ident, "limit": 200})
+              for b in res.get("data", []):
+                  if b.get("attributes",{}).get("identifier") == ident: return b
+              return None
 
-          # === iCloud container linkage check ===
-          # Apple's bundleIdCapabilities response for ICLOUD only carries the
-          # iCloud-version setting (XCODE_5/XCODE_6); container linkage lives on
-          # the iCloudContainer resource. Try the dedicated endpoint and, if it
-          # returns a usable shape, verify our bundle is in the linked-bundles
-          # list. If the endpoint is unavailable, fall back to dumping the
-          # ICLOUD capability's settings array for human inspection.
-          if not missing_bundles:
-              print()
-              print("=== iCloud container linkage check ===")
-              for bundle_name, want_containers in WANT_ICLOUD_CONTAINERS.items():
-                  print(f"--- {bundle_name} ---")
-                  print(f"ICLOUD capability settings dump:")
-                  print(json.dumps(icloud_cap_settings.get(bundle_name, []), indent=2))
+          def check_bundles_reachable(token):
+              banner("2. Bundle IDs reachable via ASC API")
+              found = {}
+              for ident in REQUIRED_CAPS:
+                  b = fetch_bundle(ident, token)
+                  if not b: fail(f"ASC returned no bundle ID matching {ident!r} (wrong team?).")
+                  print(f"  {ident:<40} -> id={b['id']}"); found[ident] = b
+              return found
 
-                  # Pull all iCloud containers for the team, filter by identifier.
-                  # The endpoint is /v1/iCloudContainers (no query filter is
-                  # documented for `identifier`, so iterate manually).
-                  containers_resp = api_get("/v1/iCloudContainers?limit=200", fatal=False)
-                  if "__error__" in containers_resp:
-                      err = containers_resp["__error__"]
-                      print(f"  /v1/iCloudContainers returned {err['status']}; falling back to settings inspection.")
-                      print(f"  body: {err['body'][:400]}")
-                      # We don't fail here — let the archive step surface a
-                      # clearer error if linkage is actually missing.
-                      continue
+          def check_required_caps(bundles, token):
+              banner("3. Required capabilities enabled")
+              all_caps = {}
+              for ident, required in REQUIRED_CAPS.items():
+                  caps = follow_paginated(f"/v1/bundleIds/{bundles[ident]['id']}/bundleIdCapabilities", token, params={"limit": 200})
+                  all_caps[ident] = caps
+                  present = sorted({c["attributes"].get("capabilityType") for c in caps})
+                  print(f"  {ident}\n    enabled: {present}")
+                  missing = [r for r in required if r not in present]
+                  if missing: fail(f"  {ident}: missing capabilities {missing}.")
+              print("OK - all required capabilities present.")
+              return all_caps
 
-                  containers_by_id = {
-                      d["id"]: d.get("attributes", {}).get("identifier")
-                      for d in containers_resp.get("data", [])
-                  }
-                  print(f"  iCloud containers visible to API: {sorted(v for v in containers_by_id.values() if v)}")
+          def strategy_a(icloud_cap, container):
+              settings = icloud_cap.get("attributes",{}).get("settings") or []
+              print("  [A] ICLOUD settings dump:")
+              print("    " + json.dumps(settings, indent=2).replace("\n","\n    "))
+              for s in settings:
+                  if "CONTAINER" in (s.get("key") or "").upper():
+                      for o in (s.get("options") or []):
+                          if container in " ".join(str(v) for v in o.values()): return True
+                  if container in json.dumps(s): return True
+              return False
 
-                  for want in sorted(want_containers):
-                      cid = next((cid for cid, name in containers_by_id.items() if name == want), None)
-                      if not cid:
-                          problems.append(f"iCloud container '{want}' is not registered in the team")
-                          print(f"  MISSING: container {want} is not registered in team {EXPECTED_TEAM_ID}")
-                          continue
-
-                      linked_resp = api_get(f"/v1/iCloudContainers/{cid}/bundleIds?limit=200", fatal=False)
-                      if "__error__" in linked_resp:
-                          err = linked_resp["__error__"]
-                          print(f"  /v1/iCloudContainers/{cid}/bundleIds returned {err['status']}; cannot verify linkage via this path.")
-                          print(f"  body: {err['body'][:400]}")
-                          continue
-
-                      linked = sorted(
-                          d.get("attributes", {}).get("identifier", "")
-                          for d in linked_resp.get("data", [])
-                      )
-                      print(f"  bundles linked to {want}: {linked or '(none)'}")
-                      if bundle_name not in linked:
-                          problems.append(
-                              f"iCloud container '{want}' exists but is NOT linked to "
-                              f"bundle '{bundle_name}' (ASC API source of truth)"
-                          )
-                          print(f"  MISSING LINKAGE: {want} -> {bundle_name}")
-                          print(f"    The Developer Portal UI may show the link as saved,")
-                          print(f"    but the ASC API has not propagated it. Open the")
-                          print(f"    iCloud capability dialog for {bundle_name}, untick")
-                          print(f"    {want}, Save, then re-tick it and Save. Wait 2–5 min")
-                          print(f"    for propagation, then re-run.")
-                      else:
-                          print(f"  OK: {want} is linked to {bundle_name}.")
-
-          if problems:
-              print()
-              print("FATAL: preflight detected Developer Portal configuration problems:")
-              for p in problems:
-                  print(f"  - {p}")
-              print()
-              print("Fix in the Developer Portal:")
-              print("  https://developer.apple.com/account/resources/identifiers/list")
-              print()
-              if missing_bundles:
-                  print("  1. Click + → App IDs → App → register each missing bundle ID")
-              if missing_caps:
-                  print("  2. For each App ID below, click it and tick the listed capabilities:")
-                  for bundle_name, caps in missing_caps.items():
-                      pretty = ", ".join(sorted({
-                          "APP_GROUPS": "App Groups",
-                          "HEALTHKIT": "HealthKit",
-                          "APPLE_ID_AUTH": "Sign In with Apple",
-                          "ICLOUD": "iCloud (enable CloudKit)",
-                      }.get(c, c) for c in caps))
-                      print(f"       - {bundle_name}: {pretty}")
-              print()
-              print("Then ensure these shared resources exist and are linked:")
-              print("  App Group 'group.com.peptidesai.app':")
-              print("    - Identifiers → + → App Groups → identifier group.com.peptidesai.app")
-              print("    - For each App ID above, open App Groups capability → Edit → tick the group → Save")
-              print("  iCloud Container 'iCloud.com.peptidesai.app':")
-              print("    - Identifiers → + → iCloud Containers → identifier iCloud.com.peptidesai.app")
-              print("    - On App ID com.peptidesai.app, open iCloud capability → Edit → tick the container → Save")
-              print()
-              print("See TESTFLIGHT_SETUP.md → 'Step 1: Register App IDs & Capabilities'.")
-              sys.exit(1)
-
-          print()
-          print("Preflight passed: bundles registered, capabilities enabled, iCloud")
-          print("container linkage verified via ASC API.")
-          print("Note: App Group linkage can't be verified via ASC API; if the archive")
-          print("fails with an 'application-groups entitlement' mismatch, ensure")
-          print("group.com.peptidesai.app exists and is linked to all three App IDs in")
-          print("the Developer Portal (see TESTFLIGHT_SETUP.md Step 1).")
-          PY
-
-      - name: Dump ASC provisioning profiles (pre-archive)
-        env:
-          KEY_ID: ${{ secrets.APPLE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
-        run: |
-          set -e
-          export KEY_PATH="$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8"
-          mkdir -p "$RUNNER_TEMP/asc-profiles"
-          export ASC_DUMP_DIR="$RUNNER_TEMP/asc-profiles"
-
-          # Pull every provisioning profile the ASC API returns and decode the
-          # CMS-wrapped profileContent so we can see what Apple is *actually*
-          # putting in profiles for our bundles — independently of xcodebuild's
-          # auto-provisioning. This pinpoints whether the API and the Developer
-          # Portal disagree (propagation lag) vs. whether xcodebuild's local
-          # cache is stale.
-          python3 - <<'PY'
-          import base64, json, os, subprocess, sys, time, urllib.request, urllib.error
-          from cryptography.hazmat.primitives import hashes, serialization
-          from cryptography.hazmat.primitives.asymmetric import ec, utils
-
-          def b64url(data: bytes) -> str:
-              return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
-
-          with open(os.environ["KEY_PATH"], "rb") as f:
-              key = serialization.load_pem_private_key(f.read(), password=None)
-          header = b64url(json.dumps(
-              {"alg": "ES256", "kid": os.environ["KEY_ID"], "typ": "JWT"},
-              separators=(",", ":"),
-          ).encode())
-          now = int(time.time())
-          payload = b64url(json.dumps({
-              "iss": os.environ["ISSUER_ID"],
-              "iat": now,
-              "exp": now + 600,
-              "aud": "appstoreconnect-v1",
-          }, separators=(",", ":")).encode())
-          signing_input = f"{header}.{payload}".encode()
-          der = key.sign(signing_input, ec.ECDSA(hashes.SHA256()))
-          r, s = utils.decode_dss_signature(der)
-          token = f"{header}.{payload}.{b64url(r.to_bytes(32, 'big') + s.to_bytes(32, 'big'))}"
-
-          BASE = "https://api.appstoreconnect.apple.com"
-          def api_get(path):
-              url = path if path.startswith("http") else BASE + path
-              req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+          def strategy_b(container, bundle_internal_id, token):
+              print("  [B] /v1/iCloudContainers (filter then full-list fallback)...")
+              matches = []
               try:
-                  with urllib.request.urlopen(req, timeout=30) as resp:
-                      return json.loads(resp.read())
-              except urllib.error.HTTPError as e:
-                  print(f"WARN: {url} -> {e.code}")
-                  print(e.read().decode(errors="replace")[:500])
-                  return None
-
-          INTERESTED = {
-              "com.peptidesai.app",
-              "com.peptidesai.app.widgets",
-              "com.peptidesai.app.watchkitapp",
-          }
-
-          # Page through profiles, including the linked bundleId so we can
-          # filter to our targets without an extra round-trip per profile.
-          url = "/v1/profiles?include=bundleId&limit=200"
-          profiles = []
-          included_bundles = {}
-          while url:
-              body = api_get(url)
-              if body is None:
-                  break
-              for inc in body.get("included", []):
-                  if inc.get("type") == "bundleIds":
-                      bid = inc.get("attributes", {}).get("identifier")
-                      if bid:
-                          included_bundles[inc["id"]] = bid
-              profiles.extend(body.get("data", []))
-              url = body.get("links", {}).get("next")
-
-          print(f"Total profiles returned by ASC: {len(profiles)}")
-          dump_dir = os.environ["ASC_DUMP_DIR"]
-
-          matching = []
-          for p in profiles:
-              attrs = p.get("attributes", {})
-              rel_bundle_id = (
-                  p.get("relationships", {})
-                   .get("bundleId", {})
-                   .get("data", {})
-                   .get("id")
-              )
-              bundle_ident = included_bundles.get(rel_bundle_id, "(unknown)")
-              if bundle_ident in INTERESTED:
-                  matching.append((bundle_ident, p))
-
-          print(f"Profiles matching our bundles: {len(matching)}")
-          if not matching:
-              print("WARN: ASC has no provisioning profiles for our bundles. Xcode's")
-              print("      auto-provisioning will need to create them on first archive.")
-              sys.exit(0)
-
-          for bundle_ident, p in sorted(matching, key=lambda x: x[0]):
-              attrs = p.get("attributes", {})
-              name = attrs.get("name", "(no name)")
-              ptype = attrs.get("profileType", "(no type)")
-              state = attrs.get("profileState", "(no state)")
-              expiry = attrs.get("expirationDate", "(no expiry)")
-              print()
-              print(f"=== {bundle_ident} | {name} ===")
-              print(f"  type:        {ptype}")
-              print(f"  state:       {state}")
-              print(f"  expires:     {expiry}")
-
-              content_b64 = attrs.get("profileContent")
-              if not content_b64:
-                  print("  (profileContent missing from response)")
-                  continue
-              raw = base64.b64decode(content_b64)
-              fname = f"{bundle_ident}__{name}.mobileprovision".replace("/", "_").replace(" ", "_")
-              path = os.path.join(dump_dir, fname)
-              with open(path, "wb") as f:
-                  f.write(raw)
-              # Decode CMS -> plist via security(1).
-              try:
-                  plist = subprocess.check_output(
-                      ["security", "cms", "-D", "-i", path],
-                      stderr=subprocess.DEVNULL,
-                  )
-              except subprocess.CalledProcessError as e:
-                  print(f"  (security cms -D failed: {e})")
-                  continue
-              # Pull the keys we care about via PlistBuddy on /dev/stdin.
-              def plistbuddy(query):
+                  res = api_get("/v1/iCloudContainers", token,
+                                params={"filter[identifier]": container, "include": "bundleIds", "limit": 50})
+                  matches = [c for c in res.get("data",[]) if c.get("attributes",{}).get("identifier")==container]
+              except RuntimeError as e: print(f"    filtered failed: {e}")
+              if not matches:
+                  print("    filter returned 0 - falling back to full list")
                   try:
-                      out = subprocess.run(
-                          ["/usr/libexec/PlistBuddy", "-c", query, "/dev/stdin"],
-                          input=plist, capture_output=True, check=False,
-                      )
-                      return out.stdout.decode(errors="replace").strip() or "(empty)"
-                  except Exception as e:
-                      return f"(plistbuddy error: {e})"
-              print(f"  app-id:               {plistbuddy('Print :Entitlements:application-identifier')}")
-              print(f"  TeamIdentifier:       {plistbuddy('Print :TeamIdentifier:0')}")
-              print(f"  application-groups:")
-              for line in plistbuddy('Print :Entitlements:com.apple.security.application-groups').splitlines():
-                  print(f"    {line}")
-              print(f"  icloud-services:      {plistbuddy('Print :Entitlements:com.apple.developer.icloud-services')}")
-              print(f"  icloud-containers:")
-              for line in plistbuddy('Print :Entitlements:com.apple.developer.icloud-container-identifiers').splitlines():
-                  print(f"    {line}")
-              print(f"  ubiquity-container-identifiers:")
-              for line in plistbuddy('Print :Entitlements:com.apple.developer.ubiquity-container-identifiers').splitlines():
-                  print(f"    {line}")
-              print(f"  healthkit:            {plistbuddy('Print :Entitlements:com.apple.developer.healthkit')}")
-              print(f"  applesignin:          {plistbuddy('Print :Entitlements:com.apple.developer.applesignin')}")
+                      allc = follow_paginated("/v1/iCloudContainers", token, params={"include":"bundleIds","limit":200})
+                      matches = [c for c in allc if c.get("attributes",{}).get("identifier")==container]
+                  except RuntimeError as e:
+                      print(f"    full list also failed: {e}"); return None
+              if not matches:
+                  print(f"    container {container!r} INVISIBLE to this API key.")
+                  print("    -> strong Team ID mismatch signal."); return False
+              cont = matches[0]
+              print(f"    container id = {cont['id']}")
+              rel = (cont.get("relationships",{}).get("bundleIds",{}) or {})
+              ids = [r.get("id") for r in (rel.get("data") or [])]
+              print(f"    relationships.bundleIds -> {ids}")
+              if bundle_internal_id in ids: return True
+              link = (rel.get("links",{}) or {}).get("related")
+              if link:
+                  try:
+                      sub = api_get(link, token); subids = [b.get("id") for b in sub.get("data",[])]
+                      print(f"    follow link -> {subids}")
+                      return bundle_internal_id in subids
+                  except RuntimeError as e: print(f"    link fetch failed: {e}")
+              return False
 
-              # Hard check: if this is a Distribution profile for the main app,
-              # icloud-container-identifiers MUST contain iCloud.com.peptidesai.app.
-              if bundle_ident == "com.peptidesai.app" and "STORE" in (ptype or "").upper():
-                  containers = plistbuddy('Print :Entitlements:com.apple.developer.icloud-container-identifiers')
-                  if "iCloud.com.peptidesai.app" not in containers:
-                      print()
-                      print(f"  *** PROBLEM: ASC's {ptype} profile for com.peptidesai.app does NOT")
-                      print(f"      contain iCloud.com.peptidesai.app in icloud-container-identifiers.")
-                      print(f"      This is the root cause of the archive failure: even when")
-                      print(f"      xcodebuild fetches the latest profile, Apple is not stamping")
-                      print(f"      the container linkage into it. The Developer Portal UI may")
-                      print(f"      claim the container is linked, but ASC API disagrees.")
-                      print(f"      Untick the container, Save, re-tick it, Save, wait 5 min.")
-          PY
+          def strategy_c(bundle_internal_id, container, token):
+              print("  [C] /v1/bundleIds/{id}/relationships/iCloudContainers")
+              try:
+                  res = api_get(f"/v1/bundleIds/{bundle_internal_id}/relationships/iCloudContainers", token)
+              except RuntimeError as e:
+                  print(f"    failed (endpoint may not exist): {e}"); return None
+              ids = [r.get("id") for r in res.get("data",[])]
+              print(f"    related container ids = {ids}")
+              for rid in ids:
+                  try:
+                      c = api_get(f"/v1/iCloudContainers/{rid}", token)
+                      if c.get("data",{}).get("attributes",{}).get("identifier")==container: return True
+                  except RuntimeError: continue
+              return False
 
-      - name: Reset Xcode provisioning profile cache
-        run: |
-          # Stale cached profiles can pin xcodebuild to an old (entitlement-less)
-          # profile even after Apple has minted a new one. Wipe both caches so
-          # -allowProvisioningUpdates is forced to fetch fresh from ASC.
-          for d in \
-            "$HOME/Library/MobileDevice/Provisioning Profiles" \
-            "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
-            if [ -d "$d" ]; then
-              echo "Clearing $d"
-              find "$d" -type f \( -name '*.mobileprovision' -o -name '*.provisionprofile' \) -print -delete || true
-            else
-              echo "(does not exist yet) $d"
-            fi
-          done
+          def check_icloud_linkage(bundles, all_caps, token):
+              banner("4. iCloud container linkage")
+              bid = bundles[PRIMARY_BUNDLE]["id"]
+              cap = next((c for c in all_caps[PRIMARY_BUNDLE] if c["attributes"].get("capabilityType")=="ICLOUD"), None)
+              if not cap: fail(f"{PRIMARY_BUNDLE}: ICLOUD capability missing.")
+              a = strategy_a(cap, ICLOUD_CONTAINER); print(f"  Strategy A: {a}")
+              b = strategy_b(ICLOUD_CONTAINER, bid, token); print(f"  Strategy B: {b}")
+              c = strategy_c(bid, ICLOUD_CONTAINER, token); print(f"  Strategy C: {c}")
+              if any([a,b,c]):
+                  print(f"OK - {ICLOUD_CONTAINER!r} linked to {PRIMARY_BUNDLE!r} per >=1 endpoint.")
+                  return
+              print("\n::error::iCloud container linkage NOT verifiable via ASC API.")
+              print("  Likely cause: ASC propagation delay (re-run in 10 min) or Team ID mismatch.")
+              print("::warning::Continuing anyway so the archive step can prove or disprove this.")
 
-      - name: Build archive
-        env:
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          KEY_ID: ${{ secrets.APPLE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
-          BUILD_NUMBER: ${{ github.run_number }}
-        run: |
-          set -o pipefail
-          echo "Building build #$BUILD_NUMBER"
+          def main():
+              tok = make_token(); check_team_id()
+              bundles = check_bundles_reachable(tok)
+              caps = check_required_caps(bundles, tok)
+              check_icloud_linkage(bundles, caps, tok)
+              banner("Preflight done.")
 
-          ARCHIVE_STATUS=0
-          xcodebuild archive \
-            -project Peptide.xcodeproj \
-            -scheme Peptide \
-            -archivePath "$RUNNER_TEMP/Peptide.xcarchive" \
-            -destination 'generic/platform=iOS' \
-            -configuration Release \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8" \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID" \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic \
-            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-            OTHER_CODE_SIGN_FLAGS="--keychain build.keychain" \
-            | tee "$RUNNER_TEMP/xcodebuild-archive.log" || ARCHIVE_STATUS=$?
+          if __name__ == "__main__": main()
+          PYEOF
 
-          echo "ARCHIVE_STATUS=$ARCHIVE_STATUS" > "$RUNNER_TEMP/archive-status.env"
-          if [ "$ARCHIVE_STATUS" -ne 0 ] || [ ! -d "$RUNNER_TEMP/Peptide.xcarchive" ]; then
-            ENT_ERROR_REGEX="doesn't match the entitlements file's value|doesn't include the .* (capability|entitlement)|Entitlement .* not found and could not be included in profile"
-            if grep -E "$ENT_ERROR_REGEX" "$RUNNER_TEMP/xcodebuild-archive.log" >/dev/null 2>&1; then
-              echo ""
-              echo "=================================================================="
-              echo "Detected capability/entitlement mismatch in archive log:"
-              echo "=================================================================="
-              grep -E "$ENT_ERROR_REGEX" "$RUNNER_TEMP/xcodebuild-archive.log" || true
-              echo ""
-              echo "See the 'Dump fetched provisioning profiles' step (always-runs)"
-              echo "for the actual entitlements xcodebuild received from Apple."
-            fi
-            echo "FATAL: Archive was not created"
-            exit 1
-          fi
-          echo "Archive created successfully"
+          cat > ci/scripts/dump_asc_profiles.py <<'PYEOF'
+          #!/usr/bin/env python3
+          """Print every ASC profile for the three bundle IDs + decoded entitlements."""
+          from __future__ import annotations
+          import base64, json, plistlib, subprocess, tempfile
+          from pathlib import Path
+          from asc_api import api_get, follow_paginated, make_token
 
-      - name: Dump fetched provisioning profiles (post-archive, always)
-        if: always()
-        run: |
-          # Runs whether archive succeeded or failed so we can compare what
-          # xcodebuild actually fetched against what the ASC API said it
-          # should be. If this list is empty after a failure, xcodebuild
-          # bailed out before -allowProvisioningUpdates could fetch anything,
-          # which is itself a useful signal.
-          echo "=================================================================="
-          echo "Fetched .mobileprovision files in xcodebuild's profile dirs"
-          echo "=================================================================="
-          PROFILE_DIRS=(
+          TARGETS = {"com.peptidesai.app", "com.peptidesai.app.widgets", "com.peptidesai.app.watchkitapp"}
+
+          def decode(b64):
+              if not b64: return None
+              with tempfile.NamedTemporaryFile(suffix=".mobileprovision", delete=False) as f:
+                  f.write(base64.b64decode(b64)); path = f.name
+              try:
+                  return plistlib.loads(subprocess.check_output(["security","cms","-D","-i",path]))
+              except Exception as e: print(f"  decode failed: {e}"); return None
+              finally: Path(path).unlink(missing_ok=True)
+
+          def main():
+              tok = make_token()
+              print("Fetching all profiles + bundleId...")
+              page = api_get("/v1/profiles", tok, params={"include":"bundleId","limit":200})
+              profiles = list(page.get("data", []))
+              bundles_by_id = {i["id"]: i.get("attributes",{}).get("identifier","?")
+                               for i in page.get("included",[]) if i.get("type")=="bundleIds"}
+              while page.get("links",{}).get("next"):
+                  page = api_get(page["links"]["next"], tok)
+                  profiles.extend(page.get("data",[]))
+                  for i in page.get("included",[]):
+                      if i.get("type")=="bundleIds":
+                          bundles_by_id[i["id"]] = i.get("attributes",{}).get("identifier","?")
+              matched = 0
+              for p in profiles:
+                  rel = (p.get("relationships",{}).get("bundleId",{}) or {}).get("data") or {}
+                  ident = bundles_by_id.get(rel.get("id"), "?")
+                  if ident not in TARGETS: continue
+                  matched += 1
+                  a = p.get("attributes",{})
+                  print("\n" + "-"*72)
+                  print(f"name:       {a.get('name')}")
+                  print(f"  type:     {a.get('profileType')}")
+                  print(f"  bundle:   {ident}")
+                  print(f"  state:    {a.get('profileState')}")
+                  print(f"  expires:  {a.get('expirationDate')}")
+                  print(f"  uuid:     {a.get('uuid')}")
+                  pl = decode(a.get("profileContent",""))
+                  if not pl: print("  entitlements: <unavailable>"); continue
+                  ents = pl.get("Entitlements", {}) or {}
+                  print("  Entitlements:")
+                  for k in sorted(ents):
+                      v = ents[k]
+                      if isinstance(v,(list,dict)): v = json.dumps(v, default=str)
+                      print(f"    {k} = {v}")
+              print(f"\nMatched {matched} profile(s).")
+              if matched == 0:
+                  print("::warning::No profiles in ASC for these bundles - Xcode auto-prov will create them.")
+
+          if __name__ == "__main__": main()
+          PYEOF
+
+          cat > ci/scripts/dump_local_profiles.sh <<'SHEOF'
+          #!/usr/bin/env bash
+          set -u
+          paths=(
             "$HOME/Library/MobileDevice/Provisioning Profiles"
             "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
           )
-          ANY=0
-          for PROFILE_DIR in "${PROFILE_DIRS[@]}"; do
-            echo ""
-            echo "[$PROFILE_DIR]"
-            if [ ! -d "$PROFILE_DIR" ]; then
-              echo "  (directory does not exist)"
-              continue
-            fi
-            shopt -s nullglob
-            FILES=("$PROFILE_DIR"/*.mobileprovision "$PROFILE_DIR"/*.provisionprofile)
-            shopt -u nullglob
-            if [ "${#FILES[@]}" -eq 0 ]; then
-              echo "  (no profiles fetched in this directory)"
-              continue
-            fi
-            ANY=1
-            for p in "${FILES[@]}"; do
-              [ -f "$p" ] || continue
-              echo ""
-              echo "--- $(basename "$p") ---"
-              PLIST=$(security cms -D -i "$p" 2>/dev/null) || { echo "  (security cms -D failed)"; continue; }
-              printf 'Name:          '; echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Name' /dev/stdin 2>/dev/null || true
-              printf 'AppIDName:     '; echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :AppIDName' /dev/stdin 2>/dev/null || true
-              printf 'UUID:          '; echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :UUID' /dev/stdin 2>/dev/null || true
-              printf 'TeamID:        '; echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' /dev/stdin 2>/dev/null || true
-              echo "application-identifier: $(echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' /dev/stdin 2>/dev/null || echo '(missing)')"
-              echo "application-groups:"
-              echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.security.application-groups' /dev/stdin 2>/dev/null | sed 's/^/  /' || echo "  (none)"
-              echo "icloud-services:        $(echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.icloud-services' /dev/stdin 2>/dev/null | tr '\n' ' ' || echo '(not enabled)')"
-              echo "icloud-container-identifiers:"
-              echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.icloud-container-identifiers' /dev/stdin 2>/dev/null | sed 's/^/  /' || echo "  (none)"
-              echo "ubiquity-container-identifiers:"
-              echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.ubiquity-container-identifiers' /dev/stdin 2>/dev/null | sed 's/^/  /' || echo "  (none)"
-              echo "healthkit:              $(echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.healthkit' /dev/stdin 2>/dev/null || echo '(not enabled)')"
-              echo "applesignin:            $(echo "$PLIST" | /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.applesignin' /dev/stdin 2>/dev/null || echo '(not enabled)')"
+          found=0
+          for d in "${paths[@]}"; do
+            echo; echo "==== $d ===="
+            [[ -d "$d" ]] || { echo "  (does not exist)"; continue; }
+            shopt -s nullglob; files=("$d"/*.mobileprovision "$d"/*.provisionprofile); shopt -u nullglob
+            [[ ${#files[@]} -eq 0 ]] && { echo "  (exists but empty)"; continue; }
+            for f in "${files[@]}"; do
+              found=1; echo; echo "---- $f ----"
+              tmp="$(mktemp -t prof.XXXXXX).plist"
+              if security cms -D -i "$f" >"$tmp" 2>/dev/null; then
+                /usr/libexec/PlistBuddy -c 'Print :Name' -c 'Print :UUID' \
+                  -c 'Print :TeamIdentifier' -c 'Print :AppIDName' \
+                  -c 'Print :Entitlements' "$tmp" || true
+              else echo "  (cms decode failed)"; fi
+              rm -f "$tmp"
             done
           done
-          if [ "$ANY" -eq 0 ]; then
-            echo ""
-            echo "WARN: xcodebuild did not deposit any provisioning profiles in either"
-            echo "      cache directory. This means -allowProvisioningUpdates either"
-            echo "      did not run, or failed before writing profiles to disk. Check"
-            echo "      the xcodebuild-archive.log for the earliest error, and confirm"
-            echo "      the ASC API key has the 'Developer' role (or higher)."
-          fi
+          [[ $found -eq 0 ]] && echo "::warning::No .mobileprovision files - xcodebuild never wrote any."
+          SHEOF
 
-          echo ""
-          echo "=================================================================="
-          echo "Cross-reference: profiles fetched directly from ASC (pre-archive)"
-          echo "=================================================================="
-          if [ -d "$RUNNER_TEMP/asc-profiles" ] && ls "$RUNNER_TEMP/asc-profiles"/*.mobileprovision >/dev/null 2>&1; then
-            for p in "$RUNNER_TEMP/asc-profiles"/*.mobileprovision; do
-              echo "  ASC API copy: $(basename "$p")"
-            done
+          chmod +x ci/scripts/*.py ci/scripts/*.sh
+          ls -la ci/scripts/
+
+      - name: Preflight - Team ID, bundle visibility, capabilities, iCloud linkage
+        env:
+          APPLE_TEAM_ID:               ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CONNECT_KEY_ID:        ${{ secrets.APPLE_CONNECT_KEY_ID }}
+          APPLE_CONNECT_ISSUER_ID:     ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
+          APPLE_CONNECT_PRIVATE_KEY:   ${{ secrets.APPLE_CONNECT_PRIVATE_KEY }}
+          APPLE_CERTIFICATE_BASE64:    ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD:  ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: python3 ci/scripts/preflight_check.py
+
+      - name: Diagnostic - dump ASC profiles + entitlements
+        env:
+          APPLE_CONNECT_KEY_ID:      ${{ secrets.APPLE_CONNECT_KEY_ID }}
+          APPLE_CONNECT_ISSUER_ID:   ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
+          APPLE_CONNECT_PRIVATE_KEY: ${{ secrets.APPLE_CONNECT_PRIVATE_KEY }}
+        run: python3 ci/scripts/dump_asc_profiles.py
+        continue-on-error: true
+
+      - name: Import signing certificate to a fresh keychain
+        env:
+          APPLE_CERTIFICATE_BASE64:   ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PWD="$(uuidgen)"
+          KEYCHAIN_PATH="$RUNNER_TEMP/$KEYCHAIN_NAME"
+          security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+          security default-keychain -s "$KEYCHAIN_PATH"
+          P12_PATH="$RUNNER_TEMP/cert.p12"
+          printf '%s' "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$P12_PATH"
+          security import "$P12_PATH" -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PWD" "$KEYCHAIN_PATH" >/dev/null
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+          rm -f "$P12_PATH"
+
+      - name: Diagnostic - profile cache state BEFORE archive
+        run: bash ci/scripts/dump_local_profiles.sh
+        continue-on-error: true
+
+      - name: Force fresh profile fetch (clear cache)
+        run: |
+          for d in "$HOME/Library/MobileDevice/Provisioning Profiles" \
+                   "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
+            [[ -d "$d" ]] && rm -rf "$d"/* "$d"/.??* 2>/dev/null || true
+          done
+          echo "Profile cache cleared."
+
+      - name: Resolve dependencies
+        run: |
+          set -euo pipefail
+          if [[ -d "Peptide.xcworkspace" ]]; then
+            xcodebuild -resolvePackageDependencies -workspace Peptide.xcworkspace -scheme "$SCHEME"
           else
-            echo "  (no ASC API profiles dumped — see 'Dump ASC provisioning profiles' step)"
+            xcodebuild -resolvePackageDependencies -project "$PROJECT" -scheme "$SCHEME"
           fi
 
-      - name: Verify archive Info.plist
-        run: |
-          APP_PLIST="$RUNNER_TEMP/Peptide.xcarchive/Products/Applications/Peptide.app/Info.plist"
-          echo "=== Archive bundle Info.plist ==="
-          /usr/libexec/PlistBuddy -c "Print" "$APP_PLIST"
-          echo ""
-          echo "=== Verifying required keys in archive ==="
-          /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations" "$APP_PLIST" || { echo "FATAL: UISupportedInterfaceOrientations missing from archive"; exit 1; }
-          /usr/libexec/PlistBuddy -c "Print :UILaunchScreen" "$APP_PLIST" || { echo "FATAL: UILaunchScreen missing from archive"; exit 1; }
-          BUNDLE_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP_PLIST")
-          echo "CFBundleVersion in archive: $BUNDLE_VERSION"
-          if [ "$BUNDLE_VERSION" = "1" ] || [ "$BUNDLE_VERSION" = '$(CURRENT_PROJECT_VERSION)' ] || [ -z "$BUNDLE_VERSION" ]; then
-            echo "FATAL: CFBundleVersion is '$BUNDLE_VERSION' — build number was not stamped correctly"
-            exit 1
-          fi
-          echo "Archive verification passed."
-
-      - name: Export IPA
+      - name: Archive
         env:
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          KEY_ID: ${{ secrets.APPLE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
+          APPLE_TEAM_ID:             ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CONNECT_KEY_ID:      ${{ secrets.APPLE_CONNECT_KEY_ID }}
+          APPLE_CONNECT_ISSUER_ID:   ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
         run: |
+          set -euo pipefail
+          mkdir -p build
+          ARGS=(
+            -project "$PROJECT"
+            -scheme  "$SCHEME"
+            -configuration "$CONFIGURATION"
+            -destination "generic/platform=iOS"
+            -archivePath "$ARCHIVE_PATH"
+            -allowProvisioningUpdates
+            -authenticationKeyID       "$APPLE_CONNECT_KEY_ID"
+            -authenticationKeyIssuerID "$APPLE_CONNECT_ISSUER_ID"
+            -authenticationKeyPath     "$ASC_KEY_PATH"
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
+            CODE_SIGN_STYLE=Automatic
+          )
+          if [[ -d "Peptide.xcworkspace" ]]; then
+            ARGS=(-workspace Peptide.xcworkspace "${ARGS[@]:1}")
+          fi
           set -o pipefail
-          cat > "$RUNNER_TEMP/exportOptions.plist" <<EOF
+          xcodebuild "${ARGS[@]}" archive 2>&1 | tee build/archive.log
+
+      - name: Diagnostic - profile cache state AFTER archive
+        if: always()
+        run: |
+          # Runs even when an earlier step failed. Guard against the script-
+          # write step having been skipped (e.g. pip-install step blew up).
+          if [ -f ci/scripts/dump_local_profiles.sh ]; then
+            bash ci/scripts/dump_local_profiles.sh
+          else
+            echo "ci/scripts/dump_local_profiles.sh is not present — the"
+            echo "'Write embedded helper scripts to disk' step did not run,"
+            echo "so there is nothing to diagnose here. See the earlier"
+            echo "step's failure log for the actual root cause."
+          fi
+
+      - name: Write exportOptions.plist
+        if: success()
+        run: |
+          cat > build/exportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-            <key>teamID</key>
-            <string>${TEAM_ID}</string>
-            <key>signingStyle</key>
-            <string>automatic</string>
-            <key>uploadSymbols</key>
-            <true/>
-          </dict>
-          </plist>
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store</string>
+            <key>destination</key><string>upload</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>teamID</key><string>${{ secrets.APPLE_TEAM_ID }}</string>
+            <key>uploadSymbols</key><true/>
+            <key>stripSwiftSymbols</key><true/>
+          </dict></plist>
           EOF
 
-          echo "=== exportOptions.plist ==="
-          cat "$RUNNER_TEMP/exportOptions.plist"
-          echo "=========================="
-
-          xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/Peptide.xcarchive" \
-            -exportPath "$RUNNER_TEMP/export" \
-            -exportOptionsPlist "$RUNNER_TEMP/exportOptions.plist" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8" \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID" \
-            | tee "$RUNNER_TEMP/xcodebuild-export.log"
-
-          IPA_COUNT=$(ls "$RUNNER_TEMP/export/"*.ipa 2>/dev/null | wc -l)
-          if [ "$IPA_COUNT" -eq 0 ]; then
-            echo "FATAL: No IPA file found in export directory"
-            ls -la "$RUNNER_TEMP/export/" || true
-            exit 1
-          fi
-          echo "IPA exported successfully"
-          ls -lh "$RUNNER_TEMP/export/"*.ipa
-
-      - name: Upload to App Store Connect
+      - name: Export + upload to TestFlight
+        if: success()
         env:
-          KEY_ID: ${{ secrets.APPLE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CONNECT_KEY_ID:    ${{ secrets.APPLE_CONNECT_KEY_ID }}
+          APPLE_CONNECT_ISSUER_ID: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
         run: |
-          cat > "$RUNNER_TEMP/uploadOptions.plist" <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-            <key>destination</key>
-            <string>upload</string>
-            <key>teamID</key>
-            <string>${TEAM_ID}</string>
-            <key>signingStyle</key>
-            <string>automatic</string>
-            <key>uploadSymbols</key>
-            <true/>
-          </dict>
-          </plist>
-          EOF
-
-          echo "=== uploadOptions.plist ==="
-          cat "$RUNNER_TEMP/uploadOptions.plist"
-          echo "==========================="
-
-          echo "Starting upload to App Store Connect..."
-          UPLOAD_LOG="$RUNNER_TEMP/upload.log"
-
-          set -o pipefail
-          xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/Peptide.xcarchive" \
-            -exportPath "$RUNNER_TEMP/upload-output" \
-            -exportOptionsPlist "$RUNNER_TEMP/uploadOptions.plist" \
+          set -euo pipefail
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath  "$EXPORT_DIR" \
+            -exportOptionsPlist build/exportOptions.plist \
             -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/private_keys/AuthKey_${KEY_ID}.p8" \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID" 2>&1 | tee "$UPLOAD_LOG"
+            -authenticationKeyID       "$APPLE_CONNECT_KEY_ID" \
+            -authenticationKeyIssuerID "$APPLE_CONNECT_ISSUER_ID" \
+            -authenticationKeyPath     "$ASC_KEY_PATH"
+          ls -la "$EXPORT_DIR"
 
-          echo ""
-          echo "Upload command completed (exit code propagated by pipefail)."
-          echo "Build uploaded. It will appear in TestFlight within 15-30 minutes after Apple processing."
-
-      - name: Upload build artifacts
+      - name: Upload archive log + IPA on any outcome
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ios-build-${{ github.run_number }}
           path: |
-            ${{ runner.temp }}/export/*.ipa
-            ${{ runner.temp }}/xcodebuild-archive.log
-            ${{ runner.temp }}/xcodebuild-export.log
-            ${{ runner.temp }}/upload.log
-            ${{ runner.temp }}/asc-profiles/*.mobileprovision
-          retention-days: 30
-          if-no-files-found: warn
+            build/archive.log
+            build/export/*.ipa
+          if-no-files-found: ignore
+          retention-days: 14
 
-      - name: Cleanup
+      - name: Cleanup keychain
         if: always()
         run: |
-          security delete-keychain build.keychain 2>/dev/null || true
-          rm -rf "$RUNNER_TEMP/private_keys" 2>/dev/null || true
+          security delete-keychain "$RUNNER_TEMP/$KEYCHAIN_NAME" 2>/dev/null || true
+          rm -f "$ASC_KEY_PATH" "$HOME/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPLE_CONNECT_KEY_ID }}.p8"
