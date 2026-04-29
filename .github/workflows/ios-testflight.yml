@@ -12,6 +12,9 @@ on:
       - "**.entitlements"
       - ".github/workflows/ios-testflight.yml"
 
+permissions:
+  contents: read
+
 concurrency:
   group: ios-testflight-${{ github.ref }}
   cancel-in-progress: true
@@ -37,6 +40,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate required secrets
+        env:
+          APPLE_CERTIFICATE_BASE64:   ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_TEAM_ID:              ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CONNECT_KEY_ID:       ${{ secrets.APPLE_CONNECT_KEY_ID }}
+          APPLE_CONNECT_ISSUER_ID:    ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
+          APPLE_CONNECT_PRIVATE_KEY:  ${{ secrets.APPLE_CONNECT_PRIVATE_KEY }}
+        run: |
+          set -u
+          MISSING=0
+          check() {
+            if [ -z "${2:-}" ]; then
+              echo "FATAL: secret '$1' is empty or unset"
+              MISSING=1
+            else
+              echo "OK: $1 present (${#2} chars)"
+            fi
+          }
+          check APPLE_CERTIFICATE_BASE64   "$APPLE_CERTIFICATE_BASE64"
+          check APPLE_CERTIFICATE_PASSWORD "$APPLE_CERTIFICATE_PASSWORD"
+          check APPLE_TEAM_ID              "$APPLE_TEAM_ID"
+          check APPLE_CONNECT_KEY_ID       "$APPLE_CONNECT_KEY_ID"
+          check APPLE_CONNECT_ISSUER_ID    "$APPLE_CONNECT_ISSUER_ID"
+          check APPLE_CONNECT_PRIVATE_KEY  "$APPLE_CONNECT_PRIVATE_KEY"
+          # Length sanity. Apple key/team IDs are 10 chars, issuer is a UUID (36).
+          if [ "${#APPLE_TEAM_ID}" -ne 10 ]; then
+            echo "WARN: APPLE_TEAM_ID is ${#APPLE_TEAM_ID} chars (expected 10)"
+          fi
+          if [ "${#APPLE_CONNECT_KEY_ID}" -ne 10 ]; then
+            echo "WARN: APPLE_CONNECT_KEY_ID is ${#APPLE_CONNECT_KEY_ID} chars (expected 10)"
+          fi
+          if [ "${#APPLE_CONNECT_ISSUER_ID}" -ne 36 ]; then
+            echo "WARN: APPLE_CONNECT_ISSUER_ID is ${#APPLE_CONNECT_ISSUER_ID} chars (expected 36 UUID)"
+          fi
+          [ "$MISSING" -eq 0 ] || { echo "Set the missing secrets in repo Settings → Secrets → Actions."; exit 1; }
+
       - name: Select latest stable Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -48,10 +88,107 @@ jobs:
           swift --version
           python3 --version
 
+      - name: Install XcodeGen
+        run: |
+          set -euo pipefail
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Generate Xcode project
+        run: |
+          set -euo pipefail
+          # Project is gitignored; XcodeGen materialises it from project.yml.
+          # Make sure the AppIcon assets exist (iOS + watchOS) or asset
+          # compilation fails and TestFlight rejects the build for missing
+          # icons. We generate solid-colour 1024x1024 PNGs so CI always
+          # produces uploadable artifacts; replace these with real artwork
+          # before public release.
+          python3 - <<'PY'
+          import struct, zlib, os, pathlib
+          def make_png(w, h, r, g, b):
+              def chunk(name, data):
+                  c = zlib.crc32(name + data) & 0xffffffff
+                  return struct.pack('>I', len(data)) + name + data + struct.pack('>I', c)
+              ihdr = struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)
+              raw  = (b'\x00' + bytes([r, g, b]) * w) * h
+              return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
+          for path, rgb in [
+              ('Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png', (0, 102, 204)),
+              ('PeptideWatch/Assets.xcassets/AppIcon.appiconset/AppIcon.png',     (0, 102, 204)),
+          ]:
+              if not os.path.exists(path):
+                  os.makedirs(os.path.dirname(path), exist_ok=True)
+                  pathlib.Path(path).write_bytes(make_png(1024, 1024, *rgb))
+                  print(f'generated fallback icon at {path}')
+              else:
+                  print(f'icon already present: {path}')
+          PY
+          xcodegen generate
+          test -d "$PROJECT" || { echo "FATAL: xcodegen did not produce $PROJECT"; exit 1; }
+          echo "Project ready: $PROJECT"
+
+      - name: Stamp build number + verify Info.plist
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          # IMPORTANT: this step MUST run AFTER xcodegen. xcodegen overwrites
+          # the source Info.plist with its own template; the default it
+          # writes for CFBundleVersion is the literal string "1" (not the
+          # $(CURRENT_PROJECT_VERSION) placeholder one might expect). Stamp
+          # post-xcodegen so the literal build number survives until
+          # xcodebuild reads the file.
+          PLIST="Peptide/Resources/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$PLIST"
+          STAMPED=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST")
+          echo "CFBundleVersion now = $STAMPED"
+          if [ "$STAMPED" != "$BUILD_NUMBER" ]; then
+            echo "FATAL: stamping failed; CFBundleVersion is '$STAMPED' but expected '$BUILD_NUMBER'"
+            exit 1
+          fi
+          # Required UI keys (TestFlight rejects missing UILaunchScreen).
+          /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations" "$PLIST" >/dev/null \
+            || { echo "FATAL: UISupportedInterfaceOrientations missing"; exit 1; }
+          /usr/libexec/PlistBuddy -c "Print :UILaunchScreen" "$PLIST" >/dev/null \
+            || { echo "FATAL: UILaunchScreen missing"; exit 1; }
+          echo "Info.plist required keys present."
+
+          # Widgets target also has GENERATE_INFOPLIST_FILE: NO and its source
+          # Info.plist has no CFBundleVersion. xcodegen writes it as literal
+          # "1" too. Stamp it directly so the embedded widgets bundle in the
+          # archive carries the matching build number (Apple requires every
+          # bundle in the IPA to share CFBundleVersion).
+          WPLIST="PeptideWidgets/Info.plist"
+          if [ -f "$WPLIST" ]; then
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$WPLIST" 2>/dev/null \
+              || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUMBER" "$WPLIST"
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.0" "$WPLIST" 2>/dev/null \
+              || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.0.0" "$WPLIST"
+            echo "Widgets CFBundleVersion = $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$WPLIST")"
+          fi
+          # The watch app uses GENERATE_INFOPLIST_FILE: YES, so xcodebuild
+          # generates its Info.plist on the fly from CURRENT_PROJECT_VERSION.
+          # Our archive command passes CURRENT_PROJECT_VERSION=$BUILD_NUMBER
+          # which gets picked up by the auto-generated path. No file to stamp.
+
       - name: Install Python deps for ASC scripts
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install PyJWT cryptography
+          set -euo pipefail
+          # macos-latest runners enforce PEP 668: the system Python's
+          # site-packages is "externally managed" and rejects naked
+          # `pip install`. Use an isolated venv so we install PyJWT and
+          # cryptography without fighting the OS package manager, and
+          # prepend it to PATH so subsequent `python3` calls resolve to it.
+          python3 -m venv "$RUNNER_TEMP/asc-venv"
+          # shellcheck disable=SC1091
+          source "$RUNNER_TEMP/asc-venv/bin/activate"
+          python3 -m pip install --quiet --upgrade pip
+          python3 -m pip install --quiet PyJWT cryptography
+          # Persist the venv's bin dir so later steps inherit it.
+          echo "$RUNNER_TEMP/asc-venv/bin" >> "$GITHUB_PATH"
+          python3 -c "import jwt, cryptography; print('jwt', jwt.__version__, 'cryptography', cryptography.__version__)"
 
       - name: Materialise ASC API key file
         env:
@@ -59,10 +196,24 @@ jobs:
           APPLE_CONNECT_KEY_ID:      ${{ secrets.APPLE_CONNECT_KEY_ID }}
         run: |
           set -euo pipefail
-          mkdir -p ~/.appstoreconnect/private_keys
-          printf '%s\n' "$APPLE_CONNECT_PRIVATE_KEY" > "$ASC_KEY_PATH"
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          # Some users paste the key with literal "\n" sequences instead of
+          # real newlines; sed converts them. printf '%s' (no \n) avoids
+          # adding an extra trailing newline if the secret already has one.
+          printf '%s' "$APPLE_CONNECT_PRIVATE_KEY" \
+            | sed 's/\\n/\n/g' \
+            > "$ASC_KEY_PATH"
           cp "$ASC_KEY_PATH" "$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_CONNECT_KEY_ID}.p8"
           chmod 600 "$ASC_KEY_PATH" "$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_CONNECT_KEY_ID}.p8"
+          KEY_SIZE=$(wc -c < "$ASC_KEY_PATH")
+          echo "ASC key size: $KEY_SIZE bytes (expected ~240–320 for EC P-256 PEM)"
+          if [ "$KEY_SIZE" -lt 100 ]; then
+            echo "FATAL: ASC key file is only $KEY_SIZE bytes — APPLE_CONNECT_PRIVATE_KEY secret is empty or corrupt"
+            exit 1
+          fi
+          # Verify PEM markers without leaking key contents.
+          head -1 "$ASC_KEY_PATH"
+          tail -1 "$ASC_KEY_PATH"
           ls -la "$HOME/.appstoreconnect/private_keys/"
 
       - name: Write embedded helper scripts to disk
@@ -186,9 +337,13 @@ jobs:
               banner("3. Required capabilities enabled")
               all_caps = {}
               for ident, required in REQUIRED_CAPS.items():
-                  caps = follow_paginated(f"/v1/bundleIds/{bundles[ident]['id']}/bundleIdCapabilities", token, params={"limit": 200})
+                  # Apple's ASC API treats /v1/bundleIds/{id}/bundleIdCapabilities
+                  # as a relationship endpoint and rejects 'limit' with a 400
+                  # PARAMETER_ERROR.ILLEGAL. Don't pass it. Caps per bundle are
+                  # always tiny (single digits), so default paging is fine.
+                  caps = follow_paginated(f"/v1/bundleIds/{bundles[ident]['id']}/bundleIdCapabilities", token)
                   all_caps[ident] = caps
-                  present = sorted({c["attributes"].get("capabilityType") for c in caps})
+                  present = sorted({c["attributes"].get("capabilityType") for c in caps if c.get("attributes")})
                   print(f"  {ident}\n    enabled: {present}")
                   missing = [r for r in required if r not in present]
                   if missing: fail(f"  {ident}: missing capabilities {missing}.")
@@ -342,6 +497,10 @@ jobs:
 
           cat > ci/scripts/dump_local_profiles.sh <<'SHEOF'
           #!/usr/bin/env bash
+          # Dump every .mobileprovision xcodebuild has dropped on disk along
+          # with its decoded entitlements. Used as both pre- and post-archive
+          # diagnostics. Must always exit 0 — never fail the workflow on a
+          # diagnostic-only step.
           set -u
           paths=(
             "$HOME/Library/MobileDevice/Provisioning Profiles"
@@ -364,7 +523,11 @@ jobs:
               rm -f "$tmp"
             done
           done
-          [[ $found -eq 0 ]] && echo "::warning::No .mobileprovision files - xcodebuild never wrote any."
+          if [[ $found -eq 0 ]]; then
+            echo "::warning::No .mobileprovision files - xcodebuild never wrote any."
+          fi
+          # Defense: a diagnostic must never fail the build.
+          exit 0
           SHEOF
 
           chmod +x ci/scripts/*.py ci/scripts/*.sh
@@ -435,9 +598,11 @@ jobs:
           APPLE_TEAM_ID:             ${{ secrets.APPLE_TEAM_ID }}
           APPLE_CONNECT_KEY_ID:      ${{ secrets.APPLE_CONNECT_KEY_ID }}
           APPLE_CONNECT_ISSUER_ID:   ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
+          BUILD_NUMBER:              ${{ github.run_number }}
         run: |
           set -euo pipefail
           mkdir -p build
+          KEYCHAIN_PATH="$RUNNER_TEMP/$KEYCHAIN_NAME"
           ARGS=(
             -project "$PROJECT"
             -scheme  "$SCHEME"
@@ -450,25 +615,66 @@ jobs:
             -authenticationKeyPath     "$ASC_KEY_PATH"
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
             CODE_SIGN_STYLE=Automatic
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
+            OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH"
           )
           if [[ -d "Peptide.xcworkspace" ]]; then
             ARGS=(-workspace Peptide.xcworkspace "${ARGS[@]:1}")
           fi
           set -o pipefail
           xcodebuild "${ARGS[@]}" archive 2>&1 | tee build/archive.log
+          if [ ! -d "$ARCHIVE_PATH" ]; then
+            echo "FATAL: xcodebuild reported success but $ARCHIVE_PATH does not exist."
+            exit 1
+          fi
+          echo "Archive created at $ARCHIVE_PATH"
+
+      - name: Verify archive Info.plist
+        run: |
+          set -euo pipefail
+          APP_PLIST="$ARCHIVE_PATH/Products/Applications/Peptide.app/Info.plist"
+          if [ ! -f "$APP_PLIST" ]; then
+            echo "FATAL: archived app Info.plist not found at $APP_PLIST"
+            ls -laR "$ARCHIVE_PATH/Products" || true
+            exit 1
+          fi
+          STAMPED=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP_PLIST")
+          echo "Archived CFBundleVersion = $STAMPED"
+          if [ "$STAMPED" = "1" ] || [ "$STAMPED" = '$(CURRENT_PROJECT_VERSION)' ] || [ -z "$STAMPED" ]; then
+            echo "FATAL: archived app has unstamped CFBundleVersion ('$STAMPED')."
+            echo "       TestFlight will reject this upload as a duplicate of build 1."
+            exit 1
+          fi
+          /usr/libexec/PlistBuddy -c "Print :UILaunchScreen" "$APP_PLIST" >/dev/null \
+            || { echo "FATAL: archived app missing UILaunchScreen"; exit 1; }
+          echo "Archive Info.plist verification passed."
 
       - name: Diagnostic - profile cache state AFTER archive
         if: always()
-        run: bash ci/scripts/dump_local_profiles.sh
+        continue-on-error: true
+        run: |
+          # Runs even when an earlier step failed. Guard against the script-
+          # write step having been skipped (e.g. pip-install step blew up).
+          # Marked continue-on-error so a diagnostic regression cannot fail
+          # an otherwise-successful upload.
+          if [ -f ci/scripts/dump_local_profiles.sh ]; then
+            bash ci/scripts/dump_local_profiles.sh
+          else
+            echo "ci/scripts/dump_local_profiles.sh is not present — the"
+            echo "'Write embedded helper scripts to disk' step did not run,"
+            echo "so there is nothing to diagnose here. See the earlier"
+            echo "step's failure log for the actual root cause."
+          fi
 
       - name: Write exportOptions.plist
         if: success()
         run: |
+          set -euo pipefail
           cat > build/exportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
-            <key>method</key><string>app-store</string>
+            <key>method</key><string>app-store-connect</string>
             <key>destination</key><string>upload</string>
             <key>signingStyle</key><string>automatic</string>
             <key>teamID</key><string>${{ secrets.APPLE_TEAM_ID }}</string>
@@ -476,6 +682,7 @@ jobs:
             <key>stripSwiftSymbols</key><true/>
           </dict></plist>
           EOF
+          /usr/libexec/PlistBuddy -c "Print" build/exportOptions.plist
 
       - name: Export + upload to TestFlight
         if: success()
@@ -484,6 +691,11 @@ jobs:
           APPLE_CONNECT_ISSUER_ID: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
         run: |
           set -euo pipefail
+          # exportOptions.plist sets destination=upload, so xcodebuild streams
+          # the IPA directly to App Store Connect and does NOT write it to
+          # -exportPath. We capture the log; success is determined by
+          # xcodebuild's exit code + the "Upload succeeded" line.
+          UPLOAD_LOG="build/upload.log"
           xcodebuild \
             -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
@@ -492,8 +704,27 @@ jobs:
             -allowProvisioningUpdates \
             -authenticationKeyID       "$APPLE_CONNECT_KEY_ID" \
             -authenticationKeyIssuerID "$APPLE_CONNECT_ISSUER_ID" \
-            -authenticationKeyPath     "$ASC_KEY_PATH"
-          ls -la "$EXPORT_DIR"
+            -authenticationKeyPath     "$ASC_KEY_PATH" \
+            2>&1 | tee "$UPLOAD_LOG"
+
+          # Hard-confirm the upload actually completed. xcodebuild's exit code
+          # is already gated by `set -e`, but the explicit grep makes the
+          # success criterion visible in the log.
+          if grep -q "Upload succeeded" "$UPLOAD_LOG"; then
+            echo "Upload to App Store Connect: confirmed"
+          else
+            echo "FATAL: xcodebuild exited 0 but no 'Upload succeeded' marker in log"
+            exit 1
+          fi
+
+          # destination=upload doesn't produce a local IPA. Surface the export
+          # directory state for forensic completeness without failing.
+          if [ -d "$EXPORT_DIR" ]; then
+            echo "Export dir contents:"
+            ls -la "$EXPORT_DIR"
+          else
+            echo "(no local IPA: destination=upload streams straight to ASC)"
+          fi
 
       - name: Upload archive log + IPA on any outcome
         if: always()
@@ -502,12 +733,26 @@ jobs:
           name: ios-build-${{ github.run_number }}
           path: |
             build/archive.log
+            build/upload.log
             build/export/*.ipa
-          if-no-files-found: ignore
+            build/exportOptions.plist
+          if-no-files-found: warn
           retention-days: 14
 
-      - name: Cleanup keychain
+      - name: Cleanup keychain + key material
         if: always()
+        env:
+          APPLE_CONNECT_KEY_ID: ${{ secrets.APPLE_CONNECT_KEY_ID }}
         run: |
-          security delete-keychain "$RUNNER_TEMP/$KEYCHAIN_NAME" 2>/dev/null || true
-          rm -f "$ASC_KEY_PATH" "$HOME/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPLE_CONNECT_KEY_ID }}.p8"
+          # Always-runs cleanup. Tolerate missing keychain (e.g. when an
+          # earlier step failed before import) so this step never reports
+          # a false failure that masks the real upstream error.
+          KEYCHAIN_PATH="$RUNNER_TEMP/$KEYCHAIN_NAME"
+          if [ -f "$KEYCHAIN_PATH" ] || [ -d "$KEYCHAIN_PATH" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
+          fi
+          rm -f "$ASC_KEY_PATH" 2>/dev/null || true
+          if [ -n "${APPLE_CONNECT_KEY_ID:-}" ]; then
+            rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_CONNECT_KEY_ID}.p8" 2>/dev/null || true
+          fi
+          echo "Cleanup complete."
