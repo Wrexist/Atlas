@@ -309,9 +309,13 @@ jobs:
               banner("3. Required capabilities enabled")
               all_caps = {}
               for ident, required in REQUIRED_CAPS.items():
-                  caps = follow_paginated(f"/v1/bundleIds/{bundles[ident]['id']}/bundleIdCapabilities", token, params={"limit": 200})
+                  # Apple's ASC API treats /v1/bundleIds/{id}/bundleIdCapabilities
+                  # as a relationship endpoint and rejects 'limit' with a 400
+                  # PARAMETER_ERROR.ILLEGAL. Don't pass it. Caps per bundle are
+                  # always tiny (single digits), so default paging is fine.
+                  caps = follow_paginated(f"/v1/bundleIds/{bundles[ident]['id']}/bundleIdCapabilities", token)
                   all_caps[ident] = caps
-                  present = sorted({c["attributes"].get("capabilityType") for c in caps})
+                  present = sorted({c["attributes"].get("capabilityType") for c in caps if c.get("attributes")})
                   print(f"  {ident}\n    enabled: {present}")
                   missing = [r for r in required if r not in present]
                   if missing: fail(f"  {ident}: missing capabilities {missing}.")
