@@ -1,16 +1,10 @@
 name: iOS TestFlight
 
+# Manual-only: trigger from the Actions tab → "iOS TestFlight" → "Run workflow".
+# We deliberately do NOT auto-build on push so PRs don't burn through TestFlight
+# build numbers or App Store Connect quota. Click to ship.
 on:
   workflow_dispatch:
-  push:
-    branches: [main, "claude/**"]
-    paths:
-      - "Peptide/**"
-      - "**.swift"
-      - "**.xcodeproj/**"
-      - "**.xcworkspace/**"
-      - "**.entitlements"
-      - ".github/workflows/ios-testflight.yml"
 
 permissions:
   contents: read
