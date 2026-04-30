@@ -188,6 +188,49 @@ per Apple's definition (it is not transmitted off the device, not linked to
 an identity, and not used for tracking). You can reiterate this in the
 review notes.
 
+### Privacy manifest coverage
+
+Each distributable binary in this project ships its own
+`PrivacyInfo.xcprivacy` (Apple now requires one per target):
+
+| Target | File | Declared APIs |
+|---|---|---|
+| Peptide (main app) | `Peptide/Resources/PrivacyInfo.xcprivacy` | `UserDefaults` reason `CA92.1` (same-app access — used by `@AppStorage`, `AchievementService`, `LocalizationManager`, `ReviewPromptService`, `AppTheme`) |
+| PeptideWidgets | `PeptideWidgets/PrivacyInfo.xcprivacy` | None (file IO only via App Group container) |
+| PeptideWatch | `PeptideWatch/PrivacyInfo.xcprivacy` | None (file IO only via App Group container) |
+
+### Why no other Required Reason APIs are declared
+
+The audit at v1.0 verified the codebase touches none of:
+
+- `NSPrivacyAccessedAPICategoryFileTimestamp` — no `creationDate` /
+  `modificationDate` / `attributesOfItem` lookups.
+- `NSPrivacyAccessedAPICategorySystemBootTime` — no `systemUptime` /
+  `mach_absolute_time` / `kern.boottime`.
+- `NSPrivacyAccessedAPICategoryDiskSpace` — no
+  `volumeAvailableCapacity*` queries.
+- `NSPrivacyAccessedAPICategoryActiveKeyboards` — no `activeInputModes`
+  reads.
+
+Re-run the audit before each release if persistence, file IO, or
+performance-monitoring code lands.
+
+### Why `NSPrivacyCollectedDataTypes` is empty
+
+PeptideX has **no developer backend** — all user data either:
+
+1. Stays in `UserDefaults` / SwiftData on-device, or
+2. Syncs through the user's **private** CloudKit database (Apple's
+   definition of "collected" excludes data the developer cannot access),
+   or
+3. Lives in the **Keychain** (Sign in with Apple identifier + cached
+   email/name).
+
+No `URLSession` calls, no third-party SDKs (Firebase / Sentry /
+AppsFlyer / etc.), no analytics pipeline. Code search for
+`URLSession`, `URLRequest`, `import Firebase`, `ASIdentifierManager`,
+`advertisingIdentifier` returned zero hits at v1.0.
+
 ---
 
 ## Export Compliance
