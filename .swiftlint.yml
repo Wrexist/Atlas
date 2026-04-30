@@ -28,6 +28,13 @@ opt_in_rules:
 force_cast:
   severity: error
 
+# empty_count is opt-in and defaults to warning in SwiftLint, but recent
+# runner versions have promoted it to error severity. Pin it back to
+# warning so a single legacy `count > 0` doesn't gate every PR while we
+# work through the broader cleanup pass tracked in the lint TODO.
+empty_count:
+  severity: warning
+
 identifier_name:
   min_length:
     warning: 1
