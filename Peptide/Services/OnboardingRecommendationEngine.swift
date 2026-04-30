@@ -73,12 +73,12 @@ enum OnboardingRecommendationEngine {
                 }
             }
 
-            let benefitHits = peptide.benefits.filter { benefit in
+            let matchingBenefits = peptide.benefits.filter { benefit in
                 let lower = benefit.lowercased()
                 return benefitTerms.contains { lower.contains($0) }
-            }.count
-            if benefitHits > 0 {
-                points += min(benefitHits, 3)
+            }
+            if !matchingBenefits.isEmpty {
+                points += min(matchingBenefits.count, 3)
                 for goal in resolved {
                     if peptide.benefits.contains(where: { benefit in
                         goal.benefitTerms.contains { benefit.localizedCaseInsensitiveContains($0) }
