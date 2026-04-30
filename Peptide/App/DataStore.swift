@@ -673,7 +673,7 @@ final class DataStore: DataServiceProtocol {
                 protocolId: proto.id,
                 peptide: peptide,
                 date: entryDate,
-                dose: peptide.dosageRange.components(separatedBy: "-").last?.trimmingCharacters(in: .whitespaces) ?? peptide.dosageRange,
+                dose: schedule.resolvedDose(for: peptide),
                 notes: "",
                 completed: false
             )
