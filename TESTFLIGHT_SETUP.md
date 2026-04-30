@@ -5,6 +5,7 @@
 - **Bundle ID:** `com.peptidesai.app`
 - **Widget Bundle ID:** `com.peptidesai.app.widgets`
 - **Watch Bundle ID:** `com.peptidesai.app.watchkitapp`
+- **Watch Widget Bundle ID:** `com.peptidesai.app.watchkitapp.widgets`
 - **App Group:** `group.com.peptidesai.app`
 - **iCloud Container:** `iCloud.com.peptidesai.app`
 
@@ -24,6 +25,8 @@ Work through this top-to-bottom before running the workflow. Each item maps to a
 - [ ] App Group linked to `com.peptidesai.app.widgets`
 - [ ] App ID `com.peptidesai.app.watchkitapp` registered with App Groups
 - [ ] App Group linked to `com.peptidesai.app.watchkitapp`
+- [ ] App ID `com.peptidesai.app.watchkitapp.widgets` registered with App Groups
+- [ ] App Group linked to `com.peptidesai.app.watchkitapp.widgets`
 - [ ] App created in App Store Connect with bundle ID `com.peptidesai.app`
 - [ ] Apple Distribution certificate downloaded and exported as `.p12`
 - [ ] App Store Connect API key created with App Manager access, `.p8` file saved
@@ -80,6 +83,18 @@ Work through this top-to-bottom before running the workflow. Each item maps to a
 1. Identifiers → **+** → **App IDs** → **App** → **Continue**
 2. Description: `PeptideX Watch`
 3. Bundle ID: **Explicit** → `com.peptidesai.app.watchkitapp`
+4. Under **Capabilities**, tick:
+   - ☑ **App Groups**
+5. Click **Configure** next to **App Groups** → tick `group.com.peptidesai.app` → **Continue**
+6. Click **Continue** → **Register**
+
+### 1f. Register the watch widget App ID (`com.peptidesai.app.watchkitapp.widgets`)
+
+The watch widget is a separate extension target with its own bundle ID and its own entitlements. It reads the shared `watch_data.json` from the App Group container, so it needs `App Groups` enabled and linked just like the other targets. Skipping this step is the most common cause of `Provisioning profile "iOS Team Provisioning Profile: com.peptidesai.app.watchkitapp.widgets" doesn't match the entitlements file's value for the com.apple.security.application-groups entitlement` at archive time.
+
+1. Identifiers → **+** → **App IDs** → **App** → **Continue**
+2. Description: `PeptideX Watch Widgets`
+3. Bundle ID: **Explicit** → `com.peptidesai.app.watchkitapp.widgets`
 4. Under **Capabilities**, tick:
    - ☑ **App Groups**
 5. Click **Configure** next to **App Groups** → tick `group.com.peptidesai.app` → **Continue**
@@ -286,7 +301,9 @@ Open the App ID `com.peptidesai.app` → tick **iCloud** → click **Configure**
 
 ### Archive fails: "doesn't match the entitlements file's value for com.apple.security.application-groups"
 
-The App Group is not linked to the App ID in the Developer Portal. The workflow's preflight can't verify App Group linkage (the ASC public API doesn't expose it), so this error is only caught at archive time. The error message names the offending profile (e.g. `com.peptidesai.app.watchkitapp`); fix that App ID specifically.
+The App Group capability is not linked to the App ID in the Developer Portal. The workflow's preflight verifies the capability is *enabled* but the ASC public API doesn't expose which specific groups are linked, so a mis-link is only caught at archive time. The error message names the offending profile (e.g. `com.peptidesai.app.watchkitapp.widgets`); fix that App ID specifically.
+
+The watch widgets bundle (`com.peptidesai.app.watchkitapp.widgets`) is the most common offender here because Xcode auto-creates the App ID via `-allowProvisioningUpdates` if it's missing, but auto-creation never links the App Group — it has to be done by hand. Step 1f covers registering it ahead of time.
 
 Fix:
 1. Developer Portal → Identifiers → click the named App ID
