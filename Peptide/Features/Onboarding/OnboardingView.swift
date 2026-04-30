@@ -265,8 +265,8 @@ struct OnboardingView: View {
     }
 
     private var starterButtonTitle: LocalizedStringKey {
+        if selectedRecommendationIds.isEmpty { return "Continue without a stack" }
         let count = selectedRecommendationIds.count
-        if count == 0 { return "Continue without a stack" }
         if count == 1 { return "Add 1 peptide & continue" }
         return "Add \(count) peptides & continue"
     }

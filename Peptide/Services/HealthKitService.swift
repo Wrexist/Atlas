@@ -155,6 +155,20 @@ final class HealthKitService {
         await averageQuantity(type: .heartRateVariabilitySDNN, unit: .secondUnit(with: .milli), days: days)
     }
 
+    /// Returns one HRV value per day (in ms) over the past `days`. Empty
+    /// days are dropped — the chart layer interpolates visually. Used by
+    /// the Analytics → HealthKit correlation overlay (slot 3 in
+    /// `docs/APP_STORE_SCREENSHOTS_GUIDE_1.md`).
+    func dailyHRV(days: Int) async -> [(date: Date, value: Double)] {
+        await dailyQuantity(
+            type: .heartRateVariabilitySDNN,
+            unit: .secondUnit(with: .milli),
+            days: days,
+            options: .discreteAverage,
+            extract: { $0.averageQuantity() }
+        )
+    }
+
     // MARK: - Body
 
     func latestWeight() async -> Double? {
@@ -237,6 +251,47 @@ final class HealthKitService {
         } catch {
             AppLog.healthKit.error("averageQuantity \(type.rawValue, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             return nil
+        }
+    }
+
+    /// Bucketed daily values for a quantity type. `extract` chooses which
+    /// statistic to read out of each daily bucket (e.g. `averageQuantity`
+    /// for HRV, `sumQuantity` for steps). Days with no samples are
+    /// skipped — never zero-filled, since zero is meaningfully different
+    /// from "no data" for biometrics.
+    private func dailyQuantity(
+        type: HKQuantityTypeIdentifier,
+        unit: HKUnit,
+        days: Int,
+        options: HKStatisticsOptions,
+        extract: @escaping (HKStatistics) -> HKQuantity?
+    ) async -> [(date: Date, value: Double)] {
+        guard isAvailable, days > 0 else { return [] }
+
+        let calendar = Calendar.current
+        let endDate = calendar.startOfDay(for: Date()).addingTimeInterval(86_400)
+        guard let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { return [] }
+
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
+        let descriptor = HKStatisticsCollectionQueryDescriptor(
+            predicate: .quantitySample(type: HKQuantityType(type), predicate: predicate),
+            options: options,
+            anchorDate: startDate,
+            intervalComponents: DateComponents(day: 1)
+        )
+
+        do {
+            let collection = try await descriptor.result(for: store)
+            var buckets: [(date: Date, value: Double)] = []
+            collection.enumerateStatistics(from: startDate, to: endDate) { stats, _ in
+                if let quantity = extract(stats) {
+                    buckets.append((stats.startDate, quantity.doubleValue(for: unit)))
+                }
+            }
+            return buckets
+        } catch {
+            AppLog.healthKit.error("dailyQuantity \(type.rawValue, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            return []
         }
     }
 

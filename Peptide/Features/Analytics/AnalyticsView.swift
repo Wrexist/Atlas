@@ -31,6 +31,7 @@ struct AnalyticsView: View {
     @Environment(AppState.self) private var appState
     @State private var selectedRange: TimeRange = .week
     @State private var showPaywall = false
+    @State private var hrvSeries: [(date: Date, value: Double)] = []
     @Namespace private var segmentNamespace
     private var storeService: StoreService { StoreService.shared }
 
@@ -67,8 +68,16 @@ struct AnalyticsView: View {
                         ComplianceChart(data: compliance)
                             .sectionAppear(index: 1)
 
-                        WeeklyDoseChart(data: weeklyDoseData)
+                        if dataStore.profile.healthConnected && storeService.canAccessFullAnalytics {
+                            HealthCorrelationChart(
+                                adherence: correlationAdherence,
+                                hrv: hrvSeries
+                            )
                             .sectionAppear(index: 2)
+                        }
+
+                        WeeklyDoseChart(data: weeklyDoseData)
+                            .sectionAppear(index: 3)
 
                         ProgressSummaryCard(
                             totalDoses: dataStore.totalDoses,
@@ -76,24 +85,28 @@ struct AnalyticsView: View {
                             currentStreak: dataStore.currentStreak,
                             bestStreak: dataStore.bestStreak
                         )
-                        .sectionAppear(index: 3)
+                        .sectionAppear(index: 4)
 
                         TrendIndicator(
                             value: dataStore.complianceTrend(for: selectedRange.days),
                             label: trendLabel(for: selectedRange)
                         )
-                        .sectionAppear(index: 4)
+                        .sectionAppear(index: 5)
 
-                        CalendarHeatmap(entries: dataStore.entries, days: selectedRange.days)
-                            .sectionAppear(index: 5)
+                        let allInsights = InsightEngine.generateInsights(
+                            from: dataStore.entries,
+                            protocols: dataStore.protocols
+                        )
 
-                        InsightsCard(
-                            insights: InsightEngine.generateInsights(
-                                from: dataStore.entries,
-                                protocols: dataStore.protocols
-                            )
+                        CalendarHeatmap(
+                            entries: dataStore.entries,
+                            days: selectedRange.days,
+                            insight: heatmapInsight(from: allInsights)
                         )
                         .sectionAppear(index: 6)
+
+                        InsightsCard(insights: allInsights)
+                            .sectionAppear(index: 7)
                     }
                     .padding(.horizontal, Spacing.screenPadding)
                     .padding(.bottom, Spacing.xxxxl)
@@ -102,7 +115,30 @@ struct AnalyticsView: View {
             .background(AppColor.background)
             .navigationTitle("Analytics")
             .sheet(isPresented: $showPaywall) { PaywallView() }
+            .task(id: dataStore.profile.healthConnected) {
+                guard dataStore.profile.healthConnected else {
+                    hrvSeries = []
+                    return
+                }
+                hrvSeries = await HealthKitService.shared.dailyHRV(days: 35)
+            }
         }
+    }
+
+    /// 35-day per-day adherence series for the slot 3 HealthKit
+    /// correlation overlay. Distinct from `complianceData` (which is
+    /// gated by the segmented control's TimeRange) — slot 3 always shows
+    /// the same 5-week window so HRV trends have room to read.
+    private var correlationAdherence: [(date: Date, value: Double)] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return (0..<35).compactMap { dayOffset in
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { return nil }
+            let dayEntries = dataStore.entries.filter { calendar.isDate($0.date, inSameDayAs: date) }
+            guard !dayEntries.isEmpty else { return nil }
+            let value = Double(dayEntries.filter(\.completed).count) / Double(dayEntries.count)
+            return (date, value)
+        }.reversed()
     }
 
     /// Shown when the user has no protocols yet — analytics over zero data
@@ -161,6 +197,20 @@ struct AnalyticsView: View {
             let compliance = Double(dayEntries.filter(\.completed).count) / Double(dayEntries.count)
             return (date: date, compliance: compliance)
         }.reversed()
+    }
+
+    /// Pulls the most relevant single insight to pin above the heatmap.
+    /// Priority: day-of-week warning > any other warning > streak
+    /// positive > nothing. The heatmap loses its narrative if every
+    /// possible insight crowds it, so we surface one.
+    private func heatmapInsight(from insights: [InsightEngine.Insight]) -> InsightEngine.Insight? {
+        if let dayPattern = insights.first(where: { $0.icon == "calendar.badge.exclamationmark" }) {
+            return dayPattern
+        }
+        if let warning = insights.first(where: { $0.type == .warning }) {
+            return warning
+        }
+        return insights.first(where: { $0.type == .positive })
     }
 
     private var weeklyDoseData: [(day: String, count: Int)] {

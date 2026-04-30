@@ -3,6 +3,14 @@ import SwiftUI
 struct AboutSection: View {
     @State private var showDisclaimer = false
 
+    /// In DEBUG and TestFlight builds, 7 taps on the version row opens
+    /// the screenshot control panel; in App Store Release the modifier
+    /// is a no-op so the row is plain text.
+    private var versionRow: some View {
+        AboutRow(title: "Version", value: "1.0.0")
+            .screenshotControlPanelTrigger()
+    }
+
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
@@ -11,11 +19,26 @@ struct AboutSection: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 VStack(spacing: Spacing.md) {
-                    AboutRow(title: "Version", value: "1.0.0")
+                    versionRow
                     Divider().foregroundStyle(AppColor.glassBorder)
                     AboutRow(title: "Build", value: "1")
                     Divider().foregroundStyle(AppColor.glassBorder)
                     AboutRow(title: "Peptide Database", value: "\(PeptideDatabase.shared.count) peptides")
+                    Divider().foregroundStyle(AppColor.glassBorder)
+                    NavigationLink {
+                        PrivacySummaryView()
+                    } label: {
+                        HStack {
+                            Text("Privacy at a glance")
+                                .font(AppFont.subheadline)
+                                .foregroundStyle(AppColor.textSecondary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(AppColor.textTertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
                     Divider().foregroundStyle(AppColor.glassBorder)
                     Button { showDisclaimer = true } label: {
                         HStack {

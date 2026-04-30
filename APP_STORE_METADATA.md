@@ -102,7 +102,7 @@ PRIVATE BY DEFAULT
 PEPTIDEX PRO
 Unlock unlimited protocols, full analytics with HealthKit correlation, AI
 insights, all Home Screen widgets, and full CSV / JSON / PDF export with a
-monthly or annual subscription, or a one-time lifetime purchase. A 7-day
+monthly or annual subscription, or a one-time lifetime purchase. A 3-day
 free trial is available on monthly; 14 days on annual. Cancel anytime in
 your Apple ID settings.
 
@@ -145,7 +145,7 @@ Version 1.0 ships the full v1 experience:
 • Rich local dose reminders with Mark as Taken / Snooze
 • 14 achievements
 • CSV and JSON export
-• PeptideX Pro subscription with a 7- or 14-day free trial, or one-time lifetime purchase
+• PeptideX Pro subscription with a 3- or 14-day free trial, or one-time lifetime purchase
 
 Private by default: no backend, no analytics, no third-party SDKs.
 
@@ -336,7 +336,7 @@ App Store listing icon.
 
 | Product | Product ID | Type | Price | Trial |
 |---|---|---|---|---|
-| PeptideX Pro — Monthly | `com.peptidesai.app.pro.monthly` | Auto-Renewable | $9.99/mo | 7 days |
+| PeptideX Pro — Monthly | `com.peptidesai.app.pro.monthly` | Auto-Renewable | $9.99/mo | 3 days |
 | PeptideX Pro — Annual | `com.peptidesai.app.pro.annual` | Auto-Renewable | $49.99/yr | 14 days |
 | PeptideX Pro — Lifetime | `com.peptidesai.app.pro.lifetime` | Non-Consumable | $169.00 | — |
 
@@ -358,6 +358,17 @@ Lifetime (non-consumable, listed under In-App Purchases, not Subscriptions):
 
 Auto-renewal disclosure (already shown on the in-app paywall) satisfies
 Apple's requirement for the auto-renewable subscriptions.
+
+**Introductory offers (configure in App Store Connect → each subscription
+→ Subscription Pricing → Introductory Offer):**
+
+- Monthly: 3-day free trial, all eligible territories
+- Annual: 14-day free trial, all eligible territories
+
+These mirror the local `Products.storekit` config and what the in-app
+paywall surfaces dynamically. If you change a trial length, change all
+three (StoreKit config, App Store Connect, screenshot guide §10) in the
+same release.
 
 ---
 
