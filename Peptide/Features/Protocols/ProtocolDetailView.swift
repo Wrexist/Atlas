@@ -17,8 +17,10 @@ struct ProtocolDetailView: View {
     }
 
     /// All logged entries (past 14 days) for this protocol — used for adherence stats.
+    /// `entriesFor` uses `startOfDay(of: today - days)` as the cutoff, so passing 13
+    /// gives an inclusive 14-day window (13 prior days + today).
     private var allRecentEntries: [ProtocolEntry] {
-        dataStore.entriesFor(protocolId: protocol_.id)
+        dataStore.entriesFor(protocolId: protocol_.id, days: 13)
     }
 
     /// Adherence: completed entries / total entries (rounded percent). Returns nil if no entries.

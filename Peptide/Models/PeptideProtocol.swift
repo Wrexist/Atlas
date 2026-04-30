@@ -40,14 +40,17 @@ struct ProtocolSchedule: Hashable, Codable {
 
     /// Returns the dose for an entry, preferring the custom override and
     /// falling back to the peptide's high end of its default dosage range.
+    /// Whitespace- or newline-only overrides are treated as empty so legacy
+    /// data with stray whitespace doesn't surface as a custom dose.
     func resolvedDose(for peptide: Peptide) -> String {
-        if let customDose, !customDose.trimmingCharacters(in: .whitespaces).isEmpty {
-            return customDose
+        if let customDose {
+            let normalized = customDose.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !normalized.isEmpty { return normalized }
         }
         return peptide.dosageRange
             .components(separatedBy: "-")
             .last?
-            .trimmingCharacters(in: .whitespaces) ?? peptide.dosageRange
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? peptide.dosageRange
     }
 
     // MARK: - Codable (backwards-compatible: customDose is optional)
@@ -69,8 +72,11 @@ struct ProtocolSchedule: Hashable, Codable {
         try c.encode(daysOfWeek, forKey: .daysOfWeek)
         try c.encode(timesPerDay, forKey: .timesPerDay)
         try c.encode(preferredTimes, forKey: .preferredTimes)
-        if let customDose, !customDose.isEmpty {
-            try c.encode(customDose, forKey: .customDose)
+        if let customDose {
+            let normalized = customDose.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !normalized.isEmpty {
+                try c.encode(normalized, forKey: .customDose)
+            }
         }
     }
 }
