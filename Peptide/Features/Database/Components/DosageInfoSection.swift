@@ -31,7 +31,7 @@ struct DosageInfoSection: View {
 }
 
 private struct DosageRow: View {
-    let label: String
+    let label: LocalizedStringKey
     let value: String
     let icon: String
 

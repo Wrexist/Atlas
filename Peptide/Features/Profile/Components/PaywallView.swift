@@ -104,11 +104,20 @@ struct PaywallView: View {
                     }
 
                     // Legal
-                    Text("Payment will be charged to your Apple ID. Subscription auto-renews unless cancelled at least 24 hours before the end of the current period.")
+                    VStack(spacing: Spacing.sm) {
+                        Text("Payment will be charged to your Apple ID. Subscription auto-renews unless cancelled at least 24 hours before the end of the current period.")
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textTertiary)
+                            .multilineTextAlignment(.center)
+
+                        HStack(spacing: Spacing.lg) {
+                            Link("Terms of Use", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                            Link("Privacy Policy", destination: URL(string: "https://wrexist.github.io/Peptide-ai/privacy.html")!)
+                        }
                         .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textTertiary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Spacing.lg)
+                        .foregroundStyle(AppColor.accentLight)
+                    }
+                    .padding(.horizontal, Spacing.lg)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
@@ -125,7 +134,7 @@ struct PaywallView: View {
         }
     }
 
-    private func featureRow(icon: String, title: String, description: String) -> some View {
+    private func featureRow(icon: String, title: LocalizedStringKey, description: LocalizedStringKey) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
                 .font(.system(size: 18))
@@ -149,7 +158,7 @@ struct PaywallView: View {
         }
     }
 
-    private func pricingCard(product: Product, label: String, badge: String?, isBest: Bool) -> some View {
+    private func pricingCard(product: Product, label: LocalizedStringKey, badge: LocalizedStringKey?, isBest: Bool) -> some View {
         Button {
             Task {
                 isPurchasing = true
@@ -207,7 +216,7 @@ struct PaywallView: View {
         }
     }
 
-    private var annualSavingsBadge: String? {
+    private var annualSavingsBadge: LocalizedStringKey? {
         guard
             let monthly = storeService.monthlyProduct,
             let annual = storeService.annualProduct

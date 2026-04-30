@@ -22,7 +22,7 @@ enum StackRecommendationEngine {
          .growth, ["muscle", "growth", "hypertrophy", "strength", "anabolic"]),
         (["recovery", "healing", "repair", "injury", "tendon", "joint"],
          .recovery, ["recovery", "healing", "repair", "tendon", "tissue", "wound"]),
-        (["cognitive", "focus", "brain", "memory", "mental"],
+        (["cognitive", "focus", "brain", "memory", "mental", "edge"],
          .cognitive, ["cognitive", "focus", "memory", "brain", "neuroprotect", "mental"]),
         (["anti-aging", "longevity", "skin", "aging", "youth"],
          .antiAging, ["anti-aging", "collagen", "skin", "longevity", "elastin", "wrinkle"]),
@@ -30,6 +30,14 @@ enum StackRecommendationEngine {
          .immune, ["immune", "antimicrobial", "inflammation", "pathogen", "defense"]),
         (["weight", "fat", "metabolic", "lean", "diet", "appetite"],
          .metabolic, ["weight", "fat", "metabolic", "appetite", "lipolytic", "satiety"]),
+        // Sleep maps to recovery — most sleep-supportive peptides (DSIP,
+        // MK-677, Epitalon) are catalogued under recovery/anti-aging.
+        (["sleep", "rest", "insomnia"],
+         .recovery, ["sleep", "rest", "circadian", "melatonin", "rem", "deep sleep"]),
+        // Stress maps to cognitive — anxiolytic peptides (Selank, Semax)
+        // live under cognitive in the database.
+        (["stress", "anxiety", "calm", "mood"],
+         .cognitive, ["anxiolytic", "anti-stress", "calming", "mood", "anti-anxiety"]),
     ]
 
     // MARK: - Mechanism Pathways

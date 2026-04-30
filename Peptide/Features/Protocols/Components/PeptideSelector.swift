@@ -167,7 +167,7 @@ struct PeptideSelector: View {
 
                 ForEach(availableCategories) { category in
                     FilterChip(
-                        title: category.displayName,
+                        title: category.localizedTitle,
                         icon: category.iconName,
                         color: category.color,
                         isSelected: selectedCategory == category
@@ -254,7 +254,7 @@ struct PeptideSelector: View {
                         .fontWeight(.medium)
                         .foregroundStyle(AppColor.textPrimary)
 
-                    Text(peptide.category.displayName)
+                    Text(peptide.category.localizedTitle)
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
                 }
@@ -284,7 +284,7 @@ struct PeptideSelector: View {
 }
 
 private struct FilterChip: View {
-    let title: String
+    let title: LocalizedStringKey
     let icon: String
     let color: Color
     let isSelected: Bool

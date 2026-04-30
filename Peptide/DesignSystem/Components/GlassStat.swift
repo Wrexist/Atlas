@@ -2,7 +2,7 @@ import SwiftUI
 
 struct GlassStat: View {
     let value: String
-    let label: String
+    let label: LocalizedStringKey
     var icon: String?
     var tinted: Bool = false
 
@@ -33,7 +33,7 @@ struct GlassStat: View {
 
 struct GlassStatPill: View {
     let value: String
-    let label: String
+    let label: LocalizedStringKey
     var icon: String?
 
     var body: some View {

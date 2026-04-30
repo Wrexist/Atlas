@@ -8,7 +8,7 @@ struct PeptideCategoryBadge: View {
             Image(systemName: category.iconName)
                 .font(.system(size: 10, weight: .semibold))
 
-            Text(category.displayName)
+            Text(category.localizedTitle)
                 .font(AppFont.caption)
                 .fontWeight(.medium)
         }

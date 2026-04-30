@@ -204,10 +204,14 @@ final class StoredProfile {
     var doseRemindersEnabled: Bool
     var biometricLockEnabled: Bool
     var goalsData: Data       // JSON-encoded [String]
+    /// JSON-encoded BodyMetrics. Optional for legacy stores written before
+    /// metrics existed; `toUserProfile` falls back to `.unspecified`.
+    var bodyMetricsData: Data?
 
     init(name: String, memberSince: Date, healthConnected: Bool,
          hapticFeedbackEnabled: Bool, doseRemindersEnabled: Bool,
-         biometricLockEnabled: Bool, goalsData: Data) {
+         biometricLockEnabled: Bool, goalsData: Data,
+         bodyMetricsData: Data? = nil) {
         self.name = name
         self.memberSince = memberSince
         self.healthConnected = healthConnected
@@ -215,10 +219,12 @@ final class StoredProfile {
         self.doseRemindersEnabled = doseRemindersEnabled
         self.biometricLockEnabled = biometricLockEnabled
         self.goalsData = goalsData
+        self.bodyMetricsData = bodyMetricsData
     }
 
     static func make(from profile: UserProfile) throws -> StoredProfile {
         let goalsData = try sdEncoder.encode(profile.goals)
+        let metricsData = try sdEncoder.encode(profile.bodyMetrics)
         return StoredProfile(
             name: profile.name,
             memberSince: profile.memberSince,
@@ -226,7 +232,8 @@ final class StoredProfile {
             hapticFeedbackEnabled: profile.hapticFeedbackEnabled,
             doseRemindersEnabled: profile.doseRemindersEnabled,
             biometricLockEnabled: profile.biometricLockEnabled,
-            goalsData: goalsData
+            goalsData: goalsData,
+            bodyMetricsData: metricsData
         )
     }
 
@@ -238,10 +245,18 @@ final class StoredProfile {
         doseRemindersEnabled = profile.doseRemindersEnabled
         biometricLockEnabled = profile.biometricLockEnabled
         goalsData = try sdEncoder.encode(profile.goals)
+        bodyMetricsData = try sdEncoder.encode(profile.bodyMetrics)
     }
 
     func toUserProfile() throws -> UserProfile {
         let goals = try sdDecoder.decode([String].self, from: goalsData)
+        let metrics: BodyMetrics
+        if let data = bodyMetricsData,
+           let decoded = try? sdDecoder.decode(BodyMetrics.self, from: data) {
+            metrics = decoded
+        } else {
+            metrics = .unspecified
+        }
         return UserProfile(
             name: name,
             goals: goals,
@@ -249,7 +264,8 @@ final class StoredProfile {
             healthConnected: healthConnected,
             hapticFeedbackEnabled: hapticFeedbackEnabled,
             doseRemindersEnabled: doseRemindersEnabled,
-            biometricLockEnabled: biometricLockEnabled
+            biometricLockEnabled: biometricLockEnabled,
+            bodyMetrics: metrics
         )
     }
 }

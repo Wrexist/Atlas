@@ -134,14 +134,14 @@ struct TrialOfferView: View {
         .offset(y: didReveal ? 0 : 16)
     }
 
-    private let benefits: [(String, String)] = [
+    private let benefits: [(String, LocalizedStringKey)] = [
         ("infinity", "Unlimited protocols & stacks"),
         ("chart.xyaxis.line", "Full analytics + HealthKit correlation"),
         ("brain.head.profile.fill", "AI insights & smart recommendations"),
         ("icloud.fill", "Cloud sync across all your devices"),
     ]
 
-    private func benefitRow(icon: String, title: String, index: Int) -> some View {
+    private func benefitRow(icon: String, title: LocalizedStringKey, index: Int) -> some View {
         HStack(spacing: Spacing.md) {
             ZStack {
                 Circle()
@@ -250,6 +250,14 @@ struct TrialOfferView: View {
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.md)
+
+            HStack(spacing: Spacing.md) {
+                Link("Terms of Use", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                Text("·").foregroundStyle(AppColor.textTertiary)
+                Link("Privacy Policy", destination: URL(string: "https://wrexist.github.io/Peptide-ai/privacy.html")!)
+            }
+            .font(.system(size: 10))
+            .foregroundStyle(AppColor.accentLight)
         }
     }
 

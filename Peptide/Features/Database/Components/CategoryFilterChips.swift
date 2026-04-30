@@ -18,7 +18,7 @@ struct CategoryFilterChips: View {
 
                 ForEach(categories) { category in
                     FilterChip(
-                        title: category.displayName,
+                        title: category.localizedTitle,
                         icon: category.iconName,
                         isSelected: selected == category,
                         color: category.color
@@ -33,7 +33,7 @@ struct CategoryFilterChips: View {
 }
 
 private struct FilterChip: View {
-    let title: String
+    let title: LocalizedStringKey
     var icon: String?
     let isSelected: Bool
     let color: Color

@@ -1,11 +1,11 @@
 import SwiftUI
 
 struct GlassNavBar: View {
-    let title: String
-    var subtitle: String?
+    let title: LocalizedStringKey
+    var subtitle: LocalizedStringKey?
     var leadingAction: (() -> Void)?
     var trailingIcon: String?
-    var trailingAccessibilityLabel: String?
+    var trailingAccessibilityLabel: LocalizedStringKey?
     var trailingAction: (() -> Void)?
 
     var body: some View {
