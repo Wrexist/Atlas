@@ -84,7 +84,8 @@ struct DoseTimelineProvider: TimelineProvider {
                 nextDoseDate: nil,
                 completed: 0,
                 total: 0,
-                compliance: 0
+                compliance: 0,
+                upcoming: []
             )
         }
 
