@@ -60,6 +60,10 @@ struct HomeView: View {
         StackRecommendationEngine.cycleTransitions(for: dataStore.activeProtocols)
     }
 
+    private var dailyPlan: DailyScheduleEngine.DailyPlan {
+        DailyScheduleEngine.plan(for: dataStore.todayEntries)
+    }
+
     var body: some View {
         let stats = todayStats
         let warnings = stackWarnings
@@ -99,12 +103,18 @@ struct HomeView: View {
                         )
                         .sectionAppear(index: 1)
 
+                        DailyPlanCard(
+                            plan: dailyPlan,
+                            onTapDose: { entry in selectedEntry = entry }
+                        )
+                        .sectionAppear(index: 2)
+
                         TodayScheduleCard(
                             entries: stats.entries,
                             onToggle: { entry in dataStore.toggleEntry(entry.id) },
                             onTap: { entry in selectedEntry = entry }
                         )
-                        .sectionAppear(index: 2)
+                        .sectionAppear(index: 3)
 
                         QuickStatsRow(
                             activeProtocols: dataStore.activeProtocols.count,
@@ -112,16 +122,16 @@ struct HomeView: View {
                             compliance: Int(dataStore.averageCompliance * 100),
                             nextDose: dataStore.nextDose
                         )
-                        .sectionAppear(index: 3)
+                        .sectionAppear(index: 4)
 
                         if let completeness {
                             StackCompletenessCard(completeness: completeness)
-                                .sectionAppear(index: 4)
+                                .sectionAppear(index: 5)
                         }
 
                         if !transitions.isEmpty {
                             CycleTransitionCard(transitions: transitions)
-                                .sectionAppear(index: 5)
+                                .sectionAppear(index: 6)
                         }
 
                         if !warnings.isEmpty {
@@ -130,7 +140,7 @@ struct HomeView: View {
                                 hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                                 onSelect: { selectedAlert = $0 }
                             )
-                            .sectionAppear(index: 6)
+                            .sectionAppear(index: 7)
                         }
 
                         if !recommendations.isEmpty {
@@ -139,12 +149,12 @@ struct HomeView: View {
                                 activeProtocols: dataStore.activeProtocols,
                                 hapticEnabled: dataStore.profile.hapticFeedbackEnabled
                             )
-                            .sectionAppear(index: 7)
+                            .sectionAppear(index: 8)
                         }
 
                         if dataStore.profile.healthConnected {
                             HealthSummaryCard()
-                                .sectionAppear(index: 8)
+                                .sectionAppear(index: 9)
                         }
 
                         let insights = InsightEngine.generateInsights(
@@ -172,7 +182,7 @@ struct HomeView: View {
                                     Spacer()
                                 }
                             }
-                            .sectionAppear(index: 9)
+                            .sectionAppear(index: 10)
                         }
                     }
                 }
