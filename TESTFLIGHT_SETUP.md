@@ -320,12 +320,27 @@ Fix:
 2. Identifiers → click `com.peptidesai.app` → tick **iCloud** → click **Configure** → tick **CloudKit** and `iCloud.com.peptidesai.app` → **Continue** → **Save**
 3. Re-run the workflow
 
+### Archive fails: "Choose a certificate to revoke" / "maximum number of certificates"
+
+Automatic signing tried to mint **development** certs (hits Apple's per-account limit quickly) instead of using **distribution**. The TestFlight workflow sets `CODE_SIGN_IDENTITY=Apple Distribution` so Release archives use App Store provisioning. If this still appears:
+
+1. In [Certificates](https://developer.apple.com/account/resources/certificates/list), remove stale **Development** certs you no longer need (machines or old CI flows), **or**
+2. Ensure GitHub Actions imports an **Apple Distribution** `.p12` (same as Step 3), not an iPhone Development certificate — the identity in the keychain must match Distribution.
+
+Also confirm the Distribution cert is tied to the same team as `APPLE_TEAM_ID`.
+
+### Archive fails: "No profiles for …" mentioning **iOS App Development**
+
+Same root cause as above: Xcode fell back to development provisioning. Prefer the Distribution identity fix above. If profiles are still missing, open App Store Connect / Developer Portal and confirm every bundle ID in the checklist has App Store / distribution provisioning (automatic signing with API key normally creates **App Store** profiles once the Distribution cert is present).
+
 ### Archive fails: "No signing certificate 'iOS Distribution' found"
 
 The certificate wasn't imported. Causes:
 - `APPLE_CERTIFICATE_BASE64` is corrupt (see above)
 - `APPLE_CERTIFICATE_PASSWORD` is wrong — verify it locally with `openssl pkcs12 -info -in distribution.p12 -passin pass:YOUR_PASSWORD -noout`
 - The certificate is expired — check its expiry date in Keychain Access or Developer Portal → Certificates
+
+Note: Xcode 16+ labels the signing identity **Apple Distribution**; older docs say **iPhone Distribution**. Either name refers to distribution — the `.p12` must be an **Apple Distribution** certificate type from the portal.
 
 ### Upload fails: "authentication" / 401 / "invalid credentials"
 
