@@ -42,16 +42,17 @@ struct PeptideScheduleSheet: View {
     }
 
     /// Quick-pick suggestions parsed from the peptide's dosageRange (e.g. "200-500 mcg").
-    private var dosePresets: [String] {
+    /// Returns Low/Mid/High preset rows so the picker can render distinct chips.
+    private var dosePresets: [DosePreset] {
         let range = peptide.dosageRange
         let parts = range.components(separatedBy: "-")
-        guard parts.count == 2 else { return [range] }
+        guard parts.count == 2 else { return [DosePreset(label: "Default", value: range)] }
         let unit = parts[1].components(separatedBy: " ").dropFirst().joined(separator: " ")
         let lowDigits = parts[0].trimmingCharacters(in: .whitespaces)
         let highRaw = parts[1].trimmingCharacters(in: .whitespaces)
         let highDigits = highRaw.components(separatedBy: " ").first ?? highRaw
         guard let low = Double(lowDigits), let high = Double(highDigits), low < high else {
-            return [range]
+            return [DosePreset(label: "Default", value: range)]
         }
         let mid = (low + high) / 2
         let format: (Double) -> String = { v in
@@ -59,9 +60,9 @@ struct PeptideScheduleSheet: View {
         }
         let suffix = unit.isEmpty ? "" : " \(unit)"
         return [
-            "\(format(low))\(suffix)",
-            "\(format(mid))\(suffix)",
-            "\(format(high))\(suffix)"
+            DosePreset(label: "Low", value: "\(format(low))\(suffix)"),
+            DosePreset(label: "Mid", value: "\(format(mid))\(suffix)"),
+            DosePreset(label: "High", value: "\(format(high))\(suffix)")
         ]
     }
 
@@ -251,21 +252,14 @@ struct PeptideScheduleSheet: View {
 
                 if dosePresets.count > 1 {
                     HStack(spacing: Spacing.xs) {
-                        ForEach(0..<dosePresets.count, id: \.self) { index in
-                            let preset = dosePresets[index]
-                            let labelPrefix: String
-                            switch index {
-                            case 0: labelPrefix = "Low"
-                            case dosePresets.count - 1: labelPrefix = "High"
-                            default: labelPrefix = "Mid"
-                            }
+                        ForEach(dosePresets) { preset in
                             DoseChip(
-                                label: labelPrefix,
-                                value: preset,
-                                isSelected: customDose == preset
+                                label: preset.label,
+                                value: preset.value,
+                                isSelected: customDose == preset.value
                             ) {
                                 withAnimation(AppAnimation.springSnappy) {
-                                    customDose = preset
+                                    customDose = preset.value
                                 }
                                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             }
@@ -301,6 +295,12 @@ struct PeptideScheduleSheet: View {
             return "\(hour12):00 \(period)"
         }
     }
+}
+
+private struct DosePreset: Identifiable {
+    var id: String { value }
+    let label: String
+    let value: String
 }
 
 private struct DoseChip: View {
