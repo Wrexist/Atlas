@@ -273,9 +273,10 @@ jobs:
           PRIMARY_BUNDLE   = os.environ.get("PRIMARY_BUNDLE", "com.peptidesai.app")
           ICLOUD_CONTAINER = os.environ.get("ICLOUD_CONTAINER", "iCloud.com.peptidesai.app")
           REQUIRED_CAPS = {
-              "com.peptidesai.app":             ["ICLOUD", "APP_GROUPS"],
-              "com.peptidesai.app.widgets":     ["APP_GROUPS"],
-              "com.peptidesai.app.watchkitapp": ["APP_GROUPS"],
+              "com.peptidesai.app":                     ["ICLOUD", "APP_GROUPS"],
+              "com.peptidesai.app.widgets":             ["APP_GROUPS"],
+              "com.peptidesai.app.watchkitapp":         ["APP_GROUPS"],
+              "com.peptidesai.app.watchkitapp.widgets": ["APP_GROUPS"],
           }
 
           def banner(t): print("\n" + "="*72 + f"\n{t}\n" + "="*72)
@@ -436,7 +437,12 @@ jobs:
           from pathlib import Path
           from asc_api import api_get, follow_paginated, make_token
 
-          TARGETS = {"com.peptidesai.app", "com.peptidesai.app.widgets", "com.peptidesai.app.watchkitapp"}
+          TARGETS = {
+              "com.peptidesai.app",
+              "com.peptidesai.app.widgets",
+              "com.peptidesai.app.watchkitapp",
+              "com.peptidesai.app.watchkitapp.widgets",
+          }
 
           def decode(b64):
               if not b64: return None
