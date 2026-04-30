@@ -24,6 +24,12 @@ All text respects Apple's current character limits. Placeholders are marked
 > the repo (Settings → Pages → deploy from `main` / `/docs`). App Store
 > Connect validates the Privacy Policy URL at submission time, so publish the
 > site before hitting Submit.
+>
+> The `docs/` folder ships **pure static HTML** (no Jekyll, no theme, no
+> build step). A `.nojekyll` file disables GitHub Pages' Jekyll
+> preprocessing so `index.html`, `privacy.html`, and `support.html` are
+> served byte-for-byte. URLs end in `.html` exactly as given to App Store
+> Connect; there is no permalink rewriting that could move them.
 
 | Field | Value |
 |---|---|
@@ -264,9 +270,13 @@ Thank you for reviewing PeptideX.
   Health" in the Health Connection card. It is NOT requested automatically
   from the Analytics tab. Denying access does not disable any feature; it
   only hides the HealthKit correlation section.
-• PeptideX does not write to Apple Health — NSHealthUpdateUsageDescription
-  is declared only because the HealthKit framework requires it for any
-  HealthKit use.
+• PeptideX is read-only against Apple Health. Only
+  NSHealthShareUsageDescription is declared in Info.plist;
+  NSHealthUpdateUsageDescription is intentionally absent. The
+  authorization request is `requestAuthorization(toShare: [], read: ...)`
+  in HealthKitService.swift — six metric types are read (heart rate, HRV,
+  resting heart rate, body mass, step count, active energy), nothing is
+  ever written.
 • The peptide database is educational. The in-app medical disclaimer is
   surfaced in onboarding and on every peptide detail screen. Peptides are
   referenced as research chemicals; PeptideX does not sell, prescribe, or
@@ -277,9 +287,18 @@ Thank you for reviewing PeptideX.
   feature; uninstalling the app removes all local data regardless of
   subscription status.
 • No backend of our own, no analytics, no third-party SDKs. Network use is
-  limited to Apple's StoreKit and (optionally) Sign in with Apple. App
-  Privacy manifest declares NSPrivacyTracking=false and an empty collected
-  data array.
+  limited to Apple's StoreKit and (optionally) Sign in with Apple. Each
+  distributable binary (main app, widget extension, watch app) ships its
+  own PrivacyInfo.xcprivacy declaring NSPrivacyTracking=false and an empty
+  collected-data-types array.
+• User data either stays on-device (UserDefaults / SwiftData / Keychain) or
+  syncs through the user's *private* CloudKit database, which Apple's
+  privacy-manifest spec excludes from "collected data" because the
+  developer cannot access it.
+• The paywall (Profile → Upgrade) and the onboarding trial offer both
+  display the auto-renew disclosure inline and link to Terms of Use
+  (Apple's standard EULA) and the Privacy Policy at
+  https://wrexist.github.io/Peptide-ai/privacy.html.
 
 Support contact: support@peptidesai.com
 ```
@@ -346,7 +365,7 @@ Apple's requirement for the auto-renewable subscriptions.
 
 Tick off before hitting Submit:
 
-- [ ] GitHub Pages deployed — `https://wrexist.github.io/Peptide-ai/privacy.html` returns **200** (Cayman uses default permalinks, so `.html` is correct — verify with `curl -I` before pasting into App Store Connect; the privacy URL is hard to change after submission)
+- [ ] GitHub Pages deployed — `https://wrexist.github.io/Peptide-ai/privacy.html` returns **200** (`.nojekyll` ensures the file is served as-is with no permalink rewriting; verify with `curl -I` before pasting into App Store Connect, since the privacy URL is hard to change after submission)
 - [ ] Support URL `/support.html` returns **200**
 - [ ] Marketing URL `/` returns **200**
 - [ ] Privacy page is publicly accessible (no auth, no JS dependency for content — Apple's review crawler must read it)

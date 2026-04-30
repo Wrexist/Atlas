@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Privacy policy for PeptideX — a private, on-device iOS app for tracking peptide protocols.">
+<meta property="og:title" content="Privacy Policy — PeptideX">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://wrexist.github.io/Peptide-ai/privacy.html">
+<title>Privacy Policy — PeptideX</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site">
+  <div class="site-inner">
+    <a class="brand" href="./">PeptideX</a>
+    <nav>
+      <a href="./">Home</a>
+      <a href="privacy.html" aria-current="page">Privacy</a>
+      <a href="support.html">Support</a>
+    </nav>
+  </div>
+</header>
+<main id="main" class="wrap">
+  <article>
+    <span class="eyebrow">Legal</span>
+    <h1>Privacy Policy</h1>
+    <p class="meta">
+      Effective date: April 30, 2026 &nbsp;·&nbsp;
+      App: PeptideX (iOS) &nbsp;·&nbsp;
+      Developer: Peptides AI
+    </p>
+
+    <h2>Summary</h2>
+    <p>
+      PeptideX is designed to be private by default. As of version 1.0, all of
+      your data stays on your device: we do not operate any backend servers of
+      our own for app functionality, do not run analytics, do not use
+      advertising SDKs, and do not share data with third parties. Nothing you
+      enter in the app — protocols, doses, journal entries, health metrics,
+      achievements — leaves your device unless you explicitly export it
+      yourself. The only network services the app uses are Apple's StoreKit
+      (for subscription purchases) and Apple's Sign in with Apple (only if you
+      choose to sign in); both are governed by Apple's own privacy policy. If
+      you have iCloud enabled, your protocol data may sync through your
+      <em>private</em> iCloud database, which is between you and Apple — we
+      cannot access it.
+    </p>
+
+    <h2>What data the app handles</h2>
+
+    <h3>Data stored locally on your device</h3>
+    <ul>
+      <li>Protocol and dose data you create (peptide name, dosage, schedule, notes)</li>
+      <li>Usage history (dose logs, adherence streaks, achievements)</li>
+      <li>Your profile (optional: display name, body metrics, goals, preferences)</li>
+      <li>App settings</li>
+    </ul>
+    <p>
+      This data is stored in your device's local app container using Apple's
+      standard persistence frameworks (SwiftData and <code>UserDefaults</code>) and,
+      where applicable, shared with the PeptideX Widgets extension and
+      PeptideX Watch app via an App Group. It is <strong>not</strong>
+      transmitted to us or anyone else.
+    </p>
+
+    <h3>iCloud sync (optional, automatic)</h3>
+    <p>
+      If you are signed into iCloud on your device, PeptideX uses Apple's
+      CloudKit framework to sync your protocols and entries through your
+      <em>private</em> iCloud database. This sync is end-to-end between your
+      devices and Apple's servers; <strong>we do not have access</strong> to
+      the data, and Apple's privacy policy governs storage. You can disable
+      this in <strong>Settings → [Your Name] → iCloud → PeptideX</strong>.
+    </p>
+
+    <h3>Apple Health (HealthKit) — read-only</h3>
+    <p>
+      With your permission, PeptideX reads the following metrics from Apple
+      Health to correlate them with your protocol adherence:
+    </p>
+    <ul>
+      <li>Heart rate</li>
+      <li>Heart rate variability (HRV, SDNN)</li>
+      <li>Resting heart rate</li>
+      <li>Body mass</li>
+      <li>Step count</li>
+      <li>Active energy burned</li>
+    </ul>
+    <p>
+      PeptideX does <strong>not</strong> write to Apple Health. The app
+      requests <em>read-only</em> authorization
+      (<code>NSHealthShareUsageDescription</code>); no
+      <code>NSHealthUpdateUsageDescription</code> is declared because no
+      write access is needed.
+    </p>
+    <p>
+      HealthKit data is processed entirely on your device. It is never
+      uploaded, and it is never combined with any identifier that leaves
+      your device. You can revoke HealthKit access at any time in
+      <strong>Settings → Privacy &amp; Security → Health → PeptideX</strong>.
+    </p>
+
+    <h3>Sign in with Apple (optional)</h3>
+    <p>
+      If you choose to sign in with Apple, PeptideX stores the opaque Apple
+      user identifier, and — only when Apple provides them on first sign-in —
+      your name and relay email, in your device's <strong>Keychain</strong>.
+      These values are used solely to personalize the app and to detect when
+      you revoke access. They are not transmitted to us. You can sign out at
+      any time inside the app, and you can revoke the app's access at any
+      time in <strong>Settings → Apple Account → Sign in with Apple</strong>.
+    </p>
+    <p>
+      Using PeptideX does not require signing in. Every feature works without
+      an account.
+    </p>
+
+    <h3>Notifications</h3>
+    <p>
+      PeptideX schedules local dose reminders on your device using iOS's
+      <code>UserNotifications</code> framework. Notification content never
+      leaves your device and is not delivered through any remote push service.
+    </p>
+
+    <h3>Purchases (StoreKit)</h3>
+    <p>
+      Subscriptions and one-time purchases are processed by Apple via
+      StoreKit. PeptideX receives a purchase receipt from Apple to unlock
+      paid features; it does not see or store your payment details. Apple's
+      own privacy policy governs the purchase itself:
+      <a href="https://www.apple.com/legal/privacy/">apple.com/legal/privacy</a>.
+    </p>
+
+    <h3>Biometric authentication (Face ID / Touch ID)</h3>
+    <p>
+      If you enable the app lock, authentication is performed on-device by
+      Apple's LocalAuthentication framework. PeptideX never receives your
+      biometric data — only a yes/no result from the system.
+    </p>
+
+    <h2>What we do NOT collect</h2>
+    <ul>
+      <li>No analytics, telemetry, or crash reporting SDKs</li>
+      <li>No advertising or tracking identifiers (IDFA or otherwise)</li>
+      <li>No third-party SDKs that phone home</li>
+      <li>No precise or coarse location</li>
+      <li>No contacts, photos, microphone, or camera access</li>
+      <li>No proprietary cloud storage of your data on our servers</li>
+    </ul>
+    <p>
+      PeptideX's App Privacy manifest (<code>PrivacyInfo.xcprivacy</code>)
+      declares <code>NSPrivacyTracking = false</code> and an empty
+      <code>NSPrivacyCollectedDataTypes</code> list.
+    </p>
+
+    <h2>Data sharing</h2>
+    <p>
+      We do not sell, rent, or share your personal data with third parties.
+      We do not have the ability to — your data never leaves your device or
+      your private iCloud database.
+    </p>
+
+    <h2>Data export and deletion</h2>
+    <ul>
+      <li>
+        <strong>Export:</strong> PeptideX Pro subscribers can export all
+        protocol history and tracking data as CSV, JSON, or PDF from
+        <strong>Profile → Data Export</strong>. If you are not a Pro
+        subscriber and need a copy of your data for legal or portability
+        reasons, email <a href="mailto:privacy@peptidesai.com">privacy@peptidesai.com</a>
+        and we will walk you through a manual export at no charge.
+      </li>
+      <li>
+        <strong>Deletion:</strong> deleting the app from your device
+        permanently removes all PeptideX data stored locally. To also remove
+        the iCloud copy, sign into iCloud.com and delete the
+        <em>iCloud.com.peptidesai.app</em> container, or wait — uninstalling
+        from all your devices clears it within Apple's normal retention
+        window. If you signed in with Apple, also revoke app access in
+        <strong>Settings → Apple Account → Sign in with Apple</strong> to
+        complete removal of the Keychain-stored identifier.
+      </li>
+    </ul>
+    <p>
+      Because we do not operate a backend server of our own, there is no
+      remote copy of your data <em>on our systems</em> for us to delete.
+    </p>
+
+    <h2>Children</h2>
+    <p>
+      PeptideX is not directed at children under 13 and should not be used by
+      them. The app is intended for adults making informed decisions in
+      consultation with a qualified healthcare provider.
+    </p>
+
+    <h2>Medical disclaimer</h2>
+    <p>
+      PeptideX is an educational and tracking tool. It is <strong>not</strong>
+      a medical device, and it does not provide medical advice, diagnosis, or
+      treatment. Many substances referenced in the peptide database are
+      research chemicals not approved for human use. Always consult a
+      qualified healthcare provider before starting, changing, or stopping
+      any protocol.
+    </p>
+
+    <h2>Your rights (GDPR / UK GDPR / CCPA)</h2>
+    <p>
+      Because all personal data is stored on your device or in your private
+      iCloud database, under your direct control, you can exercise the
+      following rights at any time:
+    </p>
+    <ul>
+      <li>
+        <strong>Access / portability:</strong> Pro subscribers can export via
+        Profile → Data Export; non-subscribers may request a free manual
+        export by emailing privacy@peptidesai.com.
+      </li>
+      <li><strong>Rectification:</strong> edit any entry directly in the app.</li>
+      <li>
+        <strong>Erasure:</strong> delete entries in the app, or uninstall to
+        remove everything. Uninstalling works regardless of subscription
+        status.
+      </li>
+      <li>
+        <strong>Withdraw consent:</strong> revoke HealthKit or Sign in with
+        Apple access in iOS Settings as described above.
+      </li>
+    </ul>
+    <p>
+      We do not sell personal information as defined by the California
+      Consumer Privacy Act (CCPA). We do not have a Data Protection Officer
+      because we do not process personal data on our own systems.
+    </p>
+
+    <h2>Security</h2>
+    <p>
+      Data is protected by the standard iOS sandbox and, for credentials, the
+      iOS Keychain with <code>kSecAttrAccessibleAfterFirstUnlock</code>.
+      Enabling Face ID / Touch ID app lock adds a second barrier. No security
+      measure is perfect; enabling a device passcode and keeping iOS up to
+      date materially improves protection.
+    </p>
+
+    <h2>Changes to this policy</h2>
+    <p>
+      If this policy changes, the effective date above will be updated and
+      the updated version will be made available at the same URL from which
+      you are reading this. Material changes will also be surfaced in-app.
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+      Questions or privacy requests:
+      <strong>Peptides AI</strong> —
+      <a href="mailto:privacy@peptidesai.com">privacy@peptidesai.com</a>
+    </p>
+
+    <hr>
+    <p class="meta">This policy covers PeptideX version 1.0.0 and later.</p>
+  </article>
+</main>
+<footer class="site">
+  &copy; 2026 Peptides AI &middot;
+  <a href="./">Home</a> &middot;
+  <a href="privacy.html">Privacy</a> &middot;
+  <a href="support.html">Support</a>
+</footer>
+</body>
+</html>
