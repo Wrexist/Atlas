@@ -1,8 +1,9 @@
-#if DEBUG
 import SwiftUI
 
-/// Hidden control surface for App Store screenshot capture. Open via a
-/// 5-finger long-press anywhere on the Profile tab header.
+/// Hidden control surface for App Store screenshot capture. Reachable
+/// in DEBUG and TestFlight builds (per `ScreenshotTools.isAvailable`)
+/// by tapping the Version row in Profile → About 7 times. Unreachable
+/// in App Store Release builds — the trigger renders as plain text.
 ///
 /// Operations:
 /// - **Seed all** — wipes the data store and replaces with the curated
@@ -30,7 +31,7 @@ struct ScreenshotControlPanel: View {
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity)
                     }
-                    Text("DEBUG-only — these controls do not ship in Release builds. See docs/SCREENSHOT_SEED_DATA_AND_FIXES.md.")
+                    Text("Reachable in DEBUG and TestFlight only. App Store Release hides the trigger. See docs/SCREENSHOT_SEED_DATA_AND_FIXES.md.")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
                         .multilineTextAlignment(.center)
@@ -200,9 +201,15 @@ struct ScreenshotControlPanelTapCounter: ViewModifier {
 
 extension View {
     /// Wraps a view in a 7-tap counter that opens the screenshot control
-    /// panel. DEBUG-only — the modifier is a no-op in Release builds.
+    /// panel. The counter is only attached when
+    /// `ScreenshotTools.isAvailable` (DEBUG or TestFlight) — in App Store
+    /// Release builds the modifier is a passthrough.
+    @ViewBuilder
     func screenshotControlPanelTrigger() -> some View {
-        modifier(ScreenshotControlPanelTapCounter())
+        if ScreenshotTools.isAvailable {
+            modifier(ScreenshotControlPanelTapCounter())
+        } else {
+            self
+        }
     }
 }
-#endif

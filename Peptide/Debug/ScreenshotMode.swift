@@ -1,7 +1,8 @@
-#if DEBUG
 import SwiftUI
 
-/// Centralized state for App Store screenshot capture. DEBUG-only.
+/// Centralized state for App Store screenshot capture. Reachable in
+/// DEBUG and TestFlight builds via `ScreenshotTools.isAvailable`; the
+/// trigger is hidden in App Store Release.
 ///
 /// Two responsibilities:
 /// 1. Toggle the global Pro override on `StoreService` so Pro-gated UI
@@ -9,7 +10,8 @@ import SwiftUI
 /// 2. Surface an `isActive` flag that views can observe to hide TestFlight
 ///    chrome, debug banners, or "Upgrade" CTAs when shooting.
 ///
-/// Toggle from the in-app debug control panel (Profile → 5-finger long-press).
+/// Toggle from the in-app screenshot control panel (Profile → About →
+/// tap Version 7 times).
 @MainActor @Observable
 final class ScreenshotMode {
     static let shared = ScreenshotMode()
@@ -42,4 +44,3 @@ final class ScreenshotMode {
         setActive(!isActive)
     }
 }
-#endif

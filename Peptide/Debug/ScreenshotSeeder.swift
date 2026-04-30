@@ -1,7 +1,6 @@
-#if DEBUG
 import Foundation
 
-/// One-shot debug seeder for App Store screenshot capture.
+/// One-shot seeder for App Store screenshot capture.
 ///
 /// Implements the data state described in
 /// `docs/SCREENSHOT_SEED_DATA_AND_FIXES.md` — three protocols (Joint
@@ -10,13 +9,15 @@ import Foundation
 /// "Tuesdays slip" insight surfaces honestly), and a 23-day current
 /// streak.
 ///
-/// Wipes the existing data store before seeding. Only invokable from the
-/// in-app debug control panel — never wired into production paths.
+/// Wipes the existing data store before seeding. Reachable in DEBUG and
+/// TestFlight builds via the in-app control panel; unreachable in App
+/// Store Release per `ScreenshotTools.isAvailable`.
 @MainActor
 enum ScreenshotSeeder {
     /// Seeds the full screenshot data set: protocols, history, profile,
     /// achievements, and the Pro override.
     static func seedAll(into dataStore: DataStore) {
+        guard ScreenshotTools.isAvailable else { return }
         let protocols = buildProtocols()
         let historical = buildHistory(for: protocols)
         let today = buildToday(for: protocols)
@@ -45,6 +46,7 @@ enum ScreenshotSeeder {
     /// Wipes everything back to a clean install state. Useful for
     /// re-shooting a slot from a known baseline.
     static func wipe(_ dataStore: DataStore) {
+        guard ScreenshotTools.isAvailable else { return }
         dataStore._replaceAllForScreenshots(
             protocols: [],
             entries: [],
@@ -384,4 +386,3 @@ enum ScreenshotSeeder {
         let dose: String
     }
 }
-#endif

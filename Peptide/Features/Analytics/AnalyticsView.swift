@@ -93,16 +93,20 @@ struct AnalyticsView: View {
                         )
                         .sectionAppear(index: 5)
 
-                        CalendarHeatmap(entries: dataStore.entries, days: selectedRange.days)
-                            .sectionAppear(index: 6)
-
-                        InsightsCard(
-                            insights: InsightEngine.generateInsights(
-                                from: dataStore.entries,
-                                protocols: dataStore.protocols
-                            )
+                        let allInsights = InsightEngine.generateInsights(
+                            from: dataStore.entries,
+                            protocols: dataStore.protocols
                         )
-                        .sectionAppear(index: 7)
+
+                        CalendarHeatmap(
+                            entries: dataStore.entries,
+                            days: selectedRange.days,
+                            insight: heatmapInsight(from: allInsights)
+                        )
+                        .sectionAppear(index: 6)
+
+                        InsightsCard(insights: allInsights)
+                            .sectionAppear(index: 7)
                     }
                     .padding(.horizontal, Spacing.screenPadding)
                     .padding(.bottom, Spacing.xxxxl)
@@ -193,6 +197,20 @@ struct AnalyticsView: View {
             let compliance = Double(dayEntries.filter(\.completed).count) / Double(dayEntries.count)
             return (date: date, compliance: compliance)
         }.reversed()
+    }
+
+    /// Pulls the most relevant single insight to pin above the heatmap.
+    /// Priority: day-of-week warning > any other warning > streak
+    /// positive > nothing. The heatmap loses its narrative if every
+    /// possible insight crowds it, so we surface one.
+    private func heatmapInsight(from insights: [InsightEngine.Insight]) -> InsightEngine.Insight? {
+        if let dayPattern = insights.first(where: { $0.icon == "calendar.badge.exclamationmark" }) {
+            return dayPattern
+        }
+        if let warning = insights.first(where: { $0.type == .warning }) {
+            return warning
+        }
+        return insights.first(where: { $0.type == .positive })
     }
 
     private var weeklyDoseData: [(day: String, count: Int)] {

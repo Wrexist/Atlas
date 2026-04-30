@@ -3,6 +3,16 @@ import SwiftUI
 struct CalendarHeatmap: View {
     let entries: [ProtocolEntry]
     let days: Int
+    /// Optional callout pinned above the grid. Slot 5 in the App Store
+    /// screenshot deck uses this for the "Tuesdays slip" annotation —
+    /// real UI, not a Figma overlay.
+    var insight: InsightEngine.Insight?
+
+    init(entries: [ProtocolEntry], days: Int, insight: InsightEngine.Insight? = nil) {
+        self.entries = entries
+        self.days = days
+        self.insight = insight
+    }
 
     private var heatmapData: [(date: Date, intensity: Double)] {
         let calendar = Calendar.current
@@ -21,6 +31,10 @@ struct CalendarHeatmap: View {
                 Label("Activity", systemImage: "square.grid.3x3.fill")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
+
+                if let insight {
+                    InsightBubble(insight: insight)
+                }
 
                 let data = heatmapData
                 let columns = Array(repeating: GridItem(.flexible(), spacing: 3), count: 7)

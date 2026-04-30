@@ -3,16 +3,12 @@ import SwiftUI
 struct AboutSection: View {
     @State private var showDisclaimer = false
 
-    /// In DEBUG builds, 7 taps on the version row opens the screenshot
-    /// control panel. In Release the row is plain text.
-    @ViewBuilder
+    /// In DEBUG and TestFlight builds, 7 taps on the version row opens
+    /// the screenshot control panel; in App Store Release the modifier
+    /// is a no-op so the row is plain text.
     private var versionRow: some View {
-        #if DEBUG
         AboutRow(title: "Version", value: "1.0.0")
             .screenshotControlPanelTrigger()
-        #else
-        AboutRow(title: "Version", value: "1.0.0")
-        #endif
     }
 
     var body: some View {
