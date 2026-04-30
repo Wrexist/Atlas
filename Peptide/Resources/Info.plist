@@ -23,6 +23,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>PeptideX uses Face ID to protect your peptide protocols and health information.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>PeptideX reads heart rate, HRV, resting heart rate, body mass, steps, and active energy from Apple Health to correlate your peptide protocols with biometric trends. All analysis happens on your device — nothing is sent off the device.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UILaunchScreen</key>
