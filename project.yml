@@ -14,6 +14,13 @@ settings:
     ENABLE_PREVIEWS: YES
     SWIFT_EMIT_LOC_STRINGS: YES
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+  configs:
+    Debug:
+      CODE_SIGN_IDENTITY: Apple Development
+    Release:
+      # TestFlight / App Store archives must sign with distribution identity.
+      # Keep signing style Automatic so Xcode can fetch/create profiles via ASC.
+      CODE_SIGN_IDENTITY: Apple Distribution
 targets:
   Peptide:
     type: application

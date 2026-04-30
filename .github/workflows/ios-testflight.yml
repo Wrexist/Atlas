@@ -615,10 +615,6 @@ jobs:
             -authenticationKeyPath     "$ASC_KEY_PATH"
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
             CODE_SIGN_STYLE=Automatic
-            # Force Distribution identity so CI archives do not request "iOS App
-            # Development" profiles/certs (avoids Apple's dev cert quota error and
-            # wrong-profile errors on Release/TestFlight archives).
-            CODE_SIGN_IDENTITY="Apple Distribution"
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
             OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH"
           )
@@ -709,7 +705,6 @@ jobs:
             -authenticationKeyID       "$APPLE_CONNECT_KEY_ID" \
             -authenticationKeyIssuerID "$APPLE_CONNECT_ISSUER_ID" \
             -authenticationKeyPath     "$ASC_KEY_PATH" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
             2>&1 | tee "$UPLOAD_LOG"
 
           # Hard-confirm the upload actually completed. xcodebuild's exit code
