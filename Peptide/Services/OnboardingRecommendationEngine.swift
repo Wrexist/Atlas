@@ -11,7 +11,7 @@ import SwiftUI
 /// pick top candidates by category match + benefit overlap.
 enum OnboardingRecommendationEngine {
 
-    struct Suggestion: Identifiable, Hashable {
+    struct Suggestion: Identifiable {
         var id: UUID { peptide.id }
         let peptide: Peptide
         let goalMatches: [String]
