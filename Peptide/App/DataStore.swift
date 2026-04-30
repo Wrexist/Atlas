@@ -573,13 +573,28 @@ final class DataStore: DataServiceProtocol {
         let completed = today.filter(\.completed).count
         let next = nextDose
 
+        // Surface the next 3 doses (chronological) for the Medium widget's
+        // today list — see slot 7 in docs/APP_STORE_SCREENSHOTS_GUIDE_1.md.
+        let upcoming = today
+            .sorted { $0.date < $1.date }
+            .prefix(3)
+            .map { entry in
+                WidgetDoseSlot(
+                    peptideName: entry.peptide.abbreviation,
+                    dose: entry.dose,
+                    time: entry.date,
+                    completed: entry.completed
+                )
+            }
+
         let data = WidgetData(
             nextPeptideName: next?.peptide.abbreviation ?? "",
             nextDose: next?.dose ?? "",
             nextDoseTime: next?.date,
             completedToday: completed,
             totalToday: today.count,
-            lastUpdated: Date()
+            lastUpdated: Date(),
+            upcoming: Array(upcoming)
         )
 
         PersistenceService.shared.updateWidgetData(data)

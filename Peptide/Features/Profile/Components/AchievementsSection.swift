@@ -70,16 +70,45 @@ struct AchievementsSection: View {
                 .foregroundStyle(unlocked ? AppColor.accentLight : AppColor.textTertiary)
                 .frame(width: 44, height: 44)
                 .background {
-                    Circle()
-                        .fill(unlocked ? AppColor.accentPrimary.opacity(0.15) : AppColor.surfaceElevated)
-                        .overlay {
+                    ZStack {
+                        if unlocked {
+                            // Outer halo: signals "earned" at thumbnail size on
+                            // the App Store listing. The radial fill below sells
+                            // the depth — flat opacity reads as decoration.
                             Circle()
-                                .strokeBorder(
-                                    unlocked ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                    lineWidth: 0.5
+                                .fill(
+                                    RadialGradient(
+                                        colors: [
+                                            AppColor.accentPrimary.opacity(0.55),
+                                            AppColor.accentPrimary.opacity(0.18),
+                                            AppColor.accentPrimary.opacity(0.0),
+                                        ],
+                                        center: .center,
+                                        startRadius: 4,
+                                        endRadius: 30
+                                    )
                                 )
+                            Circle()
+                                .fill(AppColor.accentPrimary.opacity(0.22))
+                        } else {
+                            Circle().fill(AppColor.surfaceElevated)
                         }
+                    }
+                    .overlay {
+                        Circle()
+                            .strokeBorder(
+                                unlocked ? AppColor.glassBorderActive : AppColor.glassBorder,
+                                lineWidth: unlocked ? 1.0 : 0.5
+                            )
+                    }
                 }
+                .shadow(
+                    color: unlocked ? AppColor.accentGlow : .clear,
+                    radius: 6,
+                    x: 0,
+                    y: 0
+                )
+                .saturation(unlocked ? 1.0 : 0.35)
 
             Text(achievement.title)
                 .font(.system(size: 9, weight: .medium))

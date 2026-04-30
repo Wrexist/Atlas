@@ -12,6 +12,7 @@ struct DoseEntry: TimelineEntry {
     let completed: Int
     let total: Int
     let compliance: Double
+    let upcoming: [WidgetDoseSlot]
 
     static let placeholder = DoseEntry(
         date: .now,
@@ -21,7 +22,12 @@ struct DoseEntry: TimelineEntry {
         nextDoseDate: .now,
         completed: 3,
         total: 5,
-        compliance: 0.6
+        compliance: 0.6,
+        upcoming: [
+            WidgetDoseSlot(peptideName: "BPC-157",     dose: "250 mcg", time: .now, completed: true),
+            WidgetDoseSlot(peptideName: "TB-500",      dose: "2 mg",    time: .now.addingTimeInterval(3600), completed: false),
+            WidgetDoseSlot(peptideName: "Glutathione", dose: "200 mg",  time: .now.addingTimeInterval(7200), completed: false),
+        ]
     )
 }
 
@@ -97,7 +103,8 @@ struct DoseTimelineProvider: TimelineProvider {
             nextDoseDate: widgetData.nextDoseTime,
             completed: widgetData.completedToday,
             total: widgetData.totalToday,
-            compliance: widgetData.compliance
+            compliance: widgetData.compliance,
+            upcoming: widgetData.upcoming
         )
     }
 
@@ -164,8 +171,9 @@ struct MediumWidgetView: View {
     let entry: DoseEntry
 
     var body: some View {
-        HStack(spacing: 16) {
-            VStack(spacing: 8) {
+        HStack(alignment: .top, spacing: 16) {
+            // Compliance ring + counter — anchors the widget visually.
+            VStack(spacing: 6) {
                 ZStack {
                     Circle()
                         .stroke(Color.gray.opacity(0.3), lineWidth: 6)
@@ -183,8 +191,11 @@ struct MediumWidgetView: View {
                     .foregroundStyle(.secondary)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Next Dose")
+            // Today list — shows the day at a glance instead of a single
+            // next dose. Capped at 3 rows so a default Dynamic Type viewport
+            // never clips on the Medium family.
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Today")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -195,23 +206,42 @@ struct MediumWidgetView: View {
                     Text("to start tracking doses")
                         .font(.subheadline)
                         .foregroundStyle(.tertiary)
-                } else if entry.dose.isEmpty {
+                } else if entry.upcoming.isEmpty {
                     Text("All doses completed!")
                         .font(.headline)
                         .foregroundStyle(.green)
                 } else {
-                    Text(entry.peptideName)
-                        .font(.headline)
-                    Text("\(entry.dose) \u{2022} \(entry.doseTime)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    ForEach(entry.upcoming.prefix(3), id: \.time) { slot in
+                        doseRow(slot)
+                    }
                 }
-
-                Spacer()
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .containerBackground(.fill.tertiary, for: .widget)
+    }
+
+    private func doseRow(_ slot: WidgetDoseSlot) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: slot.completed ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(slot.completed ? .green : .secondary)
+            Text(slot.peptideName)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(slot.completed ? .secondary : .primary)
+                .strikethrough(slot.completed, color: .secondary)
+                .lineLimit(1)
+            Text("\u{2022} \(slot.dose)")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            Text(slot.time.formatted(.dateTime.hour().minute()))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

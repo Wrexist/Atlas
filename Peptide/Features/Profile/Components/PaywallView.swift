@@ -10,11 +10,12 @@ struct PaywallView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: Spacing.xl) {
-                    // Hero
-                    VStack(spacing: Spacing.md) {
+                VStack(spacing: Spacing.lg) {
+                    // Hero — tightened so the full paywall fits on a single
+                    // 6.9" viewport for App Store screenshot capture (slot 10).
+                    VStack(spacing: Spacing.sm) {
                         Image(systemName: "star.circle.fill")
-                            .font(.system(size: 64))
+                            .font(.system(size: 48))
                             .foregroundStyle(
                                 LinearGradient(
                                     colors: [AppColor.accentLight, AppColor.accentPrimary],
@@ -24,11 +25,11 @@ struct PaywallView: View {
                             )
 
                         Text("PeptideX Pro")
-                            .font(AppFont.largeTitle)
+                            .font(AppFont.title)
                             .foregroundStyle(AppColor.textPrimary)
 
                         Text("Unlock the full potential of your protocols")
-                            .font(AppFont.body)
+                            .font(AppFont.subheadline)
                             .foregroundStyle(
                                 LinearGradient(
                                     colors: [AppColor.accentLight, AppColor.textSecondary],
@@ -38,7 +39,7 @@ struct PaywallView: View {
                             )
                             .multilineTextAlignment(.center)
                     }
-                    .padding(.top, Spacing.xxl)
+                    .padding(.top, Spacing.md)
 
                     // Features
                     GlassCard {
@@ -67,7 +68,7 @@ struct PaywallView: View {
                             pricingCard(
                                 product: monthly,
                                 label: "Monthly",
-                                badge: nil,
+                                badge: monthlyTrialBadge,
                                 isBest: false
                             )
                         }
@@ -104,7 +105,11 @@ struct PaywallView: View {
                     }
 
                     // Legal
-                    VStack(spacing: Spacing.sm) {
+                    VStack(spacing: Spacing.xs) {
+                        Text("Cancel anytime in Settings.")
+                            .font(AppFont.caption.weight(.semibold))
+                            .foregroundStyle(AppColor.textSecondary)
+
                         Text("Payment will be charged to your Apple ID. Subscription auto-renews unless cancelled at least 24 hours before the end of the current period.")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textTertiary)
@@ -226,6 +231,15 @@ struct PaywallView: View {
         let savings = (yearAtMonthly - annual.price) / yearAtMonthly
         let percent = Int((savings as NSDecimalNumber).doubleValue * 100)
         return percent > 0 ? "Save \(percent)%" : nil
+    }
+
+    /// Surfaces the StoreKit-defined intro offer (e.g. "3 days free") on the
+    /// monthly tier so screenshot slot 10 reflects the live trial copy
+    /// without hard-coding a length that could drift from configuration.
+    private var monthlyTrialBadge: LocalizedStringKey? {
+        guard storeService.isEligibleForMonthlyTrial,
+              let display = storeService.monthlyTrialDisplay else { return nil }
+        return LocalizedStringKey(display)
     }
 }
 
