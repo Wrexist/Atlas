@@ -6,6 +6,8 @@ struct HealthSummaryCard: View {
     @State private var sleepHours: Double?
     @State private var steps: Double?
     @State private var isLoading = true
+    @State private var isAvailable = true
+    @State private var hasAnyData = false
 
     var body: some View {
         GlassCard {
@@ -28,6 +30,10 @@ struct HealthSummaryCard: View {
                         Spacer()
                     }
                     .padding(.vertical, Spacing.md)
+                } else if !isAvailable {
+                    unavailableState
+                } else if !hasAnyData {
+                    noDataState
                 } else {
                     HStack(spacing: Spacing.md) {
                         metricView(icon: "heart.fill", value: restingHR.map { "\(Int($0))" } ?? "--", unit: "bpm", label: "Resting HR")
@@ -39,6 +45,38 @@ struct HealthSummaryCard: View {
             }
         }
         .task { await loadHealthData() }
+    }
+
+    private var unavailableState: some View {
+        VStack(spacing: Spacing.xs) {
+            Image(systemName: "heart.slash")
+                .font(.system(size: 22))
+                .foregroundStyle(AppColor.textTertiary)
+            Text("Apple Health isn't available on this device")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.md)
+    }
+
+    private var noDataState: some View {
+        VStack(spacing: Spacing.xs) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(AppColor.accentPrimary.opacity(0.7))
+            Text("No recent Health data")
+                .font(AppFont.subheadline)
+                .fontWeight(.medium)
+                .foregroundStyle(AppColor.textPrimary)
+            Text("Make sure PeptideX has access in Settings → Health → Data Access.")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.sm)
     }
 
     private func metricView(icon: String, value: String, unit: String, label: String) -> some View {
@@ -57,11 +95,14 @@ struct HealthSummaryCard: View {
                 .foregroundStyle(AppColor.textTertiary)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label): \(value) \(unit)")
     }
 
     private func loadHealthData() async {
         let service = HealthKitService.shared
         guard service.isAvailable else {
+            isAvailable = false
             isLoading = false
             return
         }
@@ -73,6 +114,7 @@ struct HealthSummaryCard: View {
         hrv = await h
         sleepHours = await s
         steps = await st
+        hasAnyData = restingHR != nil || hrv != nil || sleepHours != nil || steps != nil
         isLoading = false
     }
 }

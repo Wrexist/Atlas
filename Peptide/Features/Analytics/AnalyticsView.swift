@@ -18,6 +18,7 @@ enum TimeRange: String, CaseIterable, CustomStringConvertible {
 
 struct AnalyticsView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(AppState.self) private var appState
     @State private var selectedRange: TimeRange = .week
     @State private var showPaywall = false
     @Namespace private var segmentNamespace
@@ -29,60 +30,101 @@ struct AnalyticsView: View {
 
         NavigationStack {
             ScrollView {
-                VStack(spacing: Spacing.lg) {
-                    GlassSegmentedControl(
-                        options: TimeRange.allCases,
-                        selected: Binding(
-                            get: { selectedRange },
-                            set: { newRange in
-                                if newRange != .week && !storeService.isProUser {
-                                    showPaywall = true
-                                } else {
-                                    selectedRange = newRange
+                if dataStore.protocols.isEmpty {
+                    emptyState
+                        .padding(.horizontal, Spacing.screenPadding)
+                        .padding(.top, Spacing.xxl)
+                        .padding(.bottom, Spacing.xxxxl)
+                } else {
+                    VStack(spacing: Spacing.lg) {
+                        GlassSegmentedControl(
+                            options: TimeRange.allCases,
+                            selected: Binding(
+                                get: { selectedRange },
+                                set: { newRange in
+                                    if newRange != .week && !storeService.isProUser {
+                                        showPaywall = true
+                                    } else {
+                                        selectedRange = newRange
+                                    }
                                 }
-                            }
-                        ),
-                        namespace: segmentNamespace
-                    )
-                    .sectionAppear(index: 0)
-
-                    ComplianceChart(data: compliance)
-                        .sectionAppear(index: 1)
-
-                    WeeklyDoseChart(data: weeklyDoseData)
-                        .sectionAppear(index: 2)
-
-                    ProgressSummaryCard(
-                        totalDoses: dataStore.totalDoses,
-                        compliance: avgCompliance,
-                        currentStreak: dataStore.currentStreak,
-                        bestStreak: dataStore.bestStreak
-                    )
-                    .sectionAppear(index: 3)
-
-                    TrendIndicator(
-                        value: dataStore.complianceTrend(for: selectedRange.days),
-                        label: "compliance this \(selectedRange.rawValue.lowercased())"
-                    )
-                    .sectionAppear(index: 4)
-
-                    CalendarHeatmap(entries: dataStore.entries, days: selectedRange.days)
-                        .sectionAppear(index: 5)
-
-                    InsightsCard(
-                        insights: InsightEngine.generateInsights(
-                            from: dataStore.entries,
-                            protocols: dataStore.protocols
+                            ),
+                            namespace: segmentNamespace
                         )
-                    )
-                    .sectionAppear(index: 6)
+                        .sectionAppear(index: 0)
+
+                        ComplianceChart(data: compliance)
+                            .sectionAppear(index: 1)
+
+                        WeeklyDoseChart(data: weeklyDoseData)
+                            .sectionAppear(index: 2)
+
+                        ProgressSummaryCard(
+                            totalDoses: dataStore.totalDoses,
+                            compliance: avgCompliance,
+                            currentStreak: dataStore.currentStreak,
+                            bestStreak: dataStore.bestStreak
+                        )
+                        .sectionAppear(index: 3)
+
+                        TrendIndicator(
+                            value: dataStore.complianceTrend(for: selectedRange.days),
+                            label: "compliance this \(selectedRange.rawValue.lowercased())"
+                        )
+                        .sectionAppear(index: 4)
+
+                        CalendarHeatmap(entries: dataStore.entries, days: selectedRange.days)
+                            .sectionAppear(index: 5)
+
+                        InsightsCard(
+                            insights: InsightEngine.generateInsights(
+                                from: dataStore.entries,
+                                protocols: dataStore.protocols
+                            )
+                        )
+                        .sectionAppear(index: 6)
+                    }
+                    .padding(.horizontal, Spacing.screenPadding)
+                    .padding(.bottom, Spacing.xxxxl)
                 }
-                .padding(.horizontal, Spacing.screenPadding)
-                .padding(.bottom, Spacing.xxxxl)
             }
             .background(AppColor.background)
             .navigationTitle("Analytics")
             .sheet(isPresented: $showPaywall) { PaywallView() }
+        }
+    }
+
+    /// Shown when the user has no protocols yet — analytics over zero data
+    /// is meaningless, so we redirect them to the protocol builder instead
+    /// of rendering blank charts.
+    private var emptyState: some View {
+        GlassCard(tinted: true) {
+            VStack(spacing: Spacing.lg) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 44))
+                    .foregroundStyle(AppColor.accentPrimary)
+                    .padding(.top, Spacing.sm)
+
+                VStack(spacing: Spacing.sm) {
+                    Text("No data yet")
+                        .font(AppFont.title2)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .multilineTextAlignment(.center)
+
+                    Text("Create a protocol and log a few doses — your compliance, streaks, and trends will appear here.")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                GlassButton(title: "Create a Protocol", icon: "plus", style: .primary, isFullWidth: true) {
+                    withAnimation(AppAnimation.springSnappy) {
+                        appState.selectedTab = .protocols
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.lg)
         }
     }
 
@@ -118,8 +160,16 @@ struct AnalyticsView: View {
     }
 }
 
-#Preview {
+#Preview("With Data") {
     AnalyticsView()
         .environment(DataStore(seedSampleData: true))
+        .environment(AppState())
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Empty") {
+    AnalyticsView()
+        .environment(DataStore())
+        .environment(AppState())
         .preferredColorScheme(.dark)
 }
