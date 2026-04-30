@@ -42,10 +42,10 @@ struct RecommendationsPage: View {
 
     private var subtitle: String {
         if suggestions.isEmpty {
-            return "Pick a goal first and we'll match it to peptides."
+            return "We couldn't match your goals to a peptide. You can build a custom protocol from the full library after onboarding."
         }
         if metricsAvailable {
-            return "Doses are personalized to your weight. Tap to add or remove."
+            return "Doses scaled to your weight where the literature supports it. Tap to add or remove."
         }
         return "Doses use published research ranges. Tap to add or remove."
     }
@@ -56,7 +56,7 @@ struct RecommendationsPage: View {
                 Label("No matches yet", systemImage: "lightbulb")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("You can browse the full peptide library after onboarding and build a protocol manually.")
+                Text("Browse the full peptide library after onboarding and build a protocol manually.")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -93,8 +93,8 @@ private struct SuggestionRow: View {
                             .fill(suggestion.peptide.category.color.opacity(0.18))
                     }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                         Text(suggestion.peptide.abbreviation)
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
@@ -107,14 +107,27 @@ private struct SuggestionRow: View {
                                 Capsule().fill(suggestion.peptide.category.color.opacity(0.15))
                             }
                     }
-                    Text(suggestion.suggestedDose)
-                        .font(AppFont.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(AppColor.accentLight)
+
+                    HStack(spacing: Spacing.xs) {
+                        Text(suggestion.suggestedDose)
+                            .font(AppFont.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(AppColor.accentLight)
+                        if suggestion.isPersonalized {
+                            personalizedBadge
+                        }
+                    }
+
+                    Text(suggestion.peptide.frequency)
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                        .lineLimit(1)
+
                     Text(suggestion.rationale)
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(2)
+                        .padding(.top, 2)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -142,5 +155,22 @@ private struct SuggestionRow: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(suggestion.peptide.abbreviation), \(suggestion.suggestedDose), \(suggestion.peptide.frequency)")
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+    }
+
+    private var personalizedBadge: some View {
+        HStack(spacing: 2) {
+            Image(systemName: "person.fill.checkmark")
+                .font(.system(size: 9, weight: .bold))
+            Text("YOUR DOSE")
+                .font(.system(size: 9, weight: .bold))
+        }
+        .foregroundStyle(AppColor.accentPrimary)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 2)
+        .background {
+            Capsule().fill(AppColor.accentPrimary.opacity(0.15))
+        }
     }
 }

@@ -265,6 +265,14 @@ struct OnboardingView: View {
         return "Add \(count) peptides & continue"
     }
 
+    /// Builds a short, human-readable name from the user's primary goal —
+    /// e.g. "Muscle Recovery Stack". Falls back to "Starter Stack" when no
+    /// goal is selected so we never produce an empty name.
+    private var starterProtocolName: String {
+        guard let primary = selectedGoals.sorted().first else { return "Starter Stack" }
+        return "\(primary) Stack"
+    }
+
     private var goalGrid: some View {
         LazyVGrid(
             columns: [GridItem(.flexible(), spacing: Spacing.sm), GridItem(.flexible(), spacing: Spacing.sm)],
@@ -799,7 +807,10 @@ struct OnboardingView: View {
                 .filter { selectedRecommendationIds.contains($0.peptide.id) }
                 .map(\.peptide)
             if !chosen.isEmpty {
-                dataStore.adoptStarterProtocol(peptides: chosen)
+                dataStore.adoptStarterProtocol(
+                    peptides: chosen,
+                    name: starterProtocolName
+                )
             }
         }
 

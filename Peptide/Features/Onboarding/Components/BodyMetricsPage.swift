@@ -3,8 +3,21 @@ import SwiftUI
 /// Onboarding page that captures the body metrics needed to personalize
 /// dose recommendations. All inputs are optional — users can skip the
 /// page and the engine will fall back to published dosage ranges.
+///
+/// Numeric fields are backed by raw `@State` strings so partial input
+/// like "75." (decimal in progress) and locale-friendly commas survive
+/// keystroke-by-keystroke. The model is updated only when the parsed
+/// value is valid, and re-syncs when the unit toggle flips.
 struct BodyMetricsPage: View {
     @Binding var metrics: BodyMetrics
+
+    @State private var weightInput: String = ""
+    @State private var heightInput: String = ""
+    @State private var ageInput: String = ""
+
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable { case weight, height, age }
 
     var body: some View {
         VStack(spacing: Spacing.md) {
@@ -31,9 +44,19 @@ struct BodyMetricsPage: View {
             }
             .padding(.top, Spacing.sm)
         }
+        .onAppear(perform: hydrateInputs)
+        .onChange(of: metrics.unit) { _, _ in hydrateInputs() }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { focusedField = nil }
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColor.accentPrimary)
+            }
+        }
     }
 
-    // MARK: - Fields
+    // MARK: - Unit toggle
 
     private var unitToggle: some View {
         HStack(spacing: Spacing.xs) {
@@ -68,7 +91,10 @@ struct BodyMetricsPage: View {
                 }
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
+
+    // MARK: - Numeric fields
 
     private var weightField: some View {
         MetricNumericField(
@@ -76,11 +102,10 @@ struct BodyMetricsPage: View {
             title: "Weight",
             placeholder: metrics.unit == .metric ? "75" : "165",
             unit: metrics.unit == .metric ? "kg" : "lb",
-            value: Binding(
-                get: { displayWeight },
-                set: { setWeight(from: $0) }
-            )
+            value: $weightInput
         )
+        .focused($focusedField, equals: .weight)
+        .onChange(of: weightInput) { _, new in syncWeight(from: new) }
     }
 
     private var heightField: some View {
@@ -89,11 +114,10 @@ struct BodyMetricsPage: View {
             title: "Height",
             placeholder: metrics.unit == .metric ? "180" : "70",
             unit: metrics.unit == .metric ? "cm" : "in",
-            value: Binding(
-                get: { displayHeight },
-                set: { setHeight(from: $0) }
-            )
+            value: $heightInput
         )
+        .focused($focusedField, equals: .height)
+        .onChange(of: heightInput) { _, new in syncHeight(from: new) }
     }
 
     private var ageField: some View {
@@ -102,12 +126,16 @@ struct BodyMetricsPage: View {
             title: "Age",
             placeholder: "30",
             unit: "years",
-            value: Binding(
-                get: { metrics.age.map(String.init) ?? "" },
-                set: { metrics.age = Int($0.filter(\.isNumber)) }
-            )
+            value: $ageInput,
+            decimalAllowed: false
         )
+        .focused($focusedField, equals: .age)
+        .onChange(of: ageInput) { _, new in
+            metrics.age = Int(new.filter(\.isNumber))
+        }
     }
+
+    // MARK: - Sex picker
 
     private var sexPicker: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -129,7 +157,7 @@ struct BodyMetricsPage: View {
             withAnimation(AppAnimation.springSnappy) { metrics.sex = option }
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         } label: {
-            Text(option.displayName)
+            Text(option.shortLabel)
                 .font(AppFont.caption)
                 .fontWeight(.medium)
                 .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
@@ -148,7 +176,11 @@ struct BodyMetricsPage: View {
                 }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(option.displayName)
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
+
+    // MARK: - Activity picker
 
     private var activityPicker: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -195,34 +227,27 @@ struct BodyMetricsPage: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
-    // MARK: - Conversions
+    // MARK: - Hydration & parsing
 
-    private var displayWeight: String {
-        guard let kg = metrics.weightKg else { return "" }
-        if metrics.unit == .metric { return formatNumber(kg) }
-        return formatNumber(kg * 2.20462)
+    private func hydrateInputs() {
+        weightInput = formattedDisplay(for: metrics.weightKg, kgToDisplay: kgToDisplayWeight)
+        heightInput = formattedDisplay(for: metrics.heightCm, kgToDisplay: cmToDisplayHeight)
+        ageInput = metrics.age.map(String.init) ?? ""
     }
 
-    private var displayHeight: String {
-        guard let cm = metrics.heightCm else { return "" }
-        if metrics.unit == .metric { return formatNumber(cm) }
-        return formatNumber(cm / 2.54)
-    }
-
-    private func setWeight(from text: String) {
-        let parsed = parseDouble(text)
-        guard let value = parsed else {
+    private func syncWeight(from text: String) {
+        guard let value = parseDouble(text) else {
             metrics.weightKg = nil
             return
         }
         metrics.weightKg = metrics.unit == .metric ? value : value / 2.20462
     }
 
-    private func setHeight(from text: String) {
-        let parsed = parseDouble(text)
-        guard let value = parsed else {
+    private func syncHeight(from text: String) {
+        guard let value = parseDouble(text) else {
             metrics.heightCm = nil
             return
         }
@@ -233,12 +258,23 @@ struct BodyMetricsPage: View {
         let cleaned = text
             .replacingOccurrences(of: ",", with: ".")
             .filter { $0.isNumber || $0 == "." }
+        guard !cleaned.isEmpty else { return nil }
         return Double(cleaned)
     }
 
-    private func formatNumber(_ value: Double) -> String {
-        if value == value.rounded() { return String(Int(value.rounded())) }
-        return String(format: "%.1f", value)
+    private func formattedDisplay(for canonical: Double?, kgToDisplay: (Double) -> Double) -> String {
+        guard let value = canonical, value > 0 else { return "" }
+        let display = kgToDisplay(value)
+        if display == display.rounded() { return String(Int(display.rounded())) }
+        return String(format: "%.1f", display)
+    }
+
+    private func kgToDisplayWeight(_ kg: Double) -> Double {
+        metrics.unit == .metric ? kg : kg * 2.20462
+    }
+
+    private func cmToDisplayHeight(_ cm: Double) -> Double {
+        metrics.unit == .metric ? cm : cm / 2.54
     }
 }
 
@@ -248,6 +284,7 @@ private struct MetricNumericField: View {
     let placeholder: String
     let unit: String
     @Binding var value: String
+    var decimalAllowed: Bool = true
 
     var body: some View {
         HStack(spacing: Spacing.md) {
@@ -263,7 +300,7 @@ private struct MetricNumericField: View {
                 TextField(placeholder, text: $value)
                     .font(AppFont.body)
                     .foregroundStyle(AppColor.textPrimary)
-                    .keyboardType(.decimalPad)
+                    .keyboardType(decimalAllowed ? .decimalPad : .numberPad)
                     .tint(AppColor.accentPrimary)
             }
 

@@ -504,8 +504,8 @@ final class DataStore: DataServiceProtocol {
     /// only — the most forgiving default. The user can edit it immediately.
     @discardableResult
     func adoptStarterProtocol(
-        name: String = "Starter Stack",
-        peptides: [Peptide]
+        peptides: [Peptide],
+        name: String = "Starter Stack"
     ) -> PeptideProtocol? {
         guard !peptides.isEmpty else { return nil }
         let schedule = ProtocolSchedule(

@@ -17,6 +17,8 @@ enum OnboardingRecommendationEngine {
         /// Personalized dose string for the user's body weight, or the
         /// peptide's published range when weight is unavailable.
         let suggestedDose: String
+        /// True when `suggestedDose` was scaled to the user's weight.
+        let isPersonalized: Bool
         /// Short rationale shown below the dose (e.g., "matches Recovery").
         let rationale: String
     }
@@ -115,6 +117,7 @@ enum OnboardingRecommendationEngine {
                 peptide: entry.peptide,
                 goalMatches: entry.matchedGoals,
                 suggestedDose: PeptideDoseCalculator.dose(for: entry.peptide, metrics: metrics),
+                isPersonalized: PeptideDoseCalculator.isPersonalized(entry.peptide, metrics: metrics),
                 rationale: rationale(for: entry.peptide, matchedGoals: entry.matchedGoals)
             )
         }

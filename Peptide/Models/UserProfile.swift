@@ -11,6 +11,16 @@ enum BiologicalSex: String, Codable, CaseIterable, Identifiable {
         case .unspecified: "Prefer not to say"
         }
     }
+
+    /// Compact label used inside narrow chips/segmented controls where the
+    /// full "Prefer not to say" wraps awkwardly.
+    var shortLabel: String {
+        switch self {
+        case .male: "Male"
+        case .female: "Female"
+        case .unspecified: "Skip"
+        }
+    }
 }
 
 enum ActivityLevel: String, Codable, CaseIterable, Identifiable {
@@ -61,8 +71,21 @@ struct BodyMetrics: Codable, Hashable {
             age: nil,
             sex: .unspecified,
             activityLevel: .moderate,
-            unit: .metric
+            unit: localeDefaultUnit
         )
+    }
+
+    /// Falls back to imperial for the four locales that still use it (US,
+    /// Liberia, Myanmar) plus the UK where weight in stones/lb is common.
+    /// Everywhere else defaults to metric.
+    private static var localeDefaultUnit: MeasurementUnit {
+        let region = Locale.current.region?.identifier ?? ""
+        switch region {
+        case "US", "LR", "MM", "GB":
+            return .imperial
+        default:
+            return .metric
+        }
     }
 
     var hasWeight: Bool { weightKg ?? 0 > 0 }

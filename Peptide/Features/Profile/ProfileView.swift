@@ -6,10 +6,12 @@ struct ProfileView: View {
     @State private var achievementService = AchievementService.shared
     @State private var authService = AuthService.shared
 
+    // Kept in sync with OnboardingView's `goals` array so a goal selected
+    // during onboarding remains visible/editable here.
     private let availableGoals = [
         "Muscle Recovery",
         "Better Sleep",
-        "Cognitive Enhancement",
+        "Cognitive Edge",
         "Anti-Aging",
         "Fat Loss",
         "Immune Support",
