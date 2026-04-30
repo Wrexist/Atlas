@@ -16,6 +16,25 @@ struct ProtocolDetailView: View {
         Array(dataStore.entriesFor(protocolId: protocol_.id).prefix(10))
     }
 
+    /// All logged entries (past 14 days) for this protocol — used for adherence stats.
+    /// `entriesFor` uses `startOfDay(of: today - days)` as the cutoff, so passing 13
+    /// gives an inclusive 14-day window (13 prior days + today).
+    private var allRecentEntries: [ProtocolEntry] {
+        dataStore.entriesFor(protocolId: protocol_.id, days: 13)
+    }
+
+    /// Adherence: completed entries / total entries (rounded percent). Returns nil if no entries.
+    private var adherencePercent: Int? {
+        let entries = allRecentEntries
+        guard !entries.isEmpty else { return nil }
+        let completed = entries.filter(\.completed).count
+        return Int((Double(completed) / Double(entries.count) * 100).rounded())
+    }
+
+    private var customScheduleCount: Int {
+        liveProtocol.peptideSchedules.count
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
@@ -50,7 +69,11 @@ struct ProtocolDetailView: View {
                         HStack(spacing: Spacing.lg) {
                             MiniStat(value: "Week \(liveProtocol.weekNumber)", label: "Current")
                             MiniStat(value: "\(liveProtocol.daysRemaining)", label: "Days Left")
-                            MiniStat(value: "\(liveProtocol.peptides.count)", label: "Peptides")
+                            if let adherencePercent {
+                                MiniStat(value: "\(adherencePercent)%", label: "Adherence")
+                            } else {
+                                MiniStat(value: "\(liveProtocol.peptides.count)", label: "Peptides")
+                            }
                         }
                     }
                 }
@@ -68,14 +91,26 @@ struct ProtocolDetailView: View {
                 // Peptides in protocol — tap row to edit schedule, tap info icon to view details.
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.md) {
-                        HStack(alignment: .firstTextBaseline) {
+                        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                             Label("Peptides", systemImage: "flask.fill")
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
+                            if customScheduleCount > 0 {
+                                Text("\(customScheduleCount) custom")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(AppColor.accentPrimary)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background {
+                                        Capsule().fill(AppColor.accentPrimary.opacity(0.15))
+                                    }
+                            }
                             Spacer()
                             Text("Tap to edit schedule")
                                 .font(AppFont.caption)
                                 .foregroundStyle(AppColor.textTertiary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                         }
 
                         let peptides = liveProtocol.peptides
@@ -96,39 +131,25 @@ struct ProtocolDetailView: View {
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
 
-                        HStack {
-                            Text("Days")
-                                .font(AppFont.subheadline)
-                                .foregroundStyle(AppColor.textSecondary)
-                            Spacer()
-                            Text(liveProtocol.schedule.daysDescription)
-                                .font(AppFont.subheadline)
-                                .foregroundStyle(AppColor.textPrimary)
-                        }
+                        scheduleDetailRow(label: "Days", value: liveProtocol.schedule.daysDescription)
 
                         Divider().foregroundStyle(AppColor.glassBorder)
 
-                        HStack {
-                            Text("Times/Day")
-                                .font(AppFont.subheadline)
-                                .foregroundStyle(AppColor.textSecondary)
-                            Spacer()
-                            Text("\(liveProtocol.schedule.timesPerDay)x")
-                                .font(AppFont.subheadline)
-                                .foregroundStyle(AppColor.textPrimary)
-                        }
+                        scheduleDetailRow(label: "Times/Day", value: "\(liveProtocol.schedule.timesPerDay)x")
 
                         Divider().foregroundStyle(AppColor.glassBorder)
 
-                        HStack {
-                            Text("Preferred")
-                                .font(AppFont.subheadline)
-                                .foregroundStyle(AppColor.textSecondary)
-                            Spacer()
-                            Text(liveProtocol.schedule.preferredTimes.joined(separator: ", "))
-                                .font(AppFont.subheadline)
-                                .foregroundStyle(AppColor.textPrimary)
-                        }
+                        scheduleDetailRow(
+                            label: "Preferred",
+                            value: liveProtocol.schedule.preferredTimes.joined(separator: ", ")
+                        )
+
+                        Divider().foregroundStyle(AppColor.glassBorder)
+
+                        scheduleDetailRow(
+                            label: "Cycle",
+                            value: "\(formattedDate(liveProtocol.startDate)) – \(formattedDate(liveProtocol.endDate))"
+                        )
                     }
                 }
                 .sectionAppear(index: 3)
@@ -153,16 +174,29 @@ struct ProtocolDetailView: View {
                 // Recent logs
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.md) {
-                        Label("Recent Logs", systemImage: "list.bullet")
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
+                        HStack(alignment: .firstTextBaseline) {
+                            Label("Recent Logs", systemImage: "list.bullet")
+                                .font(AppFont.headline)
+                                .foregroundStyle(AppColor.textPrimary)
+                            Spacer()
+                            if !recentEntries.isEmpty {
+                                Text("\(recentEntries.filter(\.completed).count)/\(recentEntries.count) done")
+                                    .font(AppFont.caption)
+                                    .foregroundStyle(AppColor.textTertiary)
+                            }
+                        }
 
                         if recentEntries.isEmpty {
-                            Text("No entries yet")
-                                .font(AppFont.subheadline)
-                                .foregroundStyle(AppColor.textTertiary)
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .padding(.vertical, Spacing.lg)
+                            VStack(spacing: Spacing.xs) {
+                                Image(systemName: "tray")
+                                    .font(.system(size: 28))
+                                    .foregroundStyle(AppColor.textTertiary)
+                                Text("No entries yet")
+                                    .font(AppFont.subheadline)
+                                    .foregroundStyle(AppColor.textTertiary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, Spacing.lg)
                         } else {
                             ForEach(Array(recentEntries.enumerated()), id: \.element.id) { index, entry in
                                 Button {
@@ -261,9 +295,22 @@ struct ProtocolDetailView: View {
                                     }
                             }
                         }
-                        Text(peptide.dosageRange)
-                            .font(AppFont.caption)
-                            .foregroundStyle(AppColor.textSecondary)
+                        HStack(spacing: Spacing.xs) {
+                            if let custom = schedule.customDose, !custom.isEmpty {
+                                Text(custom)
+                                    .font(AppFont.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(AppColor.accentLight)
+                                Text("(\(peptide.dosageRange))")
+                                    .font(AppFont.caption)
+                                    .foregroundStyle(AppColor.textTertiary)
+                                    .lineLimit(1)
+                            } else {
+                                Text(peptide.dosageRange)
+                                    .font(AppFont.caption)
+                                    .foregroundStyle(AppColor.textSecondary)
+                            }
+                        }
                     }
 
                     Spacer(minLength: Spacing.sm)
@@ -293,6 +340,24 @@ struct ProtocolDetailView: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    @ViewBuilder
+    private func scheduleDetailRow(label: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label)
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+            Spacer(minLength: Spacing.md)
+            Text(value)
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+
+    private func formattedDate(_ date: Date) -> String {
+        date.formatted(.dateTime.month(.abbreviated).day().year(.twoDigits))
     }
 
     @ViewBuilder

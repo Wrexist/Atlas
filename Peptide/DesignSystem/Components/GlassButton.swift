@@ -16,16 +16,20 @@ struct GlassButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: Spacing.sm) {
+            HStack(spacing: Spacing.xs) {
                 if let icon {
                     Image(systemName: icon)
                         .font(.system(size: 14, weight: .semibold))
                 }
                 Text(title)
                     .font(AppFont.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: isFullWidth ? .infinity : nil)
-            .padding(.horizontal, Spacing.xl)
+            .padding(.horizontal, isFullWidth ? Spacing.xl : Spacing.md)
             .padding(.vertical, Spacing.md)
             .foregroundStyle(foregroundColor)
             .background {

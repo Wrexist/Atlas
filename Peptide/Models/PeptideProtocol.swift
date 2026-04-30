@@ -4,6 +4,21 @@ struct ProtocolSchedule: Hashable, Codable {
     let daysOfWeek: [Int]  // 1=Mon, 7=Sun
     let timesPerDay: Int
     let preferredTimes: [String]
+    /// Optional custom dose override (e.g. "300 mcg"). When nil, the peptide's
+    /// default `dosageRange` is used. Only meaningful for per-peptide overrides.
+    let customDose: String?
+
+    init(
+        daysOfWeek: [Int],
+        timesPerDay: Int,
+        preferredTimes: [String],
+        customDose: String? = nil
+    ) {
+        self.daysOfWeek = daysOfWeek
+        self.timesPerDay = timesPerDay
+        self.preferredTimes = preferredTimes
+        self.customDose = customDose
+    }
 
     var daysDescription: String {
         let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -21,6 +36,48 @@ struct ProtocolSchedule: Hashable, Codable {
 
     var summary: String {
         "\(compactDaysDescription) · \(timesPerDay)x"
+    }
+
+    /// Returns the dose for an entry, preferring the custom override and
+    /// falling back to the peptide's high end of its default dosage range.
+    /// Whitespace- or newline-only overrides are treated as empty so legacy
+    /// data with stray whitespace doesn't surface as a custom dose.
+    func resolvedDose(for peptide: Peptide) -> String {
+        if let customDose {
+            let normalized = customDose.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !normalized.isEmpty { return normalized }
+        }
+        return peptide.dosageRange
+            .components(separatedBy: "-")
+            .last?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? peptide.dosageRange
+    }
+
+    // MARK: - Codable (backwards-compatible: customDose is optional)
+
+    private enum CodingKeys: String, CodingKey {
+        case daysOfWeek, timesPerDay, preferredTimes, customDose
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.daysOfWeek = try c.decode([Int].self, forKey: .daysOfWeek)
+        self.timesPerDay = try c.decode(Int.self, forKey: .timesPerDay)
+        self.preferredTimes = try c.decode([String].self, forKey: .preferredTimes)
+        self.customDose = try c.decodeIfPresent(String.self, forKey: .customDose)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(daysOfWeek, forKey: .daysOfWeek)
+        try c.encode(timesPerDay, forKey: .timesPerDay)
+        try c.encode(preferredTimes, forKey: .preferredTimes)
+        if let customDose {
+            let normalized = customDose.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !normalized.isEmpty {
+                try c.encode(normalized, forKey: .customDose)
+            }
+        }
     }
 }
 

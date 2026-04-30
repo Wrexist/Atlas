@@ -381,9 +381,21 @@ private struct PeptideScheduleRow: View {
                                 }
                         }
                     }
-                    Text(schedule.summary)
-                        .font(AppFont.caption)
-                        .foregroundStyle(isCustom ? AppColor.accentLight : AppColor.textTertiary)
+                    HStack(spacing: 4) {
+                        Text(schedule.summary)
+                            .font(AppFont.caption)
+                            .foregroundStyle(isCustom ? AppColor.accentLight : AppColor.textTertiary)
+                        if let dose = schedule.customDose, !dose.isEmpty {
+                            Text("·")
+                                .font(AppFont.caption)
+                                .foregroundStyle(AppColor.textTertiary)
+                            Text(dose)
+                                .font(AppFont.caption)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(AppColor.accentLight)
+                                .lineLimit(1)
+                        }
+                    }
                 }
 
                 Spacer()
