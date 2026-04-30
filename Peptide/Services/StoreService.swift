@@ -12,7 +12,11 @@ final class StoreService {
     /// `Product.SubscriptionInfo.isEligibleForIntroOffer` — once the user has
     /// already redeemed an intro offer in this subscription group, Apple
     /// reports `false` and the local check matches.
+    ///
+    /// Note: monthly and annual share a subscription group, so eligibility
+    /// is shared — once a user redeems either trial, both flags go false.
     private(set) var isEligibleForMonthlyTrial = true
+    private(set) var isEligibleForAnnualTrial = true
 
     static let monthlyID = "com.peptidesai.app.pro.monthly"
     static let annualID = "com.peptidesai.app.pro.annual"
@@ -64,15 +68,27 @@ final class StoreService {
 
     /// Display string for the monthly intro offer ("3 days free"). `nil` when
     /// there is no intro offer or the product hasn't loaded yet.
-    var monthlyTrialDisplay: String? {
-        guard let intro = monthlyProduct?.subscription?.introductoryOffer,
+    var monthlyTrialDisplay: String? { trialDisplay(for: monthlyProduct) }
+
+    /// Display string for the annual intro offer ("14 days free"). Surfaced
+    /// as a "Best value · 14 days free" badge on slot 10. `nil` when no
+    /// intro offer is configured or the product hasn't loaded yet.
+    var annualTrialDisplay: String? { trialDisplay(for: annualProduct) }
+
+    private func trialDisplay(for product: Product?) -> String? {
+        guard let intro = product?.subscription?.introductoryOffer,
               intro.paymentMode == .freeTrial
         else { return nil }
         let unit = intro.period.unit
         let count = intro.period.value * intro.periodCount
         switch unit {
         case .day: return count == 1 ? "1 day free" : "\(count) days free"
-        case .week: return count == 1 ? "1 week free" : "\(count) weeks free"
+        case .week:
+            // "2 weeks free" reads worse on a paywall than "14 days free"
+            // even though they're the same length. Prefer days for ≤4
+            // weeks so it parses as a recognisable trial length.
+            let days = count * 7
+            return count <= 4 ? "\(days) days free" : "\(count) weeks free"
         case .month: return count == 1 ? "1 month free" : "\(count) months free"
         case .year: return count == 1 ? "1 year free" : "\(count) years free"
         @unknown default: return nil
@@ -166,11 +182,16 @@ final class StoreService {
     }
 
     private func refreshTrialEligibility() async {
-        guard let subscription = monthlyProduct?.subscription else {
+        if let monthly = monthlyProduct?.subscription {
+            isEligibleForMonthlyTrial = await monthly.isEligibleForIntroOffer
+        } else {
             isEligibleForMonthlyTrial = false
-            return
         }
-        isEligibleForMonthlyTrial = await subscription.isEligibleForIntroOffer
+        if let annual = annualProduct?.subscription {
+            isEligibleForAnnualTrial = await annual.isEligibleForIntroOffer
+        } else {
+            isEligibleForAnnualTrial = false
+        }
     }
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {

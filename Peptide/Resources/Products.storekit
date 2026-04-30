@@ -132,7 +132,12 @@
           "familyShareable" : false,
           "groupNumber" : 2,
           "internalID" : "F4E0332B-854B-49A9-B176-BE57B6CDA5B2",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "internalID" : "A2C4D6E8-1B3F-4A5C-9D7E-2F8B6C4A1D3E",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P2W"
+          },
           "localizations" : [
             {
               "description" : "Unlock all PeptideX Pro features, billed annually.",

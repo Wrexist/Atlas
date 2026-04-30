@@ -59,7 +59,7 @@ struct PaywallView: View {
                             pricingCard(
                                 product: annual,
                                 label: "Annual",
-                                badge: annualSavingsBadge,
+                                badge: annualBadge,
                                 isBest: true
                             )
                         }
@@ -231,6 +231,17 @@ struct PaywallView: View {
         let savings = (yearAtMonthly - annual.price) / yearAtMonthly
         let percent = Int((savings as NSDecimalNumber).doubleValue * 100)
         return percent > 0 ? "Save \(percent)%" : nil
+    }
+
+    /// Annual tier badge. Prefers the trial copy when the user is
+    /// eligible (slot 10's primary CTA), falling back to the savings
+    /// percentage once they've redeemed their intro offer.
+    private var annualBadge: LocalizedStringKey? {
+        if storeService.isEligibleForAnnualTrial,
+           let display = storeService.annualTrialDisplay {
+            return LocalizedStringKey(display)
+        }
+        return annualSavingsBadge
     }
 
     /// Surfaces the StoreKit-defined intro offer (e.g. "3 days free") on the

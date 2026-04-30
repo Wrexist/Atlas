@@ -580,7 +580,7 @@ common reason for a 1–3 day rejection cycle.
 - [ ] Slot 4 has the "Educational reference. Not medical advice." disclaimer chip
 - [ ] Slot 3 has the "Read‑only" HealthKit chip
 - [ ] Slot 8 privacy claims match `PrivacyInfo.xcprivacy` and the App Privacy questionnaire
-- [ ] Slot 10 prices and trial lengths match StoreKit (Monthly $9.99 / 7‑day · Annual $49.99 / 14‑day · Lifetime $169 / no trial)
+- [ ] Slot 10 prices and trial lengths match StoreKit (Monthly $9.99 / 3‑day · Annual $49.99 / 14‑day · Lifetime $169 / no trial)
 - [ ] No before/after photos, no efficacy language, no syringe imagery
 - [ ] No real-person testimonial without explicit disclosure
 - [ ] Captured in Dark mode consistently across all 10
