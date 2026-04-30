@@ -23,7 +23,7 @@ enum ScreenshotSeeder {
         let today = buildToday(for: protocols)
         let entries = historical + today
 
-        dataStore._replaceAllForScreenshots(
+        dataStore.replaceAllForScreenshots(
             protocols: protocols,
             entries: entries,
             profile: buildProfile()
@@ -47,7 +47,7 @@ enum ScreenshotSeeder {
     /// re-shooting a slot from a known baseline.
     static func wipe(_ dataStore: DataStore) {
         guard ScreenshotTools.isAvailable else { return }
-        dataStore._replaceAllForScreenshots(
+        dataStore.replaceAllForScreenshots(
             protocols: [],
             entries: [],
             profile: .fresh

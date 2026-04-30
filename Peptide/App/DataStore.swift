@@ -711,7 +711,7 @@ final class DataStore: DataServiceProtocol {
     ///
     /// Guarded by `ScreenshotTools.isAvailable` so it's a no-op in App
     /// Store Release builds even if it were somehow reached.
-    func _replaceAllForScreenshots(
+    func replaceAllForScreenshots(
         protocols: [PeptideProtocol],
         entries: [ProtocolEntry],
         profile: UserProfile

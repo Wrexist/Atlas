@@ -22,7 +22,7 @@ final class ScreenshotMode {
     private(set) var isActive: Bool {
         didSet {
             UserDefaults.standard.set(isActive, forKey: Self.activeKey)
-            StoreService.shared._overrideProForScreenshots(isActive)
+            StoreService.shared.overrideProForScreenshots(isActive)
         }
     }
 
@@ -32,7 +32,7 @@ final class ScreenshotMode {
         let stored = UserDefaults.standard.bool(forKey: Self.activeKey)
         self.isActive = stored
         if stored {
-            StoreService.shared._overrideProForScreenshots(true)
+            StoreService.shared.overrideProForScreenshots(true)
         }
     }
 
