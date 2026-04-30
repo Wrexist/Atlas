@@ -7,6 +7,16 @@ enum TimeRange: String, CaseIterable, CustomStringConvertible {
 
     var description: String { rawValue }
 
+    /// Localized label for segmented controls. Static literals so Xcode
+    /// extracts each case into the .xcstrings catalog at build time.
+    var localizedTitle: LocalizedStringKey {
+        switch self {
+        case .week: "Week"
+        case .month: "Month"
+        case .threeMonths: "3 Months"
+        }
+    }
+
     var days: Int {
         switch self {
         case .week: 7
@@ -49,7 +59,8 @@ struct AnalyticsView: View {
                                     }
                                 }
                             ),
-                            namespace: segmentNamespace
+                            namespace: segmentNamespace,
+                            label: { $0.localizedTitle }
                         )
                         .sectionAppear(index: 0)
 
@@ -69,7 +80,7 @@ struct AnalyticsView: View {
 
                         TrendIndicator(
                             value: dataStore.complianceTrend(for: selectedRange.days),
-                            label: "compliance this \(selectedRange.rawValue.lowercased())"
+                            label: trendLabel(for: selectedRange)
                         )
                         .sectionAppear(index: 4)
 
@@ -125,6 +136,17 @@ struct AnalyticsView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.lg)
+        }
+    }
+
+    /// Discrete localized phrase per range — avoids interpolating an English
+    /// noun ("week"/"month") into the middle of a translated sentence, which
+    /// breaks word order in many languages.
+    private func trendLabel(for range: TimeRange) -> LocalizedStringKey {
+        switch range {
+        case .week: "compliance this week"
+        case .month: "compliance this month"
+        case .threeMonths: "compliance over 3 months"
         }
     }
 

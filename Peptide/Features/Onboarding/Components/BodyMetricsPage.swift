@@ -157,7 +157,7 @@ struct BodyMetricsPage: View {
             withAnimation(AppAnimation.springSnappy) { metrics.sex = option }
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         } label: {
-            Text(option.shortLabel)
+            Text(option.localizedShortLabel)
                 .font(AppFont.caption)
                 .fontWeight(.medium)
                 .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
@@ -176,7 +176,7 @@ struct BodyMetricsPage: View {
                 }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(option.displayName)
+        .accessibilityLabel(option.localizedDisplay)
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
@@ -205,10 +205,10 @@ struct BodyMetricsPage: View {
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         } label: {
             VStack(spacing: 2) {
-                Text(option.displayName)
+                Text(option.localizedDisplay)
                     .font(AppFont.caption)
                     .fontWeight(.semibold)
-                Text(option.subtitle)
+                Text(option.localizedSubtitle)
                     .font(.system(size: 10))
                     .foregroundStyle(AppColor.textTertiary)
             }
@@ -280,9 +280,9 @@ struct BodyMetricsPage: View {
 
 private struct MetricNumericField: View {
     let icon: String
-    let title: String
-    let placeholder: String
-    let unit: String
+    let title: LocalizedStringKey
+    let placeholder: LocalizedStringKey
+    let unit: LocalizedStringKey
     @Binding var value: String
     var decimalAllowed: Bool = true
 

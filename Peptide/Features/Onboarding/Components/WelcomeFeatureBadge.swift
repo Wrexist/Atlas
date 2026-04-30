@@ -2,7 +2,7 @@ import SwiftUI
 
 struct WelcomeFeatureBadge: View {
     let icon: String
-    let label: String
+    let label: LocalizedStringKey
 
     var body: some View {
         VStack(spacing: Spacing.xs) {

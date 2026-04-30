@@ -8,7 +8,8 @@ struct TimeRangeSelector: View {
         GlassSegmentedControl(
             options: TimeRange.allCases,
             selected: $selected,
-            namespace: namespace
+            namespace: namespace,
+            label: { $0.localizedTitle }
         )
     }
 }

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct TrendIndicator: View {
     let value: Double
-    let label: String
+    let label: LocalizedStringKey
 
     private var isPositive: Bool { value >= 0 }
 

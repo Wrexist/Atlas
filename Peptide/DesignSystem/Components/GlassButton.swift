@@ -8,7 +8,7 @@ enum GlassButtonStyle {
 }
 
 struct GlassButton: View {
-    let title: String
+    let title: LocalizedStringKey
     var icon: String?
     var style: GlassButtonStyle = .primary
     var isFullWidth: Bool = false
@@ -80,7 +80,7 @@ struct GlassButton: View {
 
 struct GlassIconButton: View {
     let icon: String
-    let accessibilityLabel: String
+    let accessibilityLabel: LocalizedStringKey
     var size: CGFloat = 44
     var tinted: Bool = false
     var action: () -> Void

@@ -23,6 +23,8 @@ enum PeptideCategory: String, CaseIterable, Identifiable, Codable {
         case .other: "Other"
         }
     }
+    // The localized title for UI lives in DesignSystem/Theme/ModelLocalization.swift
+    // so the Model layer stays free of a SwiftUI dependency.
 
     var iconName: String {
         switch self {

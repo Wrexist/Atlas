@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// Cold-start recommendations used by the onboarding flow. Maps the user's
 /// selected goals (and optional body metrics) to a small starter stack of
@@ -20,7 +21,9 @@ enum OnboardingRecommendationEngine {
         /// True when `suggestedDose` was scaled to the user's weight.
         let isPersonalized: Bool
         /// Short rationale shown below the dose (e.g., "matches Recovery").
-        let rationale: String
+        /// Uses LocalizedStringKey so the surrounding phrase translates while
+        /// dynamic goal names interpolate via %@.
+        let rationale: LocalizedStringKey
     }
 
     private static let starterAllowlist: Set<String> = [
@@ -123,11 +126,14 @@ enum OnboardingRecommendationEngine {
         }
     }
 
-    private static func rationale(for peptide: Peptide, matchedGoals: [String]) -> String {
+    private static func rationale(for peptide: Peptide, matchedGoals: [String]) -> LocalizedStringKey {
         if matchedGoals.isEmpty {
-            return "Aligned with \(peptide.category.displayName.lowercased())"
+            return "Aligned with \(peptide.category.displayName)"
         }
-        if matchedGoals.count == 1 { return "Matches your \(matchedGoals[0]) goal" }
-        return "Matches \(matchedGoals.prefix(2).joined(separator: " + "))"
+        if matchedGoals.count == 1 {
+            return "Matches your \(matchedGoals[0]) goal"
+        }
+        let pair = matchedGoals.prefix(2).joined(separator: " + ")
+        return "Matches \(pair)"
     }
 }

@@ -141,6 +141,5 @@ final class OnboardingRecommendationEngineTests: XCTestCase {
         }
         XCTAssertFalse(first.peptide.abbreviation.isEmpty)
         XCTAssertFalse(first.suggestedDose.isEmpty)
-        XCTAssertFalse(first.rationale.isEmpty)
     }
 }

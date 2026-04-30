@@ -125,7 +125,7 @@ struct PaywallView: View {
         }
     }
 
-    private func featureRow(icon: String, title: String, description: String) -> some View {
+    private func featureRow(icon: String, title: LocalizedStringKey, description: LocalizedStringKey) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
                 .font(.system(size: 18))
@@ -149,7 +149,7 @@ struct PaywallView: View {
         }
     }
 
-    private func pricingCard(product: Product, label: String, badge: String?, isBest: Bool) -> some View {
+    private func pricingCard(product: Product, label: LocalizedStringKey, badge: LocalizedStringKey?, isBest: Bool) -> some View {
         Button {
             Task {
                 isPurchasing = true
@@ -207,7 +207,7 @@ struct PaywallView: View {
         }
     }
 
-    private var annualSavingsBadge: String? {
+    private var annualSavingsBadge: LocalizedStringKey? {
         guard
             let monthly = storeService.monthlyProduct,
             let annual = storeService.annualProduct

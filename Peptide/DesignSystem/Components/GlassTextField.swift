@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct GlassTextField: View {
-    let placeholder: String
+    let placeholder: LocalizedStringKey
     @Binding var text: String
     var icon: String = "magnifyingglass"
 

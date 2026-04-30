@@ -98,7 +98,7 @@ struct MedicalDisclaimerSheet: View {
 }
 
 private struct AboutRow: View {
-    let title: String
+    let title: LocalizedStringKey
     let value: String
 
     var body: some View {

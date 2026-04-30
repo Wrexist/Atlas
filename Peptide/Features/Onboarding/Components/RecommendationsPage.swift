@@ -98,7 +98,7 @@ private struct SuggestionRow: View {
                         Text(suggestion.peptide.abbreviation)
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
-                        Text(suggestion.peptide.category.displayName)
+                        Text(suggestion.peptide.category.localizedTitle)
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(suggestion.peptide.category.color)
                             .padding(.horizontal, 6)

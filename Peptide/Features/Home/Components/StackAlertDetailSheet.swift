@@ -24,7 +24,7 @@ struct StackAlertDetailSheet: View {
         }
     }
 
-    private var primaryActionLabel: String {
+    private var primaryActionLabel: LocalizedStringKey {
         let title = warning.title.lowercased()
         if title.contains("cycle") || title.contains("desensitization") {
             return "Schedule Off Period"

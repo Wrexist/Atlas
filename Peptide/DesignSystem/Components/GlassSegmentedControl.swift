@@ -4,6 +4,9 @@ struct GlassSegmentedControl<T: Hashable & CustomStringConvertible>: View {
     let options: [T]
     @Binding var selected: T
     var namespace: Namespace.ID
+    /// Optional override that returns a localized title for an option. When
+    /// nil, falls back to `option.description` (verbatim — not localized).
+    var label: ((T) -> LocalizedStringKey)?
 
     var body: some View {
         HStack(spacing: Spacing.xs) {
@@ -13,24 +16,7 @@ struct GlassSegmentedControl<T: Hashable & CustomStringConvertible>: View {
                         selected = option
                     }
                 } label: {
-                    Text(option.description)
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(
-                            selected == option ? AppColor.textPrimary : AppColor.textSecondary
-                        )
-                        .padding(.horizontal, Spacing.lg)
-                        .padding(.vertical, Spacing.sm)
-                        .background {
-                            if selected == option {
-                                Capsule()
-                                    .fill(AppColor.accentPrimary.opacity(0.25))
-                                    .overlay {
-                                        Capsule()
-                                            .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
-                                    }
-                                    .matchedGeometryEffect(id: "segment", in: namespace)
-                            }
-                        }
+                    optionLabel(for: option)
                 }
                 .buttonStyle(.plain)
             }
@@ -49,6 +35,42 @@ struct GlassSegmentedControl<T: Hashable & CustomStringConvertible>: View {
                 }
         }
         .liquidGlass(.capsule)
+    }
+
+    @ViewBuilder
+    private func optionLabel(for option: T) -> some View {
+        if let label {
+            Text(label(option))
+                .font(AppFont.subheadline)
+                .foregroundStyle(
+                    selected == option ? AppColor.textPrimary : AppColor.textSecondary
+                )
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.sm)
+                .background { selectionBackground(for: option) }
+        } else {
+            Text(option.description)
+                .font(AppFont.subheadline)
+                .foregroundStyle(
+                    selected == option ? AppColor.textPrimary : AppColor.textSecondary
+                )
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.sm)
+                .background { selectionBackground(for: option) }
+        }
+    }
+
+    @ViewBuilder
+    private func selectionBackground(for option: T) -> some View {
+        if selected == option {
+            Capsule()
+                .fill(AppColor.accentPrimary.opacity(0.25))
+                .overlay {
+                    Capsule()
+                        .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                }
+                .matchedGeometryEffect(id: "segment", in: namespace)
+        }
     }
 }
 

@@ -134,14 +134,14 @@ struct TrialOfferView: View {
         .offset(y: didReveal ? 0 : 16)
     }
 
-    private let benefits: [(String, String)] = [
+    private let benefits: [(String, LocalizedStringKey)] = [
         ("infinity", "Unlimited protocols & stacks"),
         ("chart.xyaxis.line", "Full analytics + HealthKit correlation"),
         ("brain.head.profile.fill", "AI insights & smart recommendations"),
         ("icloud.fill", "Cloud sync across all your devices"),
     ]
 
-    private func benefitRow(icon: String, title: String, index: Int) -> some View {
+    private func benefitRow(icon: String, title: LocalizedStringKey, index: Int) -> some View {
         HStack(spacing: Spacing.md) {
             ZStack {
                 Circle()

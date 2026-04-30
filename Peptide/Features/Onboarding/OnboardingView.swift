@@ -26,20 +26,26 @@ struct OnboardingView: View {
 
     private struct OnboardingGoal: Identifiable {
         var id: String { title }
+        /// Canonical English string used as the persistence key in
+        /// `profile.goals` and the keyword input to the recommendation
+        /// engine. Do NOT change without a migration.
         let title: String
+        /// Localized display key — same English string at literal time, but
+        /// flows through Xcode's xcstrings extraction and the user's locale.
+        let localizedTitle: LocalizedStringKey
         let icon: String
         let tint: Color
     }
 
     private let goals: [OnboardingGoal] = [
-        .init(title: "Muscle Recovery", icon: "figure.strengthtraining.traditional", tint: OnboardingTint.muscleRecovery),
-        .init(title: "Better Sleep", icon: "moon.stars.fill", tint: OnboardingTint.sleep),
-        .init(title: "Cognitive Edge", icon: "brain.head.profile.fill", tint: OnboardingTint.cognitive),
-        .init(title: "Anti-Aging", icon: "sparkles", tint: OnboardingTint.antiAging),
-        .init(title: "Fat Loss", icon: "flame.fill", tint: OnboardingTint.fatLoss),
-        .init(title: "Immune Support", icon: "shield.lefthalf.filled", tint: OnboardingTint.immune),
-        .init(title: "Joint Health", icon: "figure.flexibility", tint: AppColor.accentPrimary),
-        .init(title: "Stress Reduction", icon: "leaf.fill", tint: AppColor.accentLight),
+        .init(title: "Muscle Recovery",  localizedTitle: "Muscle Recovery",  icon: "figure.strengthtraining.traditional", tint: OnboardingTint.muscleRecovery),
+        .init(title: "Better Sleep",     localizedTitle: "Better Sleep",     icon: "moon.stars.fill",         tint: OnboardingTint.sleep),
+        .init(title: "Cognitive Edge",   localizedTitle: "Cognitive Edge",   icon: "brain.head.profile.fill", tint: OnboardingTint.cognitive),
+        .init(title: "Anti-Aging",       localizedTitle: "Anti-Aging",       icon: "sparkles",                tint: OnboardingTint.antiAging),
+        .init(title: "Fat Loss",         localizedTitle: "Fat Loss",         icon: "flame.fill",              tint: OnboardingTint.fatLoss),
+        .init(title: "Immune Support",   localizedTitle: "Immune Support",   icon: "shield.lefthalf.filled",  tint: OnboardingTint.immune),
+        .init(title: "Joint Health",     localizedTitle: "Joint Health",     icon: "figure.flexibility",      tint: AppColor.accentPrimary),
+        .init(title: "Stress Reduction", localizedTitle: "Stress Reduction", icon: "leaf.fill",               tint: AppColor.accentLight),
     ]
 
     var body: some View {
@@ -258,7 +264,7 @@ struct OnboardingView: View {
         )
     }
 
-    private var starterButtonTitle: String {
+    private var starterButtonTitle: LocalizedStringKey {
         let count = selectedRecommendationIds.count
         if count == 0 { return "Continue without a stack" }
         if count == 1 { return "Add 1 peptide & continue" }
@@ -316,7 +322,7 @@ struct OnboardingView: View {
                         .contentTransition(.symbolEffect(.replace))
                 }
 
-                Text(goal.title)
+                Text(goal.localizedTitle)
                     .font(AppFont.subheadline)
                     .fontWeight(.medium)
                     .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
@@ -383,7 +389,7 @@ struct OnboardingView: View {
         )
     }
 
-    private func experienceOption(level: String, icon: String, title: String, subtitle: String) -> some View {
+    private func experienceOption(level: String, icon: String, title: LocalizedStringKey, subtitle: LocalizedStringKey) -> some View {
         let isSelected = experienceLevel == level
         return Button {
             withAnimation(AppAnimation.springSnappy) { experienceLevel = level }
@@ -507,10 +513,10 @@ struct OnboardingView: View {
 
     private func permissionPage(
         icon: String,
-        title: String,
-        subtitle: String,
-        bullets: [(String, String)],
-        primaryTitle: String,
+        title: LocalizedStringKey,
+        subtitle: LocalizedStringKey,
+        bullets: [(String, LocalizedStringKey)],
+        primaryTitle: LocalizedStringKey,
         primaryIcon: String,
         requesting: Bool,
         onConnect: @escaping () -> Void,
@@ -559,7 +565,7 @@ struct OnboardingView: View {
         )
     }
 
-    private func permissionBullet(icon: String, label: String) -> some View {
+    private func permissionBullet(icon: String, label: LocalizedStringKey) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .semibold))

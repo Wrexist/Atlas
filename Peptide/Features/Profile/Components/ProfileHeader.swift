@@ -66,7 +66,7 @@ struct ProfileHeader: View {
 
 private struct ProfileStat: View {
     let value: String
-    let label: String
+    let label: LocalizedStringKey
 
     var body: some View {
         VStack(spacing: Spacing.xxs) {

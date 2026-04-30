@@ -37,8 +37,8 @@ struct BodyMetricsCard: View {
                     }
 
                     HStack(spacing: Spacing.xs) {
-                        infoChip(metrics.sex.displayName)
-                        infoChip(metrics.activityLevel.displayName)
+                        infoChip(metrics.sex.localizedDisplay)
+                        infoChip(metrics.activityLevel.localizedDisplay)
                     }
                 } else {
                     Text("Add your weight, height, and age to personalize peptide doses.")
@@ -86,7 +86,7 @@ struct BodyMetricsCard: View {
         return String(format: "%.1f", value)
     }
 
-    private func metricStat(label: String, value: String) -> some View {
+    private func metricStat(label: LocalizedStringKey, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value)
                 .font(AppFont.title3)
@@ -99,7 +99,7 @@ struct BodyMetricsCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func infoChip(_ text: String) -> some View {
+    private func infoChip(_ text: LocalizedStringKey) -> some View {
         Text(text)
             .font(AppFont.caption)
             .foregroundStyle(AppColor.textSecondary)
