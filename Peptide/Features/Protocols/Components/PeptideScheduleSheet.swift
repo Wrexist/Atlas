@@ -251,7 +251,8 @@ struct PeptideScheduleSheet: View {
 
                 if dosePresets.count > 1 {
                     HStack(spacing: Spacing.xs) {
-                        ForEach(Array(dosePresets.enumerated()), id: \.offset) { index, preset in
+                        ForEach(0..<dosePresets.count, id: \.self) { index in
+                            let preset = dosePresets[index]
                             let labelPrefix: String
                             switch index {
                             case 0: labelPrefix = "Low"
