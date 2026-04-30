@@ -1,0 +1,17 @@
+git_url(ENV.fetch("MATCH_GIT_URL"))
+
+storage_mode("git")
+type("appstore")
+
+app_identifier([
+  "com.peptidesai.app",
+  "com.peptidesai.app.widgets",
+  "com.peptidesai.app.watchkitapp",
+  "com.peptidesai.app.watchkitapp.widgets",
+])
+
+username(ENV["FASTLANE_USER"]) # optional (API key is preferred)
+team_id(ENV.fetch("APPLE_TEAM_ID"))
+
+# CI should never mutate signing state.
+readonly(true)
