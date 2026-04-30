@@ -34,7 +34,7 @@ jobs:
           ASC_KEY_P8:           ${{ secrets.ASC_KEY_P8 }}
           MATCH_GIT_URL:        ${{ secrets.MATCH_GIT_URL }}
           MATCH_PASSWORD:       ${{ secrets.MATCH_PASSWORD }}
-          MATCH_GIT_PRIVATE_KEY: ${{ secrets.MATCH_GIT_PRIVATE_KEY }}
+          MATCH_SSH_PRIVATE_KEY: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
         run: |
           set -u
           MISSING=0
@@ -52,7 +52,7 @@ jobs:
           check ASC_KEY_P8     "$ASC_KEY_P8"
           check MATCH_GIT_URL  "$MATCH_GIT_URL"
           check MATCH_PASSWORD "$MATCH_PASSWORD"
-          check MATCH_GIT_PRIVATE_KEY "$MATCH_GIT_PRIVATE_KEY"
+          check MATCH_SSH_PRIVATE_KEY "$MATCH_SSH_PRIVATE_KEY"
           if [ "${#APPLE_TEAM_ID}" -ne 10 ]; then
             echo "WARN: APPLE_TEAM_ID is ${#APPLE_TEAM_ID} chars (expected 10)"
           fi
@@ -78,7 +78,13 @@ jobs:
       - name: Setup SSH for match repo
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.MATCH_GIT_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
+
+      - name: Trust GitHub SSH host key
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
 
       - name: Install XcodeGen
         run: |
