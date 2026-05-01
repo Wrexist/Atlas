@@ -47,7 +47,8 @@ jobs:
             PeptideWidgets/Info.plist \
             PeptideWatchWidgets/Info.plist; do
             if [ -f "$PLIST" ]; then
-              /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$PLIST"
+              /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$PLIST" 2>/dev/null \
+                || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD" "$PLIST"
             fi
           done
 
