@@ -1,4 +1,0 @@
-app_identifier("com.peptidesai.app")
-apple_id("") # Not used with API key auth
-team_id(ENV["APPLE_TEAM_ID"]) # optional fallback
-
