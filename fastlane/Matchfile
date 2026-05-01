@@ -1,0 +1,9 @@
+git_url(ENV["MATCH_GIT_URL"] || "git@github.com:Wrexist/ios-certificates.git")
+storage_mode("git")
+type("appstore")
+app_identifier([
+  "com.peptidesai.app",
+  "com.peptidesai.app.widgets",
+  "com.peptidesai.app.watchkitapp",
+  "com.peptidesai.app.watchkitapp.widgets"
+])

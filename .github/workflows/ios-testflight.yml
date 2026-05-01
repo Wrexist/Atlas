@@ -1,0 +1,62 @@
+name: iOS TestFlight
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-testflight-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ruby
+          bundler-cache: true
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
+
+      - name: Trust GitHub SSH host key
+        run: ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Install XcodeGen and generate Xcode project
+        run: |
+          brew install xcodegen || true
+          xcodegen generate
+
+      - name: Stamp build number into bundle plists
+        env:
+          BUILD: ${{ github.run_number }}
+        run: |
+          for PLIST in \
+            Peptide/Resources/Info.plist \
+            PeptideWidgets/Info.plist \
+            PeptideWatchWidgets/Info.plist; do
+            if [ -f "$PLIST" ]; then
+              /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$PLIST"
+            fi
+          done
+
+      - name: Deploy to TestFlight
+        env:
+          APPLE_TEAM_ID:  ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID:     ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID:  ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8:     ${{ secrets.ASC_KEY_P8 }}
+          MATCH_GIT_URL:  ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        run: bundle exec fastlane ios beta
