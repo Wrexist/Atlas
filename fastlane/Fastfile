@@ -1,34 +1,44 @@
 default_platform(:ios)
 
 platform :ios do
-  desc "Build and upload a TestFlight build (CI-safe, deterministic signing via match)"
+  desc "Fetch certs via match, build the iOS app, upload to TestFlight"
   lane :beta do
-    api_key_path = ENV.fetch("ASC_API_KEY_PATH")
-
     setup_ci
 
+    api_key = app_store_connect_api_key(
+      key_id:                ENV["ASC_KEY_ID"],
+      issuer_id:             ENV["ASC_ISSUER_ID"],
+      key_content:           ENV["ASC_KEY_P8"],
+      is_key_content_base64: false,
+      duration:              1200,
+      in_house:              false
+    )
+
     match(
-      type: "appstore",
+      type:           "appstore",
+      app_identifier: [
+        "com.peptidesai.app",
+        "com.peptidesai.app.widgets",
+        "com.peptidesai.app.watchkitapp",
+        "com.peptidesai.app.watchkitapp.widgets"
+      ],
+      git_url:  ENV["MATCH_GIT_URL"],
+      password: ENV["MATCH_PASSWORD"],
       readonly: true,
-      api_key_path: api_key_path
+      api_key:  api_key
     )
 
     build_app(
-      project: ENV.fetch("PROJECT"),
-      scheme: ENV.fetch("SCHEME"),
-      configuration: ENV.fetch("CONFIGURATION", "Release"),
+      project:       "Peptide.xcodeproj",
+      scheme:        "Peptide",
+      configuration: "Release",
       export_method: "app-store",
-      clean: true,
-      output_directory: "build",
-      output_name: "#{ENV.fetch("SCHEME")}.ipa",
-      include_bitcode: false
+      clean:         true
     )
 
-    pilot(
-      api_key_path: api_key_path,
-      ipa: "build/#{ENV.fetch("SCHEME")}.ipa",
+    upload_to_testflight(
+      api_key:                           api_key,
       skip_waiting_for_build_processing: true
     )
   end
 end
-
