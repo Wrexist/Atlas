@@ -3,14 +3,6 @@ import SwiftUI
 struct AboutSection: View {
     @State private var showDisclaimer = false
 
-    /// In DEBUG and TestFlight builds, 7 taps on the version row opens
-    /// the screenshot control panel; in App Store Release the modifier
-    /// is a no-op so the row is plain text.
-    private var versionRow: some View {
-        AboutRow(title: "Version", value: "1.0.0")
-            .screenshotControlPanelTrigger()
-    }
-
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
@@ -19,7 +11,7 @@ struct AboutSection: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 VStack(spacing: Spacing.md) {
-                    versionRow
+                    AboutRow(title: "Version", value: "1.0.0")
                     Divider().foregroundStyle(AppColor.glassBorder)
                     AboutRow(title: "Build", value: "1")
                     Divider().foregroundStyle(AppColor.glassBorder)
