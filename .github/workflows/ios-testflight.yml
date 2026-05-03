@@ -48,6 +48,37 @@ jobs:
           echo "Set MARKETING_VERSION to $NEW_VERSION in project.yml:"
           grep MARKETING_VERSION project.yml
 
+      - name: Sync CURRENT_PROJECT_VERSION across all targets to run_number
+        env:
+          BUILD: ${{ github.run_number }}
+        run: |
+          sed -i '' "s/CURRENT_PROJECT_VERSION: \"[^\"]*\"/CURRENT_PROJECT_VERSION: \"$BUILD\"/g" project.yml
+          echo "CURRENT_PROJECT_VERSION lines after sync:"
+          grep CURRENT_PROJECT_VERSION project.yml
+
+      - name: Generate fallback app icons if missing
+        run: |
+          python3 - <<'PY'
+          import struct, zlib, os, pathlib
+          def make_png(w, h, r, g, b):
+              def chunk(name, data):
+                  c = zlib.crc32(name + data) & 0xffffffff
+                  return struct.pack('>I', len(data)) + name + data + struct.pack('>I', c)
+              ihdr = struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)
+              raw  = (b'\x00' + bytes([r, g, b]) * w) * h
+              return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
+          for path, rgb in [
+              ('Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png', (0, 102, 204)),
+              ('PeptideWatch/Assets.xcassets/AppIcon.appiconset/AppIcon.png',     (0, 102, 204)),
+          ]:
+              if not os.path.exists(path):
+                  os.makedirs(os.path.dirname(path), exist_ok=True)
+                  pathlib.Path(path).write_bytes(make_png(1024, 1024, *rgb))
+                  print(f'generated fallback icon at {path}')
+              else:
+                  print(f'icon exists at {path}, leaving alone')
+          PY
+
       - name: Install XcodeGen and generate Xcode project
         run: |
           brew install xcodegen || true
