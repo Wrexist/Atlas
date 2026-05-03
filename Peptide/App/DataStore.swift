@@ -704,23 +704,4 @@ final class DataStore: DataServiceProtocol {
         let newEntries = Self.generateTodayEntries(for: proto)
         entries.append(contentsOf: newEntries)
     }
-
-    /// Wipes the live state and replaces it with a curated seed. Only used
-    /// by `ScreenshotSeeder` for App Store screenshot capture — never call
-    /// from production code paths.
-    ///
-    /// Guarded by `ScreenshotTools.isAvailable` so it's a no-op in App
-    /// Store Release builds even if it were somehow reached.
-    func replaceAllForScreenshots(
-        protocols: [PeptideProtocol],
-        entries: [ProtocolEntry],
-        profile: UserProfile
-    ) {
-        guard ScreenshotTools.isAvailable else { return }
-        self.protocols = protocols
-        self.entries = entries
-        self.profile = profile
-        save()
-        rescheduleNotificationsIfEnabled()
-    }
 }

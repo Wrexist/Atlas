@@ -209,15 +209,3 @@ final class StoreService {
 enum StoreError: Error {
     case failedVerification
 }
-
-extension StoreService {
-    /// Force-unlocks Pro for App Store screenshot capture. Mutates only the
-    /// in-memory flag — StoreKit transactions are untouched.
-    ///
-    /// Guarded by `ScreenshotTools.isAvailable` at the call site so this
-    /// is unreachable in App Store Release builds.
-    func overrideProForScreenshots(_ unlocked: Bool) {
-        guard ScreenshotTools.isAvailable else { return }
-        isProUser = unlocked
-    }
-}
