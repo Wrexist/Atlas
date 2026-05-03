@@ -14,18 +14,31 @@ platform :ios do
       in_house:              false
     )
 
+    bundle_ids = [
+      "com.peptidesai.app",
+      "com.peptidesai.app.widgets",
+      "com.peptidesai.app.watchkitapp",
+      "com.peptidesai.app.watchkitapp.widgets"
+    ]
+
     match(
       type:           "appstore",
-      app_identifier: [
-        "com.peptidesai.app",
-        "com.peptidesai.app.widgets",
-        "com.peptidesai.app.watchkitapp",
-        "com.peptidesai.app.watchkitapp.widgets"
-      ],
-      git_url:  ENV["MATCH_GIT_URL"],
-      readonly: false,
-      api_key:  api_key
+      app_identifier: bundle_ids,
+      git_url:        ENV["MATCH_GIT_URL"],
+      readonly:       false,
+      api_key:        api_key
     )
+
+    bundle_ids.each do |bundle_id|
+      update_code_signing_settings(
+        path:                  "Peptide.xcodeproj",
+        use_automatic_signing: false,
+        bundle_identifier:     bundle_id,
+        team_id:               ENV["sigh_#{bundle_id}_appstore_team-id"],
+        profile_name:          ENV["sigh_#{bundle_id}_appstore_profile-name"],
+        code_sign_identity:    "Apple Distribution"
+      )
+    end
 
     build_app(
       project:       "Peptide.xcodeproj",
