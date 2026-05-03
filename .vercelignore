@@ -1,0 +1,16 @@
+Peptide/
+PeptideTests/
+PeptideUITests/
+PeptideWatch/
+PeptideWatchWidgets/
+PeptideWidgets/
+Shared/
+fastlane/
+scripts/
+Gemfile
+project.yml
+*.md
+!docs/*.md
+.git/
+.github/
+.claude/
