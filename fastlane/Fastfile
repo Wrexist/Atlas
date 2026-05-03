@@ -23,7 +23,6 @@ platform :ios do
         "com.peptidesai.app.watchkitapp.widgets"
       ],
       git_url:  ENV["MATCH_GIT_URL"],
-      password: ENV["MATCH_PASSWORD"],
       readonly: true,
       api_key:  api_key
     )
