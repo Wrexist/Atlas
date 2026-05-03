@@ -2,6 +2,12 @@ name: iOS TestFlight
 
 on:
   workflow_dispatch:
+    inputs:
+      marketing_version:
+        description: 'Marketing version, e.g. 1.0.1. Leave blank to use project.yml (currently 1.0.0).'
+        required: false
+        type: string
+        default: ''
 
 concurrency:
   group: ios-testflight-${{ github.ref }}
@@ -32,6 +38,15 @@ jobs:
 
       - name: Trust GitHub SSH host key
         run: ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Override marketing version in project.yml (only when input is set)
+        if: github.event.inputs.marketing_version != ''
+        env:
+          NEW_VERSION: ${{ github.event.inputs.marketing_version }}
+        run: |
+          sed -i '' "s/MARKETING_VERSION: \"[^\"]*\"/MARKETING_VERSION: \"$NEW_VERSION\"/g" project.yml
+          echo "Set MARKETING_VERSION to $NEW_VERSION in project.yml:"
+          grep MARKETING_VERSION project.yml
 
       - name: Install XcodeGen and generate Xcode project
         run: |
