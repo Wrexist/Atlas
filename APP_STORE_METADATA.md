@@ -64,10 +64,11 @@ DESIGNED FOR THE WAY PEOPLE ACTUALLY RUN PROTOCOLS
 • Pause and resume cycles without losing history
 • 14 achievements across dose milestones, streaks, and logging consistency
 
-208 PEPTIDES, BUNDLED AND SEARCHABLE
+208 PEPTIDES + CUSTOMS, BUNDLED AND SEARCHABLE
 • Six categories: healing, metabolic, cognitive, longevity, performance, immune
 • Research links on every entry
 • Educational content with explicit safety disclaimers — not a prescribing tool
+• NEW custom feature to add peptides yourself
 
 COMPLIANCE ANALYTICS BUILT ON SWIFT CHARTS
 • Streaks, weekly heatmap, and trend lines
@@ -102,9 +103,8 @@ PRIVATE BY DEFAULT
 PEPTIDEX PRO
 Unlock unlimited protocols, full analytics with HealthKit correlation, AI
 insights, all Home Screen widgets, and full CSV / JSON / PDF export with a
-monthly or annual subscription, or a one-time lifetime purchase. A 3-day
-free trial is available on monthly; 14 days on annual. Cancel anytime in
-your Apple ID settings.
+monthly or annual subscription. A 3-day free trial is available on monthly;
+14 days on annual. Cancel anytime in your Apple ID settings.
 
 IMPORTANT — MEDICAL DISCLAIMER
 PeptideX is an educational and tracking tool. It is not a medical device and
