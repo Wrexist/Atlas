@@ -19,6 +19,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # SwiftLint runs on a Linux container — ~10× cheaper than macOS minutes
+  # and reads .swiftlint.yml + Swift sources directly (no Xcode required).
+  # Runs in parallel with build-check; failures surface independently.
+  lint:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/realm/swiftlint:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SwiftLint
+        # --strict drops temporarily — a SwiftLint version bump surfaced 13
+        # pre-existing violations (comma spacing, trailing newlines, opening
+        # braces) across files we didn't touch. Re-enable --strict in a
+        # follow-up cleanup commit once we can inspect each annotation.
+        run: swiftlint lint --reporter github-actions-logging
+
   build-check:
     runs-on: macos-15
     timeout-minutes: 45
@@ -40,8 +57,6 @@ jobs:
             ~/Library/Caches/Homebrew
             /usr/local/Cellar/xcodegen
             /opt/homebrew/Cellar/xcodegen
-            /usr/local/Cellar/swiftlint
-            /opt/homebrew/Cellar/swiftlint
           key: brew-tools-${{ runner.os }}-${{ runner.arch }}
 
       - name: Cache DerivedData
@@ -124,24 +139,6 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: Install SwiftLint
-        run: |
-          if brew list swiftlint &>/dev/null 2>&1; then
-            brew unlink swiftlint 2>/dev/null || true
-            brew link --overwrite swiftlint 2>/dev/null || true
-          else
-            brew install swiftlint || brew reinstall swiftlint
-          fi
-          echo "SwiftLint ready: $(swiftlint version)"
-
-      - name: Lint
-        # --strict drops temporarily — a SwiftLint version bump on the runner
-        # surfaced 13 pre-existing violations across files we didn't touch in
-        # this PR (comma spacing, trailing newlines, opening braces). Re-enable
-        # --strict in a follow-up cleanup commit once we can inspect each
-        # annotation in the GitHub UI.
-        run: swiftlint lint --reporter github-actions-logging
-
       - name: Unit Tests
         run: |
           touch test-output.log
@@ -219,6 +216,10 @@ jobs:
           done || true
 
       - name: UI Tests
+        # Skip UI tests on draft PRs — they're slow (~3-5 min macOS time)
+        # and rarely useful during early iteration. Run on ready-for-review
+        # only. continue-on-error preserves prior behaviour.
+        if: github.event.pull_request.draft == false
         continue-on-error: true
         run: |
           xcodebuild test \
