@@ -103,31 +103,44 @@ struct PaywallView: View {
                             .foregroundStyle(AppColor.destructive)
                             .multilineTextAlignment(.center)
                     }
-
-                    // Legal
-                    VStack(spacing: Spacing.xs) {
-                        Text("Cancel anytime in Settings.")
-                            .font(AppFont.caption.weight(.semibold))
-                            .foregroundStyle(AppColor.textSecondary)
-
-                        Text("Payment will be charged to your Apple ID. Subscription auto-renews unless cancelled at least 24 hours before the end of the current period.")
-                            .font(AppFont.caption)
-                            .foregroundStyle(AppColor.textTertiary)
-                            .multilineTextAlignment(.center)
-
-                        HStack(spacing: Spacing.lg) {
-                            Link("Terms of Use", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
-                            Link("Privacy Policy", destination: URL(string: "https://wrexist.github.io/Peptide-ai/privacy.html")!)
-                        }
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.accentLight)
-                    }
-                    .padding(.horizontal, Spacing.lg)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
             }
             .background(AppColor.background)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                // Pinned subscription disclosures — App Store Guideline
+                // 3.1.2(a) requires title/length/price + auto-renew terms +
+                // Terms-of-Use + Privacy-Policy links to be plainly visible
+                // on the paywall. Keeping them in the scrolling content put
+                // them below the fold, so App Review couldn't see them.
+                VStack(spacing: Spacing.xs) {
+                    Text("Cancel anytime in Settings.")
+                        .font(AppFont.caption.weight(.semibold))
+                        .foregroundStyle(AppColor.textSecondary)
+
+                    Text("Payment is charged to your Apple ID. Subscription auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel in Settings → Apple ID → Subscriptions.")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                        .multilineTextAlignment(.center)
+
+                    HStack(spacing: Spacing.lg) {
+                        Link("Terms of Use", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                        Link("Privacy Policy", destination: URL(string: "https://wrexist.github.io/Peptide-ai/privacy.html")!)
+                    }
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.accentLight)
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
+                .frame(maxWidth: .infinity)
+                .background(.ultraThinMaterial)
+                .overlay(alignment: .top) {
+                    Rectangle()
+                        .fill(AppColor.glassBorder)
+                        .frame(height: 0.5)
+                }
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
