@@ -45,6 +45,12 @@ final class NotificationService {
     /// iOS limit on pending notification requests per app.
     static let pendingRequestLimit = 64
 
+    /// Prefix used by user-initiated snoozes. scheduleNotifications preserves
+    /// IDs starting with this prefix when computing stale-dose removal.
+    /// `nonisolated` so the delegate's nonisolated callback can read it without
+    /// a MainActor hop.
+    nonisolated static let snoozeIDPrefix = "snooze-"
+
     private init() {}
 
     func requestAuthorization() async -> Bool {
@@ -154,7 +160,10 @@ final class NotificationService {
         let droppedProtocolIDs = Set(dropped.map(\.protocolID))
 
         let newIDs = Set(kept.map(\.request.identifier))
-        let toRemove = currentIDs.subtracting(newIDs)
+        // Preserve user-initiated snoozes across reschedules — they're one-shot
+        // transient requests that iOS clears after firing, not stale doses.
+        let preservedSnoozes = currentIDs.filter { $0.hasPrefix(Self.snoozeIDPrefix) }
+        let toRemove = currentIDs.subtracting(newIDs).subtracting(preservedSnoozes)
 
         if !toRemove.isEmpty {
             center.removePendingNotificationRequests(withIdentifiers: Array(toRemove))
@@ -163,7 +172,7 @@ final class NotificationService {
             center.add(entry.request)
         }
 
-        currentIDs = newIDs
+        currentIDs = newIDs.union(preservedSnoozes)
         requestedCount = pendingRequests.count
         scheduledCount = kept.count
 
@@ -191,6 +200,14 @@ final class NotificationService {
     func reconcilePendingState() async {
         let pending = await center.pendingNotificationRequests()
         currentIDs = Set(pending.map(\.identifier))
+    }
+
+    /// Tracks a snooze identifier the delegate just submitted to UNUserNotificationCenter
+    /// so subsequent scheduleNotifications calls can preserve it across set-diff.
+    /// The actual UN add happens in the delegate's nonisolated callback because
+    /// UNUserNotificationCenter is thread-safe and UNNotificationRequest is not Sendable.
+    func registerPendingSnooze(id: String) {
+        currentIDs.insert(id)
     }
 
     private struct TimeslotKey: Hashable {

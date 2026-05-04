@@ -210,6 +210,12 @@ final class NotificationServiceTests: XCTestCase {
         XCTAssertEqual(service.lastReport, .empty)
     }
 
+    // The snooze-preservation invariant (scheduleNotifications must not remove
+    // IDs prefixed with NotificationService.snoozeIDPrefix from currentIDs) is
+    // exercised in production by NotificationDelegate but isn't covered here
+    // because currentIDs is private and constructing a real UNNotificationResponse
+    // from a unit test isn't supported by the SDK.
+
     // MARK: - Helpers
 
     private func makeProtocol(

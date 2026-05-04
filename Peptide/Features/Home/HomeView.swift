@@ -9,6 +9,7 @@ struct HomeView: View {
     @State private var showAchievementToast = false
     @State private var toastAchievement: Achievement?
     @State private var achievementService = AchievementService.shared
+    @State private var showPaywall = false
     @Environment(\.requestReview) private var requestReview
 
     private static let reviewWorthyAchievements: Set<String> = [
@@ -235,6 +236,9 @@ struct HomeView: View {
                     onApply: applyStackAdjustment
                 )
             }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+            }
             .navigationDestination(for: Peptide.self) { peptide in
                 PeptideDetailView(peptide: peptide)
             }
@@ -321,10 +325,12 @@ struct HomeView: View {
             name: source.name,
             peptides: result.updatedPeptides,
             schedule: source.schedule,
+            peptideSchedules: source.peptideSchedules,
             cycleLengthWeeks: source.cycleLengthWeeks,
             notes: source.notes
         )
 
+        var deferredPaywall = false
         for move in result.moves {
             switch move.destination {
             case .discard:
@@ -332,6 +338,10 @@ struct HomeView: View {
             case .moveTo(let protocolId, _, _):
                 dataStore.addPeptide(move.peptide, toProtocolId: protocolId)
             case .createStack:
+                if StoreService.shared.requiresPro(activeProtocolCount: dataStore.activeProtocols.count) {
+                    deferredPaywall = true
+                    continue
+                }
                 let newStack = PeptideProtocol(
                     id: UUID(),
                     name: "\(move.peptide.abbreviation) Solo",
@@ -345,6 +355,7 @@ struct HomeView: View {
                 dataStore.addProtocol(newStack)
             }
         }
+        if deferredPaywall { showPaywall = true }
     }
 
     private var greeting: String {

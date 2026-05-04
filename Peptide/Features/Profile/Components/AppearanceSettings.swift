@@ -89,13 +89,15 @@ struct AppearanceSettings: View {
     }
 
     private var notificationStatusRow: some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: notificationService.requestedCount > 64 ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+        let limit = NotificationService.pendingRequestLimit
+        let overLimit = notificationService.requestedCount > limit
+        return HStack(spacing: Spacing.sm) {
+            Image(systemName: overLimit ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                 .font(.system(size: 11))
-                .foregroundStyle(notificationService.requestedCount > 64 ? .orange : AppColor.accentPrimary)
+                .foregroundStyle(overLimit ? .orange : AppColor.accentPrimary)
 
-            if notificationService.requestedCount > 64 {
-                Text("\(notificationService.scheduledCount) of \(notificationService.requestedCount) reminders active (iOS limit: 64)")
+            if overLimit {
+                Text("\(notificationService.scheduledCount) of \(notificationService.requestedCount) reminders active (iOS limit: \(limit))")
                     .font(AppFont.caption)
                     .foregroundStyle(.orange)
             } else {

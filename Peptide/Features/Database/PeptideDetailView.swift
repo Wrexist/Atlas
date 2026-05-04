@@ -5,6 +5,7 @@ struct PeptideDetailView: View {
     let peptide: Peptide
     @State private var showingPicker = false
     @State private var showingBuilder = false
+    @State private var showingPaywall = false
     @AppStorage("experienceLevel") private var experienceLevel = "beginner"
 
     private enum Section: Hashable {
@@ -293,11 +294,18 @@ struct PeptideDetailView: View {
         .sensoryFeedback(.impact(weight: .medium), trigger: showingPicker) { _, new in new }
         .glassSheet(isPresented: $showingPicker) {
             AddToStackSheet(peptide: peptide) {
-                showingBuilder = true
+                if StoreService.shared.requiresPro(activeProtocolCount: dataStore.activeProtocols.count) {
+                    showingPaywall = true
+                } else {
+                    showingBuilder = true
+                }
             }
         }
         .glassSheet(isPresented: $showingBuilder) {
             ProtocolBuilderView(preselectedPeptide: peptide)
+        }
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView()
         }
     }
 
