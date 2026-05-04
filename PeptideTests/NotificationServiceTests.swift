@@ -223,9 +223,9 @@ final class NotificationServiceTests: XCTestCase {
 
         let snoozeContent = UNMutableNotificationContent()
         snoozeContent.title = "Test snooze"
-        // Bypass the public scheduleSnooze API since constructing a real
-        // UNNotificationResponse from a unit test is not supported by the SDK.
-        let id = "snooze-test-\(UUID().uuidString)"
+        // Mirror the snooze ID format the production delegate uses, since
+        // we can't construct a real UNNotificationResponse from a unit test.
+        let id = "\(NotificationService.snoozeIDPrefix)test-\(UUID().uuidString)"
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 15 * 60, repeats: false)
         let request = UNNotificationRequest(identifier: id, content: snoozeContent, trigger: trigger)
         UNUserNotificationCenter.current().add(request)

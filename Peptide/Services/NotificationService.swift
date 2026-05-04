@@ -47,7 +47,9 @@ final class NotificationService {
 
     /// Prefix used by user-initiated snoozes. scheduleNotifications preserves
     /// IDs starting with this prefix when computing stale-dose removal.
-    static let snoozeIDPrefix = "snooze-"
+    /// `nonisolated` so the delegate's nonisolated callback can read it without
+    /// a MainActor hop.
+    nonisolated static let snoozeIDPrefix = "snooze-"
 
     private init() {}
 
