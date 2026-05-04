@@ -3,6 +3,13 @@ name: PR Checks
 on:
   pull_request:
     branches: [main]
+    # Skip the full Xcode build on docs-only PRs — Swift sources, project.yml,
+    # workflows, entitlements, and resource files are unaffected by changes
+    # under these paths, so a 5–15 min macOS-15 runner is wasted work.
+    paths-ignore:
+      - 'prompts/**'
+      - 'docs/**'
+      - '**/*.md'
 
 permissions:
   contents: read
