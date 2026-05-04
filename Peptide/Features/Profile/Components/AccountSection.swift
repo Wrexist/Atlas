@@ -3,6 +3,7 @@ import SwiftUI
 
 struct AccountSection: View {
     @State private var authService = AuthService.shared
+    @State private var isConfirmingDeletion = false
 
     var body: some View {
         GlassCard {
@@ -14,6 +15,14 @@ struct AccountSection: View {
                     signedOutContent
                 }
             }
+        }
+        .alert("Delete Account?", isPresented: $isConfirmingDeletion) {
+            Button("Delete Account", role: .destructive) {
+                authService.deleteAccount()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently removes the Apple ID linkage from this device and erases all your protocols, dose entries, and profile data. If iCloud sync is on, the deletion propagates to your other devices. This cannot be undone.")
         }
     }
 
@@ -91,6 +100,11 @@ struct AccountSection: View {
             GlassButton(title: "Sign Out", icon: "rectangle.portrait.and.arrow.right",
                         style: .destructive, isFullWidth: true) {
                 authService.signOut()
+            }
+
+            GlassButton(title: "Delete Account", icon: "trash.fill",
+                        style: .destructive, isFullWidth: true) {
+                isConfirmingDeletion = true
             }
         }
     }

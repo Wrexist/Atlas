@@ -77,7 +77,7 @@ device."
 | 12 | Profile → Upgrade → show the paywall (Monthly / Annual / Lifetime), point out trial length, Terms, Privacy links | Subscription flow |
 | 13 | Tap a plan → cancel the StoreKit sheet (don't actually buy) | Demonstrates the paywall, no charge |
 | 14 | Profile → Sign in with Apple → complete sign-in | Optional registration |
-| 15 | Profile → Account → **Delete Account** → confirm | **Account deletion** (mandatory per 5.1.1(v)). ⚠️ **Not implemented in v1.0.0** — see §3.3. Either ship the feature first and film this step, or omit step 15 entirely and accept that the next rejection is likely 5.1.1(v). |
+| 15 | Profile → Account → **Delete Account** → confirm in the alert | **Account deletion** (mandatory per 5.1.1(v)) |
 | 16 | Settings app → Face ID & Passcode → confirm PeptideX listed (optional, only if you ship app-lock) | Face ID purpose string |
 
 ### 1.2 If a flow does not exist, say so
@@ -145,10 +145,11 @@ HOW TO REVIEW PEPTIDEX
 Sign-in:
 • Sign in with Apple is optional. On the sign-in screen, tap "Continue
   without an account" — every feature works without an account.
-• If you do sign in, you can sign out from Profile → Account → Sign
-  Out, which clears the cached Apple ID identifier and email/name from
-  the iOS Keychain on this device. <ACCOUNT-DELETION-LINE — see note
-  below before pasting>.
+• If you do sign in, Profile → Account exposes both "Sign Out"
+  (clears the cached Apple ID identifier from the iOS Keychain on this
+  device) and "Delete Account" (irreversibly erases all protocols,
+  dose entries, and profile data, and removes the Apple ID linkage —
+  Guideline 5.1.1(v) compliant).
 
 HealthKit:
 • HealthKit is requested ONLY when you tap "Connect Health" in the
@@ -169,44 +170,18 @@ Subscriptions:
 • Restoring purchases: Profile → Upgrade → "Restore Purchases."
 ```
 
-> **Important — do not paste the block above as-is.** Two of the
-> reviewer instructions describe features that are **not implemented in
-> the v1.0.0 codebase**:
->
-> 1. **`Account → Delete Account`** — only `Sign Out` exists in
->    `AccountSection.swift`; there is no delete-account UI route, no
->    SiwA token revocation call, and no SwiftData/CloudKit wipe.
-> 2. **`Profile → Developer Options → Load sample data`** — there is
->    no developer-options section and no sample-data loader in the
->    codebase.
->
-> Before pasting into App Store Connect, do **one** of:
->
-> - **Recommended:** implement both before resubmission (see §3.3) and
->   restore the bullets — Delete Account is mandatory under Guideline
->   5.1.1(v) regardless, so it has to be added to ship anyway.
-> - **Minimum to resubmit on 2.1 alone:** delete the
->   `<ACCOUNT-DELETION-LINE …>` placeholder and ship the doc without
->   any sample-data bullet. Be aware the next rejection will then almost
->   certainly be 5.1.1(v).
+> **Status of these instructions vs. the codebase:**
+> Delete Account ships in this build (`AccountSection.swift` →
+> `AuthService.deleteAccount()`, calling `SwiftDataRepository.deleteAll()`
+> + Keychain wipe; CloudKit propagation handled by SwiftData).
+> A demo-data loader was **not** added — the recording in §1 logs
+> doses live, so the reviewer doesn't need one. If you later add one,
+> document the path here before re-pasting.
 
 ### 3.3 Implementation checklist for §3.2 to be true
 
-Audit of the v1.0.0 codebase as of commit `b1d6aff`:
-
 - [ ] Verify "Continue without an account" is visible and unconditional on the sign-in screen (file: `Peptide/Features/Auth/`).
-- [ ] **MISSING — must add before shipping.** Account deletion does not exist in `AccountSection.swift` (only `Sign Out`). Apple Guideline 5.1.1(v) **mandates** an in-app deletion path for any app that creates accounts, and Sign in with Apple counts. Implementation:
-  - Add a "Delete Account" row to `AccountSection.swift` with a destructive confirmation dialog.
-  - Add a `deleteAccount()` method to `AuthService.swift` that:
-    - Calls `ASAuthorizationAppleIDProvider.revokeToken` with the cached identifier
-    - Wipes Keychain (`keychainAccountID` / `keychainAccountEmail` / `keychainAccountName`)
-    - Wipes the SwiftData store via `SwiftDataRepository`
-    - Deletes the user's private CloudKit zone (`CKContainer.default().privateCloudDatabase`)
-    - Clears `@AppStorage` keys via `UserDefaults` reset
-  - Once shipped, restore the deleted bullet in §3.2 and the recording-script step in §1.1.
-- [ ] **MISSING — optional but recommended.** No "Load sample data" affordance exists. Without it the reviewer can't exercise analytics screens unless they manually log doses across multiple days. Either:
-  - Add a `Profile → Developer Options → Load sample data` button gated behind `#if DEBUG` (not visible in production), and restore the bullet in §3.2; or
-  - Pre-seed the TestFlight build's first launch with 14 days of demo dose data behind a `UserDefaults` flag the reviewer can flip from a hidden tap (e.g. 5-tap on the Profile header).
+- [x] **Delete Account shipped.** `AccountSection.swift` exposes a destructive Delete Account button under the Sign Out button when the user is signed in. Confirms via `.alert`, then `AuthService.deleteAccount()` wipes SwiftData (`SwiftDataRepository.deleteAll()`) and Keychain. SwiftData propagates the delete to the user's private CloudKit zone. There is no developer-operated backend, so no server-side token revocation is needed; users can revoke at appleid.apple.com if they wish.
 - [ ] Confirm "Restore Purchases" button is present on the paywall and on the post-purchase failure path.
 
 ---

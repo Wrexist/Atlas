@@ -79,6 +79,20 @@ final class AuthService {
         isSignedIn      = false
     }
 
+    // MARK: - Delete Account
+
+    /// Removes the Apple ID linkage and erases user-generated content
+    /// (protocols, entries, profile). Required by Apple Guideline 5.1.1(v).
+    ///
+    /// Without a developer-operated backend there is nothing to revoke
+    /// server-side; users can revoke the Apple ID token at appleid.apple.com
+    /// if desired. SwiftData mutations propagate to the user's private
+    /// CloudKit zone automatically when iCloud sync is active.
+    func deleteAccount() {
+        SwiftDataRepository.shared.deleteAll()
+        signOut()
+    }
+
     // MARK: - Credential Validation
 
     /// Checks whether the stored Apple ID credential is still valid.
