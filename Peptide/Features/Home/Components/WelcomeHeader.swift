@@ -5,6 +5,11 @@ struct WelcomeHeader: View {
     let name: String
     let date: String
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hasGreeted = false
+    @State private var avatarScale: CGFloat = 1.0
+    @State private var iconBounce = 0
+
     private var displayName: String {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "" : trimmed
@@ -47,6 +52,7 @@ struct WelcomeHeader: View {
                     Image(systemName: "person.fill")
                         .font(.system(size: 22))
                         .foregroundStyle(AppColor.accentLight)
+                        .symbolEffect(.bounce, value: iconBounce)
                 } else {
                     Text(String(displayName.prefix(1)))
                         .font(AppFont.title2)
@@ -54,6 +60,22 @@ struct WelcomeHeader: View {
                 }
             }
             .liquidGlass(.circle)
+            .scaleEffect(avatarScale)
+            .onAppear {
+                guard !hasGreeted else { return }
+                hasGreeted = true
+                guard !reduceMotion else { return }
+                iconBounce &+= 1
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.55).delay(0.15)) {
+                    avatarScale = 1.08
+                }
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(380))
+                    withAnimation(.spring(response: 0.55, dampingFraction: 0.75)) {
+                        avatarScale = 1.0
+                    }
+                }
+            }
         }
         .padding(.top, Spacing.sm)
     }

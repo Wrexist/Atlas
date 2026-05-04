@@ -55,7 +55,10 @@ struct AnalyticsView: View {
                                 set: { newRange in
                                     if newRange != .week && !storeService.isProUser {
                                         showPaywall = true
-                                    } else {
+                                    } else if newRange != selectedRange {
+                                        if dataStore.profile.hapticFeedbackEnabled {
+                                            UISelectionFeedbackGenerator().selectionChanged()
+                                        }
                                         selectedRange = newRange
                                     }
                                 }

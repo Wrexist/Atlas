@@ -3,7 +3,16 @@ import SwiftUI
 struct CategoryFilterChips: View {
     let categories: [PeptideCategory]
     let selected: PeptideCategory?
+    var hapticEnabled: Bool = true
     let onSelect: (PeptideCategory?) -> Void
+
+    private func handleSelect(_ category: PeptideCategory?) {
+        guard category != selected else { return }
+        if hapticEnabled {
+            UISelectionFeedbackGenerator().selectionChanged()
+        }
+        onSelect(category)
+    }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -13,7 +22,7 @@ struct CategoryFilterChips: View {
                     isSelected: selected == nil,
                     color: AppColor.accentPrimary
                 ) {
-                    onSelect(nil)
+                    handleSelect(nil)
                 }
 
                 ForEach(categories) { category in
@@ -23,7 +32,7 @@ struct CategoryFilterChips: View {
                         isSelected: selected == category,
                         color: category.color
                     ) {
-                        onSelect(category)
+                        handleSelect(category)
                     }
                 }
             }

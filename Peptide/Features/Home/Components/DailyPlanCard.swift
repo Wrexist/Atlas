@@ -183,6 +183,7 @@ private struct DailyPlanDoseRow: View {
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(dose.entry.peptide.category.color.opacity(0.15))
                 }
+                .symbolEffect(.bounce, value: dose.entry.completed)
 
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
