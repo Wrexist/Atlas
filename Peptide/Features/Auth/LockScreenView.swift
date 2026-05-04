@@ -3,8 +3,12 @@ import SwiftUI
 struct LockScreenView: View {
     let onUnlock: () -> Void
 
+    @Environment(DataStore.self) private var dataStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var biometricService = BiometricService.shared
     @State private var isAuthenticating = false
+    @State private var shakeOffset: CGFloat = 0
+    @State private var iconBounce = 0
 
     var body: some View {
         VStack(spacing: Spacing.xxl) {
@@ -13,6 +17,8 @@ struct LockScreenView: View {
             Image(systemName: "lock.fill")
                 .font(.system(size: 48))
                 .foregroundStyle(AppColor.accentPrimary)
+                .symbolEffect(.bounce, value: iconBounce)
+                .offset(x: shakeOffset)
 
             VStack(spacing: Spacing.sm) {
                 Text("PeptideX is Locked")
@@ -41,6 +47,7 @@ struct LockScreenView: View {
                 .background(AppColor.accentPrimary)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
+            .buttonStyle(ScalePressStyle(pressedScale: 0.97))
             .disabled(isAuthenticating)
             .padding(.horizontal, Spacing.xxl)
             .padding(.bottom, Spacing.xxxxl)
@@ -56,12 +63,33 @@ struct LockScreenView: View {
         defer { isAuthenticating = false }
 
         if await biometricService.authenticate() {
+            if dataStore.profile.hapticFeedbackEnabled {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
             onUnlock()
+        } else {
+            if dataStore.profile.hapticFeedbackEnabled {
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+            }
+            iconBounce &+= 1
+            await shakeIcon()
         }
+    }
+
+    /// Three-step horizontal shake (8 → -8 → 0) over ~280 ms. Disabled under
+    /// Reduce Motion — the haptic + icon bounce already convey the failure.
+    private func shakeIcon() async {
+        guard !reduceMotion else { return }
+        withAnimation(.spring(response: 0.12, dampingFraction: 0.45)) { shakeOffset = 8 }
+        try? await Task.sleep(for: .milliseconds(80))
+        withAnimation(.spring(response: 0.12, dampingFraction: 0.45)) { shakeOffset = -8 }
+        try? await Task.sleep(for: .milliseconds(80))
+        withAnimation(.spring(response: 0.18, dampingFraction: 0.6)) { shakeOffset = 0 }
     }
 }
 
 #Preview {
     LockScreenView(onUnlock: {})
+        .environment(DataStore(seedSampleData: true))
         .preferredColorScheme(.dark)
 }

@@ -6,8 +6,10 @@ struct GlassProgressRing: View {
     var lineWidth: CGFloat = 12
     var showLabel: Bool = true
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var animatedProgress: Double = 0
     @State private var hasAppeared = false
+    @State private var celebrationScale: CGFloat = 1.0
 
     private var clampedProgress: Double {
         min(max(progress, 0), 1)
@@ -43,6 +45,7 @@ struct GlassProgressRing: View {
                         .font(AppFont.scoreLarge)
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
+                        .scaleEffect(celebrationScale)
 
                     Text("SCORE")
                         .font(AppFont.caption)
@@ -61,9 +64,28 @@ struct GlassProgressRing: View {
                 }
             }
         }
-        .onChange(of: progress) { _, newValue in
+        .onChange(of: progress) { oldValue, newValue in
+            let clamped = min(max(newValue, 0), 1)
             withAnimation(AppAnimation.springGentle) {
-                animatedProgress = min(max(newValue, 0), 1)
+                animatedProgress = clamped
+            }
+            // Celebrate the moment the user crosses into 100% — a calm gold
+            // pulse on the score, not fireworks. Suppressed under Reduce
+            // Motion since the value-text already updates.
+            if oldValue < 1.0, clamped >= 1.0, !reduceMotion {
+                triggerCelebration()
+            }
+        }
+    }
+
+    private func triggerCelebration() {
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.55)) {
+            celebrationScale = 1.08
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(380))
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.78)) {
+                celebrationScale = 1.0
             }
         }
     }

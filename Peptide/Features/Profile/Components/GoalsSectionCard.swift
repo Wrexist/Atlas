@@ -3,6 +3,7 @@ import SwiftUI
 struct GoalsSectionCard: View {
     let availableGoals: [String]
     let selectedGoals: Set<String>
+    var hapticEnabled: Bool = true
     let onToggle: (String) -> Void
 
     var body: some View {
@@ -16,11 +17,19 @@ struct GoalsSectionCard: View {
                     ForEach(availableGoals, id: \.self) { goal in
                         let isSelected = selectedGoals.contains(goal)
 
-                        Button { onToggle(goal) } label: {
+                        Button {
+                            if hapticEnabled {
+                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                            }
+                            withAnimation(AppAnimation.springSnappy) {
+                                onToggle(goal)
+                            }
+                        } label: {
                             HStack(spacing: Spacing.xs) {
                                 if isSelected {
                                     Image(systemName: "checkmark")
                                         .font(.system(size: 10, weight: .bold))
+                                        .transition(.scale.combined(with: .opacity))
                                 }
                                 Text(goal)
                                     .font(AppFont.footnote)
@@ -41,7 +50,7 @@ struct GoalsSectionCard: View {
                                     }
                             }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ScalePressStyle(pressedScale: 0.95))
                     }
                 }
             }

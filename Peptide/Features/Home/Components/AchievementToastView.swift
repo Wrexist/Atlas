@@ -4,6 +4,9 @@ struct AchievementToastView: View {
     let achievement: Achievement
     @Binding var isShowing: Bool
 
+    @Environment(DataStore.self) private var dataStore
+    @State private var iconBounce = 0
+
     var body: some View {
         if isShowing {
             VStack {
@@ -16,6 +19,7 @@ struct AchievementToastView: View {
                             Circle()
                                 .fill(AppColor.accentPrimary.opacity(0.2))
                         }
+                        .symbolEffect(.bounce, value: iconBounce)
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text("Achievement Unlocked!")
@@ -56,6 +60,13 @@ struct AchievementToastView: View {
             }
             .padding(.top, Spacing.sm)
             .task {
+                // Brief warmup so the slide-in transition reads before the
+                // bounce + haptic — landing them simultaneously feels jittery.
+                try? await Task.sleep(for: .milliseconds(120))
+                iconBounce &+= 1
+                if dataStore.profile.hapticFeedbackEnabled {
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
                 try? await Task.sleep(for: .seconds(4))
                 withAnimation(AppAnimation.springSmooth) { isShowing = false }
             }

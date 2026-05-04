@@ -39,6 +39,7 @@ struct PeptideApp: App {
                         .tint(AppColor.accentPrimary)
                 } else if dataStore.profile.biometricLockEnabled, !isUnlocked {
                     LockScreenView { isUnlocked = true }
+                        .environment(dataStore)
                         .preferredColorScheme(.dark)
                         .tint(AppColor.accentPrimary)
                 } else {
@@ -84,6 +85,11 @@ struct PeptideApp: App {
             }
             Tab("Profile", systemImage: "person.fill", value: .profile) {
                 ProfileView()
+            }
+        }
+        .onChange(of: appState.selectedTab) { _, _ in
+            if dataStore.profile.hapticFeedbackEnabled {
+                UISelectionFeedbackGenerator().selectionChanged()
             }
         }
     }
@@ -139,11 +145,15 @@ struct NextDoseAccessoryView: View {
     @Environment(DataStore.self) private var dataStore
 
     var body: some View {
+        let allDone = dataStore.nextDose == nil
+
         HStack(spacing: Spacing.sm) {
+            Image(systemName: allDone ? "checkmark.circle.fill" : "syringe.fill")
+                .font(.caption)
+                .foregroundStyle(AppColor.accentPrimary)
+                .contentTransition(.symbolEffect(.replace))
+
             if let next = dataStore.nextDose {
-                Image(systemName: "syringe.fill")
-                    .font(.caption)
-                    .foregroundStyle(AppColor.accentPrimary)
                 Text("Next: \(next.peptide.abbreviation) \u{2022} \(next.dose)")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
@@ -151,10 +161,8 @@ struct NextDoseAccessoryView: View {
                 Text(next.date.formatted(.dateTime.hour().minute()))
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.accentLight)
+                    .contentTransition(.numericText())
             } else {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(AppColor.accentPrimary)
                 Text("All doses completed for today")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
@@ -163,5 +171,6 @@ struct NextDoseAccessoryView: View {
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.xs)
+        .animation(AppAnimation.springSnappy, value: allDone)
     }
 }

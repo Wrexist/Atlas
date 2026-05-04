@@ -51,7 +51,17 @@ struct ProtocolListView: View {
                 // Floating add button
                 GlassIconButton(icon: "plus", accessibilityLabel: "New protocol", size: 56, tinted: true) {
                     preselectedPeptide = nil
-                    if StoreService.shared.requiresPro(activeProtocolCount: dataStore.activeProtocols.count) {
+                    let blocked = StoreService.shared.requiresPro(
+                        activeProtocolCount: dataStore.activeProtocols.count
+                    )
+                    if dataStore.profile.hapticFeedbackEnabled {
+                        if blocked {
+                            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                        } else {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        }
+                    }
+                    if blocked {
                         showingPaywall = true
                     } else {
                         showingBuilder = true
