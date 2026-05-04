@@ -51,8 +51,20 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             return
 
         case "SNOOZE":
+            // Build the snooze locally — UNNotificationRequest isn't Sendable
+            // so we can't bounce it across to the @MainActor task. The center
+            // is thread-safe; only currentIDs (MainActor-isolated) needs the
+            // hop, so we ship just the identifier string.
+            guard let content = response.notification.request.content.mutableCopy() as? UNMutableNotificationContent else {
+                completionHandler()
+                return
+            }
+            let snoozeID = "\(NotificationService.snoozeIDPrefix)\(UUID().uuidString)"
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 15 * 60, repeats: false)
+            let request = UNNotificationRequest(identifier: snoozeID, content: content, trigger: trigger)
+            center.add(request)
             Task { @MainActor in
-                NotificationService.shared.scheduleSnooze(from: response)
+                NotificationService.shared.registerPendingSnooze(id: snoozeID)
             }
 
         default:

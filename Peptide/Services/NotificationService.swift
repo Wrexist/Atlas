@@ -47,7 +47,7 @@ final class NotificationService {
 
     /// Prefix used by user-initiated snoozes. scheduleNotifications preserves
     /// IDs starting with this prefix when computing stale-dose removal.
-    fileprivate static let snoozeIDPrefix = "snooze-"
+    static let snoozeIDPrefix = "snooze-"
 
     private init() {}
 
@@ -200,15 +200,11 @@ final class NotificationService {
         currentIDs = Set(pending.map(\.identifier))
     }
 
-    /// Schedules a one-shot 15-min reminder copy of an existing notification.
-    /// Routed through the service so the identifier lands in `currentIDs` and
-    /// counts against the same 64-pending-request budget as scheduled doses.
-    func scheduleSnooze(from response: UNNotificationResponse) {
-        guard let content = response.notification.request.content.mutableCopy() as? UNMutableNotificationContent else { return }
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 15 * 60, repeats: false)
-        let id = "\(Self.snoozeIDPrefix)\(UUID().uuidString)"
-        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
-        center.add(request)
+    /// Tracks a snooze identifier the delegate just submitted to UNUserNotificationCenter
+    /// so subsequent scheduleNotifications calls can preserve it across set-diff.
+    /// The actual UN add happens in the delegate's nonisolated callback because
+    /// UNUserNotificationCenter is thread-safe and UNNotificationRequest is not Sendable.
+    func registerPendingSnooze(id: String) {
         currentIDs.insert(id)
     }
 

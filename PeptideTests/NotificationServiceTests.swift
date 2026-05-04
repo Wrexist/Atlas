@@ -1,5 +1,5 @@
 import XCTest
-import UserNotifications
+@preconcurrency import UserNotifications
 @testable import Peptide
 
 @MainActor
