@@ -173,6 +173,7 @@ final class DataStore: DataServiceProtocol {
     func logDose(entryId: UUID, actualDose: String?, actualTime: Date?, injectionSite: String?, notes: String) {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
         let existing = entries[index]
+        let wasCompleted = existing.completed
         entries[index] = ProtocolEntry(
             id: existing.id,
             protocolId: existing.protocolId,
@@ -186,6 +187,9 @@ final class DataStore: DataServiceProtocol {
             injectionSite: injectionSite
         )
         save()
+        if !wasCompleted, profile.hapticFeedbackEnabled {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
     }
 
     func protocolsContaining(peptideId: UUID) -> [PeptideProtocol] {

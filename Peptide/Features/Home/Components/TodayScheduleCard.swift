@@ -66,6 +66,7 @@ private struct ScheduleRow: View {
                     .foregroundStyle(entry.completed ? AppColor.accentPrimary : AppColor.textTertiary)
                     .contentTransition(.symbolEffect(.replace))
             }
+            .buttonStyle(ScalePressStyle())
 
             // Tapping the row = open detailed logging sheet
             Button(action: onTap) {
@@ -78,6 +79,7 @@ private struct ScheduleRow: View {
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
                                 .fill(entry.peptide.category.color.opacity(0.15))
                         }
+                        .symbolEffect(.bounce, value: entry.completed)
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(entry.peptide.abbreviation)

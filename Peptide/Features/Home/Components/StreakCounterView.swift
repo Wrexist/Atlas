@@ -4,6 +4,15 @@ struct StreakCounterView: View {
     let currentStreak: Int
     let bestStreak: Int
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulseTrigger = 0
+    @State private var milestoneScale: CGFloat = 1.0
+
+    /// Streaks where the user crosses a meaningful threshold. Used to gate
+    /// the celebration pulse so a routine increment from 4→5 doesn't feel
+    /// the same as crossing 7 (the first weekly milestone).
+    private static let milestones: Set<Int> = [7, 14, 30, 60, 90, 180, 365]
+
     private var flameColor: Color {
         switch currentStreak {
         case 0: return AppColor.textTertiary
@@ -27,8 +36,9 @@ struct StreakCounterView: View {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(flameColor)
-                    .symbolEffect(.bounce, value: currentStreak)
+                    .symbolEffect(.bounce, value: pulseTrigger)
                     .modifier(ConditionalGlow(active: showGlow))
+                    .scaleEffect(milestoneScale)
 
                 if currentStreak > 0 {
                     Text("\(currentStreak)")
@@ -50,6 +60,7 @@ struct StreakCounterView: View {
                 Text("New personal best!")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.accentLight)
+                    .transition(.scale(scale: 0.95).combined(with: .opacity))
             } else if bestStreak > currentStreak && bestStreak > 0 {
                 Text("Best: \(bestStreak) days")
                     .font(AppFont.caption)
@@ -58,6 +69,19 @@ struct StreakCounterView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(voiceOverLabel)
+        .onChange(of: currentStreak) { oldValue, newValue in
+            pulseTrigger &+= 1
+            guard !reduceMotion, newValue > oldValue, Self.milestones.contains(newValue) else { return }
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.55)) {
+                milestoneScale = 1.18
+            }
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(380))
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.75)) {
+                    milestoneScale = 1.0
+                }
+            }
+        }
     }
 
     private var voiceOverLabel: String {

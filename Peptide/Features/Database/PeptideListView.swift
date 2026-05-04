@@ -27,6 +27,7 @@ struct PeptideListView: View {
                     CategoryFilterChips(
                         categories: viewModel.categories,
                         selected: viewModel.selectedCategory,
+                        hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                         onSelect: viewModel.selectCategory
                     )
 
@@ -55,6 +56,7 @@ struct PeptideListView: View {
                                     PeptideRow(peptide: peptide)
                                 }
                                 .buttonStyle(.plain)
+                                .transition(.scale(scale: 0.97).combined(with: .opacity))
                             }
                         }
                         .padding(.horizontal, Spacing.screenPadding)
