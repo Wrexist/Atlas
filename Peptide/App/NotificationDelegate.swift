@@ -32,9 +32,14 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                       let hour = scheduledHour,
                       let minute = scheduledMinute else { return }
 
+                // Search the last 24h, not just today, so a snooze that fires
+                // after midnight still toggles yesterday's scheduled dose.
                 let calendar = Calendar.current
-                let uncompleted = dataStore.todayEntries.filter { entry in
-                    guard entry.protocolId == protocolId, !entry.completed else { return false }
+                let cutoff = Date().addingTimeInterval(-24 * 60 * 60)
+                let uncompleted = dataStore.entries.filter { entry in
+                    guard entry.protocolId == protocolId,
+                          !entry.completed,
+                          entry.date >= cutoff else { return false }
                     let entryHour = calendar.component(.hour, from: entry.date)
                     let entryMinute = calendar.component(.minute, from: entry.date)
                     return entryHour == hour && entryMinute == minute
@@ -46,13 +51,9 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             return
 
         case "SNOOZE":
-            guard let content = response.notification.request.content.mutableCopy() as? UNMutableNotificationContent else {
-                completionHandler()
-                return
+            Task { @MainActor in
+                NotificationService.shared.scheduleSnooze(from: response)
             }
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 15 * 60, repeats: false)
-            let request = UNNotificationRequest(identifier: "snooze-\(UUID().uuidString)", content: content, trigger: trigger)
-            center.add(request)
 
         default:
             break

@@ -109,6 +109,11 @@ struct PeptideApp: App {
             UNUserNotificationCenter.current().delegate = delegate
             NotificationService.shared.registerCategories()
 
+            // Repopulate the in-memory ID tracker from iOS's actual pending
+            // requests. Without this, force-quit leaves orphan reminders that
+            // scheduleNotifications can't see in its set-diff and won't remove.
+            await NotificationService.shared.reconcilePendingState()
+
             guard dataStore.profile.doseRemindersEnabled else {
                 NotificationService.shared.cancelAll()
                 return

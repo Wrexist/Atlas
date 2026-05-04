@@ -211,4 +211,47 @@ final class DataStoreTests: XCTestCase {
         let countAfterSecond = store.entries.filter { Calendar.current.isDateInToday($0.date) }.count
         XCTAssertEqual(countAfterFirst, countAfterSecond)
     }
+
+    // MARK: - Per-peptide schedule preservation
+
+    /// Callers must pass the existing `peptideSchedules` dict when they don't
+    /// intend to clear overrides. HomeView's stack-adjustment apply path was
+    /// silently wiping all per-peptide schedules by relying on the default
+    /// empty dict — verify the explicit pass-through preserves them.
+    func test_updateProtocol_preservesExistingPeptideSchedulesWhenPassedThrough() {
+        let peptide = MockPeptides.bpc157
+        let override = ProtocolSchedule(
+            daysOfWeek: [1, 3, 5],
+            timesPerDay: 1,
+            preferredTimes: ["10:00 AM"],
+            customDose: "300 mcg"
+        )
+        let proto = PeptideProtocol(
+            id: UUID(),
+            name: "Override test",
+            peptides: [peptide],
+            schedule: ProtocolSchedule(daysOfWeek: [1, 2, 3, 4, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            peptideSchedules: [peptide.id: override],
+            cycleLengthWeeks: 8,
+            startDate: Date(),
+            status: .active,
+            notes: ""
+        )
+        store.addProtocol(proto)
+
+        // Re-save with the same overrides explicitly forwarded.
+        store.updateProtocol(
+            id: proto.id,
+            name: proto.name,
+            peptides: proto.peptides,
+            schedule: proto.schedule,
+            peptideSchedules: proto.peptideSchedules,
+            cycleLengthWeeks: proto.cycleLengthWeeks,
+            notes: proto.notes
+        )
+
+        let saved = store.protocols.first { $0.id == proto.id }
+        XCTAssertEqual(saved?.peptideSchedules[peptide.id], override,
+                       "peptideSchedules must survive an updateProtocol round-trip when explicitly passed")
+    }
 }

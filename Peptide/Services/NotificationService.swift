@@ -45,6 +45,10 @@ final class NotificationService {
     /// iOS limit on pending notification requests per app.
     static let pendingRequestLimit = 64
 
+    /// Prefix used by user-initiated snoozes. scheduleNotifications preserves
+    /// IDs starting with this prefix when computing stale-dose removal.
+    fileprivate static let snoozeIDPrefix = "snooze-"
+
     private init() {}
 
     func requestAuthorization() async -> Bool {
@@ -154,7 +158,10 @@ final class NotificationService {
         let droppedProtocolIDs = Set(dropped.map(\.protocolID))
 
         let newIDs = Set(kept.map(\.request.identifier))
-        let toRemove = currentIDs.subtracting(newIDs)
+        // Preserve user-initiated snoozes across reschedules — they're one-shot
+        // transient requests that iOS clears after firing, not stale doses.
+        let preservedSnoozes = currentIDs.filter { $0.hasPrefix(Self.snoozeIDPrefix) }
+        let toRemove = currentIDs.subtracting(newIDs).subtracting(preservedSnoozes)
 
         if !toRemove.isEmpty {
             center.removePendingNotificationRequests(withIdentifiers: Array(toRemove))
@@ -163,7 +170,7 @@ final class NotificationService {
             center.add(entry.request)
         }
 
-        currentIDs = newIDs
+        currentIDs = newIDs.union(preservedSnoozes)
         requestedCount = pendingRequests.count
         scheduledCount = kept.count
 
@@ -191,6 +198,18 @@ final class NotificationService {
     func reconcilePendingState() async {
         let pending = await center.pendingNotificationRequests()
         currentIDs = Set(pending.map(\.identifier))
+    }
+
+    /// Schedules a one-shot 15-min reminder copy of an existing notification.
+    /// Routed through the service so the identifier lands in `currentIDs` and
+    /// counts against the same 64-pending-request budget as scheduled doses.
+    func scheduleSnooze(from response: UNNotificationResponse) {
+        guard let content = response.notification.request.content.mutableCopy() as? UNMutableNotificationContent else { return }
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 15 * 60, repeats: false)
+        let id = "\(Self.snoozeIDPrefix)\(UUID().uuidString)"
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+        center.add(request)
+        currentIDs.insert(id)
     }
 
     private struct TimeslotKey: Hashable {

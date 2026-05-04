@@ -1,4 +1,5 @@
 import XCTest
+import UserNotifications
 @testable import Peptide
 
 @MainActor
@@ -208,6 +209,36 @@ final class NotificationServiceTests: XCTestCase {
         XCTAssertEqual(service.lastReport.scheduled, 1)
         service.cancelAll()
         XCTAssertEqual(service.lastReport, .empty)
+    }
+
+    // MARK: - Snooze preservation across reschedule
+
+    /// Snooze identifiers must survive a subsequent `scheduleNotifications` call.
+    /// Without the snooze-prefix exclusion in the stale-ID diff, every dose
+    /// reschedule would silently cancel pending user-initiated snoozes.
+    func test_scheduleNotifications_preservesPendingSnoozesAcrossReschedule() async {
+        let proto = makeProtocol(times: ["8:00 AM"], days: [1])
+        service.scheduleNotifications(for: [proto])
+        XCTAssertEqual(service.scheduledCount, 1)
+
+        let snoozeContent = UNMutableNotificationContent()
+        snoozeContent.title = "Test snooze"
+        // Bypass the public scheduleSnooze API since constructing a real
+        // UNNotificationResponse from a unit test is not supported by the SDK.
+        let id = "snooze-test-\(UUID().uuidString)"
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 15 * 60, repeats: false)
+        let request = UNNotificationRequest(identifier: id, content: snoozeContent, trigger: trigger)
+        UNUserNotificationCenter.current().add(request)
+        await service.reconcilePendingState()
+
+        // Reschedule the same protocol. The snooze ID must remain pending.
+        service.scheduleNotifications(for: [proto])
+        let pending = await UNUserNotificationCenter.current().pendingNotificationRequests()
+        XCTAssertTrue(pending.contains(where: { $0.identifier == id }),
+                      "Snooze identifier must not be removed by a subsequent scheduleNotifications call")
+
+        // Cleanup
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id])
     }
 
     // MARK: - Helpers
