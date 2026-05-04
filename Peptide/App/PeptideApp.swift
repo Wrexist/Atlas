@@ -39,6 +39,7 @@ struct PeptideApp: App {
                         .tint(AppColor.accentPrimary)
                 } else if dataStore.profile.biometricLockEnabled, !isUnlocked {
                     LockScreenView { isUnlocked = true }
+                        .environment(dataStore)
                         .preferredColorScheme(.dark)
                         .tint(AppColor.accentPrimary)
                 } else {
