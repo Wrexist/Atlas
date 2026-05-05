@@ -54,9 +54,13 @@ struct AccountSection: View {
             Spacer()
 
             HStack(spacing: Spacing.xs) {
-                Circle()
-                    .fill(authService.isSignedIn ? AppColor.accentPrimary : AppColor.textTertiary)
-                    .frame(width: 8, height: 8)
+                if authService.isSignedIn {
+                    PulsatingDot(color: AppColor.accentPrimary, size: 8)
+                } else {
+                    Circle()
+                        .fill(AppColor.textTertiary)
+                        .frame(width: 8, height: 8)
+                }
 
                 Text(authService.isSignedIn ? "Signed In" : "Not Signed In")
                     .font(AppFont.caption)

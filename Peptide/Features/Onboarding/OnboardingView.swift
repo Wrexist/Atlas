@@ -83,6 +83,12 @@ struct OnboardingView: View {
                 selectedRecommendationIds = Set(top)
                 hasAutoSelectedRecommendations = true
             }
+            // If the user lands on the sign-in page already authenticated
+            // (e.g. Keychain survived a re-onboard), still show the
+            // confirmation briefly and advance — never strand them here.
+            if newValue == 8 && authService.isSignedIn {
+                scheduleSignInAdvance()
+            }
         }
         .onChange(of: selectedGoals) { _, _ in
             hasAutoSelectedRecommendations = false
@@ -90,7 +96,10 @@ struct OnboardingView: View {
         }
         .onChange(of: authService.isSignedIn) { _, signedIn in
             if signedIn, currentPage == 8 {
-                advance(to: nextAfterSignIn)
+                if dataStore.profile.hapticFeedbackEnabled {
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
+                scheduleSignInAdvance()
             }
         }
         .alert(
@@ -641,32 +650,70 @@ struct OnboardingView: View {
                 }
             },
             footer: {
-                VStack(spacing: Spacing.sm) {
-                    ZStack {
-                        AppleSignInButton(cornerRadius: 26) {
-                            authService.signIn()
-                        }
-                        .frame(height: 52)
-                        .opacity(authService.isSigningIn ? 0.5 : 1)
-                        .allowsHitTesting(!authService.isSigningIn)
-
-                        if authService.isSigningIn {
-                            HStack(spacing: Spacing.sm) {
-                                ProgressView().tint(.black)
-                                Text("Signing in…")
-                                    .font(AppFont.subheadline)
-                                    .foregroundStyle(.black)
+                if authService.isSignedIn {
+                    signedInConfirmation
+                        .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                } else {
+                    VStack(spacing: Spacing.sm) {
+                        ZStack {
+                            AppleSignInButton(cornerRadius: 26) {
+                                authService.signIn()
                             }
-                            .allowsHitTesting(false)
+                            .frame(height: 52)
+                            .opacity(authService.isSigningIn ? 0.5 : 1)
+                            .allowsHitTesting(!authService.isSigningIn)
+
+                            if authService.isSigningIn {
+                                HStack(spacing: Spacing.sm) {
+                                    ProgressView().tint(.black)
+                                    Text("Signing in…")
+                                        .font(AppFont.subheadline)
+                                        .foregroundStyle(.black)
+                                }
+                                .allowsHitTesting(false)
+                            }
+                        }
+
+                        GlassButton(title: "Continue without signing in", style: .ghost, isFullWidth: true) {
+                            advance(to: nextAfterSignIn)
                         }
                     }
-
-                    GlassButton(title: "Continue without signing in", style: .ghost, isFullWidth: true) {
-                        advance(to: nextAfterSignIn)
-                    }
+                    .transition(.opacity)
                 }
             }
         )
+        .animation(AppAnimation.springSnappy, value: authService.isSignedIn)
+    }
+
+    private var signedInConfirmation: some View {
+        HStack(spacing: Spacing.md) {
+            PulsatingDot(color: AppColor.accentPrimary, size: 12)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Signed In")
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text(authService.userDisplayName ?? authService.userEmail ?? "Apple ID connected")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            Spacer()
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(AppColor.accentPrimary)
+                .symbolEffect(.bounce, value: authService.isSignedIn)
+        }
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.accentPrimary.opacity(0.12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.accentPrimary.opacity(0.45), lineWidth: 1)
+                }
+        }
     }
 
     // MARK: - Page 8: Free-Trial Funnel
@@ -812,6 +859,18 @@ struct OnboardingView: View {
         withAnimation(AppAnimation.springSmooth) {
             currentPage = page
             bounceTrigger &+= 1
+        }
+    }
+
+    /// Holds the sign-in page for ~1.4 s so the "Signed In" confirmation
+    /// animation is actually visible, then advances. Used by both the
+    /// fresh-sign-in path and the already-authenticated re-onboard path.
+    private func scheduleSignInAdvance() {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1400))
+            if currentPage == 8 {
+                advance(to: nextAfterSignIn)
+            }
         }
     }
 
