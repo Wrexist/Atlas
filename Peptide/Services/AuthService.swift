@@ -1,5 +1,8 @@
 @preconcurrency import AuthenticationServices
 import Security
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Manages Sign in with Apple identity and Keychain-backed credential persistence.
 ///
@@ -14,10 +17,52 @@ final class AuthService {
     private(set) var userEmail: String?
     private(set) var userDisplayName: String?
 
+    /// True while an Apple Sign-In flow is in progress.
+    /// UI binds to this to show a spinner and disable the button.
+    private(set) var isSigningIn = false
+
+    /// Surfaces the most recent sign-in failure so the UI can show an alert.
+    /// Cleared by `clearLastError()` once the user dismisses the alert.
+    private(set) var lastError: SignInError?
+
+    enum SignInError: Equatable {
+        case canceled
+        case timedOut
+        case failed(String)
+
+        var title: String {
+            switch self {
+            case .canceled:  return "Sign-In Canceled"
+            case .timedOut:  return "Sign-In Is Taking Too Long"
+            case .failed:    return "Sign-In Failed"
+            }
+        }
+
+        var message: String {
+            switch self {
+            case .canceled:
+                return "You canceled the sign-in. You can try again or continue without signing in — all features work without an account."
+            case .timedOut:
+                return "Apple’s sign-in service didn’t respond. Check your connection or continue without signing in — all features work without an account."
+            case .failed(let underlying):
+                return "\(underlying) You can try again or continue without signing in — all features work without an account."
+            }
+        }
+    }
+
     private static let keychainService = "com.peptidesai.app.auth"
     private static let keychainAccountID = "apple-user-id"
     private static let keychainAccountEmail = "apple-user-email"
     private static let keychainAccountName = "apple-user-name"
+
+    /// Soft watchdog. Apple's auth daemon can hang on the system "Signing in…"
+    /// sheet (seen in App Review on iPadOS 26 / Stage Manager). After this we
+    /// drop our own in-progress state and surface a recoverable error, so the
+    /// user is never trapped without an exit.
+    private static let signInTimeout: Duration = .seconds(30)
+
+    private var coordinator: AppleSignInCoordinator?
+    private var timeoutTask: Task<Void, Never>?
 
     private init() {
         restoreFromKeychain()
@@ -25,7 +70,39 @@ final class AuthService {
 
     // MARK: - Sign In
 
-    /// Handles the credential returned by `SignInWithAppleButton`.
+    /// Starts the Sign in with Apple flow with an explicit presentation context
+    /// (required for reliable presentation on iPad / multi-scene setups).
+    /// Idempotent — extra taps while a request is in flight are ignored.
+    func signIn() {
+        guard !isSigningIn else { return }
+        lastError = nil
+        isSigningIn = true
+
+        let coordinator = AppleSignInCoordinator { [weak self] result in
+            Task { @MainActor in
+                self?.finishSignIn(result: result)
+            }
+        }
+        self.coordinator = coordinator
+        coordinator.start()
+
+        timeoutTask?.cancel()
+        timeoutTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: Self.signInTimeout)
+            guard let self, !Task.isCancelled, self.isSigningIn else { return }
+            self.isSigningIn = false
+            self.coordinator = nil
+            self.lastError = .timedOut
+            AppLog.auth.error("Sign in with Apple timed out (no callback within timeout window)")
+        }
+    }
+
+    func clearLastError() {
+        lastError = nil
+    }
+
+    /// Handles the credential returned by `ASAuthorizationController` (or by
+    /// the SwiftUI `SignInWithAppleButton` for callers that still use it).
     func handleAuthorization(_ result: Result<ASAuthorization, Error>) {
         guard case .success(let authorization) = result,
               let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
@@ -64,6 +141,27 @@ final class AuthService {
         userEmail       = email
         userDisplayName = name
         isSignedIn      = true
+    }
+
+    private func finishSignIn(result: Result<ASAuthorization, Error>) {
+        timeoutTask?.cancel()
+        timeoutTask = nil
+        coordinator = nil
+        isSigningIn = false
+
+        switch result {
+        case .success:
+            handleAuthorization(result)
+        case .failure(let error):
+            let asCode = (error as? ASAuthorizationError)?.code
+            switch asCode {
+            case .canceled:
+                lastError = .canceled
+            default:
+                lastError = .failed(error.localizedDescription)
+                AppLog.auth.error("Sign in with Apple failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
     }
 
     // MARK: - Sign Out
@@ -177,5 +275,77 @@ final class AuthService {
             kSecAttrAccount as String: account,
         ]
         SecItemDelete(query as CFDictionary)
+    }
+}
+
+// MARK: - ASAuthorizationController Coordinator
+
+/// Drives `ASAuthorizationController` directly so we can supply an explicit
+/// `presentationContextProvider`. The SwiftUI `SignInWithAppleButton` does not
+/// expose this, which leaves it brittle on iPad / Stage Manager / multi-scene
+/// layouts where the system can fail to find a window and hangs the
+/// "Signing in…" sheet indefinitely.
+@MainActor
+private final class AppleSignInCoordinator: NSObject {
+    typealias Completion = @Sendable (Result<ASAuthorization, Error>) -> Void
+
+    private let completion: Completion
+    private var hasFinished = false
+
+    init(completion: @escaping Completion) {
+        self.completion = completion
+    }
+
+    func start() {
+        let provider = ASAuthorizationAppleIDProvider()
+        let request = provider.createRequest()
+        request.requestedScopes = [.fullName, .email]
+
+        let controller = ASAuthorizationController(authorizationRequests: [request])
+        controller.delegate = self
+        controller.presentationContextProvider = self
+        controller.performRequests()
+    }
+
+    private func finish(_ result: Result<ASAuthorization, Error>) {
+        guard !hasFinished else { return }
+        hasFinished = true
+        completion(result)
+    }
+}
+
+extension AppleSignInCoordinator: ASAuthorizationControllerDelegate {
+    nonisolated func authorizationController(
+        controller: ASAuthorizationController,
+        didCompleteWithAuthorization authorization: ASAuthorization
+    ) {
+        Task { @MainActor in self.finish(.success(authorization)) }
+    }
+
+    nonisolated func authorizationController(
+        controller: ASAuthorizationController,
+        didCompleteWithError error: Error
+    ) {
+        Task { @MainActor in self.finish(.failure(error)) }
+    }
+}
+
+extension AppleSignInCoordinator: ASAuthorizationControllerPresentationContextProviding {
+    nonisolated func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        MainActor.assumeIsolated { Self.foregroundAnchor() }
+    }
+
+    @MainActor
+    private static func foregroundAnchor() -> ASPresentationAnchor {
+        #if canImport(UIKit)
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let activeScene = scenes.first(where: { $0.activationState == .foregroundActive })
+            ?? scenes.first(where: { $0.activationState == .foregroundInactive })
+            ?? scenes.first
+        if let window = activeScene?.windows.first(where: { $0.isKeyWindow }) ?? activeScene?.windows.first {
+            return window
+        }
+        #endif
+        return ASPresentationAnchor()
     }
 }

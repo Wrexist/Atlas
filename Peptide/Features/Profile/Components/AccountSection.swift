@@ -1,4 +1,3 @@
-@preconcurrency import AuthenticationServices
 import SwiftUI
 
 struct AccountSection: View {
@@ -23,6 +22,24 @@ struct AccountSection: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This permanently removes the Apple ID linkage from this device and erases all your protocols, dose entries, and profile data. If iCloud sync is on, the deletion propagates to your other devices. This cannot be undone.")
+        }
+        .alert(
+            authService.lastError?.title ?? "",
+            isPresented: Binding(
+                get: { authService.lastError != nil },
+                set: { if !$0 { authService.clearLastError() } }
+            ),
+            presenting: authService.lastError
+        ) { _ in
+            Button("Try Again") {
+                authService.clearLastError()
+                authService.signIn()
+            }
+            Button("Dismiss", role: .cancel) {
+                authService.clearLastError()
+            }
+        } message: { error in
+            Text(error.message)
         }
     }
 
@@ -63,17 +80,24 @@ struct AccountSection: View {
                 .foregroundStyle(AppColor.textSecondary))
                 .lineSpacing(3)
 
-            SignInWithAppleButton(.signIn) { request in
-                request.requestedScopes = [.fullName, .email]
-            } onCompletion: { result in
-                // onCompletion is @escaping @Sendable — hop to MainActor explicitly
-                Task { @MainActor in
-                    authService.handleAuthorization(result)
+            ZStack {
+                AppleSignInButton(cornerRadius: Spacing.smallCornerRadius) {
+                    authService.signIn()
+                }
+                .frame(height: 50)
+                .opacity(authService.isSigningIn ? 0.5 : 1)
+                .allowsHitTesting(!authService.isSigningIn)
+
+                if authService.isSigningIn {
+                    HStack(spacing: Spacing.sm) {
+                        ProgressView().tint(.black)
+                        Text("Signing in…")
+                            .font(AppFont.subheadline)
+                            .foregroundStyle(.black)
+                    }
+                    .allowsHitTesting(false)
                 }
             }
-            .signInWithAppleButtonStyle(.white)
-            .frame(height: 50)
-            .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius))
 
             Text("Optional — all features work without signing in")
                 .font(AppFont.caption)

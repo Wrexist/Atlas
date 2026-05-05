@@ -1,4 +1,3 @@
-@preconcurrency import AuthenticationServices
 import SwiftUI
 #if canImport(UIKit)
 import UIKit
@@ -18,6 +17,7 @@ struct OnboardingView: View {
     @State private var requestingHealth = false
     @State private var requestingNotifications = false
     @State private var bounceTrigger = 0
+    @State private var authService = AuthService.shared
 
     @FocusState private var nameFocused: Bool
 
@@ -87,6 +87,30 @@ struct OnboardingView: View {
         .onChange(of: selectedGoals) { _, _ in
             hasAutoSelectedRecommendations = false
             selectedRecommendationIds.removeAll()
+        }
+        .onChange(of: authService.isSignedIn) { _, signedIn in
+            if signedIn, currentPage == 8 {
+                advance(to: nextAfterSignIn)
+            }
+        }
+        .alert(
+            authService.lastError?.title ?? "",
+            isPresented: Binding(
+                get: { authService.lastError != nil && currentPage == 8 },
+                set: { if !$0 { authService.clearLastError() } }
+            ),
+            presenting: authService.lastError
+        ) { _ in
+            Button("Try Again") {
+                authService.clearLastError()
+                authService.signIn()
+            }
+            Button("Continue Without Signing In", role: .cancel) {
+                authService.clearLastError()
+                advance(to: nextAfterSignIn)
+            }
+        } message: { error in
+            Text(error.message)
         }
         .task { await storeService.loadProducts() }
     }
@@ -618,19 +642,24 @@ struct OnboardingView: View {
             },
             footer: {
                 VStack(spacing: Spacing.sm) {
-                    SignInWithAppleButton(.signIn) { request in
-                        request.requestedScopes = [.fullName, .email]
-                    } onCompletion: { result in
-                        Task { @MainActor in
-                            AuthService.shared.handleAuthorization(result)
-                            if case .success = result, currentPage == 8 {
-                                advance(to: nextAfterSignIn)
+                    ZStack {
+                        AppleSignInButton(cornerRadius: 26) {
+                            authService.signIn()
+                        }
+                        .frame(height: 52)
+                        .opacity(authService.isSigningIn ? 0.5 : 1)
+                        .allowsHitTesting(!authService.isSigningIn)
+
+                        if authService.isSigningIn {
+                            HStack(spacing: Spacing.sm) {
+                                ProgressView().tint(.black)
+                                Text("Signing in…")
+                                    .font(AppFont.subheadline)
+                                    .foregroundStyle(.black)
                             }
+                            .allowsHitTesting(false)
                         }
                     }
-                    .signInWithAppleButtonStyle(.white)
-                    .frame(height: 52)
-                    .clipShape(Capsule())
 
                     GlassButton(title: "Continue without signing in", style: .ghost, isFullWidth: true) {
                         advance(to: nextAfterSignIn)
