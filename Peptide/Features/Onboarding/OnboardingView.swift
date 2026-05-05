@@ -83,6 +83,12 @@ struct OnboardingView: View {
                 selectedRecommendationIds = Set(top)
                 hasAutoSelectedRecommendations = true
             }
+            // If the user lands on the sign-in page already authenticated
+            // (e.g. Keychain survived a re-onboard), still show the
+            // confirmation briefly and advance — never strand them here.
+            if newValue == 8 && authService.isSignedIn {
+                scheduleSignInAdvance()
+            }
         }
         .onChange(of: selectedGoals) { _, _ in
             hasAutoSelectedRecommendations = false
@@ -90,17 +96,10 @@ struct OnboardingView: View {
         }
         .onChange(of: authService.isSignedIn) { _, signedIn in
             if signedIn, currentPage == 8 {
-                // Hold on this page briefly so the user actually sees the
-                // "Signed In" confirmation animation before we advance.
                 if dataStore.profile.hapticFeedbackEnabled {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                 }
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(1400))
-                    if currentPage == 8 {
-                        advance(to: nextAfterSignIn)
-                    }
-                }
+                scheduleSignInAdvance()
             }
         }
         .alert(
@@ -860,6 +859,18 @@ struct OnboardingView: View {
         withAnimation(AppAnimation.springSmooth) {
             currentPage = page
             bounceTrigger &+= 1
+        }
+    }
+
+    /// Holds the sign-in page for ~1.4 s so the "Signed In" confirmation
+    /// animation is actually visible, then advances. Used by both the
+    /// fresh-sign-in path and the already-authenticated re-onboard path.
+    private func scheduleSignInAdvance() {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1400))
+            if currentPage == 8 {
+                advance(to: nextAfterSignIn)
+            }
         }
     }
 
