@@ -18,6 +18,11 @@ struct OnboardingView: View {
     @State private var requestingNotifications = false
     @State private var bounceTrigger = 0
     @State private var authService = AuthService.shared
+    /// Flips true only after the user completes a sign-in attempt during
+    /// this onboarding session. Keychain-restored sessions (`isSignedIn`
+    /// true on launch) deliberately do not flip this — the user should
+    /// still see the SIWA button until they explicitly act.
+    @State private var signedInThisSession = false
 
     @FocusState private var nameFocused: Bool
 
@@ -83,24 +88,25 @@ struct OnboardingView: View {
                 selectedRecommendationIds = Set(top)
                 hasAutoSelectedRecommendations = true
             }
-            // If the user lands on the sign-in page already authenticated
-            // (e.g. Keychain survived a re-onboard), still show the
-            // confirmation briefly and advance — never strand them here.
-            if newValue == 8 && authService.isSignedIn {
-                scheduleSignInAdvance()
-            }
         }
         .onChange(of: selectedGoals) { _, _ in
             hasAutoSelectedRecommendations = false
             selectedRecommendationIds.removeAll()
         }
-        .onChange(of: authService.isSignedIn) { _, signedIn in
-            if signedIn, currentPage == 8 {
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                }
-                scheduleSignInAdvance()
+        .onChange(of: authService.isSigningIn) { wasSigningIn, isSigningIn in
+            // Only treat this as "user just completed sign-in" when we
+            // observe the in-progress flag flipping back to false AND the
+            // attempt actually authenticated (signed in, no error). Keychain
+            // restoration sets isSignedIn at app init without ever flipping
+            // isSigningIn, so it cannot trigger this path.
+            guard wasSigningIn, !isSigningIn else { return }
+            guard authService.isSignedIn, authService.lastError == nil else { return }
+            guard currentPage == 8, !signedInThisSession else { return }
+            signedInThisSession = true
+            if dataStore.profile.hapticFeedbackEnabled {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
             }
+            scheduleSignInAdvance()
         }
         .alert(
             authService.lastError?.title ?? "",
@@ -650,7 +656,7 @@ struct OnboardingView: View {
                 }
             },
             footer: {
-                if authService.isSignedIn {
+                if signedInThisSession {
                     signedInConfirmation
                         .transition(.opacity.combined(with: .scale(scale: 0.92)))
                 } else {
@@ -682,7 +688,7 @@ struct OnboardingView: View {
                 }
             }
         )
-        .animation(AppAnimation.springSnappy, value: authService.isSignedIn)
+        .animation(AppAnimation.springSnappy, value: signedInThisSession)
     }
 
     private var signedInConfirmation: some View {
@@ -702,7 +708,7 @@ struct OnboardingView: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
-                .symbolEffect(.bounce, value: authService.isSignedIn)
+                .symbolEffect(.bounce, value: signedInThisSession)
         }
         .padding(Spacing.md)
         .frame(maxWidth: .infinity)
