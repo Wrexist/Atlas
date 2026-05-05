@@ -78,10 +78,9 @@ final class AuthService {
         lastError = nil
         isSigningIn = true
 
+        AppLog.auth.info("Sign in with Apple: starting request")
         let coordinator = AppleSignInCoordinator { [weak self] result in
-            Task { @MainActor in
-                self?.finishSignIn(result: result)
-            }
+            self?.finishSignIn(result: result)
         }
         self.coordinator = coordinator
         coordinator.start()
@@ -103,10 +102,12 @@ final class AuthService {
 
     /// Handles the credential returned by `ASAuthorizationController` (or by
     /// the SwiftUI `SignInWithAppleButton` for callers that still use it).
-    func handleAuthorization(_ result: Result<ASAuthorization, Error>) {
-        guard case .success(let authorization) = result,
-              let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
-            return
+    @discardableResult
+    func handleAuthorization(_ result: Result<ASAuthorization, Error>) -> Bool {
+        guard case .success(let authorization) = result else { return false }
+        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+            AppLog.auth.error("Authorization succeeded but credential was not ASAuthorizationAppleIDCredential")
+            return false
         }
 
         let userId = credential.user
@@ -127,10 +128,13 @@ final class AuthService {
             return sameAccount ? Self.readKeychain(account: Self.keychainAccountName) : nil
         }()
 
-        // Persist user ID first — abort sign-in if it can't be stored.
-        // Only clear old profile data after confirming the new ID landed safely.
-        guard Self.writeKeychain(value: userId, account: Self.keychainAccountID) == errSecSuccess else { return }
-        if !sameAccount {
+        // Persist user ID first. If Keychain is unavailable, still set the
+        // in-memory session so the UI advances — the user is authenticated
+        // for this launch even if persistence failed.
+        let writeStatus = Self.writeKeychain(value: userId, account: Self.keychainAccountID)
+        if writeStatus != errSecSuccess {
+            AppLog.auth.error("Keychain write failed (\(writeStatus, privacy: .public)); proceeding with in-memory session")
+        } else if !sameAccount {
             Self.deleteKeychain(account: Self.keychainAccountEmail)
             Self.deleteKeychain(account: Self.keychainAccountName)
         }
@@ -141,6 +145,8 @@ final class AuthService {
         userEmail       = email
         userDisplayName = name
         isSignedIn      = true
+        AppLog.auth.info("Sign in with Apple: session established")
+        return true
     }
 
     private func finishSignIn(result: Result<ASAuthorization, Error>) {
@@ -151,15 +157,19 @@ final class AuthService {
 
         switch result {
         case .success:
-            handleAuthorization(result)
+            AppLog.auth.info("Sign in with Apple: received success callback")
+            if !handleAuthorization(result) {
+                lastError = .failed("Could not read your Apple ID credential.")
+            }
         case .failure(let error):
             let asCode = (error as? ASAuthorizationError)?.code
             switch asCode {
             case .canceled:
+                AppLog.auth.info("Sign in with Apple: user canceled")
                 lastError = .canceled
             default:
-                lastError = .failed(error.localizedDescription)
                 AppLog.auth.error("Sign in with Apple failed: \(error.localizedDescription, privacy: .public)")
+                lastError = .failed(error.localizedDescription)
             }
         }
     }
@@ -287,9 +297,15 @@ final class AuthService {
 /// "Signing in…" sheet indefinitely.
 @MainActor
 private final class AppleSignInCoordinator: NSObject {
-    typealias Completion = @Sendable (Result<ASAuthorization, Error>) -> Void
+    typealias Completion = @MainActor (Result<ASAuthorization, Error>) -> Void
 
     private let completion: Completion
+    /// Strong reference to the in-flight controller. Apple's docs require
+    /// holding a strong reference for the duration of the request — without
+    /// this, the controller can be deallocated before its delegate fires and
+    /// the success callback is silently dropped (observed: system sheet
+    /// shows "Klar" / done, app does not advance).
+    private var controller: ASAuthorizationController?
     private var hasFinished = false
 
     init(completion: @escaping Completion) {
@@ -304,29 +320,42 @@ private final class AppleSignInCoordinator: NSObject {
         let controller = ASAuthorizationController(authorizationRequests: [request])
         controller.delegate = self
         controller.presentationContextProvider = self
+        self.controller = controller
         controller.performRequests()
     }
 
-    private func finish(_ result: Result<ASAuthorization, Error>) {
+    fileprivate func finish(_ result: Result<ASAuthorization, Error>) {
         guard !hasFinished else { return }
         hasFinished = true
+        controller = nil
         completion(result)
     }
 }
 
 extension AppleSignInCoordinator: ASAuthorizationControllerDelegate {
+    // UIKit calls these on the main thread; resolve synchronously to avoid
+    // an async hop that could be reordered or dropped under concurrency
+    // diagnostics. `assumeIsolated` is safe here because the framework
+    // contract is that delegate callbacks land on the main thread.
+
     nonisolated func authorizationController(
         controller: ASAuthorizationController,
         didCompleteWithAuthorization authorization: ASAuthorization
     ) {
-        Task { @MainActor in self.finish(.success(authorization)) }
+        MainActor.assumeIsolated {
+            AppLog.auth.info("ASAuthorizationController: didCompleteWithAuthorization")
+            self.finish(.success(authorization))
+        }
     }
 
     nonisolated func authorizationController(
         controller: ASAuthorizationController,
         didCompleteWithError error: Error
     ) {
-        Task { @MainActor in self.finish(.failure(error)) }
+        MainActor.assumeIsolated {
+            AppLog.auth.info("ASAuthorizationController: didCompleteWithError \(error.localizedDescription, privacy: .public)")
+            self.finish(.failure(error))
+        }
     }
 }
 
