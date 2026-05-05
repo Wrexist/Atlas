@@ -90,7 +90,17 @@ struct OnboardingView: View {
         }
         .onChange(of: authService.isSignedIn) { _, signedIn in
             if signedIn, currentPage == 8 {
-                advance(to: nextAfterSignIn)
+                // Hold on this page briefly so the user actually sees the
+                // "Signed In" confirmation animation before we advance.
+                if dataStore.profile.hapticFeedbackEnabled {
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(1400))
+                    if currentPage == 8 {
+                        advance(to: nextAfterSignIn)
+                    }
+                }
             }
         }
         .alert(
@@ -641,32 +651,70 @@ struct OnboardingView: View {
                 }
             },
             footer: {
-                VStack(spacing: Spacing.sm) {
-                    ZStack {
-                        AppleSignInButton(cornerRadius: 26) {
-                            authService.signIn()
-                        }
-                        .frame(height: 52)
-                        .opacity(authService.isSigningIn ? 0.5 : 1)
-                        .allowsHitTesting(!authService.isSigningIn)
-
-                        if authService.isSigningIn {
-                            HStack(spacing: Spacing.sm) {
-                                ProgressView().tint(.black)
-                                Text("Signing in…")
-                                    .font(AppFont.subheadline)
-                                    .foregroundStyle(.black)
+                if authService.isSignedIn {
+                    signedInConfirmation
+                        .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                } else {
+                    VStack(spacing: Spacing.sm) {
+                        ZStack {
+                            AppleSignInButton(cornerRadius: 26) {
+                                authService.signIn()
                             }
-                            .allowsHitTesting(false)
+                            .frame(height: 52)
+                            .opacity(authService.isSigningIn ? 0.5 : 1)
+                            .allowsHitTesting(!authService.isSigningIn)
+
+                            if authService.isSigningIn {
+                                HStack(spacing: Spacing.sm) {
+                                    ProgressView().tint(.black)
+                                    Text("Signing in…")
+                                        .font(AppFont.subheadline)
+                                        .foregroundStyle(.black)
+                                }
+                                .allowsHitTesting(false)
+                            }
+                        }
+
+                        GlassButton(title: "Continue without signing in", style: .ghost, isFullWidth: true) {
+                            advance(to: nextAfterSignIn)
                         }
                     }
-
-                    GlassButton(title: "Continue without signing in", style: .ghost, isFullWidth: true) {
-                        advance(to: nextAfterSignIn)
-                    }
+                    .transition(.opacity)
                 }
             }
         )
+        .animation(AppAnimation.springSnappy, value: authService.isSignedIn)
+    }
+
+    private var signedInConfirmation: some View {
+        HStack(spacing: Spacing.md) {
+            PulsatingDot(color: AppColor.accentPrimary, size: 12)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Signed In")
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text(authService.userDisplayName ?? authService.userEmail ?? "Apple ID connected")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            Spacer()
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(AppColor.accentPrimary)
+                .symbolEffect(.bounce, value: authService.isSignedIn)
+        }
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.accentPrimary.opacity(0.12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.accentPrimary.opacity(0.45), lineWidth: 1)
+                }
+        }
     }
 
     // MARK: - Page 8: Free-Trial Funnel
