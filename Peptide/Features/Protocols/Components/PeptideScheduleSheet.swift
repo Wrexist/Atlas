@@ -41,30 +41,10 @@ struct PeptideScheduleSheet: View {
         !useCustom || !selectedDays.isEmpty
     }
 
-    /// Quick-pick suggestions parsed from the peptide's dosageRange (e.g. "200-500 mcg").
-    /// Returns Low/Mid/High preset rows so the picker can render distinct chips.
-    private var dosePresets: [DosePreset] {
-        let range = peptide.dosageRange
-        let parts = range.components(separatedBy: "-")
-        guard parts.count == 2 else { return [DosePreset(label: "Default", value: range)] }
-        let unit = parts[1].components(separatedBy: " ").dropFirst().joined(separator: " ")
-        let lowDigits = parts[0].trimmingCharacters(in: .whitespaces)
-        let highRaw = parts[1].trimmingCharacters(in: .whitespaces)
-        let highDigits = highRaw.components(separatedBy: " ").first ?? highRaw
-        guard let low = Double(lowDigits), let high = Double(highDigits), low < high else {
-            return [DosePreset(label: "Default", value: range)]
-        }
-        let mid = (low + high) / 2
-        let format: (Double) -> String = { v in
-            v == v.rounded() ? "\(Int(v))" : String(format: "%.1f", v)
-        }
-        let suffix = unit.isEmpty ? "" : " \(unit)"
-        return [
-            DosePreset(label: "Low", value: "\(format(low))\(suffix)"),
-            DosePreset(label: "Mid", value: "\(format(mid))\(suffix)"),
-            DosePreset(label: "High", value: "\(format(high))\(suffix)")
-        ]
-    }
+    // Pre-filled dose presets were removed to avoid suggesting any specific
+    // dose. Users enter their own dose (the one their clinician advised) into
+    // the text field; the peptide's reported research range is displayed
+    // beside the field for reference only.
 
     var body: some View {
         NavigationStack {
@@ -215,9 +195,10 @@ struct PeptideScheduleSheet: View {
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
-                Text("Override the dose for this peptide. Leave blank to use the default.")
+                Text("Enter the dose your clinician advised. The research range above is reference only — PeptideX does not recommend or calculate doses.")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 HStack(spacing: Spacing.sm) {
                     TextField("e.g., 300 mcg", text: $customDose)
@@ -250,22 +231,6 @@ struct PeptideScheduleSheet: View {
                     }
                 }
 
-                if dosePresets.count > 1 {
-                    HStack(spacing: Spacing.xs) {
-                        ForEach(dosePresets) { preset in
-                            DoseChip(
-                                label: preset.label,
-                                value: preset.value,
-                                isSelected: customDose == preset.value
-                            ) {
-                                withAnimation(AppAnimation.springSnappy) {
-                                    customDose = preset.value
-                                }
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            }
-                        }
-                    }
-                }
             }
         }
     }
@@ -294,51 +259,6 @@ struct PeptideScheduleSheet: View {
             let period = hour24 >= 12 ? "PM" : "AM"
             return "\(hour12):00 \(period)"
         }
-    }
-}
-
-private struct DosePreset: Identifiable {
-    var id: String { value }
-    let label: String
-    let value: String
-}
-
-private struct DoseChip: View {
-    let label: String
-    let value: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 2) {
-                Text(label)
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textTertiary)
-                    .textCase(.uppercase)
-                Text(value)
-                    .font(AppFont.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .padding(.horizontal, Spacing.xs)
-            .background {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isSelected ? AppColor.accentPrimary.opacity(0.25) : AppColor.surfaceElevated)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(
-                                isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                lineWidth: 0.5
-                            )
-                    }
-            }
-        }
-        .buttonStyle(.plain)
     }
 }
 

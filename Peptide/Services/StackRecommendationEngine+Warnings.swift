@@ -45,7 +45,7 @@ extension StackRecommendationEngine {
                 severity: .caution,
                 title: "Compounding \"\(effect)\" risk",
                 detail: "\(names.count) peptides in your stack share this side effect, which may intensify.",
-                suggestion: "Consider staggering administration times or reducing doses to minimize compounding.",
+                suggestion: "Discuss this overlap with a qualified clinician before continuing the protocol.",
                 peptides: names.sorted(),
                 icon: "waveform.path.ecg"
             ))

@@ -49,10 +49,13 @@ enum PeptideDatabase {
     }()
 
     private static let fallbackDisclaimer = """
-    This information is for educational purposes only. It does not constitute \
-    medical advice. Many peptides referenced are research chemicals not approved \
-    for human use. Always consult a qualified healthcare provider before \
-    starting, changing, or stopping any protocol.
+    This information is for educational purposes only. PeptideX does not \
+    provide medical advice, recommend doses, prescribe, or calculate dosages. \
+    The values shown are summaries of figures reported in the published \
+    research literature, with citations on every peptide page. Many peptides \
+    referenced are research chemicals not approved for human use in many \
+    jurisdictions. Always consult a qualified, licensed healthcare provider \
+    before starting, changing, or stopping any protocol.
     """
 
     // MARK: - Decoding DTOs

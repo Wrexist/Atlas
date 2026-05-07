@@ -266,8 +266,7 @@ struct OnboardingView: View {
             content: {
                 RecommendationsPage(
                     suggestions: currentSuggestions,
-                    selectedIds: $selectedRecommendationIds,
-                    metricsAvailable: bodyMetrics.hasWeight
+                    selectedIds: $selectedRecommendationIds
                 )
             },
             footer: {
@@ -292,7 +291,6 @@ struct OnboardingView: View {
     private var currentSuggestions: [OnboardingRecommendationEngine.Suggestion] {
         OnboardingRecommendationEngine.recommend(
             goals: Array(selectedGoals),
-            metrics: bodyMetrics,
             from: dataStore.peptideDatabase
         )
     }

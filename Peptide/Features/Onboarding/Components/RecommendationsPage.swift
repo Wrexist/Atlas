@@ -1,17 +1,22 @@
 import SwiftUI
 
-/// Onboarding page that shows the cold-start peptide recommendations derived
-/// from the user's selected goals and (optional) body metrics. The user picks
-/// which peptides go into their starter stack — at least one is required to
-/// build the protocol; "Skip for now" is always available.
+/// Onboarding page that surfaces educational, goal-based peptide matches
+/// drawn from the user's selected goals. The user picks which peptides go
+/// into their starter stack — at least one is required to build the protocol;
+/// "Skip for now" is always available.
+///
+/// IMPORTANT: This screen does NOT display dose values or compute any dose
+/// recommendation. It is a goal-to-peptide educational matcher. Users open
+/// each peptide's detail page (with research citations) before deciding
+/// whether to track it, and any dose they end up logging is provided by
+/// their own clinician.
 struct RecommendationsPage: View {
     let suggestions: [OnboardingRecommendationEngine.Suggestion]
     @Binding var selectedIds: Set<UUID>
-    let metricsAvailable: Bool
 
     var body: some View {
         VStack(spacing: Spacing.md) {
-            Text("Your recommended stack")
+            Text("Educational matches")
                 .font(AppFont.title)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
@@ -36,18 +41,18 @@ struct RecommendationsPage: View {
                     }
                 }
                 .padding(.top, Spacing.sm)
+
+                educationalNotice
+                    .padding(.top, Spacing.sm)
             }
         }
     }
 
     private var subtitle: String {
         if suggestions.isEmpty {
-            return "We couldn't match your goals to a peptide. You can build a custom protocol from the full library after onboarding."
+            return "We couldn't match your goals to a peptide. You can browse the full educational library after onboarding."
         }
-        if metricsAvailable {
-            return "Doses scaled to your weight where the literature supports it. Tap to add or remove."
-        }
-        return "Doses use published research ranges. Tap to add or remove."
+        return "Peptides matched to your goals for further reading. Tap to add or remove. Not a dose recommendation."
     }
 
     private var emptyState: some View {
@@ -56,11 +61,35 @@ struct RecommendationsPage: View {
                 Label("No matches yet", systemImage: "lightbulb")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("Browse the full peptide library after onboarding and build a protocol manually.")
+                Text("Browse the full peptide library after onboarding to read about each entry.")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    private var educationalNotice: some View {
+        HStack(alignment: .top, spacing: Spacing.sm) {
+            Image(systemName: "stethoscope")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+                .padding(.top, 2)
+
+            Text("PeptideX does not recommend, prescribe, or calculate doses. Tap any match to read its educational detail page with research citations. Always consult a qualified clinician before starting any protocol.")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.5))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                }
         }
     }
 
@@ -108,24 +137,14 @@ private struct SuggestionRow: View {
                             }
                     }
 
-                    HStack(spacing: Spacing.xs) {
-                        Text(suggestion.suggestedDose)
-                            .font(AppFont.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(AppColor.accentLight)
-                        if suggestion.isPersonalized {
-                            personalizedBadge
-                        }
-                    }
-
-                    Text(suggestion.peptide.frequency)
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textTertiary)
-                        .lineLimit(1)
+                    Text(suggestion.peptide.name)
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .lineLimit(2)
 
                     Text(suggestion.rationale)
                         .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
+                        .foregroundStyle(AppColor.accentLight)
                         .lineLimit(2)
                         .padding(.top, 2)
                 }
@@ -155,22 +174,7 @@ private struct SuggestionRow: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(suggestion.peptide.abbreviation), \(suggestion.suggestedDose), \(suggestion.peptide.frequency)")
+        .accessibilityLabel("\(suggestion.peptide.abbreviation), \(suggestion.peptide.name)")
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
-    }
-
-    private var personalizedBadge: some View {
-        HStack(spacing: 2) {
-            Image(systemName: "person.fill.checkmark")
-                .font(.system(size: 9, weight: .bold))
-            Text("YOUR DOSE")
-                .font(.system(size: 9, weight: .bold))
-        }
-        .foregroundStyle(AppColor.accentPrimary)
-        .padding(.horizontal, 5)
-        .padding(.vertical, 2)
-        .background {
-            Capsule().fill(AppColor.accentPrimary.opacity(0.15))
-        }
     }
 }

@@ -44,55 +44,52 @@ All text respects Apple's current character limits. Placeholders are marked
 ## Promotional Text *(170 char limit — can be updated without review)*
 
 ```
-Track every dose, see the patterns behind your compliance, and correlate with
-HealthKit — all on-device, with no tracking and no backend.
+Educational peptide reference and on-device dose journal. Read research,
+log what you take, see your compliance. Pro unlocks more (subscription).
 ```
-*(162 / 170)*
+*(141 / 170)*
 
 ---
 
 ## Description *(4000 char limit)*
 
 ```
-PeptideX is a private, native iOS app for tracking peptide supplementation
-protocols. Build a schedule, log every dose, and see what your adherence
-actually looks like week over week — with everything stored on your device.
+PeptideX is a private, native iOS educational reference and self-tracking
+journal for people who already follow peptide supplementation protocols on
+the advice of a qualified clinician. Look up published research, build a
+schedule you input yourself, log what you actually take, and see your
+adherence over time — all stored on your device.
 
-DESIGNED FOR THE WAY PEOPLE ACTUALLY RUN PROTOCOLS
-• Build protocols with flexible daily, weekly, or cycled schedules
-• Log each dose with the actual amount, time, injection site, and free-form notes
+PeptideX does NOT prescribe, recommend, or calculate doses. Every value is
+labeled as reported in the research literature with citations on each
+peptide page. Always consult a qualified clinician before starting,
+changing, or stopping any protocol.
+
+INCLUDED FOR EVERY USER (FREE)
+• Browse 208 peptides across six categories with full research citations
+• Build up to 3 active protocols with flexible daily, weekly, or cycled schedules
+• Log each dose with the amount, time, injection site, and free-form notes
 • Pause and resume cycles without losing history
+• Local dose reminders on your iPhone (Mark as Taken / Snooze actions)
+• Read-only Apple Health integration for HR, HRV, sleep, activity
+• Basic compliance analytics — streaks, weekly heatmap, day-of-week patterns
+• Compliance widget on your Home Screen
 • 14 achievements across dose milestones, streaks, and logging consistency
+• Add your own custom peptides
+• Sign in with Apple (optional)
 
-208 PEPTIDES + CUSTOMS, BUNDLED AND SEARCHABLE
-• Six categories: healing, metabolic, cognitive, longevity, performance, immune
-• Research links on every entry
-• Educational content with explicit safety disclaimers — not a prescribing tool
-• NEW custom feature to add peptides yourself
-
-COMPLIANCE ANALYTICS BUILT ON SWIFT CHARTS
-• Streaks, weekly heatmap, and trend lines
-• Day-of-week patterns so you can see where adherence drifts
-• Insight engine highlights milestones, slumps, and positive trends
-
-CORRELATE WITH APPLE HEALTH (OPTIONAL)
-• Read-only HealthKit integration for heart rate, HRV, sleep, activity
-• See overlap between protocol adherence and the signals you already trust
-• PeptideX does not write to Apple Health
-
-ACTIONABLE DOSE REMINDERS
-• Rich local notifications with "Mark as Taken" and "Snooze" actions
-• Per-time-slot consolidation so you stay under iOS's 64-notification limit
-• No remote push — reminders live entirely on your device
-
-HOME SCREEN WIDGETS
-• Small: your next dose at a glance
-• Medium: today's compliance ring plus schedule
-
-EXPORT WHATEVER YOU NEED
-• One-tap CSV export for spreadsheets
-• Full JSON backup for portability
-• Nothing is ever uploaded unless you choose to share it
+PEPTIDEX PRO — UNLOCKED BY SUBSCRIPTION OR LIFETIME PURCHASE
+Every feature listed below requires PeptideX Pro. Pro is offered as a
+monthly auto-renewing subscription, an annual auto-renewing subscription,
+or a one-time lifetime purchase. A 3-day free trial is available on monthly
+and a 14-day free trial on annual. Cancel anytime in your Apple ID
+settings.
+• Unlimited protocols (PeptideX Pro — subscription required)
+• Full analytics with HealthKit correlation (PeptideX Pro — subscription required)
+• AI insights and smart suggestions (PeptideX Pro — subscription required)
+• Cloud sync across all your devices (PeptideX Pro — subscription required)
+• Every Home Screen widget plus Apple Watch (PeptideX Pro — subscription required)
+• CSV and JSON data export (PeptideX Pro — subscription required)
 
 PRIVATE BY DEFAULT
 • No analytics, no trackers, no advertising SDKs
@@ -100,18 +97,14 @@ PRIVATE BY DEFAULT
 • Optional Sign in with Apple, stored only in the iOS Keychain
 • Privacy manifest declares zero collected data types
 
-PEPTIDEX PRO
-Unlock unlimited protocols, full analytics with HealthKit correlation, AI
-insights, all Home Screen widgets, and full CSV / JSON / PDF export with a
-monthly or annual subscription. A 3-day free trial is available on monthly;
-14 days on annual. Cancel anytime in your Apple ID settings.
-
 IMPORTANT — MEDICAL DISCLAIMER
-PeptideX is an educational and tracking tool. It is not a medical device and
-does not provide medical advice, diagnosis, or treatment. Many substances in
-the database are research chemicals not approved for human use. Always
-consult a qualified healthcare provider before starting, changing, or
-stopping any protocol.
+PeptideX is an educational reference and self-tracking journal. It is not a
+medical device and does not provide medical advice, diagnosis, treatment,
+dose recommendations, or dose calculations. Information about peptides is
+summarized from published research with citations on each peptide page.
+Many substances referenced are research chemicals not approved for human
+use in many jurisdictions. Always consult a qualified, licensed healthcare
+provider before starting, changing, or stopping any protocol.
 ```
 
 ---
@@ -135,19 +128,32 @@ peptide,protocol,tracker,bpc157,tb500,biohack,supplement,injection,dose,reminder
 ```
 Welcome to PeptideX 1.0.
 
-Version 1.0 ships the full v1 experience:
-• 208 peptides across six categories, fully searchable
-• Protocol builder with flexible schedules
+Version 1.0 ships the full v1 experience.
+
+Included for every user (free):
+• 208 peptides across six categories, fully searchable, with research citations
+• Up to 3 protocols with flexible schedules
 • Dose logging with site, time, and notes
-• Swift Charts analytics: streaks, heatmap, trends
+• Local dose reminders with Mark as Taken / Snooze
 • Read-only HealthKit correlation (HR, HRV, sleep, activity)
-• Home Screen widgets for next dose and compliance ring
-• Rich local dose reminders with Mark as Taken / Snooze
+• Compliance widget for your Home Screen
+• Basic analytics: streaks, heatmap, day-of-week
 • 14 achievements
-• CSV and JSON export
-• PeptideX Pro subscription with a 3- or 14-day free trial, or one-time lifetime purchase
+• Optional Sign in with Apple
+
+PeptideX Pro features (subscription or lifetime purchase required):
+• Unlimited protocols
+• Full analytics with HealthKit correlation
+• AI insights and smart suggestions
+• Cloud sync across devices
+• Every Home Screen widget plus Apple Watch
+• CSV and JSON data export
+• 3-day free trial on monthly, 14-day free trial on annual, or one-time lifetime
 
 Private by default: no backend, no analytics, no third-party SDKs.
+
+PeptideX is an educational reference and self-tracking journal — it does
+not recommend or calculate doses. Always consult a qualified clinician.
 
 Thanks for trying PeptideX. Send feedback to support@peptidesai.com — we
 read everything.
@@ -325,6 +331,33 @@ Suggested screen order (per device):
 5. **HealthKit correlation** — HRV / sleep overlay
 6. **Widgets on Home Screen** — small + medium (marketing shot)
 7. **Paywall** — clean pricing page
+
+### Apple Guideline 2.3.2 — paid-feature labeling on screenshots
+
+Apple's most recent rejection cited the screenshots and description for
+referencing paid content (PeptideX Pro features, advanced analytics, cloud
+sync, AI insights, full export, all widgets, Apple Watch) without
+indicating that a purchase is required.
+
+Before resubmitting:
+
+- **Caption every screenshot that depicts a Pro-only feature** with the
+  literal text `PeptideX Pro — subscription required`. Paid features in
+  this app are: unlimited protocols, full analytics with HealthKit
+  correlation, AI insights, cloud sync, every Home Screen widget, Apple
+  Watch app, and CSV/JSON export.
+- **Free-tier features that should NOT carry the Pro label**: protocol
+  building (up to 3), dose logging, local dose reminders, the basic
+  compliance widget, the educational peptide library with citations, and
+  read-only HealthKit correlation visible inside the basic analytics view.
+- The paywall screenshot (slot 7) must remain in the screenshot set and
+  display the auto-renew disclosure plus Terms / Privacy links so the
+  reviewer can see them at a glance.
+- If you keep an "AI insights" or "Cloud sync" screenshot, add a visible
+  badge or caption overlay reading "PeptideX Pro" so the listing matches
+  what is gated in the binary (`StoreService.canAccessAIFeatures`,
+  `canAccessCloudSync`, `canAccessFullAnalytics`, `canAccessExport`,
+  `canAccessAllWidgets`).
 
 Use the 1024×1024 marketing icon already in
 `Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png` for the
