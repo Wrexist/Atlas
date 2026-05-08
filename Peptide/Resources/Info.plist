@@ -25,6 +25,8 @@
 	<string>PeptideX uses Face ID to optionally lock the app, so your protocols and health data stay private if your device is unlocked. Face ID is optional — you can disable it in Settings.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>PeptideX reads heart rate, HRV, resting heart rate, body mass, steps, and active energy from Apple Health to correlate your peptide protocols with biometric trends. PeptideX never writes to Apple Health and all analysis happens on your device.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>PeptideX does not write to Apple Health and never modifies your health records.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UILaunchScreen</key>
