@@ -6,7 +6,6 @@ struct PeptideDetailView: View {
     @State private var showingPicker = false
     @State private var showingBuilder = false
     @State private var showingPaywall = false
-    @AppStorage("experienceLevel") private var experienceLevel = "beginner"
 
     private enum Section: Hashable {
         case hero, yourStacks, about, mechanism, benefits, dosage, sideEffects,
@@ -27,7 +26,7 @@ struct PeptideDetailView: View {
         if !peptide.contraindications.isEmpty { ids.append(.contraindications) }
         if !peptide.commonStacks.isEmpty { ids.append(.stacks) }
         if !peptide.regulatoryStatus.isEmpty { ids.append(.regulatory) }
-        if !peptide.researchLinks.isEmpty && experienceLevel != "beginner" { ids.append(.research) }
+        if !peptide.researchLinks.isEmpty { ids.append(.research) }
         if let mol = peptide.molecular, !mol.formula.isEmpty { ids.append(.molecular) }
         return ids
     }
@@ -37,6 +36,7 @@ struct PeptideDetailView: View {
     }
 
     var body: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             LazyVStack(spacing: Spacing.lg) {
                 // Hero Section
@@ -154,8 +154,10 @@ struct PeptideDetailView: View {
                 .sectionAppear(index: staggerIndex(.benefits))
 
                 // Dosage Info
-                DosageInfoSection(peptide: peptide)
-                    .sectionAppear(index: staggerIndex(.dosage))
+                DosageInfoSection(peptide: peptide) {
+                    withAnimation { proxy.scrollTo(Section.research, anchor: .top) }
+                }
+                .sectionAppear(index: staggerIndex(.dosage))
 
                 // Side Effects
                 if !peptide.sideEffects.isEmpty {
@@ -269,9 +271,12 @@ struct PeptideDetailView: View {
                     .sectionAppear(index: staggerIndex(.regulatory))
                 }
 
-                // Research Links (hidden for beginners)
-                if !peptide.researchLinks.isEmpty && experienceLevel != "beginner" {
+                // Research Links — shown to every user so dosage and other
+                // medical info are always paired with verifiable sources
+                // (Apple Guideline 1.4.1).
+                if !peptide.researchLinks.isEmpty {
                     ResearchLinksSection(links: peptide.researchLinks, categoryColor: peptide.category.color)
+                        .id(Section.research)
                         .sectionAppear(index: staggerIndex(.research))
                 }
 
@@ -306,6 +311,7 @@ struct PeptideDetailView: View {
         }
         .sheet(isPresented: $showingPaywall) {
             PaywallView()
+        }
         }
     }
 

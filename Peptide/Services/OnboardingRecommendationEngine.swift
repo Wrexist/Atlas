@@ -1,26 +1,23 @@
 import Foundation
 import SwiftUI
 
-/// Cold-start recommendations used by the onboarding flow. Maps the user's
-/// selected goals (and optional body metrics) to a small starter stack of
-/// peptides drawn from the canonical database.
+/// Cold-start educational matcher used by the onboarding flow. Maps the
+/// user's selected goals to a small list of peptides drawn from the canonical
+/// database based on category and benefit overlap.
 ///
-/// The main `StackRecommendationEngine` requires at least one current peptide
-/// to score from. Onboarding has no protocol yet, so we derive the seed list
-/// here using the same goal->category mapping the engine uses elsewhere, then
-/// pick top candidates by category match + benefit overlap.
+/// This is a goal-based matcher, NOT a dose recommender. No dose values,
+/// dose ranges, or weight-scaled calculations are produced or surfaced. The
+/// surrounding UI shows peptide names with a short rationale; users review
+/// the educational detail page (with citations) before adding anything to a
+/// stack and remain solely responsible for any dosing decisions made with
+/// their own clinician.
 enum OnboardingRecommendationEngine {
 
     struct Suggestion: Identifiable {
         var id: UUID { peptide.id }
         let peptide: Peptide
         let goalMatches: [String]
-        /// Personalized dose string for the user's body weight, or the
-        /// peptide's published range when weight is unavailable.
-        let suggestedDose: String
-        /// True when `suggestedDose` was scaled to the user's weight.
-        let isPersonalized: Bool
-        /// Short rationale shown below the dose (e.g., "matches Recovery").
+        /// Short rationale shown below the peptide name (e.g., "matches Recovery").
         /// Uses LocalizedStringKey so the surrounding phrase translates while
         /// dynamic goal names interpolate via %@.
         let rationale: LocalizedStringKey
@@ -45,7 +42,6 @@ enum OnboardingRecommendationEngine {
 
     static func recommend(
         goals: [String],
-        metrics: BodyMetrics,
         from database: [Peptide],
         limit: Int = 4
     ) -> [Suggestion] {
@@ -100,7 +96,6 @@ enum OnboardingRecommendationEngine {
             )
         }
 
-        // Diversify: cap to one peptide per category for a clean starter stack.
         let ranked = scored.values.sorted {
             if $0.score != $1.score { return $0.score > $1.score }
             return $0.peptide.abbreviation < $1.peptide.abbreviation
@@ -119,8 +114,6 @@ enum OnboardingRecommendationEngine {
             Suggestion(
                 peptide: entry.peptide,
                 goalMatches: entry.matchedGoals,
-                suggestedDose: PeptideDoseCalculator.dose(for: entry.peptide, metrics: metrics),
-                isPersonalized: PeptideDoseCalculator.isPersonalized(entry.peptide, metrics: metrics),
                 rationale: rationale(for: entry.peptide, matchedGoals: entry.matchedGoals)
             )
         }

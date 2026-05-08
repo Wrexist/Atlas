@@ -53,9 +53,11 @@ enum MeasurementUnit: String, Codable {
     case imperial  // lb, in
 }
 
-/// Optional body metrics used to personalize peptide dose recommendations.
-/// All fields are optional — users can skip the metrics step. Stored
-/// canonically in metric units; the UI converts on read/write.
+/// Optional body metrics displayed alongside the user's compliance trends
+/// on the Profile screen. All fields are optional — users can skip the
+/// metrics step. Stored canonically in metric units; the UI converts on
+/// read/write. PeptideX does NOT use these values to calculate, scale, or
+/// recommend any dose.
 struct BodyMetrics: Codable, Hashable {
     var weightKg: Double?
     var heightCm: Double?

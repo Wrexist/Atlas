@@ -1,8 +1,13 @@
 import SwiftUI
 
-/// Onboarding page that captures the body metrics needed to personalize
-/// dose recommendations. All inputs are optional — users can skip the
-/// page and the engine will fall back to published dosage ranges.
+/// Onboarding page that optionally captures the user's body metrics so the
+/// app can show them alongside their compliance trends. All inputs are
+/// optional — users can skip the page entirely and every feature still
+/// works.
+///
+/// IMPORTANT: These values are NOT used to calculate, scale, or recommend
+/// any dose. PeptideX is not a dose calculator. The data is stored locally
+/// for the user's own reference and (optionally) for HealthKit correlation.
 ///
 /// Numeric fields are backed by raw `@State` strings so partial input
 /// like "75." (decimal in progress) and locale-friendly commas survive
@@ -21,12 +26,12 @@ struct BodyMetricsPage: View {
 
     var body: some View {
         VStack(spacing: Spacing.md) {
-            Text("Help us personalize your doses")
+            Text("A bit about you")
                 .font(AppFont.title)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Text("Body weight, height, and age let us scale recommendations to you. Everything stays on your device.")
+            Text("Optional — used only to display alongside your compliance trends. PeptideX never calculates doses for you. Everything stays on your device.")
                 .font(AppFont.body)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)

@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// Compact summary of the user's body metrics on the Profile screen, with a
-/// sheet for editing. Mirrors the onboarding capture so users can refine
-/// dose-personalization data after the fact.
+/// Compact summary of the user's optional body metrics on the Profile
+/// screen, with a sheet for editing. The values are stored locally for the
+/// user's own reference and HealthKit correlation; PeptideX does not use
+/// them to calculate or recommend any dose.
 struct BodyMetricsCard: View {
     let metrics: BodyMetrics
     let onUpdate: (BodyMetrics) -> Void
@@ -41,7 +42,7 @@ struct BodyMetricsCard: View {
                         infoChip(metrics.activityLevel.localizedDisplay)
                     }
                 } else {
-                    Text("Add your weight, height, and age to personalize peptide doses.")
+                    Text("Optional. Add your weight, height, and age to display alongside your compliance trends. PeptideX never calculates doses for you.")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
