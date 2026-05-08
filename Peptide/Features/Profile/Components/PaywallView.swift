@@ -53,12 +53,14 @@ struct PaywallView: View {
                         }
                     }
 
-                    // Pricing
+                    // Pricing — each card surfaces the StoreKit-provided
+                    // displayName ("PeptideX Pro Monthly", etc.) so the
+                    // subscription title is plainly visible per Apple
+                    // Guideline 3.1.2(a).
                     VStack(spacing: Spacing.md) {
                         if let annual = storeService.annualProduct {
                             pricingCard(
                                 product: annual,
-                                label: "Annual",
                                 badge: annualBadge,
                                 isBest: true
                             )
@@ -67,7 +69,6 @@ struct PaywallView: View {
                         if let monthly = storeService.monthlyProduct {
                             pricingCard(
                                 product: monthly,
-                                label: "Monthly",
                                 badge: monthlyTrialBadge,
                                 isBest: false
                             )
@@ -76,7 +77,6 @@ struct PaywallView: View {
                         if let lifetime = storeService.lifetimeProduct {
                             pricingCard(
                                 product: lifetime,
-                                label: "Lifetime",
                                 badge: "One-Time",
                                 isBest: false
                             )
@@ -176,7 +176,7 @@ struct PaywallView: View {
         }
     }
 
-    private func pricingCard(product: Product, label: LocalizedStringKey, badge: LocalizedStringKey?, isBest: Bool) -> some View {
+    private func pricingCard(product: Product, badge: LocalizedStringKey?, isBest: Bool) -> some View {
         Button {
             Task {
                 isPurchasing = true
@@ -189,7 +189,7 @@ struct PaywallView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         HStack(spacing: Spacing.sm) {
-                            Text(label)
+                            Text(product.displayName)
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
 
