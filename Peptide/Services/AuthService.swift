@@ -197,6 +197,14 @@ final class AuthService {
     /// if desired. SwiftData mutations propagate to the user's private
     /// CloudKit zone automatically when iCloud sync is active.
     func deleteAccount() {
+        // Guarded so a guest session (no Sign in with Apple) can't accidentally
+        // wipe local data via this entry point. Apple Guideline 5.1.1(v)
+        // applies to *account* deletion — guests have no account to delete and
+        // can clear their data via "Reset App Data" in Settings.
+        guard isSignedIn else {
+            AppLog.auth.warning("deleteAccount called without an active sign-in; ignored.")
+            return
+        }
         SwiftDataRepository.shared.deleteAll()
         signOut()
     }
