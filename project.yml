@@ -43,6 +43,7 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         NSFaceIDUsageDescription: "PeptideX uses Face ID to optionally lock the app, so your protocols and health data stay private if your device is unlocked. Face ID is optional — you can disable it in Settings."
         NSHealthShareUsageDescription: "PeptideX reads your health data so you can correlate peptide protocol compliance with metrics like heart rate variability, sleep quality, and activity. PeptideX never writes to Apple Health."
+        NSHealthUpdateUsageDescription: "PeptideX does not write to Apple Health and never modifies your health records."
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
@@ -59,7 +60,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app
         PRODUCT_NAME: Peptide
         MARKETING_VERSION: "1.0.0"
-        CURRENT_PROJECT_VERSION: "1"
+        CURRENT_PROJECT_VERSION: "101"
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: Peptide/Peptide.entitlements
       configs:
@@ -90,7 +91,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app.widgets
         MARKETING_VERSION: "1.0.0"
-        CURRENT_PROJECT_VERSION: "1"
+        CURRENT_PROJECT_VERSION: "101"
         GENERATE_INFOPLIST_FILE: NO
         SWIFT_EMIT_LOC_STRINGS: YES
         CODE_SIGN_ENTITLEMENTS: PeptideWidgets/PeptideWidgets.entitlements
@@ -117,7 +118,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app.watchkitapp
         PRODUCT_NAME: PeptideWatch
         MARKETING_VERSION: "1.0.0"
-        CURRENT_PROJECT_VERSION: "1"
+        CURRENT_PROJECT_VERSION: "101"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: PeptideX
         INFOPLIST_KEY_CFBundleIconName: AppIcon
@@ -151,7 +152,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app.watchkitapp.widgets
         MARKETING_VERSION: "1.0.0"
-        CURRENT_PROJECT_VERSION: "1"
+        CURRENT_PROJECT_VERSION: "101"
         GENERATE_INFOPLIST_FILE: NO
         SWIFT_EMIT_LOC_STRINGS: YES
         CODE_SIGN_ENTITLEMENTS: PeptideWatchWidgets/PeptideWatchWidgets.entitlements
