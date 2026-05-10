@@ -19,6 +19,10 @@ struct OnboardingView: View {
     @State private var requestingNotifications = false
     @State private var bounceTrigger = 0
     @State private var authService = AuthService.shared
+    /// Observed so the picker step re-renders the moment the user taps a
+    /// new theme — `AppColor.accent*` reads from this manager, so anything
+    /// touching `themeManager.theme` in body forces a full re-render.
+    @State private var themeManager = ThemeManager.shared
 
     // Creator attribution step state. Lives on the parent so the footer
     // (apply / skip / continue buttons) and the input field can share it
@@ -29,7 +33,7 @@ struct OnboardingView: View {
 
     @FocusState private var nameFocused: Bool
 
-    private let totalPages = 14
+    private let totalPages = 15
     @State private var storeService = StoreService.shared
 
     private struct OnboardingGoal: Identifiable {
@@ -57,7 +61,14 @@ struct OnboardingView: View {
     ]
 
     var body: some View {
-        ZStack {
+        // Reading the @Observable properties registers this view as a
+        // dependency, so the entire onboarding tree (back button tint,
+        // progress bar gradient, page accents…) re-renders the moment the
+        // user picks a different theme on the "Make it yours" step.
+        let _ = themeManager.theme
+        let _ = themeManager.displayMode
+
+        return ZStack {
             OnboardingBackground(step: currentPage)
 
             VStack(spacing: 0) {
@@ -80,13 +91,14 @@ struct OnboardingView: View {
                     reviewPromptPage.tag(10)
                     creatorAttributionPage.tag(11)
                     offerPage.tag(12)
-                    readyPage.tag(13)
+                    themeChoicePage.tag(13)
+                    readyPage.tag(14)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: currentPage)
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(themeManager.displayMode.preferredScheme)
         .onChange(of: currentPage) { _, newValue in
             dismissKeyboard()
             if newValue == 5 && !hasAutoSelectedRecommendations {
@@ -908,7 +920,21 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Page 13: Ready
+    // MARK: - Page 13: Theme Choice ("Make it yours")
+
+    private var themeChoicePage: some View {
+        pageScaffold(
+            hero: EmptyView(),
+            content: { ThemeChoicePage(theme: themeManager) },
+            footer: {
+                GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
+                    advance(to: 14)
+                }
+            }
+        )
+    }
+
+    // MARK: - Page 14: Ready
 
     private var readyPage: some View {
         pageScaffold(
@@ -1165,9 +1191,11 @@ struct OnboardingView: View {
     private func goBack() {
         guard canGoBack else { return }
         // The trial-offer page (12) is the only forward-skip the routing does
-        // automatically, so retreat past it from the Ready page when the user
+        // automatically, so retreat past it from the theme step when the user
         // is already Pro / ineligible — they'd otherwise land on a screen
-        // that immediately auto-advances them right back here.
+        // that immediately auto-advances them right back here. The walk from
+        // the Ready page (14) goes through the theme step (13) first as
+        // normal so the user can re-pick their look.
         let target: Int
         if currentPage == 13, storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
             target = 11

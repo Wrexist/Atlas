@@ -6,6 +6,7 @@ struct PeptideApp: App {
     @State private var appState = AppState()
     @State private var dataStore: DataStore
     @State private var localization = LocalizationManager.shared
+    @State private var themeManager = ThemeManager.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var notificationDelegate: NotificationDelegate?
     @State private var isUnlocked = false
@@ -35,12 +36,12 @@ struct PeptideApp: App {
                 if !hasCompletedOnboarding {
                     OnboardingView()
                         .environment(dataStore)
-                        .preferredColorScheme(.dark)
+                        .preferredColorScheme(themeManager.displayMode.preferredScheme)
                         .tint(AppColor.accentPrimary)
                 } else if dataStore.profile.biometricLockEnabled, !isUnlocked {
                     LockScreenView { isUnlocked = true }
                         .environment(dataStore)
-                        .preferredColorScheme(.dark)
+                        .preferredColorScheme(themeManager.displayMode.preferredScheme)
                         .tint(AppColor.accentPrimary)
                 } else {
                     mainContent
@@ -116,7 +117,7 @@ struct PeptideApp: App {
         tabViewWithAccessory
         .environment(appState)
         .environment(dataStore)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(themeManager.displayMode.preferredScheme)
         .tint(AppColor.accentPrimary)
         .task {
             let delegate = NotificationDelegate(dataStore: dataStore)
