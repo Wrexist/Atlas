@@ -207,11 +207,18 @@ final class StoredProfile {
     /// JSON-encoded BodyMetrics. Optional for legacy stores written before
     /// metrics existed; `toUserProfile` falls back to `.unspecified`.
     var bodyMetricsData: Data?
+    /// JPEG-encoded avatar. Optional for legacy stores; nil means no avatar.
+    var avatarImageData: Data?
+    var bio: String?
+    var pronouns: String?
 
     init(name: String, memberSince: Date, healthConnected: Bool,
          hapticFeedbackEnabled: Bool, doseRemindersEnabled: Bool,
          biometricLockEnabled: Bool, goalsData: Data,
-         bodyMetricsData: Data? = nil) {
+         bodyMetricsData: Data? = nil,
+         avatarImageData: Data? = nil,
+         bio: String? = nil,
+         pronouns: String? = nil) {
         self.name = name
         self.memberSince = memberSince
         self.healthConnected = healthConnected
@@ -220,6 +227,9 @@ final class StoredProfile {
         self.biometricLockEnabled = biometricLockEnabled
         self.goalsData = goalsData
         self.bodyMetricsData = bodyMetricsData
+        self.avatarImageData = avatarImageData
+        self.bio = bio
+        self.pronouns = pronouns
     }
 
     static func make(from profile: UserProfile) throws -> StoredProfile {
@@ -233,7 +243,10 @@ final class StoredProfile {
             doseRemindersEnabled: profile.doseRemindersEnabled,
             biometricLockEnabled: profile.biometricLockEnabled,
             goalsData: goalsData,
-            bodyMetricsData: metricsData
+            bodyMetricsData: metricsData,
+            avatarImageData: profile.avatarImageData,
+            bio: profile.bio.isEmpty ? nil : profile.bio,
+            pronouns: profile.pronouns.isEmpty ? nil : profile.pronouns
         )
     }
 
@@ -246,6 +259,9 @@ final class StoredProfile {
         biometricLockEnabled = profile.biometricLockEnabled
         goalsData = try sdEncoder.encode(profile.goals)
         bodyMetricsData = try sdEncoder.encode(profile.bodyMetrics)
+        avatarImageData = profile.avatarImageData
+        bio = profile.bio.isEmpty ? nil : profile.bio
+        pronouns = profile.pronouns.isEmpty ? nil : profile.pronouns
     }
 
     func toUserProfile() throws -> UserProfile {
@@ -265,7 +281,10 @@ final class StoredProfile {
             hapticFeedbackEnabled: hapticFeedbackEnabled,
             doseRemindersEnabled: doseRemindersEnabled,
             biometricLockEnabled: biometricLockEnabled,
-            bodyMetrics: metrics
+            bodyMetrics: metrics,
+            avatarImageData: avatarImageData,
+            bio: bio ?? "",
+            pronouns: pronouns ?? ""
         )
     }
 }

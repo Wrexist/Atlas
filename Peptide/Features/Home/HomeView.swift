@@ -10,6 +10,7 @@ struct HomeView: View {
     @State private var toastAchievement: Achievement?
     @State private var achievementService = AchievementService.shared
     @State private var showPaywall = false
+    @State private var showProfileCustomization = false
     @Environment(\.requestReview) private var requestReview
 
     private static let reviewWorthyAchievements: Set<String> = [
@@ -78,7 +79,14 @@ struct HomeView: View {
                     WelcomeHeader(
                         greeting: greeting,
                         name: dataStore.profile.name,
-                        date: dateString
+                        date: dateString,
+                        avatarImageData: dataStore.profile.avatarImageData,
+                        onAvatarTap: {
+                            if dataStore.profile.hapticFeedbackEnabled {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            }
+                            showProfileCustomization = true
+                        }
                     )
                     .sectionAppear(index: 0)
 
@@ -238,6 +246,10 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
+            }
+            .sheet(isPresented: $showProfileCustomization) {
+                ProfileCustomizationSheet()
+                    .environment(dataStore)
             }
             .navigationDestination(for: Peptide.self) { peptide in
                 PeptideDetailView(peptide: peptide)

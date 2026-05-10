@@ -104,6 +104,15 @@ struct UserProfile: Codable {
     var doseRemindersEnabled: Bool
     var biometricLockEnabled: Bool
     var bodyMetrics: BodyMetrics
+    /// JPEG-encoded profile avatar uploaded from the photo library. Stored
+    /// inline so the avatar travels with the profile across exports and
+    /// iCloud sync. Compressed before save — see DataStore.updateAvatar.
+    var avatarImageData: Data?
+    /// Optional short personal bio surfaced on the customization sheet and
+    /// the profile header. Free-form, capped at ~280 chars in the UI.
+    var bio: String
+    /// Optional pronouns ("he/him", "she/her", etc.). Empty means hidden.
+    var pronouns: String
 
     init(
         name: String,
@@ -113,7 +122,10 @@ struct UserProfile: Codable {
         hapticFeedbackEnabled: Bool = true,
         doseRemindersEnabled: Bool = false,
         biometricLockEnabled: Bool = false,
-        bodyMetrics: BodyMetrics = .unspecified
+        bodyMetrics: BodyMetrics = .unspecified,
+        avatarImageData: Data? = nil,
+        bio: String = "",
+        pronouns: String = ""
     ) {
         self.name = name
         self.goals = goals
@@ -123,6 +135,9 @@ struct UserProfile: Codable {
         self.doseRemindersEnabled = doseRemindersEnabled
         self.biometricLockEnabled = biometricLockEnabled
         self.bodyMetrics = bodyMetrics
+        self.avatarImageData = avatarImageData
+        self.bio = bio
+        self.pronouns = pronouns
     }
 
     init(from decoder: Decoder) throws {
@@ -135,6 +150,9 @@ struct UserProfile: Codable {
         doseRemindersEnabled = try container.decodeIfPresent(Bool.self, forKey: .doseRemindersEnabled) ?? false
         biometricLockEnabled = try container.decodeIfPresent(Bool.self, forKey: .biometricLockEnabled) ?? false
         bodyMetrics = try container.decodeIfPresent(BodyMetrics.self, forKey: .bodyMetrics) ?? .unspecified
+        avatarImageData = try container.decodeIfPresent(Data.self, forKey: .avatarImageData)
+        bio = try container.decodeIfPresent(String.self, forKey: .bio) ?? ""
+        pronouns = try container.decodeIfPresent(String.self, forKey: .pronouns) ?? ""
     }
 
     static var fresh: UserProfile {

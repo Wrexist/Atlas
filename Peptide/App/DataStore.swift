@@ -503,6 +503,22 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
+    /// Atomically updates the user-customizable identity fields shown on the
+    /// profile customization sheet. Whitespace is trimmed; `bio` and
+    /// `pronouns` collapse empty strings to "" so the profile JSON stays
+    /// compact.
+    func updateProfileIdentity(name: String, bio: String, pronouns: String) {
+        profile.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        profile.bio = bio.trimmingCharacters(in: .whitespacesAndNewlines)
+        profile.pronouns = pronouns.trimmingCharacters(in: .whitespacesAndNewlines)
+        save()
+    }
+
+    func updateAvatarImageData(_ data: Data?) {
+        profile.avatarImageData = data
+        save()
+    }
+
     /// One-tap adoption of an onboarding-recommended starter stack. Creates a
     /// gentle 8-week protocol on a 5-days-on / 2-days-off cadence, mornings
     /// only — the most forgiving default. The user can edit it immediately.
