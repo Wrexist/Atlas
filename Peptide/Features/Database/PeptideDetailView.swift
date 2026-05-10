@@ -311,6 +311,7 @@ struct PeptideDetailView: View {
         }
         .sheet(isPresented: $showingPaywall) {
             PaywallView()
+                .liquidGlassPresentation()
         }
         }
     }

@@ -17,6 +17,10 @@ struct PeptideScheduleSheet: View {
     @State private var selectedDays: Set<Int>
     @State private var timesPerDay: Int
     @State private var customDose: String
+    @State private var cadenceMode: ScheduleCadenceMode
+    @State private var intervalDays: Int
+    @State private var intervalAnchor: Date
+    @State private var preferredTimes: [String]
 
     private static let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
@@ -35,10 +39,15 @@ struct PeptideScheduleSheet: View {
         _selectedDays = State(initialValue: Set(starting.daysOfWeek))
         _timesPerDay = State(initialValue: starting.timesPerDay)
         _customDose = State(initialValue: initialOverride?.customDose ?? "")
+        _cadenceMode = State(initialValue: starting.isInterval ? .interval : .weekly)
+        _intervalDays = State(initialValue: starting.intervalDays ?? 3)
+        _intervalAnchor = State(initialValue: starting.intervalAnchor ?? Date())
+        _preferredTimes = State(initialValue: starting.preferredTimes)
     }
 
     private var canSave: Bool {
-        !useCustom || !selectedDays.isEmpty
+        if !useCustom { return true }
+        return cadenceMode == .interval ? intervalDays >= 1 : !selectedDays.isEmpty
     }
 
     // Pre-filled dose presets were removed to avoid suggesting any specific
@@ -68,6 +77,9 @@ struct PeptideScheduleSheet: View {
                                         selectedDays: $selectedDays,
                                         timesPerDay: $timesPerDay,
                                         cycleLengthWeeks: nil,
+                                        cadenceMode: $cadenceMode,
+                                        intervalDays: $intervalDays,
+                                        preferredTimes: $preferredTimes,
                                         dayNames: Self.dayNames
                                     )
                                 }
@@ -237,28 +249,26 @@ struct PeptideScheduleSheet: View {
 
     private func save() {
         if useCustom {
-            let times = generateDefaultTimes(count: timesPerDay)
+            var times = preferredTimes
+            while times.count < timesPerDay {
+                times.append(ScheduleEditor.defaultTimeString(for: times.count))
+            }
+            times = Array(times.prefix(timesPerDay))
+
             let trimmedDose = customDose.trimmingCharacters(in: .whitespacesAndNewlines)
             let schedule = ProtocolSchedule(
-                daysOfWeek: selectedDays.sorted(),
+                daysOfWeek: cadenceMode == .weekly ? selectedDays.sorted() : [1, 2, 3, 4, 5, 6, 7],
                 timesPerDay: timesPerDay,
                 preferredTimes: times,
-                customDose: trimmedDose.isEmpty ? nil : trimmedDose
+                customDose: trimmedDose.isEmpty ? nil : trimmedDose,
+                intervalDays: cadenceMode == .interval ? intervalDays : nil,
+                intervalAnchor: cadenceMode == .interval ? intervalAnchor : nil
             )
             onSave(schedule)
         } else {
             onSave(nil)
         }
         dismiss()
-    }
-
-    private func generateDefaultTimes(count: Int) -> [String] {
-        (1...count).map { index in
-            let hour24 = min(8 + (index - 1) * (12 / max(count, 1)), 23)
-            let hour12 = hour24 > 12 ? hour24 - 12 : (hour24 == 0 ? 12 : hour24)
-            let period = hour24 >= 12 ? "PM" : "AM"
-            return "\(hour12):00 \(period)"
-        }
     }
 }
 

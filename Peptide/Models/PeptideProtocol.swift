@@ -7,20 +7,56 @@ struct ProtocolSchedule: Hashable, Codable {
     /// Optional custom dose override (e.g. "300 mcg"). When nil, the peptide's
     /// default `dosageRange` is used. Only meaningful for per-peptide overrides.
     let customDose: String?
+    /// When non-nil and >= 1, the schedule fires every N days starting from
+    /// `intervalAnchor`, and `daysOfWeek` is ignored. Use `isInterval` to
+    /// check the active mode rather than reading this directly.
+    let intervalDays: Int?
+    /// First active date for the interval cadence. Falls back to today if nil.
+    let intervalAnchor: Date?
 
     init(
         daysOfWeek: [Int],
         timesPerDay: Int,
         preferredTimes: [String],
-        customDose: String? = nil
+        customDose: String? = nil,
+        intervalDays: Int? = nil,
+        intervalAnchor: Date? = nil
     ) {
         self.daysOfWeek = daysOfWeek
         self.timesPerDay = timesPerDay
         self.preferredTimes = preferredTimes
         self.customDose = customDose
+        self.intervalDays = intervalDays
+        self.intervalAnchor = intervalAnchor
+    }
+
+    /// True when the schedule is in "every N days" mode. Callers should branch
+    /// on this rather than peeking at `intervalDays` directly so they don't
+    /// accidentally treat 0 / negative as a valid interval.
+    var isInterval: Bool { (intervalDays ?? 0) >= 1 }
+
+    /// Returns true if this schedule is active on `date`, honoring whichever
+    /// cadence (weekly day-of-week or every-N-days) is configured.
+    func isActive(on date: Date, calendar: Calendar = .current) -> Bool {
+        if isInterval, let n = intervalDays, n >= 1 {
+            let anchor = intervalAnchor ?? date
+            let anchorDay = calendar.startOfDay(for: anchor)
+            let target = calendar.startOfDay(for: date)
+            let diff = calendar.dateComponents([.day], from: anchorDay, to: target).day ?? 0
+            // Match days on or after the anchor where the offset is divisible
+            // by N. Days before the anchor are off-schedule (we don't
+            // backfill into the past from a future-dated anchor).
+            return diff >= 0 && diff % n == 0
+        }
+        let weekday = calendar.component(.weekday, from: date)
+        let isoDay = weekday == 1 ? 7 : weekday - 1
+        return daysOfWeek.contains(isoDay)
     }
 
     var daysDescription: String {
+        if isInterval, let n = intervalDays {
+            return n == 1 ? "Every day" : "Every \(n) days"
+        }
         let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         let validDays = daysOfWeek.filter { (1...7).contains($0) }
         if validDays.count == 7 { return "Every day" }
@@ -28,6 +64,9 @@ struct ProtocolSchedule: Hashable, Codable {
     }
 
     var compactDaysDescription: String {
+        if isInterval, let n = intervalDays {
+            return n == 1 ? "Daily" : "Every \(n)d"
+        }
         let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         let validDays = daysOfWeek.filter { (1...7).contains($0) }.sorted()
         if validDays.count == 7 { return "Daily" }
@@ -53,10 +92,11 @@ struct ProtocolSchedule: Hashable, Codable {
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? peptide.dosageRange
     }
 
-    // MARK: - Codable (backwards-compatible: customDose is optional)
+    // MARK: - Codable (backwards-compatible: customDose / interval are optional)
 
     private enum CodingKeys: String, CodingKey {
         case daysOfWeek, timesPerDay, preferredTimes, customDose
+        case intervalDays, intervalAnchor
     }
 
     init(from decoder: Decoder) throws {
@@ -65,6 +105,8 @@ struct ProtocolSchedule: Hashable, Codable {
         self.timesPerDay = try c.decode(Int.self, forKey: .timesPerDay)
         self.preferredTimes = try c.decode([String].self, forKey: .preferredTimes)
         self.customDose = try c.decodeIfPresent(String.self, forKey: .customDose)
+        self.intervalDays = try c.decodeIfPresent(Int.self, forKey: .intervalDays)
+        self.intervalAnchor = try c.decodeIfPresent(Date.self, forKey: .intervalAnchor)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -77,6 +119,10 @@ struct ProtocolSchedule: Hashable, Codable {
             if !normalized.isEmpty {
                 try c.encode(normalized, forKey: .customDose)
             }
+        }
+        if let intervalDays, intervalDays >= 1 {
+            try c.encode(intervalDays, forKey: .intervalDays)
+            try c.encodeIfPresent(intervalAnchor, forKey: .intervalAnchor)
         }
     }
 }

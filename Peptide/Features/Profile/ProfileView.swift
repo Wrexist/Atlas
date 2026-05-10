@@ -28,7 +28,9 @@ struct ProfileView: View {
                         memberDuration: memberDuration,
                         protocolCount: dataStore.protocols.count,
                         peptideCount: Set(dataStore.protocols.flatMap(\.peptides).map(\.id)).count,
-                        daysLogged: dataStore.totalDaysLogged
+                        daysLogged: dataStore.totalDaysLogged,
+                        avatarImageData: dataStore.profile.avatarImageData,
+                        bio: dataStore.profile.bio
                     )
                     .sectionAppear(index: 0)
 

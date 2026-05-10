@@ -59,8 +59,14 @@ struct PeptideApp: App {
             }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background, dataStore.profile.biometricLockEnabled {
-                isUnlocked = false
+            if phase == .background {
+                if dataStore.profile.biometricLockEnabled {
+                    isUnlocked = false
+                }
+                // Flush any debounced save before the OS suspends us, so a
+                // burst of dose toggles right before backgrounding doesn't
+                // get lost.
+                dataStore.flushPendingSave()
             }
             if phase == .active {
                 ReviewPromptService.shared.recordLaunch()

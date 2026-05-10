@@ -43,7 +43,9 @@ struct CustomPeptideForm: View {
                     .padding(.vertical, Spacing.lg)
                     .padding(.bottom, Spacing.xxxxl)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
+            .dismissKeyboardOnTap()
             .navigationTitle("Custom Peptide")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

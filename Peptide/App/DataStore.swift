@@ -39,6 +39,12 @@ final class DataStore: DataServiceProtocol {
     @ObservationIgnored private var _nextDose: (version: Int, value: ProtocolEntry?)?
     @ObservationIgnored private var _weeklyCompletion: (version: Int, value: [WeekDayStatus])?
     @ObservationIgnored private var _entriesByDay: (version: Int, value: [Date: [ProtocolEntry]])?
+    @ObservationIgnored private var _stackPeptides: (version: Int, value: [Peptide])?
+    @ObservationIgnored private var _stackWarnings: (version: Int, value: [StackRecommendationEngine.Warning])?
+    @ObservationIgnored private var _stackRecommendations: (version: Int, value: [StackRecommendationEngine.Recommendation])?
+    @ObservationIgnored private var _stackCompleteness: (version: Int, value: StackRecommendationEngine.StackCompleteness?)?
+    @ObservationIgnored private var _cycleTransitions: (version: Int, value: [StackRecommendationEngine.CycleTransition])?
+    @ObservationIgnored private var _topInsight: (version: Int, value: InsightEngine.Insight?)?
 
     private func bumpVersionIfDayChanged() {
         let today = Calendar.current.startOfDay(for: Date())
@@ -48,7 +54,11 @@ final class DataStore: DataServiceProtocol {
         }
     }
 
-    private var entriesByDay: [Date: [ProtocolEntry]] {
+    /// Entries keyed by start-of-day. Cached against `cacheVersion`, so all
+    /// the per-day stats (currentStreak, totalDaysLogged, weeklyCompletion,
+    /// AnalyticsView complianceData / weeklyDoseData) share one O(n) group
+    /// pass per mutation instead of re-filtering the entries array per day.
+    var entriesByDay: [Date: [ProtocolEntry]] {
         if let cached = _entriesByDay, cached.version == cacheVersion { return cached.value }
         let grouped = entries.groupedByDay
         _entriesByDay = (cacheVersion, grouped)
@@ -88,7 +98,10 @@ final class DataStore: DataServiceProtocol {
             self.entries = Self.generateInitialEntries(for: sampleProtocols)
             self.profile = MockProfile.current
             regenerateTodayEntries()
-            save()
+            // Seed path is one-shot bulk data; flush synchronously so a second
+            // DataStore (e.g. in tests) sees the persisted state immediately
+            // instead of waiting on the save debounce.
+            performSaveNow()
         }
         // else: clean slate — already set to [] and .fresh above
     }
@@ -495,10 +508,100 @@ final class DataStore: DataServiceProtocol {
         return result
     }
 
+    // MARK: - Stack-derived caches
+    //
+    // HomeView reads `stackPeptides` / `stackWarnings` / `stackRecommendations`
+    // / `stackCompleteness` / `cycleTransitions` on every render. Each of
+    // those engines scans the full peptide database and / or the protocol
+    // list — combined ~60–80ms with a populated stack. Caching them keyed
+    // by `cacheVersion` makes the second-and-onward render free.
+
+    /// Distinct peptides across all active protocols, dedup-stable on first
+    /// appearance.
+    var stackPeptides: [Peptide] {
+        if let cached = _stackPeptides, cached.version == cacheVersion { return cached.value }
+        var seen = Set<UUID>()
+        let result = activeProtocols.flatMap(\.peptides).filter { seen.insert($0.id).inserted }
+        _stackPeptides = (cacheVersion, result)
+        return result
+    }
+
+    var stackWarnings: [StackRecommendationEngine.Warning] {
+        if let cached = _stackWarnings, cached.version == cacheVersion { return cached.value }
+        let result = StackRecommendationEngine.warnings(
+            for: stackPeptides,
+            activeProtocols: activeProtocols
+        )
+        _stackWarnings = (cacheVersion, result)
+        return result
+    }
+
+    var stackRecommendations: [StackRecommendationEngine.Recommendation] {
+        if let cached = _stackRecommendations, cached.version == cacheVersion { return cached.value }
+        let context = StackRecommendationEngine.RecommendationContext(
+            currentPeptides: stackPeptides,
+            database: peptideDatabase,
+            goals: profile.goals,
+            activeProtocols: activeProtocols,
+            entries: entries
+        )
+        let result = StackRecommendationEngine.recommendations(context: context)
+        _stackRecommendations = (cacheVersion, result)
+        return result
+    }
+
+    var stackCompleteness: StackRecommendationEngine.StackCompleteness? {
+        if let cached = _stackCompleteness, cached.version == cacheVersion { return cached.value }
+        let result = StackRecommendationEngine.stackCompleteness(
+            for: stackPeptides,
+            goals: profile.goals,
+            from: peptideDatabase
+        )
+        _stackCompleteness = (cacheVersion, result)
+        return result
+    }
+
+    var cycleTransitions: [StackRecommendationEngine.CycleTransition] {
+        if let cached = _cycleTransitions, cached.version == cacheVersion { return cached.value }
+        let result = StackRecommendationEngine.cycleTransitions(for: activeProtocols)
+        _cycleTransitions = (cacheVersion, result)
+        return result
+    }
+
+    /// Top insight (the one HomeView surfaces). InsightEngine sorts by
+    /// priority; we just take the first because the Home tab only renders
+    /// one insight.
+    var topInsight: InsightEngine.Insight? {
+        if let cached = _topInsight, cached.version == cacheVersion { return cached.value }
+        let result = InsightEngine.generateInsights(from: entries, protocols: protocols).first
+        _topInsight = (cacheVersion, result)
+        return result
+    }
+
     // MARK: - Profile
 
     func updateGoals(_ goals: Set<String>) {
         profile.goals = Array(goals).sorted()
+        // A pinned goal that's no longer in the active goal set is meaningless
+        // — drop it so the home tab doesn't surface a stale recommendation.
+        if let pinned = profile.primaryGoal, !goals.contains(pinned) {
+            profile.primaryGoal = nil
+        }
+        // stackRecommendations / stackCompleteness depend on profile.goals,
+        // so bump the cache version explicitly — the protocols/entries didSet
+        // bumpers don't fire on a profile-only change.
+        cacheVersion &+= 1
+        save()
+    }
+
+    /// Pin or clear the headline goal. Pass `nil` to remove the pin. The goal
+    /// must already exist in `profile.goals` — otherwise the call is ignored.
+    func setPrimaryGoal(_ goal: String?) {
+        if let goal, !profile.goals.contains(goal) { return }
+        profile.primaryGoal = goal
+        // Same reason as updateGoals: goal-derived caches are stale until the
+        // next protocols/entries mutation without this manual bump.
+        cacheVersion &+= 1
         save()
     }
 
@@ -509,6 +612,20 @@ final class DataStore: DataServiceProtocol {
 
     func toggleHealthConnection() {
         profile.healthConnected.toggle()
+        save()
+    }
+
+    /// Atomically updates the user-customizable identity fields shown on the
+    /// profile customization sheet. Whitespace is trimmed; `bio` collapses
+    /// empty strings to "" so the profile JSON stays compact.
+    func updateProfileIdentity(name: String, bio: String) {
+        profile.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        profile.bio = bio.trimmingCharacters(in: .whitespacesAndNewlines)
+        save()
+    }
+
+    func updateAvatarImageData(_ data: Data?) {
+        profile.avatarImageData = data
         save()
     }
 
@@ -572,13 +689,41 @@ final class DataStore: DataServiceProtocol {
 
     private var achievementCheckPending = false
 
+    /// Coalesced persistence quiet-period. Rapid mutations (e.g. toggling
+    /// several doses in quick succession) are batched into one disk write
+    /// after this many milliseconds of silence. Widget + Watch sync run on
+    /// the same cadence so they get one write instead of N.
+    private static let saveDebounceMs: UInt64 = 350
+
+    @ObservationIgnored private var pendingSaveTask: Task<Void, Never>?
+
     private func save() {
+        // Achievements are computed off in-memory state, not what's on disk —
+        // run them immediately so the toast still feels instant.
+        scheduleAchievementCheck()
+
+        pendingSaveTask?.cancel()
+        pendingSaveTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(Int64(Self.saveDebounceMs)))
+            guard !Task.isCancelled else { return }
+            performSaveNow()
+        }
+    }
+
+    /// Forces a synchronous flush of any pending save. Call from
+    /// `scenePhase == .background` so the OS can suspend us safely.
+    func flushPendingSave() {
+        pendingSaveTask?.cancel()
+        pendingSaveTask = nil
+        performSaveNow()
+    }
+
+    private func performSaveNow() {
         repo.saveProtocols(protocols)
         repo.saveEntries(entries)
         repo.saveProfile(profile)
         updateWidgetData()
         updateWatchData()
-        scheduleAchievementCheck()
     }
 
     private func updateWidgetData() {
@@ -657,6 +802,17 @@ final class DataStore: DataServiceProtocol {
         regenerateTodayEntries()
     }
 
+    /// Re-pulls protocols / entries / profile from the repository — used by
+    /// the Protocols list's pull-to-refresh so a CloudKit sync from another
+    /// device shows up without an app relaunch. Falls back to the existing
+    /// in-memory state if the repo returns nil for that resource.
+    func reloadFromDisk() {
+        if let saved = repo.loadProtocols() { protocols = saved }
+        if let saved = repo.loadEntries() { entries = saved }
+        if let saved = repo.loadProfile() { profile = saved }
+        regenerateTodayEntries()
+    }
+
     // MARK: - Entry Generation
 
     private static func generateInitialEntries(for protocols: [PeptideProtocol]) -> [ProtocolEntry] {
@@ -678,21 +834,26 @@ final class DataStore: DataServiceProtocol {
         return proto.peptides.flatMap { todayEntries(for: $0, in: proto) }
     }
 
+    /// Locale-stable parser for the "h:mm a" times we store in
+    /// `ProtocolSchedule.preferredTimes`. Hoisted to `static let` so we don't
+    /// pay the ~1ms `DateFormatter` allocation on every dose generation —
+    /// `todayEntries(for:in:)` runs once per peptide on every entry mutation.
+    private static let timeStringParser: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
     private static func todayEntries(for peptide: Peptide, in proto: PeptideProtocol) -> [ProtocolEntry] {
         guard proto.status == .active else { return [] }
 
         let schedule = proto.schedule(for: peptide.id)
         let calendar = Calendar.current
-        let dayOfWeek = calendar.component(.weekday, from: Date())
-        let isoDayOfWeek = dayOfWeek == 1 ? 7 : dayOfWeek - 1
-        guard schedule.daysOfWeek.contains(isoDayOfWeek) else { return [] }
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
+        guard schedule.isActive(on: Date(), calendar: calendar) else { return [] }
 
         return schedule.preferredTimes.compactMap { timeString in
-            guard let time = formatter.date(from: timeString) else { return nil }
+            guard let time = timeStringParser.date(from: timeString) else { return nil }
             let hour = calendar.component(.hour, from: time)
             let minute = calendar.component(.minute, from: time)
             let entryDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()

@@ -132,7 +132,10 @@ struct ProtocolDetailView: View {
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
 
-                        scheduleDetailRow(label: "Days", value: liveProtocol.schedule.daysDescription)
+                        scheduleDetailRow(
+                            label: liveProtocol.schedule.isInterval ? "Cadence" : "Days",
+                            value: liveProtocol.schedule.daysDescription
+                        )
 
                         Divider().foregroundStyle(AppColor.glassBorder)
 
@@ -253,6 +256,7 @@ struct ProtocolDetailView: View {
         }
         .sheet(isPresented: $showEditSheet) {
             ProtocolBuilderView(editingProtocol: liveProtocol)
+                .liquidGlassPresentation()
         }
         .sheet(isPresented: $showShareCard) {
             ShareCardSheet(proto: liveProtocol)
@@ -269,6 +273,7 @@ struct ProtocolDetailView: View {
                     schedule: updated
                 )
             }
+            .liquidGlassPresentation()
         }
     }
 
@@ -289,7 +294,7 @@ struct ProtocolDetailView: View {
                         .foregroundStyle(peptide.category.color)
                         .frame(width: 32, height: 32)
                         .background {
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                                 .fill(peptide.category.color.opacity(0.15))
                         }
 

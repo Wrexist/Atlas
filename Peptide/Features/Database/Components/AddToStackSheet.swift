@@ -66,7 +66,7 @@ struct AddToStackSheet: View {
         GlassCard(tinted: true) {
             HStack(spacing: Spacing.md) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                         .fill(peptide.category.color.opacity(0.15))
                         .frame(width: 44, height: 44)
                     Image(systemName: peptide.imageSystemName)

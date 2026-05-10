@@ -180,7 +180,7 @@ private struct DailyPlanDoseRow: View {
                 .foregroundStyle(dose.entry.peptide.category.color)
                 .frame(width: 26, height: 26)
                 .background {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                         .fill(dose.entry.peptide.category.color.opacity(0.15))
                 }
                 .symbolEffect(.bounce, value: dose.entry.completed)
@@ -258,7 +258,7 @@ private struct DailyPlanDoseRow: View {
         .padding(.vertical, 5)
         .padding(.horizontal, Spacing.sm)
         .background {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                 .fill(AppColor.accentPrimary.opacity(0.10))
         }
     }
@@ -284,7 +284,7 @@ private struct DailyPlanDoseRow: View {
         .padding(.vertical, 5)
         .padding(.horizontal, Spacing.sm)
         .background {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                 .fill(severityColor(conflict.severity).opacity(0.10))
         }
     }

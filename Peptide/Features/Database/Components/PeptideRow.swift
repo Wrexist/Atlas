@@ -6,7 +6,7 @@ struct PeptideRow: View {
     var body: some View {
         HStack(spacing: Spacing.md) {
             ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                     .fill(peptide.category.color.opacity(0.15))
                     .frame(width: 48, height: 48)
 

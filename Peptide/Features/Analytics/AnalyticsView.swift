@@ -117,7 +117,10 @@ struct AnalyticsView: View {
             }
             .background(AppColor.background)
             .navigationTitle("Analytics")
-            .sheet(isPresented: $showPaywall) { PaywallView() }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+                    .liquidGlassPresentation()
+            }
             .task(id: dataStore.profile.healthConnected) {
                 guard dataStore.profile.healthConnected else {
                     hrvSeries = []
@@ -133,12 +136,14 @@ struct AnalyticsView: View {
     /// gated by the segmented control's TimeRange) — slot 3 always shows
     /// the same 5-week window so HRV trends have room to read.
     private var correlationAdherence: [(date: Date, value: Double)] {
+        // Same swap as complianceData — read from cached entriesByDay so
+        // we don't re-filter the entries array 35 times per render.
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
+        let grouped = dataStore.entriesByDay
         return (0..<35).compactMap { dayOffset in
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { return nil }
-            let dayEntries = dataStore.entries.filter { calendar.isDate($0.date, inSameDayAs: date) }
-            guard !dayEntries.isEmpty else { return nil }
+            guard let dayEntries = grouped[date], !dayEntries.isEmpty else { return nil }
             let value = Double(dayEntries.filter(\.completed).count) / Double(dayEntries.count)
             return (date, value)
         }.reversed()
@@ -190,13 +195,16 @@ struct AnalyticsView: View {
     }
 
     private var complianceData: [(date: Date, compliance: Double)] {
+        // Use the cached entriesByDay grouping instead of re-filtering the
+        // whole entries array per day — turns O(days × entries) into
+        // O(days) lookups against the dictionary.
         let calendar = Calendar.current
-        let entries = dataStore.entries
+        let grouped = dataStore.entriesByDay
 
         return (0..<selectedRange.days).compactMap { dayOffset in
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { return nil }
-            let dayEntries = entries.filter { calendar.isDate($0.date, inSameDayAs: date) }
-            guard !dayEntries.isEmpty else { return nil }
+            let key = calendar.startOfDay(for: date)
+            guard let dayEntries = grouped[key], !dayEntries.isEmpty else { return nil }
             let compliance = Double(dayEntries.filter(\.completed).count) / Double(dayEntries.count)
             return (date: date, compliance: compliance)
         }.reversed()
@@ -217,21 +225,21 @@ struct AnalyticsView: View {
     }
 
     private var weeklyDoseData: [(day: String, count: Int)] {
+        // Single pass over the entries array building counts per ISO day, in
+        // place of the previous 7 × O(entries) filters. Re-filtering 7 times
+        // on every range toggle was the hot spot in this view.
         let calendar = Calendar.current
         let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         let cutoff = calendar.startOfDay(
             for: calendar.date(byAdding: .day, value: -selectedRange.days, to: Date()) ?? Date()
         )
-        let rangeEntries = dataStore.entries.filter { $0.completed && $0.date >= cutoff }
-
-        return (1...7).map { isoDay in
-            let count = rangeEntries.filter { entry in
-                let weekday = calendar.component(.weekday, from: entry.date)
-                let iso = weekday == 1 ? 7 : weekday - 1
-                return iso == isoDay
-            }.count
-            return (day: dayNames[isoDay - 1], count: count)
+        var counts = [Int](repeating: 0, count: 7)
+        for entry in dataStore.entries where entry.completed && entry.date >= cutoff {
+            let weekday = calendar.component(.weekday, from: entry.date)
+            let iso = weekday == 1 ? 7 : weekday - 1
+            counts[iso - 1] &+= 1
         }
+        return (0..<7).map { (day: dayNames[$0], count: counts[$0]) }
     }
 }
 

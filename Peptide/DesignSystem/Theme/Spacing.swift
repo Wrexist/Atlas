@@ -16,4 +16,7 @@ enum Spacing {
     static let cardCornerRadius: CGFloat = 20
     static let smallCornerRadius: CGFloat = 12
     static let chipCornerRadius: CGFloat = 8
+    /// Smaller than chipCornerRadius. Used for tiny icon backgrounds (≤24pt
+    /// frames) where chipCornerRadius would look too round.
+    static let iconCornerRadius: CGFloat = 6
 }

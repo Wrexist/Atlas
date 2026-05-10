@@ -2,96 +2,183 @@ import SwiftUI
 
 struct PeptideListView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var viewModel = PeptideListViewModel(peptides: PeptideDatabase.shared)
     @State private var showCustomForm = false
+    @State private var selectedPeptide: Peptide?
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     private func refreshPeptides() {
         viewModel.updatePeptides(dataStore.peptideDatabase)
     }
 
     var body: some View {
+        // On iPhone (or iPad portrait), NavigationStack with NavigationLink
+        // gives the standard push-to-detail behavior users expect from a
+        // list. On iPad regular, NavigationSplitView yields a true two-pane
+        // layout with the detail kept in sync via `selectedPeptide`.
+        //
+        // We branch on size class instead of relying on NavigationSplitView's
+        // own collapse — the collapsed form swallows NavigationLink(value:)
+        // pushes when the row tap only sets a selection binding (Codex
+        // review on PR #99 caught this; iPhone users were stranded on the
+        // list with no way into the detail).
+        if sizeClass == .regular {
+            iPadSplitLayout
+        } else {
+            iPhoneStackLayout
+        }
+    }
+
+    // MARK: - iPad split layout
+
+    private var iPadSplitLayout: some View {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            sidebarContent(useNavigationLinks: false)
+                .navigationTitle("Peptides")
+                .toolbar { sidebarToolbar }
+                .sheet(isPresented: $showCustomForm) {
+                    CustomPeptideForm { peptide in
+                        dataStore.addCustomPeptide(peptide)
+                        refreshPeptides()
+                    }
+                    .liquidGlassPresentation()
+                }
+                .onAppear { refreshPeptides() }
+        } detail: {
+            NavigationStack {
+                if let selectedPeptide {
+                    PeptideDetailView(peptide: selectedPeptide)
+                } else {
+                    EmptyStateView(
+                        icon: "flask",
+                        title: "Pick a Peptide",
+                        message: "Select a peptide from the list to see its research, dosing, and stack ideas."
+                    )
+                    .padding(Spacing.screenPadding)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(AppColor.background)
+                }
+            }
+        }
+        .navigationSplitViewStyle(.balanced)
+    }
+
+    // MARK: - iPhone stack layout
+
+    private var iPhoneStackLayout: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: Spacing.lg) {
-                    AddCustomPeptideCard {
-                        showCustomForm = true
+            sidebarContent(useNavigationLinks: true)
+                .navigationTitle("Peptides")
+                .toolbar { sidebarToolbar }
+                .navigationDestination(for: Peptide.self) { peptide in
+                    PeptideDetailView(peptide: peptide)
+                }
+                .sheet(isPresented: $showCustomForm) {
+                    CustomPeptideForm { peptide in
+                        dataStore.addCustomPeptide(peptide)
+                        refreshPeptides()
+                    }
+                    .liquidGlassPresentation()
+                }
+                .onAppear { refreshPeptides() }
+        }
+    }
+
+    // MARK: - Shared sidebar content
+
+    /// `useNavigationLinks=true` on iPhone routes taps through the
+    /// NavigationStack's `.navigationDestination(for:)`. On iPad regular we
+    /// instead set `selectedPeptide` directly so the right detail pane
+    /// updates without a push.
+    private func sidebarContent(useNavigationLinks: Bool) -> some View {
+        ScrollView {
+            VStack(spacing: Spacing.lg) {
+                AddCustomPeptideCard {
+                    showCustomForm = true
+                }
+                .padding(.horizontal, Spacing.screenPadding)
+
+                GlassTextField(
+                    placeholder: "Search peptides...",
+                    text: $viewModel.searchText
+                )
+                .padding(.horizontal, Spacing.screenPadding)
+
+                CategoryFilterChips(
+                    categories: viewModel.categories,
+                    selected: viewModel.selectedCategory,
+                    hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
+                    onSelect: viewModel.selectCategory
+                )
+
+                if viewModel.filteredPeptides.isEmpty {
+                    EmptyStateView(
+                        icon: "magnifyingglass",
+                        title: "No peptides found",
+                        message: viewModel.searchText.isEmpty
+                            ? "Add a custom peptide to start building protocols."
+                            : "Try a different search term."
+                    )
+                    .padding(.top, Spacing.xl)
+                } else {
+                    LazyVStack(spacing: Spacing.md) {
+                        ForEach(viewModel.filteredPeptides) { peptide in
+                            peptideRow(peptide, useNavigationLink: useNavigationLinks)
+                        }
                     }
                     .padding(.horizontal, Spacing.screenPadding)
-
-                    GlassTextField(
-                        placeholder: "Search peptides...",
-                        text: $viewModel.searchText
-                    )
-                    .padding(.horizontal, Spacing.screenPadding)
-
-                    CategoryFilterChips(
-                        categories: viewModel.categories,
-                        selected: viewModel.selectedCategory,
-                        hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
-                        onSelect: viewModel.selectCategory
-                    )
-
-                    if viewModel.filteredPeptides.isEmpty {
-                        VStack(spacing: Spacing.md) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 36))
-                                .foregroundStyle(AppColor.textTertiary)
-
-                            Text("No peptides found")
-                                .font(AppFont.headline)
-                                .foregroundStyle(AppColor.textSecondary)
-
-                            if !viewModel.searchText.isEmpty {
-                                Text("Try a different search term")
-                                    .font(AppFont.subheadline)
-                                    .foregroundStyle(AppColor.textTertiary)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, Spacing.xxxxl)
-                    } else {
-                        LazyVStack(spacing: Spacing.md) {
-                            ForEach(viewModel.filteredPeptides) { peptide in
-                                NavigationLink(value: peptide) {
-                                    PeptideRow(peptide: peptide)
-                                }
-                                .buttonStyle(.plain)
-                                .transition(.scale(scale: 0.97).combined(with: .opacity))
-                            }
-                        }
-                        .padding(.horizontal, Spacing.screenPadding)
-                        .animation(AppAnimation.fadeIn, value: viewModel.filteredPeptides.map(\.id))
-                    }
-                }
-                .padding(.top, Spacing.sm)
-                .padding(.bottom, Spacing.xxxxl)
-            }
-            .background(AppColor.background)
-            .navigationTitle("Peptides")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Text("\(viewModel.allPeptides.count)")
-                        .font(AppFont.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.accentPrimary)
-                        .padding(.horizontal, Spacing.sm)
-                        .padding(.vertical, Spacing.xxs)
-                        .background {
-                            Capsule()
-                                .fill(AppColor.accentPrimary.opacity(0.15))
-                        }
+                    .animation(AppAnimation.fadeIn, value: viewModel.filteredPeptides.map(\.id))
                 }
             }
-            .navigationDestination(for: Peptide.self) { peptide in
-                PeptideDetailView(peptide: peptide)
+            .padding(.top, Spacing.sm)
+            .padding(.bottom, Spacing.xxxxl)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .background(AppColor.background)
+        .refreshable {
+            // The peptide database is in-memory, so refresh just re-pulls
+            // any custom peptides the user added on another device via
+            // iCloud sync and re-applies the active filter.
+            refreshPeptides()
+        }
+    }
+
+    @ViewBuilder
+    private func peptideRow(_ peptide: Peptide, useNavigationLink: Bool) -> some View {
+        if useNavigationLink {
+            NavigationLink(value: peptide) {
+                PeptideRow(peptide: peptide)
             }
-            .sheet(isPresented: $showCustomForm) {
-                CustomPeptideForm { peptide in
-                    dataStore.addCustomPeptide(peptide)
-                    refreshPeptides()
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+            .transition(.scale(scale: 0.97).combined(with: .opacity))
+        } else {
+            Button {
+                selectedPeptide = peptide
+                if dataStore.profile.hapticFeedbackEnabled {
+                    UISelectionFeedbackGenerator().selectionChanged()
                 }
+            } label: {
+                PeptideRow(peptide: peptide)
             }
-            .onAppear { refreshPeptides() }
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+            .transition(.scale(scale: 0.97).combined(with: .opacity))
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var sidebarToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Text("\(viewModel.allPeptides.count)")
+                .font(AppFont.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColor.accentPrimary)
+                .padding(.horizontal, Spacing.sm)
+                .padding(.vertical, Spacing.xxs)
+                .background {
+                    Capsule()
+                        .fill(AppColor.accentPrimary.opacity(0.15))
+                }
         }
     }
 }
@@ -105,7 +192,7 @@ private struct AddCustomPeptideCard: View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                         .fill(AppColor.accentPrimary.opacity(0.18))
                         .frame(width: 44, height: 44)
                     Image(systemName: "plus")
@@ -145,7 +232,7 @@ private struct AddCustomPeptideCard: View {
                     }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
         .accessibilityLabel("Add custom peptide or pill")
         .accessibilityHint("Opens a form to add a custom peptide, drug, or supplement")
     }

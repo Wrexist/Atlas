@@ -2,35 +2,35 @@ import SwiftUI
 
 struct ProtocolListView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(AppState.self) private var appState
     @State private var showingBuilder = false
     @State private var showingPaywall = false
     @State private var preselectedPeptide: Peptide?
+    @State private var path: [PeptideProtocol] = []
     @State private var sharingProtocol: PeptideProtocol?
 
     var body: some View {
-        NavigationStack {
+        @Bindable var state = appState
+
+        NavigationStack(path: $path) {
             ZStack(alignment: .bottomTrailing) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Spacing.xl) {
                         CommunityStacksEntryCard()
 
                         if dataStore.protocols.isEmpty {
-                            VStack(spacing: Spacing.lg) {
-                                Image(systemName: "list.clipboard")
-                                    .font(.system(size: 48))
-                                    .foregroundStyle(AppColor.textTertiary)
-
-                                Text("No Protocols Yet")
-                                    .font(AppFont.title2)
-                                    .foregroundStyle(AppColor.textSecondary)
-
-                                Text("Create your first peptide protocol to start tracking your regimen.")
-                                    .font(AppFont.subheadline)
-                                    .foregroundStyle(AppColor.textTertiary)
-                                    .multilineTextAlignment(.center)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, Spacing.xxxxl)
+                            EmptyStateView(
+                                icon: "list.clipboard",
+                                title: "No Protocols Yet",
+                                message: "Create your first peptide protocol to start tracking your regimen.",
+                                action: .init(title: "Create Protocol", icon: "plus") {
+                                    if dataStore.profile.hapticFeedbackEnabled {
+                                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    }
+                                    showingBuilder = true
+                                }
+                            )
+                            .padding(.top, Spacing.xxl)
                             .sectionAppear(index: 0)
                         } else {
                             if !dataStore.activeProtocols.isEmpty {
@@ -85,6 +85,13 @@ struct ProtocolListView: View {
                 .appShadow(AppShadow.accentGlow)
                 .padding(Spacing.xxl)
             }
+            .refreshable {
+                // Re-load from disk via the repo so a CloudKit sync from
+                // another device shows up without restarting the app. The
+                // repo loads are fast (single JSON read per file) so this
+                // can happen on every pull-to-refresh.
+                dataStore.reloadFromDisk()
+            }
             .navigationTitle("Protocols")
             .navigationDestination(for: PeptideProtocol.self) { protocol_ in
                 ProtocolDetailView(protocol_: protocol_)
@@ -100,11 +107,29 @@ struct ProtocolListView: View {
             }
             .sheet(isPresented: $showingPaywall) {
                 PaywallView()
+                    .liquidGlassPresentation()
+            }
+            .onAppear { consumePendingDeepLink() }
+            .onChange(of: appState.pendingProtocolDeepLink) { _, _ in
+                consumePendingDeepLink()
             }
             .sheet(item: $sharingProtocol) { proto in
                 ShareCardSheet(proto: proto)
             }
         }
+    }
+
+    /// Pushes the deep-linked protocol onto the navigation path if the user
+    /// has it. Cleared immediately so a re-tap of the same row navigates
+    /// again (otherwise the value would be a no-op on the second tap).
+    private func consumePendingDeepLink() {
+        guard let id = appState.pendingProtocolDeepLink,
+              let target = dataStore.protocols.first(where: { $0.id == id })
+        else { return }
+        if path.last?.id != target.id {
+            path.append(target)
+        }
+        appState.pendingProtocolDeepLink = nil
     }
 }
 

@@ -72,6 +72,7 @@ struct AboutSection: View {
         }
         .sheet(isPresented: $showDisclaimer) {
             MedicalDisclaimerSheet()
+                .liquidGlassPresentation()
         }
     }
 }

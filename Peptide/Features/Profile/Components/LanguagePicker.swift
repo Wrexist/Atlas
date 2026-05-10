@@ -40,8 +40,7 @@ struct LanguagePickerRow: View {
         .buttonStyle(.plain)
         .sheet(isPresented: $isPresented) {
             LanguagePickerSheet()
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
+                .liquidGlassPresentation(detents: [.large])
         }
     }
 

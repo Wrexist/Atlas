@@ -64,6 +64,7 @@ struct PeptideSelector: View {
                 onAddCustomPeptide?(peptide)
                 selectedPeptides.insert(peptide.id)
             }
+            .liquidGlassPresentation()
         }
     }
 
@@ -93,7 +94,7 @@ struct PeptideSelector: View {
                     }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
         .padding(.top, Spacing.xs)
     }
 
@@ -244,7 +245,7 @@ struct PeptideSelector: View {
                     .foregroundStyle(peptide.category.color)
                     .frame(width: 28, height: 28)
                     .background {
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                             .fill(peptide.category.color.opacity(0.15))
                     }
 
@@ -279,7 +280,7 @@ struct PeptideSelector: View {
                 }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
     }
 }
 
@@ -314,7 +315,7 @@ private struct FilterChip: View {
                     }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
     }
 }
 

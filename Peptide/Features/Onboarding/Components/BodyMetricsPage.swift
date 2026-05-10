@@ -71,11 +71,15 @@ struct BodyMetricsPage: View {
         .padding(4)
         .background {
             Capsule()
-                .fill(AppColor.surfaceElevated)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
+                .overlay {
+                    Capsule().fill(AppColor.cardOverlay)
+                }
                 .overlay {
                     Capsule().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                 }
         }
+        .liquidGlass(.capsule)
     }
 
     private func unitChip(label: String, unit: MeasurementUnit) -> some View {
@@ -87,15 +91,21 @@ struct BodyMetricsPage: View {
             Text(label)
                 .font(AppFont.subheadline)
                 .fontWeight(.medium)
-                .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
+                .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.xs)
                 .background {
-                    Capsule()
-                        .fill(isSelected ? AppColor.glassTint : Color.clear)
+                    if isSelected {
+                        Capsule()
+                            .fill(AppColor.accentPrimary.opacity(0.28))
+                            .overlay {
+                                Capsule().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                            }
+                            .liquidGlass(.capsule)
+                    }
                 }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
