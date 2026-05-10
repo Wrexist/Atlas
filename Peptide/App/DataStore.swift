@@ -249,6 +249,7 @@ final class DataStore: DataServiceProtocol {
         let remainingIds = Set(peptides.map(\.id))
         let cleanedOverrides = peptideSchedules.filter { remainingIds.contains($0.key) }
 
+        let existing = protocols[index]
         let updated = PeptideProtocol(
             id: id,
             name: name,
@@ -256,9 +257,13 @@ final class DataStore: DataServiceProtocol {
             schedule: schedule,
             peptideSchedules: cleanedOverrides,
             cycleLengthWeeks: cycleLengthWeeks,
-            startDate: protocols[index].startDate,
-            status: protocols[index].status,
-            notes: notes
+            startDate: existing.startDate,
+            status: existing.status,
+            notes: notes,
+            authorName: existing.authorName,
+            authorHandle: existing.authorHandle,
+            forkedFromStackId: existing.forkedFromStackId,
+            createdAt: existing.createdAt
         )
         protocols[index] = updated
 
@@ -296,7 +301,11 @@ final class DataStore: DataServiceProtocol {
             cycleLengthWeeks: existing.cycleLengthWeeks,
             startDate: existing.startDate,
             status: existing.status,
-            notes: existing.notes
+            notes: existing.notes,
+            authorName: existing.authorName,
+            authorHandle: existing.authorHandle,
+            forkedFromStackId: existing.forkedFromStackId,
+            createdAt: existing.createdAt
         )
         protocols[index] = updated
 

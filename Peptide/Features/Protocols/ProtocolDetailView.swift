@@ -6,6 +6,7 @@ struct ProtocolDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showDeleteConfirmation = false
     @State private var showEditSheet = false
+    @State private var showShareCard = false
     @State private var schedulingPeptide: Peptide?
 
     private var liveProtocol: PeptideProtocol {
@@ -226,6 +227,16 @@ struct ProtocolDetailView: View {
         }
         .background(AppColor.background)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showShareCard = true
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .accessibilityLabel("Share cycle card")
+            }
+        }
         .alert("Delete Protocol", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
@@ -242,6 +253,9 @@ struct ProtocolDetailView: View {
         }
         .sheet(isPresented: $showEditSheet) {
             ProtocolBuilderView(editingProtocol: liveProtocol)
+        }
+        .sheet(isPresented: $showShareCard) {
+            ShareCardSheet(proto: liveProtocol)
         }
         .sheet(item: $schedulingPeptide) { peptide in
             PeptideScheduleSheet(

@@ -71,7 +71,7 @@ PeptideX is a native iOS SwiftUI app for tracking peptide supplementation protoc
 
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
-| 4.1 | **Protocol templates** | 2-3 days | Community-shared protocol configs. Browse by category/goal. Ratings and Staff Picks |
+| 4.1 | **Protocol templates** | 2-3 days | Community-shared protocol configs. Browse by category/goal. Ratings and Staff Picks. _v1: bundled curated stacks (`community-stacks.json`) ship today; user-published stacks need a backend with moderation._ |
 | 4.2 | **AI research assistant** | 3-5 days | On-device LLM via Apple Intelligence / Foundation Models. RAG over peptide database. Chat interface with sourced answers and medical disclaimers |
 | 4.3 | **Smart cycle planning** | 2-3 days | Analyze compliance patterns and durations. Suggest optimal cycle length and timing. Calendar integration |
 | 4.4 | **Community features** | 5+ days | Anonymous compliance leaderboards (opt-in). Protocol reviews. Requires backend infrastructure |
