@@ -113,6 +113,20 @@ struct NutritionTargets: Codable, Hashable {
     var fiberG: Int
 }
 
+/// Creator attribution captured during onboarding when the user enters a
+/// referral code. Persisted on the profile so the install / conversion can
+/// be matched against a creator on the (still-to-be-built) backend, and so
+/// the paywall can surface the discount the creator's code grants.
+///
+/// Matching today is local-only against `CreatorCodeService.seeded` —
+/// the spec'd Supabase pipeline (creator_codes table, RPC counters,
+/// dashboard) is tracked as a follow-up.
+struct CreatorAttribution: Codable, Hashable {
+    let code: String
+    let creatorName: String
+    let discountPercent: Int
+}
+
 struct UserProfile: Codable {
     var name: String
     var goals: [String]
@@ -127,6 +141,11 @@ struct UserProfile: Codable {
     /// the numbers later. Optional so older profiles decode cleanly and so
     /// the Lifestyle tab can detect "not yet computed" and re-prompt.
     var nutritionTargets: NutritionTargets?
+    /// Set when the user enters a valid creator code on the onboarding
+    /// attribution step. Used by the paywall copy to acknowledge the
+    /// discount and (eventually) by the backend to count installs /
+    /// conversions per creator.
+    var creatorAttribution: CreatorAttribution?
     /// JPEG-encoded profile avatar uploaded from the photo library. Stored
     /// inline so the avatar travels with the profile across exports and
     /// iCloud sync. Compressed before save — see DataStore.updateAvatar.
@@ -149,6 +168,7 @@ struct UserProfile: Codable {
         biometricLockEnabled: Bool = false,
         bodyMetrics: BodyMetrics = .unspecified,
         nutritionTargets: NutritionTargets? = nil,
+        creatorAttribution: CreatorAttribution? = nil,
         avatarImageData: Data? = nil,
         bio: String = "",
         primaryGoal: String? = nil
@@ -162,6 +182,7 @@ struct UserProfile: Codable {
         self.biometricLockEnabled = biometricLockEnabled
         self.bodyMetrics = bodyMetrics
         self.nutritionTargets = nutritionTargets
+        self.creatorAttribution = creatorAttribution
         self.avatarImageData = avatarImageData
         self.bio = bio
         self.primaryGoal = primaryGoal
@@ -178,6 +199,7 @@ struct UserProfile: Codable {
         biometricLockEnabled = try container.decodeIfPresent(Bool.self, forKey: .biometricLockEnabled) ?? false
         bodyMetrics = try container.decodeIfPresent(BodyMetrics.self, forKey: .bodyMetrics) ?? .unspecified
         nutritionTargets = try container.decodeIfPresent(NutritionTargets.self, forKey: .nutritionTargets)
+        creatorAttribution = try container.decodeIfPresent(CreatorAttribution.self, forKey: .creatorAttribution)
         avatarImageData = try container.decodeIfPresent(Data.self, forKey: .avatarImageData)
         bio = try container.decodeIfPresent(String.self, forKey: .bio) ?? ""
         primaryGoal = try container.decodeIfPresent(String.self, forKey: .primaryGoal)

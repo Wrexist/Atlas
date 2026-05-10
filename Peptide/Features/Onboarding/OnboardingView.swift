@@ -20,9 +20,16 @@ struct OnboardingView: View {
     @State private var bounceTrigger = 0
     @State private var authService = AuthService.shared
 
+    // Creator attribution step state. Lives on the parent so the footer
+    // (apply / skip / continue buttons) and the input field can share it
+    // and so the validated attribution survives a back-and-forward swipe.
+    @State private var creatorCodeInput: String = ""
+    @State private var creatorAttribution: CreatorAttribution?
+    @State private var creatorCodeError: String?
+
     @FocusState private var nameFocused: Bool
 
-    private let totalPages = 13
+    private let totalPages = 14
     @State private var storeService = StoreService.shared
 
     private struct OnboardingGoal: Identifiable {
@@ -71,8 +78,9 @@ struct OnboardingView: View {
                     notificationsPage.tag(8)
                     signInPage.tag(9)
                     reviewPromptPage.tag(10)
-                    offerPage.tag(11)
-                    readyPage.tag(12)
+                    creatorAttributionPage.tag(11)
+                    offerPage.tag(12)
+                    readyPage.tag(13)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: currentPage)
@@ -801,9 +809,7 @@ struct OnboardingView: View {
             content: { ReviewPromptPage() },
             footer: {
                 // Single CTA. Tapping "Continue" both fires the App Store
-                // review request and advances to the paywall — the user has
-                // just been shown social proof from real-looking testimonials,
-                // which is the highest-positive-priming moment in the flow.
+                // review request and advances to the creator-attribution step.
                 // The cooldown gate inside ReviewPromptService still applies,
                 // so re-onboarding never burns a second prompt within 90 days.
                 GlassButton(
@@ -822,23 +828,87 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Page 11: Free-Trial Funnel
+    // MARK: - Page 11: Creator Attribution (referral code)
+
+    private var creatorAttributionPage: some View {
+        pageScaffold(
+            hero: EmptyView(),
+            content: {
+                CreatorAttributionPage(
+                    input: $creatorCodeInput,
+                    attribution: creatorAttribution,
+                    error: creatorCodeError
+                )
+            },
+            footer: {
+                VStack(spacing: Spacing.sm) {
+                    if creatorAttribution != nil {
+                        GlassButton(
+                            title: "Continue",
+                            icon: "arrow.right",
+                            style: .primary,
+                            isFullWidth: true
+                        ) {
+                            advance(to: 12)
+                        }
+                    } else {
+                        GlassButton(
+                            title: "Apply",
+                            icon: "checkmark.circle.fill",
+                            style: .primary,
+                            isFullWidth: true,
+                            action: applyCreatorCode
+                        )
+                        .disabled(creatorCodeInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                    GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
+                        advance(to: 12)
+                    }
+                }
+            }
+        )
+    }
+
+    /// Validates the typed code against the local seeded list and updates
+    /// the success / error state. The validated attribution is persisted
+    /// to the profile in `finishOnboarding` rather than here so swiping
+    /// back and re-applying a different code doesn't strand stale data.
+    private func applyCreatorCode() {
+        if let match = CreatorCodeService.lookup(creatorCodeInput) {
+            withAnimation(AppAnimation.springSnappy) {
+                creatorAttribution = match
+                creatorCodeError = nil
+            }
+            if dataStore.profile.hapticFeedbackEnabled {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+        } else {
+            withAnimation(AppAnimation.springSnappy) {
+                creatorCodeError = "Code not found — double-check and try again"
+            }
+            if dataStore.profile.hapticFeedbackEnabled {
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+            }
+        }
+    }
+
+    // MARK: - Page 12: Free-Trial Funnel
 
     @ViewBuilder
     private var offerPage: some View {
         if storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
             Color.clear.onAppear {
-                if currentPage == 11 { advance(to: 12) }
+                if currentPage == 12 { advance(to: 13) }
             }
         } else {
             TrialOfferView(
-                onAccept: { advance(to: 12) },
-                onDecline: { advance(to: 12) }
+                onAccept: { advance(to: 13) },
+                onDecline: { advance(to: 13) }
             )
         }
     }
 
-    // MARK: - Page 12: Ready
+    // MARK: - Page 13: Ready
 
     private var readyPage: some View {
         pageScaffold(
@@ -1063,10 +1133,11 @@ struct OnboardingView: View {
     }
 
     private var canGoBack: Bool {
-        // Welcome (0) has nothing behind it. The review (10) and offer (11)
-        // pages are intentionally one-way — going back from either would land
-        // on the sign-in page and re-trigger that flow, which is jarring.
-        currentPage > 0 && currentPage != 10 && currentPage != 11
+        // Welcome (0) has nothing behind it. Pages 10–12 (review prompt,
+        // creator attribution, offer) are intentionally one-way — going
+        // back from any of them would either re-fire the review request or
+        // strand the user on the sign-in page, both of which feel broken.
+        currentPage > 0 && !(10...12).contains(currentPage)
     }
 
     private var backButton: some View {
@@ -1093,13 +1164,13 @@ struct OnboardingView: View {
 
     private func goBack() {
         guard canGoBack else { return }
-        // The trial-offer page (11) is the only forward-skip the routing does
+        // The trial-offer page (12) is the only forward-skip the routing does
         // automatically, so retreat past it from the Ready page when the user
         // is already Pro / ineligible — they'd otherwise land on a screen
         // that immediately auto-advances them right back here.
         let target: Int
-        if currentPage == 12, storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
-            target = 10
+        if currentPage == 13, storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
+            target = 11
         } else {
             target = currentPage - 1
         }
@@ -1144,6 +1215,13 @@ struct OnboardingView: View {
         // the Lifestyle tab can re-prompt later.
         if let targets = NutritionMath.dailyTargets(for: bodyMetrics) {
             dataStore.profile.nutritionTargets = targets
+        }
+        // Persist creator attribution if a code was applied — survives
+        // re-launches via the profile JSON. The Supabase install / conversion
+        // counters spec'd alongside this will read from the same field once
+        // the backend pipeline lands.
+        if let attribution = creatorAttribution {
+            dataStore.profile.creatorAttribution = attribution
         }
         dataStore.persistProfile()
 
