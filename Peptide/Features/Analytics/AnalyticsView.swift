@@ -117,7 +117,10 @@ struct AnalyticsView: View {
             }
             .background(AppColor.background)
             .navigationTitle("Analytics")
-            .sheet(isPresented: $showPaywall) { PaywallView() }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+                    .liquidGlassPresentation()
+            }
             .task(id: dataStore.profile.healthConnected) {
                 guard dataStore.profile.healthConnected else {
                     hrvSeries = []

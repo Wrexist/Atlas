@@ -194,6 +194,7 @@ struct ProtocolBuilderView: View {
                         peptideOverrides.removeValue(forKey: peptide.id)
                     }
                 }
+                .liquidGlassPresentation()
             }
         }
     }
@@ -584,9 +585,18 @@ private struct StepIndicator: View {
                     .frame(height: 4)
                     .overlay {
                         Capsule()
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                            .strokeBorder(
+                                index <= currentStep ? AppColor.glassBorderActive : AppColor.glassBorder,
+                                lineWidth: 0.5
+                            )
                     }
-                    .animation(AppAnimation.springSmooth, value: currentStep)
+                    .liquidGlass(.capsule)
+                    .shadow(
+                        color: index <= currentStep ? AppColor.accentGlow : .clear,
+                        radius: index <= currentStep ? 6 : 0,
+                        y: 0
+                    )
+                    .animation(.spring(response: 0.45, dampingFraction: 0.78), value: currentStep)
             }
         }
     }

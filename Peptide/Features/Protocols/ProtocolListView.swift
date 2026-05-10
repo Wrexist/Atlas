@@ -83,6 +83,7 @@ struct ProtocolListView: View {
             }
             .sheet(isPresented: $showingPaywall) {
                 PaywallView()
+                    .liquidGlassPresentation()
             }
             .onAppear { consumePendingDeepLink() }
             .onChange(of: appState.pendingProtocolDeepLink) { _, _ in

@@ -239,6 +239,7 @@ struct ProfileCustomizationSheet: View {
                 onCancel: { isShowingPresetPicker = false }
             )
             .preferredColorScheme(.dark)
+            .liquidGlassPresentation(detents: [.medium, .large])
         }
     }
 

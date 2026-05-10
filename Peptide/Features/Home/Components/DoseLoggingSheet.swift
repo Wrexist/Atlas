@@ -4,6 +4,7 @@ struct DoseLoggingSheet: View {
     let entry: ProtocolEntry
     let onLog: (String?, Date?, String?, String) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(DataStore.self) private var dataStore
 
     @State private var actualDose: String
     @State private var actualTime: Date
@@ -98,18 +99,22 @@ struct DoseLoggingSheet: View {
                                     ForEach(InjectionSite.allCases, id: \.rawValue) { site in
                                         let isSelected = selectedSite == site.rawValue
                                         Button {
-                                            withAnimation(AppAnimation.springSnappy) {
+                                            withAnimation(AppAnimation.springBouncy) {
                                                 selectedSite = isSelected ? nil : site.rawValue
+                                            }
+                                            if dataStore.profile.hapticFeedbackEnabled {
+                                                UISelectionFeedbackGenerator().selectionChanged()
                                             }
                                         } label: {
                                             Text(site.rawValue)
                                                 .font(AppFont.caption)
-                                                .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
+                                                .fontWeight(.medium)
+                                                .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, Spacing.sm)
                                                 .background {
                                                     RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                                                        .fill(isSelected ? AppColor.accentPrimary.opacity(0.15) : AppColor.surfaceElevated)
+                                                        .fill(isSelected ? AppColor.accentPrimary.opacity(0.25) : AppColor.surfaceElevated)
                                                         .overlay {
                                                             RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                                                                 .strokeBorder(
@@ -118,8 +123,9 @@ struct DoseLoggingSheet: View {
                                                                 )
                                                         }
                                                 }
+                                                .liquidGlass(.rect(cornerRadius: Spacing.chipCornerRadius))
                                         }
-                                        .buttonStyle(.plain)
+                                        .buttonStyle(ScalePressStyle())
                                     }
                                 }
                             }

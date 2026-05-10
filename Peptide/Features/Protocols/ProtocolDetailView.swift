@@ -245,6 +245,7 @@ struct ProtocolDetailView: View {
         }
         .sheet(isPresented: $showEditSheet) {
             ProtocolBuilderView(editingProtocol: liveProtocol)
+                .liquidGlassPresentation()
         }
         .sheet(item: $schedulingPeptide) { peptide in
             PeptideScheduleSheet(
@@ -258,6 +259,7 @@ struct ProtocolDetailView: View {
                     schedule: updated
                 )
             }
+            .liquidGlassPresentation()
         }
     }
 

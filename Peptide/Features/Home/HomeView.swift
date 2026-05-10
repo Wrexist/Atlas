@@ -210,6 +210,7 @@ struct HomeView: View {
                         notes: notes
                     )
                 }
+                .liquidGlassPresentation()
             }
             .sheet(item: $selectedAlert) { warning in
                 StackAlertDetailSheet(
@@ -246,11 +247,13 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
+                    .liquidGlassPresentation()
             }
             .sheet(isPresented: $showProfileCustomization) {
                 ProfileCustomizationSheet()
                     .environment(dataStore)
                     .environment(appState)
+                    .liquidGlassPresentation()
             }
             .navigationDestination(for: Peptide.self) { peptide in
                 PeptideDetailView(peptide: peptide)

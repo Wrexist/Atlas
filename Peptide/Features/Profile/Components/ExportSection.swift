@@ -53,7 +53,10 @@ struct ExportSection: View {
                 ShareSheet(urls: [url])
             }
         }
-        .sheet(isPresented: $showPaywall) { PaywallView() }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
+                .liquidGlassPresentation()
+        }
         .alert("Export Failed", isPresented: Binding(
             get: { exportError != nil },
             set: { if !$0 { exportError = nil } }

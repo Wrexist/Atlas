@@ -546,8 +546,7 @@ private struct TimeSlotRow: View {
                 },
                 onCancel: { isShowingPicker = false }
             )
-            .presentationDetents([.height(360)])
-            .presentationDragIndicator(.visible)
+            .liquidGlassPresentation(detents: [.height(360)])
         }
     }
 

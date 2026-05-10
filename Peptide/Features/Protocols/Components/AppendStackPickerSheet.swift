@@ -46,6 +46,7 @@ struct AppendStackPickerSheet: View {
                 }
             }
         }
+        .liquidGlassPresentation(detents: [.medium, .large])
     }
 
     private func row(for proto: PeptideProtocol) -> some View {
