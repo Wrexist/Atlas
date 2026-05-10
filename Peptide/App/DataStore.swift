@@ -587,6 +587,10 @@ final class DataStore: DataServiceProtocol {
         if let pinned = profile.primaryGoal, !goals.contains(pinned) {
             profile.primaryGoal = nil
         }
+        // stackRecommendations / stackCompleteness depend on profile.goals,
+        // so bump the cache version explicitly — the protocols/entries didSet
+        // bumpers don't fire on a profile-only change.
+        cacheVersion &+= 1
         save()
     }
 
@@ -595,6 +599,9 @@ final class DataStore: DataServiceProtocol {
     func setPrimaryGoal(_ goal: String?) {
         if let goal, !profile.goals.contains(goal) { return }
         profile.primaryGoal = goal
+        // Same reason as updateGoals: goal-derived caches are stale until the
+        // next protocols/entries mutation without this manual bump.
+        cacheVersion &+= 1
         save()
     }
 

@@ -13,13 +13,38 @@ struct PeptideListView: View {
     }
 
     var body: some View {
-        // NavigationSplitView gives iPad landscape a proper two-column layout
-        // (peptide list on the left, selected peptide detail on the right)
-        // while collapsing to a single-column stack on iPhone and iPad
-        // portrait. Selection is bound to `selectedPeptide` so detail tracks
-        // both row taps and external set (e.g. deep link).
+        // On iPhone (or iPad portrait), NavigationStack with NavigationLink
+        // gives the standard push-to-detail behavior users expect from a
+        // list. On iPad regular, NavigationSplitView yields a true two-pane
+        // layout with the detail kept in sync via `selectedPeptide`.
+        //
+        // We branch on size class instead of relying on NavigationSplitView's
+        // own collapse — the collapsed form swallows NavigationLink(value:)
+        // pushes when the row tap only sets a selection binding (Codex
+        // review on PR #99 caught this; iPhone users were stranded on the
+        // list with no way into the detail).
+        if sizeClass == .regular {
+            iPadSplitLayout
+        } else {
+            iPhoneStackLayout
+        }
+    }
+
+    // MARK: - iPad split layout
+
+    private var iPadSplitLayout: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            sidebar
+            sidebarContent(useNavigationLinks: false)
+                .navigationTitle("Peptides")
+                .toolbar { sidebarToolbar }
+                .sheet(isPresented: $showCustomForm) {
+                    CustomPeptideForm { peptide in
+                        dataStore.addCustomPeptide(peptide)
+                        refreshPeptides()
+                    }
+                    .liquidGlassPresentation()
+                }
+                .onAppear { refreshPeptides() }
         } detail: {
             NavigationStack {
                 if let selectedPeptide {
@@ -39,9 +64,34 @@ struct PeptideListView: View {
         .navigationSplitViewStyle(.balanced)
     }
 
-    // MARK: - Sidebar
+    // MARK: - iPhone stack layout
 
-    private var sidebar: some View {
+    private var iPhoneStackLayout: some View {
+        NavigationStack {
+            sidebarContent(useNavigationLinks: true)
+                .navigationTitle("Peptides")
+                .toolbar { sidebarToolbar }
+                .navigationDestination(for: Peptide.self) { peptide in
+                    PeptideDetailView(peptide: peptide)
+                }
+                .sheet(isPresented: $showCustomForm) {
+                    CustomPeptideForm { peptide in
+                        dataStore.addCustomPeptide(peptide)
+                        refreshPeptides()
+                    }
+                    .liquidGlassPresentation()
+                }
+                .onAppear { refreshPeptides() }
+        }
+    }
+
+    // MARK: - Shared sidebar content
+
+    /// `useNavigationLinks=true` on iPhone routes taps through the
+    /// NavigationStack's `.navigationDestination(for:)`. On iPad regular we
+    /// instead set `selectedPeptide` directly so the right detail pane
+    /// updates without a push.
+    private func sidebarContent(useNavigationLinks: Bool) -> some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
                 AddCustomPeptideCard {
@@ -74,16 +124,7 @@ struct PeptideListView: View {
                 } else {
                     LazyVStack(spacing: Spacing.md) {
                         ForEach(viewModel.filteredPeptides) { peptide in
-                            Button {
-                                selectedPeptide = peptide
-                                if dataStore.profile.hapticFeedbackEnabled {
-                                    UISelectionFeedbackGenerator().selectionChanged()
-                                }
-                            } label: {
-                                PeptideRow(peptide: peptide)
-                            }
-                            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-                            .transition(.scale(scale: 0.97).combined(with: .opacity))
+                            peptideRow(peptide, useNavigationLink: useNavigationLinks)
                         }
                     }
                     .padding(.horizontal, Spacing.screenPadding)
@@ -101,29 +142,44 @@ struct PeptideListView: View {
             // iCloud sync and re-applies the active filter.
             refreshPeptides()
         }
-        .navigationTitle("Peptides")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Text("\(viewModel.allPeptides.count)")
-                    .font(AppFont.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.accentPrimary)
-                    .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, Spacing.xxs)
-                    .background {
-                        Capsule()
-                            .fill(AppColor.accentPrimary.opacity(0.15))
-                    }
+    }
+
+    @ViewBuilder
+    private func peptideRow(_ peptide: Peptide, useNavigationLink: Bool) -> some View {
+        if useNavigationLink {
+            NavigationLink(value: peptide) {
+                PeptideRow(peptide: peptide)
             }
-        }
-        .sheet(isPresented: $showCustomForm) {
-            CustomPeptideForm { peptide in
-                dataStore.addCustomPeptide(peptide)
-                refreshPeptides()
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+            .transition(.scale(scale: 0.97).combined(with: .opacity))
+        } else {
+            Button {
+                selectedPeptide = peptide
+                if dataStore.profile.hapticFeedbackEnabled {
+                    UISelectionFeedbackGenerator().selectionChanged()
+                }
+            } label: {
+                PeptideRow(peptide: peptide)
             }
-            .liquidGlassPresentation()
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+            .transition(.scale(scale: 0.97).combined(with: .opacity))
         }
-        .onAppear { refreshPeptides() }
+    }
+
+    @ToolbarContentBuilder
+    private var sidebarToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Text("\(viewModel.allPeptides.count)")
+                .font(AppFont.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColor.accentPrimary)
+                .padding(.horizontal, Spacing.sm)
+                .padding(.vertical, Spacing.xxs)
+                .background {
+                    Capsule()
+                        .fill(AppColor.accentPrimary.opacity(0.15))
+                }
+        }
     }
 }
 
