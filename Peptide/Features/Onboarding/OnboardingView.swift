@@ -22,7 +22,7 @@ struct OnboardingView: View {
 
     @FocusState private var nameFocused: Bool
 
-    private let totalPages = 12
+    private let totalPages = 13
     @State private var storeService = StoreService.shared
 
     private struct OnboardingGoal: Identifiable {
@@ -64,14 +64,15 @@ struct OnboardingView: View {
                     namePage.tag(1)
                     goalsPage.tag(2)
                     bodyMetricsPage.tag(3)
-                    recommendationsPage.tag(4)
-                    experiencePage.tag(5)
-                    healthKitPage.tag(6)
-                    notificationsPage.tag(7)
-                    signInPage.tag(8)
-                    reviewPromptPage.tag(9)
-                    offerPage.tag(10)
-                    readyPage.tag(11)
+                    dailyTargetsPage.tag(4)
+                    recommendationsPage.tag(5)
+                    experiencePage.tag(6)
+                    healthKitPage.tag(7)
+                    notificationsPage.tag(8)
+                    signInPage.tag(9)
+                    reviewPromptPage.tag(10)
+                    offerPage.tag(11)
+                    readyPage.tag(12)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: currentPage)
@@ -80,7 +81,7 @@ struct OnboardingView: View {
         .preferredColorScheme(.dark)
         .onChange(of: currentPage) { _, newValue in
             dismissKeyboard()
-            if newValue == 4 && !hasAutoSelectedRecommendations {
+            if newValue == 5 && !hasAutoSelectedRecommendations {
                 let top = currentSuggestions.prefix(2).map(\.peptide.id)
                 selectedRecommendationIds = Set(top)
                 hasAutoSelectedRecommendations = true
@@ -88,7 +89,7 @@ struct OnboardingView: View {
             // If the user lands on the sign-in page already authenticated
             // (e.g. Keychain survived a re-onboard), still show the
             // confirmation briefly and advance — never strand them here.
-            if newValue == 8 && authService.isSignedIn {
+            if newValue == 9 && authService.isSignedIn {
                 scheduleSignInAdvance()
             }
         }
@@ -97,7 +98,7 @@ struct OnboardingView: View {
             selectedRecommendationIds.removeAll()
         }
         .onChange(of: authService.isSignedIn) { _, signedIn in
-            if signedIn, currentPage == 8 {
+            if signedIn, currentPage == 9 {
                 if dataStore.profile.hapticFeedbackEnabled {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                 }
@@ -107,7 +108,7 @@ struct OnboardingView: View {
         .alert(
             authService.lastError?.title ?? "",
             isPresented: Binding(
-                get: { authService.lastError != nil && currentPage == 8 },
+                get: { authService.lastError != nil && currentPage == 9 },
                 set: { if !$0 { authService.clearLastError() } }
             ),
             presenting: authService.lastError
@@ -126,7 +127,7 @@ struct OnboardingView: View {
         .task { await storeService.loadProducts() }
     }
 
-    // MARK: - Page 1: Welcome
+    // MARK: - Page 0: Welcome
 
     private var welcomePage: some View {
         pageScaffold(
@@ -184,7 +185,7 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Page 2: Name
+    // MARK: - Page 1: Name
 
     private var namePage: some View {
         pageScaffold(
@@ -217,7 +218,7 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Page 3: Goals
+    // MARK: - Page 2: Goals
 
     private var goalsPage: some View {
         pageScaffold(
@@ -251,7 +252,7 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Page 4: Body Metrics
+    // MARK: - Page 3: Body Metrics
 
     private var bodyMetricsPage: some View {
         pageScaffold(
@@ -265,8 +266,26 @@ struct OnboardingView: View {
                         advance(to: 4)
                     }
                     GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
-                        advance(to: 4)
+                        // Skip past Daily Targets too — without body stats it
+                        // has nothing to compute and would render placeholders.
+                        advance(to: 5)
                     }
+                }
+            }
+        )
+    }
+
+    // MARK: - Page 4: Daily Targets
+
+    private var dailyTargetsPage: some View {
+        pageScaffold(
+            hero: HeroIcon(symbol: "fork.knife.circle.fill", size: 88, bounceTrigger: bounceTrigger),
+            content: {
+                DailyTargetsPage(metrics: bodyMetrics)
+            },
+            footer: {
+                GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
+                    advance(to: 5)
                 }
             }
         )
@@ -291,11 +310,11 @@ struct OnboardingView: View {
                         style: .primary,
                         isFullWidth: true
                     ) {
-                        advance(to: 5)
+                        advance(to: 6)
                     }
                     GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
                         selectedRecommendationIds.removeAll()
-                        advance(to: 5)
+                        advance(to: 6)
                     }
                 }
             }
@@ -398,7 +417,7 @@ struct OnboardingView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Page 4: Experience Level
+    // MARK: - Page 6: Experience Level
 
     private var experiencePage: some View {
         pageScaffold(
@@ -428,7 +447,7 @@ struct OnboardingView: View {
             },
             footer: {
                 GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                    advance(to: 6)
+                    advance(to: 7)
                 }
             }
         )
@@ -494,7 +513,7 @@ struct OnboardingView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Page 5: HealthKit
+    // MARK: - Page 7: HealthKit
 
     private var healthKitPage: some View {
         permissionPage(
@@ -518,14 +537,14 @@ struct OnboardingView: View {
                     dataStore.profile.healthConnected = granted
                     dataStore.persistProfile()
                 }
-                if currentPage == 6 { advance(to: 7) }
+                if currentPage == 7 { advance(to: 8) }
             }
         } onSkip: {
-            advance(to: 7)
+            advance(to: 8)
         }
     }
 
-    // MARK: - Page 6: Notifications
+    // MARK: - Page 8: Notifications
 
     private var notificationsPage: some View {
         permissionPage(
@@ -549,10 +568,10 @@ struct OnboardingView: View {
                     dataStore.profile.doseRemindersEnabled = granted
                     dataStore.persistProfile()
                 }
-                if currentPage == 7 { advance(to: 8) }
+                if currentPage == 8 { advance(to: 9) }
             }
         } onSkip: {
-            advance(to: 8)
+            advance(to: 9)
         }
     }
 
@@ -642,7 +661,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Page 7: Sign in with Apple
+    // MARK: - Page 9: Sign in with Apple
 
     private var signInPage: some View {
         pageScaffold(
@@ -728,12 +747,12 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Page 9: Review Prompt (social proof before paywall)
+    // MARK: - Page 10: Review Prompt (social proof before paywall)
 
     /// Always advance to the review prompt after sign-in. The review page is
     /// shown to everyone — Pro users may still want to leave a review — and
-    /// the offer page (10) self-skips for ineligible / already-Pro users.
-    private var nextAfterSignIn: Int { 9 }
+    /// the offer page (11) self-skips for ineligible / already-Pro users.
+    private var nextAfterSignIn: Int { 10 }
 
     private var reviewPromptPage: some View {
         pageScaffold(
@@ -751,33 +770,33 @@ struct OnboardingView: View {
                         if dataStore.profile.hapticFeedbackEnabled {
                             UINotificationFeedbackGenerator().notificationOccurred(.success)
                         }
-                        advance(to: 10)
+                        advance(to: 11)
                     }
                     GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
-                        advance(to: 10)
+                        advance(to: 11)
                     }
                 }
             }
         )
     }
 
-    // MARK: - Page 10: Free-Trial Funnel
+    // MARK: - Page 11: Free-Trial Funnel
 
     @ViewBuilder
     private var offerPage: some View {
         if storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
             Color.clear.onAppear {
-                if currentPage == 10 { advance(to: 11) }
+                if currentPage == 11 { advance(to: 12) }
             }
         } else {
             TrialOfferView(
-                onAccept: { advance(to: 11) },
-                onDecline: { advance(to: 11) }
+                onAccept: { advance(to: 12) },
+                onDecline: { advance(to: 12) }
             )
         }
     }
 
-    // MARK: - Page 11: Ready
+    // MARK: - Page 12: Ready
 
     private var readyPage: some View {
         pageScaffold(
@@ -1002,10 +1021,10 @@ struct OnboardingView: View {
     }
 
     private var canGoBack: Bool {
-        // Welcome (0) has nothing behind it. The review (9) and offer (10)
+        // Welcome (0) has nothing behind it. The review (10) and offer (11)
         // pages are intentionally one-way — going back from either would land
         // on the sign-in page and re-trigger that flow, which is jarring.
-        currentPage > 0 && currentPage != 9 && currentPage != 10
+        currentPage > 0 && currentPage != 10 && currentPage != 11
     }
 
     private var backButton: some View {
@@ -1032,13 +1051,13 @@ struct OnboardingView: View {
 
     private func goBack() {
         guard canGoBack else { return }
-        // The trial-offer page (10) is the only forward-skip the routing does
+        // The trial-offer page (11) is the only forward-skip the routing does
         // automatically, so retreat past it from the Ready page when the user
         // is already Pro / ineligible — they'd otherwise land on a screen
         // that immediately auto-advances them right back here.
         let target: Int
-        if currentPage == 11, storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
-            target = 9
+        if currentPage == 12, storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
+            target = 10
         } else {
             target = currentPage - 1
         }
@@ -1051,7 +1070,7 @@ struct OnboardingView: View {
     private func scheduleSignInAdvance() {
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(1400))
-            if currentPage == 8 {
+            if currentPage == 9 {
                 advance(to: nextAfterSignIn)
             }
         }
@@ -1077,6 +1096,13 @@ struct OnboardingView: View {
             dataStore.profile.goals = Array(selectedGoals).sorted()
         }
         dataStore.profile.bodyMetrics = bodyMetrics
+        // Pre-fill the Lifestyle tab from the daily-targets calculation
+        // so the user lands on a populated screen on first run. Skipped
+        // when body stats are incomplete — `dailyTargets` returns nil and
+        // the Lifestyle tab can re-prompt later.
+        if let targets = NutritionMath.dailyTargets(for: bodyMetrics) {
+            dataStore.profile.nutritionTargets = targets
+        }
         dataStore.persistProfile()
 
         if !selectedRecommendationIds.isEmpty {

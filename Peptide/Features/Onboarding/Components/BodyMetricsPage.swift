@@ -1,63 +1,46 @@
 import SwiftUI
 
-/// Onboarding page that optionally captures the user's body metrics so the
-/// app can show them alongside their compliance trends. All inputs are
-/// optional — users can skip the page entirely and every feature still
-/// works.
+/// "Height & weight" onboarding step. Collects weight, height, age, and
+/// gender via scroll-wheel pickers and gender pills. The numbers feed the
+/// next step (Daily targets) which renders a calorie/macro estimate using
+/// the Mifflin-St Jeor formula.
 ///
-/// IMPORTANT: These values are NOT used to calculate, scale, or recommend
-/// any dose. PeptideX is not a dose calculator. The data is stored locally
-/// for the user's own reference and (optionally) for HealthKit correlation.
+/// Inputs are stored canonically in metric (`weightKg`, `heightCm`). The
+/// metric/imperial toggle controls only the picker presentation — flipping
+/// it never loses the underlying value because the wheels rebind to the
+/// converted value on each render.
 ///
-/// Numeric fields are backed by raw `@State` strings so partial input
-/// like "75." (decimal in progress) and locale-friendly commas survive
-/// keystroke-by-keystroke. The model is updated only when the parsed
-/// value is valid, and re-syncs when the unit toggle flips.
+/// IMPORTANT: The numbers here power a *reference-only* calorie/macro
+/// estimate, not a dose calculator. PeptideX still does not recommend
+/// peptide doses. The disclaimer on screen 2 makes the reference-only
+/// nature explicit.
 struct BodyMetricsPage: View {
     @Binding var metrics: BodyMetrics
 
-    @State private var weightInput: String = ""
-    @State private var heightInput: String = ""
-    @State private var ageInput: String = ""
-
-    @FocusState private var focusedField: Field?
-
-    private enum Field: Hashable { case weight, height, age }
-
     var body: some View {
-        VStack(spacing: Spacing.md) {
-            Text("A bit about you")
-                .font(AppFont.title)
-                .foregroundStyle(AppColor.textPrimary)
-                .multilineTextAlignment(.center)
+        VStack(spacing: Spacing.lg) {
+            VStack(spacing: Spacing.sm) {
+                Text("Height & weight")
+                    .font(AppFont.title)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
 
-            Text("Optional — used only to display alongside your compliance trends. PeptideX never calculates doses for you. Everything stays on your device.")
-                .font(AppFont.body)
-                .foregroundStyle(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.lg)
+                Text("Used to personalise your protocol tracking.")
+                    .font(AppFont.body)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.lg)
+            }
 
             unitToggle
-                .padding(.top, Spacing.sm)
 
             VStack(spacing: Spacing.md) {
-                weightField
-                heightField
-                ageField
-                sexPicker
-                activityPicker
+                heightPicker
+                weightPicker
+                agePicker
             }
-            .padding(.top, Spacing.sm)
-        }
-        .onAppear(perform: hydrateInputs)
-        .onChange(of: metrics.unit) { _, _ in hydrateInputs() }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") { focusedField = nil }
-                    .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.accentPrimary)
-            }
+
+            genderPills
         }
     }
 
@@ -82,7 +65,7 @@ struct BodyMetricsPage: View {
         .liquidGlass(.capsule)
     }
 
-    private func unitChip(label: String, unit: MeasurementUnit) -> some View {
+    private func unitChip(label: LocalizedStringKey, unit: MeasurementUnit) -> some View {
         let isSelected = metrics.unit == unit
         return Button {
             withAnimation(AppAnimation.springSnappy) { metrics.unit = unit }
@@ -109,84 +92,110 @@ struct BodyMetricsPage: View {
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
-    // MARK: - Numeric fields
+    // MARK: - Pickers
 
-    private var weightField: some View {
-        MetricNumericField(
-            icon: "scalemass.fill",
-            title: "Weight",
-            placeholder: metrics.unit == .metric ? "75" : "165",
-            unit: metrics.unit == .metric ? "kg" : "lb",
-            value: $weightInput
-        )
-        .focused($focusedField, equals: .weight)
-        .onChange(of: weightInput) { _, new in syncWeight(from: new) }
-    }
+    private var heightPicker: some View {
+        WheelPickerRow(icon: "ruler.fill", title: "Height") {
+            if metrics.unit == .metric {
+                Picker("Centimeters", selection: heightCmBinding) {
+                    ForEach(BodyMetricsRanges.heightCm, id: \.self) { cm in
+                        Text("\(cm) cm").tag(cm)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+            } else {
+                HStack(spacing: 0) {
+                    Picker("Feet", selection: heightFeetBinding) {
+                        ForEach(BodyMetricsRanges.heightFeet, id: \.self) { ft in
+                            Text("\(ft) ft").tag(ft)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(maxWidth: .infinity)
 
-    private var heightField: some View {
-        MetricNumericField(
-            icon: "ruler.fill",
-            title: "Height",
-            placeholder: metrics.unit == .metric ? "180" : "70",
-            unit: metrics.unit == .metric ? "cm" : "in",
-            value: $heightInput
-        )
-        .focused($focusedField, equals: .height)
-        .onChange(of: heightInput) { _, new in syncHeight(from: new) }
-    }
-
-    private var ageField: some View {
-        MetricNumericField(
-            icon: "calendar",
-            title: "Age",
-            placeholder: "30",
-            unit: "years",
-            value: $ageInput,
-            decimalAllowed: false
-        )
-        .focused($focusedField, equals: .age)
-        .onChange(of: ageInput) { _, new in
-            metrics.age = Int(new.filter(\.isNumber))
-        }
-    }
-
-    // MARK: - Sex picker
-
-    private var sexPicker: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Label("Biological sex", systemImage: "person.crop.circle")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textSecondary)
-
-            HStack(spacing: Spacing.xs) {
-                ForEach(BiologicalSex.allCases) { option in
-                    sexChip(option)
+                    Picker("Inches", selection: heightInchesBinding) {
+                        ForEach(BodyMetricsRanges.heightInches, id: \.self) { inches in
+                            Text("\(inches) in").tag(inches)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(maxWidth: .infinity)
                 }
             }
         }
     }
 
-    private func sexChip(_ option: BiologicalSex) -> some View {
+    private var weightPicker: some View {
+        WheelPickerRow(icon: "scalemass.fill", title: "Weight") {
+            if metrics.unit == .metric {
+                Picker("Kilograms", selection: weightKgBinding) {
+                    ForEach(BodyMetricsRanges.weightKg, id: \.self) { kg in
+                        Text("\(kg) kg").tag(kg)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+            } else {
+                Picker("Pounds", selection: weightLbBinding) {
+                    ForEach(BodyMetricsRanges.weightLb, id: \.self) { lb in
+                        Text("\(lb) lb").tag(lb)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    private var agePicker: some View {
+        WheelPickerRow(icon: "calendar", title: "Age") {
+            Picker("Age", selection: ageBinding) {
+                ForEach(BodyMetricsRanges.age, id: \.self) { age in
+                    Text("\(age)").tag(age)
+                }
+            }
+            .pickerStyle(.wheel)
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    // MARK: - Gender pills
+
+    private var genderPills: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Label("Gender", systemImage: "person.crop.circle")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+
+            HStack(spacing: Spacing.xs) {
+                ForEach(BiologicalSex.onboardingChoices) { option in
+                    genderPill(option)
+                }
+            }
+        }
+    }
+
+    private func genderPill(_ option: BiologicalSex) -> some View {
         let isSelected = metrics.sex == option
         return Button {
             withAnimation(AppAnimation.springSnappy) { metrics.sex = option }
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         } label: {
             Text(option.localizedShortLabel)
-                .font(AppFont.caption)
+                .font(AppFont.subheadline)
                 .fontWeight(.medium)
                 .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.sm)
                 .background {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill(isSelected ? AppColor.accentPrimary.opacity(0.15) : AppColor.surfaceSecondary.opacity(0.6))
+                    Capsule()
+                        .fill(isSelected ? AppColor.accentPrimary.opacity(0.18) : AppColor.surfaceSecondary.opacity(0.6))
                         .overlay {
-                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                .strokeBorder(
-                                    isSelected ? AppColor.accentPrimary.opacity(0.45) : AppColor.glassBorder,
-                                    lineWidth: 0.5
-                                )
+                            Capsule().strokeBorder(
+                                isSelected ? AppColor.accentPrimary.opacity(0.45) : AppColor.glassBorder,
+                                lineWidth: 0.5
+                            )
                         }
                 }
         }
@@ -195,145 +204,133 @@ struct BodyMetricsPage: View {
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
-    // MARK: - Activity picker
+    // MARK: - Bindings (model storage is canonical metric)
 
-    private var activityPicker: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Label("Activity level", systemImage: "figure.run")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textSecondary)
+    private var heightCmBinding: Binding<Int> {
+        Binding(
+            get: {
+                let stored = Int((metrics.heightCm ?? Double(BodyMetricsRanges.defaultHeightCm)).rounded())
+                return BodyMetricsRanges.clampHeightCm(stored)
+            },
+            set: { metrics.heightCm = Double($0) }
+        )
+    }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Spacing.xs) {
-                    ForEach(ActivityLevel.allCases) { option in
-                        activityChip(option)
-                    }
-                }
+    private var heightFeetBinding: Binding<Int> {
+        Binding(
+            get: {
+                let inchesTotal = (metrics.heightCm ?? Double(BodyMetricsRanges.defaultHeightCm)) / 2.54
+                return BodyMetricsRanges.clampHeightFeet(Int(inchesTotal) / 12)
+            },
+            set: { newFeet in
+                let inches = currentInches
+                let totalInches = newFeet * 12 + inches
+                metrics.heightCm = Double(totalInches) * 2.54
             }
-        }
+        )
     }
 
-    private func activityChip(_ option: ActivityLevel) -> some View {
-        let isSelected = metrics.activityLevel == option
-        return Button {
-            withAnimation(AppAnimation.springSnappy) { metrics.activityLevel = option }
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-        } label: {
-            VStack(spacing: 2) {
-                Text(option.localizedDisplay)
-                    .font(AppFont.caption)
-                    .fontWeight(.semibold)
-                Text(option.localizedSubtitle)
-                    .font(.system(size: 10))
-                    .foregroundStyle(AppColor.textTertiary)
+    private var heightInchesBinding: Binding<Int> {
+        Binding(
+            get: {
+                let inchesTotal = (metrics.heightCm ?? Double(BodyMetricsRanges.defaultHeightCm)) / 2.54
+                return Int(inchesTotal) % 12
+            },
+            set: { newInches in
+                let feet = currentFeet
+                let totalInches = feet * 12 + newInches
+                metrics.heightCm = Double(totalInches) * 2.54
             }
-            .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.xs)
-            .background {
-                Capsule()
-                    .fill(isSelected ? AppColor.accentPrimary.opacity(0.18) : AppColor.surfaceSecondary.opacity(0.6))
-                    .overlay {
-                        Capsule().strokeBorder(
-                            isSelected ? AppColor.accentPrimary.opacity(0.45) : AppColor.glassBorder,
-                            lineWidth: 0.5
-                        )
-                    }
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+        )
     }
 
-    // MARK: - Hydration & parsing
-
-    private func hydrateInputs() {
-        weightInput = formattedDisplay(for: metrics.weightKg, kgToDisplay: kgToDisplayWeight)
-        heightInput = formattedDisplay(for: metrics.heightCm, kgToDisplay: cmToDisplayHeight)
-        ageInput = metrics.age.map(String.init) ?? ""
+    private var currentFeet: Int {
+        let inchesTotal = (metrics.heightCm ?? Double(BodyMetricsRanges.defaultHeightCm)) / 2.54
+        return BodyMetricsRanges.clampHeightFeet(Int(inchesTotal) / 12)
     }
 
-    private func syncWeight(from text: String) {
-        guard let value = parseDouble(text) else {
-            metrics.weightKg = nil
-            return
-        }
-        metrics.weightKg = metrics.unit == .metric ? value : value / 2.20462
+    private var currentInches: Int {
+        let inchesTotal = (metrics.heightCm ?? Double(BodyMetricsRanges.defaultHeightCm)) / 2.54
+        return Int(inchesTotal) % 12
     }
 
-    private func syncHeight(from text: String) {
-        guard let value = parseDouble(text) else {
-            metrics.heightCm = nil
-            return
-        }
-        metrics.heightCm = metrics.unit == .metric ? value : value * 2.54
+    private var weightKgBinding: Binding<Int> {
+        Binding(
+            get: {
+                let stored = Int((metrics.weightKg ?? Double(BodyMetricsRanges.defaultWeightKg)).rounded())
+                return BodyMetricsRanges.clampWeightKg(stored)
+            },
+            set: { metrics.weightKg = Double($0) }
+        )
     }
 
-    private func parseDouble(_ text: String) -> Double? {
-        let cleaned = text
-            .replacingOccurrences(of: ",", with: ".")
-            .filter { $0.isNumber || $0 == "." }
-        guard !cleaned.isEmpty else { return nil }
-        return Double(cleaned)
+    private var weightLbBinding: Binding<Int> {
+        Binding(
+            get: {
+                let lb = (metrics.weightKg ?? Double(BodyMetricsRanges.defaultWeightKg)) * 2.20462
+                return BodyMetricsRanges.clampWeightLb(Int(lb.rounded()))
+            },
+            set: { metrics.weightKg = Double($0) / 2.20462 }
+        )
     }
 
-    private func formattedDisplay(for canonical: Double?, kgToDisplay: (Double) -> Double) -> String {
-        guard let value = canonical, value > 0 else { return "" }
-        let display = kgToDisplay(value)
-        if display == display.rounded() { return String(Int(display.rounded())) }
-        return String(format: "%.1f", display)
-    }
-
-    private func kgToDisplayWeight(_ kg: Double) -> Double {
-        metrics.unit == .metric ? kg : kg * 2.20462
-    }
-
-    private func cmToDisplayHeight(_ cm: Double) -> Double {
-        metrics.unit == .metric ? cm : cm / 2.54
+    private var ageBinding: Binding<Int> {
+        Binding(
+            get: { BodyMetricsRanges.clampAge(metrics.age ?? BodyMetricsRanges.defaultAge) },
+            set: { metrics.age = $0 }
+        )
     }
 }
 
-private struct MetricNumericField: View {
+private struct WheelPickerRow<Picker: View>: View {
     let icon: String
     let title: LocalizedStringKey
-    let placeholder: LocalizedStringKey
-    let unit: LocalizedStringKey
-    @Binding var value: String
-    var decimalAllowed: Bool = true
+    @ViewBuilder var picker: () -> Picker
 
     var body: some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(AppColor.accentLight)
-                .frame(width: 28)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-                TextField(placeholder, text: $value)
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .keyboardType(decimalAllowed ? .decimalPad : .numberPad)
-                    .tint(AppColor.accentPrimary)
-            }
-
-            Spacer()
-
-            Text(unit)
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Label(title, systemImage: icon)
                 .font(AppFont.caption)
-                .foregroundStyle(AppColor.textTertiary)
-        }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
+                .foregroundStyle(AppColor.textSecondary)
+
+            picker()
+                .frame(height: 110)
+                .background {
                     RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                        .fill(AppColor.surfaceSecondary.opacity(0.6))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                        }
                 }
+                .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous))
         }
+    }
+}
+
+/// Wheel-picker bounds and defaults. Centralised so the clamping in the
+/// bindings always matches what the wheels actually offer.
+enum BodyMetricsRanges {
+    static let heightCm: ClosedRange<Int> = 100...230
+    static let heightFeet: ClosedRange<Int> = 3...7
+    static let heightInches: ClosedRange<Int> = 0...11
+    static let weightKg: ClosedRange<Int> = 30...200
+    static let weightLb: ClosedRange<Int> = 60...440
+    static let age: ClosedRange<Int> = 13...100
+
+    static let defaultHeightCm: Int = 175
+    static let defaultWeightKg: Int = 75
+    static let defaultAge: Int = 30
+
+    static func clampHeightCm(_ v: Int) -> Int { v.clamped(to: heightCm) }
+    static func clampHeightFeet(_ v: Int) -> Int { v.clamped(to: heightFeet) }
+    static func clampWeightKg(_ v: Int) -> Int { v.clamped(to: weightKg) }
+    static func clampWeightLb(_ v: Int) -> Int { v.clamped(to: weightLb) }
+    static func clampAge(_ v: Int) -> Int { v.clamped(to: age) }
+}
+
+private extension Comparable {
+    func clamped(to range: ClosedRange<Self>) -> Self {
+        min(max(self, range.lowerBound), range.upperBound)
     }
 }

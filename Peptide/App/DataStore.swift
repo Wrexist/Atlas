@@ -610,6 +610,13 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
+    /// Updates the calorie + macro targets surfaced on the Lifestyle tab.
+    /// Pass `nil` to clear them and re-show the empty-state CTA.
+    func updateNutritionTargets(_ targets: NutritionTargets?) {
+        profile.nutritionTargets = targets
+        save()
+    }
+
     func toggleHealthConnection() {
         profile.healthConnected.toggle()
         save()

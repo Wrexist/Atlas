@@ -39,7 +39,6 @@ struct BodyMetricsCard: View {
 
                     HStack(spacing: Spacing.xs) {
                         infoChip(metrics.sex.localizedDisplay)
-                        infoChip(metrics.activityLevel.localizedDisplay)
                     }
                 } else {
                     Text("Optional. Add your weight, height, and age to display alongside your compliance trends. PeptideX never calculates doses for you.")

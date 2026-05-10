@@ -1,13 +1,14 @@
 import Foundation
 
 enum BiologicalSex: String, Codable, CaseIterable, Identifiable {
-    case male, female, unspecified
+    case male, female, other, unspecified
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
         case .male: "Male"
         case .female: "Female"
+        case .other: "Other"
         case .unspecified: "Prefer not to say"
         }
     }
@@ -18,9 +19,15 @@ enum BiologicalSex: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .male: "Male"
         case .female: "Female"
+        case .other: "Other"
         case .unspecified: "Skip"
         }
     }
+
+    /// Pills shown on the body-stats step. Excludes `.unspecified` because
+    /// the step expects an explicit choice — `.other` covers gender-neutral
+    /// users without forcing them into a binary.
+    static let onboardingChoices: [BiologicalSex] = [.male, .female, .other]
 }
 
 enum ActivityLevel: String, Codable, CaseIterable, Identifiable {
@@ -95,6 +102,17 @@ struct BodyMetrics: Codable, Hashable {
     var isComplete: Bool { hasWeight && hasHeight && (age ?? 0) > 0 }
 }
 
+/// Daily macro targets derived from the user's body stats during onboarding
+/// and surfaced on the Lifestyle tab. Stored as integers because they're
+/// reference targets — the user doesn't need 0.1 g of protein resolution.
+struct NutritionTargets: Codable, Hashable {
+    var calories: Int
+    var proteinG: Int
+    var carbsG: Int
+    var fatG: Int
+    var fiberG: Int
+}
+
 struct UserProfile: Codable {
     var name: String
     var goals: [String]
@@ -104,6 +122,11 @@ struct UserProfile: Codable {
     var doseRemindersEnabled: Bool
     var biometricLockEnabled: Bool
     var bodyMetrics: BodyMetrics
+    /// Calorie + macro targets shown on the Lifestyle tab. Populated from
+    /// the onboarding daily-targets screen on first run; the user can edit
+    /// the numbers later. Optional so older profiles decode cleanly and so
+    /// the Lifestyle tab can detect "not yet computed" and re-prompt.
+    var nutritionTargets: NutritionTargets?
     /// JPEG-encoded profile avatar uploaded from the photo library. Stored
     /// inline so the avatar travels with the profile across exports and
     /// iCloud sync. Compressed before save — see DataStore.updateAvatar.
@@ -125,6 +148,7 @@ struct UserProfile: Codable {
         doseRemindersEnabled: Bool = false,
         biometricLockEnabled: Bool = false,
         bodyMetrics: BodyMetrics = .unspecified,
+        nutritionTargets: NutritionTargets? = nil,
         avatarImageData: Data? = nil,
         bio: String = "",
         primaryGoal: String? = nil
@@ -137,6 +161,7 @@ struct UserProfile: Codable {
         self.doseRemindersEnabled = doseRemindersEnabled
         self.biometricLockEnabled = biometricLockEnabled
         self.bodyMetrics = bodyMetrics
+        self.nutritionTargets = nutritionTargets
         self.avatarImageData = avatarImageData
         self.bio = bio
         self.primaryGoal = primaryGoal
@@ -152,6 +177,7 @@ struct UserProfile: Codable {
         doseRemindersEnabled = try container.decodeIfPresent(Bool.self, forKey: .doseRemindersEnabled) ?? false
         biometricLockEnabled = try container.decodeIfPresent(Bool.self, forKey: .biometricLockEnabled) ?? false
         bodyMetrics = try container.decodeIfPresent(BodyMetrics.self, forKey: .bodyMetrics) ?? .unspecified
+        nutritionTargets = try container.decodeIfPresent(NutritionTargets.self, forKey: .nutritionTargets)
         avatarImageData = try container.decodeIfPresent(Data.self, forKey: .avatarImageData)
         bio = try container.decodeIfPresent(String.self, forKey: .bio) ?? ""
         primaryGoal = try container.decodeIfPresent(String.self, forKey: .primaryGoal)

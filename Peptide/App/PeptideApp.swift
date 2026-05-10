@@ -89,6 +89,9 @@ struct PeptideApp: App {
             Tab("Analytics", systemImage: "chart.bar.fill", value: .analytics) {
                 AnalyticsView()
             }
+            Tab("Lifestyle", systemImage: "fork.knife", value: .lifestyle) {
+                LifestyleView()
+            }
             Tab("Profile", systemImage: "person.fill", value: .profile) {
                 ProfileView()
             }
