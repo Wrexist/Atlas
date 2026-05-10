@@ -84,18 +84,14 @@ final class NotificationService {
         var invalidWeekdaysSet: Set<Int> = []
 
         for proto in protocols where proto.status == .active {
-            for peptide in proto.peptides {
-                let schedule = proto.schedule(for: peptide.id)
-                if schedule.isInterval {
-                    appendIntervalRequests(
-                        for: peptide,
-                        schedule: schedule,
-                        proto: proto,
-                        invalidTimes: &invalidTimesSet,
-                        into: &pendingRequests
-                    )
-                }
-            }
+            // Interval cadence: coalesce per-protocol by (occurrence date, time)
+            // so two interval-scheduled peptides that share a slot fire one
+            // notification, mirroring the weekly path's behaviour.
+            appendIntervalRequestsForProtocol(
+                proto,
+                invalidTimes: &invalidTimesSet,
+                into: &pendingRequests
+            )
 
             // Weekly cadence: group peptides by (day, time) so co-scheduled
             // peptides combine into one notification.
@@ -301,58 +297,78 @@ final class NotificationService {
     /// occurrences of an interval-cadence peptide. Each occurrence produces
     /// one request per preferred time, identified by absolute date so the
     /// set-diff in the main scheduler can clean them up cleanly on the next
-    /// reschedule.
-    private func appendIntervalRequests(
-        for peptide: Peptide,
-        schedule: ProtocolSchedule,
-        proto: PeptideProtocol,
+    /// reschedule. Coalesces every interval-cadence peptide in `proto` so
+    /// that two peptides scheduled for the same date+time fire as a single
+    /// notification — the same approach the weekly path takes via
+    /// `TimeslotKey`. Without this, an "every 3 days × 5 peptides × 3 doses"
+    /// stack would burn 180 of the 64 available iOS slots.
+    private func appendIntervalRequestsForProtocol(
+        _ proto: PeptideProtocol,
         invalidTimes: inout Set<String>,
         into requests: inout [PendingRequest]
     ) {
-        guard schedule.isInterval, let n = schedule.intervalDays, n >= 1 else { return }
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let anchor = calendar.startOfDay(for: schedule.intervalAnchor ?? today)
 
-        // Find the next active day on or after today.
-        let diff = calendar.dateComponents([.day], from: anchor, to: today).day ?? 0
-        let offsetToNextActive: Int
-        if diff <= 0 {
-            offsetToNextActive = -diff
-        } else {
-            let mod = diff % n
-            offsetToNextActive = mod == 0 ? 0 : (n - mod)
-        }
-        guard let firstActive = calendar.date(byAdding: .day, value: offsetToNextActive, to: today) else { return }
+        // (fireDate → peptides firing at that exact moment) for this protocol.
+        var slots: [Date: [Peptide]] = [:]
 
-        for occurrence in 0..<Self.intervalLookahead {
-            guard let day = calendar.date(byAdding: .day, value: occurrence * n, to: firstActive) else { continue }
+        for peptide in proto.peptides {
+            let schedule = proto.schedule(for: peptide.id)
+            guard schedule.isInterval, let n = schedule.intervalDays, n >= 1 else { continue }
+            let anchor = calendar.startOfDay(for: schedule.intervalAnchor ?? today)
 
-            for timeString in schedule.preferredTimes {
-                guard let (hour, minute) = parseTime(timeString) else {
-                    if invalidTimes.insert(timeString).inserted {
-                        AppLog.notifications.error("Skipping invalid time \"\(timeString, privacy: .public)\" for protocol \(proto.id.uuidString, privacy: .public)")
+            // Next active day on or after today, anchor-relative.
+            let diff = calendar.dateComponents([.day], from: anchor, to: today).day ?? 0
+            let offsetToNextActive: Int
+            if diff <= 0 {
+                offsetToNextActive = -diff
+            } else {
+                let mod = diff % n
+                offsetToNextActive = mod == 0 ? 0 : (n - mod)
+            }
+            guard let firstActive = calendar.date(byAdding: .day, value: offsetToNextActive, to: today) else { continue }
+
+            for occurrence in 0..<Self.intervalLookahead {
+                guard let day = calendar.date(byAdding: .day, value: occurrence * n, to: firstActive) else { continue }
+                for timeString in schedule.preferredTimes {
+                    guard let (hour, minute) = parseTime(timeString) else {
+                        if invalidTimes.insert(timeString).inserted {
+                            AppLog.notifications.error("Skipping invalid time \"\(timeString, privacy: .public)\" for protocol \(proto.id.uuidString, privacy: .public)")
+                        }
+                        continue
                     }
-                    continue
+                    var components = calendar.dateComponents([.year, .month, .day], from: day)
+                    components.hour = hour
+                    components.minute = minute
+                    guard let fireDate = calendar.date(from: components), fireDate > Date() else { continue }
+                    slots[fireDate, default: []].append(peptide)
                 }
-
-                var components = calendar.dateComponents([.year, .month, .day], from: day)
-                components.hour = hour
-                components.minute = minute
-
-                guard let fireDate = calendar.date(from: components), fireDate > Date() else { continue }
-
-                let content = makeContent(proto: proto, peptides: [peptide], hour: hour, minute: minute)
-                let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-                let isoDay = ISO8601DateFormatter().string(from: fireDate)
-                let id = "\(proto.id)-int-\(peptide.id)-\(isoDay)"
-                let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
-                requests.append(PendingRequest(
-                    request: request,
-                    protocolID: proto.id,
-                    nextFireDate: fireDate
-                ))
             }
         }
+
+        for (fireDate, peptides) in slots {
+            // Same peptide may end up here twice if its preferredTimes contain
+            // duplicates — dedup by id while preserving first-occurrence order.
+            var seen = Set<UUID>()
+            let unique = peptides.filter { seen.insert($0.id).inserted }
+            let hour = calendar.component(.hour, from: fireDate)
+            let minute = calendar.component(.minute, from: fireDate)
+            let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+            let content = makeContent(proto: proto, peptides: unique, hour: hour, minute: minute)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            let isoDay = Self.isoDayFormatter.string(from: fireDate)
+            let id = "\(proto.id)-int-\(isoDay)"
+            let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+            requests.append(PendingRequest(
+                request: request,
+                protocolID: proto.id,
+                nextFireDate: fireDate
+            ))
+        }
     }
+
+    /// Hoisted out of the hot path — `ISO8601DateFormatter()` is heavy to
+    /// allocate. Used only for stable identifier generation.
+    private static let isoDayFormatter = ISO8601DateFormatter()
 }

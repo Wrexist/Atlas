@@ -9,6 +9,11 @@ struct HomeView: View {
     @State private var showAchievementToast = false
     @State private var toastAchievement: Achievement?
     @State private var achievementService = AchievementService.shared
+    /// Observed directly so the notification banner reacts to a fresh
+    /// schedule report. DataStore exposes `notificationReport` as a passthrough,
+    /// but a computed read from a non-observed singleton wouldn't re-render
+    /// the View on its own.
+    @State private var notificationService = NotificationService.shared
     @State private var showPaywall = false
     @State private var showProfileCustomization = false
     @Environment(\.requestReview) private var requestReview
@@ -27,51 +32,24 @@ struct HomeView: View {
         return (entries, score, completed, total)
     }
 
-    private var stackPeptides: [Peptide] {
-        var seen = Set<UUID>()
-        return dataStore.activeProtocols.flatMap(\.peptides).filter { seen.insert($0.id).inserted }
-    }
-
-    private var stackWarnings: [StackRecommendationEngine.Warning] {
-        StackRecommendationEngine.warnings(
-            for: stackPeptides,
-            activeProtocols: dataStore.activeProtocols
-        )
-    }
-
-    private var stackRecommendations: [StackRecommendationEngine.Recommendation] {
-        let context = StackRecommendationEngine.RecommendationContext(
-            currentPeptides: stackPeptides,
-            database: dataStore.peptideDatabase,
-            goals: dataStore.profile.goals,
-            activeProtocols: dataStore.activeProtocols,
-            entries: dataStore.entries
-        )
-        return StackRecommendationEngine.recommendations(context: context)
-    }
-
-    private var stackCompleteness: StackRecommendationEngine.StackCompleteness? {
-        StackRecommendationEngine.stackCompleteness(
-            for: stackPeptides,
-            goals: dataStore.profile.goals,
-            from: dataStore.peptideDatabase
-        )
-    }
-
-    private var cycleTransitions: [StackRecommendationEngine.CycleTransition] {
-        StackRecommendationEngine.cycleTransitions(for: dataStore.activeProtocols)
-    }
-
     private var dailyPlan: DailyScheduleEngine.DailyPlan {
         DailyScheduleEngine.plan(for: dataStore.todayEntries)
     }
 
+    /// Touches `notificationService.lastReport` so the View takes a SwiftUI
+    /// observation dependency on it — without this, the dependency is on
+    /// DataStore.notificationReport which reads a non-observed singleton
+    /// and so the banner won't refresh after a reschedule.
+    private var shouldShowNotificationBanner: Bool {
+        notificationService.lastReport.hasAnyIssue
+    }
+
     var body: some View {
         let stats = todayStats
-        let warnings = stackWarnings
-        let recommendations = stackRecommendations
-        let completeness = stackCompleteness
-        let transitions = cycleTransitions
+        let warnings = dataStore.stackWarnings
+        let recommendations = dataStore.stackRecommendations
+        let completeness = dataStore.stackCompleteness
+        let transitions = dataStore.cycleTransitions
 
         NavigationStack {
             ScrollView {
@@ -90,7 +68,11 @@ struct HomeView: View {
                     )
                     .sectionAppear(index: 0)
 
-                    if let report = dataStore.notificationReport, report.hasAnyIssue {
+                    // Observed via the @State notificationService so the banner
+                    // re-renders when a reschedule writes a fresh report. Reading
+                    // through DataStore's passthrough wouldn't trigger redraw.
+                    if shouldShowNotificationBanner,
+                       let report = dataStore.notificationReport {
                         NotificationIssueBanner(
                             report: report,
                             droppedProtocolNames: dataStore.droppedReminderProtocolNames
@@ -166,10 +148,7 @@ struct HomeView: View {
                                 .sectionAppear(index: 9)
                         }
 
-                        let insights = InsightEngine.generateInsights(
-                            from: dataStore.entries, protocols: dataStore.protocols
-                        )
-                        if let topInsight = insights.first {
+                        if let topInsight = dataStore.topInsight {
                             GlassCard {
                                 HStack(spacing: Spacing.md) {
                                     Image(systemName: topInsight.icon)

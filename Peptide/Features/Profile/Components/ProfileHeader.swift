@@ -54,7 +54,7 @@ struct ProfileHeader: View {
 
     @ViewBuilder
     private var avatar: some View {
-        if let data = avatarImageData, let uiImage = UIImage(data: data) {
+        if let data = avatarImageData, let uiImage = AvatarImageCache.shared.image(for: data) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()

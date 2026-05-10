@@ -64,7 +64,7 @@ struct WelcomeHeader: View {
 
     private var avatarBadge: some View {
         ZStack {
-            if let data = avatarImageData, let uiImage = UIImage(data: data) {
+            if let data = avatarImageData, let uiImage = AvatarImageCache.shared.image(for: data) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()

@@ -256,7 +256,7 @@ struct ProfileCustomizationSheet: View {
     private var avatarCircle: some View {
         let size: CGFloat = 120
         return Group {
-            if let data = avatarData, let uiImage = UIImage(data: data) {
+            if let data = avatarData, let uiImage = AvatarImageCache.shared.image(for: data) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
