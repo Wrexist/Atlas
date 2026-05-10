@@ -701,9 +701,7 @@ final class DataStore: DataServiceProtocol {
 
         let schedule = proto.schedule(for: peptide.id)
         let calendar = Calendar.current
-        let dayOfWeek = calendar.component(.weekday, from: Date())
-        let isoDayOfWeek = dayOfWeek == 1 ? 7 : dayOfWeek - 1
-        guard schedule.daysOfWeek.contains(isoDayOfWeek) else { return [] }
+        guard schedule.isActive(on: Date(), calendar: calendar) else { return [] }
 
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"

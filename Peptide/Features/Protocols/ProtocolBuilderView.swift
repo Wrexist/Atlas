@@ -12,6 +12,9 @@ struct ProtocolBuilderView: View {
     @State private var timesPerDay = 1
     @State private var notes = ""
     @State private var selectedDays: Set<Int> = [1, 2, 3, 4, 5]
+    @State private var cadenceMode: ScheduleCadenceMode = .weekly
+    @State private var intervalDays: Int = 3
+    @State private var intervalAnchor: Date = Date()
     @State private var currentStep = 0
     @State private var peptideOverrides: [UUID: ProtocolSchedule] = [:]
     @State private var editingOverridePeptide: Peptide?
@@ -26,7 +29,10 @@ struct ProtocolBuilderView: View {
     }
 
     private var canCreate: Bool {
-        canProceed && !selectedDays.isEmpty
+        if cadenceMode == .interval {
+            return canProceed && intervalDays >= 1
+        }
+        return canProceed && !selectedDays.isEmpty
     }
 
     private var orderedSelectedPeptides: [Peptide] {
@@ -35,9 +41,11 @@ struct ProtocolBuilderView: View {
 
     private var defaultSchedule: ProtocolSchedule {
         ProtocolSchedule(
-            daysOfWeek: selectedDays.sorted(),
+            daysOfWeek: cadenceMode == .weekly ? selectedDays.sorted() : [1, 2, 3, 4, 5, 6, 7],
             timesPerDay: timesPerDay,
-            preferredTimes: generateDefaultTimes(count: timesPerDay)
+            preferredTimes: generateDefaultTimes(count: timesPerDay),
+            intervalDays: cadenceMode == .interval ? intervalDays : nil,
+            intervalAnchor: cadenceMode == .interval ? intervalAnchor : nil
         )
     }
 
@@ -116,6 +124,11 @@ struct ProtocolBuilderView: View {
                     notes = proto.notes
                     selectedDays = Set(proto.schedule.daysOfWeek)
                     peptideOverrides = proto.peptideSchedules
+                    if proto.schedule.isInterval, let n = proto.schedule.intervalDays {
+                        cadenceMode = .interval
+                        intervalDays = n
+                        intervalAnchor = proto.schedule.intervalAnchor ?? proto.startDate
+                    }
                 }
             }
             .onChange(of: selectedPeptides) { _, newValue in
@@ -209,6 +222,8 @@ struct ProtocolBuilderView: View {
                             selectedDays: $selectedDays,
                             timesPerDay: $timesPerDay,
                             cycleLengthWeeks: $cycleLengthWeeks,
+                            cadenceMode: $cadenceMode,
+                            intervalDays: $intervalDays,
                             dayNames: dayNames
                         )
                     }
@@ -319,15 +334,19 @@ struct ProtocolBuilderView: View {
             times = generateDefaultTimes(count: timesPerDay)
         }
 
+        let updatedSchedule = ProtocolSchedule(
+            daysOfWeek: cadenceMode == .weekly ? selectedDays.sorted() : [1, 2, 3, 4, 5, 6, 7],
+            timesPerDay: timesPerDay,
+            preferredTimes: times,
+            intervalDays: cadenceMode == .interval ? intervalDays : nil,
+            intervalAnchor: cadenceMode == .interval ? intervalAnchor : nil
+        )
+
         dataStore.updateProtocol(
             id: proto.id,
             name: name.trimmingCharacters(in: .whitespaces),
             peptides: peptides,
-            schedule: ProtocolSchedule(
-                daysOfWeek: selectedDays.sorted(),
-                timesPerDay: timesPerDay,
-                preferredTimes: times
-            ),
+            schedule: updatedSchedule,
             peptideSchedules: peptideOverrides,
             cycleLengthWeeks: cycleLengthWeeks,
             notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)

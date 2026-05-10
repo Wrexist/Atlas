@@ -40,7 +40,6 @@ struct TrialOfferView: View {
                     heroBadge
                     headline
                     benefitsCard
-                    socialProof
 
                     Spacer(minLength: Spacing.md)
                 }
@@ -171,29 +170,6 @@ struct TrialOfferView: View {
             AppAnimation.springSmooth.delay(0.15 + Double(index) * 0.06),
             value: didReveal
         )
-    }
-
-    private var socialProof: some View {
-        HStack(spacing: Spacing.xs) {
-            HStack(spacing: -8) {
-                ForEach(0..<3, id: \.self) { i in
-                    Circle()
-                        .fill(LinearGradient(
-                            colors: [
-                                AppColor.accentLight.opacity(0.9 - Double(i) * 0.1),
-                                AppColor.accentPrimary.opacity(0.7),
-                            ],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        ))
-                        .frame(width: 24, height: 24)
-                        .overlay(Circle().strokeBorder(AppColor.background, lineWidth: 1.5))
-                }
-            }
-            Text("Join thousands tracking smarter")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textSecondary)
-        }
-        .opacity(didReveal ? 1 : 0)
     }
 
     // MARK: - Footer

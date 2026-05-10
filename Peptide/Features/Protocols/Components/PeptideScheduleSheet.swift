@@ -17,6 +17,9 @@ struct PeptideScheduleSheet: View {
     @State private var selectedDays: Set<Int>
     @State private var timesPerDay: Int
     @State private var customDose: String
+    @State private var cadenceMode: ScheduleCadenceMode
+    @State private var intervalDays: Int
+    @State private var intervalAnchor: Date
 
     private static let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
@@ -35,10 +38,14 @@ struct PeptideScheduleSheet: View {
         _selectedDays = State(initialValue: Set(starting.daysOfWeek))
         _timesPerDay = State(initialValue: starting.timesPerDay)
         _customDose = State(initialValue: initialOverride?.customDose ?? "")
+        _cadenceMode = State(initialValue: starting.isInterval ? .interval : .weekly)
+        _intervalDays = State(initialValue: starting.intervalDays ?? 3)
+        _intervalAnchor = State(initialValue: starting.intervalAnchor ?? Date())
     }
 
     private var canSave: Bool {
-        !useCustom || !selectedDays.isEmpty
+        if !useCustom { return true }
+        return cadenceMode == .interval ? intervalDays >= 1 : !selectedDays.isEmpty
     }
 
     // Pre-filled dose presets were removed to avoid suggesting any specific
@@ -68,6 +75,8 @@ struct PeptideScheduleSheet: View {
                                         selectedDays: $selectedDays,
                                         timesPerDay: $timesPerDay,
                                         cycleLengthWeeks: nil,
+                                        cadenceMode: $cadenceMode,
+                                        intervalDays: $intervalDays,
                                         dayNames: Self.dayNames
                                     )
                                 }
@@ -240,10 +249,12 @@ struct PeptideScheduleSheet: View {
             let times = generateDefaultTimes(count: timesPerDay)
             let trimmedDose = customDose.trimmingCharacters(in: .whitespacesAndNewlines)
             let schedule = ProtocolSchedule(
-                daysOfWeek: selectedDays.sorted(),
+                daysOfWeek: cadenceMode == .weekly ? selectedDays.sorted() : [1, 2, 3, 4, 5, 6, 7],
                 timesPerDay: timesPerDay,
                 preferredTimes: times,
-                customDose: trimmedDose.isEmpty ? nil : trimmedDose
+                customDose: trimmedDose.isEmpty ? nil : trimmedDose,
+                intervalDays: cadenceMode == .interval ? intervalDays : nil,
+                intervalAnchor: cadenceMode == .interval ? intervalAnchor : nil
             )
             onSave(schedule)
         } else {

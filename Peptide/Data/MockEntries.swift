@@ -28,12 +28,9 @@ enum MockEntries {
             // Only generate entries within the protocol's active date range
             guard dayStart >= startOfProtocol && dayStart <= endOfProtocol else { continue }
 
-            let dayOfWeek = calendar.component(.weekday, from: date)
-            let isoDayOfWeek = dayOfWeek == 1 ? 7 : dayOfWeek - 1
-
             for peptide in protocol_.peptides {
                 let schedule = protocol_.schedule(for: peptide.id)
-                guard schedule.daysOfWeek.contains(isoDayOfWeek) else { continue }
+                guard schedule.isActive(on: date, calendar: calendar) else { continue }
 
                 let completed = Double.random(in: 0...1, using: &rng) < 0.82
                 let entry = ProtocolEntry(
