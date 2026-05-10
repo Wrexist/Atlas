@@ -547,31 +547,72 @@ struct OnboardingView: View {
     // MARK: - Page 8: Notifications
 
     private var notificationsPage: some View {
-        permissionPage(
-            icon: "bell.badge.fill",
-            title: "Never miss a dose",
-            subtitle: "We'll quietly remind you at each scheduled dose so your protocol stays on track.",
-            bullets: [
-                ("clock.fill", "Precise dose-time alerts"),
-                ("calendar", "Weekly schedule recap"),
-                ("moon.fill", "Quiet hours respected"),
-            ],
-            primaryTitle: "Enable Reminders",
-            primaryIcon: "bell.fill",
-            requesting: requestingNotifications
-        ) {
-            requestingNotifications = true
-            Task {
-                let granted = await NotificationService.shared.requestAuthorization()
-                requestingNotifications = false
-                if dataStore.profile.doseRemindersEnabled != granted {
-                    dataStore.profile.doseRemindersEnabled = granted
-                    dataStore.persistProfile()
+        pageScaffold(
+            hero: EmptyView(),
+            content: {
+                VStack(spacing: Spacing.lg) {
+                    VStack(spacing: Spacing.sm) {
+                        Text("Consistency is everything.")
+                            .font(AppFont.largeTitle)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [AppColor.textPrimary, AppColor.accentLight],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .multilineTextAlignment(.center)
+
+                        Text("People who track their protocols achieve significantly better results over time.")
+                            .font(AppFont.body)
+                            .foregroundStyle(AppColor.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, Spacing.md)
+                    }
+
+                    ConsistencyChart()
+                        .padding(.top, Spacing.sm)
+
+                    NotificationPreviewCard()
+                        .padding(.top, Spacing.xs)
                 }
-                if currentPage == 8 { advance(to: 9) }
+            },
+            footer: {
+                VStack(spacing: Spacing.sm) {
+                    GlassButton(
+                        title: requestingNotifications ? "Requesting…" : "Enable reminders",
+                        icon: "bell.fill",
+                        style: .primary,
+                        isFullWidth: true,
+                        action: requestNotificationPermission
+                    )
+                    .disabled(requestingNotifications)
+
+                    GlassButton(
+                        title: "Skip for now",
+                        style: .ghost,
+                        isFullWidth: true
+                    ) {
+                        advance(to: 9)
+                    }
+                    .disabled(requestingNotifications)
+                }
             }
-        } onSkip: {
-            advance(to: 9)
+        )
+    }
+
+    private func requestNotificationPermission() {
+        requestingNotifications = true
+        Task {
+            let granted = await NotificationService.shared.requestAuthorization()
+            requestingNotifications = false
+            if dataStore.profile.doseRemindersEnabled != granted {
+                dataStore.profile.doseRemindersEnabled = granted
+                dataStore.persistProfile()
+            }
+            // Advance regardless of permission outcome — the spec says the
+            // user shouldn't be stranded if they decline.
+            if currentPage == 8 { advance(to: 9) }
         }
     }
 
