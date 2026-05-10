@@ -165,6 +165,8 @@ struct DoseLoggingSheet: View {
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
             }
+            .scrollDismissesKeyboard(.interactively)
+            .dismissKeyboardOnTap()
             .background(AppColor.background)
             .navigationTitle("Log Dose")
             .navigationBarTitleDisplayMode(.inline)

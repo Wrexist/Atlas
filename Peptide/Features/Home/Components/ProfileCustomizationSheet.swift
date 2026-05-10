@@ -81,7 +81,9 @@ struct ProfileCustomizationSheet: View {
                 .padding(.top, Spacing.md)
                 .padding(.bottom, Spacing.xxxxl)
             }
+            .scrollDismissesKeyboard(.interactively)
             .background(AppColor.background)
+            .dismissKeyboardOnTap()
             .navigationTitle("Customize Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -786,6 +786,17 @@ final class DataStore: DataServiceProtocol {
         regenerateTodayEntries()
     }
 
+    /// Re-pulls protocols / entries / profile from the repository — used by
+    /// the Protocols list's pull-to-refresh so a CloudKit sync from another
+    /// device shows up without an app relaunch. Falls back to the existing
+    /// in-memory state if the repo returns nil for that resource.
+    func reloadFromDisk() {
+        if let saved = repo.loadProtocols() { protocols = saved }
+        if let saved = repo.loadEntries() { entries = saved }
+        if let saved = repo.loadProfile() { profile = saved }
+        regenerateTodayEntries()
+    }
+
     // MARK: - Entry Generation
 
     private static func generateInitialEntries(for protocols: [PeptideProtocol]) -> [ProtocolEntry] {

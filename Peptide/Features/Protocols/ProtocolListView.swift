@@ -16,22 +16,18 @@ struct ProtocolListView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Spacing.xl) {
                         if dataStore.protocols.isEmpty {
-                            VStack(spacing: Spacing.lg) {
-                                Image(systemName: "list.clipboard")
-                                    .font(.system(size: 48))
-                                    .foregroundStyle(AppColor.textTertiary)
-
-                                Text("No Protocols Yet")
-                                    .font(AppFont.title2)
-                                    .foregroundStyle(AppColor.textSecondary)
-
-                                Text("Create your first peptide protocol to start tracking your regimen.")
-                                    .font(AppFont.subheadline)
-                                    .foregroundStyle(AppColor.textTertiary)
-                                    .multilineTextAlignment(.center)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, Spacing.xxxxl)
+                            EmptyStateView(
+                                icon: "list.clipboard",
+                                title: "No Protocols Yet",
+                                message: "Create your first peptide protocol to start tracking your regimen.",
+                                action: .init(title: "Create Protocol", icon: "plus") {
+                                    if dataStore.profile.hapticFeedbackEnabled {
+                                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    }
+                                    showingBuilder = true
+                                }
+                            )
+                            .padding(.top, Spacing.xxl)
                             .sectionAppear(index: 0)
                         } else {
                             if !dataStore.activeProtocols.isEmpty {
@@ -73,6 +69,13 @@ struct ProtocolListView: View {
                 }
                 .appShadow(AppShadow.accentGlow)
                 .padding(Spacing.xxl)
+            }
+            .refreshable {
+                // Re-load from disk via the repo so a CloudKit sync from
+                // another device shows up without restarting the app. The
+                // repo loads are fast (single JSON read per file) so this
+                // can happen on every pull-to-refresh.
+                dataStore.reloadFromDisk()
             }
             .navigationTitle("Protocols")
             .navigationDestination(for: PeptideProtocol.self) { protocol_ in

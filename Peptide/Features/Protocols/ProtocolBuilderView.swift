@@ -255,6 +255,8 @@ struct ProtocolBuilderView: View {
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnTap()
     }
 
     private var isAppending: Bool { appendTargetProtocolId != nil }
