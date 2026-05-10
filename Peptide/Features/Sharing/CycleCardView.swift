@@ -80,7 +80,16 @@ struct CycleCardView: View {
             }
         }
         .frame(width: Self.canvasWidth, height: Self.canvasHeight)
+        .clipped()
         .environment(\.colorScheme, .dark)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var accessibilitySummary: String {
+        let peptides = proto.peptides.map(\.abbreviation).joined(separator: ", ")
+        let attribution = attributionLine.map { " " + $0 } ?? ""
+        return "\(proto.name) cycle card.\(attribution) \(proto.cycleLengthWeeks)-week cycle. Peptides: \(peptides). Watermark: PeptideX."
     }
 
     private var header: some View {

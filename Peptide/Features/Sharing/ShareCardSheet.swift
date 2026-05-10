@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Hosts a scaled-down preview of the rendered cycle card and lets the user
 /// push it through the iOS share sheet. Reuses the `ShareSheet` representable
@@ -6,6 +7,7 @@ import SwiftUI
 struct ShareCardSheet: View {
     let proto: PeptideProtocol
     @Environment(\.dismiss) private var dismiss
+    @Environment(DataStore.self) private var dataStore
     @State private var renderedURL: URL?
     @State private var showShareSheet = false
     @State private var isRendering = false
@@ -88,17 +90,24 @@ struct ShareCardSheet: View {
     private func renderAndShare() {
         guard !isRendering else { return }
         isRendering = true
-        // Render off the runloop tick so the spinner state actually flushes.
-        DispatchQueue.main.async {
+        // Render on the next runloop tick so the spinner state actually flushes
+        // before the (synchronous) ImageRenderer pass kicks in.
+        Task { @MainActor in
+            await Task.yield()
+            defer { isRendering = false }
             do {
                 let url = try ShareCardRenderer.renderPNG(for: proto)
                 renderedURL = url
+                if dataStore.profile.hapticFeedbackEnabled {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                }
                 showShareSheet = true
             } catch {
-                let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-                errorMessage = message
+                if dataStore.profile.hapticFeedbackEnabled {
+                    UINotificationFeedbackGenerator().notificationOccurred(.error)
+                }
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             }
-            isRendering = false
         }
     }
 }

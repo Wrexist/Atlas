@@ -15,6 +15,10 @@ struct ProtocolBuilderView: View {
     @State private var currentStep = 0
     @State private var peptideOverrides: [UUID: ProtocolSchedule] = [:]
     @State private var editingOverridePeptide: Peptide?
+    /// Stable identity for the live-preview `PeptideProtocol`. Computed once
+    /// per builder lifecycle so SwiftUI doesn't see a fresh id on every
+    /// body invocation.
+    @State private var previewID = UUID()
 
     private let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     private let totalSteps = 2
@@ -42,9 +46,11 @@ struct ProtocolBuilderView: View {
     }
 
     /// Non-persisted protocol used to drive the live preview share-card render.
+    /// Uses `previewID` so the proto's identity is stable across body
+    /// invocations — without it, every keystroke would mint a fresh UUID.
     private var previewProtocol: PeptideProtocol {
         PeptideProtocol(
-            id: editingProtocol?.id ?? UUID(),
+            id: editingProtocol?.id ?? previewID,
             name: name.trimmingCharacters(in: .whitespaces).isEmpty ? "New Stack" : name,
             peptides: orderedSelectedPeptides,
             schedule: defaultSchedule,
@@ -278,13 +284,17 @@ struct ProtocolBuilderView: View {
     }
 
     private func warningsCard(_ warnings: [StackRecommendationEngine.Warning]) -> some View {
-        GlassCard {
+        // `Warning.id` is a fresh UUID per instance, which would churn SwiftUI
+        // identity on every keystroke. Key on `title` instead — it's stable
+        // across renders for the same warning content.
+        let topWarnings = Array(warnings.prefix(3))
+        return GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Label("Heads up", systemImage: "exclamationmark.triangle.fill")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.warning)
 
-                ForEach(warnings.prefix(3)) { warning in
+                ForEach(topWarnings, id: \.title) { warning in
                     HStack(alignment: .top, spacing: Spacing.sm) {
                         Image(systemName: warning.icon)
                             .font(.system(size: 14, weight: .semibold))

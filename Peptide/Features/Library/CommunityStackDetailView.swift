@@ -5,13 +5,36 @@ struct CommunityStackDetailView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
     @State private var didFork = false
+    /// Stable id for the preview proto so SwiftUI doesn't churn on body re-runs.
+    @State private var previewID = UUID()
 
     private var resolvedPeptides: [Peptide] {
         stack.peptideAbbreviations.compactMap { PeptideDatabase.peptide(matching: $0) }
     }
 
+    /// A non-persisted protocol used purely for the share-card preview.
+    /// Cheaper than `forkToProtocol` (no notes-string formatting) and
+    /// stable across renders.
     private var previewProtocol: PeptideProtocol {
-        CommunityStackService.shared.forkToProtocol(stack)
+        let times = (1...max(1, stack.scheduleTimesPerDay)).map { _ in "8:00 AM" }
+        return PeptideProtocol(
+            id: previewID,
+            name: stack.name,
+            peptides: resolvedPeptides,
+            schedule: ProtocolSchedule(
+                daysOfWeek: stack.scheduleDaysOfWeek,
+                timesPerDay: stack.scheduleTimesPerDay,
+                preferredTimes: times
+            ),
+            cycleLengthWeeks: stack.cycleLengthWeeks,
+            startDate: Date(),
+            status: .active,
+            notes: "",
+            authorName: stack.authorName,
+            authorHandle: stack.authorHandle,
+            forkedFromStackId: stack.id,
+            createdAt: Date()
+        )
     }
 
     var body: some View {
@@ -226,10 +249,12 @@ struct CommunityStackDetailView: View {
     }
 
     private func useThisStack() {
+        guard !didFork else { return }
         let proto = CommunityStackService.shared.forkToProtocol(stack)
         dataStore.addProtocol(proto)
         didFork = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(600))
             dismiss()
         }
     }

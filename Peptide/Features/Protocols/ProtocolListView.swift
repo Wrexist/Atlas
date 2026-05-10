@@ -5,6 +5,7 @@ struct ProtocolListView: View {
     @State private var showingBuilder = false
     @State private var showingPaywall = false
     @State private var preselectedPeptide: Peptide?
+    @State private var sharingProtocol: PeptideProtocol?
 
     var body: some View {
         NavigationStack {
@@ -33,15 +34,27 @@ struct ProtocolListView: View {
                             .sectionAppear(index: 0)
                         } else {
                             if !dataStore.activeProtocols.isEmpty {
-                                ProtocolSection(title: "Active", protocols: dataStore.activeProtocols)
+                                ProtocolSection(
+                                    title: "Active",
+                                    protocols: dataStore.activeProtocols,
+                                    onShare: { sharingProtocol = $0 }
+                                )
                             }
 
                             if !dataStore.pausedProtocols.isEmpty {
-                                ProtocolSection(title: "Paused", protocols: dataStore.pausedProtocols)
+                                ProtocolSection(
+                                    title: "Paused",
+                                    protocols: dataStore.pausedProtocols,
+                                    onShare: { sharingProtocol = $0 }
+                                )
                             }
 
                             if !dataStore.completedProtocols.isEmpty {
-                                ProtocolSection(title: "Completed", protocols: dataStore.completedProtocols)
+                                ProtocolSection(
+                                    title: "Completed",
+                                    protocols: dataStore.completedProtocols,
+                                    onShare: { sharingProtocol = $0 }
+                                )
                             }
                         }
                     }
@@ -87,6 +100,9 @@ struct ProtocolListView: View {
             }
             .sheet(isPresented: $showingPaywall) {
                 PaywallView()
+            }
+            .sheet(item: $sharingProtocol) { proto in
+                ShareCardSheet(proto: proto)
             }
         }
     }
@@ -149,6 +165,7 @@ private struct CommunityStacksEntryCard: View {
 private struct ProtocolSection: View {
     let title: String
     let protocols: [PeptideProtocol]
+    let onShare: (PeptideProtocol) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -163,6 +180,13 @@ private struct ProtocolSection: View {
                     ProtocolCard(protocol_: protocol_)
                 }
                 .buttonStyle(.plain)
+                .contextMenu {
+                    Button {
+                        onShare(protocol_)
+                    } label: {
+                        Label("Share Cycle Card", systemImage: "square.and.arrow.up")
+                    }
+                }
                 .staggeredAppear(index: index)
             }
         }
