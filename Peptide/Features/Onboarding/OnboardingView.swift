@@ -885,8 +885,8 @@ struct OnboardingView: View {
     private func finishOnboarding() {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let resolved = trimmed.isEmpty ? (AuthService.shared.userDisplayName ?? "") : trimmed
-        if dataStore.profile.name != resolved {
-            dataStore.profile.name = resolved
+        if dataStore.profile.name != resolved || dataStore.profile.bio.isEmpty == false {
+            dataStore.updateProfileIdentity(name: resolved, bio: dataStore.profile.bio)
         }
         if !selectedGoals.isEmpty {
             dataStore.profile.goals = Array(selectedGoals).sorted()

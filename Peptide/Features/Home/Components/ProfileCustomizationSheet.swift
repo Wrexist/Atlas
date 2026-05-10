@@ -39,6 +39,10 @@ struct ProfileCustomizationSheet: View {
     @State private var isProcessingPhoto = false
     @State private var photoError: String?
     @State private var isConfirmingRemoveAvatar = false
+    @State private var isShowingPhotoSourceMenu = false
+    @State private var isShowingLibrary = false
+    @State private var isShowingCamera = false
+    @State private var isShowingPresetPicker = false
 
     var body: some View {
         @Bindable var store = dataStore
@@ -140,11 +144,9 @@ struct ProfileCustomizationSheet: View {
                         }
                     }
 
-                PhotosPicker(
-                    selection: $photoSelection,
-                    matching: .images,
-                    photoLibrary: .shared()
-                ) {
+                Button {
+                    isShowingPhotoSourceMenu = true
+                } label: {
                     Image(systemName: "camera.fill")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(AppColor.background)
@@ -168,13 +170,11 @@ struct ProfileCustomizationSheet: View {
             }
 
             HStack(spacing: Spacing.sm) {
-                PhotosPicker(
-                    selection: $photoSelection,
-                    matching: .images,
-                    photoLibrary: .shared()
-                ) {
+                Button {
+                    isShowingPhotoSourceMenu = true
+                } label: {
                     Label(
-                        avatarData == nil ? "Upload Photo" : "Replace Photo",
+                        avatarData == nil ? "Add Photo" : "Replace",
                         systemImage: "photo.on.rectangle.angled"
                     )
                     .font(AppFont.subheadline)
@@ -206,6 +206,50 @@ struct ProfileCustomizationSheet: View {
             }
         }
         .padding(.top, Spacing.sm)
+        .confirmationDialog(
+            "Profile Photo",
+            isPresented: $isShowingPhotoSourceMenu,
+            titleVisibility: .visible
+        ) {
+            photoSourceButtons
+        }
+        .photosPicker(
+            isPresented: $isShowingLibrary,
+            selection: $photoSelection,
+            matching: .images,
+            photoLibrary: .shared()
+        )
+        .fullScreenCover(isPresented: $isShowingCamera) {
+            CameraPicker(
+                onPicked: { image in
+                    isShowingCamera = false
+                    Task { await ingestUIImage(image) }
+                },
+                onCancel: { isShowingCamera = false }
+            )
+            .ignoresSafeArea()
+        }
+        .sheet(isPresented: $isShowingPresetPicker) {
+            AvatarPresetPickerSheet(
+                hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
+                onPick: { preset in
+                    isShowingPresetPicker = false
+                    Task { await ingestPreset(preset) }
+                },
+                onCancel: { isShowingPresetPicker = false }
+            )
+            .preferredColorScheme(.dark)
+        }
+    }
+
+    @ViewBuilder
+    private var photoSourceButtons: some View {
+        if UIImagePickerController.cameraIsAvailable {
+            Button("Take Photo") { isShowingCamera = true }
+        }
+        Button("Choose from Library") { isShowingLibrary = true }
+        Button("Pick a Preset Avatar") { isShowingPresetPicker = true }
+        Button("Cancel", role: .cancel) {}
     }
 
     private var avatarCircle: some View {
@@ -316,13 +360,17 @@ struct ProfileCustomizationSheet: View {
                     .fontWeight(.bold)
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.65)
+                    .minimumScaleFactor(0.5)
+                    .allowsTightening(true)
                 Text(label)
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
     }
 
     private var memberShortDuration: String {
@@ -493,9 +541,37 @@ struct ProfileCustomizationSheet: View {
                         .monospacedDigit()
                 }
 
-                Text("Pick what you're optimizing for. We use these to surface relevant peptides and stack recommendations.")
+                Text("Pick what you're optimizing for. Long-press a selected goal to pin it as your primary focus.")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
+
+                if let pinned = dataStore.profile.primaryGoal, !pinned.isEmpty {
+                    HStack(spacing: Spacing.xs) {
+                        Image(systemName: "pin.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(AppColor.accentLight)
+                        Text("Primary: \(pinned)")
+                            .font(AppFont.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(AppColor.accentLight)
+                        Spacer()
+                        Button("Unpin") {
+                            dataStore.setPrimaryGoal(nil)
+                        }
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                    }
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.sm)
+                    .background {
+                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                            .fill(AppColor.accentPrimary.opacity(0.12))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                                    .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                            }
+                    }
+                }
 
                 FlowLayout(spacing: Spacing.sm) {
                     ForEach(Self.availableGoals, id: \.self) { goal in
@@ -508,11 +584,12 @@ struct ProfileCustomizationSheet: View {
 
     private func goalChip(_ goal: String) -> some View {
         let selected = dataStore.profile.goals.contains(goal)
+        let pinned = dataStore.profile.primaryGoal == goal
         return Button {
             toggleGoal(goal)
         } label: {
             HStack(spacing: Spacing.xs) {
-                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                Image(systemName: pinned ? "pin.fill" : (selected ? "checkmark.circle.fill" : "circle"))
                     .font(.system(size: 12, weight: .semibold))
                 Text(goal)
                     .font(AppFont.subheadline)
@@ -533,6 +610,26 @@ struct ProfileCustomizationSheet: View {
             }
         }
         .buttonStyle(ScalePressStyle())
+        .contextMenu {
+            if selected {
+                if pinned {
+                    Button {
+                        dataStore.setPrimaryGoal(nil)
+                    } label: {
+                        Label("Unpin", systemImage: "pin.slash")
+                    }
+                } else {
+                    Button {
+                        dataStore.setPrimaryGoal(goal)
+                        if dataStore.profile.hapticFeedbackEnabled {
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                        }
+                    } label: {
+                        Label("Pin as Primary", systemImage: "pin")
+                    }
+                }
+            }
+        }
     }
 
     private func toggleGoal(_ goal: String) {
@@ -711,6 +808,7 @@ struct ProfileCustomizationSheet: View {
             if dataStore.profile.hapticFeedbackEnabled {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
+            appState.pendingProtocolDeepLink = stack.id
             appState.selectedTab = .protocols
             dismiss()
         } label: {
@@ -979,13 +1077,56 @@ struct ProfileCustomizationSheet: View {
         }
     }
 
-    /// Decodes, downscales (longest edge → `avatarMaxDimension`), and re-encodes
-    /// the picked image as JPEG. Performed off the main actor — large photos
-    /// can otherwise cause a perceptible UI hitch.
+    @MainActor
+    private func ingestUIImage(_ image: UIImage) async {
+        isProcessingPhoto = true
+        defer { isProcessingPhoto = false }
+        let processed = await Task.detached(priority: .userInitiated) {
+            Self.normalize(image: image)
+        }.value
+        if let processed {
+            avatarData = processed
+        } else {
+            photoError = "We couldn't process that photo. Try a different image."
+        }
+    }
+
+    @MainActor
+    private func ingestPreset(_ preset: AvatarPreset) async {
+        isProcessingPhoto = true
+        defer { isProcessingPhoto = false }
+        let data = await Task.detached(priority: .userInitiated) {
+            preset.renderJPEGData()
+        }.value
+        avatarData = data
+    }
+
+    /// Decodes, square-crops to the largest centered square, downscales to
+    /// `avatarMaxDimension`, and JPEG-encodes. Performed off the main actor —
+    /// large photos can otherwise cause a perceptible UI hitch.
     nonisolated private static func normalize(rawImageData: Data) -> Data? {
         guard let source = UIImage(data: rawImageData) else { return nil }
-        let target = downscale(source, maxDimension: avatarMaxDimension)
-        return target.jpegData(compressionQuality: avatarJPEGQuality)
+        return normalize(image: source)
+    }
+
+    nonisolated private static func normalize(image: UIImage) -> Data? {
+        let cropped = squareCenterCrop(image)
+        let downsampled = downscale(cropped, maxDimension: avatarMaxDimension)
+        return downsampled.jpegData(compressionQuality: avatarJPEGQuality)
+    }
+
+    /// Returns the largest centered square from the image, accounting for
+    /// `imageOrientation` so portrait shots aren't sliced sideways.
+    nonisolated private static func squareCenterCrop(_ image: UIImage) -> UIImage {
+        let size = image.size
+        let side = min(size.width, size.height)
+        guard side > 0, size.width != size.height else { return image }
+        let originX = (size.width - side) / 2
+        let originY = (size.height - side) / 2
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: side, height: side))
+        return renderer.image { _ in
+            image.draw(in: CGRect(x: -originX, y: -originY, width: size.width, height: size.height))
+        }
     }
 
     nonisolated private static func downscale(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
@@ -1000,6 +1141,72 @@ struct ProfileCustomizationSheet: View {
         return renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: newSize))
         }
+    }
+}
+
+/// Compact grid picker for the built-in symbol-on-gradient avatars. Lives in
+/// the same file as `ProfileCustomizationSheet` because it's only ever used
+/// from there and shares its rendering pipeline.
+private struct AvatarPresetPickerSheet: View {
+    let hapticEnabled: Bool
+    let onPick: (AvatarPreset) -> Void
+    let onCancel: () -> Void
+
+    private let columns = [GridItem(.adaptive(minimum: 90), spacing: Spacing.md)]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: Spacing.md) {
+                    ForEach(AvatarPreset.all) { preset in
+                        Button {
+                            if hapticEnabled {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            }
+                            onPick(preset)
+                        } label: {
+                            tile(for: preset)
+                        }
+                        .buttonStyle(ScalePressStyle())
+                    }
+                }
+                .padding(Spacing.lg)
+            }
+            .background(AppColor.background)
+            .navigationTitle("Choose Avatar")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", action: onCancel)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+            }
+        }
+    }
+
+    private func tile(for preset: AvatarPreset) -> some View {
+        VStack(spacing: Spacing.xs) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: preset.gradient,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 80, height: 80)
+                    .overlay {
+                        Circle()
+                            .strokeBorder(AppColor.glassBorderActive, lineWidth: 1)
+                    }
+                Image(systemName: preset.symbol)
+                    .font(.system(size: 30, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+            .liquidGlass(.circle)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 

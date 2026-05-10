@@ -213,6 +213,126 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertTrue(profile.biometricLockEnabled, "Should respect explicit true")
     }
 
+    func test_userProfile_decodesWithoutCustomizationFields_defaultsAreSafe() throws {
+        // A profile saved before the customization sheet shipped — no avatar,
+        // no bio, no primaryGoal. Decoding must succeed and fall back cleanly.
+        let json = """
+        {
+            "name": "Sam",
+            "goals": ["Recovery"],
+            "memberSince": "2025-01-01T00:00:00Z",
+            "healthConnected": false
+        }
+        """.data(using: .utf8)!
+
+        let profile = try decoder.decode(UserProfile.self, from: json)
+        XCTAssertNil(profile.avatarImageData, "Missing avatar should decode to nil")
+        XCTAssertEqual(profile.bio, "", "Missing bio should default to empty string")
+        XCTAssertNil(profile.primaryGoal, "Missing primary goal should decode to nil")
+    }
+
+    func test_userProfile_codableRoundTrip_preservesCustomizationFields() throws {
+        let original = UserProfile(
+            name: "Casey",
+            goals: ["Sleep", "Recovery"],
+            memberSince: Date(timeIntervalSince1970: 1_700_000_000),
+            healthConnected: false,
+            avatarImageData: Data([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10]),
+            bio: "Optimizing recovery and sleep.",
+            primaryGoal: "Sleep"
+        )
+
+        let data = try encoder.encode(original)
+        let decoded = try decoder.decode(UserProfile.self, from: data)
+
+        XCTAssertEqual(decoded.bio, original.bio)
+        XCTAssertEqual(decoded.primaryGoal, original.primaryGoal)
+        XCTAssertEqual(decoded.avatarImageData, original.avatarImageData)
+    }
+
+    func test_userProfile_emptyBio_roundTripsAsEmptyString() throws {
+        // The DataStore trims bio on update; an empty bio shouldn't decode as
+        // nil (the field is non-optional in the model).
+        let original = UserProfile(
+            name: "Alex",
+            goals: [],
+            memberSince: Date(),
+            healthConnected: false,
+            bio: ""
+        )
+
+        let data = try encoder.encode(original)
+        let decoded = try decoder.decode(UserProfile.self, from: data)
+        XCTAssertEqual(decoded.bio, "")
+    }
+
+    // MARK: - Group 4: StoredProfile (SwiftData) Migration
+
+    func test_storedProfile_legacyRow_decodesWithEmptyCustomizationFields() throws {
+        // Simulates a row written before avatarImageData / bio / primaryGoal
+        // existed: nil columns. `toUserProfile` must produce a valid profile
+        // with safe defaults so the customization sheet doesn't crash.
+        let goalsData = try encoder.encode(["Recovery"])
+        let stored = StoredProfile(
+            name: "Legacy",
+            memberSince: Date(timeIntervalSince1970: 1_700_000_000),
+            healthConnected: false,
+            hapticFeedbackEnabled: true,
+            doseRemindersEnabled: false,
+            biometricLockEnabled: false,
+            goalsData: goalsData,
+            bodyMetricsData: nil,
+            avatarImageData: nil,
+            bio: nil,
+            primaryGoal: nil
+        )
+
+        let profile = try stored.toUserProfile()
+        XCTAssertEqual(profile.name, "Legacy")
+        XCTAssertEqual(profile.goals, ["Recovery"])
+        XCTAssertNil(profile.avatarImageData)
+        XCTAssertEqual(profile.bio, "")
+        XCTAssertNil(profile.primaryGoal)
+        XCTAssertEqual(profile.bodyMetrics.sex, .unspecified, "Missing metrics should fall back to .unspecified")
+    }
+
+    func test_storedProfile_make_preservesCustomizationFields() throws {
+        let profile = UserProfile(
+            name: "Casey",
+            goals: ["Sleep", "Recovery"],
+            memberSince: Date(),
+            healthConnected: true,
+            avatarImageData: Data([0x01, 0x02, 0x03]),
+            bio: "Hello world",
+            primaryGoal: "Sleep"
+        )
+
+        let stored = try StoredProfile.make(from: profile)
+        XCTAssertEqual(stored.avatarImageData, Data([0x01, 0x02, 0x03]))
+        XCTAssertEqual(stored.bio, "Hello world")
+        XCTAssertEqual(stored.primaryGoal, "Sleep")
+
+        let roundTripped = try stored.toUserProfile()
+        XCTAssertEqual(roundTripped.avatarImageData, profile.avatarImageData)
+        XCTAssertEqual(roundTripped.bio, profile.bio)
+        XCTAssertEqual(roundTripped.primaryGoal, profile.primaryGoal)
+    }
+
+    func test_storedProfile_make_collapsesEmptyBioToNil() throws {
+        // Empty bio should serialize as nil in the SwiftData column to avoid
+        // bloating the row with empty strings on every save.
+        let profile = UserProfile(
+            name: "Alex",
+            goals: [],
+            memberSince: Date(),
+            healthConnected: false,
+            bio: ""
+        )
+
+        let stored = try StoredProfile.make(from: profile)
+        XCTAssertNil(stored.bio)
+    }
+
     func test_researchLink_decodesWithoutOptionalFields() throws {
         let json = """
         {

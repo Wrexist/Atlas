@@ -2,12 +2,16 @@ import SwiftUI
 
 struct ProtocolListView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(AppState.self) private var appState
     @State private var showingBuilder = false
     @State private var showingPaywall = false
     @State private var preselectedPeptide: Peptide?
+    @State private var path: [PeptideProtocol] = []
 
     var body: some View {
-        NavigationStack {
+        @Bindable var state = appState
+
+        NavigationStack(path: $path) {
             ZStack(alignment: .bottomTrailing) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Spacing.xl) {
@@ -80,7 +84,24 @@ struct ProtocolListView: View {
             .sheet(isPresented: $showingPaywall) {
                 PaywallView()
             }
+            .onAppear { consumePendingDeepLink() }
+            .onChange(of: appState.pendingProtocolDeepLink) { _, _ in
+                consumePendingDeepLink()
+            }
         }
+    }
+
+    /// Pushes the deep-linked protocol onto the navigation path if the user
+    /// has it. Cleared immediately so a re-tap of the same row navigates
+    /// again (otherwise the value would be a no-op on the second tap).
+    private func consumePendingDeepLink() {
+        guard let id = appState.pendingProtocolDeepLink,
+              let target = dataStore.protocols.first(where: { $0.id == id })
+        else { return }
+        if path.last?.id != target.id {
+            path.append(target)
+        }
+        appState.pendingProtocolDeepLink = nil
     }
 }
 

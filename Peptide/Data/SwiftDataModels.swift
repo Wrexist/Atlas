@@ -210,13 +210,15 @@ final class StoredProfile {
     /// JPEG-encoded avatar. Optional for legacy stores; nil means no avatar.
     var avatarImageData: Data?
     var bio: String?
+    var primaryGoal: String?
 
     init(name: String, memberSince: Date, healthConnected: Bool,
          hapticFeedbackEnabled: Bool, doseRemindersEnabled: Bool,
          biometricLockEnabled: Bool, goalsData: Data,
          bodyMetricsData: Data? = nil,
          avatarImageData: Data? = nil,
-         bio: String? = nil) {
+         bio: String? = nil,
+         primaryGoal: String? = nil) {
         self.name = name
         self.memberSince = memberSince
         self.healthConnected = healthConnected
@@ -227,6 +229,7 @@ final class StoredProfile {
         self.bodyMetricsData = bodyMetricsData
         self.avatarImageData = avatarImageData
         self.bio = bio
+        self.primaryGoal = primaryGoal
     }
 
     static func make(from profile: UserProfile) throws -> StoredProfile {
@@ -242,7 +245,8 @@ final class StoredProfile {
             goalsData: goalsData,
             bodyMetricsData: metricsData,
             avatarImageData: profile.avatarImageData,
-            bio: profile.bio.isEmpty ? nil : profile.bio
+            bio: profile.bio.isEmpty ? nil : profile.bio,
+            primaryGoal: profile.primaryGoal
         )
     }
 
@@ -257,6 +261,7 @@ final class StoredProfile {
         bodyMetricsData = try sdEncoder.encode(profile.bodyMetrics)
         avatarImageData = profile.avatarImageData
         bio = profile.bio.isEmpty ? nil : profile.bio
+        primaryGoal = profile.primaryGoal
     }
 
     func toUserProfile() throws -> UserProfile {
@@ -278,7 +283,8 @@ final class StoredProfile {
             biometricLockEnabled: biometricLockEnabled,
             bodyMetrics: metrics,
             avatarImageData: avatarImageData,
-            bio: bio ?? ""
+            bio: bio ?? "",
+            primaryGoal: primaryGoal
         )
     }
 }

@@ -490,6 +490,19 @@ final class DataStore: DataServiceProtocol {
 
     func updateGoals(_ goals: Set<String>) {
         profile.goals = Array(goals).sorted()
+        // A pinned goal that's no longer in the active goal set is meaningless
+        // — drop it so the home tab doesn't surface a stale recommendation.
+        if let pinned = profile.primaryGoal, !goals.contains(pinned) {
+            profile.primaryGoal = nil
+        }
+        save()
+    }
+
+    /// Pin or clear the headline goal. Pass `nil` to remove the pin. The goal
+    /// must already exist in `profile.goals` — otherwise the call is ignored.
+    func setPrimaryGoal(_ goal: String?) {
+        if let goal, !profile.goals.contains(goal) { return }
+        profile.primaryGoal = goal
         save()
     }
 
