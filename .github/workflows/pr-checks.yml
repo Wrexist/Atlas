@@ -3,13 +3,6 @@ name: PR Checks
 on:
   pull_request:
     branches: [main]
-    # Skip the full Xcode build on docs-only PRs — Swift sources, project.yml,
-    # workflows, entitlements, and resource files are unaffected by changes
-    # under these paths, so a 5–15 min macOS-15 runner is wasted work.
-    paths-ignore:
-      - 'prompts/**'
-      - 'docs/**'
-      - '**/*.md'
 
 permissions:
   contents: read
@@ -19,7 +12,41 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ───────────────────────────────────────────────────────────── Path scope
+  #
+  # The iOS build runs on macOS-15 with a 5–15 min footprint. Skip it when
+  # the PR only touches documentation, marketing site, or the standalone
+  # Vercel proxy — the iOS sources, project.yml, workflows, entitlements,
+  # and resource files are unaffected by changes under those paths. The
+  # proxy has its own job below that validates server/** changes instead.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      ios: ${{ steps.filter.outputs.ios }}
+      server: ${{ steps.filter.outputs.server }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            ios:
+              - '!(prompts/**|docs/**|server/**|**/*.md)'
+              - 'Peptide/**'
+              - 'PeptideTests/**'
+              - 'PeptideUITests/**'
+              - 'PeptideWidgets/**'
+              - 'PeptideWatch/**'
+              - 'PeptideWatchWidgets/**'
+              - 'Shared/**'
+              - 'project.yml'
+              - '.github/workflows/pr-checks.yml'
+            server:
+              - 'server/**'
+
   build-check:
+    needs: changes
+    if: needs.changes.outputs.ios == 'true'
     runs-on: macos-15
     timeout-minutes: 45
 
@@ -114,6 +141,10 @@ jobs:
           python3 -c "import json; json.load(open('Peptide/Resources/Localizable.xcstrings'))"
 
       - name: Build
+        # Building the Peptide scheme transitively compiles PeptideWidgets
+        # (incl. the DoseWindowLiveActivity ActivityConfiguration),
+        # PeptideWatch, and PeptideWatchWidgets via the dependency edges
+        # declared in project.yml. One build = full cross-target check.
         run: |
           xcodebuild build \
             -project Peptide.xcodeproj \
@@ -243,3 +274,85 @@ jobs:
             test-output.log
           retention-days: 7
           if-no-files-found: warn
+
+  # ───────────────────────────────────────────────────────── Proxy job
+  #
+  # Lightweight syntax + lint pass for the standalone Vercel meal-scan
+  # proxy under server/. Runs in seconds on ubuntu-latest so a one-line
+  # change to the proxy doesn't burn a 15-min macOS runner; the iOS
+  # build is skipped via the paths filter above.
+  proxy-checks:
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate package.json
+        working-directory: server
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('vercel.json','utf8'))"
+
+      - name: Syntax check the proxy
+        # `node --check` parses the source and exits non-zero on any
+        # syntax error without executing the module. Covers stray
+        # commas, missing brackets, top-level await typos, etc.
+        working-directory: server
+        run: node --check api/meal-scan.js
+
+      - name: Sanity-check exports
+        # The Vercel runtime expects `default export` to be a function.
+        # Catch regressions where a refactor turns it into an object or
+        # forgets the export entirely.
+        working-directory: server
+        run: |
+          node --input-type=module -e "
+            import('./api/meal-scan.js').then(mod => {
+              if (typeof mod.default !== 'function') {
+                console.error('FATAL: api/meal-scan.js default export is not a function');
+                process.exit(1);
+              }
+              console.log('OK: default export is a function');
+            }).catch(err => {
+              console.error('Import failed:', err.message);
+              process.exit(1);
+            });
+          "
+
+  # ───────────────────────────────────────────────────────── Aggregate
+  #
+  # A no-op job that depends on both real jobs but only requires at least
+  # one of them to run. Lets the branch-protection "require status check"
+  # rule point at a single name (pr-checks) without forcing both jobs to
+  # be required when only one is relevant.
+  pr-checks:
+    needs: [build-check, proxy-checks]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aggregate result
+        run: |
+          BUILD_RESULT="${{ needs.build-check.result }}"
+          PROXY_RESULT="${{ needs.proxy-checks.result }}"
+          echo "build-check: $BUILD_RESULT"
+          echo "proxy-checks: $PROXY_RESULT"
+          # Pass if every job that *ran* succeeded. Jobs skipped by the
+          # paths filter return 'skipped' which we treat as a pass —
+          # that's the whole point of the filter.
+          if [ "$BUILD_RESULT" = "failure" ] || [ "$PROXY_RESULT" = "failure" ]; then
+            echo "::error::A required check failed."
+            exit 1
+          fi
+          if [ "$BUILD_RESULT" = "cancelled" ] || [ "$PROXY_RESULT" = "cancelled" ]; then
+            echo "::error::A required check was cancelled."
+            exit 1
+          fi
+          echo "All ran checks succeeded (skipped jobs treated as pass)."

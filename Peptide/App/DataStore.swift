@@ -181,6 +181,15 @@ final class DataStore: DataServiceProtocol {
         if profile.hapticFeedbackEnabled {
             UIImpactFeedbackGenerator(style: becoming ? .light : .soft).impactOccurred()
         }
+        // Live Activity reconciliation: when the user marks a dose
+        // taken from the app (or undoes it), push the matching state
+        // into any open lock-screen activity so the countdown stops
+        // and the "Logged" badge appears before auto-dismiss.
+        if becoming {
+            DoseLiveActivityService.shared.markCompleted(entryId)
+        } else {
+            DoseLiveActivityService.shared.reconcile(entries: entries)
+        }
     }
 
     func logDose(entryId: UUID, actualDose: String?, actualTime: Date?, injectionSite: String?, notes: String) {
@@ -610,6 +619,144 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
+    /// Updates the calorie + macro targets surfaced on the Lifestyle tab.
+    /// Pass `nil` to clear them and re-show the empty-state CTA.
+    func updateNutritionTargets(_ targets: NutritionTargets?) {
+        profile.nutritionTargets = targets
+        save()
+    }
+
+    /// Appends a bodyweight entry, replaces any existing entry with the
+    /// same calendar day so the sparkline shows one point per day even
+    /// when the user logs more than once, and keeps the array sorted
+    /// oldest-first.
+    func logWeight(kg: Double, date: Date = Date()) {
+        let day = Calendar.current.startOfDay(for: date)
+        var trimmed = profile.weightHistory.filter {
+            !Calendar.current.isDate($0.date, inSameDayAs: day)
+        }
+        trimmed.append(WeightEntry(date: date, kg: kg))
+        trimmed.sort { $0.date < $1.date }
+        profile.weightHistory = trimmed
+        save()
+    }
+
+    /// Removes a bodyweight entry by id. Used by the entry-list editor
+    /// inside the weight log sheet.
+    func deleteWeight(id: UUID) {
+        profile.weightHistory.removeAll { $0.id == id }
+        save()
+    }
+
+    /// Adds a meal's macros to today's consumption bucket, creating the
+    /// bucket on first use. Caller is responsible for the unit choices
+    /// (kcal, grams) — `MealScannerService` returns spec-shaped numbers.
+    func logMeal(calories: Int, proteinG: Int, carbsG: Int, fatG: Int, date: Date = Date()) {
+        let key = consumptionKey(for: date)
+        var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
+        bucket.caloriesKcal += calories
+        bucket.proteinG += proteinG
+        bucket.carbsG += carbsG
+        bucket.fatG += fatG
+        profile.dailyConsumption[key] = bucket
+        save()
+    }
+
+    /// Adds water (oz) to today's consumption bucket. Quick-add buttons
+    /// on the Lifestyle tab call this with +250 mL ≈ 8.5 oz and +500 mL
+    /// ≈ 16.9 oz pre-converted to integer ounces.
+    func logWater(oz: Int, date: Date = Date()) {
+        let key = consumptionKey(for: date)
+        var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
+        bucket.waterOz += oz
+        profile.dailyConsumption[key] = bucket
+        save()
+    }
+
+    /// Convenience accessor used by the macro rings — returns today's
+    /// bucket or an empty stub so callers don't have to optional-chain
+    /// the dictionary lookup at every render.
+    func consumption(for date: Date = Date()) -> DailyConsumption {
+        profile.dailyConsumption[consumptionKey(for: date)]
+            ?? DailyConsumption.empty(on: date)
+    }
+
+    // MARK: - Vial inventory (derived)
+
+    /// Default doses per vial when the user hasn't told us otherwise.
+    /// Picked because most short-acting research peptides come as 5 mg
+    /// vials reconstituted to deliver ~20–30 doses, and the modulo wrap
+    /// reads as a believable "vial swap" cadence in the Home shelf.
+    static let defaultDosesPerVial = 30
+
+    /// Liquid-fill fraction for a compound's vial, derived from how many
+    /// completed entries exist for that peptide. Wraps via modulo so the
+    /// shelf visually "refills" each time the user crosses a 30-dose
+    /// boundary — reads as a believable vial swap on continuously-used
+    /// compounds. A peptide with zero logged doses returns 1.0 so a
+    /// brand-new shelf shows full vials, not empty ones.
+    func liquidLevel(for peptide: Peptide) -> Double {
+        let count = entries.filter { $0.peptide.id == peptide.id && $0.completed }.count
+        guard count > 0 else { return 1.0 }
+        let consumed = count % Self.defaultDosesPerVial
+        // When the modulo lands exactly on the vial boundary the user
+        // just finished a vial — show a fresh full one rather than an
+        // empty one so the next dose drains from full again.
+        if consumed == 0 { return 1.0 }
+        return max(0.05, 1.0 - Double(consumed) / Double(Self.defaultDosesPerVial))
+    }
+
+    private func consumptionKey(for date: Date) -> String {
+        // The bucket key has to match the user's wall-clock day, not the
+        // UTC day. ISO8601DateFormatter defaults to UTC, so a meal logged
+        // at 11:00 PM in Auckland would otherwise key under tomorrow's
+        // date and silently disappear from today's rings.
+        let day = Calendar.current.startOfDay(for: date)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        formatter.timeZone = Calendar.current.timeZone
+        return formatter.string(from: day)
+    }
+
+    /// Appends a workout session and keeps the array sorted oldest-first
+    /// so the per-day rollup on the Lifestyle card reads stably.
+    func logWorkout(_ entry: WorkoutEntry) {
+        var trimmed = profile.workoutHistory
+        trimmed.append(entry)
+        trimmed.sort { $0.date < $1.date }
+        profile.workoutHistory = trimmed
+        save()
+    }
+
+    func deleteWorkout(id: UUID) {
+        profile.workoutHistory.removeAll { $0.id == id }
+        save()
+    }
+
+    /// Convenience accessor for the Lifestyle card subtitle. Returns
+    /// (count, totalMinutes) for sessions logged on `date`'s calendar
+    /// day. Empty tuple when the user hasn't logged anything yet.
+    func workoutSummary(for date: Date = Date()) -> (count: Int, minutes: Int) {
+        let sessions = profile.workoutHistory.filter {
+            Calendar.current.isDate($0.date, inSameDayAs: date)
+        }
+        let minutes = sessions.reduce(0) { $0 + $1.durationMinutes }
+        return (sessions.count, minutes)
+    }
+
+    /// Records a progress-photo filename. Caller writes the JPEG to
+    /// `Documents/<filename>` first; this only updates the manifest.
+    func addProgressPhotoFilename(_ filename: String) {
+        guard !profile.progressPhotoFilenames.contains(filename) else { return }
+        profile.progressPhotoFilenames.append(filename)
+        save()
+    }
+
+    func removeProgressPhotoFilename(_ filename: String) {
+        profile.progressPhotoFilenames.removeAll { $0 == filename }
+        save()
+    }
+
     func toggleHealthConnection() {
         profile.healthConnected.toggle()
         save()
@@ -760,8 +907,36 @@ final class DataStore: DataServiceProtocol {
     }
 
     private func updateWatchData() {
-        WatchSyncService.shared.updateWatchData(entries: entries, protocols: protocols)
+        // Surface the same stats the Stats page on the watch reads —
+        // streak, week compliance, total logged. The watch carries
+        // these forward as optionals so an older phone build (without
+        // these fields in the JSON) still decodes cleanly.
+        WatchSyncService.shared.updateWatchData(
+            entries: entries,
+            protocols: protocols,
+            currentStreak: currentStreak,
+            weeklyCompliance: weeklyComplianceFraction(),
+            totalDosesLogged: totalDosesLoggedCount()
+        )
     }
+
+    /// 7-day completed-vs-scheduled ratio. Returns 0 when nothing was
+    /// scheduled (rather than NaN) so the watch ring doesn't render an
+    /// undefined fraction.
+    private func weeklyComplianceFraction() -> Double {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        let window = entries.filter { $0.date >= cutoff }
+        guard !window.isEmpty else { return 0 }
+        return Double(window.filter(\.completed).count) / Double(window.count)
+    }
+
+    /// Lifetime completed-entry count. Light enough to recompute on every
+    /// sync — the array is already in-memory and the watch pipeline
+    /// debounces by app activation, not by entry mutation.
+    private func totalDosesLoggedCount() -> Int {
+        entries.filter(\.completed).count
+    }
+
 
     private func scheduleAchievementCheck() {
         guard !achievementCheckPending else { return }

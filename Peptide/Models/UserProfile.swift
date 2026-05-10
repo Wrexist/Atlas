@@ -1,13 +1,14 @@
 import Foundation
 
 enum BiologicalSex: String, Codable, CaseIterable, Identifiable {
-    case male, female, unspecified
+    case male, female, other, unspecified
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
         case .male: "Male"
         case .female: "Female"
+        case .other: "Other"
         case .unspecified: "Prefer not to say"
         }
     }
@@ -18,9 +19,15 @@ enum BiologicalSex: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .male: "Male"
         case .female: "Female"
+        case .other: "Other"
         case .unspecified: "Skip"
         }
     }
+
+    /// Pills shown on the body-stats step. Excludes `.unspecified` because
+    /// the step expects an explicit choice — `.other` covers gender-neutral
+    /// users without forcing them into a binary.
+    static let onboardingChoices: [BiologicalSex] = [.male, .female, .other]
 }
 
 enum ActivityLevel: String, Codable, CaseIterable, Identifiable {
@@ -95,6 +102,113 @@ struct BodyMetrics: Codable, Hashable {
     var isComplete: Bool { hasWeight && hasHeight && (age ?? 0) > 0 }
 }
 
+/// Daily macro targets derived from the user's body stats during onboarding
+/// and surfaced on the Lifestyle tab. Stored as integers because they're
+/// reference targets — the user doesn't need 0.1 g of protein resolution.
+struct NutritionTargets: Codable, Hashable {
+    var calories: Int
+    var proteinG: Int
+    var carbsG: Int
+    var fatG: Int
+    var fiberG: Int
+}
+
+/// Creator attribution captured during onboarding when the user enters a
+/// referral code. Persisted on the profile so the install / conversion can
+/// be matched against a creator on the (still-to-be-built) backend, and so
+/// the paywall can surface the discount the creator's code grants.
+///
+/// Matching today is local-only against `CreatorCodeService.seeded` —
+/// the spec'd Supabase pipeline (creator_codes table, RPC counters,
+/// dashboard) is tracked as a follow-up.
+struct CreatorAttribution: Codable, Hashable {
+    let code: String
+    let creatorName: String
+    let discountPercent: Int
+}
+
+/// Email captured during the onboarding mailing-list step. Stored locally
+/// so the address survives a relaunch; pushing it to the spec'd
+/// `email_subscribers` Supabase table + Resend welcome email + 7-day
+/// pg_cron retargeting is a separate piece of work that needs the
+/// backend in place. The local record carries enough context that the
+/// eventual sync job can replay the row 1:1 from this struct.
+struct EmailSubscription: Codable, Hashable {
+    let email: String
+    let capturedAt: Date
+}
+
+/// One bodyweight measurement, stored in canonical metric (kilograms).
+/// The Lifestyle tab renders the trend over the most recent 14 days
+/// and exposes the deltas; everything else converts to/from imperial
+/// at the UI boundary based on `bodyMetrics.unit`.
+struct WeightEntry: Codable, Hashable, Identifiable {
+    let id: UUID
+    let date: Date
+    let kg: Double
+
+    init(id: UUID = UUID(), date: Date, kg: Double) {
+        self.id = id
+        self.date = date
+        self.kg = kg
+    }
+}
+
+/// One workout session logged on the Lifestyle tab. Free-form name
+/// (e.g. "Push day", "Hill sprints") plus the spec'd sets/reps/duration
+/// fields — intentionally lightweight so this isn't a competing gym
+/// app, just enough structure to feed the daily card subtitle and a
+/// future Analytics-tab workout summary.
+struct WorkoutEntry: Codable, Hashable, Identifiable {
+    let id: UUID
+    let date: Date
+    let name: String
+    let sets: Int
+    let reps: Int
+    let durationMinutes: Int
+
+    init(
+        id: UUID = UUID(),
+        date: Date,
+        name: String,
+        sets: Int,
+        reps: Int,
+        durationMinutes: Int
+    ) {
+        self.id = id
+        self.date = date
+        self.name = name
+        self.sets = sets
+        self.reps = reps
+        self.durationMinutes = durationMinutes
+    }
+}
+
+/// Per-day macro and water totals consumed. Keyed by start-of-day so a
+/// dose logged at 11:55 pm and another at 12:05 am sit in different
+/// daily buckets, matching the dialing the user sees on the Lifestyle
+/// rings. Currently populated by the meal-scanner flow; manual logging
+/// is a follow-up.
+struct DailyConsumption: Codable, Hashable {
+    var date: Date
+    var caloriesKcal: Int
+    var proteinG: Int
+    var carbsG: Int
+    var fatG: Int
+    var waterOz: Int
+
+    static func empty(on date: Date) -> DailyConsumption {
+        DailyConsumption(
+            date: Calendar.current.startOfDay(for: date),
+            caloriesKcal: 0,
+            proteinG: 0,
+            carbsG: 0,
+            fatG: 0,
+            waterOz: 0
+        )
+    }
+}
+
 struct UserProfile: Codable {
     var name: String
     var goals: [String]
@@ -104,6 +218,36 @@ struct UserProfile: Codable {
     var doseRemindersEnabled: Bool
     var biometricLockEnabled: Bool
     var bodyMetrics: BodyMetrics
+    /// Calorie + macro targets shown on the Lifestyle tab. Populated from
+    /// the onboarding daily-targets screen on first run; the user can edit
+    /// the numbers later. Optional so older profiles decode cleanly and so
+    /// the Lifestyle tab can detect "not yet computed" and re-prompt.
+    var nutritionTargets: NutritionTargets?
+    /// Set when the user enters a valid creator code on the onboarding
+    /// attribution step. Used by the paywall copy to acknowledge the
+    /// discount and (eventually) by the backend to count installs /
+    /// conversions per creator.
+    var creatorAttribution: CreatorAttribution?
+    /// Set when the user opts in on the onboarding email-capture step.
+    /// Local-only today; will be drained into Supabase + Resend when the
+    /// backend ships.
+    var emailSubscription: EmailSubscription?
+    /// Bodyweight history surfaced on the Lifestyle tab's 14-day
+    /// sparkline. Newest-last so the sparkline iteration order matches
+    /// the visual axis without re-sorting on every render.
+    var weightHistory: [WeightEntry]
+    /// Filenames (relative to the app's Documents directory) of progress
+    /// photos the user has captured. The actual JPEG data lives on disk —
+    /// the profile carries only the references so the JSON stays compact.
+    var progressPhotoFilenames: [String]
+    /// Per-day consumption totals keyed by ISO yyyy-MM-dd start-of-day
+    /// strings. Stored as a dictionary so the meal-scanner roll-up can
+    /// upsert today's bucket without scanning the array.
+    var dailyConsumption: [String: DailyConsumption]
+    /// Workout sessions logged on the Lifestyle tab. Newest-last so
+    /// callers iterating forward see chronological order without
+    /// re-sorting.
+    var workoutHistory: [WorkoutEntry]
     /// JPEG-encoded profile avatar uploaded from the photo library. Stored
     /// inline so the avatar travels with the profile across exports and
     /// iCloud sync. Compressed before save — see DataStore.updateAvatar.
@@ -125,6 +269,13 @@ struct UserProfile: Codable {
         doseRemindersEnabled: Bool = false,
         biometricLockEnabled: Bool = false,
         bodyMetrics: BodyMetrics = .unspecified,
+        nutritionTargets: NutritionTargets? = nil,
+        creatorAttribution: CreatorAttribution? = nil,
+        emailSubscription: EmailSubscription? = nil,
+        weightHistory: [WeightEntry] = [],
+        progressPhotoFilenames: [String] = [],
+        dailyConsumption: [String: DailyConsumption] = [:],
+        workoutHistory: [WorkoutEntry] = [],
         avatarImageData: Data? = nil,
         bio: String = "",
         primaryGoal: String? = nil
@@ -137,6 +288,13 @@ struct UserProfile: Codable {
         self.doseRemindersEnabled = doseRemindersEnabled
         self.biometricLockEnabled = biometricLockEnabled
         self.bodyMetrics = bodyMetrics
+        self.nutritionTargets = nutritionTargets
+        self.creatorAttribution = creatorAttribution
+        self.emailSubscription = emailSubscription
+        self.weightHistory = weightHistory
+        self.progressPhotoFilenames = progressPhotoFilenames
+        self.dailyConsumption = dailyConsumption
+        self.workoutHistory = workoutHistory
         self.avatarImageData = avatarImageData
         self.bio = bio
         self.primaryGoal = primaryGoal
@@ -152,6 +310,13 @@ struct UserProfile: Codable {
         doseRemindersEnabled = try container.decodeIfPresent(Bool.self, forKey: .doseRemindersEnabled) ?? false
         biometricLockEnabled = try container.decodeIfPresent(Bool.self, forKey: .biometricLockEnabled) ?? false
         bodyMetrics = try container.decodeIfPresent(BodyMetrics.self, forKey: .bodyMetrics) ?? .unspecified
+        nutritionTargets = try container.decodeIfPresent(NutritionTargets.self, forKey: .nutritionTargets)
+        creatorAttribution = try container.decodeIfPresent(CreatorAttribution.self, forKey: .creatorAttribution)
+        emailSubscription = try container.decodeIfPresent(EmailSubscription.self, forKey: .emailSubscription)
+        weightHistory = try container.decodeIfPresent([WeightEntry].self, forKey: .weightHistory) ?? []
+        progressPhotoFilenames = try container.decodeIfPresent([String].self, forKey: .progressPhotoFilenames) ?? []
+        dailyConsumption = try container.decodeIfPresent([String: DailyConsumption].self, forKey: .dailyConsumption) ?? [:]
+        workoutHistory = try container.decodeIfPresent([WorkoutEntry].self, forKey: .workoutHistory) ?? []
         avatarImageData = try container.decodeIfPresent(Data.self, forKey: .avatarImageData)
         bio = try container.decodeIfPresent(String.self, forKey: .bio) ?? ""
         primaryGoal = try container.decodeIfPresent(String.self, forKey: .primaryGoal)

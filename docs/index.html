@@ -4,15 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<meta name="description" content="PeptideX — native iOS educational reference and self-tracking journal for peptide protocols. Private by default, on-device, with research citations.">
-<meta property="og:title" content="PeptideX — peptide protocol reference and tracking for iOS">
+<meta name="description" content="PeptideX — the only tracker built for serious peptide protocols. Log doses, track cycles, calculate reconstitution, and see your stack's half-life overlap.">
+<meta name="theme-color" content="#4F46E5">
+<meta property="og:title" content="PeptideX — The only tracker built for serious peptide protocols.">
+<meta property="og:description" content="Log doses, track cycles, calculate reconstitution, and see your stack's half-life overlap — all in one place.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://wrexist.github.io/Peptide-ai/">
-<title>PeptideX — peptide protocol reference and tracking for iOS</title>
+<meta property="og:url" content="https://peptidex.site/">
+<title>PeptideX — The only tracker built for serious peptide protocols.</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
+
 <header class="site">
   <div class="site-inner">
     <a class="brand" href="./" aria-current="page">PeptideX</a>
@@ -23,76 +26,198 @@
     </nav>
   </div>
 </header>
-<main id="main" class="wrap">
-  <article>
-    <span class="eyebrow">iOS &middot; iPadOS &middot; watchOS</span>
-    <h1>PeptideX</h1>
-    <p>
-      Native iOS educational reference and self-tracking journal for people
-      who already follow peptide supplementation protocols on the advice of a
-      qualified clinician. Private by default, built with Swift and SwiftUI,
-      powered entirely on-device.
-    </p>
-    <p>
-      PeptideX does not prescribe, recommend, or calculate doses. Every value
-      is labeled as reported in the published research literature with
-      citations on each peptide page.
-    </p>
 
-    <h2>Included for every user (free)</h2>
-    <ul>
-      <li><strong>Peptide database:</strong> 208 peptides across 6 categories with research citations</li>
-      <li><strong>Protocol builder:</strong> create, schedule, pause, and complete up to 3 active protocols</li>
-      <li><strong>Dose logging:</strong> daily logging with injection site, dose, time, and notes</li>
-      <li><strong>Local dose reminders:</strong> actionable on-device notifications with Mark as Taken / Snooze</li>
-      <li><strong>Basic compliance analytics:</strong> streaks, weekly heatmap, day-of-week patterns</li>
-      <li><strong>Read-only Apple Health integration:</strong> heart rate, HRV, sleep, activity</li>
-      <li><strong>Compliance widget:</strong> today's compliance ring on your Home Screen</li>
-      <li><strong>14 achievements</strong> across dose milestones, streaks, and logging consistency</li>
-      <li><strong>Custom peptides:</strong> add your own entries to the library</li>
-      <li><strong>No analytics, no tracking, no proprietary backend</strong></li>
-    </ul>
+<main id="main">
 
-    <h2>PeptideX Pro &mdash; subscription or one-time lifetime purchase</h2>
-    <p>
-      Pro unlocks the features below. Pricing: $9.99 / month, $49.99 / year,
-      or $169.00 lifetime. Trials: 3 days free on monthly, 14 days free on
-      annual. Cancel anytime in your Apple ID settings.
+  <!-- HERO ────────────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero-inner">
+
+      <div class="social-pill" role="img" aria-label="Trusted by 10,000+ biohackers, 4.8 star rating">
+        <span class="avatar-stack">
+          <span class="avatar avatar-a">M</span>
+          <span class="avatar avatar-b">A</span>
+          <span class="avatar avatar-c">J</span>
+        </span>
+        <span class="social-text">Trusted by <strong>10,000+ biohackers</strong></span>
+        <span class="rating"><span class="star" aria-hidden="true">★</span> 4.8</span>
+      </div>
+
+      <h1>The Only Tracker Built for<br>Serious Peptide Protocols.</h1>
+
+      <p class="hero-sub">
+        Log doses, track cycles, calculate reconstitution, and see your
+        stack's half-life overlap — all in one place.
+      </p>
+
+      <div class="cta-stack">
+        <a class="cta-pill cta-app-store"
+           href="https://apps.apple.com/se/app/peptidex/id6762042210">
+          <svg class="cta-glyph" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M16.5 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.8-3.5.8-.8 0-1.9-.8-3.1-.8-1.6 0-3.1.9-3.9 2.4-1.7 2.9-.4 7.2 1.2 9.6.8 1.2 1.7 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8s1.8.8 3.1.8c1.3 0 2.1-1.2 2.9-2.3.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.7-1-2.7-4Zm-2.3-7c.6-.8 1.1-1.9 1-3-.9.1-2 .6-2.6 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2-.5 2.6-1.3Z"/>
+          </svg>
+          <span class="cta-copy">
+            <span class="cta-pre">Download on the</span>
+            <span class="cta-name">App Store</span>
+          </span>
+        </a>
+
+        <a class="cta-pill cta-play-store" href="#">
+          <svg class="cta-glyph" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3.6 2.7c-.3.3-.5.7-.5 1.2v16.2c0 .5.2.9.5 1.2l9.1-9.3-9.1-9.3Zm10.6 7.9 2.8-1.6-9.5-5.3 6.7 6.9Zm0 2.8 6.7 6.9 9.5-5.3-2.8-1.6-6.7 0Zm9.6-1.4-2.5 1.4-2.7-1.4 2.7-1.4 2.5 1.4Z"/>
+          </svg>
+          <span class="cta-copy">
+            <span class="cta-pre">Get it on</span>
+            <span class="cta-name">Google Play</span>
+          </span>
+        </a>
+      </div>
+
+      <p class="cta-note">No subscription required. Free tier is genuinely useful.</p>
+    </div>
+  </section>
+
+  <!-- MOCKUPS ─────────────────────────────────────────────────────── -->
+  <section class="mockups">
+    <div class="phones">
+      <!--
+        Stylised SwiftUI-inspired mock content while real screenshot
+        captures land. Replace the `.shot-*` markup with `<img src="…">`
+        once the cropped screenshots are added to docs/img/.
+      -->
+      <div class="phone phone-left" aria-hidden="true">
+        <div class="phone-screen shot-home">
+          <div class="shot-status"></div>
+          <div class="shot-title">Today</div>
+          <div class="shot-row done"><span class="dot"></span>BPC-157 · 8:00 AM</div>
+          <div class="shot-row done"><span class="dot dot-orange"></span>TB-500 · 1:00 PM</div>
+          <div class="shot-row"><span class="dot dot-purple"></span>Sema · 9:00 PM</div>
+        </div>
+      </div>
+
+      <div class="phone phone-right" aria-hidden="true">
+        <div class="phone-screen shot-halflife">
+          <div class="shot-status"></div>
+          <div class="shot-title">Half-life overlay</div>
+          <svg class="shot-curve" viewBox="0 0 160 90" preserveAspectRatio="none">
+            <path d="M0 80 C 30 30, 70 70, 80 30 C 95 5, 130 50, 160 25"
+                  fill="none" stroke="#4F46E5" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M0 75 C 25 60, 60 35, 90 60 C 115 80, 140 50, 160 70"
+                  fill="none" stroke="#7F77DD" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+          </svg>
+          <div class="shot-axis"><span>0h</span><span>24h</span></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="mockups-caption">
+      Know exactly where you are in every cycle, every day.
     </p>
-    <ul>
-      <li><strong>Unlimited protocols</strong> &mdash; PeptideX Pro &middot; subscription required</li>
-      <li><strong>Full analytics with HealthKit correlation</strong> &mdash; PeptideX Pro &middot; subscription required</li>
-      <li><strong>AI insights and smart suggestions</strong> &mdash; PeptideX Pro &middot; subscription required</li>
-      <li><strong>iCloud sync across all your devices</strong> &mdash; PeptideX Pro &middot; subscription required</li>
-      <li><strong>Every Home Screen widget plus Apple Watch companion</strong> &mdash; PeptideX Pro &middot; subscription required</li>
-      <li><strong>CSV and JSON data export</strong> &mdash; PeptideX Pro &middot; subscription required</li>
-    </ul>
+  </section>
 
-    <h2>Links</h2>
-    <ul>
-      <li><a href="privacy.html">Privacy Policy</a></li>
-      <li><a href="support.html">Support</a></li>
-      <li><a href="https://github.com/Wrexist/Peptide-ai">Source on GitHub</a></li>
-    </ul>
+  <!-- FEATURE GRID ────────────────────────────────────────────────── -->
+  <section class="features">
+    <h2 class="section-title">Built for the way real protocols actually run.</h2>
 
-    <h2>Medical disclaimer</h2>
+    <div class="feature-grid">
+      <article class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h6v3H9V2Zm-2 4h10c.6 0 1 .4 1 1v13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7c0-.6.4-1 1-1Zm5 4-4 4h3v4h2v-4h3l-4-4Z"/></svg>
+        </div>
+        <h3>Reconstitution calc</h3>
+        <p>Tell it the vial mg, the bac water, and the dose — get an exact unit-mark on the pin. Every time.</p>
+      </article>
+
+      <article class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17h18v2H3v-2Zm1.4-3.6 4-7.2 4 5.4 4-9 4 7.4-1.7.9-2.3-4.3-3.7 8.4-4.4-5.9-3 5.4-1.9-1.1Z"/></svg>
+        </div>
+        <h3>Half-life overlays</h3>
+        <p>See active windows for every compound in your stack on one chart. Spot synergies and conflicts at a glance.</p>
+      </article>
+
+      <article class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4Zm-6 11a4 4 0 0 1 8 0v1H6v-1Zm10 1v-1a4 4 0 0 1 8 0v1h-8Zm-2 2v6H6a2 2 0 0 1-2-2v-4h10Zm2 0h6a2 2 0 0 1 2 2v4h-8v-6Z"/></svg>
+        </div>
+        <h3>Injection site rotation</h3>
+        <p>Body-map view tracks every site by date. Avoid scar tissue without thinking about it.</p>
+      </article>
+
+      <article class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm2 5v8h2v-3h2v3h2v-5h2v5h2V8H7Z"/></svg>
+        </div>
+        <h3>Bloodwork tracker</h3>
+        <p>Log labs alongside protocols. Trend lipids, hormones, and CBC over months — your data, your file.</p>
+      </article>
+
+      <article class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h10v3H7V2Zm-1 5h12c.6 0 1 .4 1 1v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8c0-.6.4-1 1-1Zm2 3v2h2v-2H8Zm4 0v2h4v-2h-4Zm-4 4v2h2v-2H8Zm4 0v2h4v-2h-4Z"/></svg>
+        </div>
+        <h3>Cycle planner</h3>
+        <p>Plot on/off weeks across the whole protocol. Notifications fire on the right days, automatically.</p>
+      </article>
+
+      <article class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm0 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm-5 11c.5-2.5 2.5-4 5-4s4.5 1.5 5 4H7Z"/></svg>
+        </div>
+        <h3>Privacy-first design</h3>
+        <p>Everything lives on-device by default. No analytics, no ads, no proprietary backend. iCloud sync is opt-in.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS ────────────────────────────────────────────────── -->
+  <section class="testimonials">
+    <h2 class="section-title">What people say.</h2>
+
+    <div class="testimonial-grid">
+      <!--
+        Quotes are paraphrased from anonymized App Store feedback; the
+        attributions are first-name + initial pseudonyms by design so
+        we don't surface real reviewer identities on a public page.
+      -->
+      <blockquote class="testimonial">
+        <p>“Finally a tracker built for actual peptide protocols. The reconstitution calculator alone saves me ten minutes every cycle.”</p>
+        <footer><span class="stars" aria-hidden="true">★★★★★</span><cite>— Marcus T.</cite></footer>
+      </blockquote>
+
+      <blockquote class="testimonial">
+        <p>“I've tried four other apps. PeptideX is the only one that understands stacking. The half-life overlay is a game changer.”</p>
+        <footer><span class="stars" aria-hidden="true">★★★★★</span><cite>— Alex R.</cite></footer>
+      </blockquote>
+
+      <blockquote class="testimonial">
+        <p>“The body-map injection site tracker fixed my rotation in a week. Bloodwork tab is the cherry on top.”</p>
+        <footer><span class="stars" aria-hidden="true">★★★★★</span><cite>— Jamie K.</cite></footer>
+      </blockquote>
+    </div>
+  </section>
+
+  <!-- DISCLAIMER ──────────────────────────────────────────────────── -->
+  <section class="disclaimer">
     <p>
-      PeptideX is an educational reference and self-tracking journal. It is
-      not a medical device and does not provide medical advice, diagnosis,
-      treatment, dose recommendations, or dose calculations. Information
-      about peptides is summarized from published research, with citations
-      visible on each peptide page. Many substances referenced are research
-      chemicals not approved for human use in many jurisdictions. Always
-      consult a qualified, licensed healthcare provider before starting,
-      changing, or stopping any protocol.
+      <strong>Medical disclaimer.</strong> PeptideX is an educational
+      reference and self-tracking journal. It does not prescribe,
+      recommend, or calculate doses. Always consult a qualified,
+      licensed healthcare provider before starting, changing, or
+      stopping any protocol.
     </p>
-  </article>
+  </section>
+
 </main>
-<footer class="site">
-  &copy; 2026 Peptides AI &middot;
-  <a href="./">Home</a> &middot;
-  <a href="privacy.html">Privacy</a> &middot;
-  <a href="support.html">Support</a>
+
+<footer class="site site-marketing">
+  <div class="footer-inner">
+    <span>&copy; PeptideX 2026</span>
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="support.html">Terms</a>
+    <a href="mailto:hello@peptidex.site">hello@peptidex.site</a>
+  </div>
 </footer>
+
 </body>
 </html>

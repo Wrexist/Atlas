@@ -6,6 +6,7 @@ struct PeptideApp: App {
     @State private var appState = AppState()
     @State private var dataStore: DataStore
     @State private var localization = LocalizationManager.shared
+    @State private var themeManager = ThemeManager.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var notificationDelegate: NotificationDelegate?
     @State private var isUnlocked = false
@@ -35,12 +36,12 @@ struct PeptideApp: App {
                 if !hasCompletedOnboarding {
                     OnboardingView()
                         .environment(dataStore)
-                        .preferredColorScheme(.dark)
+                        .preferredColorScheme(themeManager.displayMode.preferredScheme)
                         .tint(AppColor.accentPrimary)
                 } else if dataStore.profile.biometricLockEnabled, !isUnlocked {
                     LockScreenView { isUnlocked = true }
                         .environment(dataStore)
-                        .preferredColorScheme(.dark)
+                        .preferredColorScheme(themeManager.displayMode.preferredScheme)
                         .tint(AppColor.accentPrimary)
                 } else {
                     mainContent
@@ -71,6 +72,11 @@ struct PeptideApp: App {
             if phase == .active {
                 ReviewPromptService.shared.recordLaunch()
                 dataStore.handleAppActivation()
+                // Re-evaluate which scheduled doses are in their
+                // active window so the lock-screen Live Activities
+                // start / end without needing the user to open the
+                // app to a specific tab.
+                DoseLiveActivityService.shared.reconcile(entries: dataStore.entries)
             }
         }
     }
@@ -88,6 +94,9 @@ struct PeptideApp: App {
             }
             Tab("Analytics", systemImage: "chart.bar.fill", value: .analytics) {
                 AnalyticsView()
+            }
+            Tab("Lifestyle", systemImage: "fork.knife", value: .lifestyle) {
+                LifestyleView()
             }
             Tab("Profile", systemImage: "person.fill", value: .profile) {
                 ProfileView()
@@ -113,7 +122,7 @@ struct PeptideApp: App {
         tabViewWithAccessory
         .environment(appState)
         .environment(dataStore)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(themeManager.displayMode.preferredScheme)
         .tint(AppColor.accentPrimary)
         .task {
             let delegate = NotificationDelegate(dataStore: dataStore)

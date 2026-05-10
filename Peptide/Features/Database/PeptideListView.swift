@@ -5,8 +5,11 @@ struct PeptideListView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var viewModel = PeptideListViewModel(peptides: PeptideDatabase.shared)
     @State private var showCustomForm = false
+    @State private var showResearchAssistant = false
     @State private var selectedPeptide: Peptide?
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var storeService = StoreService.shared
+    @State private var showPaywall = false
 
     private func refreshPeptides() {
         viewModel.updatePeptides(dataStore.peptideDatabase)
@@ -44,6 +47,15 @@ struct PeptideListView: View {
                     }
                     .liquidGlassPresentation()
                 }
+                .sheet(isPresented: $showResearchAssistant) {
+                    AIResearchView()
+                        .environment(dataStore)
+                }
+                .sheet(isPresented: $showPaywall) {
+                    PaywallView()
+                        .environment(dataStore)
+                        .liquidGlassPresentation()
+                }
                 .onAppear { refreshPeptides() }
         } detail: {
             NavigationStack {
@@ -80,6 +92,15 @@ struct PeptideListView: View {
                         refreshPeptides()
                     }
                     .liquidGlassPresentation()
+                }
+                .sheet(isPresented: $showResearchAssistant) {
+                    AIResearchView()
+                        .environment(dataStore)
+                }
+                .sheet(isPresented: $showPaywall) {
+                    PaywallView()
+                        .environment(dataStore)
+                        .liquidGlassPresentation()
                 }
                 .onAppear { refreshPeptides() }
         }
@@ -168,6 +189,21 @@ struct PeptideListView: View {
 
     @ToolbarContentBuilder
     private var sidebarToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button {
+                if storeService.isProUser {
+                    showResearchAssistant = true
+                } else {
+                    showPaywall = true
+                }
+            } label: {
+                Label("Ask the assistant", systemImage: "sparkles")
+                    .labelStyle(.iconOnly)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
+            }
+            .accessibilityLabel("Open AI research assistant")
+        }
         ToolbarItem(placement: .topBarTrailing) {
             Text("\(viewModel.allPeptides.count)")
                 .font(AppFont.caption)

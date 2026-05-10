@@ -1,5 +1,6 @@
 import Foundation
 import WatchConnectivity
+import WatchKit
 
 /// Observable store for the Watch app. Reads WatchData from the shared
 /// App Group container and sends mark-complete messages to the iOS app.
@@ -53,7 +54,16 @@ final class WatchStore: NSObject, ObservableObject {
             WatchMessage.protocolIdKey: entry.protocolId.uuidString
         ]
 
-        // Optimistically update local state
+        // Haptic confirmation: .success on a completion (the satisfying
+        // "got it" pattern), .click on an undo so the user can feel the
+        // toggle direction without looking. Done before the optimistic
+        // state update so the haptic feels coincident with the tap.
+        WKInterfaceDevice.current().play(entry.completed ? .click : .success)
+
+        // Optimistically update local state. Preserve the watch-side
+        // stats fields (streak / weeklyCompliance / totalDosesLogged)
+        // that arrived from the phone — the user just toggled a dose,
+        // we shouldn't reset the streak to nil on every tap.
         if let index = watchData.todayEntries.firstIndex(where: { $0.id == entry.id }) {
             var updated = watchData.todayEntries
             updated[index].completed.toggle()
@@ -62,7 +72,10 @@ final class WatchStore: NSObject, ObservableObject {
                 todayEntries: updated,
                 completedToday: completed,
                 totalToday: updated.count,
-                lastUpdated: Date()
+                lastUpdated: Date(),
+                currentStreak: watchData.currentStreak,
+                weeklyCompliance: watchData.weeklyCompliance,
+                totalDosesLogged: watchData.totalDosesLogged
             )
         }
 

@@ -33,6 +33,13 @@ struct ProtocolListView: View {
                             .padding(.top, Spacing.xxl)
                             .sectionAppear(index: 0)
                         } else {
+                            TrackCalendarSection(
+                                entries: dataStore.entries,
+                                protocols: dataStore.protocols,
+                                activePeptides: dataStore.stackPeptides
+                            )
+                            .sectionAppear(index: 0)
+
                             if !dataStore.activeProtocols.isEmpty {
                                 ProtocolSection(
                                     title: "Active",
@@ -114,7 +121,7 @@ struct ProtocolListView: View {
                 consumePendingDeepLink()
             }
             .sheet(item: $sharingProtocol) { proto in
-                ShareCardSheet(proto: proto)
+                ShareCardSheet(subject: .singleProtocol(proto))
             }
         }
     }

@@ -1,8 +1,11 @@
 import Foundation
 
 enum AppConstants {
-    // TODO: replace with the real App Store URL once the app ID is assigned at submission time
-    static let appStoreURL = URL(string: "https://apps.apple.com/app/peptidex")!
-    static let marketingHost = "peptidex.app"
+    /// Live App Store listing for PeptideX (id6762042210, Sweden region
+    /// — Apple's smart-app banner mechanism resolves the user's local
+    /// store automatically, so the /se/ path doesn't pin the URL to one
+    /// region for redirects).
+    static let appStoreURL = URL(string: "https://apps.apple.com/se/app/peptidex/id6762042210")!
+    static let marketingHost = "peptidex.site"
     static let watermarkText = "Made with PeptideX"
 }

@@ -114,10 +114,22 @@ struct ExportSection: View {
 }
 
 struct ShareSheet: UIViewControllerRepresentable {
-    let urls: [URL]
+    let activityItems: [Any]
+
+    /// Convenience for the URL-only callers that pre-date the
+    /// generalisation — preserves the original `ShareSheet(urls:)`
+    /// initializer used by the export flow without forcing every
+    /// caller to wrap their URLs in `[Any]`.
+    init(urls: [URL]) {
+        self.activityItems = urls
+    }
+
+    init(activityItems: [Any]) {
+        self.activityItems = activityItems
+    }
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: urls, applicationActivities: nil)
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}

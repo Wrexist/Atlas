@@ -5,6 +5,7 @@ import UIKit
 
 struct OnboardingView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.requestReview) private var requestReview
     @AppStorage("hasCompletedOnboarding") private var hasCompleted = false
     @AppStorage("experienceLevel") private var experienceLevel = "beginner"
 
@@ -18,10 +19,26 @@ struct OnboardingView: View {
     @State private var requestingNotifications = false
     @State private var bounceTrigger = 0
     @State private var authService = AuthService.shared
+    /// Observed so the picker step re-renders the moment the user taps a
+    /// new theme — `AppColor.accent*` reads from this manager, so anything
+    /// touching `themeManager.theme` in body forces a full re-render.
+    @State private var themeManager = ThemeManager.shared
+
+    // Creator attribution step state. Lives on the parent so the footer
+    // (apply / skip / continue buttons) and the input field can share it
+    // and so the validated attribution survives a back-and-forward swipe.
+    @State private var creatorCodeInput: String = ""
+    @State private var creatorAttribution: CreatorAttribution?
+    @State private var creatorCodeError: String?
+
+    // Email-capture step state. Same pattern as the creator attribution —
+    // input lives on the parent so the field survives swipe navigation.
+    @State private var emailInput: String = ""
+    @State private var emailError: String?
 
     @FocusState private var nameFocused: Bool
 
-    private let totalPages = 11
+    private let totalPages = 17
     @State private var storeService = StoreService.shared
 
     private struct OnboardingGoal: Identifiable {
@@ -49,7 +66,14 @@ struct OnboardingView: View {
     ]
 
     var body: some View {
-        ZStack {
+        // Reading the @Observable properties registers this view as a
+        // dependency, so the entire onboarding tree (back button tint,
+        // progress bar gradient, page accents…) re-renders the moment the
+        // user picks a different theme on the "Make it yours" step.
+        let _ = themeManager.theme
+        let _ = themeManager.displayMode
+
+        return ZStack {
             OnboardingBackground(step: currentPage)
 
             VStack(spacing: 0) {
@@ -63,22 +87,28 @@ struct OnboardingView: View {
                     namePage.tag(1)
                     goalsPage.tag(2)
                     bodyMetricsPage.tag(3)
-                    recommendationsPage.tag(4)
-                    experiencePage.tag(5)
-                    healthKitPage.tag(6)
-                    notificationsPage.tag(7)
-                    signInPage.tag(8)
-                    offerPage.tag(9)
-                    readyPage.tag(10)
+                    dailyTargetsPage.tag(4)
+                    recommendationsPage.tag(5)
+                    experiencePage.tag(6)
+                    healthKitPage.tag(7)
+                    notificationsPage.tag(8)
+                    signInPage.tag(9)
+                    reviewPromptPage.tag(10)
+                    creatorAttributionPage.tag(11)
+                    emailCapturePage.tag(12)
+                    offerPage.tag(13)
+                    themeChoicePage.tag(14)
+                    addMedicationPreviewPage.tag(15)
+                    readyPage.tag(16)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: currentPage)
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(themeManager.displayMode.preferredScheme)
         .onChange(of: currentPage) { _, newValue in
             dismissKeyboard()
-            if newValue == 4 && !hasAutoSelectedRecommendations {
+            if newValue == 5 && !hasAutoSelectedRecommendations {
                 let top = currentSuggestions.prefix(2).map(\.peptide.id)
                 selectedRecommendationIds = Set(top)
                 hasAutoSelectedRecommendations = true
@@ -86,7 +116,7 @@ struct OnboardingView: View {
             // If the user lands on the sign-in page already authenticated
             // (e.g. Keychain survived a re-onboard), still show the
             // confirmation briefly and advance — never strand them here.
-            if newValue == 8 && authService.isSignedIn {
+            if newValue == 9 && authService.isSignedIn {
                 scheduleSignInAdvance()
             }
         }
@@ -95,7 +125,7 @@ struct OnboardingView: View {
             selectedRecommendationIds.removeAll()
         }
         .onChange(of: authService.isSignedIn) { _, signedIn in
-            if signedIn, currentPage == 8 {
+            if signedIn, currentPage == 9 {
                 if dataStore.profile.hapticFeedbackEnabled {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                 }
@@ -105,7 +135,7 @@ struct OnboardingView: View {
         .alert(
             authService.lastError?.title ?? "",
             isPresented: Binding(
-                get: { authService.lastError != nil && currentPage == 8 },
+                get: { authService.lastError != nil && currentPage == 9 },
                 set: { if !$0 { authService.clearLastError() } }
             ),
             presenting: authService.lastError
@@ -124,7 +154,7 @@ struct OnboardingView: View {
         .task { await storeService.loadProducts() }
     }
 
-    // MARK: - Page 1: Welcome
+    // MARK: - Page 0: Welcome
 
     private var welcomePage: some View {
         pageScaffold(
@@ -182,7 +212,7 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Page 2: Name
+    // MARK: - Page 1: Name
 
     private var namePage: some View {
         pageScaffold(
@@ -215,7 +245,7 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Page 3: Goals
+    // MARK: - Page 2: Goals
 
     private var goalsPage: some View {
         pageScaffold(
@@ -249,7 +279,7 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Page 4: Body Metrics
+    // MARK: - Page 3: Body Metrics
 
     private var bodyMetricsPage: some View {
         pageScaffold(
@@ -263,8 +293,26 @@ struct OnboardingView: View {
                         advance(to: 4)
                     }
                     GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
-                        advance(to: 4)
+                        // Skip past Daily Targets too — without body stats it
+                        // has nothing to compute and would render placeholders.
+                        advance(to: 5)
                     }
+                }
+            }
+        )
+    }
+
+    // MARK: - Page 4: Daily Targets
+
+    private var dailyTargetsPage: some View {
+        pageScaffold(
+            hero: HeroIcon(symbol: "fork.knife.circle.fill", size: 88, bounceTrigger: bounceTrigger),
+            content: {
+                DailyTargetsPage(metrics: bodyMetrics)
+            },
+            footer: {
+                GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
+                    advance(to: 5)
                 }
             }
         )
@@ -289,11 +337,11 @@ struct OnboardingView: View {
                         style: .primary,
                         isFullWidth: true
                     ) {
-                        advance(to: 5)
+                        advance(to: 6)
                     }
                     GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
                         selectedRecommendationIds.removeAll()
-                        advance(to: 5)
+                        advance(to: 6)
                     }
                 }
             }
@@ -396,7 +444,7 @@ struct OnboardingView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Page 4: Experience Level
+    // MARK: - Page 6: Experience Level
 
     private var experiencePage: some View {
         pageScaffold(
@@ -426,7 +474,7 @@ struct OnboardingView: View {
             },
             footer: {
                 GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                    advance(to: 6)
+                    advance(to: 7)
                 }
             }
         )
@@ -492,7 +540,7 @@ struct OnboardingView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Page 5: HealthKit
+    // MARK: - Page 7: HealthKit
 
     private var healthKitPage: some View {
         permissionPage(
@@ -516,41 +564,82 @@ struct OnboardingView: View {
                     dataStore.profile.healthConnected = granted
                     dataStore.persistProfile()
                 }
-                if currentPage == 6 { advance(to: 7) }
-            }
-        } onSkip: {
-            advance(to: 7)
-        }
-    }
-
-    // MARK: - Page 6: Notifications
-
-    private var notificationsPage: some View {
-        permissionPage(
-            icon: "bell.badge.fill",
-            title: "Never miss a dose",
-            subtitle: "We'll quietly remind you at each scheduled dose so your protocol stays on track.",
-            bullets: [
-                ("clock.fill", "Precise dose-time alerts"),
-                ("calendar", "Weekly schedule recap"),
-                ("moon.fill", "Quiet hours respected"),
-            ],
-            primaryTitle: "Enable Reminders",
-            primaryIcon: "bell.fill",
-            requesting: requestingNotifications
-        ) {
-            requestingNotifications = true
-            Task {
-                let granted = await NotificationService.shared.requestAuthorization()
-                requestingNotifications = false
-                if dataStore.profile.doseRemindersEnabled != granted {
-                    dataStore.profile.doseRemindersEnabled = granted
-                    dataStore.persistProfile()
-                }
                 if currentPage == 7 { advance(to: 8) }
             }
         } onSkip: {
             advance(to: 8)
+        }
+    }
+
+    // MARK: - Page 8: Notifications
+
+    private var notificationsPage: some View {
+        pageScaffold(
+            hero: EmptyView(),
+            content: {
+                VStack(spacing: Spacing.lg) {
+                    VStack(spacing: Spacing.sm) {
+                        Text("Consistency is everything.")
+                            .font(AppFont.largeTitle)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [AppColor.textPrimary, AppColor.accentLight],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .multilineTextAlignment(.center)
+
+                        Text("People who track their protocols achieve significantly better results over time.")
+                            .font(AppFont.body)
+                            .foregroundStyle(AppColor.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, Spacing.md)
+                    }
+
+                    ConsistencyChart()
+                        .padding(.top, Spacing.sm)
+
+                    NotificationPreviewCard()
+                        .padding(.top, Spacing.xs)
+                }
+            },
+            footer: {
+                VStack(spacing: Spacing.sm) {
+                    GlassButton(
+                        title: requestingNotifications ? "Requesting…" : "Enable reminders",
+                        icon: "bell.fill",
+                        style: .primary,
+                        isFullWidth: true,
+                        action: requestNotificationPermission
+                    )
+                    .disabled(requestingNotifications)
+
+                    GlassButton(
+                        title: "Skip for now",
+                        style: .ghost,
+                        isFullWidth: true
+                    ) {
+                        advance(to: 9)
+                    }
+                    .disabled(requestingNotifications)
+                }
+            }
+        )
+    }
+
+    private func requestNotificationPermission() {
+        requestingNotifications = true
+        Task {
+            let granted = await NotificationService.shared.requestAuthorization()
+            requestingNotifications = false
+            if dataStore.profile.doseRemindersEnabled != granted {
+                dataStore.profile.doseRemindersEnabled = granted
+                dataStore.persistProfile()
+            }
+            // Advance regardless of permission outcome — the spec says the
+            // user shouldn't be stranded if they decline.
+            if currentPage == 8 { advance(to: 9) }
         }
     }
 
@@ -640,7 +729,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Page 7: Sign in with Apple
+    // MARK: - Page 9: Sign in with Apple
 
     private var signInPage: some View {
         pageScaffold(
@@ -726,30 +815,205 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Page 8: Free-Trial Funnel
+    // MARK: - Page 10: Review Prompt (social proof before paywall)
 
-    /// Skip the trial offer when the user is no longer eligible (already
-    /// redeemed an intro offer in this group or already Pro). Keeps the funnel
-    /// clean for re-installs.
-    private var nextAfterSignIn: Int {
-        (storeService.isProUser || !storeService.isEligibleForMonthlyTrial) ? 10 : 9
+    /// Always advance to the review prompt after sign-in. The review page is
+    /// shown to everyone — Pro users may still want to leave a review — and
+    /// the offer page (11) self-skips for ineligible / already-Pro users.
+    private var nextAfterSignIn: Int { 10 }
+
+    private var reviewPromptPage: some View {
+        pageScaffold(
+            hero: EmptyView(),
+            content: { ReviewPromptPage() },
+            footer: {
+                // Single CTA. Tapping "Continue" both fires the App Store
+                // review request and advances to the creator-attribution step.
+                // The cooldown gate inside ReviewPromptService still applies,
+                // so re-onboarding never burns a second prompt within 90 days.
+                GlassButton(
+                    title: "Continue",
+                    icon: "arrow.right",
+                    style: .primary,
+                    isFullWidth: true
+                ) {
+                    ReviewPromptService.shared.requestReviewOnUserAction(using: requestReview)
+                    if dataStore.profile.hapticFeedbackEnabled {
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    }
+                    advance(to: 11)
+                }
+            }
+        )
     }
+
+    // MARK: - Page 11: Creator Attribution (referral code)
+
+    private var creatorAttributionPage: some View {
+        pageScaffold(
+            hero: EmptyView(),
+            content: {
+                CreatorAttributionPage(
+                    input: $creatorCodeInput,
+                    attribution: creatorAttribution,
+                    error: creatorCodeError
+                )
+            },
+            footer: {
+                VStack(spacing: Spacing.sm) {
+                    if creatorAttribution != nil {
+                        GlassButton(
+                            title: "Continue",
+                            icon: "arrow.right",
+                            style: .primary,
+                            isFullWidth: true
+                        ) {
+                            advance(to: 12)
+                        }
+                    } else {
+                        GlassButton(
+                            title: "Apply",
+                            icon: "checkmark.circle.fill",
+                            style: .primary,
+                            isFullWidth: true,
+                            action: applyCreatorCode
+                        )
+                        .disabled(creatorCodeInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                    GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
+                        advance(to: 12)
+                    }
+                }
+            }
+        )
+    }
+
+    /// Validates the typed code against the local seeded list and updates
+    /// the success / error state. The validated attribution is persisted
+    /// to the profile in `finishOnboarding` rather than here so swiping
+    /// back and re-applying a different code doesn't strand stale data.
+    private func applyCreatorCode() {
+        if let match = CreatorCodeService.lookup(creatorCodeInput) {
+            withAnimation(AppAnimation.springSnappy) {
+                creatorAttribution = match
+                creatorCodeError = nil
+            }
+            if dataStore.profile.hapticFeedbackEnabled {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+        } else {
+            withAnimation(AppAnimation.springSnappy) {
+                creatorCodeError = "Code not found — double-check and try again"
+            }
+            if dataStore.profile.hapticFeedbackEnabled {
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+            }
+        }
+    }
+
+    // MARK: - Page 12: Email Capture (mailing-list opt-in)
+
+    private var emailCapturePage: some View {
+        pageScaffold(
+            hero: EmptyView(),
+            content: {
+                EmailCapturePage(input: $emailInput, error: emailError)
+            },
+            footer: {
+                VStack(spacing: Spacing.sm) {
+                    GlassButton(
+                        title: "Send me updates",
+                        icon: "paperplane.fill",
+                        style: .primary,
+                        isFullWidth: true,
+                        action: submitEmail
+                    )
+                    .disabled(emailInput.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                    GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
+                        advance(to: 13)
+                    }
+                }
+            }
+        )
+    }
+
+    /// Validates the typed email and, on success, persists it to the
+    /// profile and advances to the paywall. The spec'd Supabase insert /
+    /// Resend welcome email / 7-day pg_cron retargeting all need a
+    /// backend that doesn't exist in this repo today — once it ships, the
+    /// stored EmailSubscription is the source of truth a sync job can
+    /// drain into the email_subscribers table.
+    private func submitEmail() {
+        let trimmed = emailInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.looksLikeEmail else {
+            withAnimation(AppAnimation.springSnappy) {
+                emailError = "That doesn't look like an email address."
+            }
+            if dataStore.profile.hapticFeedbackEnabled {
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+            }
+            return
+        }
+
+        emailError = nil
+        dataStore.profile.emailSubscription = EmailSubscription(
+            email: trimmed,
+            capturedAt: Date()
+        )
+        dataStore.persistProfile()
+
+        if dataStore.profile.hapticFeedbackEnabled {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+        advance(to: 13)
+    }
+
+    // MARK: - Page 13: Free-Trial Funnel
 
     @ViewBuilder
     private var offerPage: some View {
         if storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
             Color.clear.onAppear {
-                if currentPage == 9 { advance(to: 10) }
+                if currentPage == 13 { advance(to: 14) }
             }
         } else {
             TrialOfferView(
-                onAccept: { advance(to: 10) },
-                onDecline: { advance(to: 10) }
+                onAccept: { advance(to: 14) },
+                onDecline: { advance(to: 14) }
             )
         }
     }
 
-    // MARK: - Page 9: Ready
+    // MARK: - Page 14: Theme Choice ("Make it yours")
+
+    private var themeChoicePage: some View {
+        pageScaffold(
+            hero: EmptyView(),
+            content: { ThemeChoicePage(theme: themeManager) },
+            footer: {
+                GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
+                    advance(to: 15)
+                }
+            }
+        )
+    }
+
+    // MARK: - Page 15: Add Medication Preview
+
+    private var addMedicationPreviewPage: some View {
+        pageScaffold(
+            hero: EmptyView(),
+            content: { AddMedicationPreviewPage() },
+            footer: {
+                GlassButton(title: "Add Medication", icon: "plus", style: .primary, isFullWidth: true) {
+                    advance(to: 16)
+                }
+            }
+        )
+    }
+
+    // MARK: - Page 16: Ready
 
     private var readyPage: some View {
         pageScaffold(
@@ -974,10 +1238,12 @@ struct OnboardingView: View {
     }
 
     private var canGoBack: Bool {
-        // Sign-in page (8) is intentionally one-way — going back from the
-        // trial offer would re-trigger the sign-in flow, which is jarring.
-        // Welcome page has nothing behind it.
-        currentPage > 0 && currentPage != 9
+        // Welcome (0) has nothing behind it. Pages 10–13 (review prompt,
+        // creator attribution, email capture, offer) are intentionally
+        // one-way — going back from any of them would either re-fire the
+        // review request, re-trigger the sign-in flow, or land the user
+        // on the auto-skipping offer page in a loop.
+        currentPage > 0 && !(10...13).contains(currentPage)
     }
 
     private var backButton: some View {
@@ -1004,12 +1270,15 @@ struct OnboardingView: View {
 
     private func goBack() {
         guard canGoBack else { return }
-        // Trial-offer page (9) is the only forward-skip the routing does
-        // automatically, so retreat past it from the Ready page when the
-        // user is already Pro / ineligible.
+        // The trial-offer page (13) is in the back-disabled range, so a
+        // user navigating back from theme (14) would otherwise land on
+        // a screen that hides the back button — a dead end. Always skip
+        // past the offer page on the way back, regardless of trial
+        // eligibility. From Ready (16) and add-medication preview (15)
+        // the back walk proceeds normally to the theme step first.
         let target: Int
-        if currentPage == 10, storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
-            target = 8
+        if currentPage == 14 {
+            target = 12
         } else {
             target = currentPage - 1
         }
@@ -1022,7 +1291,7 @@ struct OnboardingView: View {
     private func scheduleSignInAdvance() {
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(1400))
-            if currentPage == 8 {
+            if currentPage == 9 {
                 advance(to: nextAfterSignIn)
             }
         }
@@ -1048,6 +1317,20 @@ struct OnboardingView: View {
             dataStore.profile.goals = Array(selectedGoals).sorted()
         }
         dataStore.profile.bodyMetrics = bodyMetrics
+        // Pre-fill the Lifestyle tab from the daily-targets calculation
+        // so the user lands on a populated screen on first run. Skipped
+        // when body stats are incomplete — `dailyTargets` returns nil and
+        // the Lifestyle tab can re-prompt later.
+        if let targets = NutritionMath.dailyTargets(for: bodyMetrics) {
+            dataStore.profile.nutritionTargets = targets
+        }
+        // Persist creator attribution if a code was applied — survives
+        // re-launches via the profile JSON. The Supabase install / conversion
+        // counters spec'd alongside this will read from the same field once
+        // the backend pipeline lands.
+        if let attribution = creatorAttribution {
+            dataStore.profile.creatorAttribution = attribution
+        }
         dataStore.persistProfile()
 
         if !selectedRecommendationIds.isEmpty {

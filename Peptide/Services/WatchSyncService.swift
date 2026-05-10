@@ -30,7 +30,13 @@ final class WatchSyncService: NSObject {
         }
     }
 
-    func updateWatchData(entries: [ProtocolEntry], protocols: [PeptideProtocol]) {
+    func updateWatchData(
+        entries: [ProtocolEntry],
+        protocols: [PeptideProtocol],
+        currentStreak: Int? = nil,
+        weeklyCompliance: Double? = nil,
+        totalDosesLogged: Int? = nil
+    ) {
         guard let url = watchDataURL else { return }
 
         let calendar = Calendar.current
@@ -60,7 +66,10 @@ final class WatchSyncService: NSObject {
             todayEntries: watchEntries,
             completedToday: completed,
             totalToday: watchEntries.count,
-            lastUpdated: Date()
+            lastUpdated: Date(),
+            currentStreak: currentStreak,
+            weeklyCompliance: weeklyCompliance,
+            totalDosesLogged: totalDosesLogged
         )
 
         do {

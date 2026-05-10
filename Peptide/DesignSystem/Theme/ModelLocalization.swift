@@ -22,6 +22,7 @@ extension BiologicalSex {
         switch self {
         case .male: "Male"
         case .female: "Female"
+        case .other: "Other"
         case .unspecified: "Prefer not to say"
         }
     }
@@ -30,6 +31,7 @@ extension BiologicalSex {
         switch self {
         case .male: "Male"
         case .female: "Female"
+        case .other: "Other"
         case .unspecified: "Skip"
         }
     }

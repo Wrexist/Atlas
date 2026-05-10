@@ -295,5 +295,8 @@ struct PeptideWidgetBundle: WidgetBundle {
     var body: some Widget {
         NextDoseWidget()
         ComplianceWidget()
+        if #available(iOS 16.1, *) {
+            DoseWindowLiveActivity()
+        }
     }
 }
