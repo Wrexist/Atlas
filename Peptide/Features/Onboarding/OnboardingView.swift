@@ -53,7 +53,7 @@ struct OnboardingView: View {
             OnboardingBackground(step: currentPage)
 
             VStack(spacing: 0) {
-                OnboardingProgressBar(current: currentPage, total: totalPages)
+                topBar
                     .padding(.horizontal, Spacing.screenPadding)
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.sm)
@@ -155,9 +155,21 @@ struct OnboardingView: View {
                         .padding(.horizontal, Spacing.xl)
 
                     HStack(spacing: Spacing.md) {
-                        WelcomeFeatureBadge(icon: "calendar.badge.clock", label: "Smart\nScheduling")
-                        WelcomeFeatureBadge(icon: "heart.text.square.fill", label: "Health\nInsights")
-                        WelcomeFeatureBadge(icon: "lock.shield.fill", label: "Private &\nSecure")
+                        WelcomeFeatureBadge(
+                            icon: "calendar.badge.clock",
+                            label: "Smart\nScheduling",
+                            animationDelay: 0.20
+                        )
+                        WelcomeFeatureBadge(
+                            icon: "heart.text.square.fill",
+                            label: "Health\nInsights",
+                            animationDelay: 0.32
+                        )
+                        WelcomeFeatureBadge(
+                            icon: "lock.shield.fill",
+                            label: "Private &\nSecure",
+                            animationDelay: 0.44
+                        )
                     }
                     .padding(.top, Spacing.md)
                 }
@@ -748,7 +760,7 @@ struct OnboardingView: View {
                         proCelebrationBadge
                     }
 
-                    Text("You're all set!")
+                    Text(readyHeadline)
                         .font(AppFont.largeTitle)
                         .foregroundStyle(
                             LinearGradient(
@@ -757,8 +769,9 @@ struct OnboardingView: View {
                                 endPoint: .bottom
                             )
                         )
+                        .multilineTextAlignment(.center)
 
-                    (Text("Start tracking your ")
+                    (Text("Your dashboard is ready. Start tracking your ")
                         .font(AppFont.body)
                         .foregroundStyle(AppColor.textSecondary)
                     + Text("peptide protocols")
@@ -766,8 +779,10 @@ struct OnboardingView: View {
                         .foregroundStyle(AppColor.accentLight))
                         .multilineTextAlignment(.center)
 
-                    disclaimerCard
+                    setupSummaryCard
                         .padding(.top, Spacing.md)
+
+                    disclaimerCard
                 }
             },
             footer: {
@@ -776,6 +791,87 @@ struct OnboardingView: View {
                 }
             }
         )
+    }
+
+    private var readyHeadline: String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return "You're all set!" }
+        return "You're all set, \(trimmed)!"
+    }
+
+    /// Recap card showing the choices the user just made so the moment of
+    /// completion feels like real progress, not just a "Done" tap. Hidden
+    /// rows fall through silently when the corresponding step was skipped.
+    private var setupSummaryCard: some View {
+        let goalCount = selectedGoals.count
+        let recCount = selectedRecommendationIds.count
+
+        return GlassCard(tinted: true) {
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(AppColor.accentLight)
+                    Text("WHAT WE SET UP")
+                        .font(.system(size: 11, weight: .heavy))
+                        .tracking(1.5)
+                        .foregroundStyle(AppColor.accentLight)
+                }
+
+                VStack(spacing: Spacing.sm) {
+                    if goalCount > 0 {
+                        summaryRow(
+                            icon: "target",
+                            text: goalCount == 1
+                                ? "1 goal selected"
+                                : "\(goalCount) goals selected"
+                        )
+                    }
+                    if bodyMetrics.isComplete {
+                        summaryRow(
+                            icon: "figure.arms.open",
+                            text: "Body metrics saved"
+                        )
+                    }
+                    if recCount > 0 {
+                        summaryRow(
+                            icon: "flask.fill",
+                            text: recCount == 1
+                                ? "1 peptide added to your starter stack"
+                                : "\(recCount) peptides added to your starter stack"
+                        )
+                    }
+                    if dataStore.profile.healthConnected {
+                        summaryRow(icon: "heart.fill", text: "Apple Health connected")
+                    }
+                    if dataStore.profile.doseRemindersEnabled {
+                        summaryRow(icon: "bell.fill", text: "Dose reminders enabled")
+                    }
+                    if authService.isSignedIn {
+                        summaryRow(icon: "person.crop.circle.fill", text: "Signed in with Apple")
+                    }
+                }
+            }
+        }
+    }
+
+    private func summaryRow(icon: String, text: String) -> some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+                .frame(width: 22, height: 22)
+                .background {
+                    Circle().fill(AppColor.accentPrimary.opacity(0.2))
+                }
+            Text(text)
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textPrimary)
+            Spacer()
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 14))
+                .foregroundStyle(AppColor.accentPrimary)
+        }
     }
 
     private var proCelebrationBadge: some View {
@@ -858,6 +954,63 @@ struct OnboardingView: View {
             currentPage = page
             bounceTrigger &+= 1
         }
+    }
+
+    /// Top strip combining a back chevron + the progress bar. The chevron is
+    /// only shown when there's a previous page to retreat to so the welcome
+    /// screen stays uncluttered.
+    private var topBar: some View {
+        HStack(spacing: Spacing.md) {
+            backButton
+                .opacity(canGoBack ? 1 : 0)
+                .frame(width: canGoBack ? 36 : 0)
+                .animation(AppAnimation.springSnappy, value: canGoBack)
+
+            OnboardingProgressBar(current: currentPage, total: totalPages)
+        }
+    }
+
+    private var canGoBack: Bool {
+        // Sign-in page (8) is intentionally one-way — going back from the
+        // trial offer would re-trigger the sign-in flow, which is jarring.
+        // Welcome page has nothing behind it.
+        currentPage > 0 && currentPage != 9
+    }
+
+    private var backButton: some View {
+        Button(action: goBack) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(AppColor.textSecondary)
+                .frame(width: 36, height: 36)
+                .background {
+                    Circle()
+                        .fill(AppColor.surfaceSecondary.opacity(0.6))
+                        .overlay {
+                            Circle().fill(AppColor.cardOverlay)
+                        }
+                        .overlay {
+                            Circle().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                        }
+                }
+                .liquidGlass(.circle)
+        }
+        .buttonStyle(ScalePressStyle())
+        .accessibilityLabel("Go back")
+    }
+
+    private func goBack() {
+        guard canGoBack else { return }
+        // Trial-offer page (9) is the only forward-skip the routing does
+        // automatically, so retreat past it from the Ready page when the
+        // user is already Pro / ineligible.
+        let target: Int
+        if currentPage == 10, storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
+            target = 8
+        } else {
+            target = currentPage - 1
+        }
+        advance(to: max(0, target))
     }
 
     /// Holds the sign-in page for ~1.4 s so the "Signed In" confirmation

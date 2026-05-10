@@ -8,6 +8,7 @@ struct PaywallView: View {
     @State private var errorMessage: String?
     @State private var selectedProductID: String?
     @State private var isShowingDisclosure = false
+    @State private var recommendedGlow = false
 
     var body: some View {
         NavigationStack {
@@ -45,6 +46,11 @@ struct PaywallView: View {
                 await storeService.loadProducts()
                 if selectedProductID == nil {
                     selectedProductID = defaultSelection
+                }
+                // Subtle pulse on the recommended tile so the eye lands on
+                // it first when the paywall mounts.
+                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                    recommendedGlow.toggle()
                 }
             }
             .onChange(of: storeService.products.map(\.id)) { _, _ in
@@ -169,55 +175,67 @@ struct PaywallView: View {
                 selectedProductID = product.id
             }
         } label: {
-            HStack(spacing: Spacing.md) {
-                radioMark(selected: selected)
+            VStack(spacing: 0) {
+                if isBest {
+                    recommendedRibbon
+                }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: Spacing.xs) {
-                        Text(displayName(for: product))
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
-                        if isBest {
-                            bestValueBadge
+                HStack(spacing: Spacing.md) {
+                    radioMark(selected: selected)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: Spacing.xs) {
+                            Text(displayName(for: product))
+                                .font(AppFont.headline)
+                                .foregroundStyle(AppColor.textPrimary)
+                        }
+
+                        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                            Text(product.displayPrice)
+                                .font(.system(size: 24, weight: .bold, design: .rounded))
+                                .foregroundStyle(AppColor.textPrimary)
+                                .monospacedDigit()
+                            Text(priceSuffix(for: product))
+                                .font(AppFont.subheadline)
+                                .foregroundStyle(AppColor.textSecondary)
+
+                            if let strike = strikethroughComparison(for: product) {
+                                Text(strike)
+                                    .font(AppFont.caption)
+                                    .strikethrough()
+                                    .foregroundStyle(AppColor.textTertiary)
+                                    .monospacedDigit()
+                                    .padding(.leading, Spacing.xs)
+                            }
+                        }
+
+                        if let perPeriodCaption {
+                            Text(perPeriodCaption)
+                                .font(AppFont.caption)
+                                .foregroundStyle(AppColor.textTertiary)
                         }
                     }
 
-                    HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
-                        Text(product.displayPrice)
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundStyle(AppColor.textPrimary)
-                            .monospacedDigit()
-                        Text(priceSuffix(for: product))
-                            .font(AppFont.subheadline)
-                            .foregroundStyle(AppColor.textSecondary)
-                    }
+                    Spacer(minLength: Spacing.sm)
 
-                    if let perPeriodCaption {
-                        Text(perPeriodCaption)
+                    if let badge {
+                        Text(badge)
                             .font(AppFont.caption)
-                            .foregroundStyle(AppColor.textTertiary)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(AppColor.accentLight)
+                            .padding(.horizontal, Spacing.sm)
+                            .padding(.vertical, 5)
+                            .background {
+                                Capsule().fill(AppColor.accentPrimary.opacity(0.22))
+                            }
+                            .overlay {
+                                Capsule().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                            }
+                            .liquidGlass(.capsule)
                     }
                 }
-
-                Spacer(minLength: Spacing.sm)
-
-                if let badge {
-                    Text(badge)
-                        .font(AppFont.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.accentLight)
-                        .padding(.horizontal, Spacing.sm)
-                        .padding(.vertical, 5)
-                        .background {
-                            Capsule().fill(AppColor.accentPrimary.opacity(0.22))
-                        }
-                        .overlay {
-                            Capsule().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
-                        }
-                        .liquidGlass(.capsule)
-                }
+                .padding(Spacing.md)
             }
-            .padding(Spacing.md)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                     .fill(AppColor.surfaceSecondary.opacity(0.6))
@@ -228,19 +246,64 @@ struct PaywallView: View {
                     .overlay {
                         RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                             .strokeBorder(
-                                selected ? AppColor.accentPrimary : AppColor.glassBorder,
-                                lineWidth: selected ? 1.5 : 0.5
+                                selected ? AppColor.accentPrimary : (isBest ? AppColor.accentLight.opacity(0.4) : AppColor.glassBorder),
+                                lineWidth: selected ? 1.5 : (isBest ? 1.0 : 0.5)
                             )
                     }
             }
             .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
             .shadow(
-                color: selected ? AppColor.accentGlow : .clear,
-                radius: selected ? 12 : 0,
-                y: selected ? 4 : 0
+                color: shadowColor(selected: selected, isBest: isBest),
+                radius: shadowRadius(selected: selected, isBest: isBest),
+                y: selected || isBest ? 4 : 0
             )
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.985))
+    }
+
+    /// Pinned ribbon along the top edge of the recommended tile. Truthful copy
+    /// — "Recommended" is a value judgment we're making, not a fabricated
+    /// social-proof claim.
+    private var recommendedRibbon: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 10, weight: .bold))
+            Text("RECOMMENDED")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(1.5)
+        }
+        .foregroundStyle(AppColor.background)
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
+        .background {
+            LinearGradient(
+                colors: [AppColor.accentLight, AppColor.accentPrimary],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        }
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: Spacing.cardCornerRadius,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: Spacing.cardCornerRadius,
+                style: .continuous
+            )
+        )
+    }
+
+    private func shadowColor(selected: Bool, isBest: Bool) -> Color {
+        if selected { return AppColor.accentGlow }
+        if isBest { return AppColor.accentPrimary.opacity(recommendedGlow ? 0.35 : 0.15) }
+        return .clear
+    }
+
+    private func shadowRadius(selected: Bool, isBest: Bool) -> CGFloat {
+        if selected { return 14 }
+        if isBest { return recommendedGlow ? 18 : 8 }
+        return 0
     }
 
     private func radioMark(selected: Bool) -> some View {
@@ -260,46 +323,108 @@ struct PaywallView: View {
         }
     }
 
-    private var bestValueBadge: some View {
-        Text("Best Value")
-            .font(AppFont.caption)
-            .fontWeight(.bold)
-            .foregroundStyle(AppColor.background)
-            .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 3)
-            .background {
-                Capsule().fill(AppColor.accentLight)
-            }
+    /// Yearly equivalent of the monthly product as a strikethrough caption,
+    /// surfaced next to the annual price so the savings are visible without
+    /// the user having to do mental math. Returns nil for monthly/lifetime.
+    private func strikethroughComparison(for product: Product) -> String? {
+        guard product.id == StoreService.annualID,
+              let monthly = storeService.monthlyProduct else { return nil }
+        let yearAtMonthly = monthly.price * 12
+        // Defensive: only show the strikethrough when the comparison is real
+        // savings — if annual is somehow ≥ 12× monthly, the comparison would
+        // mislead.
+        guard yearAtMonthly > product.price else { return nil }
+        return yearAtMonthly.formatted(product.priceFormatStyle)
     }
 
     // MARK: - CTA
 
     private var purchaseCTA: some View {
         let product = selectedProduct
-        return GlassButton(
-            title: ctaTitle,
-            icon: isPurchasing ? nil : "arrow.right",
-            style: .primary,
-            isFullWidth: true
-        ) {
-            guard let product, !isPurchasing else { return }
-            Task {
-                isPurchasing = true
-                _ = try? await storeService.purchase(product)
-                isPurchasing = false
-                if storeService.isProUser { dismiss() }
+        return VStack(spacing: Spacing.xs) {
+            GlassButton(
+                title: ctaTitle,
+                icon: isPurchasing ? nil : "arrow.right",
+                style: .primary,
+                isFullWidth: true
+            ) {
+                guard let product, !isPurchasing else { return }
+                Task {
+                    isPurchasing = true
+                    _ = try? await storeService.purchase(product)
+                    isPurchasing = false
+                    if storeService.isProUser { dismiss() }
+                }
             }
-        }
-        .opacity(product != nil && !isPurchasing ? 1.0 : 0.55)
-        .disabled(product == nil || isPurchasing)
-        .overlay {
-            if isPurchasing {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .tint(AppColor.accentLight)
+            .opacity(product != nil && !isPurchasing ? 1.0 : 0.55)
+            .disabled(product == nil || isPurchasing)
+            .overlay {
+                if isPurchasing {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .tint(AppColor.accentLight)
+                }
             }
+
+            if let subtitle = ctaSubtitle {
+                Text(subtitle)
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .transition(.opacity)
+                    .id(subtitle)
+            }
+
+            trustSignalsRow
+                .padding(.top, Spacing.xs)
         }
         .padding(.top, Spacing.xs)
+    }
+
+    /// Small, factual row of reassurance signals just under the CTA. The
+    /// goal is to defuse the three most common abandonment reasons:
+    /// "Will I get charged today?", "How do I cancel?", "Is this safe?".
+    private var trustSignalsRow: some View {
+        HStack(spacing: Spacing.lg) {
+            trustSignal(icon: "lock.shield.fill", label: "Secured by Apple")
+            trustSignal(icon: "xmark.circle.fill", label: "Cancel anytime")
+            trustSignal(icon: "creditcard.fill", label: "No charge today")
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func trustSignal(icon: String, label: LocalizedStringKey) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(AppColor.textTertiary)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
+    }
+
+    /// Reinforcement copy directly under the CTA so the user understands
+    /// the immediate billing impact. Wording tracks the selected tier and
+    /// trial eligibility — "no charge today" only appears when accurate.
+    private var ctaSubtitle: String? {
+        guard let product = selectedProduct else { return nil }
+        if product.id == StoreService.lifetimeID {
+            return "One-time purchase. No subscription."
+        }
+        if product.id == StoreService.annualID,
+           storeService.isEligibleForAnnualTrial,
+           let display = storeService.annualTrialDisplay {
+            return "No charge for \(display). Then \(product.displayPrice)/year."
+        }
+        if product.id == StoreService.monthlyID,
+           storeService.isEligibleForMonthlyTrial,
+           let display = storeService.monthlyTrialDisplay {
+            return "No charge for \(display). Then \(product.displayPrice)/month."
+        }
+        return "Cancel anytime in Settings."
     }
 
     private var restoreButton: some View {
