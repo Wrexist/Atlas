@@ -39,9 +39,16 @@ final class ReviewPromptService {
     /// hasn't asked recently, and we haven't already asked on this version.
     func requestReviewIfEligible(using request: RequestReviewAction) {
         guard isEligible else { return }
-        request()
-        defaults.set(Date(), forKey: lastPromptDateKey)
-        defaults.set(currentVersion, forKey: lastPromptVersionKey)
+        fire(request)
+    }
+
+    /// Used when the user explicitly taps a "Rate the app" CTA (e.g. the
+    /// onboarding review screen). Skips engagement gates — the user just
+    /// opted in — but still honours the 90-day / per-version cooldown so the
+    /// system sheet doesn't burn one of iOS's three annual prompts.
+    func requestReviewOnUserAction(using request: RequestReviewAction) {
+        guard isWithinCooldownWindow else { return }
+        fire(request)
     }
 
     /// Internal (not private) so tests can validate the gating rules without
@@ -53,6 +60,12 @@ final class ReviewPromptService {
 
         guard defaults.integer(forKey: launchCountKey) >= minLaunches else { return false }
 
+        return isWithinCooldownWindow
+    }
+
+    /// True when no prompt has been shown on the current app version and the
+    /// 90-day window since the last prompt has elapsed.
+    var isWithinCooldownWindow: Bool {
         if let lastVersion = defaults.string(forKey: lastPromptVersionKey),
            lastVersion == currentVersion {
             return false
@@ -64,6 +77,12 @@ final class ReviewPromptService {
         }
 
         return true
+    }
+
+    private func fire(_ request: RequestReviewAction) {
+        request()
+        defaults.set(Date(), forKey: lastPromptDateKey)
+        defaults.set(currentVersion, forKey: lastPromptVersionKey)
     }
 
     private var currentVersion: String {

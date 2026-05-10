@@ -5,6 +5,7 @@ import UIKit
 
 struct OnboardingView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.requestReview) private var requestReview
     @AppStorage("hasCompletedOnboarding") private var hasCompleted = false
     @AppStorage("experienceLevel") private var experienceLevel = "beginner"
 
@@ -21,7 +22,7 @@ struct OnboardingView: View {
 
     @FocusState private var nameFocused: Bool
 
-    private let totalPages = 11
+    private let totalPages = 12
     @State private var storeService = StoreService.shared
 
     private struct OnboardingGoal: Identifiable {
@@ -68,8 +69,9 @@ struct OnboardingView: View {
                     healthKitPage.tag(6)
                     notificationsPage.tag(7)
                     signInPage.tag(8)
-                    offerPage.tag(9)
-                    readyPage.tag(10)
+                    reviewPromptPage.tag(9)
+                    offerPage.tag(10)
+                    readyPage.tag(11)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: currentPage)
@@ -726,30 +728,56 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Page 8: Free-Trial Funnel
+    // MARK: - Page 9: Review Prompt (social proof before paywall)
 
-    /// Skip the trial offer when the user is no longer eligible (already
-    /// redeemed an intro offer in this group or already Pro). Keeps the funnel
-    /// clean for re-installs.
-    private var nextAfterSignIn: Int {
-        (storeService.isProUser || !storeService.isEligibleForMonthlyTrial) ? 10 : 9
+    /// Always advance to the review prompt after sign-in. The review page is
+    /// shown to everyone — Pro users may still want to leave a review — and
+    /// the offer page (10) self-skips for ineligible / already-Pro users.
+    private var nextAfterSignIn: Int { 9 }
+
+    private var reviewPromptPage: some View {
+        pageScaffold(
+            hero: ReviewPromptHero(),
+            content: { ReviewPromptPage() },
+            footer: {
+                VStack(spacing: Spacing.sm) {
+                    GlassButton(
+                        title: "Rate PeptideX",
+                        icon: "star.fill",
+                        style: .primary,
+                        isFullWidth: true
+                    ) {
+                        ReviewPromptService.shared.requestReviewOnUserAction(using: requestReview)
+                        if dataStore.profile.hapticFeedbackEnabled {
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                        }
+                        advance(to: 10)
+                    }
+                    GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
+                        advance(to: 10)
+                    }
+                }
+            }
+        )
     }
+
+    // MARK: - Page 10: Free-Trial Funnel
 
     @ViewBuilder
     private var offerPage: some View {
         if storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
             Color.clear.onAppear {
-                if currentPage == 9 { advance(to: 10) }
+                if currentPage == 10 { advance(to: 11) }
             }
         } else {
             TrialOfferView(
-                onAccept: { advance(to: 10) },
-                onDecline: { advance(to: 10) }
+                onAccept: { advance(to: 11) },
+                onDecline: { advance(to: 11) }
             )
         }
     }
 
-    // MARK: - Page 9: Ready
+    // MARK: - Page 11: Ready
 
     private var readyPage: some View {
         pageScaffold(
@@ -974,10 +1002,10 @@ struct OnboardingView: View {
     }
 
     private var canGoBack: Bool {
-        // Sign-in page (8) is intentionally one-way — going back from the
-        // trial offer would re-trigger the sign-in flow, which is jarring.
-        // Welcome page has nothing behind it.
-        currentPage > 0 && currentPage != 9
+        // Welcome (0) has nothing behind it. The review (9) and offer (10)
+        // pages are intentionally one-way — going back from either would land
+        // on the sign-in page and re-trigger that flow, which is jarring.
+        currentPage > 0 && currentPage != 9 && currentPage != 10
     }
 
     private var backButton: some View {
@@ -1004,12 +1032,13 @@ struct OnboardingView: View {
 
     private func goBack() {
         guard canGoBack else { return }
-        // Trial-offer page (9) is the only forward-skip the routing does
-        // automatically, so retreat past it from the Ready page when the
-        // user is already Pro / ineligible.
+        // The trial-offer page (10) is the only forward-skip the routing does
+        // automatically, so retreat past it from the Ready page when the user
+        // is already Pro / ineligible — they'd otherwise land on a screen
+        // that immediately auto-advances them right back here.
         let target: Int
-        if currentPage == 10, storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
-            target = 8
+        if currentPage == 11, storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
+            target = 9
         } else {
             target = currentPage - 1
         }

@@ -107,4 +107,30 @@ final class ReviewPromptServiceTests: XCTestCase {
         defaults.set(Date().addingTimeInterval(-100 * 86400), forKey: Self.lastPromptDateKey)
         XCTAssertTrue(service.isEligible)
     }
+
+    // MARK: - isWithinCooldownWindow gating
+
+    /// Onboarding opt-in path: fresh install, no engagement, but no prior
+    /// prompt — cooldown allows the sheet to be shown.
+    func test_cooldownWindow_freshInstall_returnsTrue() {
+        defaults.set(Date(), forKey: Self.installDateKey)
+        XCTAssertTrue(service.isWithinCooldownWindow)
+    }
+
+    /// Already prompted on the current version blocks the cooldown window
+    /// even when engagement gates would otherwise pass.
+    func test_cooldownWindow_promptedOnCurrentVersion_returnsFalse() {
+        let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        defaults.set(currentVersion, forKey: Self.lastPromptVersionKey)
+        XCTAssertFalse(service.isWithinCooldownWindow)
+    }
+
+    /// Prompt fired < 90 days ago on a previous version still blocks the
+    /// cooldown window — the per-prompt minimum interval is the dominant
+    /// constraint here.
+    func test_cooldownWindow_recentPromptDifferentVersion_returnsFalse() {
+        defaults.set("0.0.0-old", forKey: Self.lastPromptVersionKey)
+        defaults.set(Date().addingTimeInterval(-30 * 86400), forKey: Self.lastPromptDateKey)
+        XCTAssertFalse(service.isWithinCooldownWindow)
+    }
 }
