@@ -16,6 +16,14 @@ struct HomeView: View {
     @State private var notificationService = NotificationService.shared
     @State private var showPaywall = false
     @State private var showProfileCustomization = false
+    /// Cycle-milestone prompt state. Both are nil unless the
+    /// CycleMilestoneService has surfaced a pending (protocol,
+    /// milestone) pair on appear; the prompt sheet routes into the
+    /// share preview by setting `milestoneShareProtocol`, which drives
+    /// a separate `.sheet(item:)` so SwiftUI cleanly chains the two
+    /// modals across runloop ticks.
+    @State private var milestonePrompt: MilestonePromptItem?
+    @State private var milestoneShareProtocol: PeptideProtocol?
     @Environment(\.requestReview) private var requestReview
 
     private static let reviewWorthyAchievements: Set<String> = [
@@ -237,6 +245,33 @@ struct HomeView: View {
                     .environment(appState)
                     .liquidGlassPresentation()
             }
+            .sheet(item: $milestonePrompt) { item in
+                CycleMilestonePromptSheet(
+                    proto: item.proto,
+                    milestone: item.milestone,
+                    onShare: {
+                        CycleMilestoneService.shared.markShown(item.milestone, for: item.proto.id)
+                        let proto = item.proto
+                        milestonePrompt = nil
+                        // Defer one runloop tick so the prompt sheet has
+                        // finished dismissing before the share sheet mounts —
+                        // SwiftUI can't chain two sheets in the same tick.
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .milliseconds(300))
+                            milestoneShareProtocol = proto
+                        }
+                    },
+                    onDismiss: {
+                        CycleMilestoneService.shared.markShown(item.milestone, for: item.proto.id)
+                        milestonePrompt = nil
+                    }
+                )
+                .liquidGlassPresentation(detents: [.medium])
+            }
+            .sheet(item: $milestoneShareProtocol) { proto in
+                ShareCardSheet(subject: .singleProtocol(proto))
+                    .environment(dataStore)
+            }
             .navigationDestination(for: Peptide.self) { peptide in
                 PeptideDetailView(peptide: peptide)
             }
@@ -265,7 +300,35 @@ struct HomeView: View {
                     }
                 }
             }
+            .onAppear { checkMilestonePrompt() }
         }
+    }
+
+    /// Surfaces the next pending Day-7 / Day-30 / cycle-complete prompt
+    /// when Home becomes visible. Skipped when another sheet is already
+    /// up so we never stack modals on top of each other.
+    private func checkMilestonePrompt() {
+        guard milestonePrompt == nil,
+              milestoneShareProtocol == nil,
+              !showPaywall,
+              !showProfileCustomization
+        else { return }
+
+        guard let pending = CycleMilestoneService.shared.pendingMilestone(in: dataStore.protocols) else {
+            return
+        }
+        // Defer slightly so the home tab's appear animation lands first.
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(800))
+            guard milestonePrompt == nil else { return }
+            milestonePrompt = MilestonePromptItem(proto: pending.proto, milestone: pending.milestone)
+        }
+    }
+
+    private struct MilestonePromptItem: Identifiable {
+        let proto: PeptideProtocol
+        let milestone: CycleMilestoneService.Milestone
+        var id: String { "\(proto.id.uuidString):\(milestone.rawValue)" }
     }
 
     private var gettingStartedCard: some View {

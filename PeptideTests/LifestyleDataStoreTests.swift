@@ -109,4 +109,49 @@ final class LifestyleDataStoreTests: XCTestCase {
         ]
         XCTAssertEqual(WeightTrend.weeklyDelta(in: history), -0.5, accuracy: 0.001)
     }
+
+    // MARK: - Workouts
+
+    func test_logWorkout_appendsAndSorts() {
+        let store = makeStore()
+        let now = Date()
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: now)!
+        let twoDaysAgo = Calendar.current.date(byAdding: .day, value: -2, to: now)!
+
+        store.logWorkout(WorkoutEntry(date: yesterday, name: "Push", sets: 4, reps: 8, durationMinutes: 45))
+        store.logWorkout(WorkoutEntry(date: now,        name: "Cardio", sets: 0, reps: 0, durationMinutes: 30))
+        store.logWorkout(WorkoutEntry(date: twoDaysAgo, name: "Pull",  sets: 4, reps: 8, durationMinutes: 50))
+
+        let dates = store.profile.workoutHistory.map(\.date)
+        XCTAssertEqual(dates, dates.sorted(), "workoutHistory should be sorted oldest-first")
+    }
+
+    func test_deleteWorkout_removesById() {
+        let store = makeStore()
+        store.logWorkout(WorkoutEntry(date: Date(), name: "Push", sets: 4, reps: 8, durationMinutes: 45))
+        guard let entry = store.profile.workoutHistory.last else {
+            return XCTFail("expected at least one workout entry")
+        }
+        store.deleteWorkout(id: entry.id)
+        XCTAssertFalse(store.profile.workoutHistory.contains(where: { $0.id == entry.id }))
+    }
+
+    /// workoutSummary(for:) only counts sessions on the requested
+    /// calendar day — sessions on adjacent days must not bleed in.
+    func test_workoutSummary_isolatedToTheRequestedDay() {
+        let store = makeStore()
+        let now = Date()
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: now)!
+        store.logWorkout(WorkoutEntry(date: now,       name: "Push",  sets: 4, reps: 8, durationMinutes: 30))
+        store.logWorkout(WorkoutEntry(date: now,       name: "Cardio", sets: 0, reps: 0, durationMinutes: 20))
+        store.logWorkout(WorkoutEntry(date: yesterday, name: "Pull",  sets: 4, reps: 8, durationMinutes: 50))
+
+        let today = store.workoutSummary()
+        XCTAssertEqual(today.count, 2)
+        XCTAssertEqual(today.minutes, 50)
+
+        let prior = store.workoutSummary(for: yesterday)
+        XCTAssertEqual(prior.count, 1)
+        XCTAssertEqual(prior.minutes, 50)
+    }
 }
