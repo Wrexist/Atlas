@@ -56,6 +56,10 @@ struct HomeView: View {
         let stats = todayStats
         let warnings = dataStore.stackWarnings
         let recommendations = dataStore.stackRecommendations
+        let plannerSuggestions = SmartCyclePlanner.suggestions(
+            protocols: dataStore.protocols,
+            entries: dataStore.entries
+        )
         let completeness = dataStore.stackCompleteness
         let transitions = dataStore.cycleTransitions
 
@@ -145,18 +149,21 @@ struct HomeView: View {
                             .sectionAppear(index: 8)
                         }
 
+                        SmartCyclePlannerCard(suggestions: plannerSuggestions)
+                            .sectionAppear(index: 9)
+
                         if !recommendations.isEmpty {
                             RecommendedPeptidesCard(
                                 recommendations: recommendations,
                                 activeProtocols: dataStore.activeProtocols,
                                 hapticEnabled: dataStore.profile.hapticFeedbackEnabled
                             )
-                            .sectionAppear(index: 9)
+                            .sectionAppear(index: 10)
                         }
 
                         if dataStore.profile.healthConnected {
                             HealthSummaryCard()
-                                .sectionAppear(index: 10)
+                                .sectionAppear(index: 11)
                         }
 
                         if let topInsight = dataStore.topInsight {
@@ -181,7 +188,7 @@ struct HomeView: View {
                                     Spacer()
                                 }
                             }
-                            .sectionAppear(index: 11)
+                            .sectionAppear(index: 12)
                         }
                     }
                 }
