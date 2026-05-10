@@ -168,6 +168,62 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(store.profile.healthConnected, !was)
     }
 
+    // MARK: - Profile customization
+
+    func test_updateProfileIdentity_trimsWhitespaceAndPersists() {
+        store.updateProfileIdentity(name: "  Casey  ", bio: "\n Optimizing recovery.\n ")
+        XCTAssertEqual(store.profile.name, "Casey")
+        XCTAssertEqual(store.profile.bio, "Optimizing recovery.")
+    }
+
+    func test_updateAvatarImageData_setsAndClears() {
+        let payload = Data([0x01, 0x02, 0x03, 0x04])
+        store.updateAvatarImageData(payload)
+        XCTAssertEqual(store.profile.avatarImageData, payload)
+
+        store.updateAvatarImageData(nil)
+        XCTAssertNil(store.profile.avatarImageData)
+    }
+
+    func test_setPrimaryGoal_acceptsExistingGoal() {
+        store.updateGoals(["Better Sleep", "Muscle Recovery"])
+        store.setPrimaryGoal("Better Sleep")
+        XCTAssertEqual(store.profile.primaryGoal, "Better Sleep")
+    }
+
+    func test_setPrimaryGoal_ignoresUnknownGoal() {
+        store.updateGoals(["Better Sleep"])
+        store.setPrimaryGoal("Better Sleep")
+        // Unknown goals are silently ignored — the existing pin must stay.
+        store.setPrimaryGoal("Cognitive Edge")
+        XCTAssertEqual(store.profile.primaryGoal, "Better Sleep")
+    }
+
+    func test_setPrimaryGoal_nilClearsPin() {
+        store.updateGoals(["Better Sleep"])
+        store.setPrimaryGoal("Better Sleep")
+        store.setPrimaryGoal(nil)
+        XCTAssertNil(store.profile.primaryGoal)
+    }
+
+    func test_updateGoals_dropsStalePrimaryGoalWhenRemoved() {
+        store.updateGoals(["Better Sleep", "Muscle Recovery"])
+        store.setPrimaryGoal("Better Sleep")
+
+        // The user un-checks the pinned goal — the pin must be dropped so we
+        // don't surface a recommendation for a goal they no longer track.
+        store.updateGoals(["Muscle Recovery"])
+        XCTAssertNil(store.profile.primaryGoal)
+    }
+
+    func test_updateGoals_keepsPrimaryGoalWhenStillSelected() {
+        store.updateGoals(["Better Sleep", "Muscle Recovery"])
+        store.setPrimaryGoal("Better Sleep")
+
+        store.updateGoals(["Better Sleep", "Fat Loss"])
+        XCTAssertEqual(store.profile.primaryGoal, "Better Sleep")
+    }
+
     // MARK: - Cache invalidation via didSet
 
     /// Mutating `entries` directly (e.g. via toggleEntry) must invalidate the

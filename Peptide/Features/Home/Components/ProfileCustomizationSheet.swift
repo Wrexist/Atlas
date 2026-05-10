@@ -300,6 +300,18 @@ struct ProfileCustomizationSheet: View {
         }
         .liquidGlass(.circle)
         .shadow(color: AppColor.accentGlow, radius: 16, y: 6)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(avatarAccessibilityLabel)
+    }
+
+    private var avatarAccessibilityLabel: String {
+        if avatarData != nil {
+            return "Profile photo"
+        }
+        if let name = trimmedName, !name.isEmpty {
+            return "Profile avatar showing initial \(String(name.prefix(1)).uppercased())"
+        }
+        return "Profile avatar"
     }
 
     private var displayInitial: String? {
@@ -320,24 +332,28 @@ struct ProfileCustomizationSheet: View {
             statTile(
                 value: "\(dataStore.currentStreak)",
                 label: "Streak",
+                accessibilityLabel: "Current streak: \(dataStore.currentStreak) days",
                 icon: "flame.fill",
                 accent: AppColor.warning
             )
             statTile(
                 value: "\(dataStore.totalDaysLogged)",
                 label: "Days",
+                accessibilityLabel: "Days logged: \(dataStore.totalDaysLogged)",
                 icon: "calendar",
                 accent: AppColor.accentPrimary
             )
             statTile(
                 value: "\(dataStore.protocols.count)",
                 label: "Stacks",
+                accessibilityLabel: "Stacks created: \(dataStore.protocols.count)",
                 icon: "square.stack.3d.up.fill",
                 accent: AppColor.accentLight
             )
             statTile(
                 value: memberShortDuration,
                 label: "Member",
+                accessibilityLabel: "Member duration: \(memberShortDuration)",
                 icon: "calendar.badge.clock",
                 accent: AppColor.textSecondary
             )
@@ -347,6 +363,7 @@ struct ProfileCustomizationSheet: View {
     private func statTile(
         value: String,
         label: LocalizedStringKey,
+        accessibilityLabel: String,
         icon: String,
         accent: Color
     ) -> some View {
@@ -371,6 +388,8 @@ struct ProfileCustomizationSheet: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
     }
 
     private var memberShortDuration: String {
@@ -858,6 +877,22 @@ struct ProfileCustomizationSheet: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(stackAccessibilityLabel(stack))
+        .accessibilityHint("Opens this protocol's detail view.")
+    }
+
+    private func stackAccessibilityLabel(_ stack: PeptideProtocol) -> String {
+        var parts: [String] = ["\(stack.name), \(stack.status.displayName)"]
+        let abbreviations = stack.peptides.map(\.abbreviation).joined(separator: ", ")
+        if !abbreviations.isEmpty {
+            parts.append(abbreviations)
+        }
+        if stack.status == .active {
+            parts.append("Week \(stack.weekNumber) of \(stack.cycleLengthWeeks)")
+            parts.append("\(stack.daysRemaining) days remaining")
+        }
+        return parts.joined(separator: ". ")
     }
 
     private func cycleProgressBar(for stack: PeptideProtocol) -> some View {
@@ -967,6 +1002,9 @@ struct ProfileCustomizationSheet: View {
                 .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Achievement unlocked: \(achievement.title)")
+        .accessibilityHint(achievement.description)
     }
 
     // MARK: - Preferences

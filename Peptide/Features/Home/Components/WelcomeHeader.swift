@@ -53,8 +53,10 @@ struct WelcomeHeader: View {
                 avatarBadge
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.9, pressedOpacity: 0.85))
+            .accessibilityElement(children: .ignore)
             .accessibilityLabel("Customize profile")
-            .accessibilityHint("Edit your name, photo, and goals.")
+            .accessibilityHint("Edit your name, photo, goals, and stacks.")
+            .accessibilityAddTraits(.isButton)
         } else {
             avatarBadge
         }
