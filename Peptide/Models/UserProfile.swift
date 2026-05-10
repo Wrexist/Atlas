@@ -111,8 +111,6 @@ struct UserProfile: Codable {
     /// Optional short personal bio surfaced on the customization sheet and
     /// the profile header. Free-form, capped at ~280 chars in the UI.
     var bio: String
-    /// Optional pronouns ("he/him", "she/her", etc.). Empty means hidden.
-    var pronouns: String
 
     init(
         name: String,
@@ -124,8 +122,7 @@ struct UserProfile: Codable {
         biometricLockEnabled: Bool = false,
         bodyMetrics: BodyMetrics = .unspecified,
         avatarImageData: Data? = nil,
-        bio: String = "",
-        pronouns: String = ""
+        bio: String = ""
     ) {
         self.name = name
         self.goals = goals
@@ -137,7 +134,6 @@ struct UserProfile: Codable {
         self.bodyMetrics = bodyMetrics
         self.avatarImageData = avatarImageData
         self.bio = bio
-        self.pronouns = pronouns
     }
 
     init(from decoder: Decoder) throws {
@@ -152,7 +148,6 @@ struct UserProfile: Codable {
         bodyMetrics = try container.decodeIfPresent(BodyMetrics.self, forKey: .bodyMetrics) ?? .unspecified
         avatarImageData = try container.decodeIfPresent(Data.self, forKey: .avatarImageData)
         bio = try container.decodeIfPresent(String.self, forKey: .bio) ?? ""
-        pronouns = try container.decodeIfPresent(String.self, forKey: .pronouns) ?? ""
     }
 
     static var fresh: UserProfile {

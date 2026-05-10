@@ -504,13 +504,11 @@ final class DataStore: DataServiceProtocol {
     }
 
     /// Atomically updates the user-customizable identity fields shown on the
-    /// profile customization sheet. Whitespace is trimmed; `bio` and
-    /// `pronouns` collapse empty strings to "" so the profile JSON stays
-    /// compact.
-    func updateProfileIdentity(name: String, bio: String, pronouns: String) {
+    /// profile customization sheet. Whitespace is trimmed; `bio` collapses
+    /// empty strings to "" so the profile JSON stays compact.
+    func updateProfileIdentity(name: String, bio: String) {
         profile.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         profile.bio = bio.trimmingCharacters(in: .whitespacesAndNewlines)
-        profile.pronouns = pronouns.trimmingCharacters(in: .whitespacesAndNewlines)
         save()
     }
 

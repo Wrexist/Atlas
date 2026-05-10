@@ -210,15 +210,13 @@ final class StoredProfile {
     /// JPEG-encoded avatar. Optional for legacy stores; nil means no avatar.
     var avatarImageData: Data?
     var bio: String?
-    var pronouns: String?
 
     init(name: String, memberSince: Date, healthConnected: Bool,
          hapticFeedbackEnabled: Bool, doseRemindersEnabled: Bool,
          biometricLockEnabled: Bool, goalsData: Data,
          bodyMetricsData: Data? = nil,
          avatarImageData: Data? = nil,
-         bio: String? = nil,
-         pronouns: String? = nil) {
+         bio: String? = nil) {
         self.name = name
         self.memberSince = memberSince
         self.healthConnected = healthConnected
@@ -229,7 +227,6 @@ final class StoredProfile {
         self.bodyMetricsData = bodyMetricsData
         self.avatarImageData = avatarImageData
         self.bio = bio
-        self.pronouns = pronouns
     }
 
     static func make(from profile: UserProfile) throws -> StoredProfile {
@@ -245,8 +242,7 @@ final class StoredProfile {
             goalsData: goalsData,
             bodyMetricsData: metricsData,
             avatarImageData: profile.avatarImageData,
-            bio: profile.bio.isEmpty ? nil : profile.bio,
-            pronouns: profile.pronouns.isEmpty ? nil : profile.pronouns
+            bio: profile.bio.isEmpty ? nil : profile.bio
         )
     }
 
@@ -261,7 +257,6 @@ final class StoredProfile {
         bodyMetricsData = try sdEncoder.encode(profile.bodyMetrics)
         avatarImageData = profile.avatarImageData
         bio = profile.bio.isEmpty ? nil : profile.bio
-        pronouns = profile.pronouns.isEmpty ? nil : profile.pronouns
     }
 
     func toUserProfile() throws -> UserProfile {
@@ -283,8 +278,7 @@ final class StoredProfile {
             biometricLockEnabled: biometricLockEnabled,
             bodyMetrics: metrics,
             avatarImageData: avatarImageData,
-            bio: bio ?? "",
-            pronouns: pronouns ?? ""
+            bio: bio ?? ""
         )
     }
 }

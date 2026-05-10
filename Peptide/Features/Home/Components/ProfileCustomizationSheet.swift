@@ -3,10 +3,10 @@ import SwiftUI
 
 /// Detailed profile customization surface presented from the Home tab when the
 /// user taps the avatar in the WelcomeHeader. Lets the user upload a profile
-/// image, edit identity (name, bio, pronouns), pick an accent color, review
-/// goals, see the stacks they've created (with one-tap navigation back to the
-/// Protocols tab), preview unlocked achievements, and tweak app-wide
-/// preferences — without leaving Home.
+/// image, edit identity (name, bio), pick an accent color, review goals, see
+/// the stacks they've created (with one-tap navigation back to the Protocols
+/// tab), preview unlocked achievements, and tweak app-wide preferences —
+/// without leaving Home.
 struct ProfileCustomizationSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(DataStore.self) private var dataStore
@@ -29,22 +29,11 @@ struct ProfileCustomizationSheet: View {
         "Stress Reduction",
     ]
 
-    /// Common pronoun choices offered as one-tap chips. The custom field
-    /// remains available for anything outside this list.
-    private static let pronounSuggestions = [
-        "he/him",
-        "she/her",
-        "they/them",
-        "he/they",
-        "she/they",
-    ]
-
     @State private var achievementService = AchievementService.shared
     @State private var themeManager = ThemeManager.shared
 
     @State private var name: String = ""
     @State private var bio: String = ""
-    @State private var pronouns: String = ""
     @State private var avatarData: Data?
     @State private var photoSelection: PhotosPickerItem?
     @State private var isProcessingPhoto = false
@@ -173,16 +162,9 @@ struct ProfileCustomizationSheet: View {
             }
 
             if let resolvedName = trimmedName, !resolvedName.isEmpty {
-                VStack(spacing: Spacing.xxs) {
-                    Text(resolvedName)
-                        .font(AppFont.title2)
-                        .foregroundStyle(AppColor.textPrimary)
-                    if !pronouns.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text(pronouns)
-                            .font(AppFont.caption)
-                            .foregroundStyle(AppColor.textSecondary)
-                    }
-                }
+                Text(resolvedName)
+                    .font(AppFont.title2)
+                    .foregroundStyle(AppColor.textPrimary)
             }
 
             HStack(spacing: Spacing.sm) {
@@ -373,10 +355,6 @@ struct ProfileCustomizationSheet: View {
 
                 Divider().foregroundStyle(AppColor.glassBorder)
 
-                pronounsField
-
-                Divider().foregroundStyle(AppColor.glassBorder)
-
                 bioField
             }
         }
@@ -400,56 +378,6 @@ struct ProfileCustomizationSheet: View {
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
         }
-    }
-
-    private var pronounsField: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("Pronouns")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textTertiary)
-                .textCase(.uppercase)
-
-            FlowLayout(spacing: Spacing.xs) {
-                ForEach(Self.pronounSuggestions, id: \.self) { option in
-                    pronounChip(option)
-                }
-            }
-
-            TextField("Custom (e.g. xe/xem)", text: $pronouns)
-                .font(AppFont.body)
-                .foregroundStyle(AppColor.textPrimary)
-                .tint(AppColor.accentPrimary)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-        }
-    }
-
-    private func pronounChip(_ option: String) -> some View {
-        let selected = pronouns.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == option.lowercased()
-        return Button {
-            pronouns = selected ? "" : option
-            if dataStore.profile.hapticFeedbackEnabled {
-                UISelectionFeedbackGenerator().selectionChanged()
-            }
-        } label: {
-            Text(option)
-                .font(AppFont.caption)
-                .fontWeight(.medium)
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, 6)
-                .foregroundStyle(selected ? AppColor.accentLight : AppColor.textSecondary)
-                .background {
-                    Capsule()
-                        .fill(selected ? AppColor.accentPrimary.opacity(0.25) : AppColor.surfaceElevated)
-                        .overlay {
-                            Capsule().strokeBorder(
-                                selected ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                lineWidth: 0.5
-                            )
-                        }
-                }
-        }
-        .buttonStyle(ScalePressStyle())
     }
 
     private var bioField: some View {
@@ -1014,12 +942,11 @@ struct ProfileCustomizationSheet: View {
         let profile = dataStore.profile
         name = profile.name
         bio = profile.bio
-        pronouns = profile.pronouns
         avatarData = profile.avatarImageData
     }
 
     private func commit() {
-        dataStore.updateProfileIdentity(name: name, bio: bio, pronouns: pronouns)
+        dataStore.updateProfileIdentity(name: name, bio: bio)
         if avatarData != dataStore.profile.avatarImageData {
             dataStore.updateAvatarImageData(avatarData)
         }
