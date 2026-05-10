@@ -11,7 +11,6 @@ struct LifestyleView: View {
     @State private var showWeightLog = false
     @State private var showWorkoutLog = false
     @State private var showTargetsEditor = false
-    @State private var showAddPhotoNotice = false
 
     private var targets: NutritionTargets {
         dataStore.profile.nutritionTargets ?? .placeholder
@@ -41,8 +40,8 @@ struct LifestyleView: View {
                     }
 
                     WorkoutCard(
-                        exerciseCountToday: 0,
-                        durationMinutesToday: 0,
+                        exerciseCountToday: dataStore.workoutSummary().count,
+                        durationMinutesToday: dataStore.workoutSummary().minutes,
                         onTap: { showWorkoutLog = true }
                     )
 
@@ -52,10 +51,7 @@ struct LifestyleView: View {
                         onLog: { showWeightLog = true }
                     )
 
-                    ProgressPhotosCard(
-                        filenames: dataStore.profile.progressPhotoFilenames,
-                        onAdd: { showAddPhotoNotice = true }
-                    )
+                    ProgressPhotosCard()
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.top, Spacing.md)
@@ -77,7 +73,12 @@ struct LifestyleView: View {
                 )
             }
             .sheet(isPresented: $showWorkoutLog) {
-                WorkoutComingSoonSheet(onClose: { showWorkoutLog = false })
+                WorkoutLogSheet(
+                    history: dataStore.profile.workoutHistory,
+                    onLog: { entry in dataStore.logWorkout(entry) },
+                    onDelete: { id in dataStore.deleteWorkout(id: id) },
+                    onClose: { showWorkoutLog = false }
+                )
             }
             .sheet(isPresented: $showTargetsEditor) {
                 NutritionTargetsEditor(
@@ -88,11 +89,6 @@ struct LifestyleView: View {
                     },
                     onCancel: { showTargetsEditor = false }
                 )
-            }
-            .alert("Photo capture coming soon", isPresented: $showAddPhotoNotice) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("On-device storage and the capture flow ship in the next update. The grid placeholder shows where photos will land.")
             }
         }
     }
@@ -122,41 +118,6 @@ struct LifestyleView: View {
                         .strokeBorder(AppColor.accentPrimary.opacity(0.35), lineWidth: 1)
                 }
         }
-    }
-}
-
-// MARK: - Placeholder sheets
-
-private struct WorkoutComingSoonSheet: View {
-    let onClose: () -> Void
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: Spacing.lg) {
-                Image(systemName: "dumbbell")
-                    .font(.system(size: 48, weight: .light))
-                    .foregroundStyle(AppColor.accentLight)
-                Text("Workout Tracker")
-                    .font(AppFont.title)
-                Text("A lightweight gym log (exercise, sets, reps, duration) ships in a follow-up. Logged workouts will roll into the Lifestyle card subtitle and the Analytics-tab summary.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.lg)
-            }
-            .padding(Spacing.xl)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(AppColor.background)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Close", action: onClose)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.accentPrimary)
-                }
-            }
-        }
-        .preferredColorScheme(.dark)
     }
 }
 

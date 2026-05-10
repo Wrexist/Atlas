@@ -684,6 +684,32 @@ final class DataStore: DataServiceProtocol {
         return formatter.string(from: day)
     }
 
+    /// Appends a workout session and keeps the array sorted oldest-first
+    /// so the per-day rollup on the Lifestyle card reads stably.
+    func logWorkout(_ entry: WorkoutEntry) {
+        var trimmed = profile.workoutHistory
+        trimmed.append(entry)
+        trimmed.sort { $0.date < $1.date }
+        profile.workoutHistory = trimmed
+        save()
+    }
+
+    func deleteWorkout(id: UUID) {
+        profile.workoutHistory.removeAll { $0.id == id }
+        save()
+    }
+
+    /// Convenience accessor for the Lifestyle card subtitle. Returns
+    /// (count, totalMinutes) for sessions logged on `date`'s calendar
+    /// day. Empty tuple when the user hasn't logged anything yet.
+    func workoutSummary(for date: Date = Date()) -> (count: Int, minutes: Int) {
+        let sessions = profile.workoutHistory.filter {
+            Calendar.current.isDate($0.date, inSameDayAs: date)
+        }
+        let minutes = sessions.reduce(0) { $0 + $1.durationMinutes }
+        return (sessions.count, minutes)
+    }
+
     /// Records a progress-photo filename. Caller writes the JPEG to
     /// `Documents/<filename>` first; this only updates the manifest.
     func addProgressPhotoFilename(_ filename: String) {

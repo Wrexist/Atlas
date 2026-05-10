@@ -1,20 +1,29 @@
 import SwiftUI
+import PhotosUI
 
-/// 2×2 grid of the most-recent progress photos. The actual capture +
-/// disk-write flow lives in a follow-up — this iteration ships the
-/// surface (placeholder tiles + "+ Add photo" affordance) so the layout
-/// matches the spec without introducing image-picker plumbing into the
-/// same PR as the Lifestyle layout rebuild.
+/// 2×2 grid of the most-recent progress photos. Photos are stored
+/// strictly on-device under `Documents/ProgressPhotos/` and are never
+/// uploaded anywhere — privacy guarantee surfaced in the card copy.
 ///
-/// When real photos land, the placeholder tiles are replaced by
-/// `Image(uiImage: UIImage(contentsOfFile:))` reads against the app's
-/// Documents directory using the filenames stored on
-/// `profile.progressPhotoFilenames`.
+/// Each populated tile renders the photo with a heavy blur by default;
+/// a tap toggles the blur off so the user can review without the photo
+/// being immediately visible from across the room. Long-press surfaces
+/// a delete action.
 struct ProgressPhotosCard: View {
-    let filenames: [String]
-    let onAdd: () -> Void
+    @Environment(DataStore.self) private var dataStore
+
+    @State private var pickerItem: PhotosPickerItem?
+    @State private var revealedFilename: String?
+    @State private var pendingDelete: String?
+    @State private var errorText: String?
 
     private static let slotCount = 4
+
+    /// Newest-first slice of the most recent four filenames so the grid
+    /// fills top-left → bottom-right with the latest photos.
+    private var recentFilenames: [String] {
+        Array(dataStore.profile.progressPhotoFilenames.suffix(Self.slotCount).reversed())
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -28,19 +37,39 @@ struct ProgressPhotosCard: View {
                 spacing: Spacing.sm
             ) {
                 ForEach(0..<Self.slotCount, id: \.self) { index in
-                    photoSlot(filename: filenames.dropFirst(max(0, filenames.count - Self.slotCount)).safe(index))
+                    photoSlot(filename: recentFilenames.safe(index))
                 }
             }
         }
         .padding(Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
+        .background(cardBackground)
+        .onChange(of: pickerItem) { _, newValue in
+            Task { await loadAndPersist(item: newValue) }
+        }
+        .alert(
+            "Delete this photo?",
+            isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } }
+            ),
+            presenting: pendingDelete
+        ) { filename in
+            Button("Delete", role: .destructive) { delete(filename: filename) }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("Removed from this device. Progress photos are not synced anywhere.")
+        }
+        .alert(
+            "Couldn't save photo",
+            isPresented: Binding(
+                get: { errorText != nil },
+                set: { if !$0 { errorText = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorText ?? "")
         }
     }
 
@@ -57,7 +86,11 @@ struct ProgressPhotosCard: View {
 
             Spacer(minLength: 0)
 
-            Button(action: onAdd) {
+            PhotosPicker(
+                selection: $pickerItem,
+                matching: .images,
+                photoLibrary: .shared()
+            ) {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
                         .font(.system(size: 11, weight: .bold))
@@ -77,6 +110,51 @@ struct ProgressPhotosCard: View {
 
     @ViewBuilder
     private func photoSlot(filename: String?) -> some View {
+        if let filename, let image = ProgressPhotoStorage.loadImage(for: filename) {
+            populatedSlot(filename: filename, image: image)
+        } else {
+            emptySlot
+        }
+    }
+
+    private func populatedSlot(filename: String, image: UIImage) -> some View {
+        let isRevealed = revealedFilename == filename
+        return Image(uiImage: image)
+            .resizable()
+            .scaledToFill()
+            .blur(radius: isRevealed ? 0 : 18)
+            .overlay(alignment: .topTrailing) {
+                if !isRevealed {
+                    Image(systemName: "eye.slash.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.7))
+                        .padding(6)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .aspectRatio(1, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(AppAnimation.springSnappy) {
+                    revealedFilename = isRevealed ? nil : filename
+                }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+            .contextMenu {
+                Button(role: .destructive) {
+                    pendingDelete = filename
+                } label: {
+                    Label("Delete photo", systemImage: "trash")
+                }
+            }
+    }
+
+    private var emptySlot: some View {
         ZStack {
             RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                 .fill(AppColor.surfaceElevated)
@@ -85,30 +163,61 @@ struct ProgressPhotosCard: View {
                         .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                 }
 
-            if filename == nil {
-                Image(systemName: "photo")
-                    .font(.system(size: 22, weight: .light))
-                    .foregroundStyle(AppColor.textTertiary.opacity(0.6))
-            } else {
-                // Real capture pipeline lands in a separate task — for now
-                // populated slots show a privacy-blur stand-in so the grid
-                // shape reads the same once images are wired.
-                Image(systemName: "photo.fill")
-                    .font(.system(size: 22, weight: .regular))
-                    .foregroundStyle(AppColor.accentLight.opacity(0.7))
-                    .blur(radius: 6)
-            }
+            Image(systemName: "photo")
+                .font(.system(size: 22, weight: .light))
+                .foregroundStyle(AppColor.textTertiary.opacity(0.6))
         }
         .aspectRatio(1, contentMode: .fit)
     }
+
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+            .fill(AppColor.surfaceSecondary.opacity(0.6))
+            .overlay {
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+            }
+    }
+
+    // MARK: - Picker → disk
+
+    @MainActor
+    private func loadAndPersist(item: PhotosPickerItem?) async {
+        defer { pickerItem = nil }
+        guard let item else { return }
+        do {
+            guard
+                let data = try await item.loadTransferable(type: Data.self),
+                let image = UIImage(data: data)
+            else {
+                errorText = "Couldn't read that photo. Try a different one."
+                return
+            }
+            let filename = try ProgressPhotoStorage.save(image)
+            dataStore.addProgressPhotoFilename(filename)
+            if dataStore.profile.hapticFeedbackEnabled {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+        } catch {
+            errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            if dataStore.profile.hapticFeedbackEnabled {
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+            }
+        }
+    }
+
+    private func delete(filename: String) {
+        ProgressPhotoStorage.delete(filename: filename)
+        dataStore.removeProgressPhotoFilename(filename)
+        if revealedFilename == filename { revealedFilename = nil }
+        if dataStore.profile.hapticFeedbackEnabled {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        }
+    }
 }
 
-private extension ArraySlice where Element == String {
-    /// Safe indexed access into a sliced collection — the slot count and
-    /// the filename count don't always match, and forcing a precondition
-    /// would crash on an empty roll. Returns nil for out-of-bounds.
+private extension Array where Element == String {
     func safe(_ index: Int) -> Element? {
-        let array = Array(self)
-        return array.indices.contains(index) ? array[index] : nil
+        indices.contains(index) ? self[index] : nil
     }
 }

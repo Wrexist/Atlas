@@ -154,6 +154,36 @@ struct WeightEntry: Codable, Hashable, Identifiable {
     }
 }
 
+/// One workout session logged on the Lifestyle tab. Free-form name
+/// (e.g. "Push day", "Hill sprints") plus the spec'd sets/reps/duration
+/// fields — intentionally lightweight so this isn't a competing gym
+/// app, just enough structure to feed the daily card subtitle and a
+/// future Analytics-tab workout summary.
+struct WorkoutEntry: Codable, Hashable, Identifiable {
+    let id: UUID
+    let date: Date
+    let name: String
+    let sets: Int
+    let reps: Int
+    let durationMinutes: Int
+
+    init(
+        id: UUID = UUID(),
+        date: Date,
+        name: String,
+        sets: Int,
+        reps: Int,
+        durationMinutes: Int
+    ) {
+        self.id = id
+        self.date = date
+        self.name = name
+        self.sets = sets
+        self.reps = reps
+        self.durationMinutes = durationMinutes
+    }
+}
+
 /// Per-day macro and water totals consumed. Keyed by start-of-day so a
 /// dose logged at 11:55 pm and another at 12:05 am sit in different
 /// daily buckets, matching the dialing the user sees on the Lifestyle
@@ -214,6 +244,10 @@ struct UserProfile: Codable {
     /// strings. Stored as a dictionary so the meal-scanner roll-up can
     /// upsert today's bucket without scanning the array.
     var dailyConsumption: [String: DailyConsumption]
+    /// Workout sessions logged on the Lifestyle tab. Newest-last so
+    /// callers iterating forward see chronological order without
+    /// re-sorting.
+    var workoutHistory: [WorkoutEntry]
     /// JPEG-encoded profile avatar uploaded from the photo library. Stored
     /// inline so the avatar travels with the profile across exports and
     /// iCloud sync. Compressed before save — see DataStore.updateAvatar.
@@ -241,6 +275,7 @@ struct UserProfile: Codable {
         weightHistory: [WeightEntry] = [],
         progressPhotoFilenames: [String] = [],
         dailyConsumption: [String: DailyConsumption] = [:],
+        workoutHistory: [WorkoutEntry] = [],
         avatarImageData: Data? = nil,
         bio: String = "",
         primaryGoal: String? = nil
@@ -259,6 +294,7 @@ struct UserProfile: Codable {
         self.weightHistory = weightHistory
         self.progressPhotoFilenames = progressPhotoFilenames
         self.dailyConsumption = dailyConsumption
+        self.workoutHistory = workoutHistory
         self.avatarImageData = avatarImageData
         self.bio = bio
         self.primaryGoal = primaryGoal
@@ -280,6 +316,7 @@ struct UserProfile: Codable {
         weightHistory = try container.decodeIfPresent([WeightEntry].self, forKey: .weightHistory) ?? []
         progressPhotoFilenames = try container.decodeIfPresent([String].self, forKey: .progressPhotoFilenames) ?? []
         dailyConsumption = try container.decodeIfPresent([String: DailyConsumption].self, forKey: .dailyConsumption) ?? [:]
+        workoutHistory = try container.decodeIfPresent([WorkoutEntry].self, forKey: .workoutHistory) ?? []
         avatarImageData = try container.decodeIfPresent(Data.self, forKey: .avatarImageData)
         bio = try container.decodeIfPresent(String.self, forKey: .bio) ?? ""
         primaryGoal = try container.decodeIfPresent(String.self, forKey: .primaryGoal)
