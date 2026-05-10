@@ -3,11 +3,14 @@ import SwiftUI
 
 /// Detailed profile customization surface presented from the Home tab when the
 /// user taps the avatar in the WelcomeHeader. Lets the user upload a profile
-/// image, edit identity (name, bio, pronouns), review goals, see the stacks
-/// they've created, and tweak app-wide preferences without leaving Home.
+/// image, edit identity (name, bio, pronouns), pick an accent color, review
+/// goals, see the stacks they've created (with one-tap navigation back to the
+/// Protocols tab), preview unlocked achievements, and tweak app-wide
+/// preferences — without leaving Home.
 struct ProfileCustomizationSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(DataStore.self) private var dataStore
+    @Environment(AppState.self) private var appState
 
     /// Maximum dimension for the stored avatar — anything larger is downscaled
     /// before JPEG-encoding to keep the profile JSON under a few hundred KB.
@@ -25,6 +28,19 @@ struct ProfileCustomizationSheet: View {
         "Joint Health",
         "Stress Reduction",
     ]
+
+    /// Common pronoun choices offered as one-tap chips. The custom field
+    /// remains available for anything outside this list.
+    private static let pronounSuggestions = [
+        "he/him",
+        "she/her",
+        "they/them",
+        "he/they",
+        "she/they",
+    ]
+
+    @State private var achievementService = AchievementService.shared
+    @State private var themeManager = ThemeManager.shared
 
     @State private var name: String = ""
     @State private var bio: String = ""
@@ -44,20 +60,29 @@ struct ProfileCustomizationSheet: View {
                     avatarSection
                         .sectionAppear(index: 0)
 
-                    identityCard
+                    statsRow
                         .sectionAppear(index: 1)
 
-                    goalsCard
+                    identityCard
                         .sectionAppear(index: 2)
 
-                    bodyMetricsSummary
+                    accentColorCard
                         .sectionAppear(index: 3)
 
-                    stacksCard
+                    goalsCard
                         .sectionAppear(index: 4)
 
-                    preferencesCard(store: store)
+                    bodyMetricsSummary
                         .sectionAppear(index: 5)
+
+                    stacksCard
+                        .sectionAppear(index: 6)
+
+                    achievementsPreview
+                        .sectionAppear(index: 7)
+
+                    preferencesCard(store: store)
+                        .sectionAppear(index: 8)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.top, Spacing.md)
@@ -147,6 +172,19 @@ struct ProfileCustomizationSheet: View {
                 .accessibilityLabel("Change profile photo")
             }
 
+            if let resolvedName = trimmedName, !resolvedName.isEmpty {
+                VStack(spacing: Spacing.xxs) {
+                    Text(resolvedName)
+                        .font(AppFont.title2)
+                        .foregroundStyle(AppColor.textPrimary)
+                    if !pronouns.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text(pronouns)
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                }
+            }
+
             HStack(spacing: Spacing.sm) {
                 PhotosPicker(
                     selection: $photoSelection,
@@ -189,7 +227,7 @@ struct ProfileCustomizationSheet: View {
     }
 
     private var avatarCircle: some View {
-        let size: CGFloat = 110
+        let size: CGFloat = 120
         return Group {
             if let data = avatarData, let uiImage = UIImage(data: data) {
                 Image(uiImage: uiImage)
@@ -200,14 +238,23 @@ struct ProfileCustomizationSheet: View {
             } else {
                 ZStack {
                     Circle()
-                        .fill(AppColor.accentPrimary.opacity(0.2))
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    AppColor.accentPrimary.opacity(0.35),
+                                    AppColor.accentDark.opacity(0.55)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                     if let initial = displayInitial {
                         Text(initial)
-                            .font(.system(size: 44, weight: .bold, design: .rounded))
+                            .font(.system(size: 48, weight: .bold, design: .rounded))
                             .foregroundStyle(AppColor.accentLight)
                     } else {
                         Image(systemName: "person.fill")
-                            .font(.system(size: 44))
+                            .font(.system(size: 48))
                             .foregroundStyle(AppColor.accentLight)
                     }
                 }
@@ -226,13 +273,87 @@ struct ProfileCustomizationSheet: View {
                 )
         }
         .liquidGlass(.circle)
-        .shadow(color: AppColor.accentGlow, radius: 14, y: 4)
+        .shadow(color: AppColor.accentGlow, radius: 16, y: 6)
     }
 
     private var displayInitial: String? {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let first = trimmed.first else { return nil }
         return String(first).uppercased()
+    }
+
+    private var trimmedName: String? {
+        let value = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
+
+    // MARK: - Stats row
+
+    private var statsRow: some View {
+        HStack(spacing: Spacing.sm) {
+            statTile(
+                value: "\(dataStore.currentStreak)",
+                label: "Streak",
+                icon: "flame.fill",
+                accent: AppColor.warning
+            )
+            statTile(
+                value: "\(dataStore.totalDaysLogged)",
+                label: "Days",
+                icon: "calendar",
+                accent: AppColor.accentPrimary
+            )
+            statTile(
+                value: "\(dataStore.protocols.count)",
+                label: "Stacks",
+                icon: "square.stack.3d.up.fill",
+                accent: AppColor.accentLight
+            )
+            statTile(
+                value: memberShortDuration,
+                label: "Member",
+                icon: "calendar.badge.clock",
+                accent: AppColor.textSecondary
+            )
+        }
+    }
+
+    private func statTile(
+        value: String,
+        label: LocalizedStringKey,
+        icon: String,
+        accent: Color
+    ) -> some View {
+        GlassCardCompact {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(accent)
+                Text(value)
+                    .font(AppFont.title3)
+                    .fontWeight(.bold)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
+                Text(label)
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var memberShortDuration: String {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month, .day], from: dataStore.profile.memberSince, to: Date())
+        if let years = components.year, years >= 1 {
+            return "\(years)y"
+        }
+        if let months = components.month, months >= 1 {
+            return "\(months)mo"
+        }
+        let days = components.day ?? 0
+        return "\(max(days, 0))d"
     }
 
     // MARK: - Identity
@@ -252,11 +373,7 @@ struct ProfileCustomizationSheet: View {
 
                 Divider().foregroundStyle(AppColor.glassBorder)
 
-                identityField(
-                    title: "Pronouns",
-                    placeholder: "e.g. they/them",
-                    text: $pronouns
-                )
+                pronounsField
 
                 Divider().foregroundStyle(AppColor.glassBorder)
 
@@ -283,6 +400,56 @@ struct ProfileCustomizationSheet: View {
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
         }
+    }
+
+    private var pronounsField: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Pronouns")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textTertiary)
+                .textCase(.uppercase)
+
+            FlowLayout(spacing: Spacing.xs) {
+                ForEach(Self.pronounSuggestions, id: \.self) { option in
+                    pronounChip(option)
+                }
+            }
+
+            TextField("Custom (e.g. xe/xem)", text: $pronouns)
+                .font(AppFont.body)
+                .foregroundStyle(AppColor.textPrimary)
+                .tint(AppColor.accentPrimary)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+        }
+    }
+
+    private func pronounChip(_ option: String) -> some View {
+        let selected = pronouns.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == option.lowercased()
+        return Button {
+            pronouns = selected ? "" : option
+            if dataStore.profile.hapticFeedbackEnabled {
+                UISelectionFeedbackGenerator().selectionChanged()
+            }
+        } label: {
+            Text(option)
+                .font(AppFont.caption)
+                .fontWeight(.medium)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, 6)
+                .foregroundStyle(selected ? AppColor.accentLight : AppColor.textSecondary)
+                .background {
+                    Capsule()
+                        .fill(selected ? AppColor.accentPrimary.opacity(0.25) : AppColor.surfaceElevated)
+                        .overlay {
+                            Capsule().strokeBorder(
+                                selected ? AppColor.glassBorderActive : AppColor.glassBorder,
+                                lineWidth: 0.5
+                            )
+                        }
+                }
+        }
+        .buttonStyle(ScalePressStyle())
     }
 
     private var bioField: some View {
@@ -320,14 +487,83 @@ struct ProfileCustomizationSheet: View {
         }
     }
 
+    // MARK: - Accent color
+
+    private var accentColorCard: some View {
+        @Bindable var theme = themeManager
+        return GlassCard {
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                HStack(alignment: .firstTextBaseline) {
+                    Label("Accent Color", systemImage: "paintpalette.fill")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Spacer()
+                    Text(themeManager.theme.displayName)
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+
+                HStack(spacing: Spacing.md) {
+                    ForEach(AppThemeColor.allCases) { color in
+                        accentSwatch(color, selection: $theme.theme)
+                    }
+                }
+            }
+        }
+    }
+
+    private func accentSwatch(_ color: AppThemeColor, selection: Binding<AppThemeColor>) -> some View {
+        let selected = selection.wrappedValue == color
+        return Button {
+            guard !selected else { return }
+            withAnimation(.snappy(duration: 0.2)) {
+                selection.wrappedValue = color
+            }
+            if dataStore.profile.hapticFeedbackEnabled {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [color.light, color.primary, color.dark],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 38, height: 38)
+                if selected {
+                    Circle()
+                        .strokeBorder(AppColor.textPrimary, lineWidth: 2)
+                        .frame(width: 38, height: 38)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(AppColor.textPrimary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(ScalePressStyle())
+        .accessibilityLabel(color.displayName)
+        .accessibilityAddTraits(selected ? [.isSelected] : [])
+    }
+
     // MARK: - Goals
 
     private var goalsCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                Label("Goals", systemImage: "target")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
+                HStack(alignment: .firstTextBaseline) {
+                    Label("Goals", systemImage: "target")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Spacer()
+                    Text("\(dataStore.profile.goals.count) selected")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                        .monospacedDigit()
+                }
 
                 Text("Pick what you're optimizing for. We use these to surface relevant peptides and stack recommendations.")
                     .font(AppFont.caption)
@@ -438,7 +674,8 @@ struct ProfileCustomizationSheet: View {
     // MARK: - Stacks
 
     private var stacksCard: some View {
-        let stacks = dataStore.protocols
+        let stacks = dataStore.protocols.sorted(by: stackOrdering)
+        let activeCount = stacks.filter { $0.status == .active }.count
         return GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack(alignment: .firstTextBaseline) {
@@ -446,29 +683,84 @@ struct ProfileCustomizationSheet: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
-                    Text(stacks.isEmpty ? "" : "\(stacks.count)")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textTertiary)
-                        .monospacedDigit()
+                    if !stacks.isEmpty {
+                        Text("\(activeCount) active · \(stacks.count) total")
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textTertiary)
+                    }
                 }
 
                 if stacks.isEmpty {
-                    Text("No stacks yet. Create your first protocol from the Protocols tab to start tracking doses.")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    emptyStacksView
                 } else {
                     VStack(spacing: Spacing.xs) {
-                        ForEach(stacks.sorted(by: stackOrdering)) { stack in
+                        ForEach(stacks) { stack in
                             stackRow(stack)
                             if stack.id != stacks.last?.id {
                                 Divider().foregroundStyle(AppColor.glassBorder)
                             }
                         }
                     }
+
+                    Button {
+                        if dataStore.profile.hapticFeedbackEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        appState.selectedTab = .protocols
+                        dismiss()
+                    } label: {
+                        HStack(spacing: Spacing.xs) {
+                            Text("Manage Stacks")
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .font(AppFont.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColor.accentPrimary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, Spacing.xs)
+                    }
+                    .buttonStyle(ScalePressStyle())
                 }
             }
         }
+    }
+
+    private var emptyStacksView: some View {
+        VStack(spacing: Spacing.md) {
+            Image(systemName: "square.stack.3d.up.slash")
+                .font(.system(size: 32))
+                .foregroundStyle(AppColor.textTertiary)
+
+            Text("No stacks yet")
+                .font(AppFont.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColor.textSecondary)
+
+            Text("Create your first protocol from the Protocols tab to start tracking doses, streaks, and compliance.")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textTertiary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                appState.selectedTab = .protocols
+                dismiss()
+            } label: {
+                Label("Create Stack", systemImage: "plus")
+                    .font(AppFont.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColor.accentLight)
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.sm)
+                    .background {
+                        Capsule().fill(AppColor.accentPrimary.opacity(0.25))
+                    }
+            }
+            .buttonStyle(ScalePressStyle())
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.md)
     }
 
     private func stackOrdering(_ a: PeptideProtocol, _ b: PeptideProtocol) -> Bool {
@@ -487,38 +779,84 @@ struct ProfileCustomizationSheet: View {
     }
 
     private func stackRow(_ stack: PeptideProtocol) -> some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: stack.status.iconName)
-                .font(.system(size: 14))
-                .foregroundStyle(stackColor(stack.status))
-                .frame(width: 22)
-
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(stack.name)
-                    .font(AppFont.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .lineLimit(1)
-
-                Text(stackSubtitle(stack))
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textTertiary)
-                    .lineLimit(1)
+        Button {
+            if dataStore.profile.hapticFeedbackEnabled {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
+            appState.selectedTab = .protocols
+            dismiss()
+        } label: {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                HStack(spacing: Spacing.md) {
+                    Image(systemName: stack.status.iconName)
+                        .font(.system(size: 14))
+                        .foregroundStyle(stackColor(stack.status))
+                        .frame(width: 22)
 
-            Spacer(minLength: Spacing.sm)
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        Text(stack.name)
+                            .font(AppFont.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(AppColor.textPrimary)
+                            .lineLimit(1)
 
-            Text(stack.status.displayName)
-                .font(AppFont.caption)
-                .fontWeight(.medium)
-                .foregroundStyle(stackColor(stack.status))
-                .padding(.horizontal, Spacing.sm)
-                .padding(.vertical, 4)
-                .background {
-                    Capsule().fill(stackColor(stack.status).opacity(0.15))
+                        Text(stackSubtitle(stack))
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textTertiary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: Spacing.sm)
+
+                    Text(stack.status.displayName)
+                        .font(AppFont.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(stackColor(stack.status))
+                        .padding(.horizontal, Spacing.sm)
+                        .padding(.vertical, 4)
+                        .background {
+                            Capsule().fill(stackColor(stack.status).opacity(0.15))
+                        }
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(AppColor.textTertiary)
                 }
+
+                if stack.status == .active {
+                    cycleProgressBar(for: stack)
+                        .padding(.leading, 34)
+                }
+            }
+            .padding(.vertical, Spacing.xxs)
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, Spacing.xxs)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+    }
+
+    private func cycleProgressBar(for stack: PeptideProtocol) -> some View {
+        let progress = stack.cycleProgress
+        return VStack(alignment: .leading, spacing: 4) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(AppColor.surfaceElevated)
+                    Capsule()
+                        .fill(stackColor(stack.status))
+                        .frame(width: max(4, geo.size.width * progress))
+                }
+            }
+            .frame(height: 4)
+
+            HStack {
+                Text("Week \(stack.weekNumber) of \(stack.cycleLengthWeeks)")
+                Spacer()
+                Text("\(stack.daysRemaining) days left")
+            }
+            .font(AppFont.caption)
+            .foregroundStyle(AppColor.textTertiary)
+            .monospacedDigit()
+        }
     }
 
     private func stackSubtitle(_ stack: PeptideProtocol) -> String {
@@ -534,6 +872,75 @@ struct ProfileCustomizationSheet: View {
         case .paused: AppColor.warning
         case .completed: AppColor.textSecondary
         }
+    }
+
+    // MARK: - Achievements
+
+    private var achievementsPreview: some View {
+        let unlocked = achievementService.achievements.filter(\.isUnlocked)
+            .sorted { ($0.unlockedDate ?? .distantPast) > ($1.unlockedDate ?? .distantPast) }
+        return GlassCard {
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                HStack(alignment: .firstTextBaseline) {
+                    Label("Achievements", systemImage: "rosette")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Spacer()
+                    Text("\(achievementService.unlockedCount)/\(achievementService.totalCount)")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                        .monospacedDigit()
+                }
+
+                if unlocked.isEmpty {
+                    Text("Log doses, build streaks, and create protocols to start unlocking badges.")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    HStack(spacing: Spacing.md) {
+                        ForEach(unlocked.prefix(4)) { achievement in
+                            achievementBadge(achievement)
+                        }
+                        if unlocked.count > 4 {
+                            VStack(spacing: Spacing.xs) {
+                                Image(systemName: "ellipsis.circle.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundStyle(AppColor.textTertiary)
+                                Text("+\(unlocked.count - 4)")
+                                    .font(AppFont.caption)
+                                    .foregroundStyle(AppColor.textTertiary)
+                                    .monospacedDigit()
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func achievementBadge(_ achievement: Achievement) -> some View {
+        VStack(spacing: Spacing.xs) {
+            ZStack {
+                Circle()
+                    .fill(AppColor.accentPrimary.opacity(0.18))
+                    .overlay {
+                        Circle().strokeBorder(AppColor.glassBorderActive, lineWidth: 1)
+                    }
+                Image(systemName: achievement.icon)
+                    .font(.system(size: 18))
+                    .foregroundStyle(AppColor.accentLight)
+            }
+            .frame(width: 44, height: 44)
+
+            Text(achievement.title)
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Preferences
@@ -672,11 +1079,13 @@ struct ProfileCustomizationSheet: View {
 #Preview("With Profile") {
     ProfileCustomizationSheet()
         .environment(DataStore(seedSampleData: true))
+        .environment(AppState())
         .preferredColorScheme(.dark)
 }
 
 #Preview("Empty Profile") {
     ProfileCustomizationSheet()
         .environment(DataStore())
+        .environment(AppState())
         .preferredColorScheme(.dark)
 }

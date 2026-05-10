@@ -250,6 +250,7 @@ struct HomeView: View {
             .sheet(isPresented: $showProfileCustomization) {
                 ProfileCustomizationSheet()
                     .environment(dataStore)
+                    .environment(appState)
             }
             .navigationDestination(for: Peptide.self) { peptide in
                 PeptideDetailView(peptide: peptide)
