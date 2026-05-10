@@ -127,6 +127,17 @@ struct CreatorAttribution: Codable, Hashable {
     let discountPercent: Int
 }
 
+/// Email captured during the onboarding mailing-list step. Stored locally
+/// so the address survives a relaunch; pushing it to the spec'd
+/// `email_subscribers` Supabase table + Resend welcome email + 7-day
+/// pg_cron retargeting is a separate piece of work that needs the
+/// backend in place. The local record carries enough context that the
+/// eventual sync job can replay the row 1:1 from this struct.
+struct EmailSubscription: Codable, Hashable {
+    let email: String
+    let capturedAt: Date
+}
+
 struct UserProfile: Codable {
     var name: String
     var goals: [String]
@@ -146,6 +157,10 @@ struct UserProfile: Codable {
     /// discount and (eventually) by the backend to count installs /
     /// conversions per creator.
     var creatorAttribution: CreatorAttribution?
+    /// Set when the user opts in on the onboarding email-capture step.
+    /// Local-only today; will be drained into Supabase + Resend when the
+    /// backend ships.
+    var emailSubscription: EmailSubscription?
     /// JPEG-encoded profile avatar uploaded from the photo library. Stored
     /// inline so the avatar travels with the profile across exports and
     /// iCloud sync. Compressed before save — see DataStore.updateAvatar.
@@ -169,6 +184,7 @@ struct UserProfile: Codable {
         bodyMetrics: BodyMetrics = .unspecified,
         nutritionTargets: NutritionTargets? = nil,
         creatorAttribution: CreatorAttribution? = nil,
+        emailSubscription: EmailSubscription? = nil,
         avatarImageData: Data? = nil,
         bio: String = "",
         primaryGoal: String? = nil
@@ -183,6 +199,7 @@ struct UserProfile: Codable {
         self.bodyMetrics = bodyMetrics
         self.nutritionTargets = nutritionTargets
         self.creatorAttribution = creatorAttribution
+        self.emailSubscription = emailSubscription
         self.avatarImageData = avatarImageData
         self.bio = bio
         self.primaryGoal = primaryGoal
@@ -200,6 +217,7 @@ struct UserProfile: Codable {
         bodyMetrics = try container.decodeIfPresent(BodyMetrics.self, forKey: .bodyMetrics) ?? .unspecified
         nutritionTargets = try container.decodeIfPresent(NutritionTargets.self, forKey: .nutritionTargets)
         creatorAttribution = try container.decodeIfPresent(CreatorAttribution.self, forKey: .creatorAttribution)
+        emailSubscription = try container.decodeIfPresent(EmailSubscription.self, forKey: .emailSubscription)
         avatarImageData = try container.decodeIfPresent(Data.self, forKey: .avatarImageData)
         bio = try container.decodeIfPresent(String.self, forKey: .bio) ?? ""
         primaryGoal = try container.decodeIfPresent(String.self, forKey: .primaryGoal)

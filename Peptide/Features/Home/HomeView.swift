@@ -115,14 +115,17 @@ struct HomeView: View {
                         )
                         .sectionAppear(index: 4)
 
+                        VialShelfCard(peptides: dataStore.stackPeptides)
+                            .sectionAppear(index: 5)
+
                         if let completeness {
                             StackCompletenessCard(completeness: completeness)
-                                .sectionAppear(index: 5)
+                                .sectionAppear(index: 6)
                         }
 
                         if !transitions.isEmpty {
                             CycleTransitionCard(transitions: transitions)
-                                .sectionAppear(index: 6)
+                                .sectionAppear(index: 7)
                         }
 
                         if !warnings.isEmpty {
@@ -131,7 +134,7 @@ struct HomeView: View {
                                 hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                                 onSelect: { selectedAlert = $0 }
                             )
-                            .sectionAppear(index: 7)
+                            .sectionAppear(index: 8)
                         }
 
                         if !recommendations.isEmpty {
@@ -140,12 +143,12 @@ struct HomeView: View {
                                 activeProtocols: dataStore.activeProtocols,
                                 hapticEnabled: dataStore.profile.hapticFeedbackEnabled
                             )
-                            .sectionAppear(index: 8)
+                            .sectionAppear(index: 9)
                         }
 
                         if dataStore.profile.healthConnected {
                             HealthSummaryCard()
-                                .sectionAppear(index: 9)
+                                .sectionAppear(index: 10)
                         }
 
                         if let topInsight = dataStore.topInsight {
@@ -170,7 +173,7 @@ struct HomeView: View {
                                     Spacer()
                                 }
                             }
-                            .sectionAppear(index: 10)
+                            .sectionAppear(index: 11)
                         }
                     }
                 }

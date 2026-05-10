@@ -31,9 +31,14 @@ struct OnboardingView: View {
     @State private var creatorAttribution: CreatorAttribution?
     @State private var creatorCodeError: String?
 
+    // Email-capture step state. Same pattern as the creator attribution —
+    // input lives on the parent so the field survives swipe navigation.
+    @State private var emailInput: String = ""
+    @State private var emailError: String?
+
     @FocusState private var nameFocused: Bool
 
-    private let totalPages = 15
+    private let totalPages = 17
     @State private var storeService = StoreService.shared
 
     private struct OnboardingGoal: Identifiable {
@@ -90,9 +95,11 @@ struct OnboardingView: View {
                     signInPage.tag(9)
                     reviewPromptPage.tag(10)
                     creatorAttributionPage.tag(11)
-                    offerPage.tag(12)
-                    themeChoicePage.tag(13)
-                    readyPage.tag(14)
+                    emailCapturePage.tag(12)
+                    offerPage.tag(13)
+                    themeChoicePage.tag(14)
+                    addMedicationPreviewPage.tag(15)
+                    readyPage.tag(16)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: currentPage)
@@ -904,23 +911,81 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Page 12: Free-Trial Funnel
+    // MARK: - Page 12: Email Capture (mailing-list opt-in)
+
+    private var emailCapturePage: some View {
+        pageScaffold(
+            hero: EmptyView(),
+            content: {
+                EmailCapturePage(input: $emailInput, error: emailError)
+            },
+            footer: {
+                VStack(spacing: Spacing.sm) {
+                    GlassButton(
+                        title: "Send me updates",
+                        icon: "paperplane.fill",
+                        style: .primary,
+                        isFullWidth: true,
+                        action: submitEmail
+                    )
+                    .disabled(emailInput.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                    GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
+                        advance(to: 13)
+                    }
+                }
+            }
+        )
+    }
+
+    /// Validates the typed email and, on success, persists it to the
+    /// profile and advances to the paywall. The spec'd Supabase insert /
+    /// Resend welcome email / 7-day pg_cron retargeting all need a
+    /// backend that doesn't exist in this repo today — once it ships, the
+    /// stored EmailSubscription is the source of truth a sync job can
+    /// drain into the email_subscribers table.
+    private func submitEmail() {
+        let trimmed = emailInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.looksLikeEmail else {
+            withAnimation(AppAnimation.springSnappy) {
+                emailError = "That doesn't look like an email address."
+            }
+            if dataStore.profile.hapticFeedbackEnabled {
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+            }
+            return
+        }
+
+        emailError = nil
+        dataStore.profile.emailSubscription = EmailSubscription(
+            email: trimmed,
+            capturedAt: Date()
+        )
+        dataStore.persistProfile()
+
+        if dataStore.profile.hapticFeedbackEnabled {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+        advance(to: 13)
+    }
+
+    // MARK: - Page 13: Free-Trial Funnel
 
     @ViewBuilder
     private var offerPage: some View {
         if storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
             Color.clear.onAppear {
-                if currentPage == 12 { advance(to: 13) }
+                if currentPage == 13 { advance(to: 14) }
             }
         } else {
             TrialOfferView(
-                onAccept: { advance(to: 13) },
-                onDecline: { advance(to: 13) }
+                onAccept: { advance(to: 14) },
+                onDecline: { advance(to: 14) }
             )
         }
     }
 
-    // MARK: - Page 13: Theme Choice ("Make it yours")
+    // MARK: - Page 14: Theme Choice ("Make it yours")
 
     private var themeChoicePage: some View {
         pageScaffold(
@@ -928,13 +993,27 @@ struct OnboardingView: View {
             content: { ThemeChoicePage(theme: themeManager) },
             footer: {
                 GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                    advance(to: 14)
+                    advance(to: 15)
                 }
             }
         )
     }
 
-    // MARK: - Page 14: Ready
+    // MARK: - Page 15: Add Medication Preview
+
+    private var addMedicationPreviewPage: some View {
+        pageScaffold(
+            hero: EmptyView(),
+            content: { AddMedicationPreviewPage() },
+            footer: {
+                GlassButton(title: "Add Medication", icon: "plus", style: .primary, isFullWidth: true) {
+                    advance(to: 16)
+                }
+            }
+        )
+    }
+
+    // MARK: - Page 16: Ready
 
     private var readyPage: some View {
         pageScaffold(
@@ -1159,11 +1238,12 @@ struct OnboardingView: View {
     }
 
     private var canGoBack: Bool {
-        // Welcome (0) has nothing behind it. Pages 10–12 (review prompt,
-        // creator attribution, offer) are intentionally one-way — going
-        // back from any of them would either re-fire the review request or
-        // strand the user on the sign-in page, both of which feel broken.
-        currentPage > 0 && !(10...12).contains(currentPage)
+        // Welcome (0) has nothing behind it. Pages 10–13 (review prompt,
+        // creator attribution, email capture, offer) are intentionally
+        // one-way — going back from any of them would either re-fire the
+        // review request, re-trigger the sign-in flow, or land the user
+        // on the auto-skipping offer page in a loop.
+        currentPage > 0 && !(10...13).contains(currentPage)
     }
 
     private var backButton: some View {
@@ -1190,15 +1270,15 @@ struct OnboardingView: View {
 
     private func goBack() {
         guard canGoBack else { return }
-        // The trial-offer page (12) is the only forward-skip the routing does
-        // automatically, so retreat past it from the theme step when the user
-        // is already Pro / ineligible — they'd otherwise land on a screen
-        // that immediately auto-advances them right back here. The walk from
-        // the Ready page (14) goes through the theme step (13) first as
-        // normal so the user can re-pick their look.
+        // The trial-offer page (13) is the only forward-skip the routing does
+        // automatically, so retreat past it from the theme step (14) when the
+        // user is already Pro / ineligible — they'd otherwise land on a
+        // screen that immediately auto-advances them right back here. From
+        // Ready (16) and the add-medication preview (15) the back walk
+        // proceeds normally to the theme step first.
         let target: Int
-        if currentPage == 13, storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
-            target = 11
+        if currentPage == 14, storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
+            target = 12
         } else {
             target = currentPage - 1
         }
