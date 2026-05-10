@@ -27,9 +27,15 @@ final class StoredProtocol {
     var notes: String
     var peptideData: Data     // JSON-encoded [Peptide]
     var scheduleData: Data    // JSON-encoded EncodedSchedule (or legacy ProtocolSchedule)
+    var authorName: String?
+    var authorHandle: String?
+    var forkedFromStackIdString: String?
+    var createdAt: Date?
 
     init(id: UUID, name: String, cycleLengthWeeks: Int, startDate: Date,
-         statusRaw: String, notes: String, peptideData: Data, scheduleData: Data) {
+         statusRaw: String, notes: String, peptideData: Data, scheduleData: Data,
+         authorName: String? = nil, authorHandle: String? = nil,
+         forkedFromStackIdString: String? = nil, createdAt: Date? = nil) {
         self.id = id
         self.name = name
         self.cycleLengthWeeks = cycleLengthWeeks
@@ -38,6 +44,10 @@ final class StoredProtocol {
         self.notes = notes
         self.peptideData = peptideData
         self.scheduleData = scheduleData
+        self.authorName = authorName
+        self.authorHandle = authorHandle
+        self.forkedFromStackIdString = forkedFromStackIdString
+        self.createdAt = createdAt
     }
 
     static func make(from proto: PeptideProtocol) throws -> StoredProtocol {
@@ -51,7 +61,11 @@ final class StoredProtocol {
             statusRaw: proto.status.rawValue,
             notes: proto.notes,
             peptideData: peptideData,
-            scheduleData: scheduleData
+            scheduleData: scheduleData,
+            authorName: proto.authorName,
+            authorHandle: proto.authorHandle,
+            forkedFromStackIdString: proto.forkedFromStackId?.uuidString,
+            createdAt: proto.createdAt
         )
     }
 
@@ -63,6 +77,10 @@ final class StoredProtocol {
         notes = proto.notes
         peptideData = try sdEncoder.encode(proto.peptides)
         scheduleData = try sdEncoder.encode(EncodedSchedule(from: proto))
+        authorName = proto.authorName
+        authorHandle = proto.authorHandle
+        forkedFromStackIdString = proto.forkedFromStackId?.uuidString
+        createdAt = proto.createdAt
     }
 
     func toPeptideProtocol() throws -> PeptideProtocol {
@@ -89,7 +107,11 @@ final class StoredProtocol {
             cycleLengthWeeks: cycleLengthWeeks,
             startDate: startDate,
             status: status,
-            notes: notes
+            notes: notes,
+            authorName: authorName,
+            authorHandle: authorHandle,
+            forkedFromStackId: forkedFromStackIdString.flatMap(UUID.init(uuidString:)),
+            createdAt: createdAt ?? Date()
         )
     }
 }
