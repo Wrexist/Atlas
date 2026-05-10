@@ -20,6 +20,7 @@ struct PeptideScheduleSheet: View {
     @State private var cadenceMode: ScheduleCadenceMode
     @State private var intervalDays: Int
     @State private var intervalAnchor: Date
+    @State private var preferredTimes: [String]
 
     private static let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
@@ -41,6 +42,7 @@ struct PeptideScheduleSheet: View {
         _cadenceMode = State(initialValue: starting.isInterval ? .interval : .weekly)
         _intervalDays = State(initialValue: starting.intervalDays ?? 3)
         _intervalAnchor = State(initialValue: starting.intervalAnchor ?? Date())
+        _preferredTimes = State(initialValue: starting.preferredTimes)
     }
 
     private var canSave: Bool {
@@ -77,6 +79,7 @@ struct PeptideScheduleSheet: View {
                                         cycleLengthWeeks: nil,
                                         cadenceMode: $cadenceMode,
                                         intervalDays: $intervalDays,
+                                        preferredTimes: $preferredTimes,
                                         dayNames: Self.dayNames
                                     )
                                 }
@@ -246,7 +249,12 @@ struct PeptideScheduleSheet: View {
 
     private func save() {
         if useCustom {
-            let times = generateDefaultTimes(count: timesPerDay)
+            var times = preferredTimes
+            while times.count < timesPerDay {
+                times.append(ScheduleEditor.defaultTimeString(for: times.count))
+            }
+            times = Array(times.prefix(timesPerDay))
+
             let trimmedDose = customDose.trimmingCharacters(in: .whitespacesAndNewlines)
             let schedule = ProtocolSchedule(
                 daysOfWeek: cadenceMode == .weekly ? selectedDays.sorted() : [1, 2, 3, 4, 5, 6, 7],
@@ -261,15 +269,6 @@ struct PeptideScheduleSheet: View {
             onSave(nil)
         }
         dismiss()
-    }
-
-    private func generateDefaultTimes(count: Int) -> [String] {
-        (1...count).map { index in
-            let hour24 = min(8 + (index - 1) * (12 / max(count, 1)), 23)
-            let hour12 = hour24 > 12 ? hour24 - 12 : (hour24 == 0 ? 12 : hour24)
-            let period = hour24 >= 12 ? "PM" : "AM"
-            return "\(hour12):00 \(period)"
-        }
     }
 }
 

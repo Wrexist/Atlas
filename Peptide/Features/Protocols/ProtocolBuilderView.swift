@@ -15,20 +15,48 @@ struct ProtocolBuilderView: View {
     @State private var cadenceMode: ScheduleCadenceMode = .weekly
     @State private var intervalDays: Int = 3
     @State private var intervalAnchor: Date = Date()
+    @State private var preferredTimes: [String] = ["8:00 AM"]
     @State private var currentStep = 0
     @State private var peptideOverrides: [UUID: ProtocolSchedule] = [:]
     @State private var editingOverridePeptide: Peptide?
+    @State private var appendTargetProtocolId: UUID?
+    @State private var isShowingAppendPicker = false
 
     private let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     private let totalSteps = 2
 
     private var isEditing: Bool { editingProtocol != nil }
 
+    private var builderTitle: String {
+        if isEditing { return "Edit Protocol" }
+        if isAppending, let target = appendTargetProtocol { return "Add to \(target.name)" }
+        return "New Protocol"
+    }
+
+    private func appendToExistingStack() {
+        guard let target = appendTargetProtocol else { return }
+        let peptidesToAdd = orderedSelectedPeptides
+            .filter { peptide in !target.peptides.contains { $0.id == peptide.id } }
+        guard !peptidesToAdd.isEmpty else { dismiss(); return }
+        for peptide in peptidesToAdd {
+            dataStore.addPeptide(peptide, toProtocolId: target.id)
+        }
+        if dataStore.profile.hapticFeedbackEnabled {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+        dismiss()
+    }
+
     private var canProceed: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty && !selectedPeptides.isEmpty
+        guard !selectedPeptides.isEmpty else { return false }
+        if isAppending { return true }
+        return !name.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private var canCreate: Bool {
+        if isAppending {
+            return !selectedPeptides.isEmpty
+        }
         if cadenceMode == .interval {
             return canProceed && intervalDays >= 1
         }
@@ -43,10 +71,20 @@ struct ProtocolBuilderView: View {
         ProtocolSchedule(
             daysOfWeek: cadenceMode == .weekly ? selectedDays.sorted() : [1, 2, 3, 4, 5, 6, 7],
             timesPerDay: timesPerDay,
-            preferredTimes: generateDefaultTimes(count: timesPerDay),
+            preferredTimes: resolvedTimes,
             intervalDays: cadenceMode == .interval ? intervalDays : nil,
             intervalAnchor: cadenceMode == .interval ? intervalAnchor : nil
         )
+    }
+
+    /// Always returns exactly `timesPerDay` strings — pads from the user's
+    /// edits if available, otherwise falls back to the default presets.
+    private var resolvedTimes: [String] {
+        var times = preferredTimes
+        while times.count < timesPerDay {
+            times.append(ScheduleEditor.defaultTimeString(for: times.count))
+        }
+        return Array(times.prefix(timesPerDay))
     }
 
     var body: some View {
@@ -64,20 +102,21 @@ struct ProtocolBuilderView: View {
                         if currentStep == 0 {
                             detailsStep
                                 .transition(.asymmetric(
-                                    insertion: .move(edge: .leading).combined(with: .opacity),
-                                    removal: .move(edge: .leading).combined(with: .opacity)
+                                    insertion: .opacity.combined(with: .move(edge: .leading)),
+                                    removal: .opacity.combined(with: .move(edge: .leading))
                                 ))
                         } else {
                             scheduleStep
                                 .transition(.asymmetric(
-                                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                                    removal: .move(edge: .trailing).combined(with: .opacity)
+                                    insertion: .opacity.combined(with: .move(edge: .trailing)),
+                                    removal: .opacity.combined(with: .move(edge: .trailing))
                                 ))
                         }
                     }
+                    .animation(.spring(response: 0.45, dampingFraction: 0.82), value: currentStep)
                 }
             }
-            .navigationTitle(isEditing ? "Edit Protocol" : "New Protocol")
+            .navigationTitle(builderTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -86,7 +125,7 @@ struct ProtocolBuilderView: View {
                             .foregroundStyle(AppColor.textSecondary)
                     } else {
                         Button {
-                            withAnimation(AppAnimation.springSnappy) {
+                            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
                                 currentStep = 0
                             }
                         } label: {
@@ -101,14 +140,21 @@ struct ProtocolBuilderView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if currentStep == 0 {
-                        Button("Next") {
-                            withAnimation(AppAnimation.springSnappy) {
-                                currentStep = 1
+                        if isAppending {
+                            Button("Add") { appendToExistingStack() }
+                                .fontWeight(.semibold)
+                                .foregroundStyle(canCreate ? AppColor.accentPrimary : AppColor.textTertiary)
+                                .disabled(!canCreate)
+                        } else {
+                            Button("Next") {
+                                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                                    currentStep = 1
+                                }
                             }
+                            .fontWeight(.semibold)
+                            .foregroundStyle(canProceed ? AppColor.accentPrimary : AppColor.textTertiary)
+                            .disabled(!canProceed)
                         }
-                        .fontWeight(.semibold)
-                        .foregroundStyle(canProceed ? AppColor.accentPrimary : AppColor.textTertiary)
-                        .disabled(!canProceed)
                     }
                 }
             }
@@ -124,6 +170,7 @@ struct ProtocolBuilderView: View {
                     notes = proto.notes
                     selectedDays = Set(proto.schedule.daysOfWeek)
                     peptideOverrides = proto.peptideSchedules
+                    preferredTimes = proto.schedule.preferredTimes
                     if proto.schedule.isInterval, let n = proto.schedule.intervalDays {
                         cadenceMode = .interval
                         intervalDays = n
@@ -154,28 +201,40 @@ struct ProtocolBuilderView: View {
     private var detailsStep: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
+                if !isEditing, !dataStore.protocols.isEmpty {
+                    appendToStackCard
+                        .sectionAppear(index: 0)
+                }
+
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.md) {
-                        Label("Protocol Name", systemImage: "pencil")
+                        Label(isAppending ? "New Peptides" : "Protocol Name", systemImage: isAppending ? "flask.fill" : "pencil")
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
 
-                        TextField("e.g., Recovery Stack", text: $name)
-                            .font(AppFont.body)
-                            .foregroundStyle(AppColor.textPrimary)
-                            .tint(AppColor.accentPrimary)
-                            .padding(Spacing.md)
-                            .background {
-                                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                    .fill(AppColor.surfaceElevated)
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                                    }
-                            }
+                        if !isAppending {
+                            TextField("e.g., Recovery Stack", text: $name)
+                                .font(AppFont.body)
+                                .foregroundStyle(AppColor.textPrimary)
+                                .tint(AppColor.accentPrimary)
+                                .padding(Spacing.md)
+                                .background {
+                                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                                        .fill(AppColor.surfaceElevated)
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                                                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                                        }
+                                }
+                        } else if let target = appendTargetProtocol {
+                            Text("Adding to \"\(target.name)\". The peptides you pick below will inherit \(target.schedule.summary).")
+                                .font(AppFont.caption)
+                                .foregroundStyle(AppColor.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                 }
-                .sectionAppear(index: 0)
+                .sectionAppear(index: 1)
 
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.md) {
@@ -190,11 +249,92 @@ struct ProtocolBuilderView: View {
                         )
                     }
                 }
-                .sectionAppear(index: 1)
+                .sectionAppear(index: 2)
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
         }
+    }
+
+    private var isAppending: Bool { appendTargetProtocolId != nil }
+
+    private var appendTargetProtocol: PeptideProtocol? {
+        guard let id = appendTargetProtocolId else { return nil }
+        return dataStore.protocols.first { $0.id == id }
+    }
+
+    private var appendToStackCard: some View {
+        GlassCard(tinted: isAppending) {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                HStack(spacing: Spacing.md) {
+                    Image(systemName: "square.stack.3d.up.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(AppColor.accentPrimary)
+                        .frame(width: 28, height: 28)
+                        .background {
+                            Circle().fill(AppColor.accentPrimary.opacity(0.18))
+                        }
+
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        Text(isAppending ? "Adding to existing stack" : "Add to existing stack?")
+                            .font(AppFont.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text(appendCardSubtitle)
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                            .lineLimit(2)
+                    }
+
+                    Spacer(minLength: Spacing.xs)
+
+                    Button {
+                        if dataStore.profile.hapticFeedbackEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        if isAppending {
+                            withAnimation(AppAnimation.springSnappy) {
+                                appendTargetProtocolId = nil
+                            }
+                        } else {
+                            isShowingAppendPicker = true
+                        }
+                    } label: {
+                        Text(isAppending ? "Change" : "Pick")
+                            .font(AppFont.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(AppColor.accentLight)
+                            .padding(.horizontal, Spacing.md)
+                            .padding(.vertical, 6)
+                            .background {
+                                Capsule().fill(AppColor.accentPrimary.opacity(0.25))
+                            }
+                    }
+                    .buttonStyle(ScalePressStyle())
+                }
+            }
+        }
+        .sheet(isPresented: $isShowingAppendPicker) {
+            AppendStackPickerSheet(
+                protocols: dataStore.activeProtocols + dataStore.pausedProtocols,
+                selectedId: appendTargetProtocolId,
+                onPick: { id in
+                    withAnimation(AppAnimation.springSnappy) {
+                        appendTargetProtocolId = id
+                    }
+                    isShowingAppendPicker = false
+                },
+                onCancel: { isShowingAppendPicker = false }
+            )
+            .preferredColorScheme(.dark)
+        }
+    }
+
+    private var appendCardSubtitle: String {
+        if let target = appendTargetProtocol {
+            return "Selected: \(target.name) — \(target.peptides.count) peptide\(target.peptides.count == 1 ? "" : "s")"
+        }
+        return "Skip the schedule step and add the peptides you pick to a stack you've already built."
     }
 
     private var scheduleStep: some View {
@@ -224,7 +364,9 @@ struct ProtocolBuilderView: View {
                             cycleLengthWeeks: $cycleLengthWeeks,
                             cadenceMode: $cadenceMode,
                             intervalDays: $intervalDays,
-                            dayNames: dayNames
+                            preferredTimes: $preferredTimes,
+                            dayNames: dayNames,
+                            hapticEnabled: dataStore.profile.hapticFeedbackEnabled
                         )
                     }
                 }
