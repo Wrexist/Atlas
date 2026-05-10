@@ -67,8 +67,11 @@ private struct ScheduleRow: View {
                     .contentTransition(.symbolEffect(.replace))
             }
             .buttonStyle(ScalePressStyle())
+            .accessibilityLabel(entry.completed ? "Mark dose incomplete" : "Mark dose complete")
 
-            // Tapping the row = open detailed logging sheet
+            // Tapping the row = open detailed logging sheet. The press
+            // feedback now matches the rest of the app via ScalePressStyle
+            // instead of the dead .plain style.
             Button(action: onTap) {
                 HStack(spacing: Spacing.md) {
                     Image(systemName: entry.peptide.imageSystemName)
@@ -76,7 +79,7 @@ private struct ScheduleRow: View {
                         .foregroundStyle(entry.peptide.category.color)
                         .frame(width: 28, height: 28)
                         .background {
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                                 .fill(entry.peptide.category.color.opacity(0.15))
                         }
                         .symbolEffect(.bounce, value: entry.completed)
@@ -102,10 +105,20 @@ private struct ScheduleRow: View {
                             entry.completed ? AppColor.textTertiary : AppColor.accentLight
                         )
                 }
+                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(rowAccessibilityLabel)
+            .accessibilityHint("Opens dose logging.")
         }
         .padding(.vertical, Spacing.xs)
+    }
+
+    private var rowAccessibilityLabel: String {
+        let time = entry.date.formatted(.dateTime.hour().minute())
+        let status = entry.completed ? "completed" : "pending"
+        return "\(entry.peptide.name), \(entry.dose) at \(time), \(status)"
     }
 }
 

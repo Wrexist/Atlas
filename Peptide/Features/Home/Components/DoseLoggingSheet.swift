@@ -32,7 +32,7 @@ struct DoseLoggingSheet: View {
                                 .foregroundStyle(entry.peptide.category.color)
                                 .frame(width: 48, height: 48)
                                 .background {
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                                         .fill(entry.peptide.category.color.opacity(0.15))
                                 }
 

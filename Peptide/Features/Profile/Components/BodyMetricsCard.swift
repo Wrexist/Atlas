@@ -58,6 +58,7 @@ struct BodyMetricsCard: View {
                 },
                 onCancel: { isEditing = false }
             )
+            .liquidGlassPresentation()
         }
     }
 

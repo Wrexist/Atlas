@@ -288,17 +288,17 @@ private struct DayChip: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 40)
                 .background {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                         .fill(isSelected ? AppColor.accentPrimary.opacity(0.32) : AppColor.surfaceElevated)
                         .overlay {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                                 .strokeBorder(
                                     isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
                                     lineWidth: isSelected ? 1 : 0.5
                                 )
                         }
                 }
-                .liquidGlass(.rect(cornerRadius: 12))
+                .liquidGlass(.rect(cornerRadius: Spacing.smallCornerRadius))
                 .shadow(
                     color: isSelected ? AppColor.accentGlow : .clear,
                     radius: isSelected ? 8 : 0,
@@ -526,14 +526,14 @@ private struct TimeSlotRow: View {
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)
             .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                     .fill(AppColor.surfaceElevated)
                     .overlay {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                             .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                     }
             }
-            .liquidGlass(.rect(cornerRadius: 12))
+            .liquidGlass(.rect(cornerRadius: Spacing.smallCornerRadius))
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .sheet(isPresented: $isShowingPicker) {

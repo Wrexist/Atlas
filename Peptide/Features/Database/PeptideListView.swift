@@ -55,7 +55,7 @@ struct PeptideListView: View {
                                 NavigationLink(value: peptide) {
                                     PeptideRow(peptide: peptide)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(ScalePressStyle(pressedScale: 0.98))
                                 .transition(.scale(scale: 0.97).combined(with: .opacity))
                             }
                         }
@@ -90,6 +90,7 @@ struct PeptideListView: View {
                     dataStore.addCustomPeptide(peptide)
                     refreshPeptides()
                 }
+                .liquidGlassPresentation()
             }
             .onAppear { refreshPeptides() }
         }
@@ -105,7 +106,7 @@ private struct AddCustomPeptideCard: View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                         .fill(AppColor.accentPrimary.opacity(0.18))
                         .frame(width: 44, height: 44)
                     Image(systemName: "plus")

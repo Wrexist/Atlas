@@ -325,6 +325,7 @@ struct StackAdjustmentSheet: View {
                 selectedPeptides: $selectedPeptideIds,
                 allPeptides: peptideDatabase
             )
+            .liquidGlassPresentation()
         }
     }
 
@@ -382,7 +383,7 @@ struct StackAdjustmentSheet: View {
                     .foregroundStyle(relocation.peptide.category.color)
                     .frame(width: 26, height: 26)
                     .background {
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                             .fill(relocation.peptide.category.color.opacity(0.15))
                     }
                 VStack(alignment: .leading, spacing: 2) {

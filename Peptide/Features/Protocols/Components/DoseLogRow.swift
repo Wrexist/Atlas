@@ -14,7 +14,7 @@ struct DoseLogRow: View {
                 .foregroundStyle(entry.peptide.category.color)
                 .frame(width: 24, height: 24)
                 .background {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                         .fill(entry.peptide.category.color.opacity(0.15))
                 }
 
@@ -36,5 +36,13 @@ struct DoseLogRow: View {
                 .foregroundStyle(AppColor.textSecondary)
         }
         .padding(.vertical, Spacing.xs)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var accessibilityLabel: String {
+        let time = entry.date.formatted(.dateTime.hour().minute())
+        let status = entry.completed ? "completed" : "pending"
+        return "\(entry.peptide.name), \(entry.dose) at \(time), \(status)"
     }
 }
