@@ -70,10 +70,17 @@ enum DoseDayMap {
                 guard isDayInCycle(day, protocol: proto, calendar: cal) else { continue }
                 guard isWeekdayMatch(day: day, schedule: proto.schedule, calendar: cal) else { continue }
                 for peptide in proto.peptides {
-                    let alreadyLogged = result[day]?.contains(where: {
-                        $0.kind == .logged && $0.peptideID == peptide.id
+                    // Suppress when *any* mark for this compound on this
+                    // day already exists — covers both the "logged
+                    // already" case and the "another active protocol in
+                    // the same loop already emitted a scheduled mark for
+                    // the shared peptide" case. Without this second
+                    // check the calendar shows two same-coloured dots
+                    // for any peptide that appears in two stacks.
+                    let alreadyMarked = result[day]?.contains(where: {
+                        $0.peptideID == peptide.id
                     }) ?? false
-                    if alreadyLogged { continue }
+                    if alreadyMarked { continue }
 
                     let mark = CalendarDoseMark(
                         kind: .scheduled,

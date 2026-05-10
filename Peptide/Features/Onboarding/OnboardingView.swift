@@ -1270,14 +1270,14 @@ struct OnboardingView: View {
 
     private func goBack() {
         guard canGoBack else { return }
-        // The trial-offer page (13) is the only forward-skip the routing does
-        // automatically, so retreat past it from the theme step (14) when the
-        // user is already Pro / ineligible — they'd otherwise land on a
-        // screen that immediately auto-advances them right back here. From
-        // Ready (16) and the add-medication preview (15) the back walk
-        // proceeds normally to the theme step first.
+        // The trial-offer page (13) is in the back-disabled range, so a
+        // user navigating back from theme (14) would otherwise land on
+        // a screen that hides the back button — a dead end. Always skip
+        // past the offer page on the way back, regardless of trial
+        // eligibility. From Ready (16) and add-medication preview (15)
+        // the back walk proceeds normally to the theme step first.
         let target: Int
-        if currentPage == 14, storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
+        if currentPage == 14 {
             target = 12
         } else {
             target = currentPage - 1

@@ -46,7 +46,13 @@ struct VialIllustration: View {
             surface(metrics: metrics)
                 .padding(.top, metrics.surfaceGap)
         }
-        .frame(width: metrics.width, height: metrics.height + metrics.surfaceGap + metrics.surfaceHeight)
+        // Outer frame uses max(body, surface) so the soft shadow ellipse
+        // under the vial isn't clipped — the surface is intentionally
+        // wider than the body to read like a contact shadow.
+        .frame(
+            width: max(metrics.width, metrics.surfaceWidth),
+            height: metrics.height + metrics.surfaceGap + metrics.surfaceHeight
+        )
     }
 
     // MARK: - Pieces

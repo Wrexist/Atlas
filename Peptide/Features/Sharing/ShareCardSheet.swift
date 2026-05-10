@@ -34,6 +34,7 @@ struct ShareCardSheet: View {
     private var previewWidth: CGFloat { ShareCardRenderer.canvasSize.width * Self.previewScale }
     private var previewHeight: CGFloat { ShareCardRenderer.canvasSize.height * Self.previewScale }
 
+    @MainActor
     private var baseModel: CycleCardModel {
         switch subject {
         case .singleProtocol(let proto):
@@ -43,6 +44,7 @@ struct ShareCardSheet: View {
         }
     }
 
+    @MainActor
     private var modelForRender: CycleCardModel {
         var m = baseModel
         if includeHealth, let healthSummary {

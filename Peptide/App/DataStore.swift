@@ -673,9 +673,14 @@ final class DataStore: DataServiceProtocol {
     }
 
     private func consumptionKey(for date: Date) -> String {
+        // The bucket key has to match the user's wall-clock day, not the
+        // UTC day. ISO8601DateFormatter defaults to UTC, so a meal logged
+        // at 11:00 PM in Auckland would otherwise key under tomorrow's
+        // date and silently disappear from today's rings.
         let day = Calendar.current.startOfDay(for: date)
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]
+        formatter.timeZone = Calendar.current.timeZone
         return formatter.string(from: day)
     }
 

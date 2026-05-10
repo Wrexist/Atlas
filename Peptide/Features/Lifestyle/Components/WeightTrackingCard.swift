@@ -89,7 +89,9 @@ struct WeightTrackingCard: View {
     }
 
     private var trendBadge: some View {
-        let delta = WeightTrend.weeklyDelta(in: history)
+        // Use the same 14-day slice the sparkline renders so the badge
+        // never reports a delta against a baseline that's off-screen.
+        let delta = WeightTrend.weeklyDelta(in: sparklinePoints)
         let format = unitFormatter()
         return HStack(spacing: 4) {
             Image(systemName: delta >= 0 ? "arrow.up.right" : "arrow.down.right")
