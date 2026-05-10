@@ -176,6 +176,8 @@ struct MacroSummaryRow: View {
                 }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Add \(oz) ounces of water")
+        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - Shared background

@@ -72,6 +72,11 @@ struct PeptideApp: App {
             if phase == .active {
                 ReviewPromptService.shared.recordLaunch()
                 dataStore.handleAppActivation()
+                // Re-evaluate which scheduled doses are in their
+                // active window so the lock-screen Live Activities
+                // start / end without needing the user to open the
+                // app to a specific tab.
+                DoseLiveActivityService.shared.reconcile(entries: dataStore.entries)
             }
         }
     }

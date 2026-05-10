@@ -181,6 +181,15 @@ final class DataStore: DataServiceProtocol {
         if profile.hapticFeedbackEnabled {
             UIImpactFeedbackGenerator(style: becoming ? .light : .soft).impactOccurred()
         }
+        // Live Activity reconciliation: when the user marks a dose
+        // taken from the app (or undoes it), push the matching state
+        // into any open lock-screen activity so the countdown stops
+        // and the "Logged" badge appears before auto-dismiss.
+        if becoming {
+            DoseLiveActivityService.shared.markCompleted(entryId)
+        } else {
+            DoseLiveActivityService.shared.reconcile(entries: entries)
+        }
     }
 
     func logDose(entryId: UUID, actualDose: String?, actualTime: Date?, injectionSite: String?, notes: String) {

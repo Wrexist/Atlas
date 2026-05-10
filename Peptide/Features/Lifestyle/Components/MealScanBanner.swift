@@ -48,5 +48,9 @@ struct MealScanBanner: View {
             .shadow(color: AppColor.accentGlow, radius: 14, y: 6)
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.97))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Meal Scan")
+        .accessibilityHint("Opens the camera to scan a meal and estimate calories and macros.")
+        .accessibilityAddTraits(.isButton)
     }
 }
