@@ -956,17 +956,20 @@ struct OnboardingView: View {
         }
     }
 
-    /// Top strip combining a back chevron + the progress bar. The chevron is
-    /// only shown when there's a previous page to retreat to so the welcome
-    /// screen stays uncluttered.
+    /// Top strip combining a back chevron + the progress bar. Wrapped in a
+    /// LiquidGlassContainer so on iOS 26 the chevron and the progress capsules
+    /// share one rendering pass — same trick the system tab bar uses to make
+    /// its glass shapes feel like one continuous material.
     private var topBar: some View {
-        HStack(spacing: Spacing.md) {
-            backButton
-                .opacity(canGoBack ? 1 : 0)
-                .frame(width: canGoBack ? 36 : 0)
-                .animation(AppAnimation.springSnappy, value: canGoBack)
+        LiquidGlassContainer(spacing: Spacing.md) {
+            HStack(spacing: Spacing.md) {
+                backButton
+                    .opacity(canGoBack ? 1 : 0)
+                    .frame(width: canGoBack ? 36 : 0)
+                    .animation(AppAnimation.springSnappy, value: canGoBack)
 
-            OnboardingProgressBar(current: currentPage, total: totalPages)
+                OnboardingProgressBar(current: currentPage, total: totalPages)
+            }
         }
     }
 
@@ -993,7 +996,7 @@ struct OnboardingView: View {
                             Circle().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                         }
                 }
-                .liquidGlass(.circle)
+                .liquidGlass(.circle, interactive: true)
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel("Go back")

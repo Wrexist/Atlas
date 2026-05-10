@@ -67,7 +67,11 @@ struct GlassButton: View {
                         }
                 }
             }
-            .liquidGlass(.capsule)
+            .liquidGlass(
+                .capsule,
+                tint: style == .primary ? AppColor.accentPrimary.opacity(0.35) : nil,
+                interactive: true
+            )
         }
         .buttonStyle(GlassPressStyle())
     }
@@ -110,7 +114,11 @@ struct GlassIconButton: View {
                                 )
                         }
                 }
-                .liquidGlass(.circle)
+                .liquidGlass(
+                    .circle,
+                    tint: tinted ? AppColor.accentPrimary.opacity(0.32) : nil,
+                    interactive: true
+                )
         }
         .buttonStyle(GlassPressStyle())
         .accessibilityLabel(accessibilityLabel)
