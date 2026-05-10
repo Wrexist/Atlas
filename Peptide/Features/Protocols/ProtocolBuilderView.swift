@@ -106,6 +106,12 @@ struct ProtocolBuilderView: View {
             }
             .navigationTitle(isEditing ? "Edit Protocol" : "New Protocol")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: StackLibraryRoute.self) { _ in
+                StackLibraryView()
+            }
+            .navigationDestination(for: CommunityStack.self) { stack in
+                CommunityStackDetailView(stack: stack)
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if currentStep == 0 {
