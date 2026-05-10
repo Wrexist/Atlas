@@ -617,6 +617,81 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
+    /// Appends a bodyweight entry, replaces any existing entry with the
+    /// same calendar day so the sparkline shows one point per day even
+    /// when the user logs more than once, and keeps the array sorted
+    /// oldest-first.
+    func logWeight(kg: Double, date: Date = Date()) {
+        let day = Calendar.current.startOfDay(for: date)
+        var trimmed = profile.weightHistory.filter {
+            !Calendar.current.isDate($0.date, inSameDayAs: day)
+        }
+        trimmed.append(WeightEntry(date: date, kg: kg))
+        trimmed.sort { $0.date < $1.date }
+        profile.weightHistory = trimmed
+        save()
+    }
+
+    /// Removes a bodyweight entry by id. Used by the entry-list editor
+    /// inside the weight log sheet.
+    func deleteWeight(id: UUID) {
+        profile.weightHistory.removeAll { $0.id == id }
+        save()
+    }
+
+    /// Adds a meal's macros to today's consumption bucket, creating the
+    /// bucket on first use. Caller is responsible for the unit choices
+    /// (kcal, grams) — `MealScannerService` returns spec-shaped numbers.
+    func logMeal(calories: Int, proteinG: Int, carbsG: Int, fatG: Int, date: Date = Date()) {
+        let key = consumptionKey(for: date)
+        var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
+        bucket.caloriesKcal += calories
+        bucket.proteinG += proteinG
+        bucket.carbsG += carbsG
+        bucket.fatG += fatG
+        profile.dailyConsumption[key] = bucket
+        save()
+    }
+
+    /// Adds water (oz) to today's consumption bucket. Quick-add buttons
+    /// on the Lifestyle tab call this with +250 mL ≈ 8.5 oz and +500 mL
+    /// ≈ 16.9 oz pre-converted to integer ounces.
+    func logWater(oz: Int, date: Date = Date()) {
+        let key = consumptionKey(for: date)
+        var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
+        bucket.waterOz += oz
+        profile.dailyConsumption[key] = bucket
+        save()
+    }
+
+    /// Convenience accessor used by the macro rings — returns today's
+    /// bucket or an empty stub so callers don't have to optional-chain
+    /// the dictionary lookup at every render.
+    func consumption(for date: Date = Date()) -> DailyConsumption {
+        profile.dailyConsumption[consumptionKey(for: date)]
+            ?? DailyConsumption.empty(on: date)
+    }
+
+    private func consumptionKey(for date: Date) -> String {
+        let day = Calendar.current.startOfDay(for: date)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        return formatter.string(from: day)
+    }
+
+    /// Records a progress-photo filename. Caller writes the JPEG to
+    /// `Documents/<filename>` first; this only updates the manifest.
+    func addProgressPhotoFilename(_ filename: String) {
+        guard !profile.progressPhotoFilenames.contains(filename) else { return }
+        profile.progressPhotoFilenames.append(filename)
+        save()
+    }
+
+    func removeProgressPhotoFilename(_ filename: String) {
+        profile.progressPhotoFilenames.removeAll { $0 == filename }
+        save()
+    }
+
     func toggleHealthConnection() {
         profile.healthConnected.toggle()
         save()
