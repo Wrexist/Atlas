@@ -69,4 +69,34 @@ final class ExportServiceTests: XCTestCase {
         let error = ExportError.pdfGenerationFailed
         XCTAssertEqual(error.errorDescription, "PDF report could not be generated.")
     }
+
+    // MARK: - Backup includes customization fields
+
+    func test_jsonBackup_roundTripsAvatarBioAndPrimaryGoal() throws {
+        // The export pipeline relies on UserProfile.Codable to capture the
+        // whole profile. This guards against a future regression where a new
+        // field is added to the model but missed in the backup.
+        var profile = dataStore.profile
+        profile.avatarImageData = Data([0xDE, 0xAD, 0xBE, 0xEF])
+        profile.bio = "Optimizing recovery."
+        profile.goals = ["Better Sleep", "Recovery"]
+        profile.primaryGoal = "Better Sleep"
+
+        let data = try XCTUnwrap(
+            ExportService.shared.exportFullBackup(
+                protocols: dataStore.protocols,
+                entries: dataStore.entries,
+                profile: profile
+            )
+        )
+
+        // Decode back through the same pipeline a restore would use.
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let backup = try decoder.decode(AppBackup.self, from: data)
+
+        XCTAssertEqual(backup.profile.avatarImageData, profile.avatarImageData)
+        XCTAssertEqual(backup.profile.bio, "Optimizing recovery.")
+        XCTAssertEqual(backup.profile.primaryGoal, "Better Sleep")
+    }
 }
