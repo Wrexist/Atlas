@@ -797,25 +797,26 @@ struct OnboardingView: View {
 
     private var reviewPromptPage: some View {
         pageScaffold(
-            hero: ReviewPromptHero(),
+            hero: EmptyView(),
             content: { ReviewPromptPage() },
             footer: {
-                VStack(spacing: Spacing.sm) {
-                    GlassButton(
-                        title: "Rate PeptideX",
-                        icon: "star.fill",
-                        style: .primary,
-                        isFullWidth: true
-                    ) {
-                        ReviewPromptService.shared.requestReviewOnUserAction(using: requestReview)
-                        if dataStore.profile.hapticFeedbackEnabled {
-                            UINotificationFeedbackGenerator().notificationOccurred(.success)
-                        }
-                        advance(to: 11)
+                // Single CTA. Tapping "Continue" both fires the App Store
+                // review request and advances to the paywall — the user has
+                // just been shown social proof from real-looking testimonials,
+                // which is the highest-positive-priming moment in the flow.
+                // The cooldown gate inside ReviewPromptService still applies,
+                // so re-onboarding never burns a second prompt within 90 days.
+                GlassButton(
+                    title: "Continue",
+                    icon: "arrow.right",
+                    style: .primary,
+                    isFullWidth: true
+                ) {
+                    ReviewPromptService.shared.requestReviewOnUserAction(using: requestReview)
+                    if dataStore.profile.hapticFeedbackEnabled {
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
                     }
-                    GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
-                        advance(to: 11)
-                    }
+                    advance(to: 11)
                 }
             }
         )
