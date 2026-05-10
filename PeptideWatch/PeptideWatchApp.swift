@@ -6,8 +6,18 @@ struct PeptideWatchApp: App {
 
     var body: some Scene {
         WindowGroup {
-            DoseListView()
-                .environmentObject(watchStore)
+            // Two-page TabView: swipe left from Today's dose list to the
+            // Stats page (weekly ring + streak + lifetime doses). The
+            // page-indicator dots make the additional surface
+            // discoverable without taking persistent screen real estate.
+            TabView {
+                DoseListView()
+                    .environmentObject(watchStore)
+                WatchStatsView()
+                    .environmentObject(watchStore)
+            }
+            .tabViewStyle(.page)
+            .indexViewStyle(.page(backgroundDisplayMode: .interactive))
         }
     }
 }

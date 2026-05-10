@@ -907,8 +907,36 @@ final class DataStore: DataServiceProtocol {
     }
 
     private func updateWatchData() {
-        WatchSyncService.shared.updateWatchData(entries: entries, protocols: protocols)
+        // Surface the same stats the Stats page on the watch reads —
+        // streak, week compliance, total logged. The watch carries
+        // these forward as optionals so an older phone build (without
+        // these fields in the JSON) still decodes cleanly.
+        WatchSyncService.shared.updateWatchData(
+            entries: entries,
+            protocols: protocols,
+            currentStreak: currentStreak,
+            weeklyCompliance: weeklyComplianceFraction(),
+            totalDosesLogged: totalDosesLoggedCount()
+        )
     }
+
+    /// 7-day completed-vs-scheduled ratio. Returns 0 when nothing was
+    /// scheduled (rather than NaN) so the watch ring doesn't render an
+    /// undefined fraction.
+    private func weeklyComplianceFraction() -> Double {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        let window = entries.filter { $0.date >= cutoff }
+        guard !window.isEmpty else { return 0 }
+        return Double(window.filter(\.completed).count) / Double(window.count)
+    }
+
+    /// Lifetime completed-entry count. Light enough to recompute on every
+    /// sync — the array is already in-memory and the watch pipeline
+    /// debounces by app activation, not by entry mutation.
+    private func totalDosesLoggedCount() -> Int {
+        entries.filter(\.completed).count
+    }
+
 
     private func scheduleAchievementCheck() {
         guard !achievementCheckPending else { return }
