@@ -42,37 +42,40 @@ struct ProfileView: View {
                     AchievementsSection(achievements: achievementService.achievements)
                         .sectionAppear(index: 2)
 
+                    CycleCardShareSection()
+                        .sectionAppear(index: 3)
+
                     GoalsSectionCard(
                         availableGoals: availableGoals,
                         selectedGoals: Set(dataStore.profile.goals),
                         hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                         onToggle: toggleGoal
                     )
-                    .sectionAppear(index: 3)
+                    .sectionAppear(index: 4)
 
                     BodyMetricsCard(
                         metrics: dataStore.profile.bodyMetrics,
                         onUpdate: { dataStore.updateBodyMetrics($0) }
                     )
-                    .sectionAppear(index: 4)
+                    .sectionAppear(index: 5)
 
                     HealthConnectionCard(
                         isConnected: dataStore.profile.healthConnected,
                         onConnect: { connectHealthKit() }
                     )
-                    .sectionAppear(index: 5)
+                    .sectionAppear(index: 6)
 
                     ExportSection()
-                        .sectionAppear(index: 6)
-
-                    AccountSection()
                         .sectionAppear(index: 7)
 
-                    AppearanceSettings()
+                    AccountSection()
                         .sectionAppear(index: 8)
 
-                    AboutSection()
+                    AppearanceSettings()
                         .sectionAppear(index: 9)
+
+                    AboutSection()
+                        .sectionAppear(index: 10)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)

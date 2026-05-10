@@ -121,7 +121,7 @@ struct ProtocolListView: View {
                 consumePendingDeepLink()
             }
             .sheet(item: $sharingProtocol) { proto in
-                ShareCardSheet(proto: proto)
+                ShareCardSheet(subject: .singleProtocol(proto))
             }
         }
     }

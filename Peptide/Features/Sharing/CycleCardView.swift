@@ -2,263 +2,336 @@ import SwiftUI
 import CoreImage
 import CoreImage.CIFilterBuiltins
 
-/// Branded 1080×1350 share card. The watermark is intentionally a sibling
-/// node inside the same root `ZStack` so `ImageRenderer` composites everything
-/// in a single pass — the resulting PNG has no detachable layer for the
-/// watermark and no detectable seam between content and footer.
+/// 1080×1920 share card sized for Instagram Stories. Pure SwiftUI so
+/// `ImageRenderer` can capture it deterministically — every section
+/// (top bar, stack, stats, optional health, divider, watermark) is a
+/// sibling inside the same root `ZStack` so the gradient background
+/// bleeds through every element and there's no detachable layer for
+/// the watermark.
 struct CycleCardView: View {
-    let proto: PeptideProtocol
-    var showsQR: Bool = true
+    let model: CycleCardModel
 
     private static let canvasWidth: CGFloat = 1080
-    private static let canvasHeight: CGFloat = 1350
-    private static let visiblePeptides = 6
-
-    private var qrImage: UIImage? {
-        guard showsQR else { return nil }
-        return CycleCardView.qrCode(from: AppConstants.appStoreURL.absoluteString)
-    }
-
-    private var subtitle: String {
-        let weeks = "\(proto.cycleLengthWeeks)-WEEK CYCLE"
-        let count = "\(proto.peptides.count) PEPTIDE\(proto.peptides.count == 1 ? "" : "S")"
-        let days = proto.schedule.compactDaysDescription.uppercased()
-        return [weeks, count, days].joined(separator: "  ·  ")
-    }
-
-    private var displayURL: String {
-        AppConstants.appStoreURL.absoluteString
-            .replacingOccurrences(of: "https://", with: "")
-            .replacingOccurrences(of: "http://", with: "")
-    }
-
-    private var attributionLine: String? {
-        if let handle = proto.authorHandle, !handle.isEmpty {
-            return "by \(handle)"
-        }
-        if let name = proto.authorName, !name.isEmpty {
-            return "by \(name)"
-        }
-        return nil
-    }
+    private static let canvasHeight: CGFloat = 1920
+    private static let maxVisibleVials = 4
 
     var body: some View {
         ZStack {
-            // 1. Brand gradient — bleeds through every part of the card so the
-            //    watermark footer can never be cleanly cropped without losing
-            //    background continuity.
-            LinearGradient(
-                colors: [
-                    AppColor.accentDark,
-                    AppColor.background,
-                    AppColor.accentDark.opacity(0.6)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            // 2. Accent glow that extends behind both the body and the
-            //    watermark, so cropping the bottom strip cuts into the visual.
-            Circle()
-                .fill(AppColor.accentPrimary.opacity(0.28))
-                .frame(width: 800, height: 800)
-                .blur(radius: 140)
-                .offset(x: 220, y: -340)
-
-            Circle()
-                .fill(AppColor.accentLight.opacity(0.18))
-                .frame(width: 600, height: 600)
-                .blur(radius: 160)
-                .offset(x: -260, y: 360)
+            background
 
             VStack(alignment: .leading, spacing: 0) {
-                header
-                hero
-                peptideList
+                topBar
+                stackSection
+                statsRow
+                if let health = model.healthSummary {
+                    healthSection(health)
+                }
                 Spacer(minLength: 0)
+                divider
                 watermark
             }
+            .padding(.horizontal, 80)
+            .padding(.vertical, 80)
         }
         .frame(width: Self.canvasWidth, height: Self.canvasHeight)
         .clipped()
         .environment(\.colorScheme, .dark)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilitySummary)
+        .accessibilityLabel(accessibilityLabel)
     }
 
-    private var accessibilitySummary: String {
-        let peptides = proto.peptides.map(\.abbreviation).joined(separator: ", ")
-        let attribution = attributionLine.map { " " + $0 } ?? ""
-        return "\(proto.name) cycle card.\(attribution) \(proto.cycleLengthWeeks)-week cycle. Peptides: \(peptides). Watermark: PeptideX."
-    }
+    // MARK: - Background
 
-    private var header: some View {
-        HStack(alignment: .center) {
-            HStack(spacing: 14) {
-                Image(systemName: "flask.fill")
-                    .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(AppColor.accentLight)
-                Text("PEPTIDEX")
-                    .font(.system(size: 22, weight: .heavy, design: .rounded))
-                    .tracking(6)
-                    .foregroundStyle(.white)
-            }
-            Spacer()
-            Text("CYCLE")
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .tracking(4)
-                .foregroundStyle(.white.opacity(0.55))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 6)
-                .background(
-                    Capsule().strokeBorder(.white.opacity(0.25), lineWidth: 1)
-                )
-        }
-        .padding(.top, 60)
-        .padding(.horizontal, 60)
-    }
-
-    private var hero: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(proto.name)
-                .font(.system(size: 64, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .lineLimit(2)
-                .minimumScaleFactor(0.6)
-                .multilineTextAlignment(.leading)
-
-            Text(subtitle)
-                .font(.system(size: 18, weight: .semibold, design: .rounded))
-                .tracking(2)
-                .foregroundStyle(AppColor.accentLight)
-
-            if let attributionLine {
-                Text(attributionLine)
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 60)
-        .padding(.top, 36)
-    }
-
-    private var peptideList: some View {
-        VStack(spacing: 16) {
-            ForEach(proto.peptides.prefix(Self.visiblePeptides), id: \.id) { peptide in
-                peptideRow(peptide)
-            }
-
-            if proto.peptides.count > Self.visiblePeptides {
-                let extra = proto.peptides.count - Self.visiblePeptides
-                Text("+ \(extra) more peptide\(extra == 1 ? "" : "s")")
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.6))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 4)
-            }
-
-            if proto.peptides.isEmpty {
-                Text("No peptides yet")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.5))
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 40)
-            }
-        }
-        .padding(.horizontal, 60)
-        .padding(.top, 44)
-    }
-
-    private func peptideRow(_ peptide: Peptide) -> some View {
-        let schedule = proto.schedule(for: peptide.id)
-        return HStack(spacing: 22) {
-            Image(systemName: peptide.imageSystemName)
-                .font(.system(size: 30, weight: .semibold))
-                .foregroundStyle(peptide.category.color)
-                .frame(width: 72, height: 72)
-                .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(peptide.category.color.opacity(0.22))
-                )
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(peptide.abbreviation)
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                Text(schedule.summary)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.65))
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            Text(schedule.resolvedDose(for: peptide))
-                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                .foregroundStyle(AppColor.accentLight)
-                .lineLimit(1)
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(.white.opacity(0.07))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .strokeBorder(.white.opacity(0.10), lineWidth: 1)
-                )
-        )
-    }
-
-    private var watermark: some View {
-        HStack(alignment: .center, spacing: 24) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(AppConstants.watermarkText)
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                Text(displayURL)
-                    .font(.system(size: 17, weight: .medium, design: .rounded))
-                    .foregroundStyle(AppColor.accentLight)
-            }
-
-            Spacer()
-
-            if let qrImage {
-                Image(uiImage: qrImage)
-                    .interpolation(.none)
-                    .resizable()
-                    .frame(width: 96, height: 96)
-                    .padding(8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(.white)
-                    )
-            } else {
-                Image(systemName: "qrcode")
-                    .font(.system(size: 56, weight: .regular))
-                    .foregroundStyle(.white.opacity(0.9))
-            }
-        }
-        .padding(.horizontal, 60)
-        .padding(.vertical, 36)
-        // Footer panel — gradient bleeds upward into the body, so cropping
-        // the bottom strip leaves a hard black edge that breaks the card.
-        .background(
+    private var background: some View {
+        ZStack {
             LinearGradient(
-                colors: [.black.opacity(0.0), .black.opacity(0.55)],
+                colors: [
+                    Color(red: 0.051, green: 0.051, blue: 0.102), // #0D0D1A
+                    Color(red: 0.102, green: 0.039, blue: 0.180), // #1A0A2E
+                ],
                 startPoint: .top,
                 endPoint: .bottom
             )
-        )
+
+            // Soft purple aura — bleeds across both stack + watermark so
+            // the watermark can't be cropped out without leaving a hard edge.
+            Circle()
+                .fill(Color(red: 0.310, green: 0.275, blue: 0.898).opacity(0.25))
+                .frame(width: 900, height: 900)
+                .blur(radius: 180)
+                .offset(x: 240, y: -440)
+
+            Circle()
+                .fill(Color(red: 0.486, green: 0.227, blue: 0.929).opacity(0.16))
+                .frame(width: 700, height: 700)
+                .blur(radius: 200)
+                .offset(x: -260, y: 540)
+        }
+    }
+
+    // MARK: - Top bar
+
+    private var topBar: some View {
+        HStack(alignment: .center) {
+            HStack(spacing: 16) {
+                Image(systemName: "flask.fill")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.white, Color(red: 0.78, green: 0.74, blue: 0.96)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                Text("PeptideX")
+                    .font(.system(size: 38, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white)
+                    .tracking(-0.5)
+            }
+            Spacer()
+            Text(model.subjectTitle)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.55))
+                .lineLimit(1)
+        }
+    }
+
+    // MARK: - Stack section
+
+    private var stackSection: some View {
+        VStack(alignment: .leading, spacing: 28) {
+            vialsRow
+                .padding(.top, 40)
+
+            if !model.peptides.isEmpty {
+                Text(peptideNamesLine)
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.65))
+                    .lineLimit(2)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Active since \(activeSinceFormatted)")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.55))
+                Text("Day \(model.cycleDay) of \(model.cycleTotalDays) cycle")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+        }
+        .padding(.top, 50)
+    }
+
+    private var vialsRow: some View {
+        HStack(spacing: -28) {
+            let visible = Array(model.peptides.prefix(Self.maxVisibleVials))
+            ForEach(Array(visible.enumerated()), id: \.offset) { index, peptide in
+                VialIllustration(
+                    compoundName: peptide.name,
+                    liquidLevel: 1.0,
+                    labelText: peptide.abbreviation,
+                    size: .lg
+                )
+                .zIndex(Double(visible.count - index))
+            }
+            if model.peptides.count > Self.maxVisibleVials {
+                let extra = model.peptides.count - Self.maxVisibleVials
+                Text("+\(extra)")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.65))
+                    .padding(.leading, 32)
+            }
+        }
+        .frame(height: 200)
+    }
+
+    private var peptideNamesLine: String {
+        model.peptides
+            .prefix(Self.maxVisibleVials)
+            .map(\.name)
+            .joined(separator: ", ")
+    }
+
+    private var activeSinceFormatted: String {
+        model.activeSinceDate.formatted(.dateTime.month(.wide).day().year())
+    }
+
+    // MARK: - Stats row
+
+    private var statsRow: some View {
+        HStack(spacing: 18) {
+            statCard(
+                value: "\(model.dosesLogged)",
+                label: "Doses logged"
+            )
+            statCard(
+                value: "\(model.adherencePercent)%",
+                label: "Adherence"
+            )
+            statCard(
+                value: "\(model.currentStreakDays) days",
+                label: "Streak",
+                trailingGlyph: "🔥"
+            )
+        }
+        .padding(.top, 60)
+    }
+
+    private func statCard(value: String, label: String, trailingGlyph: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Text(value)
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                if let trailingGlyph {
+                    Text(trailingGlyph)
+                        .font(.system(size: 30))
+                }
+            }
+            Text(label)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.55))
+                .textCase(.uppercase)
+                .tracking(1.2)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                }
+        }
+    }
+
+    // MARK: - Health section (only when toggled on)
+
+    private func healthSection(_ summary: CycleCardModel.HealthSummary) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Health signals")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.55))
+                .textCase(.uppercase)
+                .tracking(1.2)
+
+            HStack(spacing: 18) {
+                if let kg = summary.weightDeltaKg {
+                    healthCard(
+                        icon: kg >= 0 ? "arrow.up" : "arrow.down",
+                        value: String(format: "%@%.1f kg", kg >= 0 ? "+" : "", kg),
+                        label: "Weight"
+                    )
+                }
+                if let hours = summary.avgSleepHours {
+                    healthCard(
+                        icon: "moon.fill",
+                        value: String(format: "%.1f h", hours),
+                        label: "Avg sleep"
+                    )
+                }
+                if let trend = summary.hrvTrendDescription {
+                    healthCard(
+                        icon: "waveform.path.ecg",
+                        value: trend,
+                        label: "HRV"
+                    )
+                }
+            }
+        }
+        .padding(.top, 40)
+    }
+
+    private func healthCard(icon: String, value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.78, green: 0.74, blue: 0.96))
+                Text(value)
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            Text(label)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.55))
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                }
+        }
+    }
+
+    // MARK: - Divider + watermark
+
+    private var divider: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.10))
+            .frame(height: 1)
+            .padding(.top, 40)
+            .padding(.bottom, 36)
+    }
+
+    private var watermark: some View {
+        HStack(alignment: .center) {
+            qrTile
+            Spacer()
+            HStack(spacing: 12) {
+                Image(systemName: "flask.fill")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.7))
+                Text(AppConstants.watermarkText)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+        }
+    }
+
+    private var qrTile: some View {
+        Group {
+            if let qr = Self.qrCode(from: AppConstants.appStoreURL.absoluteString) {
+                Image(uiImage: qr)
+                    .interpolation(.none)
+                    .resizable()
+                    .frame(width: 96, height: 96)
+            } else {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.white)
+                    .frame(width: 96, height: 96)
+            }
+        }
+        .padding(8)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(.white)
+        }
+    }
+
+    // MARK: - Accessibility
+
+    private var accessibilityLabel: String {
+        let names = model.peptides.map(\.abbreviation).joined(separator: ", ")
+        return "\(model.subjectTitle) cycle card. Day \(model.cycleDay) of \(model.cycleTotalDays). " +
+               "Peptides: \(names). " +
+               "Doses logged: \(model.dosesLogged). Adherence: \(model.adherencePercent) percent. " +
+               "Streak: \(model.currentStreakDays) days. Watermark: PeptideX."
     }
 
     // MARK: - QR generation
 
-    /// Generates a Core Image QR code as a UIImage so it can be composited
-    /// inside the same SwiftUI view tree as the rest of the card.
-    /// The returned image flows through `ImageRenderer` in the single render
-    /// pass — no second-pass overlay.
+    /// Static so `ImageRenderer` doesn't trip over view-instance-bound state
+    /// while it walks the tree to capture pixels.
     private static func qrCode(from string: String) -> UIImage? {
         let context = CIContext()
         let filter = CIFilter.qrCodeGenerator()
@@ -271,11 +344,4 @@ struct CycleCardView: View {
         guard let cg = context.createCGImage(scaled, from: scaled.extent) else { return nil }
         return UIImage(cgImage: cg)
     }
-}
-
-#Preview {
-    CycleCardView(proto: MockProtocols.recoveryStack)
-        .scaleEffect(0.3)
-        .frame(width: 324, height: 405)
-        .preferredColorScheme(.dark)
 }

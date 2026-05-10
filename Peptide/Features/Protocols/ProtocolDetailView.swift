@@ -259,7 +259,7 @@ struct ProtocolDetailView: View {
                 .liquidGlassPresentation()
         }
         .sheet(isPresented: $showShareCard) {
-            ShareCardSheet(proto: liveProtocol)
+            ShareCardSheet(subject: .singleProtocol(liveProtocol))
         }
         .sheet(item: $schedulingPeptide) { peptide in
             PeptideScheduleSheet(
