@@ -84,6 +84,10 @@ struct DoseDayDetailPanel: View {
 
     private func doseCard(for mark: CalendarDoseMark) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
+            // Logged marks render the vial at the level it sat at when the
+            // dose was pulled (.kind == .logged drops slightly below full
+            // so the meniscus is visible); scheduled marks render full so
+            // the user reads "this is what's queued, not what was taken".
             VialIllustration(
                 compoundName: mark.peptideName,
                 liquidLevel: mark.kind == .scheduled ? 1.0 : 0.65,

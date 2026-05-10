@@ -76,9 +76,14 @@ struct ConsistencyChart: View {
             .foregroundStyle(AppColor.textSecondary)
         }
         .onAppear(perform: animate)
+        .onDisappear(perform: reset)
     }
 
     private func animate() {
+        // Reset before scheduling so a recycled view (e.g. inside a
+        // List or LazyVStack that re-uses cells) re-runs the draw
+        // animation each time it scrolls back into view rather than
+        // staying frozen at its fully-drawn end state.
         guard drawA == 0 else { return }
         withAnimation(.easeOut(duration: 1.2)) {
             drawA = 1
@@ -89,6 +94,14 @@ struct ConsistencyChart: View {
         withAnimation(.spring(response: 0.45, dampingFraction: 0.65).delay(1.1)) {
             endpointsVisible = true
         }
+    }
+
+    private func reset() {
+        // Snap (no animation) so the next .onAppear can run a fresh
+        // grow-in pass instead of seeing drawA == 1 and bailing.
+        drawA = 0
+        drawB = 0
+        endpointsVisible = false
     }
 
     // MARK: - Path geometry

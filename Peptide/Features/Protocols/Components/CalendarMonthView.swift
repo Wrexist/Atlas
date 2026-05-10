@@ -1,17 +1,35 @@
 import SwiftUI
 
-/// 6-row monthly calendar grid with dose dots painted per day. Pure
-/// presentation — owns no data, accepts a `DoseDayMap`-style dictionary
-/// keyed by start-of-day. Designed to be dropped into any scrollable
-/// surface; the wrapping `TrackCalendarSection` adds month chevrons,
-/// the filter shelf, and the per-day detail panel below.
+/// 6-row monthly calendar grid. In `.schedule` mode each cell paints a
+/// dose-dot row underneath the date; in `.cycle` mode the per-day dots
+/// are suppressed and a thin coloured band per active protocol is
+/// drawn across the full week row instead. The wrapping
+/// `TrackCalendarSection` adds month chevrons, the filter shelf, and
+/// the per-day detail panel below.
 struct CalendarMonthView: View {
     let monthDate: Date
     let dosesByDay: [Date: [CalendarDoseMark]]
+    let displayMode: CalendarDisplayMode
+    let bandsPerRow: [[CycleBand]]
     @Binding var selectedDay: Date
+
+    init(
+        monthDate: Date,
+        dosesByDay: [Date: [CalendarDoseMark]],
+        displayMode: CalendarDisplayMode = .schedule,
+        bandsPerRow: [[CycleBand]] = Array(repeating: [], count: 6),
+        selectedDay: Binding<Date>
+    ) {
+        self.monthDate = monthDate
+        self.dosesByDay = dosesByDay
+        self.displayMode = displayMode
+        self.bandsPerRow = bandsPerRow
+        self._selectedDay = selectedDay
+    }
 
     private let calendar: Calendar = .current
     private static let maxDots = 3
+    private static let maxBands = 4
 
     private var firstWeekday: Int { calendar.firstWeekday }
     private var grid: [Date] { CalendarMonth.grid(for: monthDate, firstWeekday: firstWeekday, calendar: calendar) }
@@ -23,14 +41,24 @@ struct CalendarMonthView: View {
 
             VStack(spacing: 4) {
                 ForEach(0..<6, id: \.self) { row in
-                    HStack(spacing: 0) {
-                        ForEach(0..<7, id: \.self) { col in
-                            let date = grid[row * 7 + col]
-                            dayCell(for: date)
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
+                    weekRow(at: row)
                 }
+            }
+        }
+    }
+
+    private func weekRow(at row: Int) -> some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 0) {
+                ForEach(0..<7, id: \.self) { col in
+                    let date = grid[row * 7 + col]
+                    dayCell(for: date)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            if displayMode == .cycle {
+                bandStrip(for: bandsPerRow[safe: row] ?? [])
+                    .padding(.horizontal, 4)
             }
         }
     }
@@ -84,8 +112,14 @@ struct CalendarMonthView: View {
                         .monospacedDigit()
                 }
 
-                dotRow(for: marks)
-                    .frame(height: 6)
+                if displayMode == .schedule {
+                    dotRow(for: marks)
+                        .frame(height: 6)
+                } else {
+                    // Reserve the same vertical space so cells don't
+                    // jitter when the user toggles between modes.
+                    Color.clear.frame(height: 6)
+                }
             }
             .frame(height: 44)
             .contentShape(Rectangle())
@@ -123,6 +157,25 @@ struct CalendarMonthView: View {
         .frame(width: 6, height: 6)
     }
 
+    // MARK: - Cycle bands
+
+    private func bandStrip(for bands: [CycleBand]) -> some View {
+        VStack(spacing: 2) {
+            let visible = Array(bands.prefix(Self.maxBands))
+            ForEach(visible) { band in
+                Capsule()
+                    .fill(band.color.opacity(0.8))
+                    .frame(height: 3)
+                    .accessibilityLabel(Text("\(band.name) active this week"))
+            }
+            if bands.isEmpty {
+                // Reserved sliver so weeks without bands don't collapse
+                // and re-flow the grid as the user pages through months.
+                Color.clear.frame(height: 3)
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     private func dayNumber(for date: Date) -> String {
@@ -142,5 +195,11 @@ struct CalendarMonthView: View {
         let logged = marks.filter { $0.kind == .logged }.count
         let scheduled = marks.filter { $0.kind == .scheduled }.count
         return Text("\(dateString), \(logged) logged, \(scheduled) scheduled")
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }

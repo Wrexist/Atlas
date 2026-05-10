@@ -5,13 +5,13 @@ import SwiftUI
 /// stats row. Caps at four entries so the row stays readable on small
 /// screens; if the stack is empty, the card hides itself entirely.
 ///
-/// `liquidLevel` per peptide is currently a static `1.0` placeholder —
-/// real per-vial inventory tracking (mg-per-dose, doses-logged, refill
-/// state) doesn't exist in the data model yet. Hooking the level up to
-/// real consumption is a separate task; the spec'd 800 ms drain
-/// animation is wired inside `VialIllustration` so it Just Works once
-/// the level is driven from real data.
+/// Liquid level for each compound is now derived from
+/// `DataStore.liquidLevel(for:)` which counts completed entries and
+/// wraps modulo a default 30-doses-per-vial. The spec'd 800 ms drain
+/// animation inside `VialIllustration` reacts to that fraction
+/// changing, so the next dose log visibly nudges the meniscus down.
 struct VialShelfCard: View {
+    @Environment(DataStore.self) private var dataStore
     let peptides: [Peptide]
 
     private static let maxVials = 4
@@ -33,7 +33,7 @@ struct VialShelfCard: View {
                             ForEach(displayed) { peptide in
                                 VialIllustration(
                                     compoundName: peptide.name,
-                                    liquidLevel: 1.0,
+                                    liquidLevel: dataStore.liquidLevel(for: peptide),
                                     labelText: peptide.abbreviation,
                                     size: .md
                                 )

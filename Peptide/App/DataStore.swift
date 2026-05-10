@@ -672,6 +672,31 @@ final class DataStore: DataServiceProtocol {
             ?? DailyConsumption.empty(on: date)
     }
 
+    // MARK: - Vial inventory (derived)
+
+    /// Default doses per vial when the user hasn't told us otherwise.
+    /// Picked because most short-acting research peptides come as 5 mg
+    /// vials reconstituted to deliver ~20–30 doses, and the modulo wrap
+    /// reads as a believable "vial swap" cadence in the Home shelf.
+    static let defaultDosesPerVial = 30
+
+    /// Liquid-fill fraction for a compound's vial, derived from how many
+    /// completed entries exist for that peptide. Wraps via modulo so the
+    /// shelf visually "refills" each time the user crosses a 30-dose
+    /// boundary — reads as a believable vial swap on continuously-used
+    /// compounds. A peptide with zero logged doses returns 1.0 so a
+    /// brand-new shelf shows full vials, not empty ones.
+    func liquidLevel(for peptide: Peptide) -> Double {
+        let count = entries.filter { $0.peptide.id == peptide.id && $0.completed }.count
+        guard count > 0 else { return 1.0 }
+        let consumed = count % Self.defaultDosesPerVial
+        // When the modulo lands exactly on the vial boundary the user
+        // just finished a vial — show a fresh full one rather than an
+        // empty one so the next dose drains from full again.
+        if consumed == 0 { return 1.0 }
+        return max(0.05, 1.0 - Double(consumed) / Double(Self.defaultDosesPerVial))
+    }
+
     private func consumptionKey(for date: Date) -> String {
         // The bucket key has to match the user's wall-clock day, not the
         // UTC day. ISO8601DateFormatter defaults to UTC, so a meal logged

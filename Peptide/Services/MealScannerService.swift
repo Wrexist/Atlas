@@ -16,9 +16,30 @@ final class MealScannerService {
     static let shared = MealScannerService()
 
     private let session: URLSession = .shared
-    private let endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
     private let model = "claude-sonnet-4-6"
     private let apiVersion = "2023-06-01"
+
+    /// Default endpoint = direct Anthropic Messages API. Production
+    /// builds should override `MEAL_SCANNER_ENDPOINT` in Info.plist (or
+    /// the `MEAL_SCANNER_ENDPOINT` environment variable on the scheme)
+    /// so requests flow through a server-side proxy that holds the API
+    /// key. The proxy must accept the same JSON body shape and forward
+    /// to Anthropic, so the client code is unchanged.
+    private static let defaultEndpoint = URL(string: "https://api.anthropic.com/v1/messages")!
+
+    private var endpoint: URL {
+        if let bundleValue = Bundle.main.object(forInfoDictionaryKey: "MEAL_SCANNER_ENDPOINT") as? String,
+           let url = URL(string: bundleValue.trimmingCharacters(in: .whitespacesAndNewlines)),
+           !bundleValue.isEmpty {
+            return url
+        }
+        if let envValue = ProcessInfo.processInfo.environment["MEAL_SCANNER_ENDPOINT"],
+           let url = URL(string: envValue.trimmingCharacters(in: .whitespacesAndNewlines)),
+           !envValue.isEmpty {
+            return url
+        }
+        return Self.defaultEndpoint
+    }
 
     enum ScanError: Error, LocalizedError {
         case missingKey

@@ -12,6 +12,7 @@ struct TrackCalendarSection: View {
     @State private var monthDate: Date = Calendar.current.startOfMonth(for: Date())
     @State private var selectedDay: Date = Calendar.current.startOfDay(for: Date())
     @State private var filterPeptideID: UUID?
+    @State private var displayMode: CalendarDisplayMode = .schedule
 
     private var filteredMap: [Date: [CalendarDoseMark]] {
         let raw = DoseDayMap.build(
@@ -25,6 +26,17 @@ struct TrackCalendarSection: View {
         }
     }
 
+    private var bandsPerRow: [[CycleBand]] {
+        let grid = CalendarMonth.grid(
+            for: monthDate,
+            firstWeekday: Calendar.current.firstWeekday
+        )
+        let scoped = filterPeptideID
+            .map { id in protocols.filter { $0.peptides.contains(where: { $0.id == id }) } }
+            ?? protocols
+        return CycleBands.bands(for: grid, protocols: scoped)
+    }
+
     private var selectedDayMarks: [CalendarDoseMark] {
         filteredMap[Calendar.current.startOfDay(for: selectedDay)] ?? []
     }
@@ -35,10 +47,60 @@ struct TrackCalendarSection: View {
                 filterShelf
             }
 
+            modeToggle
+
             calendarCard
 
             DoseDayDetailPanel(day: selectedDay, marks: selectedDayMarks)
         }
+    }
+
+    // MARK: - Schedule / Cycle toggle
+
+    private var modeToggle: some View {
+        HStack(spacing: 0) {
+            ForEach(CalendarDisplayMode.allCases) { mode in
+                modeChip(mode)
+            }
+        }
+        .padding(4)
+        .background {
+            Capsule()
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
+                .overlay {
+                    Capsule()
+                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                }
+        }
+        .liquidGlass(.capsule)
+    }
+
+    private func modeChip(_ mode: CalendarDisplayMode) -> some View {
+        let isSelected = displayMode == mode
+        return Button {
+            withAnimation(AppAnimation.springSnappy) { displayMode = mode }
+            UISelectionFeedbackGenerator().selectionChanged()
+        } label: {
+            Text(mode.label)
+                .font(AppFont.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Spacing.xs)
+                .background {
+                    if isSelected {
+                        Capsule()
+                            .fill(AppColor.accentPrimary.opacity(0.28))
+                            .overlay {
+                                Capsule()
+                                    .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                            }
+                            .liquidGlass(.capsule)
+                    }
+                }
+        }
+        .buttonStyle(ScalePressStyle())
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
     // MARK: - Filter shelf
@@ -130,6 +192,8 @@ struct TrackCalendarSection: View {
                 CalendarMonthView(
                     monthDate: monthDate,
                     dosesByDay: filteredMap,
+                    displayMode: displayMode,
+                    bandsPerRow: bandsPerRow,
                     selectedDay: $selectedDay
                 )
             }
