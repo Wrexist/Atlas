@@ -64,7 +64,8 @@ struct LifestyleView: View {
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle("Lifestyle")
             .sheet(isPresented: $showMealScan) {
-                MealScanComingSoonSheet(onClose: { showMealScan = false })
+                MealScanFlow(onClose: { showMealScan = false })
+                    .environment(dataStore)
             }
             .sheet(isPresented: $showWeightLog) {
                 WeightLogSheet(
@@ -125,39 +126,6 @@ struct LifestyleView: View {
 }
 
 // MARK: - Placeholder sheets
-
-private struct MealScanComingSoonSheet: View {
-    let onClose: () -> Void
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: Spacing.lg) {
-                Image(systemName: "camera.viewfinder")
-                    .font(.system(size: 48, weight: .light))
-                    .foregroundStyle(AppColor.accentLight)
-                Text("Meal Scan")
-                    .font(AppFont.title)
-                Text("Camera + Claude Vision integration is wired in the next commit. Once an Anthropic API key is configured in Secrets.xcconfig, tapping Meal Scan will capture a photo, identify the meal, estimate macros, and roll the result into today's bucket.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.lg)
-            }
-            .padding(Spacing.xl)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(AppColor.background)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Close", action: onClose)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.accentPrimary)
-                }
-            }
-        }
-        .preferredColorScheme(.dark)
-    }
-}
 
 private struct WorkoutComingSoonSheet: View {
     let onClose: () -> Void
