@@ -21,6 +21,10 @@ struct ProtocolBuilderView: View {
     @State private var editingOverridePeptide: Peptide?
     @State private var appendTargetProtocolId: UUID?
     @State private var isShowingAppendPicker = false
+    /// Stable identity for the live-preview `PeptideProtocol`. Computed once
+    /// per builder lifecycle so SwiftUI doesn't see a fresh id on every
+    /// body invocation.
+    @State private var previewID = UUID()
 
     private let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     private let totalSteps = 2
@@ -87,6 +91,43 @@ struct ProtocolBuilderView: View {
         return Array(times.prefix(timesPerDay))
     }
 
+    /// Non-persisted protocol used to drive the live preview share-card render.
+    /// Uses `previewID` so the proto's identity is stable across body
+    /// invocations — without it, every keystroke would mint a fresh UUID.
+    private var previewProtocol: PeptideProtocol {
+        PeptideProtocol(
+            id: editingProtocol?.id ?? previewID,
+            name: name.trimmingCharacters(in: .whitespaces).isEmpty ? "New Stack" : name,
+            peptides: orderedSelectedPeptides,
+            schedule: defaultSchedule,
+            peptideSchedules: peptideOverrides,
+            cycleLengthWeeks: cycleLengthWeeks,
+            startDate: editingProtocol?.startDate ?? Date(),
+            status: .active,
+            notes: notes,
+            authorName: editingProtocol?.authorName ?? attributionName,
+            authorHandle: editingProtocol?.authorHandle,
+            forkedFromStackId: editingProtocol?.forkedFromStackId,
+            createdAt: editingProtocol?.createdAt ?? Date()
+        )
+    }
+
+    private var attributionName: String? {
+        if let display = AuthService.shared.userDisplayName,
+           !display.trimmingCharacters(in: .whitespaces).isEmpty {
+            return display
+        }
+        let profileName = dataStore.profile.name.trimmingCharacters(in: .whitespaces)
+        return profileName.isEmpty ? nil : profileName
+    }
+
+    private var inlineWarnings: [StackRecommendationEngine.Warning] {
+        StackRecommendationEngine.warnings(
+            for: orderedSelectedPeptides,
+            activeProtocols: dataStore.activeProtocols
+        )
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -118,6 +159,12 @@ struct ProtocolBuilderView: View {
             }
             .navigationTitle(builderTitle)
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: StackLibraryRoute.self) { _ in
+                StackLibraryView()
+            }
+            .navigationDestination(for: CommunityStack.self) { stack in
+                CommunityStackDetailView(stack: stack)
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if currentStep == 0 {
@@ -207,6 +254,14 @@ struct ProtocolBuilderView: View {
                         .sectionAppear(index: 0)
                 }
 
+                if !isEditing {
+                    NavigationLink(value: StackLibraryRoute()) {
+                        browseLibraryRow
+                    }
+                    .buttonStyle(.plain)
+                    .sectionAppear(index: 0)
+                }
+
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Label(isAppending ? "New Peptides" : "Protocol Name", systemImage: isAppending ? "flask.fill" : "pencil")
@@ -251,6 +306,12 @@ struct ProtocolBuilderView: View {
                     }
                 }
                 .sectionAppear(index: 2)
+
+                let warnings = inlineWarnings
+                if !warnings.isEmpty {
+                    warningsCard(warnings)
+                        .sectionAppear(index: 3)
+                }
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
@@ -340,9 +401,83 @@ struct ProtocolBuilderView: View {
         return "Skip the schedule step and add the peptides you pick to a stack you've already built."
     }
 
+    private var browseLibraryRow: some View {
+        HStack(spacing: Spacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(AppColor.accentPrimary.opacity(0.18))
+                    .frame(width: 44, height: 44)
+                Image(systemName: "books.vertical.fill")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(AppColor.accentLight)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Start from a community stack")
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("Browse research-backed templates")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(AppColor.textTertiary)
+        }
+        .padding(Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .fill(AppColor.glassTint)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                }
+        }
+    }
+
+    private func warningsCard(_ warnings: [StackRecommendationEngine.Warning]) -> some View {
+        // `Warning.id` is a fresh UUID per instance, which would churn SwiftUI
+        // identity on every keystroke. Key on `title` instead — it's stable
+        // across renders for the same warning content.
+        let topWarnings = Array(warnings.prefix(3))
+        return GlassCard {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                Label("Heads up", systemImage: "exclamationmark.triangle.fill")
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.warning)
+
+                ForEach(topWarnings, id: \.title) { warning in
+                    HStack(alignment: .top, spacing: Spacing.sm) {
+                        Image(systemName: warning.icon)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(AppColor.warning)
+                            .frame(width: 18, alignment: .center)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(warning.title)
+                                .font(AppFont.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(AppColor.textPrimary)
+                            Text(warning.detail)
+                                .font(AppFont.caption)
+                                .foregroundStyle(AppColor.textSecondary)
+                                .lineSpacing(2)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private var scheduleStep: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
+                livePreviewCard
+                    .sectionAppear(index: 0)
+
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.lg) {
                         HStack(alignment: .firstTextBaseline) {
@@ -361,6 +496,8 @@ struct ProtocolBuilderView: View {
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textTertiary)
 
+                        schedulePresetChips
+
                         ScheduleEditor(
                             selectedDays: $selectedDays,
                             timesPerDay: $timesPerDay,
@@ -373,7 +510,7 @@ struct ProtocolBuilderView: View {
                         )
                     }
                 }
-                .sectionAppear(index: 0)
+                .sectionAppear(index: 1)
 
                 if !orderedSelectedPeptides.isEmpty {
                     GlassCard {
@@ -403,7 +540,7 @@ struct ProtocolBuilderView: View {
                             }
                         }
                     }
-                    .sectionAppear(index: 1)
+                    .sectionAppear(index: 2)
                 }
 
                 GlassCard {
@@ -428,7 +565,7 @@ struct ProtocolBuilderView: View {
                             }
                     }
                 }
-                .sectionAppear(index: 2)
+                .sectionAppear(index: 3)
 
                 GlassButton(
                     title: isEditing ? "Save Changes" : "Create Protocol",
@@ -440,11 +577,80 @@ struct ProtocolBuilderView: View {
                 }
                 .opacity(canCreate ? 1.0 : 0.5)
                 .disabled(!canCreate)
-                .sectionAppear(index: 3)
+                .sectionAppear(index: 4)
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
         }
+    }
+
+    private var livePreviewCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                HStack {
+                    Label("Preview", systemImage: "eye.fill")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Spacer()
+                    Text("1080 × 1350")
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+
+                CycleCardView(proto: previewProtocol, showsQR: false)
+                    .frame(
+                        width: ShareCardRenderer.canvasSize.width,
+                        height: ShareCardRenderer.canvasSize.height
+                    )
+                    .scaleEffect(0.26, anchor: .topLeading)
+                    .frame(
+                        width: ShareCardRenderer.canvasSize.width * 0.26,
+                        height: ShareCardRenderer.canvasSize.height * 0.26
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                    )
+                    .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    private var schedulePresetChips: some View {
+        HStack(spacing: Spacing.sm) {
+            schedulePresetChip(label: "Daily", days: [1, 2, 3, 4, 5, 6, 7], times: 1)
+            schedulePresetChip(label: "5-on / 2-off", days: [1, 2, 3, 4, 5], times: 1)
+            schedulePresetChip(label: "Every other", days: [1, 3, 5, 7], times: 1)
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func schedulePresetChip(label: String, days: [Int], times: Int) -> some View {
+        let daySet = Set(days)
+        let isSelected = daySet == selectedDays && times == timesPerDay
+        return Button {
+            selectedDays = daySet
+            timesPerDay = times
+        } label: {
+            Text(label)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.xs)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? AppColor.glassTint : AppColor.cardOverlay)
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(
+                                    isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
+                                    lineWidth: 0.5
+                                )
+                        )
+                )
+        }
+        .buttonStyle(.plain)
     }
 
     private func createProtocol() {
@@ -460,7 +666,9 @@ struct ProtocolBuilderView: View {
             cycleLengthWeeks: cycleLengthWeeks,
             startDate: Date(),
             status: .active,
-            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)
+            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
+            authorName: attributionName,
+            createdAt: Date()
         )
 
         dataStore.addProtocol(newProtocol)

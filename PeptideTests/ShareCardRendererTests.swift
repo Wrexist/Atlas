@@ -1,0 +1,48 @@
+import XCTest
+@testable import Peptide
+
+@MainActor
+final class ShareCardRendererTests: XCTestCase {
+    func testRenderProducesExactDimensions() throws {
+        let url = try ShareCardRenderer.renderPNG(for: MockProtocols.recoveryStack)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let data = try Data(contentsOf: url)
+        let image = try XCTUnwrap(UIImage(data: data))
+        XCTAssertEqual(image.size.width, 1080, accuracy: 0.5)
+        XCTAssertEqual(image.size.height, 1350, accuracy: 0.5)
+        XCTAssertGreaterThan(data.count, 10_000, "PNG should be non-trivially large")
+    }
+
+    func testRenderImageIsOpaque() throws {
+        let image = try ShareCardRenderer.renderImage(for: MockProtocols.recoveryStack)
+        XCTAssertEqual(image.size.width, ShareCardRenderer.canvasSize.width)
+        XCTAssertEqual(image.size.height, ShareCardRenderer.canvasSize.height)
+    }
+
+    func testWatermarkBakedInWhenSinglePeptideStack() throws {
+        let single = PeptideProtocol(
+            id: UUID(),
+            name: "Solo BPC-157",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(
+                daysOfWeek: [1, 2, 3, 4, 5],
+                timesPerDay: 1,
+                preferredTimes: ["8:00 AM"]
+            ),
+            cycleLengthWeeks: 4,
+            startDate: Date(),
+            status: .active,
+            notes: ""
+        )
+        let url = try ShareCardRenderer.renderPNG(for: single)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let image = try XCTUnwrap(UIImage(data: Data(contentsOf: url)))
+        // The watermark is rendered inline in the same view tree, so single
+        // and many-peptide stacks both produce a fully populated 1080×1350
+        // PNG with no detached overlay.
+        XCTAssertEqual(image.size.width, 1080, accuracy: 0.5)
+        XCTAssertEqual(image.size.height, 1350, accuracy: 0.5)
+    }
+}

@@ -7,6 +7,7 @@ struct ProtocolListView: View {
     @State private var showingPaywall = false
     @State private var preselectedPeptide: Peptide?
     @State private var path: [PeptideProtocol] = []
+    @State private var sharingProtocol: PeptideProtocol?
 
     var body: some View {
         @Bindable var state = appState
@@ -15,6 +16,8 @@ struct ProtocolListView: View {
             ZStack(alignment: .bottomTrailing) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Spacing.xl) {
+                        CommunityStacksEntryCard()
+
                         if dataStore.protocols.isEmpty {
                             EmptyStateView(
                                 icon: "list.clipboard",
@@ -31,15 +34,27 @@ struct ProtocolListView: View {
                             .sectionAppear(index: 0)
                         } else {
                             if !dataStore.activeProtocols.isEmpty {
-                                ProtocolSection(title: "Active", protocols: dataStore.activeProtocols)
+                                ProtocolSection(
+                                    title: "Active",
+                                    protocols: dataStore.activeProtocols,
+                                    onShare: { sharingProtocol = $0 }
+                                )
                             }
 
                             if !dataStore.pausedProtocols.isEmpty {
-                                ProtocolSection(title: "Paused", protocols: dataStore.pausedProtocols)
+                                ProtocolSection(
+                                    title: "Paused",
+                                    protocols: dataStore.pausedProtocols,
+                                    onShare: { sharingProtocol = $0 }
+                                )
                             }
 
                             if !dataStore.completedProtocols.isEmpty {
-                                ProtocolSection(title: "Completed", protocols: dataStore.completedProtocols)
+                                ProtocolSection(
+                                    title: "Completed",
+                                    protocols: dataStore.completedProtocols,
+                                    onShare: { sharingProtocol = $0 }
+                                )
                             }
                         }
                     }
@@ -81,6 +96,12 @@ struct ProtocolListView: View {
             .navigationDestination(for: PeptideProtocol.self) { protocol_ in
                 ProtocolDetailView(protocol_: protocol_)
             }
+            .navigationDestination(for: CommunityStack.self) { stack in
+                CommunityStackDetailView(stack: stack)
+            }
+            .navigationDestination(for: StackLibraryRoute.self) { _ in
+                StackLibraryView()
+            }
             .glassSheet(isPresented: $showingBuilder) {
                 ProtocolBuilderView(preselectedPeptide: preselectedPeptide)
             }
@@ -91,6 +112,9 @@ struct ProtocolListView: View {
             .onAppear { consumePendingDeepLink() }
             .onChange(of: appState.pendingProtocolDeepLink) { _, _ in
                 consumePendingDeepLink()
+            }
+            .sheet(item: $sharingProtocol) { proto in
+                ShareCardSheet(proto: proto)
             }
         }
     }
@@ -109,9 +133,64 @@ struct ProtocolListView: View {
     }
 }
 
+/// Token-only routing value used by the entry card so SwiftUI's
+/// `NavigationLink(value:)` resolves to `StackLibraryView`.
+struct StackLibraryRoute: Hashable {}
+
+private struct CommunityStacksEntryCard: View {
+    var body: some View {
+        NavigationLink(value: StackLibraryRoute()) {
+            HStack(spacing: Spacing.md) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(AppColor.accentPrimary.opacity(0.18))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "books.vertical.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(AppColor.accentLight)
+                }
+
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text("Browse community stacks")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text("Research-backed templates from peptide practitioners")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+            .padding(Spacing.md)
+            .frame(maxWidth: .infinity)
+            .background {
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .fill(AppColor.surfaceSecondary.opacity(0.6))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                            .fill(AppColor.glassTint)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                            .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                    }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Browse community stacks")
+    }
+}
+
 private struct ProtocolSection: View {
     let title: String
     let protocols: [PeptideProtocol]
+    let onShare: (PeptideProtocol) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -126,6 +205,13 @@ private struct ProtocolSection: View {
                     ProtocolCard(protocol_: protocol_)
                 }
                 .buttonStyle(.plain)
+                .contextMenu {
+                    Button {
+                        onShare(protocol_)
+                    } label: {
+                        Label("Share Cycle Card", systemImage: "square.and.arrow.up")
+                    }
+                }
                 .staggeredAppear(index: index)
             }
         }

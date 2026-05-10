@@ -137,6 +137,10 @@ struct PeptideProtocol: Identifiable, Hashable, Codable {
     let startDate: Date
     var status: ProtocolStatus
     let notes: String
+    let authorName: String?
+    let authorHandle: String?
+    let forkedFromStackId: UUID?
+    let createdAt: Date
 
     init(
         id: UUID,
@@ -147,7 +151,11 @@ struct PeptideProtocol: Identifiable, Hashable, Codable {
         cycleLengthWeeks: Int,
         startDate: Date,
         status: ProtocolStatus,
-        notes: String
+        notes: String,
+        authorName: String? = nil,
+        authorHandle: String? = nil,
+        forkedFromStackId: UUID? = nil,
+        createdAt: Date = Date()
     ) {
         self.id = id
         self.name = name
@@ -158,6 +166,10 @@ struct PeptideProtocol: Identifiable, Hashable, Codable {
         self.startDate = startDate
         self.status = status
         self.notes = notes
+        self.authorName = authorName
+        self.authorHandle = authorHandle
+        self.forkedFromStackId = forkedFromStackId
+        self.createdAt = createdAt
     }
 
     /// Returns the override schedule for a peptide, falling back to the protocol default.
@@ -203,6 +215,7 @@ struct PeptideProtocol: Identifiable, Hashable, Codable {
     private enum CodingKeys: String, CodingKey {
         case id, name, peptides, schedule, peptideSchedules
         case cycleLengthWeeks, startDate, status, notes
+        case authorName, authorHandle, forkedFromStackId, createdAt
     }
 
     init(from decoder: Decoder) throws {
@@ -223,6 +236,10 @@ struct PeptideProtocol: Identifiable, Hashable, Codable {
         self.startDate = try c.decode(Date.self, forKey: .startDate)
         self.status = try c.decode(ProtocolStatus.self, forKey: .status)
         self.notes = try c.decode(String.self, forKey: .notes)
+        self.authorName = try c.decodeIfPresent(String.self, forKey: .authorName)
+        self.authorHandle = try c.decodeIfPresent(String.self, forKey: .authorHandle)
+        self.forkedFromStackId = try c.decodeIfPresent(UUID.self, forKey: .forkedFromStackId)
+        self.createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
     }
 
     func encode(to encoder: Encoder) throws {
@@ -239,5 +256,9 @@ struct PeptideProtocol: Identifiable, Hashable, Codable {
         try c.encode(startDate, forKey: .startDate)
         try c.encode(status, forKey: .status)
         try c.encode(notes, forKey: .notes)
+        try c.encodeIfPresent(authorName, forKey: .authorName)
+        try c.encodeIfPresent(authorHandle, forKey: .authorHandle)
+        try c.encodeIfPresent(forkedFromStackId, forKey: .forkedFromStackId)
+        try c.encode(createdAt, forKey: .createdAt)
     }
 }
