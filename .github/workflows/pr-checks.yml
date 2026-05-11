@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: pr-checks-${{ github.event.pull_request.number }}
@@ -31,7 +32,6 @@ jobs:
         with:
           filters: |
             ios:
-              - '!(prompts/**|docs/**|server/**|**/*.md)'
               - 'Peptide/**'
               - 'PeptideTests/**'
               - 'PeptideUITests/**'
@@ -40,6 +40,10 @@ jobs:
               - 'PeptideWatchWidgets/**'
               - 'Shared/**'
               - 'project.yml'
+              - 'Gemfile'
+              - 'Gemfile.lock'
+              - 'fastlane/**'
+              - '.swiftlint.yml'
               - '.github/workflows/pr-checks.yml'
             server:
               - 'server/**'
