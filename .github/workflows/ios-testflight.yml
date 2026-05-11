@@ -98,6 +98,31 @@ jobs:
             fi
           done
 
+      - name: Inject AI proxy endpoints + secrets into Info.plist
+        env:
+          MEAL_SCANNER_ENDPOINT: ${{ secrets.MEAL_SCANNER_ENDPOINT }}
+          MEAL_SCANNER_SECRET:   ${{ secrets.MEAL_SCANNER_SECRET }}
+          AI_RESEARCH_ENDPOINT:  ${{ secrets.AI_RESEARCH_ENDPOINT }}
+          AI_RESEARCH_SECRET:    ${{ secrets.AI_RESEARCH_SECRET }}
+        run: |
+          PLIST=Peptide/Resources/Info.plist
+          # Fail loudly rather than ship a build with the AI features
+          # silently disabled — a missing secret here means GitHub repo
+          # secrets weren't configured. Fix the secrets, re-run the
+          # workflow.
+          for VAR in MEAL_SCANNER_ENDPOINT MEAL_SCANNER_SECRET AI_RESEARCH_ENDPOINT AI_RESEARCH_SECRET; do
+            if [ -z "${!VAR}" ]; then
+              echo "::error::Repository secret $VAR is empty or missing. Add it under Settings → Secrets and variables → Actions."
+              exit 1
+            fi
+          done
+          for KEY in MEAL_SCANNER_ENDPOINT MEAL_SCANNER_SECRET AI_RESEARCH_ENDPOINT AI_RESEARCH_SECRET; do
+            VALUE="${!KEY}"
+            /usr/libexec/PlistBuddy -c "Set :$KEY $VALUE" "$PLIST" 2>/dev/null \
+              || /usr/libexec/PlistBuddy -c "Add :$KEY string $VALUE" "$PLIST"
+          done
+          echo "Info.plist now declares the AI proxy keys (values hidden)."
+
       - name: Deploy to TestFlight
         env:
           ASC_KEY_ID:     ${{ secrets.ASC_KEY_ID }}
