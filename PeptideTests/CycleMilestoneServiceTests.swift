@@ -12,10 +12,16 @@ final class CycleMilestoneServiceTests: XCTestCase {
         // Each test gets a fresh, isolated UserDefaults suite so the
         // suppression state can't leak across runs or contaminate the
         // shared CycleMilestoneService.shared singleton.
+        //
+        // Capture in a local before assigning to `self.defaults` so the
+        // init below sees a Sendable local instead of `self.defaults`,
+        // which Swift 6 flags as a potential data-race send when the
+        // class is @MainActor and XCTest's setUp signature isn't.
         let suiteName = "test.cycle.milestone.\(UUID().uuidString)"
-        defaults = UserDefaults(suiteName: suiteName)
-        defaults.removePersistentDomain(forName: suiteName)
-        service = CycleMilestoneService(defaults: defaults, calendar: .current)
+        let testDefaults = UserDefaults(suiteName: suiteName) ?? .standard
+        testDefaults.removePersistentDomain(forName: suiteName)
+        defaults = testDefaults
+        service = CycleMilestoneService(defaults: testDefaults, calendar: .current)
     }
 
     override func tearDown() {
