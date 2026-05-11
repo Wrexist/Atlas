@@ -29,6 +29,8 @@ targets:
       path: Peptide/Resources/Info.plist
       properties:
         CFBundleDisplayName: PeptideX
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleLocalizations:
           - en
           - es
@@ -87,6 +89,8 @@ targets:
       path: PeptideWidgets/Info.plist
       properties:
         CFBundleDisplayName: PeptideX Widgets
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -150,6 +154,8 @@ targets:
       path: PeptideWatchWidgets/Info.plist
       properties:
         CFBundleDisplayName: PeptideX Watch Widgets
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:

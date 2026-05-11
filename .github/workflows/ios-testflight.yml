@@ -52,6 +52,7 @@ jobs:
             echo "Using marketing_version input: $NEW_VERSION"
           fi
           sed -i '' "s/MARKETING_VERSION: \"[^\"]*\"/MARKETING_VERSION: \"$NEW_VERSION\"/g" project.yml
+          echo "MARKETING_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
           echo "MARKETING_VERSION lines after override:"
           grep MARKETING_VERSION project.yml
 
@@ -91,10 +92,15 @@ jobs:
           brew install xcodegen || true
           xcodegen generate
 
-      - name: Stamp build number into bundle plists
+      - name: Stamp version + build number into bundle plists
         env:
           BUILD: ${{ github.run_number }}
+          MARKETING_VERSION: ${{ env.MARKETING_VERSION }}
         run: |
+          # Belt-and-suspenders: after xcodegen has materialized the
+          # Info.plist files, force the version keys to literal values
+          # so xcodebuild can't ship a stale "1.0" if the
+          # $(MARKETING_VERSION) substitution fails for any reason.
           for PLIST in \
             Peptide/Resources/Info.plist \
             PeptideWidgets/Info.plist \
@@ -102,6 +108,9 @@ jobs:
             if [ -f "$PLIST" ]; then
               /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$PLIST" 2>/dev/null \
                 || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD" "$PLIST"
+              /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $MARKETING_VERSION" "$PLIST" 2>/dev/null \
+                || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $MARKETING_VERSION" "$PLIST"
+              echo "Stamped $PLIST → short=$MARKETING_VERSION build=$BUILD"
             fi
           done
 
