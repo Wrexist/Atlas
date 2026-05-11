@@ -10,6 +10,7 @@ struct NextDoseIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let snapshot = await IntentDataSnapshot.load()
+        if snapshot.isLocked { return .result(dialog: "Open PeptideX to view your next dose.") }
         guard !snapshot.protocols.isEmpty else {
             return .result(dialog: "No protocols found. Open PeptideX to get started.")
         }
@@ -39,10 +40,14 @@ struct ComplianceIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let snapshot = await IntentDataSnapshot.load()
+        if snapshot.isLocked { return .result(dialog: "Open PeptideX to view your compliance.") }
         let calendar = Calendar.current
+        guard let cutoff = calendar.date(byAdding: .day, value: -7, to: Date()) else {
+            return .result(dialog: "Couldn't compute the compliance window.")
+        }
+        let activeIds = Set(snapshot.protocols.filter { $0.status == .active }.map(\.id))
         let last7Days = snapshot.entries.filter {
-            guard let cutoff = calendar.date(byAdding: .day, value: -7, to: Date()) else { return false }
-            return $0.date >= cutoff
+            $0.date >= cutoff && activeIds.contains($0.protocolId)
         }
         guard !last7Days.isEmpty else {
             return .result(dialog: "No recent data. Start logging doses in PeptideX.")
@@ -106,6 +111,7 @@ struct TodayMacrosIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let snapshot = await IntentDataSnapshot.load()
+        if snapshot.isLocked { return .result(dialog: "Open PeptideX to view today's macros.") }
         guard let consumption = snapshot.todaysConsumption else {
             return .result(dialog: "No meals logged today. Open PeptideX to scan one.")
         }
@@ -124,6 +130,11 @@ private struct IntentDataSnapshot {
     let protocols: [PeptideProtocol]
     let entries: [ProtocolEntry]
     let todaysConsumption: DailyConsumption?
+    /// True when the user has opted into biometric lock. Intents that
+    /// expose health-adjacent data should bail with a generic "open
+    /// PeptideX" message in that case so a bystander on an unlocked
+    /// device can't bypass the lock via Siri.
+    let isLocked: Bool
 
     @MainActor
     static func load() -> IntentDataSnapshot {
@@ -133,12 +144,14 @@ private struct IntentDataSnapshot {
         let profile = PersistenceService.shared.loadProfile()
         let key = todayConsumptionKey()
         let consumption = profile?.dailyConsumption[key]
+        let locked = profile?.biometricLockEnabled ?? false
 
         if !protocols.isEmpty || !entries.isEmpty {
             return IntentDataSnapshot(
                 protocols: protocols,
                 entries: entries,
-                todaysConsumption: consumption
+                todaysConsumption: consumption,
+                isLocked: locked
             )
         }
 
@@ -147,7 +160,8 @@ private struct IntentDataSnapshot {
         return IntentDataSnapshot(
             protocols: persistence.loadProtocols() ?? [],
             entries: persistence.loadEntries() ?? [],
-            todaysConsumption: consumption
+            todaysConsumption: consumption,
+            isLocked: locked
         )
     }
 

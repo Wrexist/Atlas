@@ -557,13 +557,16 @@ struct OnboardingView: View {
             requesting: requestingHealth
         ) {
             requestingHealth = true
-            Task {
+            Task { @MainActor in
                 let granted = await HealthKitService.shared.requestAuthorization()
                 requestingHealth = false
                 if dataStore.profile.healthConnected != granted {
                     dataStore.profile.healthConnected = granted
                     dataStore.persistProfile()
                 }
+                // Guard against the user swiping past page 7 mid-request —
+                // we don't want to override their navigation when the
+                // permission sheet finally resolves.
                 if currentPage == 7 { advance(to: 8) }
             }
         } onSkip: {

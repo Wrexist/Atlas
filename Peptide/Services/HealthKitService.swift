@@ -46,7 +46,7 @@ final class HealthKitService {
             try await store.requestAuthorization(toShare: [], read: readTypes)
             return true
         } catch {
-            AppLog.healthKit.error("Authorization request failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.healthKit.error("Authorization request failed: \(error.localizedDescription, privacy: .private)")
             return false
         }
     }
@@ -120,7 +120,7 @@ final class HealthKitService {
             }
         } catch {
             // Routine on simulator and when the user denied authorization.
-            AppLog.healthKit.debug("enableBackgroundDelivery skipped for \(sampleType.identifier, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            AppLog.healthKit.debug("enableBackgroundDelivery skipped for \(sampleType.identifier, privacy: .public): \(error.localizedDescription, privacy: .private)")
             return
         }
 
@@ -128,7 +128,7 @@ final class HealthKitService {
             // Call immediately — our refresh runs in a separate Task per Apple's guidance
             completionHandler()
             if let error {
-                AppLog.healthKit.error("Observer query error: \(error.localizedDescription, privacy: .public)")
+                AppLog.healthKit.error("Observer query error: \(error.localizedDescription, privacy: .private)")
                 return
             }
             Task { @MainActor in
@@ -195,7 +195,7 @@ final class HealthKitService {
             guard let total = result?.sumQuantity()?.doubleValue(for: .count()) else { return nil }
             return total / Double(days)
         } catch {
-            AppLog.healthKit.error("averageSteps query failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.healthKit.error("averageSteps query failed: \(error.localizedDescription, privacy: .private)")
             return nil
         }
     }
@@ -225,7 +225,7 @@ final class HealthKitService {
             let totalSeconds = asleepSamples.reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
             return totalSeconds / 3600.0 / Double(days)
         } catch {
-            AppLog.healthKit.error("averageSleepHours query failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.healthKit.error("averageSleepHours query failed: \(error.localizedDescription, privacy: .private)")
             return nil
         }
     }
@@ -249,7 +249,7 @@ final class HealthKitService {
             let result = try await descriptor.result(for: store)
             return result?.averageQuantity()?.doubleValue(for: unit)
         } catch {
-            AppLog.healthKit.error("averageQuantity \(type.rawValue, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.healthKit.error("averageQuantity \(type.rawValue, privacy: .public) failed: \(error.localizedDescription, privacy: .private)")
             return nil
         }
     }
@@ -290,7 +290,7 @@ final class HealthKitService {
             }
             return buckets
         } catch {
-            AppLog.healthKit.error("dailyQuantity \(type.rawValue, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.healthKit.error("dailyQuantity \(type.rawValue, privacy: .public) failed: \(error.localizedDescription, privacy: .private)")
             return []
         }
     }
@@ -308,7 +308,7 @@ final class HealthKitService {
             let samples = try await descriptor.result(for: store)
             return samples.first?.quantity.doubleValue(for: unit)
         } catch {
-            AppLog.healthKit.error("latestQuantity \(type.rawValue, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.healthKit.error("latestQuantity \(type.rawValue, privacy: .public) failed: \(error.localizedDescription, privacy: .private)")
             return nil
         }
     }

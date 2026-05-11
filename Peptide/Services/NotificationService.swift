@@ -57,7 +57,7 @@ final class NotificationService {
         do {
             return try await center.requestAuthorization(options: [.alert, .sound, .badge])
         } catch {
-            AppLog.notifications.error("Authorization request failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.notifications.error("Authorization request failed: \(error.localizedDescription, privacy: .private)")
             return false
         }
     }
@@ -370,5 +370,14 @@ final class NotificationService {
 
     /// Hoisted out of the hot path — `ISO8601DateFormatter()` is heavy to
     /// allocate. Used only for stable identifier generation.
-    private static let isoDayFormatter = ISO8601DateFormatter()
+    /// Anchored to UTC so notification-request IDs stay stable across
+    /// DST flips and travel — letting the device timezone leak into the
+    /// ID string used to fall out of sync with the set-diff on
+    /// `pendingRequests`, leaving stale notifications scheduled.
+    private static let isoDayFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withTimeZone]
+        f.timeZone = TimeZone(identifier: "UTC")
+        return f
+    }()
 }

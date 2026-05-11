@@ -6,7 +6,13 @@ struct WatchEntry: Codable, Identifiable {
     let peptideName: String
     let abbreviation: String
     let dose: String
-    let scheduledTime: String
+    /// Wall-clock time the dose is scheduled for. Stored as a Date and
+    /// transported over the WatchConnectivity JSON pipeline using the
+    /// `.iso8601` encoding strategy on both ends, so display formatting
+    /// stays a UI concern instead of leaking locale assumptions into the
+    /// payload (which previously made `scheduledTime` unparseable for any
+    /// non-en_US user).
+    let scheduledTime: Date
     var completed: Bool
 }
 

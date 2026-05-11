@@ -75,16 +75,13 @@ struct WatchDoseProvider: TimelineProvider {
             )
         }
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
         let next = watchData.todayEntries.first { !$0.completed }
 
         return WatchDoseEntry(
             date: .now,
             nextPeptide: next?.abbreviation ?? "",
             nextDose: next?.dose ?? "",
-            nextDoseTime: next.flatMap { formatter.date(from: $0.scheduledTime) },
+            nextDoseTime: next?.scheduledTime,
             completedToday: watchData.completedToday,
             totalToday: watchData.totalToday
         )

@@ -168,7 +168,7 @@ final class AuthService {
                 AppLog.auth.info("Sign in with Apple: user canceled")
                 lastError = .canceled
             default:
-                AppLog.auth.error("Sign in with Apple failed: \(error.localizedDescription, privacy: .public)")
+                AppLog.auth.error("Sign in with Apple failed: \(error.localizedDescription, privacy: .private)")
                 lastError = .failed(error.localizedDescription)
             }
         }
@@ -230,7 +230,7 @@ final class AuthService {
                 AppLog.auth.error("Unknown credential state \(state.rawValue, privacy: .public); keeping session")
             }
         } catch {
-            AppLog.auth.error("credentialState lookup failed (keeping session): \(error.localizedDescription, privacy: .public)")
+            AppLog.auth.error("credentialState lookup failed (keeping session): \(error.localizedDescription, privacy: .private)")
         }
     }
 
@@ -259,7 +259,7 @@ final class AuthService {
         // Update-first upsert: avoids a window where the item is absent.
         let updateAttrs: [String: Any] = [
             kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
         ]
         let updateStatus = SecItemUpdate(query as CFDictionary, updateAttrs as CFDictionary)
         if updateStatus == errSecSuccess { return errSecSuccess }
@@ -267,7 +267,7 @@ final class AuthService {
 
         var addQuery = query
         addQuery[kSecValueData as String]      = data
-        addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         return SecItemAdd(addQuery as CFDictionary, nil)
     }
 
@@ -361,7 +361,7 @@ extension AppleSignInCoordinator: ASAuthorizationControllerDelegate {
         didCompleteWithError error: Error
     ) {
         MainActor.assumeIsolated {
-            AppLog.auth.info("ASAuthorizationController: didCompleteWithError \(error.localizedDescription, privacy: .public)")
+            AppLog.auth.info("ASAuthorizationController: didCompleteWithError \(error.localizedDescription, privacy: .private)")
             self.finish(.failure(error))
         }
     }
