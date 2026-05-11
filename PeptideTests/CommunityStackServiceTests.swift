@@ -35,7 +35,7 @@ final class CommunityStackServiceTests: XCTestCase {
 
     func testForkPreservesAttribution() {
         let stack = makeStack()
-        let service = CommunityStackService._forTesting(stacks: [stack])
+        let service = CommunityStackService.makeForTesting(stacks: [stack])
         let proto = service.forkToProtocol(stack)
 
         XCTAssertNotEqual(proto.id, stack.id, "Fork should mint a new protocol id")
@@ -53,7 +53,7 @@ final class CommunityStackServiceTests: XCTestCase {
         let featuredLow = makeStack(featured: true, popularity: 50)
         let regularHigh = makeStack(featured: false, popularity: 99)
         let regularMid = makeStack(featured: false, popularity: 70)
-        let service = CommunityStackService._forTesting(
+        let service = CommunityStackService.makeForTesting(
             stacks: [regularMid, regularHigh, featuredLow]
         )
 

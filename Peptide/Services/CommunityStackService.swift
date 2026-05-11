@@ -82,7 +82,7 @@ final class CommunityStackService {
     // MARK: - Test seam
 
     #if DEBUG
-    static func _forTesting(stacks: [CommunityStack]) -> CommunityStackService {
+    static func makeForTesting(stacks: [CommunityStack]) -> CommunityStackService {
         CommunityStackService(stacks: stacks)
     }
     #endif
