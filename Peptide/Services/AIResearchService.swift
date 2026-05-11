@@ -149,7 +149,7 @@ final class AIResearchService: Sendable {
             "content": newPrompt,
         ] as [String: Any])
 
-        var body: [String: Any] = [
+        let body: [String: Any] = [
             "model": model,
             "max_tokens": 800,
             "system": systemPrompt(ragContext: ragContext),
