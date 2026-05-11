@@ -14,8 +14,8 @@ struct ProfileCustomizationSheet: View {
 
     /// Maximum dimension for the stored avatar — anything larger is downscaled
     /// before JPEG-encoding to keep the profile JSON under a few hundred KB.
-    nonisolated private static let avatarMaxDimension: CGFloat = 1024
-    nonisolated private static let avatarJPEGQuality: CGFloat = 0.82
+    private static let avatarMaxDimension: CGFloat = 1024
+    private static let avatarJPEGQuality: CGFloat = 0.82
     private static let bioCharacterLimit = 280
 
     private static let availableGoals = [
