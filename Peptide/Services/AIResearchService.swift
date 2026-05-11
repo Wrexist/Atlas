@@ -12,7 +12,7 @@ import Foundation
 /// dosage range, mechanism, contraindications, and citations into the
 /// system prompt. That gives Claude grounded context without us
 /// having to pull in an embedding stack.
-final class AIResearchService {
+final class AIResearchService: Sendable {
     static let shared = AIResearchService()
 
     private let session: URLSession = .shared

@@ -12,7 +12,7 @@ import UIKit
 /// it. The right long-term home is a server-side proxy that holds the
 /// key and signs/forwards requests. This direct-call path is a bridge
 /// so the meal-scanner UX is real today; replace before public release.
-final class MealScannerService {
+final class MealScannerService: Sendable {
     static let shared = MealScannerService()
 
     private let session: URLSession = .shared
