@@ -1,4 +1,6 @@
 import Foundation
+
+#if canImport(ActivityKit)
 import ActivityKit
 
 /// ActivityAttributes describing the lock-screen + Dynamic Island dose
@@ -57,3 +59,4 @@ struct DoseWindowAttributes: ActivityAttributes {
         self.tintHex = tintHex
     }
 }
+#endif
