@@ -216,11 +216,17 @@ struct PeptideShortcuts: AppShortcutsProvider {
             shortTitle: "Log Dose",
             systemImageName: "checkmark.circle.fill"
         )
+        // Phrases for this intent intentionally don't interpolate the
+        // `peptideName` parameter — AppShortcut phrase interpolation
+        // requires the parameter type to be AppEntity or AppEnum, but
+        // peptideName is a free-form String so users can match against
+        // both the bundled database and custom peptides. Siri will
+        // prompt the user for the peptide on invocation instead.
         AppShortcut(
             intent: LogSpecificPeptideIntent(),
             phrases: [
-                "Log my \(\.$peptideName) in \(.applicationName)",
-                "Take \(\.$peptideName) in \(.applicationName)",
+                "Log a peptide in \(.applicationName)",
+                "Take a peptide in \(.applicationName)",
             ],
             shortTitle: "Log Specific Peptide",
             systemImageName: "syringe"
