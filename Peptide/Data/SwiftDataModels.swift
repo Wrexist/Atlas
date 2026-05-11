@@ -265,7 +265,7 @@ final class StoredProfile {
     static func make(from profile: UserProfile) throws -> StoredProfile {
         let goalsData = try sdEncoder.encode(profile.goals)
         let metricsData = try sdEncoder.encode(profile.bodyMetrics)
-        let extData = try sdEncoder.encode(ProfileExtension(from: profile))
+        let extData = try sdEncoder.encode(ProfileExtension.snapshot(of: profile))
         return StoredProfile(
             name: profile.name,
             memberSince: profile.memberSince,
@@ -294,7 +294,7 @@ final class StoredProfile {
         avatarImageData = profile.avatarImageData
         bio = profile.bio.isEmpty ? nil : profile.bio
         primaryGoal = profile.primaryGoal
-        extensionData = try sdEncoder.encode(ProfileExtension(from: profile))
+        extensionData = try sdEncoder.encode(ProfileExtension.snapshot(of: profile))
     }
 
     func toUserProfile() throws -> UserProfile {
@@ -339,45 +339,24 @@ final class StoredProfile {
 /// Sidecar blob persisted on `StoredProfile.extensionData`. Holds the
 /// long-tail Lifestyle / onboarding fields so we can add new ones without
 /// migrating the SwiftData schema each time.
+///
+/// All fields default to nil / empty so a freshly-introduced blob that
+/// omits a future field still decodes against an older build (Swift's
+/// synthesized `init(from:)` skips missing keys when the property has a
+/// default value).
 private struct ProfileExtension: Codable {
-    var nutritionTargets: NutritionTargets?
-    var creatorAttribution: CreatorAttribution?
-    var emailSubscription: EmailSubscription?
-    var weightHistory: [WeightEntry]
-    var progressPhotoFilenames: [String]
-    var dailyConsumption: [String: DailyConsumption]
-    var workoutHistory: [WorkoutEntry]
+    var nutritionTargets: NutritionTargets? = nil
+    var creatorAttribution: CreatorAttribution? = nil
+    var emailSubscription: EmailSubscription? = nil
+    var weightHistory: [WeightEntry] = []
+    var progressPhotoFilenames: [String] = []
+    var dailyConsumption: [String: DailyConsumption] = [:]
+    var workoutHistory: [WorkoutEntry] = []
 
-    static let empty = ProfileExtension(
-        nutritionTargets: nil,
-        creatorAttribution: nil,
-        emailSubscription: nil,
-        weightHistory: [],
-        progressPhotoFilenames: [],
-        dailyConsumption: [:],
-        workoutHistory: []
-    )
+    static let empty = ProfileExtension()
 
-    init(
-        nutritionTargets: NutritionTargets?,
-        creatorAttribution: CreatorAttribution?,
-        emailSubscription: EmailSubscription?,
-        weightHistory: [WeightEntry],
-        progressPhotoFilenames: [String],
-        dailyConsumption: [String: DailyConsumption],
-        workoutHistory: [WorkoutEntry]
-    ) {
-        self.nutritionTargets = nutritionTargets
-        self.creatorAttribution = creatorAttribution
-        self.emailSubscription = emailSubscription
-        self.weightHistory = weightHistory
-        self.progressPhotoFilenames = progressPhotoFilenames
-        self.dailyConsumption = dailyConsumption
-        self.workoutHistory = workoutHistory
-    }
-
-    init(from profile: UserProfile) {
-        self.init(
+    static func snapshot(of profile: UserProfile) -> ProfileExtension {
+        ProfileExtension(
             nutritionTargets: profile.nutritionTargets,
             creatorAttribution: profile.creatorAttribution,
             emailSubscription: profile.emailSubscription,
@@ -386,18 +365,5 @@ private struct ProfileExtension: Codable {
             dailyConsumption: profile.dailyConsumption,
             workoutHistory: profile.workoutHistory
         )
-    }
-
-    // Every member is decode-if-present so a freshly-introduced blob that
-    // omits a future field still decodes against an older build.
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        nutritionTargets = try c.decodeIfPresent(NutritionTargets.self, forKey: .nutritionTargets)
-        creatorAttribution = try c.decodeIfPresent(CreatorAttribution.self, forKey: .creatorAttribution)
-        emailSubscription = try c.decodeIfPresent(EmailSubscription.self, forKey: .emailSubscription)
-        weightHistory = try c.decodeIfPresent([WeightEntry].self, forKey: .weightHistory) ?? []
-        progressPhotoFilenames = try c.decodeIfPresent([String].self, forKey: .progressPhotoFilenames) ?? []
-        dailyConsumption = try c.decodeIfPresent([String: DailyConsumption].self, forKey: .dailyConsumption) ?? [:]
-        workoutHistory = try c.decodeIfPresent([WorkoutEntry].self, forKey: .workoutHistory) ?? []
     }
 }
