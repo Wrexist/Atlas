@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       marketing_version:
-        description: 'Marketing version, e.g. 1.0.1. Leave blank to use project.yml (currently 1.0.0).'
+        description: 'Marketing version, e.g. 1.0.5. Leave blank to auto-generate 1.0.<run_number> so every upload is unique.'
         required: false
         type: string
         default: ''
@@ -39,13 +39,20 @@ jobs:
       - name: Trust GitHub SSH host key
         run: ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-      - name: Override marketing version in project.yml (only when input is set)
-        if: github.event.inputs.marketing_version != ''
+      - name: Resolve marketing version (input or auto 1.0.<run_number>)
         env:
-          NEW_VERSION: ${{ github.event.inputs.marketing_version }}
+          INPUT_VERSION: ${{ github.event.inputs.marketing_version }}
+          BUILD: ${{ github.run_number }}
         run: |
+          if [ -z "$INPUT_VERSION" ]; then
+            NEW_VERSION="1.0.$BUILD"
+            echo "No marketing_version input — defaulting to $NEW_VERSION so the build is unique."
+          else
+            NEW_VERSION="$INPUT_VERSION"
+            echo "Using marketing_version input: $NEW_VERSION"
+          fi
           sed -i '' "s/MARKETING_VERSION: \"[^\"]*\"/MARKETING_VERSION: \"$NEW_VERSION\"/g" project.yml
-          echo "Set MARKETING_VERSION to $NEW_VERSION in project.yml:"
+          echo "MARKETING_VERSION lines after override:"
           grep MARKETING_VERSION project.yml
 
       - name: Sync CURRENT_PROJECT_VERSION across all targets to run_number
@@ -97,6 +104,31 @@ jobs:
                 || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD" "$PLIST"
             fi
           done
+
+      - name: Inject AI proxy endpoints + secrets into Info.plist
+        env:
+          MEAL_SCANNER_ENDPOINT: ${{ secrets.MEAL_SCANNER_ENDPOINT }}
+          MEAL_SCANNER_SECRET:   ${{ secrets.MEAL_SCANNER_SECRET }}
+          AI_RESEARCH_ENDPOINT:  ${{ secrets.AI_RESEARCH_ENDPOINT }}
+          AI_RESEARCH_SECRET:    ${{ secrets.AI_RESEARCH_SECRET }}
+        run: |
+          PLIST=Peptide/Resources/Info.plist
+          # Fail loudly rather than ship a build with the AI features
+          # silently disabled — a missing secret here means GitHub repo
+          # secrets weren't configured. Fix the secrets, re-run the
+          # workflow.
+          for VAR in MEAL_SCANNER_ENDPOINT MEAL_SCANNER_SECRET AI_RESEARCH_ENDPOINT AI_RESEARCH_SECRET; do
+            if [ -z "${!VAR}" ]; then
+              echo "::error::Repository secret $VAR is empty or missing. Add it under Settings → Secrets and variables → Actions."
+              exit 1
+            fi
+          done
+          for KEY in MEAL_SCANNER_ENDPOINT MEAL_SCANNER_SECRET AI_RESEARCH_ENDPOINT AI_RESEARCH_SECRET; do
+            VALUE="${!KEY}"
+            /usr/libexec/PlistBuddy -c "Set :$KEY $VALUE" "$PLIST" 2>/dev/null \
+              || /usr/libexec/PlistBuddy -c "Add :$KEY string $VALUE" "$PLIST"
+          done
+          echo "Info.plist now declares the AI proxy keys (values hidden)."
 
       - name: Deploy to TestFlight
         env:

@@ -122,7 +122,7 @@ struct CommunityStackDetailView: View {
 
     private var cardPreview: some View {
         VStack(spacing: Spacing.sm) {
-            CycleCardView(proto: previewProtocol, showsQR: false)
+            CycleCardView(model: CycleCardModel.forProtocol(previewProtocol, in: dataStore))
                 .frame(
                     width: ShareCardRenderer.canvasSize.width,
                     height: ShareCardRenderer.canvasSize.height

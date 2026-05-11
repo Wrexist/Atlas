@@ -10,6 +10,7 @@ struct NextDoseIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let snapshot = await IntentDataSnapshot.load()
+        if snapshot.isLocked { return .result(dialog: "Open PeptideX to view your next dose.") }
         guard !snapshot.protocols.isEmpty else {
             return .result(dialog: "No protocols found. Open PeptideX to get started.")
         }
@@ -39,10 +40,14 @@ struct ComplianceIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let snapshot = await IntentDataSnapshot.load()
+        if snapshot.isLocked { return .result(dialog: "Open PeptideX to view your compliance.") }
         let calendar = Calendar.current
+        guard let cutoff = calendar.date(byAdding: .day, value: -7, to: Date()) else {
+            return .result(dialog: "Couldn't compute the compliance window.")
+        }
+        let activeIds = Set(snapshot.protocols.filter { $0.status == .active }.map(\.id))
         let last7Days = snapshot.entries.filter {
-            guard let cutoff = calendar.date(byAdding: .day, value: -7, to: Date()) else { return false }
-            return $0.date >= cutoff
+            $0.date >= cutoff && activeIds.contains($0.protocolId)
         }
         guard !last7Days.isEmpty else {
             return .result(dialog: "No recent data. Start logging doses in PeptideX.")
@@ -106,6 +111,7 @@ struct TodayMacrosIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let snapshot = await IntentDataSnapshot.load()
+        if snapshot.isLocked { return .result(dialog: "Open PeptideX to view today's macros.") }
         guard let consumption = snapshot.todaysConsumption else {
             return .result(dialog: "No meals logged today. Open PeptideX to scan one.")
         }
@@ -124,21 +130,34 @@ private struct IntentDataSnapshot {
     let protocols: [PeptideProtocol]
     let entries: [ProtocolEntry]
     let todaysConsumption: DailyConsumption?
+    /// True when the user has opted into biometric lock. Intents that
+    /// expose health-adjacent data should bail with a generic "open
+    /// PeptideX" message in that case so a bystander on an unlocked
+    /// device can't bypass the lock via Siri.
+    let isLocked: Bool
 
     @MainActor
     static func load() -> IntentDataSnapshot {
         let repo = SwiftDataRepository.shared
         let protocols = repo.loadProtocols()
         let entries = repo.loadEntries()
-        let profile = PersistenceService.shared.loadProfile()
+        // Read profile from SwiftData first — that's the live source of
+        // truth post-migration. The legacy JSON via PersistenceService
+        // may be stale or missing, which (per Codex review on PR #104)
+        // could leave `locked = false` even with biometric lock enabled.
+        let swiftDataProfile = repo.loadProfile()
+        let legacyProfile = PersistenceService.shared.loadProfile()
+        let profile = swiftDataProfile ?? legacyProfile
         let key = todayConsumptionKey()
         let consumption = profile?.dailyConsumption[key]
+        let locked = profile?.biometricLockEnabled ?? false
 
         if !protocols.isEmpty || !entries.isEmpty {
             return IntentDataSnapshot(
                 protocols: protocols,
                 entries: entries,
-                todaysConsumption: consumption
+                todaysConsumption: consumption,
+                isLocked: locked
             )
         }
 
@@ -147,7 +166,8 @@ private struct IntentDataSnapshot {
         return IntentDataSnapshot(
             protocols: persistence.loadProtocols() ?? [],
             entries: persistence.loadEntries() ?? [],
-            todaysConsumption: consumption
+            todaysConsumption: consumption,
+            isLocked: locked
         )
     }
 
@@ -196,11 +216,17 @@ struct PeptideShortcuts: AppShortcutsProvider {
             shortTitle: "Log Dose",
             systemImageName: "checkmark.circle.fill"
         )
+        // Phrases for this intent intentionally don't interpolate the
+        // `peptideName` parameter — AppShortcut phrase interpolation
+        // requires the parameter type to be AppEntity or AppEnum, but
+        // peptideName is a free-form String so users can match against
+        // both the bundled database and custom peptides. Siri will
+        // prompt the user for the peptide on invocation instead.
         AppShortcut(
             intent: LogSpecificPeptideIntent(),
             phrases: [
-                "Log my \(\.$peptideName) in \(.applicationName)",
-                "Take \(\.$peptideName) in \(.applicationName)",
+                "Log a peptide in \(.applicationName)",
+                "Take a peptide in \(.applicationName)",
             ],
             shortTitle: "Log Specific Peptide",
             systemImageName: "syringe"

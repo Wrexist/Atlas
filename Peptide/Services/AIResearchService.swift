@@ -1,10 +1,10 @@
 import Foundation
 
-/// Chat-style research assistant backed by Anthropic's Messages API.
-/// Reuses the same `MEAL_SCANNER_ENDPOINT` + `ANTHROPIC_API_KEY`
-/// resolution path as `MealScannerService` so a single proxy
-/// deployment serves both surfaces; in production the iOS client
-/// never sees the API key.
+/// Chat-style research assistant backed by Anthropic's Messages API
+/// via PeptideX's server proxy. The direct-Anthropic fallback was
+/// removed — production builds must point `AI_RESEARCH_ENDPOINT` at a
+/// configured proxy. The proxy holds the API key so the iOS client
+/// never sees it.
 ///
 /// RAG strategy: rather than ship a vector store, we substring-match
 /// the user's question against the bundled peptide database (208
@@ -18,16 +18,15 @@ final class AIResearchService: Sendable {
     private let session: URLSession = .shared
     private let model = "claude-sonnet-4-6"
     private let apiVersion = "2023-06-01"
-    private static let defaultEndpoint = URL(string: "https://api.anthropic.com/v1/messages")!
 
     enum ChatError: Error, LocalizedError {
-        case missingKey
+        case missingEndpoint
         case requestFailed(String)
         case invalidResponse
 
         var errorDescription: String? {
             switch self {
-            case .missingKey:           "Missing ANTHROPIC_API_KEY — add it to Secrets.xcconfig and rebuild, or point AI_RESEARCH_ENDPOINT at a configured proxy."
+            case .missingEndpoint:      "AI research is unavailable in this build. Configure AI_RESEARCH_ENDPOINT."
             case .requestFailed(let m): m
             case .invalidResponse:      "Claude returned an unexpected response shape."
             }
@@ -60,7 +59,7 @@ final class AIResearchService: Sendable {
         newUserPrompt prompt: String,
         in database: [Peptide]
     ) async throws -> String {
-        guard let key = apiKey, !key.isEmpty else { throw ChatError.missingKey }
+        guard let endpoint else { throw ChatError.missingEndpoint }
 
         let context = ragContext(for: prompt, history: history, in: database)
 
@@ -69,7 +68,9 @@ final class AIResearchService: Sendable {
         request.timeoutInterval = 60
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiVersion, forHTTPHeaderField: "anthropic-version")
-        request.setValue(key, forHTTPHeaderField: "x-api-key")
+        if let proxySecret {
+            request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
+        }
         request.httpBody = try JSONSerialization.data(
             withJSONObject: payload(history: history, newPrompt: prompt, ragContext: context),
             options: []
@@ -78,8 +79,7 @@ final class AIResearchService: Sendable {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw ChatError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            throw ChatError.requestFailed("HTTP \(http.statusCode): \(body)")
+            throw ChatError.requestFailed("HTTP \(http.statusCode)")
         }
 
         return try parseAssistantText(from: data)
@@ -188,9 +188,9 @@ final class AIResearchService: Sendable {
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    // MARK: - Endpoint + key resolution
+    // MARK: - Endpoint + proxy auth
 
-    private var endpoint: URL {
+    private var endpoint: URL? {
         if let bundleValue = Bundle.main.object(forInfoDictionaryKey: "AI_RESEARCH_ENDPOINT") as? String,
            let url = URL(string: bundleValue.trimmingCharacters(in: .whitespacesAndNewlines)),
            !bundleValue.isEmpty {
@@ -201,15 +201,15 @@ final class AIResearchService: Sendable {
            !envValue.isEmpty {
             return url
         }
-        return Self.defaultEndpoint
+        return nil
     }
 
-    private var apiKey: String? {
-        if let bundleValue = Bundle.main.object(forInfoDictionaryKey: "ANTHROPIC_API_KEY") as? String {
+    private var proxySecret: String? {
+        if let bundleValue = Bundle.main.object(forInfoDictionaryKey: "AI_RESEARCH_SECRET") as? String {
             let trimmed = bundleValue.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty { return trimmed }
         }
-        if let envValue = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] {
+        if let envValue = ProcessInfo.processInfo.environment["AI_RESEARCH_SECRET"] {
             let trimmed = envValue.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty { return trimmed }
         }

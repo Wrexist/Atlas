@@ -16,10 +16,19 @@ struct CalendarHeatmap: View {
 
     private var heatmapData: [(date: Date, intensity: Double)] {
         let calendar = Calendar.current
+        // Group entries by start-of-day in one pass so the per-day lookup
+        // below is O(1). The original `entries.filter` per day produced
+        // O(days × entries) work on every body re-evaluation.
+        let grouped: [Date: [ProtocolEntry]] = Dictionary(grouping: entries) {
+            calendar.startOfDay(for: $0.date)
+        }
+        let now = Date()
         return (0..<days).compactMap { offset in
-            guard let date = calendar.date(byAdding: .day, value: -offset, to: Date()) else { return nil }
-            let dayEntries = entries.filter { calendar.isDate($0.date, inSameDayAs: date) }
-            guard !dayEntries.isEmpty else { return (date: date, intensity: 0) }
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: now) else { return nil }
+            let key = calendar.startOfDay(for: date)
+            guard let dayEntries = grouped[key], !dayEntries.isEmpty else {
+                return (date: date, intensity: 0)
+            }
             let compliance = Double(dayEntries.filter(\.completed).count) / Double(dayEntries.count)
             return (date: date, intensity: compliance)
         }.reversed()

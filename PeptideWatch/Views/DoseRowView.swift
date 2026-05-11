@@ -24,7 +24,7 @@ struct DoseRowView: View {
 
                 Spacer()
 
-                Text(entry.scheduledTime)
+                Text(entry.scheduledTime, format: .dateTime.hour().minute())
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }

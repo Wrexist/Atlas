@@ -247,7 +247,7 @@ struct ProfileCustomizationSheet: View {
 
     @ViewBuilder
     private var photoSourceButtons: some View {
-        if UIImagePickerController.cameraIsAvailable {
+        if UIImagePickerController.isSourceTypeAvailable(.camera) {
             Button("Take Photo") { isShowingCamera = true }
         }
         Button("Choose from Library") { isShowingLibrary = true }

@@ -233,6 +233,12 @@ final class StoredProfile {
     var avatarImageData: Data?
     var bio: String?
     var primaryGoal: String?
+    /// JSON-encoded `ProfileExtension` carrying the long-tail Lifestyle/
+    /// onboarding fields that don't warrant their own columns (nutrition
+    /// targets, weight + workout history, daily consumption buckets, etc.).
+    /// Optional so existing rows decode cleanly — `toUserProfile` falls
+    /// back to empty collections on a missing/legacy blob.
+    var extensionData: Data?
 
     init(name: String, memberSince: Date, healthConnected: Bool,
          hapticFeedbackEnabled: Bool, doseRemindersEnabled: Bool,
@@ -240,7 +246,8 @@ final class StoredProfile {
          bodyMetricsData: Data? = nil,
          avatarImageData: Data? = nil,
          bio: String? = nil,
-         primaryGoal: String? = nil) {
+         primaryGoal: String? = nil,
+         extensionData: Data? = nil) {
         self.name = name
         self.memberSince = memberSince
         self.healthConnected = healthConnected
@@ -252,11 +259,13 @@ final class StoredProfile {
         self.avatarImageData = avatarImageData
         self.bio = bio
         self.primaryGoal = primaryGoal
+        self.extensionData = extensionData
     }
 
     static func make(from profile: UserProfile) throws -> StoredProfile {
         let goalsData = try sdEncoder.encode(profile.goals)
         let metricsData = try sdEncoder.encode(profile.bodyMetrics)
+        let extData = try sdEncoder.encode(ProfileExtension.snapshot(of: profile))
         return StoredProfile(
             name: profile.name,
             memberSince: profile.memberSince,
@@ -268,7 +277,8 @@ final class StoredProfile {
             bodyMetricsData: metricsData,
             avatarImageData: profile.avatarImageData,
             bio: profile.bio.isEmpty ? nil : profile.bio,
-            primaryGoal: profile.primaryGoal
+            primaryGoal: profile.primaryGoal,
+            extensionData: extData
         )
     }
 
@@ -284,6 +294,7 @@ final class StoredProfile {
         avatarImageData = profile.avatarImageData
         bio = profile.bio.isEmpty ? nil : profile.bio
         primaryGoal = profile.primaryGoal
+        extensionData = try sdEncoder.encode(ProfileExtension.snapshot(of: profile))
     }
 
     func toUserProfile() throws -> UserProfile {
@@ -295,6 +306,13 @@ final class StoredProfile {
         } else {
             metrics = .unspecified
         }
+        let ext: ProfileExtension
+        if let data = extensionData,
+           let decoded = try? sdDecoder.decode(ProfileExtension.self, from: data) {
+            ext = decoded
+        } else {
+            ext = .empty
+        }
         return UserProfile(
             name: name,
             goals: goals,
@@ -304,9 +322,48 @@ final class StoredProfile {
             doseRemindersEnabled: doseRemindersEnabled,
             biometricLockEnabled: biometricLockEnabled,
             bodyMetrics: metrics,
+            nutritionTargets: ext.nutritionTargets,
+            creatorAttribution: ext.creatorAttribution,
+            emailSubscription: ext.emailSubscription,
+            weightHistory: ext.weightHistory,
+            progressPhotoFilenames: ext.progressPhotoFilenames,
+            dailyConsumption: ext.dailyConsumption,
+            workoutHistory: ext.workoutHistory,
             avatarImageData: avatarImageData,
             bio: bio ?? "",
             primaryGoal: primaryGoal
+        )
+    }
+}
+
+/// Sidecar blob persisted on `StoredProfile.extensionData`. Holds the
+/// long-tail Lifestyle / onboarding fields so we can add new ones without
+/// migrating the SwiftData schema each time.
+///
+/// All fields default to nil / empty so a freshly-introduced blob that
+/// omits a future field still decodes against an older build (Swift's
+/// synthesized `init(from:)` skips missing keys when the property has a
+/// default value).
+private struct ProfileExtension: Codable {
+    var nutritionTargets: NutritionTargets? = nil
+    var creatorAttribution: CreatorAttribution? = nil
+    var emailSubscription: EmailSubscription? = nil
+    var weightHistory: [WeightEntry] = []
+    var progressPhotoFilenames: [String] = []
+    var dailyConsumption: [String: DailyConsumption] = [:]
+    var workoutHistory: [WorkoutEntry] = []
+
+    static let empty = ProfileExtension()
+
+    static func snapshot(of profile: UserProfile) -> ProfileExtension {
+        ProfileExtension(
+            nutritionTargets: profile.nutritionTargets,
+            creatorAttribution: profile.creatorAttribution,
+            emailSubscription: profile.emailSubscription,
+            weightHistory: profile.weightHistory,
+            progressPhotoFilenames: profile.progressPhotoFilenames,
+            dailyConsumption: profile.dailyConsumption,
+            workoutHistory: profile.workoutHistory
         )
     }
 }

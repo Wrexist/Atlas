@@ -7,15 +7,21 @@ final class CycleMilestoneServiceTests: XCTestCase {
     private var defaults: UserDefaults!
     private var service: CycleMilestoneService!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         // Each test gets a fresh, isolated UserDefaults suite so the
         // suppression state can't leak across runs or contaminate the
         // shared CycleMilestoneService.shared singleton.
+        //
+        // Use `async` setUp so the override is MainActor-isolated end
+        // to end. Without that, Swift 6 sees the override as inheriting
+        // XCTestCase.setUp's nonisolated context and refuses to "send"
+        // the UserDefaults into the @MainActor service init below.
         let suiteName = "test.cycle.milestone.\(UUID().uuidString)"
-        defaults = UserDefaults(suiteName: suiteName)
-        defaults.removePersistentDomain(forName: suiteName)
-        service = CycleMilestoneService(defaults: defaults, calendar: .current)
+        let testDefaults = UserDefaults(suiteName: suiteName) ?? .standard
+        testDefaults.removePersistentDomain(forName: suiteName)
+        defaults = testDefaults
+        service = CycleMilestoneService(defaults: testDefaults, calendar: .current)
     }
 
     override func tearDown() {

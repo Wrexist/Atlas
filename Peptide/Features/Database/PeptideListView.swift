@@ -26,11 +26,14 @@ struct PeptideListView: View {
         // pushes when the row tap only sets a selection binding (Codex
         // review on PR #99 caught this; iPhone users were stranded on the
         // list with no way into the detail).
-        if sizeClass == .regular {
-            iPadSplitLayout
-        } else {
-            iPhoneStackLayout
+        Group {
+            if sizeClass == .regular {
+                iPadSplitLayout
+            } else {
+                iPhoneStackLayout
+            }
         }
+        .onAppear { refreshPeptides() }
     }
 
     // MARK: - iPad split layout
@@ -56,7 +59,6 @@ struct PeptideListView: View {
                         .environment(dataStore)
                         .liquidGlassPresentation()
                 }
-                .onAppear { refreshPeptides() }
         } detail: {
             NavigationStack {
                 if let selectedPeptide {
@@ -102,7 +104,6 @@ struct PeptideListView: View {
                         .environment(dataStore)
                         .liquidGlassPresentation()
                 }
-                .onAppear { refreshPeptides() }
         }
     }
 

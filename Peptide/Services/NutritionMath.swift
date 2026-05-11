@@ -23,9 +23,9 @@ enum NutritionMath {
     static let fiberDefaultG: Int = 30
 
     /// Calories per gram of each macronutrient.
-    private static let kcalPerG_protein: Double = 4
-    private static let kcalPerG_carbs:   Double = 4
-    private static let kcalPerG_fat:     Double = 9
+    private static let kcalPerGramProtein: Double = 4
+    private static let kcalPerGramCarbs: Double = 4
+    private static let kcalPerGramFat: Double = 9
 
     /// Returns nil when any input the formula needs is missing or the values
     /// are out of a sane range. Callers should treat nil as "show
@@ -44,10 +44,10 @@ enum NutritionMath {
 
         let proteinG = weightKg * proteinPerKg
         let fatCalories = tdee * fatCalorieFraction
-        let fatG = fatCalories / kcalPerG_fat
-        let proteinCalories = proteinG * kcalPerG_protein
+        let fatG = fatCalories / kcalPerGramFat
+        let proteinCalories = proteinG * kcalPerGramProtein
         let carbCalories = max(0, tdee - proteinCalories - fatCalories)
-        let carbsG = carbCalories / kcalPerG_carbs
+        let carbsG = carbCalories / kcalPerGramCarbs
 
         return NutritionTargets(
             calories: Int(tdee.rounded()),

@@ -597,7 +597,7 @@ struct ProtocolBuilderView: View {
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
-                CycleCardView(proto: previewProtocol, showsQR: false)
+                CycleCardView(model: CycleCardModel.forProtocol(previewProtocol, in: dataStore))
                     .frame(
                         width: ShareCardRenderer.canvasSize.width,
                         height: ShareCardRenderer.canvasSize.height
@@ -680,17 +680,10 @@ struct ProtocolBuilderView: View {
         let peptides = orderedSelectedPeptides
         guard !peptides.isEmpty else { return }
 
-        let times: [String]
-        if timesPerDay == proto.schedule.timesPerDay {
-            times = proto.schedule.preferredTimes
-        } else {
-            times = generateDefaultTimes(count: timesPerDay)
-        }
-
         let updatedSchedule = ProtocolSchedule(
             daysOfWeek: cadenceMode == .weekly ? selectedDays.sorted() : [1, 2, 3, 4, 5, 6, 7],
             timesPerDay: timesPerDay,
-            preferredTimes: times,
+            preferredTimes: resolvedTimes,
             intervalDays: cadenceMode == .interval ? intervalDays : nil,
             intervalAnchor: cadenceMode == .interval ? intervalAnchor : nil
         )

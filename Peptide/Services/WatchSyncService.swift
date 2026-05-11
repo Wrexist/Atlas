@@ -46,16 +46,13 @@ final class WatchSyncService: NSObject {
 
         let watchEntries = todayEntries.compactMap { entry -> WatchEntry? in
             guard protocols.contains(where: { $0.id == entry.protocolId }) else { return nil }
-            let time = entry.actualTime.map {
-                $0.formatted(.dateTime.hour().minute())
-            } ?? entry.date.formatted(.dateTime.hour().minute())
             return WatchEntry(
                 id: entry.id,
                 protocolId: entry.protocolId,
                 peptideName: entry.peptide.name,
                 abbreviation: entry.peptide.abbreviation,
                 dose: entry.actualDose ?? entry.dose,
-                scheduledTime: time,
+                scheduledTime: entry.actualTime ?? entry.date,
                 completed: entry.completed
             )
         }
@@ -91,7 +88,14 @@ final class WatchSyncService: NSObject {
             let encoded = try encoder.encode(data)
             guard let dict = try JSONSerialization.jsonObject(with: encoded) as? [String: Any] else { return }
             if WCSession.default.isReachable {
-                WCSession.default.sendMessage(["watchData": dict], replyHandler: nil)
+                WCSession.default.sendMessage(
+                    ["watchData": dict],
+                    replyHandler: nil,
+                    errorHandler: { error in
+                        AppLog.persistence.error("WatchSyncService: sendMessage failed, falling back to applicationContext: \(error.localizedDescription, privacy: .public)")
+                        try? WCSession.default.updateApplicationContext(["watchData": dict])
+                    }
+                )
             } else {
                 try? WCSession.default.updateApplicationContext(["watchData": dict])
             }
