@@ -17,7 +17,7 @@ struct PeptideWatchApp: App {
                     .environmentObject(watchStore)
             }
             .tabViewStyle(.page)
-            .indexViewStyle(.page(backgroundDisplayMode: .interactive))
+            .indexViewStyle(.page(backgroundDisplayMode: .always))
         }
     }
 }
