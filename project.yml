@@ -1,3 +1,24 @@
+# Auto-version contract (see .github/workflows/ios-testflight.yml):
+#
+# Every shipping target MUST declare these four keys so the TestFlight
+# pipeline can stamp a fresh `1.0.<run_number>` (or a manual override)
+# across the whole archive:
+#
+#   settings.base:
+#     MARKETING_VERSION: "1.0.X"          # rewritten by the workflow
+#     CURRENT_PROJECT_VERSION: "X"        # rewritten to run_number
+#
+#   info.properties (only for targets with a custom Info.plist):
+#     CFBundleShortVersionString: $(MARKETING_VERSION)
+#     CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+#
+#   For targets with GENERATE_INFOPLIST_FILE: YES, set the same values
+#   via INFOPLIST_KEY_CFBundleShortVersionString /
+#   INFOPLIST_KEY_CFBundleVersion in settings.base instead.
+#
+# Missing any of these on a sub-bundle is what got us "train 1.0
+# closed" rejections from App Store Connect — Apple will reject the
+# entire upload if a single embedded extension's version is stale.
 name: Peptide
 options:
   bundleIdPrefix: com.peptidesai
