@@ -597,7 +597,7 @@ struct ProtocolBuilderView: View {
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
-                CycleCardView(proto: previewProtocol, showsQR: false)
+                CycleCardView(model: CycleCardModel.forProtocol(previewProtocol, in: dataStore))
                     .frame(
                         width: ShareCardRenderer.canvasSize.width,
                         height: ShareCardRenderer.canvasSize.height
