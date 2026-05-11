@@ -31,7 +31,7 @@ struct DoseWindowLiveActivity: Widget {
                         .foregroundStyle(Color(hex: context.attributes.tintHex))
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text(timerText(for: context.state))
+                    timerText(for: context.state)
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(.white)
@@ -56,7 +56,7 @@ struct DoseWindowLiveActivity: Widget {
                 Image(systemName: "syringe.fill")
                     .foregroundStyle(Color(hex: context.attributes.tintHex))
             } compactTrailing: {
-                Text(timerText(for: context.state))
+                timerText(for: context.state)
                     .font(.system(size: 13, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(.white)
