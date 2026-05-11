@@ -97,7 +97,10 @@ final class DoseLiveActivityService {
                 return // cancelled — leave the activity for reconcile to clean up
             }
             await activity.end(nil, dismissalPolicy: .immediate)
-            await MainActor.run { self?.dismissTasks.removeValue(forKey: entryId) }
+            await MainActor.run {
+                self?.dismissTasks.removeValue(forKey: entryId)
+                return ()
+            }
         }
     }
 

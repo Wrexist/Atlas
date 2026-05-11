@@ -140,17 +140,22 @@ struct ThemeChoicePage: View {
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
-    @ViewBuilder
-    private func pillFill(for themeColor: AppThemeColor) -> some ShapeStyle {
+    // ShapeStyle isn't ViewBuilder-buildable — the if/else branches produce
+    // distinct concrete types (LinearGradient vs Color), and Swift 6 no
+    // longer auto-wraps them into a conforming opaque return. Erase to
+    // AnyShapeStyle at the boundary so callers stay generic.
+    private func pillFill(for themeColor: AppThemeColor) -> AnyShapeStyle {
         switch themeColor {
         case .purpleGradient:
-            LinearGradient(
-                colors: [themeColor.primary, themeColor.light],
-                startPoint: .leading,
-                endPoint: .trailing
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [themeColor.primary, themeColor.light],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
             )
         default:
-            themeColor.primary
+            return AnyShapeStyle(themeColor.primary)
         }
     }
 
