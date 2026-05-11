@@ -107,7 +107,7 @@ extension WatchStore: WCSessionDelegate {
     /// Phone encodes `lastUpdated` as ISO-8601, so the receive-side decoder
     /// must match — a default `JSONDecoder()` expects `.deferredToDate`
     /// (numeric timestamps) and silently drops every push.
-    private static func decodeWatchData(from payload: [String: Any]) -> WatchData? {
+    nonisolated private static func decodeWatchData(from payload: [String: Any]) -> WatchData? {
         guard let dict = payload["watchData"] as? [String: Any],
               let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
         let d = JSONDecoder()

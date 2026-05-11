@@ -141,7 +141,13 @@ private struct IntentDataSnapshot {
         let repo = SwiftDataRepository.shared
         let protocols = repo.loadProtocols()
         let entries = repo.loadEntries()
-        let profile = PersistenceService.shared.loadProfile()
+        // Read profile from SwiftData first — that's the live source of
+        // truth post-migration. The legacy JSON via PersistenceService
+        // may be stale or missing, which (per Codex review on PR #104)
+        // could leave `locked = false` even with biometric lock enabled.
+        let swiftDataProfile = repo.loadProfile()
+        let legacyProfile = PersistenceService.shared.loadProfile()
+        let profile = swiftDataProfile ?? legacyProfile
         let key = todayConsumptionKey()
         let consumption = profile?.dailyConsumption[key]
         let locked = profile?.biometricLockEnabled ?? false

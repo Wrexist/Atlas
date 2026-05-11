@@ -34,7 +34,10 @@ const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
 const DEFAULT_ALLOWED_MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS_HARDCAP = 600;
-const MAX_MESSAGES = 4;
+// Cap large enough for the AI research multi-turn chat flow (history +
+// new turn). 4 was too small — the third user turn already produced 5
+// messages and the proxy rejected it.
+const MAX_MESSAGES = 40;
 
 function getAllowedModels() {
   const raw = process.env.ALLOWED_MODELS;
