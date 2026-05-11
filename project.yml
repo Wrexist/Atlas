@@ -125,6 +125,8 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: PeptideX
         INFOPLIST_KEY_CFBundleIconName: AppIcon
         INFOPLIST_KEY_WKCompanionAppBundleIdentifier: com.peptidesai.app
+        INFOPLIST_KEY_CFBundleShortVersionString: $(MARKETING_VERSION)
+        INFOPLIST_KEY_CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_ENTITLEMENTS: PeptideWatch/PeptideWatch.entitlements
