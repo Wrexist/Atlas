@@ -159,7 +159,13 @@ jobs:
           # automatically. The find expression covers every Info.plist
           # under the project's top-level target directories and
           # excludes the build/derived-data caches.
-          mapfile -t PLISTS < <(find . \
+          # macOS runners ship bash 3.2 at /bin/bash, which predates the
+          # `mapfile` builtin (bash 4+). Use a portable while-read loop
+          # so this step works regardless of which bash GHA picks.
+          PLISTS=()
+          while IFS= read -r line; do
+            PLISTS+=("$line")
+          done < <(find . \
             \( -path './build' -o -path './DerivedData' -o -path './.build' -o -path './vendor' \) -prune -false \
             -o -name 'Info.plist' -type f -print | sort)
 
