@@ -87,8 +87,12 @@ final class OpenFoodFactsService: Sendable {
 
         if let cached = await cache.read(barcode: normalized) {
             if Self.isStale(cached) {
-                Task.detached { [weak self] in
-                    try? await self?.refreshInBackground(barcode: normalized)
+                // No [weak self] — the service is a long-lived shared
+                // instance, so a strong capture for the refresh task
+                // is correct and avoids silently dropping work if a
+                // test ever decoupled the singleton lifecycle.
+                Task.detached {
+                    try? await self.refreshInBackground(barcode: normalized)
                 }
             }
             return cached
@@ -136,10 +140,14 @@ final class OpenFoodFactsService: Sendable {
         do {
             (data, response) = try await session.data(for: request)
         } catch let urlError as URLError where urlError.code == .notConnectedToInternet
-                                            || urlError.code == .dataNotAllowed
-                                            || urlError.code == .timedOut {
+                                            || urlError.code == .dataNotAllowed {
+            // Genuinely offline. The error card hints that cached
+            // results still work, so the user knows what to expect.
             throw LookupError.networkUnavailable
         } catch {
+            // Timeouts and other transport errors are re-triable — the
+            // server is probably reachable, just slow or transiently
+            // unhappy. requestFailed exposes the "Try again" path.
             throw LookupError.requestFailed(status: -1)
         }
 

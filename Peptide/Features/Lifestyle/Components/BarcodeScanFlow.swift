@@ -29,7 +29,6 @@ struct BarcodeScanFlow: View {
     @State private var manualOverride: LoggableMeal?
     @State private var showEditSheet = false
     @State private var loggedSnapshot: LoggedSnapshot?
-    @State private var autoCloseTask: Task<Void, Never>?
 
     private enum Phase: Equatable {
         case preflight       // checking camera permission + device support
@@ -80,6 +79,16 @@ struct BarcodeScanFlow: View {
         .preferredColorScheme(.dark)
         .task { await preflightCheck() }
         .task { await loadRecentlyScanned() }
+        // SwiftUI-owned auto-close. Re-running on phase changes
+        // cancels the previous task automatically, so leaving the
+        // .logged screen (via Undo, Done, or swipe-dismiss) cleanly
+        // stops the timer without any manual cancel bookkeeping.
+        .task(id: phase) {
+            guard phase == .logged else { return }
+            try? await Task.sleep(for: .seconds(5))
+            guard !Task.isCancelled else { return }
+            onClose()
+        }
         .sheet(isPresented: $showEditSheet) {
             if let product {
                 EditNutritionSheet(
@@ -93,7 +102,6 @@ struct BarcodeScanFlow: View {
                 )
             }
         }
-        .onDisappear { autoCloseTask?.cancel() }
     }
 
     // MARK: - Phases
@@ -498,6 +506,10 @@ struct BarcodeScanFlow: View {
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()
+                // Disable when no macros are available — otherwise the
+                // edit sheet would open prefilled with all zeros and a
+                // hurried Save would silently log a zero-calorie meal.
+                let canEdit = meal != nil
                 Button {
                     showEditSheet = true
                 } label: {
@@ -506,9 +518,10 @@ struct BarcodeScanFlow: View {
                         Text("Edit")
                     }
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(canEdit ? AppColor.accentLight : AppColor.textSecondary.opacity(0.5))
                 }
                 .buttonStyle(.plain)
+                .disabled(!canEdit)
                 .accessibilityLabel("Edit nutrition manually")
             }
             Divider().background(AppColor.glassBorder)
@@ -758,6 +771,11 @@ struct BarcodeScanFlow: View {
     }
 
     private func handleDetected(barcode: String) {
+        // Guard against rapid double-fires: the live scanner stops
+        // after one detection, but the recently-scanned tiles can
+        // trigger this from any phase. Only start a new lookup when
+        // we're actually waiting for one.
+        guard phase == .scanning || phase == .manualEntry else { return }
         phase = .lookingUp
         Task { await lookup(barcode: barcode) }
     }
@@ -793,7 +811,13 @@ struct BarcodeScanFlow: View {
     }
 
     private func confirm() {
-        guard let product, let meal = currentMacros(for: product) else { return }
+        // Re-entrancy guard: belt-and-suspenders for the single-button
+        // happy path. Stops a programmatic double-call (e.g. a future
+        // shortcut intent) from logging twice while only being able
+        // to undo once.
+        guard phase == .review,
+              let product,
+              let meal = currentMacros(for: product) else { return }
         let now = Date()
         dataStore.logMeal(
             calories: meal.calories,
@@ -806,12 +830,10 @@ struct BarcodeScanFlow: View {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
         loggedSnapshot = LoggedSnapshot(productName: product.name, meal: meal, date: now)
-        phase = .logged
-        scheduleAutoClose()
+        phase = .logged                                  // .task(id: phase) above starts the 5-s auto-close
     }
 
     private func undoLastLog() {
-        autoCloseTask?.cancel()
         guard let snapshot = loggedSnapshot else {
             onClose()
             return
@@ -827,15 +849,6 @@ struct BarcodeScanFlow: View {
             UINotificationFeedbackGenerator().notificationOccurred(.warning)
         }
         onClose()
-    }
-
-    private func scheduleAutoClose() {
-        autoCloseTask?.cancel()
-        autoCloseTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(5))
-            guard !Task.isCancelled else { return }
-            onClose()
-        }
     }
 
     private func resetForRescan() {
@@ -865,7 +878,10 @@ struct BarcodeScanFlow: View {
 
     // MARK: - Helpers
 
-    private static let relativeFormatter: RelativeDateTimeFormatter = {
+    // Swift 6 needs the explicit escape hatch because the formatter
+    // type is not Sendable, while SwiftUI Views are. Effectively
+    // read-only after init, so the unsafe annotation is sound.
+    nonisolated(unsafe) private static let relativeFormatter: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .short
         return f
