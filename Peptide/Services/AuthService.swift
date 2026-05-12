@@ -257,6 +257,11 @@ final class AuthService {
         ]
 
         // Update-first upsert: avoids a window where the item is absent.
+        // `AfterFirstUnlockThisDeviceOnly`: never syncs to iCloud Keychain
+        // or restores to another device — so Apple-relayed email/name PII
+        // stays bound to the original phone — while still being readable
+        // after the first post-reboot unlock, which keeps widgets, the
+        // Watch app, and HealthKit background observers working.
         let updateAttrs: [String: Any] = [
             kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,

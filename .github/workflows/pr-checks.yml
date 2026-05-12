@@ -1,7 +1,14 @@
 name: PR Checks
 
+# Cost model: macOS build-check is gated on `draft == false`, so drafts
+# run only the cheap Ubuntu `changes` job. The `ready_for_review` event
+# triggers the workflow when a draft is marked ready so the build kicks
+# off without an extra push. `labeled` lets `run-ui-tests` take effect
+# without forcing the dev to push again. See per-job `if:` conditions
+# for what each label / state actually unlocks.
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
     branches: [main]
 
 permissions:
@@ -50,9 +57,13 @@ jobs:
 
   build-check:
     needs: changes
-    if: needs.changes.outputs.ios == 'true'
+    # Cost gate: skip the macOS build entirely while the PR is in draft.
+    # Mark the PR "ready for review" to trigger a full build run.
+    # macOS minutes are 10× Linux on private repos — every skipped
+    # build is ~$1–2 saved.
+    if: needs.changes.outputs.ios == 'true' && github.event.pull_request.draft == false
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v4
@@ -173,11 +184,16 @@ jobs:
           echo "SwiftLint ready: $(swiftlint version)"
 
       - name: Lint
-        # --strict drops temporarily — a SwiftLint version bump on the runner
-        # surfaced 13 pre-existing violations across files we didn't touch in
-        # this PR (comma spacing, trailing newlines, opening braces). Re-enable
-        # --strict in a follow-up cleanup commit once we can inspect each
-        # annotation in the GitHub UI.
+        # `force_unwrapping` and `implicitly_unwrapped_optional` are
+        # already configured at error severity, so they gate every PR
+        # without --strict. --strict additionally promotes every
+        # *warning* to a fatal error, which currently surfaces ~108
+        # pre-existing formatting violations (comma/colon/brace
+        # spacing, vertical whitespace, redundant let _, etc.) across
+        # files unrelated to this PR. Those should be cleaned up in
+        # a dedicated `swiftlint --fix` pass and a focused
+        # follow-up PR — not jammed into a feature PR. Re-add
+        # --strict in that same commit.
         run: swiftlint lint --reporter github-actions-logging
 
       - name: Unit Tests
@@ -192,10 +208,10 @@ jobs:
         run: |
           touch test-output.log
           set -o pipefail
-          # Skip 3 DailyScheduleEngine tests that fail against the current
-          # peptide DB on main. Tracked separately — they expect CJC-1295
-          # DAC + Ipamorelin co-injection ordering that the engine doesn't
-          # currently produce. Drop these once the scheduler is fixed.
+          # The 3 DailyScheduleEngine ordering tests that used to be
+          # skipped here now pass — the engine's resolveSlot routes
+          # CJC-1295 DAC + Ipamorelin into pre-bed when the user
+          # schedules them there.
           xcodebuild test \
             -project Peptide.xcodeproj \
             -scheme Peptide \
@@ -206,9 +222,6 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             -only-testing:PeptideTests \
-            -skip-testing:PeptideTests/DailyScheduleEngineTests/test_plan_ordersGhrhBeforeGhrpInSameSlot \
-            -skip-testing:PeptideTests/DailyScheduleEngineTests/test_plan_assignsSequentialOrderWithinSlot \
-            -skip-testing:PeptideTests/DailyScheduleEngineTests/test_plan_detectsValidatedStack_cjcIpamorelin \
             -resultBundlePath UnitTestResults.xcresult 2>&1 | tee test-output.log
 
       - name: Coverage report
@@ -272,7 +285,12 @@ jobs:
           done || true
 
       - name: UI Tests
-        continue-on-error: true
+        # Cost gate: opt-in via the `run-ui-tests` label. UI tests add
+        # ~3–5 min of macOS time to every run for a suite that today
+        # only verifies tab-bar reachability. Expand the suite, then
+        # consider making this gating again. Label the PR with
+        # `run-ui-tests` to exercise them on the next push.
+        if: contains(github.event.pull_request.labels.*.name, 'run-ui-tests')
         run: |
           xcodebuild test \
             -project Peptide.xcodeproj \

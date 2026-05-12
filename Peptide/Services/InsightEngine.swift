@@ -92,7 +92,11 @@ struct InsightEngine {
             }
 
             consecutiveEmptyDays = 0
-            if !dayEntries.allSatisfy(\.completed) { break }
+            // Streak rule must match DataStore.currentStreak so the
+            // Insight Engine and the streak ring on the home screen
+            // never disagree. "Any dose completed" preserves the
+            // streak — partial credit, the Duolingo convention.
+            if !dayEntries.contains(where: \.completed) { break }
             streak += 1
         }
         return streak

@@ -285,26 +285,40 @@ enum DailyScheduleEngine {
         timing: PeptideTimingData.PeptideTiming?,
         calendar: Calendar
     ) -> DaySlot {
-        // Prefer the peptide's preferred window — picks the earliest slot in the
-        // day so we order across slots cleanly. `.anyTime` is skipped because it
-        // doesn't pin a time; fall back to the entry's clock hour for those.
+        let hour = calendar.component(.hour, from: entry.date)
+        let userSlot = DaySlot.from(hour: hour)
+
         if let timing {
             let preferred = timing.preferredWindows
                 .compactMap(DaySlot.from(_:))
-                .sorted()
-            if let earliest = preferred.first {
-                // If the user's scheduled clock time clearly disagrees with the
-                // peptide's preferred window (e.g. peptide says morningFasted but
-                // entry is at 10pm), respect the user's clock time — they may have
-                // a workout schedule we don't know about.
-                let hour = calendar.component(.hour, from: entry.date)
-                let userSlot = DaySlot.from(hour: hour)
-                if userSlot == .preBed && !preferred.contains(.preBed) { return .preBed }
+
+            // 1. Best case: the user's scheduled clock time matches one
+            //    of the peptide's preferred windows. Honor the user's
+            //    choice — a peptide with `[.preBed, .morningFasted]`
+            //    scheduled at 22:00 belongs in pre-bed, not morning.
+            if preferred.contains(userSlot) {
+                return userSlot
+            }
+
+            // 2. Workout-window slots (.preBed, .preWorkout, .postWorkout)
+            //    carry a specific cue beyond the raw clock hour, so when
+            //    the user explicitly schedules into one we respect it
+            //    even if the peptide's timing knowledge base doesn't
+            //    list that slot. Common case: a user takes an anti-
+            //    inflammatory peptide right after the gym.
+            if userSlot == .preBed || userSlot == .preWorkout || userSlot == .postWorkout {
+                return userSlot
+            }
+
+            // 3. Fall back to the earliest preferred window. Hits when
+            //    the user picked an ambiguous time (e.g. 14:00) for a
+            //    peptide that prefers morning + evening — we surface
+            //    the morning slot so the day's ordering stays clean.
+            if let earliest = preferred.sorted().first {
                 return earliest
             }
         }
-        let hour = calendar.component(.hour, from: entry.date)
-        return DaySlot.from(hour: hour)
+        return userSlot
     }
 
     // MARK: - Ordering within a slot
@@ -427,7 +441,7 @@ enum DailyScheduleEngine {
 
         // Fasted reminder if at least one other dose lands in the same slot,
         // so the user knows not to break the fast for the second injection.
-        if fastedRequired && companions.count > 0 {
+        if fastedRequired && !companions.isEmpty {
             let fastedNote = "Stay fasted — don't eat for 30 min after injection. Other doses in this window can be taken back-to-back without breaking the fast."
             // Only add if this is the first fasted-required peptide we see;
             // otherwise the note becomes redundant noise.

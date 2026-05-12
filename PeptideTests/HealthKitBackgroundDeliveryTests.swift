@@ -5,43 +5,13 @@ import XCTest
 final class HealthKitBackgroundDeliveryTests: XCTestCase {
 
     // MARK: - HealthSnapshot
-
-    func test_healthSnapshot_storesAllFields() {
-        let capturedAt = Date()
-        let snapshot = HealthSnapshot(
-            heartRate: 65.0,
-            restingHeartRate: 58.0,
-            hrv: 42.5,
-            weight: 80.0,
-            steps: 8500.0,
-            sleep: 7.5,
-            capturedAt: capturedAt
-        )
-
-        XCTAssertEqual(snapshot.heartRate, 65.0)
-        XCTAssertEqual(snapshot.restingHeartRate, 58.0)
-        XCTAssertEqual(snapshot.hrv, 42.5)
-        XCTAssertEqual(snapshot.weight, 80.0)
-        XCTAssertEqual(snapshot.steps, 8500.0)
-        XCTAssertEqual(snapshot.sleep, 7.5)
-        XCTAssertEqual(snapshot.capturedAt, capturedAt)
-    }
-
-    func test_healthSnapshot_allowsNilFields() {
-        let snapshot = HealthSnapshot(
-            heartRate: nil,
-            restingHeartRate: nil,
-            hrv: nil,
-            weight: nil,
-            steps: nil,
-            sleep: nil,
-            capturedAt: Date()
-        )
-
-        XCTAssertNil(snapshot.heartRate)
-        XCTAssertNil(snapshot.hrv)
-        XCTAssertNil(snapshot.sleep)
-    }
+    //
+    // Property-setter regurgitation tests were removed — they asserted
+    // `xs.foo == foo`, which only verified that Swift's synthesised
+    // memberwise init does what Swift's synthesised memberwise init
+    // does. Real coverage of HealthSnapshot comes from the
+    // HealthKitService consumers that compute / read these fields,
+    // exercised in the device-only paths below.
 
     // MARK: - HealthKitService on Simulator
 

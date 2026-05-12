@@ -120,12 +120,16 @@ struct WelcomeHeader: View {
 
     /// Small pencil badge in the bottom-right of the avatar so users discover
     /// the tap-to-customize affordance. Hidden when the avatar isn't tappable
-    /// (e.g. legacy callers that don't pass `onAvatarTap`).
+    /// (e.g. legacy callers that don't pass `onAvatarTap`). Marked hidden
+    /// from VoiceOver because the parent avatar already provides the
+    /// "Edit profile" action label — without this, VoiceOver would
+    /// announce "pencil" as a separate (non-actionable) element.
     private var editIndicator: some View {
         Image(systemName: "pencil")
             .font(.system(size: 9, weight: .bold))
             .foregroundStyle(AppColor.background)
             .frame(width: 18, height: 18)
+            .accessibilityHidden(true)
             .background {
                 Circle()
                     .fill(AppColor.accentPrimary)

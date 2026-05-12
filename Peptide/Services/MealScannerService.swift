@@ -3,51 +3,54 @@ import UIKit
 
 /// Sends a meal photo to PeptideX's server proxy (which holds the
 /// Anthropic API key) and parses the JSON-only response into a
-/// `MealEstimate`. The direct-Anthropic fallback was removed — shipping
-/// an API key inside the app binary is unsafe regardless of how it's
-/// injected at build time. Builds without a configured proxy will
-/// surface `ScanError.missingEndpoint` to the UI.
+/// `MealEstimate`. The direct-Anthropic fallback was removed —
+/// shipping an API key inside the iOS binary is unsafe regardless of
+/// how it's injected at build time, and the proxy now requires a
+/// shared client secret as a "raise the bar" defense against
+/// URL-leak abuse.
+///
+/// Builds without a configured proxy will surface
+/// `ScanError.proxyNotConfigured` to the UI — better to fail loudly
+/// than to silently route around the safety guarantee.
 final class MealScannerService: Sendable {
     static let shared = MealScannerService()
 
-    private let session: URLSession = .shared
+    private let session: URLSession
     private let model = "claude-sonnet-4-6"
-    private let apiVersion = "2023-06-01"
+    private let endpointOverride: URL?
+    private let proxySecretOverride: String?
 
-    /// Proxy endpoint (Info.plist `MEAL_SCANNER_ENDPOINT` or env var of
-    /// the same name). No default — bare-bones safety guarantee that no
-    /// build accidentally talks to Anthropic directly with a baked-in key.
-    private var endpoint: URL? {
-        if let bundleValue = Bundle.main.object(forInfoDictionaryKey: "MEAL_SCANNER_ENDPOINT") as? String,
-           let url = URL(string: bundleValue.trimmingCharacters(in: .whitespacesAndNewlines)),
-           !bundleValue.isEmpty {
-            return url
-        }
-        if let envValue = ProcessInfo.processInfo.environment["MEAL_SCANNER_ENDPOINT"],
-           let url = URL(string: envValue.trimmingCharacters(in: .whitespacesAndNewlines)),
-           !envValue.isEmpty {
-            return url
-        }
-        return nil
+    /// Designated init — exposed for tests so a `URLSession` with a
+    /// `MockURLProtocol` config can be injected. Production callers go
+    /// through `.shared`. Overrides win over the Info.plist / env-var
+    /// lookups so a test never accidentally hits the real proxy URL.
+    init(
+        session: URLSession = .shared,
+        endpoint: URL? = nil,
+        proxySecret: String? = nil
+    ) {
+        self.session = session
+        self.endpointOverride = endpoint
+        self.proxySecretOverride = proxySecret
     }
 
-    /// Shared secret sent in `X-Peptide-Proxy` so the proxy can reject
-    /// unauthenticated traffic. Read from `MEAL_SCANNER_SECRET` in
-    /// Info.plist or env.
+    /// Proxy endpoint. Read from `MEAL_SCANNER_ENDPOINT` (Info.plist
+    /// or scheme env). No default — bare-bones safety guarantee that
+    /// no build accidentally talks to Anthropic directly.
+    private var endpoint: URL? {
+        endpointOverride ?? Self.urlSetting(forKey: "MEAL_SCANNER_ENDPOINT")
+    }
+
+    /// Shared secret echoed back as `X-Peptide-Proxy`. The server
+    /// proxy rejects requests that don't carry it, which raises the
+    /// bar significantly against URL-leak abuse (an attacker has to
+    /// recover both pieces). Read from `MEAL_SCANNER_SECRET`.
     private var proxySecret: String? {
-        if let bundleValue = Bundle.main.object(forInfoDictionaryKey: "MEAL_SCANNER_SECRET") as? String {
-            let trimmed = bundleValue.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { return trimmed }
-        }
-        if let envValue = ProcessInfo.processInfo.environment["MEAL_SCANNER_SECRET"] {
-            let trimmed = envValue.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { return trimmed }
-        }
-        return nil
+        proxySecretOverride ?? Self.stringSetting(forKey: "MEAL_SCANNER_SECRET")
     }
 
     enum ScanError: Error, LocalizedError {
-        case missingEndpoint
+        case proxyNotConfigured
         case imageTooLarge
         case requestFailed(String)
         case invalidResponse
@@ -56,11 +59,11 @@ final class MealScannerService: Sendable {
 
         var errorDescription: String? {
             switch self {
-            case .missingEndpoint:      "Meal scanner is unavailable in this build. Configure MEAL_SCANNER_ENDPOINT."
+            case .proxyNotConfigured:   "Meal scanner isn't configured for this build. Set MEAL_SCANNER_ENDPOINT and MEAL_SCANNER_SECRET in Secrets.xcconfig and rebuild."
             case .imageTooLarge:        "Photo is too large to upload. Try a smaller image."
             case .requestFailed(let m): m
-            case .invalidResponse:      "Claude returned an unexpected response shape."
-            case .parseFailure:         "Couldn't read the meal estimate from Claude's reply."
+            case .invalidResponse:      "The scanner returned an unexpected response."
+            case .parseFailure:         "Couldn't read the meal estimate from the scanner."
             case .implausibleResult:    "The scanner returned values outside a realistic range — try a clearer photo."
             }
         }
@@ -86,12 +89,12 @@ final class MealScannerService: Sendable {
         }
     }
 
-    private init() {}
-
     /// Compresses + base64-encodes the image, posts it to the proxy,
     /// then parses the JSON the model is instructed to return.
     func analyze(image: UIImage) async throws -> MealEstimate {
-        guard let endpoint else { throw ScanError.missingEndpoint }
+        guard let endpoint, let proxySecret, !proxySecret.isEmpty else {
+            throw ScanError.proxyNotConfigured
+        }
 
         let bytes = try compress(image)
         let base64 = bytes.base64EncodedString()
@@ -100,10 +103,7 @@ final class MealScannerService: Sendable {
         request.httpMethod = "POST"
         request.timeoutInterval = 30
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiVersion, forHTTPHeaderField: "anthropic-version")
-        if let proxySecret {
-            request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
-        }
+        request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
         request.httpBody = try JSONSerialization.data(
             withJSONObject: requestPayload(base64: base64),
             options: []
@@ -115,13 +115,37 @@ final class MealScannerService: Sendable {
             throw ScanError.invalidResponse
         }
         guard (200..<300).contains(http.statusCode) else {
-            throw ScanError.requestFailed("HTTP \(http.statusCode)")
+            // Surface only the status code — never echo the upstream
+            // response body, which can include the request id and key
+            // fingerprint on auth failures.
+            throw ScanError.requestFailed("Meal scanner returned HTTP \(http.statusCode).")
         }
 
         return try parseEstimate(from: data)
     }
 
     // MARK: - Internals
+
+    /// Generic `Info.plist` + env-var reader. Env wins for simulator
+    /// workflows so devs don't need to rebuild after rotating creds.
+    static func stringSetting(forKey key: String) -> String? {
+        if let bundleValue = Bundle.main.object(forInfoDictionaryKey: key) as? String {
+            let trimmed = bundleValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { return trimmed }
+        }
+        if let envValue = ProcessInfo.processInfo.environment[key] {
+            let trimmed = envValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { return trimmed }
+        }
+        return nil
+    }
+
+    static func urlSetting(forKey key: String) -> URL? {
+        guard let raw = stringSetting(forKey: key), let url = URL(string: raw) else {
+            return nil
+        }
+        return url
+    }
 
     /// JPEG-compress to 1024 px max edge so we stay well under Anthropic's
     /// 5 MB image-size limit even on 12-megapixel originals. Throws when

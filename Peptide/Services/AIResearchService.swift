@@ -1,10 +1,12 @@
 import Foundation
 
-/// Chat-style research assistant backed by Anthropic's Messages API
-/// via PeptideX's server proxy. The direct-Anthropic fallback was
-/// removed — production builds must point `AI_RESEARCH_ENDPOINT` at a
-/// configured proxy. The proxy holds the API key so the iOS client
-/// never sees it.
+/// Chat-style research assistant. Sends RAG-augmented prompts to the
+/// PeptideX server proxy (which holds the Anthropic key); the iOS
+/// client never sees the API key. Endpoint + shared secret are
+/// configured via `AI_RESEARCH_ENDPOINT` and `AI_RESEARCH_SECRET` —
+/// same pattern as `MealScannerService`. The direct-Anthropic
+/// fallback was removed; builds without a configured proxy throw
+/// `ChatError.proxyNotConfigured` so the failure is visible.
 ///
 /// RAG strategy: rather than ship a vector store, we substring-match
 /// the user's question against the bundled peptide database (208
@@ -15,20 +17,42 @@ import Foundation
 final class AIResearchService: Sendable {
     static let shared = AIResearchService()
 
-    private let session: URLSession = .shared
+    private let session: URLSession
     private let model = "claude-sonnet-4-6"
-    private let apiVersion = "2023-06-01"
+    private let endpointOverride: URL?
+    private let proxySecretOverride: String?
+
+    /// Designated init — see `MealScannerService.init` for the same
+    /// pattern. Production goes through `.shared`; tests pass a
+    /// `URLSession` configured with a `MockURLProtocol`.
+    init(
+        session: URLSession = .shared,
+        endpoint: URL? = nil,
+        proxySecret: String? = nil
+    ) {
+        self.session = session
+        self.endpointOverride = endpoint
+        self.proxySecretOverride = proxySecret
+    }
+
+    private var endpoint: URL? {
+        endpointOverride ?? MealScannerService.urlSetting(forKey: "AI_RESEARCH_ENDPOINT")
+    }
+
+    private var proxySecret: String? {
+        proxySecretOverride ?? MealScannerService.stringSetting(forKey: "AI_RESEARCH_SECRET")
+    }
 
     enum ChatError: Error, LocalizedError {
-        case missingEndpoint
+        case proxyNotConfigured
         case requestFailed(String)
         case invalidResponse
 
         var errorDescription: String? {
             switch self {
-            case .missingEndpoint:      "AI research is unavailable in this build. Configure AI_RESEARCH_ENDPOINT."
+            case .proxyNotConfigured:   "AI research isn't configured for this build. Set AI_RESEARCH_ENDPOINT and AI_RESEARCH_SECRET in Secrets.xcconfig and rebuild."
             case .requestFailed(let m): m
-            case .invalidResponse:      "Claude returned an unexpected response shape."
+            case .invalidResponse:      "The assistant returned an unexpected response."
             }
         }
     }
@@ -48,8 +72,6 @@ final class AIResearchService: Sendable {
         }
     }
 
-    private init() {}
-
     /// Sends `history` (conversation so far) plus the user's new
     /// `prompt` and returns the assistant's text. The system prompt
     /// is rebuilt each call so the RAG context reflects whatever the
@@ -59,7 +81,9 @@ final class AIResearchService: Sendable {
         newUserPrompt prompt: String,
         in database: [Peptide]
     ) async throws -> String {
-        guard let endpoint else { throw ChatError.missingEndpoint }
+        guard let endpoint, let proxySecret, !proxySecret.isEmpty else {
+            throw ChatError.proxyNotConfigured
+        }
 
         let context = ragContext(for: prompt, history: history, in: database)
 
@@ -67,10 +91,7 @@ final class AIResearchService: Sendable {
         request.httpMethod = "POST"
         request.timeoutInterval = 60
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiVersion, forHTTPHeaderField: "anthropic-version")
-        if let proxySecret {
-            request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
-        }
+        request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
         request.httpBody = try JSONSerialization.data(
             withJSONObject: payload(history: history, newPrompt: prompt, ragContext: context),
             options: []
@@ -79,7 +100,9 @@ final class AIResearchService: Sendable {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw ChatError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
-            throw ChatError.requestFailed("HTTP \(http.statusCode)")
+            // Don't echo upstream body — Anthropic auth-failure responses
+            // include masked-key fingerprints that the user shouldn't see.
+            throw ChatError.requestFailed("AI research returned HTTP \(http.statusCode).")
         }
 
         return try parseAssistantText(from: data)
@@ -186,33 +209,5 @@ final class AIResearchService: Sendable {
             throw ChatError.invalidResponse
         }
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    // MARK: - Endpoint + proxy auth
-
-    private var endpoint: URL? {
-        if let bundleValue = Bundle.main.object(forInfoDictionaryKey: "AI_RESEARCH_ENDPOINT") as? String,
-           let url = URL(string: bundleValue.trimmingCharacters(in: .whitespacesAndNewlines)),
-           !bundleValue.isEmpty {
-            return url
-        }
-        if let envValue = ProcessInfo.processInfo.environment["AI_RESEARCH_ENDPOINT"],
-           let url = URL(string: envValue.trimmingCharacters(in: .whitespacesAndNewlines)),
-           !envValue.isEmpty {
-            return url
-        }
-        return nil
-    }
-
-    private var proxySecret: String? {
-        if let bundleValue = Bundle.main.object(forInfoDictionaryKey: "AI_RESEARCH_SECRET") as? String {
-            let trimmed = bundleValue.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { return trimmed }
-        }
-        if let envValue = ProcessInfo.processInfo.environment["AI_RESEARCH_SECRET"] {
-            let trimmed = envValue.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { return trimmed }
-        }
-        return nil
     }
 }

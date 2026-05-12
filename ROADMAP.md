@@ -1,30 +1,38 @@
 # PeptideX Roadmap
 
-## Current State (v1.0.0)
+## Current State
 
-PeptideX is a native iOS SwiftUI app for tracking peptide supplementation protocols. Production-ready with glassmorphism design, 5-tab navigation, 208 bundled peptides, a 12-signal recommendation engine, 14 achievements, StoreKit 2 paywall, and CI/CD to TestFlight.
+PeptideX is a native iOS SwiftUI app for tracking peptide supplementation protocols with grounded AI assistance — barcode scanning, photo meal estimation, multi-turn research chat, and HealthKit-correlated analytics. iOS 18+, Swift 6.0, SwiftData (CloudKit-backed). 5-tab navigation, companion Watch app, two widget targets, Live Activities, and CI/CD to TestFlight via Fastlane.
 
-### What's Shipped
+### What's shipped
 
 | Area | Status | Details |
 |------|--------|---------|
-| **UI/UX** | Complete | Glassmorphism design, 5-tab nav, dark mode, haptic feedback |
+| **UI/UX** | Complete | Glassmorphism design system, dark mode, haptic feedback, scale-press affordances |
 | **Peptide database** | Complete | 208 peptides across 6 categories, bundled JSON, research links |
-| **Protocol management** | Complete | Create, edit, pause, complete protocols with schedule builder |
+| **Protocol management** | Complete | Create, edit, pause, complete protocols with schedule builder and per-peptide overrides |
 | **Dose tracking** | Complete | Daily entries, toggle completion, rich logging (actual dose, time, injection site, notes) |
-| **Compliance analytics** | Complete | Swift Charts (line, area, heatmap), streaks, weekly calendar, time-range gating |
-| **Recommendation engine** | Complete | 827 LOC, 12 scoring signals, 7 warning types, validated stacks |
-| **Insight engine** | Complete | 6+ insight types: streaks, day-of-week patterns, compliance trends, milestones |
+| **Lifestyle tab** | Complete | Macro rings, weight sparkline + log, workout log, progress-photo capture |
+| **Meal scanner — photo** | Complete | Claude vision via Vercel proxy; macro estimate with confidence and clamping |
+| **Meal scanner — barcode** | Complete | DataScanner viewfinder, Open Food Facts lookup, portion picker, recently-scanned grid, edit-before-log override, Undo via `.logged` phase |
+| **AI research assistant** | Complete | Multi-turn chat via Vercel proxy with substring-RAG over the bundled database |
+| **Recommendation engine** | Complete | 12 scoring signals, 7 warning types, validated stacks |
+| **Insight engine** | Complete | Streaks, day-of-week patterns, compliance trends, milestone insights; unified streak math with `DataStore.currentStreak` |
 | **Notifications** | Complete | Dose reminders, actionable (Mark as Taken / Snooze), 64-limit handling, per-timeslot consolidation |
-| **Widgets** | Complete | Small (next dose) + Medium (compliance ring + schedule), real data via App Groups |
+| **Widgets** | Complete | iOS small + medium (next dose, compliance ring + schedule), watchOS widgets, real data via App Groups |
+| **Live Activities** | Complete | Dose-window Dynamic Island + lock-screen UI |
+| **Watch app** | Complete | Reads via App Group, sends mark-complete / mark-incomplete back via WCSession |
 | **Achievements** | Complete | 14 achievements (dose milestones, streaks, protocol, logging), toast notifications |
 | **Export** | Complete | CSV + JSON full backup via share sheet |
-| **Onboarding** | Complete | 4-page flow: welcome, goal selection (8 goals), experience level, ready |
-| **HealthKit** | On-demand | Reads 7 data types (HR, HRV, sleep, weight, steps, energy). No background delivery |
-| **Persistence** | JSON files | PersistenceService writes protocols/entries/profile to Documents. Atomic writes, ISO8601 dates |
-| **StoreKit 2** | Complete | Monthly + annual subscriptions, paywall, transaction verification, restore purchases |
-| **Testing** | 82 tests | DataStoreTests (20), StackRecommendationEngineTests (39), PersistenceRoundTripTests (23) |
-| **CI/CD** | Complete | XcodeGen, SwiftLint, build + test in GitHub Actions, TestFlight via Fastlane |
+| **Onboarding** | Complete | 17-page flow: review prompt → creator code → email → paywall → theme → add-medication → ready |
+| **HealthKit** | Complete | Reads 7 data types (HR, HRV, sleep, weight, steps, energy); observer-based background delivery wired (`UIBackgroundModes=[processing]`) |
+| **Persistence** | Complete | SwiftData @Model classes, CloudKit-backed private container with local + in-memory fallbacks |
+| **StoreKit 2** | Complete | Monthly + annual + lifetime, paywall, transaction verification, restore purchases, intro-offer eligibility |
+| **AI proxy** | Complete | Vercel deployment with shared-secret auth, per-IP rate limit, body sanitisation, model allowlist, max_tokens hardcap |
+| **Sharing** | Complete | Cycle-share card (1080×1920) with Day-7/30/complete prompts and privacy detail toggle |
+| **Siri shortcuts** | Complete | AppIntents bundle including "Log my BPC-157" and "What are my macros today?" |
+| **Testing** | ~40 test files | Network services (MockURLProtocol), data integrity, recommendation/insight engines, persistence round-trip, schedule cadence, achievement service, etc. |
+| **CI/CD** | Complete | XcodeGen, SwiftLint, build + test in GitHub Actions (macos-15 pinned), TestFlight via Fastlane, binary-size delta gate |
 
 ---
 

@@ -233,9 +233,9 @@ struct TrialOfferView: View {
                 .padding(.horizontal, Spacing.md)
 
             HStack(spacing: Spacing.md) {
-                Link("Terms of Use", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                Link("Terms of Use", destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"))
                 Text("·").foregroundStyle(AppColor.textTertiary)
-                Link("Privacy Policy", destination: URL(string: "https://wrexist.github.io/Peptide-ai/privacy.html")!)
+                Link("Privacy Policy", destination: URL.staticHTTPS("https://wrexist.github.io/Peptide-ai/privacy.html"))
             }
             .font(.system(size: 10))
             .foregroundStyle(AppColor.accentLight)

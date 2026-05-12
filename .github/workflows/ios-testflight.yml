@@ -18,7 +18,11 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-latest
+    # Pin to macos-15 (Xcode 16) so TestFlight builds use the same
+    # toolchain as pr-checks. `macos-latest` drifts whenever GitHub
+    # rotates the default image and produces builds that diverge from
+    # the PR checks that passed on the same SHA.
+    runs-on: macos-15
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4

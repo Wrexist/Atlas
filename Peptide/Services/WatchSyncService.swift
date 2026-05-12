@@ -121,15 +121,26 @@ extension WatchSyncService: WCSessionDelegate {
               let entryId = UUID(uuidString: entryIdStr),
               let protocolId = UUID(uuidString: protocolIdStr) else { return }
 
-        Task { @MainActor in
-            switch action {
-            case WatchMessage.markComplete:
-                self.onMarkComplete?(entryId, protocolId)
-            case WatchMessage.markIncomplete:
-                self.onMarkIncomplete?(entryId, protocolId)
-            default:
-                break
-            }
+        // The delegate is nonisolated (required by WCSessionDelegate)
+        // but `onMarkComplete` / `onMarkIncomplete` are mutable @MainActor
+        // properties. Hand off to a @MainActor method so the closure
+        // reads happen on main — keeps Swift 6 strict-concurrency happy
+        // and removes any race with a parent reassigning the callbacks.
+        Task { [weak self] in
+            await self?.handleWatchMessage(action: action, entryId: entryId, protocolId: protocolId)
+        }
+    }
+}
+
+private extension WatchSyncService {
+    func handleWatchMessage(action: String, entryId: UUID, protocolId: UUID) {
+        switch action {
+        case WatchMessage.markComplete:
+            onMarkComplete?(entryId, protocolId)
+        case WatchMessage.markIncomplete:
+            onMarkIncomplete?(entryId, protocolId)
+        default:
+            break
         }
     }
 }

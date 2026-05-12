@@ -31,6 +31,7 @@ struct DoseLoggingSheet: View {
                                 .font(.system(size: 24))
                                 .foregroundStyle(entry.peptide.category.color)
                                 .frame(width: 48, height: 48)
+                                .accessibilityHidden(true)              // peptide name + dose alongside carry the label
                                 .background {
                                     RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                                         .fill(entry.peptide.category.color.opacity(0.15))

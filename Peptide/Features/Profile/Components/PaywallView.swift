@@ -183,6 +183,7 @@ struct PaywallView: View {
             Image(systemName: "tag.fill")
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(bannerGreen)
+                .accessibilityHidden(true)              // Text alongside carries the discount label
 
             Text("\(attribution.discountPercent)% off applied — thanks to \(attribution.creatorName)!")
                 .font(AppFont.subheadline)
@@ -450,10 +451,10 @@ struct PaywallView: View {
             Button("Restore Purchases", action: restore)
 
             Link("Terms",
-                 destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                 destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"))
 
             Link("Privacy",
-                 destination: URL(string: "https://wrexist.github.io/Peptide-ai/privacy.html")!)
+                 destination: URL.staticHTTPS("https://wrexist.github.io/Peptide-ai/privacy.html"))
         }
         .font(AppFont.caption)
         .foregroundStyle(AppColor.textSecondary)
