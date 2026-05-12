@@ -25,6 +25,11 @@ struct BarcodeScanFlow: View {
     @State private var portion: ScannedProduct.Portion = .grams(100)
     @State private var errorText: String?
     @State private var manualBarcode: String = ""
+    @State private var recentlyScanned: [ScannedProduct] = []
+    @State private var manualOverride: LoggableMeal?
+    @State private var showEditSheet = false
+    @State private var loggedSnapshot: LoggedSnapshot?
+    @State private var autoCloseTask: Task<Void, Never>?
 
     private enum Phase: Equatable {
         case preflight       // checking camera permission + device support
@@ -32,8 +37,18 @@ struct BarcodeScanFlow: View {
         case manualEntry     // simulator / unsupported devices type a code
         case lookingUp       // OFF network round-trip
         case review          // product + portion + macros
+        case logged          // success screen with Undo + auto-close
         case notFound        // barcode looked up cleanly but no product
         case error           // any other terminal failure
+    }
+
+    /// Captures what was logged so the Undo button can reverse it
+    /// exactly. Stored on the view so a re-render can't lose the
+    /// reversal data while the success screen is up.
+    private struct LoggedSnapshot: Equatable {
+        let productName: String
+        let meal: LoggableMeal
+        let date: Date
     }
 
     var body: some View {
@@ -45,6 +60,7 @@ struct BarcodeScanFlow: View {
                 case .manualEntry:  manualEntry
                 case .lookingUp:    lookingUp
                 case .review:       reviewCard
+                case .logged:       loggedCard
                 case .notFound:     notFoundCard
                 case .error:        errorCard
                 }
@@ -63,6 +79,21 @@ struct BarcodeScanFlow: View {
         }
         .preferredColorScheme(.dark)
         .task { await preflightCheck() }
+        .task { await loadRecentlyScanned() }
+        .sheet(isPresented: $showEditSheet) {
+            if let product {
+                EditNutritionSheet(
+                    productName: product.name,
+                    initial: currentMacros(for: product),
+                    onSave: { override in
+                        manualOverride = override
+                        showEditSheet = false
+                    },
+                    onCancel: { showEditSheet = false }
+                )
+            }
+        }
+        .onDisappear { autoCloseTask?.cancel() }
     }
 
     // MARK: - Phases
@@ -96,14 +127,71 @@ struct BarcodeScanFlow: View {
 
                 reticle
             }
-            .frame(height: 360)
+            .frame(height: 320)
 
             Text("Hold a packaged food's barcode inside the frame.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
+
+            recentlyScannedRow
         }
+    }
+
+    @ViewBuilder
+    private var recentlyScannedRow: some View {
+        if !recentlyScanned.isEmpty {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text("Recently scanned")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .padding(.horizontal, Spacing.xs)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: Spacing.sm) {
+                        ForEach(recentlyScanned, id: \.barcode) { product in
+                            recentlyScannedTile(product)
+                        }
+                    }
+                    .padding(.horizontal, Spacing.xs)
+                    .padding(.vertical, 2)
+                }
+            }
+        }
+    }
+
+    private func recentlyScannedTile(_ product: ScannedProduct) -> some View {
+        Button {
+            handleDetected(barcode: product.barcode)
+        } label: {
+            VStack(spacing: Spacing.xs) {
+                AsyncImage(url: product.imageURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFit()
+                    default:
+                        Image(systemName: "shippingbox.fill")
+                            .font(.system(size: 22, weight: .light))
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                }
+                .frame(width: 48, height: 48)
+                .background {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .fill(AppColor.surfaceSecondary.opacity(0.6))
+                }
+
+                Text(product.name)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(width: 72)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Re-log \(product.name)")
     }
 
     private var reticle: some View {
@@ -179,14 +267,77 @@ struct BarcodeScanFlow: View {
     @ViewBuilder
     private var reviewCard: some View {
         if let product {
-            VStack(spacing: Spacing.lg) {
-                productHeader(product)
-                portionPicker(for: product)
-                macroPanel(for: product)
-                actionButtons
+            ScrollView {
+                VStack(spacing: Spacing.lg) {
+                    productHeader(product)
+                    sourceBadge(for: product)
+                    if manualOverride == nil {
+                        portionPicker(for: product)
+                    } else {
+                        overrideNotice
+                    }
+                    macroPanel(for: product)
+                    actionButtons
+                }
             }
+            .scrollIndicators(.hidden)
         } else {
             errorCard            // defensive — phase guarantees product is set
+        }
+    }
+
+    private func sourceBadge(for product: ScannedProduct) -> some View {
+        HStack(spacing: Spacing.xs) {
+            Image(systemName: "globe")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+            Text("Open Food Facts · \(Self.relativeAge(product.fetchedAt))")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+            Spacer(minLength: 0)
+            if manualOverride != nil {
+                Text("✏ Edited")
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundStyle(AppColor.warning)
+                    .padding(.horizontal, Spacing.xs)
+                    .padding(.vertical, 2)
+                    .background {
+                        Capsule().fill(AppColor.warning.opacity(0.15))
+                    }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Spacing.xs)
+    }
+
+    private var overrideNotice: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "pencil.circle.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(AppColor.warning)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Using your manual values")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("Portion picker is paused while edits are active.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            Spacer(minLength: 0)
+            Button("Reset") {
+                manualOverride = nil
+            }
+            .font(AppFont.subheadline)
+            .foregroundStyle(AppColor.accentLight)
+        }
+        .padding(Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.warning.opacity(0.10))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.warning.opacity(0.35), lineWidth: 1)
+                }
         }
     }
 
@@ -340,8 +491,26 @@ struct BarcodeScanFlow: View {
     }
 
     private func macroPanel(for product: ScannedProduct) -> some View {
-        let meal = product.loggable(for: portion)
+        let meal = currentMacros(for: product)
         return VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack {
+                Text("Nutrition")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                Spacer()
+                Button {
+                    showEditSheet = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "pencil")
+                        Text("Edit")
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Edit nutrition manually")
+            }
             Divider().background(AppColor.glassBorder)
             macroRow(label: "Calories", value: "\(meal?.calories ?? 0) kcal")
             macroRow(label: "Protein",  value: "\(meal?.proteinG ?? 0) g")
@@ -362,9 +531,7 @@ struct BarcodeScanFlow: View {
     private var actionButtons: some View {
         HStack(spacing: Spacing.sm) {
             Button("Scan another") {
-                product = nil
-                manualBarcode = ""
-                phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
+                resetForRescan()
             }
             .buttonStyle(.bordered)
             .tint(AppColor.textSecondary)
@@ -374,7 +541,50 @@ struct BarcodeScanFlow: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(AppColor.accentPrimary)
-            .disabled(product?.loggable(for: portion) == nil)
+            .disabled(currentMacros(for: product) == nil)
+        }
+    }
+
+    private var loggedCard: some View {
+        VStack(spacing: Spacing.lg) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 56, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+
+            Text("Added to today")
+                .font(AppFont.title2)
+                .foregroundStyle(AppColor.textPrimary)
+
+            if let snapshot = loggedSnapshot {
+                VStack(spacing: 4) {
+                    Text(snapshot.productName)
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                    Text("\(snapshot.meal.calories) kcal · \(snapshot.meal.proteinG) g protein")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .monospacedDigit()
+                }
+            }
+
+            VStack(spacing: Spacing.sm) {
+                Button {
+                    undoLastLog()
+                } label: {
+                    HStack(spacing: Spacing.sm) {
+                        Image(systemName: "arrow.uturn.backward")
+                        Text("Undo")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColor.destructive.opacity(0.85))
+
+                Button("Done") { onClose() }
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            .padding(.top, Spacing.sm)
         }
     }
 
@@ -583,17 +793,86 @@ struct BarcodeScanFlow: View {
     }
 
     private func confirm() {
-        guard let product, let meal = product.loggable(for: portion) else { return }
+        guard let product, let meal = currentMacros(for: product) else { return }
+        let now = Date()
         dataStore.logMeal(
             calories: meal.calories,
             proteinG: meal.proteinG,
             carbsG: meal.carbsG,
-            fatG: meal.fatG
+            fatG: meal.fatG,
+            date: now
         )
         if dataStore.profile.hapticFeedbackEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
+        loggedSnapshot = LoggedSnapshot(productName: product.name, meal: meal, date: now)
+        phase = .logged
+        scheduleAutoClose()
+    }
+
+    private func undoLastLog() {
+        autoCloseTask?.cancel()
+        guard let snapshot = loggedSnapshot else {
+            onClose()
+            return
+        }
+        dataStore.unlogMeal(
+            calories: snapshot.meal.calories,
+            proteinG: snapshot.meal.proteinG,
+            carbsG: snapshot.meal.carbsG,
+            fatG: snapshot.meal.fatG,
+            date: snapshot.date
+        )
+        if dataStore.profile.hapticFeedbackEnabled {
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        }
         onClose()
+    }
+
+    private func scheduleAutoClose() {
+        autoCloseTask?.cancel()
+        autoCloseTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(5))
+            guard !Task.isCancelled else { return }
+            onClose()
+        }
+    }
+
+    private func resetForRescan() {
+        product = nil
+        manualBarcode = ""
+        manualOverride = nil
+        portion = .grams(100)
+        phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
+        // Refresh the row so the product the user just scanned shows
+        // up next time. The cache write happens during the OFF fetch,
+        // so by now the new entry is on disk.
+        Task { await loadRecentlyScanned() }
+    }
+
+    /// Resolves the macros to log: manual override wins if set, else
+    /// fall back to the portion-scaled product macros. Returns nil
+    /// when both paths produce nothing, which keeps the "Add to today"
+    /// button correctly disabled.
+    private func currentMacros(for product: ScannedProduct?) -> LoggableMeal? {
+        if let override = manualOverride { return override }
+        return product?.loggable(for: portion)
+    }
+
+    private func loadRecentlyScanned() async {
+        recentlyScanned = await OpenFoodFactsService.shared.recent(limit: 5)
+    }
+
+    // MARK: - Helpers
+
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .short
+        return f
+    }()
+
+    private static func relativeAge(_ date: Date) -> String {
+        relativeFormatter.localizedString(for: date, relativeTo: Date())
     }
 }
 
