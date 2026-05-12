@@ -1,19 +1,17 @@
 import SwiftUI
 
-/// "Lifestyle" tab. Stacks the Meal Scan banner, the macro summary
-/// row, the workout drill-in, weight tracking, and progress photos.
-/// All persistence lives on `dataStore.profile` so a relaunch restores
-/// the full state without a separate cache layer.
+/// "Lifestyle" tab. Stacks the meal-logging picker (barcode + photo),
+/// the macro summary row, the workout drill-in, weight tracking, and
+/// progress photos. All persistence lives on `dataStore.profile` so a
+/// relaunch restores the full state without a separate cache layer.
 struct LifestyleView: View {
     @Environment(DataStore.self) private var dataStore
 
     @State private var showMealScan = false
+    @State private var showBarcodeScan = false
     @State private var showWeightLog = false
     @State private var showWorkoutLog = false
     @State private var showTargetsEditor = false
-    #if DEBUG
-    @State private var showBarcodeScan = false
-    #endif
 
     private var targets: NutritionTargets {
         dataStore.profile.nutritionTargets ?? .placeholder
@@ -23,14 +21,10 @@ struct LifestyleView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
-                    MealScanBanner(action: { showMealScan = true })
-
-                    #if DEBUG
-                    Button("DEBUG · Scan barcode") { showBarcodeScan = true }
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.accentLight)
-                        .frame(maxWidth: .infinity)
-                    #endif
+                    LogMealEntryPicker(
+                        onScanBarcode: { showBarcodeScan = true },
+                        onSnapPhoto: { showMealScan = true }
+                    )
 
                     if dataStore.profile.nutritionTargets == nil {
                         targetsPrompt
@@ -73,12 +67,13 @@ struct LifestyleView: View {
                 MealScanFlow(onClose: { showMealScan = false })
                     .environment(dataStore)
             }
-            #if DEBUG
             .sheet(isPresented: $showBarcodeScan) {
-                BarcodeScanFlow(onClose: { showBarcodeScan = false })
-                    .environment(dataStore)
+                BarcodeScanFlow(
+                    onClose: { showBarcodeScan = false },
+                    onRequestPhotoFallback: handlePhotoFallback
+                )
+                .environment(dataStore)
             }
-            #endif
             .sheet(isPresented: $showWeightLog) {
                 WeightLogSheet(
                     history: dataStore.profile.weightHistory,
@@ -106,6 +101,17 @@ struct LifestyleView: View {
                     onCancel: { showTargetsEditor = false }
                 )
             }
+        }
+    }
+
+    /// Dismisses the barcode sheet and presents the photo sheet a beat
+    /// later. iOS won't show two sheets at the same time, so we have
+    /// to wait for the dismiss animation to start before requesting
+    /// the next one — 0.35 s lands cleanly after the spring settles.
+    private func handlePhotoFallback() {
+        showBarcodeScan = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            showMealScan = true
         }
     }
 

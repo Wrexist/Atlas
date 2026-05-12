@@ -14,6 +14,11 @@ import AVFoundation
 struct BarcodeScanFlow: View {
     @Environment(DataStore.self) private var dataStore
     let onClose: () -> Void
+    /// Fired when the user taps "Snap a photo instead" on the
+    /// not-found screen. The parent is responsible for dismissing this
+    /// sheet and presenting `MealScanFlow` — iOS won't show two sheets
+    /// concurrently, so the parent has to sequence them.
+    let onRequestPhotoFallback: () -> Void
 
     @State private var phase: Phase = .preflight
     @State private var product: ScannedProduct?
@@ -27,7 +32,8 @@ struct BarcodeScanFlow: View {
         case manualEntry     // simulator / unsupported devices type a code
         case lookingUp       // OFF network round-trip
         case review          // product + portion + macros
-        case error           // any terminal failure
+        case notFound        // barcode looked up cleanly but no product
+        case error           // any other terminal failure
     }
 
     var body: some View {
@@ -39,6 +45,7 @@ struct BarcodeScanFlow: View {
                 case .manualEntry:  manualEntry
                 case .lookingUp:    lookingUp
                 case .review:       reviewCard
+                case .notFound:     notFoundCard
                 case .error:        errorCard
                 }
             }
@@ -360,6 +367,45 @@ struct BarcodeScanFlow: View {
         }
     }
 
+    private var notFoundCard: some View {
+        VStack(spacing: Spacing.md) {
+            Image(systemName: "questionmark.app.dashed")
+                .font(.system(size: 48, weight: .light))
+                .foregroundStyle(AppColor.accentLight)
+            Text("This barcode isn't in the food database yet")
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.center)
+            Text("Open Food Facts doesn't know this product. You can photograph the meal instead — Claude will estimate the macros from the picture.")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.lg)
+            VStack(spacing: Spacing.sm) {
+                Button {
+                    onRequestPhotoFallback()
+                } label: {
+                    HStack(spacing: Spacing.sm) {
+                        Image(systemName: "camera.fill")
+                        Text("Snap a photo instead")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColor.accentPrimary)
+
+                Button("Try another barcode") {
+                    product = nil
+                    manualBarcode = ""
+                    errorText = nil
+                    phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
+                }
+                .buttonStyle(.bordered)
+                .tint(AppColor.textSecondary)
+            }
+            .padding(.top, Spacing.sm)
+        }
+    }
+
     private var errorCard: some View {
         VStack(spacing: Spacing.md) {
             Image(systemName: "exclamationmark.triangle.fill")
@@ -489,6 +535,14 @@ struct BarcodeScanFlow: View {
                 phase = .review
                 if dataStore.profile.hapticFeedbackEnabled {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
+            }
+        } catch let lookupError as OpenFoodFactsService.LookupError {
+            await MainActor.run {
+                errorText = lookupError.errorDescription
+                phase = (lookupError == .notFound) ? .notFound : .error
+                if dataStore.profile.hapticFeedbackEnabled {
+                    UINotificationFeedbackGenerator().notificationOccurred(.error)
                 }
             }
         } catch {
