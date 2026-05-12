@@ -23,9 +23,14 @@ jobs:
     timeout-minutes: 25
 
     steps:
-      # Every step in this job is `continue-on-error: true` while we shake
-      # out workflow regressions. Once we see a green run end-to-end, drop
-      # the flags from the steps we want to gate on (Build PR HEAD, Compare).
+      # This job reports an informational binary-size delta on every
+      # PR. It must not block a PR — a transient build failure should
+      # never gate functional work. The build steps keep
+      # `continue-on-error: true` for that reason, and "Report size"
+      # gracefully handles a missing *_bytes output. Setup steps
+      # (XcodeGen install, checkout) drop the flag — if those fail
+      # something is genuinely wrong with the runner, and a green
+      # tick here would be misleading.
 
       - uses: actions/checkout@v4
         with:
@@ -45,7 +50,6 @@ jobs:
           key: brew-xcodegen-${{ runner.os }}-${{ runner.arch }}
 
       - name: Install XcodeGen
-        continue-on-error: true
         run: |
           if ! command -v xcodegen &>/dev/null; then
             brew install xcodegen || brew reinstall xcodegen
@@ -117,7 +121,6 @@ jobs:
 
       - name: Report size
         if: always()
-        continue-on-error: true
         env:
           PR_BYTES: ${{ steps.pr_size.outputs.pr_bytes }}
           MAIN_BYTES: ${{ steps.main_size.outputs.main_bytes }}

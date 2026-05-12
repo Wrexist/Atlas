@@ -272,7 +272,11 @@ jobs:
           done || true
 
       - name: UI Tests
-        continue-on-error: true
+        # UI tests cover tab-bar reachability only today. Keeping them
+        # gating prevents a regression where the app launches but the
+        # bottom navigation is broken — a class of bug the unit tests
+        # can't catch. Expand the suite before treating any failures
+        # as flaky.
         run: |
           xcodebuild test \
             -project Peptide.xcodeproj \
