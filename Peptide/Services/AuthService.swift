@@ -257,9 +257,13 @@ final class AuthService {
         ]
 
         // Update-first upsert: avoids a window where the item is absent.
+        // `WhenUnlockedThisDeviceOnly`: requires the device to be unlocked
+        // every time (not just once after reboot), and the item never
+        // syncs to iCloud Keychain or restores to another device — so
+        // Apple-relayed email/name PII stays bound to the original phone.
         let updateAttrs: [String: Any] = [
             kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
         let updateStatus = SecItemUpdate(query as CFDictionary, updateAttrs as CFDictionary)
         if updateStatus == errSecSuccess { return errSecSuccess }
@@ -267,7 +271,7 @@ final class AuthService {
 
         var addQuery = query
         addQuery[kSecValueData as String]      = data
-        addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         return SecItemAdd(addQuery as CFDictionary, nil)
     }
 

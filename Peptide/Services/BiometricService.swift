@@ -1,5 +1,11 @@
 @preconcurrency import LocalAuthentication
 
+/// Soft privacy screen, not a crypto-bound vault. Gates the app's UI
+/// behind a Face ID / Touch ID / passcode check at launch, but the
+/// underlying SwiftData container and Keychain items are *not* tied
+/// to biometrics — a passcode shoulder-surf bypasses the gate. The
+/// settings copy reflects this honestly; v2 work to bind SwiftData
+/// behind a SecAccessControl-protected key is tracked separately.
 @MainActor @Observable
 final class BiometricService {
     static let shared = BiometricService()

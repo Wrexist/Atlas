@@ -50,7 +50,7 @@ struct AppearanceSettings: View {
                     SettingsToggleRow(
                         icon: biometricService.biometryIcon,
                         title: "\(biometricService.biometryName) Lock",
-                        subtitle: "Require authentication on launch",
+                        subtitle: "Hides the app behind a quick \(biometricService.biometryName) check on launch. Your data isn't separately encrypted — this is a privacy screen, not full disk encryption.",
                         isOn: $store.profile.biometricLockEnabled
                     )
                     .onChange(of: dataStore.profile.biometricLockEnabled) { _, _ in

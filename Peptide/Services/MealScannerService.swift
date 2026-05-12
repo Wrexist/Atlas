@@ -1,48 +1,39 @@
 import Foundation
 import UIKit
 
-/// Sends a meal photo to Anthropic's Messages API (Claude vision) and
-/// parses the JSON-only response into a `MealEstimate`. Reads the API
-/// key from `Info.plist` under the `ANTHROPIC_API_KEY` key; the key
-/// itself should land via a gitignored `Secrets.xcconfig` so it never
-/// hits source control.
+/// Sends a meal photo to the PeptideX proxy (which holds the
+/// Anthropic key server-side) and parses the JSON-only response into a
+/// `MealEstimate`. The proxy URL is read from `MEAL_SCANNER_ENDPOINT`
+/// in `Info.plist` (or the same env var on the scheme); a shared
+/// client secret comes from `MEAL_SCANNER_SHARED_SECRET`.
 ///
-/// SECURITY: This client embeds an API key in the shipping app, which is
-/// unsafe for production — anyone who jailbreaks the binary can extract
-/// it. The right long-term home is a server-side proxy that holds the
-/// key and signs/forwards requests. This direct-call path is a bridge
-/// so the meal-scanner UX is real today; replace before public release.
+/// Direct calls to `api.anthropic.com` are intentionally not supported
+/// — embedding an Anthropic key in the shipping binary is unsafe
+/// because anyone unzipping the IPA can recover it. The build will
+/// fail loudly at runtime if the proxy endpoint isn't configured.
 final class MealScannerService: Sendable {
     static let shared = MealScannerService()
 
     private let session: URLSession = .shared
     private let model = "claude-sonnet-4-6"
-    private let apiVersion = "2023-06-01"
 
-    /// Default endpoint = direct Anthropic Messages API. Production
-    /// builds should override `MEAL_SCANNER_ENDPOINT` in Info.plist (or
-    /// the `MEAL_SCANNER_ENDPOINT` environment variable on the scheme)
-    /// so requests flow through a server-side proxy that holds the API
-    /// key. The proxy must accept the same JSON body shape and forward
-    /// to Anthropic, so the client code is unchanged.
-    private static let defaultEndpoint = URL(string: "https://api.anthropic.com/v1/messages")!
+    /// Proxy URL is read from `MEAL_SCANNER_ENDPOINT` (Info.plist or
+    /// scheme env). The proxy is mandatory — see the file-header
+    /// comment for why.
+    private var endpoint: URL? {
+        Self.urlSetting(forKey: "MEAL_SCANNER_ENDPOINT")
+    }
 
-    private var endpoint: URL {
-        if let bundleValue = Bundle.main.object(forInfoDictionaryKey: "MEAL_SCANNER_ENDPOINT") as? String,
-           let url = URL(string: bundleValue.trimmingCharacters(in: .whitespacesAndNewlines)),
-           !bundleValue.isEmpty {
-            return url
-        }
-        if let envValue = ProcessInfo.processInfo.environment["MEAL_SCANNER_ENDPOINT"],
-           let url = URL(string: envValue.trimmingCharacters(in: .whitespacesAndNewlines)),
-           !envValue.isEmpty {
-            return url
-        }
-        return Self.defaultEndpoint
+    /// Shared client secret sent as `x-peptide-key`. The proxy rejects
+    /// requests that don't carry it, which raises the bar significantly
+    /// against URL-leak abuse (someone has to recover both pieces).
+    /// Read from `MEAL_SCANNER_SHARED_SECRET` (Info.plist or scheme env).
+    private var sharedSecret: String? {
+        Self.stringSetting(forKey: "MEAL_SCANNER_SHARED_SECRET")
     }
 
     enum ScanError: Error, LocalizedError {
-        case missingKey
+        case proxyNotConfigured
         case imageTooLarge
         case requestFailed(String)
         case invalidResponse
@@ -50,11 +41,11 @@ final class MealScannerService: Sendable {
 
         var errorDescription: String? {
             switch self {
-            case .missingKey:           "Missing ANTHROPIC_API_KEY — add it to Secrets.xcconfig and rebuild."
+            case .proxyNotConfigured:   "Meal scanner isn't configured for this build. Set MEAL_SCANNER_ENDPOINT and MEAL_SCANNER_SHARED_SECRET in Secrets.xcconfig and rebuild."
             case .imageTooLarge:        "Photo is too large to upload. Try a smaller image."
             case .requestFailed(let m): m
-            case .invalidResponse:      "Claude returned an unexpected response shape."
-            case .parseFailure:         "Couldn't read the meal estimate from Claude's reply."
+            case .invalidResponse:      "The scanner returned an unexpected response."
+            case .parseFailure:         "Couldn't read the meal estimate from the scanner."
             }
         }
     }
@@ -81,10 +72,12 @@ final class MealScannerService: Sendable {
 
     private init() {}
 
-    /// Compresses + base64-encodes the image, posts it to the Messages
-    /// API, then parses the JSON the model is instructed to return.
+    /// Compresses + base64-encodes the image, posts it to the proxy,
+    /// then parses the JSON the model is instructed to return.
     func analyze(image: UIImage) async throws -> MealEstimate {
-        guard let key = apiKey, !key.isEmpty else { throw ScanError.missingKey }
+        guard let endpoint, let sharedSecret, !sharedSecret.isEmpty else {
+            throw ScanError.proxyNotConfigured
+        }
 
         let bytes = try compress(image)
         let base64 = bytes.base64EncodedString()
@@ -93,8 +86,7 @@ final class MealScannerService: Sendable {
         request.httpMethod = "POST"
         request.timeoutInterval = 30
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiVersion, forHTTPHeaderField: "anthropic-version")
-        request.setValue(key, forHTTPHeaderField: "x-api-key")
+        request.setValue(sharedSecret, forHTTPHeaderField: "x-peptide-key")
         request.httpBody = try JSONSerialization.data(
             withJSONObject: requestPayload(base64: base64),
             options: []
@@ -106,8 +98,10 @@ final class MealScannerService: Sendable {
             throw ScanError.invalidResponse
         }
         guard (200..<300).contains(http.statusCode) else {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            throw ScanError.requestFailed("HTTP \(http.statusCode): \(body)")
+            // Surface only the status code — never echo the upstream
+            // response body, which can include the request id and key
+            // fingerprint on auth failures.
+            throw ScanError.requestFailed("Meal scanner returned HTTP \(http.statusCode).")
         }
 
         return try parseEstimate(from: data)
@@ -115,24 +109,26 @@ final class MealScannerService: Sendable {
 
     // MARK: - Internals
 
-    private var apiKey: String? {
-        // Two configuration paths so devs and CI both work without
-        // forcing changes to project.yml on first checkout:
-        //  1. Info.plist key `ANTHROPIC_API_KEY` — typically set via a
-        //     gitignored `Secrets.xcconfig` and an `$(ANTHROPIC_API_KEY)`
-        //     substitution in the Info.plist build output.
-        //  2. Process environment variable `ANTHROPIC_API_KEY` — useful
-        //     for the simulator when you don't want to bake the key into
-        //     the build at all (set it on the scheme's Run Arguments).
-        if let bundleValue = Bundle.main.object(forInfoDictionaryKey: "ANTHROPIC_API_KEY") as? String {
+    /// Generic `Info.plist` + env-var reader. Used for both the proxy
+    /// URL and the shared secret. Env wins for simulator workflows so
+    /// devs don't need to rebuild after rotating credentials.
+    private static func stringSetting(forKey key: String) -> String? {
+        if let bundleValue = Bundle.main.object(forInfoDictionaryKey: key) as? String {
             let trimmed = bundleValue.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty { return trimmed }
         }
-        if let envValue = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] {
+        if let envValue = ProcessInfo.processInfo.environment[key] {
             let trimmed = envValue.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty { return trimmed }
         }
         return nil
+    }
+
+    private static func urlSetting(forKey key: String) -> URL? {
+        guard let raw = stringSetting(forKey: key), let url = URL(string: raw) else {
+            return nil
+        }
+        return url
     }
 
     /// JPEG-compress to 1024 px max edge so we stay well under Anthropic's

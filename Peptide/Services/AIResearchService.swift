@@ -1,10 +1,10 @@
 import Foundation
 
-/// Chat-style research assistant backed by Anthropic's Messages API.
-/// Reuses the same `MEAL_SCANNER_ENDPOINT` + `ANTHROPIC_API_KEY`
-/// resolution path as `MealScannerService` so a single proxy
-/// deployment serves both surfaces; in production the iOS client
-/// never sees the API key.
+/// Chat-style research assistant. Sends RAG-augmented prompts to the
+/// PeptideX proxy (which holds the Anthropic key server-side); the
+/// iOS client never sees the API key. Endpoint + shared secret are
+/// configured via `AI_RESEARCH_ENDPOINT` and `AI_RESEARCH_SHARED_SECRET`
+/// — same pattern as `MealScannerService`.
 ///
 /// RAG strategy: rather than ship a vector store, we substring-match
 /// the user's question against the bundled peptide database (208
@@ -17,19 +17,28 @@ final class AIResearchService: Sendable {
 
     private let session: URLSession = .shared
     private let model = "claude-sonnet-4-6"
-    private let apiVersion = "2023-06-01"
-    private static let defaultEndpoint = URL(string: "https://api.anthropic.com/v1/messages")!
+
+    /// Proxy URL is read from `AI_RESEARCH_ENDPOINT`. Direct calls to
+    /// `api.anthropic.com` are intentionally not supported — see the
+    /// MealScannerService file-header for the rationale.
+    private var endpoint: URL? {
+        Self.urlSetting(forKey: "AI_RESEARCH_ENDPOINT")
+    }
+
+    private var sharedSecret: String? {
+        Self.stringSetting(forKey: "AI_RESEARCH_SHARED_SECRET")
+    }
 
     enum ChatError: Error, LocalizedError {
-        case missingKey
+        case proxyNotConfigured
         case requestFailed(String)
         case invalidResponse
 
         var errorDescription: String? {
             switch self {
-            case .missingKey:           "Missing ANTHROPIC_API_KEY — add it to Secrets.xcconfig and rebuild, or point AI_RESEARCH_ENDPOINT at a configured proxy."
+            case .proxyNotConfigured:   "AI research isn't configured for this build. Set AI_RESEARCH_ENDPOINT and AI_RESEARCH_SHARED_SECRET in Secrets.xcconfig and rebuild."
             case .requestFailed(let m): m
-            case .invalidResponse:      "Claude returned an unexpected response shape."
+            case .invalidResponse:      "The assistant returned an unexpected response."
             }
         }
     }
@@ -60,7 +69,9 @@ final class AIResearchService: Sendable {
         newUserPrompt prompt: String,
         in database: [Peptide]
     ) async throws -> String {
-        guard let key = apiKey, !key.isEmpty else { throw ChatError.missingKey }
+        guard let endpoint, let sharedSecret, !sharedSecret.isEmpty else {
+            throw ChatError.proxyNotConfigured
+        }
 
         let context = ragContext(for: prompt, history: history, in: database)
 
@@ -68,8 +79,7 @@ final class AIResearchService: Sendable {
         request.httpMethod = "POST"
         request.timeoutInterval = 60
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiVersion, forHTTPHeaderField: "anthropic-version")
-        request.setValue(key, forHTTPHeaderField: "x-api-key")
+        request.setValue(sharedSecret, forHTTPHeaderField: "x-peptide-key")
         request.httpBody = try JSONSerialization.data(
             withJSONObject: payload(history: history, newPrompt: prompt, ragContext: context),
             options: []
@@ -78,8 +88,9 @@ final class AIResearchService: Sendable {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw ChatError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            throw ChatError.requestFailed("HTTP \(http.statusCode): \(body)")
+            // Don't echo upstream body — see MealScannerService for the
+            // same reasoning around key fingerprint leakage.
+            throw ChatError.requestFailed("AI research returned HTTP \(http.statusCode).")
         }
 
         return try parseAssistantText(from: data)
@@ -188,31 +199,24 @@ final class AIResearchService: Sendable {
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    // MARK: - Endpoint + key resolution
+    // MARK: - Proxy settings
 
-    private var endpoint: URL {
-        if let bundleValue = Bundle.main.object(forInfoDictionaryKey: "AI_RESEARCH_ENDPOINT") as? String,
-           let url = URL(string: bundleValue.trimmingCharacters(in: .whitespacesAndNewlines)),
-           !bundleValue.isEmpty {
-            return url
-        }
-        if let envValue = ProcessInfo.processInfo.environment["AI_RESEARCH_ENDPOINT"],
-           let url = URL(string: envValue.trimmingCharacters(in: .whitespacesAndNewlines)),
-           !envValue.isEmpty {
-            return url
-        }
-        return Self.defaultEndpoint
-    }
-
-    private var apiKey: String? {
-        if let bundleValue = Bundle.main.object(forInfoDictionaryKey: "ANTHROPIC_API_KEY") as? String {
+    private static func stringSetting(forKey key: String) -> String? {
+        if let bundleValue = Bundle.main.object(forInfoDictionaryKey: key) as? String {
             let trimmed = bundleValue.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty { return trimmed }
         }
-        if let envValue = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] {
+        if let envValue = ProcessInfo.processInfo.environment[key] {
             let trimmed = envValue.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty { return trimmed }
         }
         return nil
+    }
+
+    private static func urlSetting(forKey key: String) -> URL? {
+        guard let raw = stringSetting(forKey: key), let url = URL(string: raw) else {
+            return nil
+        }
+        return url
     }
 }
