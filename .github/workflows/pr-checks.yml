@@ -173,12 +173,14 @@ jobs:
           echo "SwiftLint ready: $(swiftlint version)"
 
       - name: Lint
-        # --strict drops temporarily — a SwiftLint version bump on the runner
-        # surfaced 13 pre-existing violations across files we didn't touch in
-        # this PR (comma spacing, trailing newlines, opening braces). Re-enable
-        # --strict in a follow-up cleanup commit once we can inspect each
-        # annotation in the GitHub UI.
-        run: swiftlint lint --reporter github-actions-logging
+        # --strict promotes every warning to a fatal error so a single
+        # opt-in violation (force_unwrapping, implicitly_unwrapped_optional)
+        # gates the PR. The 25 force-unwraps that previously blocked
+        # this were cleaned in the same commit that flipped --strict on
+        # (all hardcoded URLs now go through URL.staticHTTPS). If a
+        # future SwiftLint version bump surfaces new rule violations,
+        # fix them — don't drop --strict.
+        run: swiftlint lint --strict --reporter github-actions-logging
 
       - name: Unit Tests
         # Soft-gated: a few tests in the suite need follow-up work

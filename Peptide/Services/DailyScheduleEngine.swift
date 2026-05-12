@@ -427,7 +427,7 @@ enum DailyScheduleEngine {
 
         // Fasted reminder if at least one other dose lands in the same slot,
         // so the user knows not to break the fast for the second injection.
-        if fastedRequired && companions.count > 0 {
+        if fastedRequired && !companions.isEmpty {
             let fastedNote = "Stay fasted — don't eat for 30 min after injection. Other doses in this window can be taken back-to-back without breaking the fast."
             // Only add if this is the first fasted-required peptide we see;
             // otherwise the note becomes redundant noise.

@@ -41,7 +41,7 @@ final class OpenFoodFactsService: Sendable {
         "nova_group",
     ].joined(separator: ",")
 
-    private static let defaultBaseURL = URL(string: "https://world.openfoodfacts.org/api/v2/product/")!
+    private static let defaultBaseURL = URL.staticHTTPS("https://world.openfoodfacts.org/api/v2/product/")
 
     init(
         session: URLSession = .shared,

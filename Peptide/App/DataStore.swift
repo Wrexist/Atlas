@@ -765,9 +765,9 @@ final class DataStore: DataServiceProtocol {
     /// compounds. A peptide with zero logged doses returns 1.0 so a
     /// brand-new shelf shows full vials, not empty ones.
     func liquidLevel(for peptide: Peptide) -> Double {
-        let count = entries.filter { $0.peptide.id == peptide.id && $0.completed }.count
-        guard count > 0 else { return 1.0 }
-        let consumed = count % Self.defaultDosesPerVial
+        let doseCount = entries.filter { $0.peptide.id == peptide.id && $0.completed }.count
+        guard doseCount != 0 else { return 1.0 }
+        let consumed = doseCount % Self.defaultDosesPerVial
         // When the modulo lands exactly on the vial boundary the user
         // just finished a vial — show a fresh full one rather than an
         // empty one so the next dose drains from full again.
