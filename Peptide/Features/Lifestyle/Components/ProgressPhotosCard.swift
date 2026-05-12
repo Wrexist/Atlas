@@ -41,9 +41,10 @@ struct ProgressPhotosCard: View {
                 }
             }
         }
-        .padding(Spacing.md)
+        .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(cardBackground)
+        .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
         .onChange(of: pickerItem) { _, newValue in
             Task { await loadAndPersist(item: newValue) }
         }
@@ -98,11 +99,17 @@ struct ProgressPhotosCard: View {
                         .font(.system(size: 12, weight: .semibold))
                 }
                 .foregroundStyle(AppColor.accentLight)
-                .padding(.horizontal, Spacing.sm)
-                .padding(.vertical, 4)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, 6)
                 .background {
-                    Capsule().fill(AppColor.accentPrimary.opacity(0.15))
+                    Capsule(style: .continuous)
+                        .fill(AppColor.accentPrimary.opacity(0.18))
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                        }
                 }
+                .liquidGlass(.capsule)
             }
             .buttonStyle(.plain)
         }
