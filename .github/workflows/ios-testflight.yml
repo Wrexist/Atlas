@@ -39,6 +39,26 @@ jobs:
       - name: Trust GitHub SSH host key
         run: ssh-keyscan github.com >> ~/.ssh/known_hosts
 
+      # ─── Auto-version pipeline ────────────────────────────────────
+      #
+      # Single source of truth: the workflow input, OR 1.0.<run_number>
+      # when the input is blank. From here every layer is forced to
+      # the same value:
+      #   1. sed → project.yml MARKETING_VERSION (every target)
+      #   2. sed → project.yml CURRENT_PROJECT_VERSION (every target)
+      #   3. xcodegen reads those settings + writes Info.plist files
+      #      whose CFBundleShortVersionString is $(MARKETING_VERSION)
+      #   4. PlistBuddy stamps the resolved literal into every iOS /
+      #      watch Info.plist on disk (belt-and-suspenders, in case
+      #      Xcode's substitution misbehaves on any sub-bundle)
+      #   5. Fastfile passes MARKETING_VERSION / CURRENT_PROJECT_VERSION
+      #      through xcargs to xcodebuild — last-resort pin
+      #
+      # If you add a new target, the only thing you have to do is set
+      # MARKETING_VERSION + CURRENT_PROJECT_VERSION in its
+      # `settings.base` block (and CFBundleShortVersionString /
+      # CFBundleVersion in `info.properties` if it has an Info.plist).
+      # The sed + glob steps below pick up the rest automatically.
       - name: Resolve marketing version (input or auto 1.0.<run_number>)
         env:
           INPUT_VERSION: ${{ github.event.inputs.marketing_version }}
@@ -51,17 +71,47 @@ jobs:
             NEW_VERSION="$INPUT_VERSION"
             echo "Using marketing_version input: $NEW_VERSION"
           fi
-          sed -i '' "s/MARKETING_VERSION: \"[^\"]*\"/MARKETING_VERSION: \"$NEW_VERSION\"/g" project.yml
+
+          # Apple accepts only numeric-dot strings: MAJOR.MINOR[.PATCH].
+          # Catch typos like "v1.0.1" or "1,0,1" before they cost a build.
+          if ! printf '%s' "$NEW_VERSION" | grep -Eq '^[0-9]+(\.[0-9]+){1,2}$'; then
+            echo "::error::Marketing version '$NEW_VERSION' is not a valid MAJOR.MINOR[.PATCH] string."
+            exit 1
+          fi
+
+          # Match double-quoted, single-quoted, and unquoted forms so a
+          # future YAML reformatting can't silently bypass the rewrite.
+          sed -i '' -E "s/(MARKETING_VERSION:[[:space:]]*)[\"']?[^\"'[:space:]]+[\"']?/\1\"$NEW_VERSION\"/g" project.yml
+
+          # Hard-verify every MARKETING_VERSION line now equals NEW_VERSION.
+          # A single unmatched line means a sub-bundle will ship the wrong
+          # version and Apple will reject the upload — fail here instead.
+          BAD=$(grep -E '^[[:space:]]*MARKETING_VERSION:' project.yml | grep -v "\"$NEW_VERSION\"" || true)
+          if [ -n "$BAD" ]; then
+            echo "::error::Some MARKETING_VERSION lines did not get rewritten to $NEW_VERSION:"
+            echo "$BAD"
+            exit 1
+          fi
+
+          echo "MARKETING_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
           echo "MARKETING_VERSION lines after override:"
-          grep MARKETING_VERSION project.yml
+          grep -n MARKETING_VERSION project.yml
 
       - name: Sync CURRENT_PROJECT_VERSION across all targets to run_number
         env:
           BUILD: ${{ github.run_number }}
         run: |
-          sed -i '' "s/CURRENT_PROJECT_VERSION: \"[^\"]*\"/CURRENT_PROJECT_VERSION: \"$BUILD\"/g" project.yml
+          sed -i '' -E "s/(CURRENT_PROJECT_VERSION:[[:space:]]*)[\"']?[^\"'[:space:]]+[\"']?/\1\"$BUILD\"/g" project.yml
+
+          BAD=$(grep -E '^[[:space:]]*CURRENT_PROJECT_VERSION:' project.yml | grep -v "\"$BUILD\"" || true)
+          if [ -n "$BAD" ]; then
+            echo "::error::Some CURRENT_PROJECT_VERSION lines did not get rewritten to $BUILD:"
+            echo "$BAD"
+            exit 1
+          fi
+
           echo "CURRENT_PROJECT_VERSION lines after sync:"
-          grep CURRENT_PROJECT_VERSION project.yml
+          grep -n CURRENT_PROJECT_VERSION project.yml
 
       - name: Generate fallback app icons if missing
         run: |
@@ -91,18 +141,51 @@ jobs:
           brew install xcodegen || true
           xcodegen generate
 
-      - name: Stamp build number into bundle plists
+      - name: Stamp version + build number into bundle plists
         env:
           BUILD: ${{ github.run_number }}
+          MARKETING_VERSION: ${{ env.MARKETING_VERSION }}
         run: |
-          for PLIST in \
-            Peptide/Resources/Info.plist \
-            PeptideWidgets/Info.plist \
-            PeptideWatchWidgets/Info.plist; do
-            if [ -f "$PLIST" ]; then
-              /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$PLIST" 2>/dev/null \
-                || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD" "$PLIST"
+          # Belt-and-suspenders: after xcodegen has materialized the
+          # Info.plist files, force the version keys to literal values
+          # so xcodebuild can't ship a stale "1.0" if the
+          # $(MARKETING_VERSION) substitution fails for any reason.
+          #
+          # Glob so a newly-added extension's Info.plist is stamped
+          # automatically. The find expression covers every Info.plist
+          # under the project's top-level target directories and
+          # excludes the build/derived-data caches.
+          mapfile -t PLISTS < <(find . \
+            \( -path './build' -o -path './DerivedData' -o -path './.build' -o -path './vendor' \) -prune -false \
+            -o -name 'Info.plist' -type f -print | sort)
+
+          if [ "${#PLISTS[@]}" -eq 0 ]; then
+            echo "::error::No Info.plist files found to stamp — did xcodegen run?"
+            exit 1
+          fi
+
+          for PLIST in "${PLISTS[@]}"; do
+            # Skip plists that aren't bundle Info.plists (e.g. dSYM
+            # Info.plists which legitimately have no version keys).
+            if ! /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$PLIST" >/dev/null 2>&1; then
+              echo "Skipping non-bundle plist: $PLIST"
+              continue
             fi
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$PLIST" 2>/dev/null \
+              || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD" "$PLIST"
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $MARKETING_VERSION" "$PLIST" 2>/dev/null \
+              || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $MARKETING_VERSION" "$PLIST"
+            echo "Stamped $PLIST → short=$MARKETING_VERSION build=$BUILD"
+          done
+
+          # Print what'll actually ship so log review can confirm at a
+          # glance that no sub-bundle is stuck at "1.0".
+          echo ""
+          echo "=== Final CFBundleShortVersionString in every Info.plist ==="
+          for PLIST in "${PLISTS[@]}"; do
+            SHORT=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST" 2>/dev/null || echo "(missing)")
+            BUILDV=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST" 2>/dev/null || echo "(missing)")
+            echo "  $PLIST → short=$SHORT build=$BUILDV"
           done
 
       - name: Inject AI proxy endpoints + secrets into Info.plist

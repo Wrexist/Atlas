@@ -1,3 +1,24 @@
+# Auto-version contract (see .github/workflows/ios-testflight.yml):
+#
+# Every shipping target MUST declare these four keys so the TestFlight
+# pipeline can stamp a fresh `1.0.<run_number>` (or a manual override)
+# across the whole archive:
+#
+#   settings.base:
+#     MARKETING_VERSION: "1.0.X"          # rewritten by the workflow
+#     CURRENT_PROJECT_VERSION: "X"        # rewritten to run_number
+#
+#   info.properties (only for targets with a custom Info.plist):
+#     CFBundleShortVersionString: $(MARKETING_VERSION)
+#     CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+#
+#   For targets with GENERATE_INFOPLIST_FILE: YES, set the same values
+#   via INFOPLIST_KEY_CFBundleShortVersionString /
+#   INFOPLIST_KEY_CFBundleVersion in settings.base instead.
+#
+# Missing any of these on a sub-bundle is what got us "train 1.0
+# closed" rejections from App Store Connect — Apple will reject the
+# entire upload if a single embedded extension's version is stale.
 name: Peptide
 options:
   bundleIdPrefix: com.peptidesai
@@ -29,6 +50,8 @@ targets:
       path: Peptide/Resources/Info.plist
       properties:
         CFBundleDisplayName: PeptideX
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleLocalizations:
           - en
           - es
@@ -42,9 +65,9 @@ targets:
           - ar
         ITSAppUsesNonExemptEncryption: false
         NSSupportsLiveActivities: true
-        NSCameraUsageDescription: "PeptideX uses the camera so you can take a profile photo. The image is stored locally on your device and is never uploaded."
+        NSCameraUsageDescription: "PeptideX uses the camera to take a profile photo (stored locally) and to scan meals for nutrition estimation. Meal photos are sent securely to our AI service for analysis and are not retained after the response."
         NSFaceIDUsageDescription: "PeptideX uses Face ID to optionally lock the app, so your protocols and health data stay private if your device is unlocked. Face ID is optional — you can disable it in Settings."
-        NSHealthShareUsageDescription: "PeptideX reads your health data so you can correlate peptide protocol compliance with metrics like heart rate variability, sleep quality, and activity. PeptideX never writes to Apple Health."
+        NSHealthShareUsageDescription: "PeptideX reads heart rate, HRV, resting heart rate, body mass, steps, and active energy from Apple Health to correlate your peptide protocols with biometric trends. PeptideX never writes to Apple Health and all analysis happens on your device."
         NSHealthUpdateUsageDescription: "PeptideX does not write to Apple Health and never modifies your health records."
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
@@ -87,6 +110,8 @@ targets:
       path: PeptideWidgets/Info.plist
       properties:
         CFBundleDisplayName: PeptideX Widgets
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -150,6 +175,8 @@ targets:
       path: PeptideWatchWidgets/Info.plist
       properties:
         CFBundleDisplayName: PeptideX Watch Widgets
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:

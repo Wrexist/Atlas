@@ -59,6 +59,9 @@ struct CameraPicker: UIViewControllerRepresentable {
 extension UIImagePickerController.SourceType {
     /// True when the platform actually supports the requested source — used to
     /// hide the "Take Photo" action on simulators or devices without a camera.
+    /// `isSourceTypeAvailable` is MainActor-isolated under Swift 6, so this
+    /// accessor pins itself to the main actor.
+    @MainActor
     static var cameraIsAvailable: Bool {
         UIImagePickerController.isSourceTypeAvailable(.camera)
     }
