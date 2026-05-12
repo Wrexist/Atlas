@@ -1,5 +1,10 @@
 # Peptide-ai: Claude Code Setup Guide
 
+> **Note:** This document is about the Claude Code tooling configured
+> for this repo (custom skills, hooks, plugins). For Xcode + build
+> setup, see [`README.md`](README.md). For TestFlight + signing
+> setup, see [`TESTFLIGHT_SETUP.md`](TESTFLIGHT_SETUP.md).
+
 ## Quick Start
 
 ```bash

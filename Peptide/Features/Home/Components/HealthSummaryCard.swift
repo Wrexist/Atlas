@@ -84,6 +84,7 @@ struct HealthSummaryCard: View {
             Image(systemName: icon)
                 .font(.system(size: 14))
                 .foregroundStyle(AppColor.accentPrimary)
+                .accessibilityHidden(true)              // label below conveys the metric name
             Text(value + (unit.isEmpty ? "" : " ") + unit)
                 .font(AppFont.caption)
                 .fontWeight(.semibold)

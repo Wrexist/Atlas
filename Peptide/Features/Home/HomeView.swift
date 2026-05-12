@@ -367,6 +367,7 @@ struct HomeView: View {
                     Image(systemName: "info.circle")
                         .font(.system(size: 12))
                         .foregroundStyle(AppColor.textTertiary)
+                        .accessibilityHidden(true)              // Text below carries the meaning
                     Text("Browse the Peptides tab to explore the database")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)

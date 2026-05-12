@@ -1,7 +1,14 @@
-# Peptide-ai
+# Peptide-ai (PeptideX)
 
 ## Project Overview
-AI-powered project (direction TBD). This file configures Claude Code for maximum Opus 4.6 performance.
+Native iOS SwiftUI app for peptide protocol tracking with grounded AI
+assistance. iOS 18+, Swift 6.0, SwiftData (CloudKit-backed), companion
+Watch app + two widget targets + Live Activities. See `README.md` for
+the directory layout and `HANDOFF.md` for the most-recent in-flight
+state. The Vercel proxy in `server/` holds the Anthropic key so the
+iOS binary never ships one.
+
+This file configures Claude Code for the codebase's conventions.
 
 ## Code Standards
 - Write clean, minimal code. No premature abstractions.
