@@ -103,6 +103,30 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         let product = try await service.fetch(barcode: "2222222222222")
         XCTAssertEqual(product.servingGrams, 250)
         XCTAssertEqual(product.per100g.calories, 88, accuracy: 0.01)
+        // Exercises FlexibleInt's string branch — nova_group arrives as "3".
+        XCTAssertEqual(product.novaGroup, 3)
+    }
+
+    // MARK: - fetch: OFF data quirks
+
+    func test_fetch_fallsBackToKilojoules_whenKcalAbsent() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.kilojoulesOnly.utf8))
+        }
+        let product = try await service.fetch(barcode: "4444444444444")
+        // 1000 kJ / 4.184 = 239.0… kcal/100g
+        XCTAssertEqual(product.per100g.calories, 239, accuracy: 0.5)
+    }
+
+    func test_fetch_treatsZeroServingQuantityAsMissing() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.zeroServingQuantity.utf8))
+        }
+        let product = try await service.fetch(barcode: "5555555555555")
+        // serving_quantity: 0 must collapse to nil so defaultPortion
+        // skips .servings(1) (which would grey out the Add button).
+        XCTAssertNil(product.servingGrams)
+        XCTAssertNotEqual(product.defaultPortion, .servings(1))
     }
 
     func test_fetch_zerosOutMissingMacros() async throws {
@@ -300,11 +324,46 @@ private enum Fixtures {
       "product": {
         "product_name": "Stringy",
         "serving_quantity": "250",
+        "nova_group": "3",
         "nutriments": {
           "energy-kcal_100g": "88",
           "proteins_100g": "3.5",
           "carbohydrates_100g": "12",
           "fat_100g": "1"
+        }
+      }
+    }
+    """
+
+    static let kilojoulesOnly = """
+    {
+      "status": 1,
+      "code": "4444444444444",
+      "product": {
+        "product_name": "kJ-only product",
+        "nutriments": {
+          "energy_100g": 1000,
+          "proteins_100g": 10,
+          "carbohydrates_100g": 20,
+          "fat_100g": 5
+        }
+      }
+    }
+    """
+
+    static let zeroServingQuantity = """
+    {
+      "status": 1,
+      "code": "5555555555555",
+      "product": {
+        "product_name": "Zero-serving product",
+        "serving_quantity": 0,
+        "product_quantity": 0,
+        "nutriments": {
+          "energy-kcal_100g": 200,
+          "proteins_100g": 10,
+          "carbohydrates_100g": 20,
+          "fat_100g": 5
         }
       }
     }

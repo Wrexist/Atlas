@@ -124,11 +124,22 @@ struct BarcodeScanFlow: View {
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
 
-            Text("This device can't open the live scanner, so enter the digits manually.")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.lg)
+            if let errorText {
+                // Camera was denied (or the device is unsupported) —
+                // tell the user why they landed on manual entry so they
+                // can re-enable in Settings or just type the code.
+                Text(errorText)
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.warning)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.lg)
+            } else {
+                Text("This device can't open the live scanner, so enter the digits manually.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.lg)
+            }
 
             TextField("e.g. 5449000000996", text: $manualBarcode)
                 .keyboardType(.numberPad)
@@ -310,7 +321,7 @@ struct BarcodeScanFlow: View {
                 Slider(value: Binding(
                     get: { g },
                     set: { portion = .grams($0) }
-                ), in: 10...1000, step: 5)
+                ), in: 10...2000, step: 5)
                 .tint(AppColor.accentPrimary)
                 HStack(spacing: Spacing.xs) {
                     ForEach([50.0, 100.0, 200.0, 500.0], id: \.self) { quick in
@@ -419,14 +430,25 @@ struct BarcodeScanFlow: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
-            Button("Try again") {
-                errorText = nil
-                product = nil
-                manualBarcode = ""
-                phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
+            VStack(spacing: Spacing.sm) {
+                Button("Try again") {
+                    errorText = nil
+                    product = nil
+                    manualBarcode = ""
+                    phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColor.accentPrimary)
+
+                // Network / rate-limit / decode failures shouldn't trap
+                // the user — give them the same photo escape hatch the
+                // notFound card offers.
+                Button("Snap a photo instead") {
+                    onRequestPhotoFallback()
+                }
+                .buttonStyle(.bordered)
+                .tint(AppColor.textSecondary)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColor.accentPrimary)
             .padding(.top, Spacing.md)
         }
     }
@@ -440,7 +462,7 @@ struct BarcodeScanFlow: View {
                 .fontWeight(isActive ? .semibold : .regular)
                 .foregroundStyle(isActive ? AppColor.textPrimary : AppColor.textSecondary)
                 .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.xs)
+                .frame(minHeight: 44)        // HIG minimum tap target
                 .background {
                     Capsule()
                         .fill(isActive ? AppColor.accentPrimary.opacity(0.25) : Color.clear)
@@ -453,6 +475,7 @@ struct BarcodeScanFlow: View {
                 }
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
     }
 
     private func nutriScorePill(_ score: String) -> some View {
@@ -463,6 +486,9 @@ struct BarcodeScanFlow: View {
             .background {
                 Circle().fill(Self.nutriScoreColor(score))
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Nutri-Score \(score.uppercased())")
+            .accessibilityHint("A through E rating of overall nutritional quality, where A is best.")
     }
 
     private func macroRow(label: LocalizedStringKey, value: String) -> some View {

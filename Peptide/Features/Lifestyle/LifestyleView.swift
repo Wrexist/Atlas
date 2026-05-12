@@ -9,6 +9,7 @@ struct LifestyleView: View {
 
     @State private var showMealScan = false
     @State private var showBarcodeScan = false
+    @State private var pendingPhotoFallback = false
     @State private var showWeightLog = false
     @State private var showWorkoutLog = false
     @State private var showTargetsEditor = false
@@ -74,6 +75,20 @@ struct LifestyleView: View {
                 )
                 .environment(dataStore)
             }
+            .onChange(of: showBarcodeScan) { _, isPresented in
+                // Sheet handoff: when the barcode sheet dismisses with
+                // a pending fallback, present the photo sheet. The
+                // brief sleep lets SwiftUI finish the dismiss animation
+                // — iOS otherwise silently drops a second presentation
+                // that races with the first. 350 ms covers both
+                // standard and Reduce Motion timings.
+                guard !isPresented, pendingPhotoFallback else { return }
+                pendingPhotoFallback = false
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(350))
+                    showMealScan = true
+                }
+            }
             .sheet(isPresented: $showWeightLog) {
                 WeightLogSheet(
                     history: dataStore.profile.weightHistory,
@@ -104,15 +119,14 @@ struct LifestyleView: View {
         }
     }
 
-    /// Dismisses the barcode sheet and presents the photo sheet a beat
-    /// later. iOS won't show two sheets at the same time, so we have
-    /// to wait for the dismiss animation to start before requesting
-    /// the next one — 0.35 s lands cleanly after the spring settles.
+    /// Sets a flag and dismisses the barcode sheet — the .onChange on
+    /// `showBarcodeScan` above presents the photo sheet once the dismiss
+    /// has actually completed. iOS won't show two sheets at the same
+    /// time, and chaining on real state is more robust than guessing
+    /// at the dismiss animation duration.
     private func handlePhotoFallback() {
+        pendingPhotoFallback = true
         showBarcodeScan = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            showMealScan = true
-        }
     }
 
     private var targetsPrompt: some View {

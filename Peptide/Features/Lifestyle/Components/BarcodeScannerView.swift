@@ -41,6 +41,11 @@ struct BarcodeScannerView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ controller: DataScannerViewController, context: Context) {
+        // updateUIViewController fires on every parent re-render. Calling
+        // startScanning while already running throws ScanningUnavailable,
+        // so guard on isScanning to keep the AVCaptureSession steady
+        // through unrelated state churn.
+        guard !controller.isScanning else { return }
         do {
             try controller.startScanning()
         } catch {

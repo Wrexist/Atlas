@@ -204,8 +204,15 @@ private extension OpenFoodFactsService {
                 ?? "Unknown product"
 
             let n = nutriments
+            // Real OFF data sometimes reports calories as kJ only — fall
+            // back through the energy_100g (kJ) field divided by 4.184.
+            // Without this, kJ-only products would silently log 0 kcal.
+            let kcal = n?.energyKcal100g?.value
+            let kJ = n?.energy100g?.value
+            let calories = kcal ?? kJ.map { $0 / 4.184 } ?? 0
+
             let per100 = ScannedProduct.Nutriments(
-                calories: n?.energyKcal100g?.value ?? 0,
+                calories: calories,
                 proteinG: n?.proteins100g?.value ?? 0,
                 carbsG:   n?.carbohydrates100g?.value ?? 0,
                 fatG:     n?.fat100g?.value ?? 0,
@@ -221,8 +228,11 @@ private extension OpenFoodFactsService {
                 imageURL: imageFrontSmallURL.flatMap { URL(string: $0) },
                 servingSizeText: servingSize?.trimmingCharacters(in: .whitespacesAndNewlines)
                     .nonEmptyOrNil,
-                servingGrams: servingQuantity?.value,
-                packageGrams: productQuantity?.value,
+                // OFF occasionally serializes 0 for unknown weights —
+                // collapse to nil so `defaultPortion` correctly skips
+                // the .servings branch and the "Add" button stays live.
+                servingGrams: servingQuantity?.value.positiveOrNil,
+                packageGrams: productQuantity?.value.positiveOrNil,
                 per100g: per100,
                 nutriScore: nutriscoreGrade?.trimmingCharacters(in: .whitespacesAndNewlines)
                     .nonEmptyOrNil,
@@ -234,6 +244,7 @@ private extension OpenFoodFactsService {
 
     struct RawNutriments: Decodable {
         let energyKcal100g: FlexibleDouble?
+        let energy100g: FlexibleDouble?
         let proteins100g: FlexibleDouble?
         let carbohydrates100g: FlexibleDouble?
         let fat100g: FlexibleDouble?
@@ -242,6 +253,7 @@ private extension OpenFoodFactsService {
 
         enum CodingKeys: String, CodingKey {
             case energyKcal100g     = "energy-kcal_100g"
+            case energy100g         = "energy_100g"
             case proteins100g       = "proteins_100g"
             case carbohydrates100g  = "carbohydrates_100g"
             case fat100g            = "fat_100g"
@@ -292,4 +304,13 @@ private struct FlexibleInt: Decodable {
 
 private extension String {
     var nonEmptyOrNil: String? { isEmpty ? nil : self }
+}
+
+private extension Double {
+    /// Returns the value if it is finite and strictly positive, else nil.
+    /// Used to filter sentinel zeros and NaNs that OFF sometimes emits
+    /// for unknown weights and energies.
+    var positiveOrNil: Double? {
+        (isFinite && self > 0) ? self : nil
+    }
 }
