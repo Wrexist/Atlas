@@ -662,6 +662,21 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
+    /// Reverses a `logMeal` call by subtracting the same macros from the
+    /// same day's bucket. Clamps every field at zero so an over-eager
+    /// undo can't push the bucket negative. Used by the Undo affordance
+    /// on the barcode-scan success screen.
+    func unlogMeal(calories: Int, proteinG: Int, carbsG: Int, fatG: Int, date: Date = Date()) {
+        let key = consumptionKey(for: date)
+        guard var bucket = profile.dailyConsumption[key] else { return }
+        bucket.caloriesKcal = max(0, bucket.caloriesKcal - calories)
+        bucket.proteinG    = max(0, bucket.proteinG    - proteinG)
+        bucket.carbsG      = max(0, bucket.carbsG      - carbsG)
+        bucket.fatG        = max(0, bucket.fatG        - fatG)
+        profile.dailyConsumption[key] = bucket
+        save()
+    }
+
     /// Adds water (oz) to today's consumption bucket. Quick-add buttons
     /// on the Lifestyle tab call this with +250 mL ≈ 8.5 oz and +500 mL
     /// ≈ 16.9 oz pre-converted to integer ounces.

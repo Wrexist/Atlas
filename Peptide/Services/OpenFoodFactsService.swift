@@ -20,6 +20,12 @@ final class OpenFoodFactsService: Sendable {
     private let baseURL: URL
     private let userAgent: String
 
+    /// Entries older than this trigger a background refresh on the next
+    /// read while still returning the cached value immediately. OFF
+    /// product entries are amended slowly by volunteer editors, so a
+    /// weekly check is plenty to stay current without thrashing.
+    static let staleAfter: TimeInterval = 60 * 60 * 24 * 7
+
     /// `fields=` trims the response from ~80 KB to ~3 KB by only asking
     /// for the keys we actually map. Listed once here so the wire shape
     /// and the decoder stay in sync.
@@ -70,19 +76,43 @@ final class OpenFoodFactsService: Sendable {
     }
 
     /// Resolves a barcode to a `ScannedProduct`. Checks the cache first;
-    /// on miss, hits the network and writes through. `Task.cancel()` on
+    /// on miss, hits the network and writes through. Stale-but-valid
+    /// cache hits return immediately and trigger a fire-and-forget
+    /// refetch in the background — the user sees instant data, and the
+    /// next scan benefits from the updated entry. `Task.cancel()` on
     /// the caller propagates because `URLSession.data(for:)` is
     /// cancellation-aware.
     func fetch(barcode: String) async throws -> ScannedProduct {
         let normalized = try Self.normalize(barcode: barcode)
 
         if let cached = await cache.read(barcode: normalized) {
+            if Self.isStale(cached) {
+                Task.detached { [weak self] in
+                    try? await self?.refreshInBackground(barcode: normalized)
+                }
+            }
             return cached
         }
 
         let product = try await fetchFromNetwork(barcode: normalized)
         await cache.write(product)
         return product
+    }
+
+    /// Returns the `limit` most-recently-scanned products, surfaced by
+    /// the scanner UI as a one-tap re-log row. Pure cache read — never
+    /// hits the network.
+    func recent(limit: Int = 5) async -> [ScannedProduct] {
+        await cache.recent(limit: limit)
+    }
+
+    static func isStale(_ product: ScannedProduct) -> Bool {
+        Date().timeIntervalSince(product.fetchedAt) > staleAfter
+    }
+
+    private func refreshInBackground(barcode: String) async throws {
+        let fresh = try await fetchFromNetwork(barcode: barcode)
+        await cache.write(fresh)
     }
 
     // MARK: - Internals

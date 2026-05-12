@@ -244,6 +244,81 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertEqual(callCount.value, 0, "Cache hit must not touch network")
     }
 
+    // MARK: - Stale-while-revalidate
+
+    func test_fetch_returnsStaleCachedEntry_andRefreshesInBackground() async throws {
+        // Write a cached entry whose fetchedAt is well past the
+        // staleAfter threshold so the SWR branch trips.
+        let stale = ScannedProduct(
+            barcode: "5449000000996",
+            name: "Stale Cola",
+            brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+            per100g: .init(calories: 1, proteinG: 0, carbsG: 0, fatG: 0, fiberG: nil, sugarsG: nil),
+            nutriScore: nil, novaGroup: nil,
+            fetchedAt: Date().addingTimeInterval(-OpenFoodFactsService.staleAfter - 60)
+        )
+        await cache.write(stale)
+
+        let callCount = SendableBox<Int>(0)
+        MockURLProtocol.handler = { request in
+            callCount.set(callCount.value + 1)
+            return (Self.ok(for: request), Data(Fixtures.cocaCola.utf8))
+        }
+
+        let result = try await service.fetch(barcode: "5449000000996")
+        XCTAssertEqual(result.name, "Stale Cola", "Foreground call must return the stale cached entry instantly")
+
+        // Wait for the background refresh task to flush.
+        try await Task.sleep(for: .milliseconds(800))
+        XCTAssertEqual(callCount.value, 1, "Stale hit should trigger exactly one background refresh")
+        let refreshed = await cache.read(barcode: "5449000000996")
+        XCTAssertEqual(refreshed?.name, "Coca-Cola", "Background refresh must overwrite the cached entry")
+    }
+
+    func test_isStale_returnsFalse_forFreshFetchedAt() {
+        let fresh = ScannedProduct(
+            barcode: "1", name: "x", brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+            per100g: .zero, nutriScore: nil, novaGroup: nil,
+            fetchedAt: Date()
+        )
+        XCTAssertFalse(OpenFoodFactsService.isStale(fresh))
+    }
+
+    func test_isStale_returnsTrue_pastTheStaleThreshold() {
+        let old = ScannedProduct(
+            barcode: "1", name: "x", brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+            per100g: .zero, nutriScore: nil, novaGroup: nil,
+            fetchedAt: Date().addingTimeInterval(-OpenFoodFactsService.staleAfter - 1)
+        )
+        XCTAssertTrue(OpenFoodFactsService.isStale(old))
+    }
+
+    // MARK: - recent()
+
+    func test_recent_returnsCacheEntries_withoutNetwork() async throws {
+        let callCount = SendableBox<Int>(0)
+        MockURLProtocol.handler = { request in
+            callCount.set(callCount.value + 1)
+            return (Self.ok(for: request), Data(Fixtures.cocaCola.utf8))
+        }
+
+        let coke = ScannedProduct(
+            barcode: "5449000000996",
+            name: "Coca-Cola", brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+            per100g: .zero, nutriScore: nil, novaGroup: nil,
+            fetchedAt: Date()
+        )
+        await cache.write(coke)
+
+        let recent = await service.recent(limit: 5)
+        XCTAssertEqual(recent.map(\.barcode), ["5449000000996"])
+        XCTAssertEqual(callCount.value, 0)
+    }
+
     // MARK: - Helpers
 
     private static func ok(for request: URLRequest) -> HTTPURLResponse {

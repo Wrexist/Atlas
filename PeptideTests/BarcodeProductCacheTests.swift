@@ -126,4 +126,60 @@ final class BarcodeProductCacheTests: XCTestCase {
         let read = await cache.read(barcode: "9999999999999")
         XCTAssertNil(read)
     }
+
+    // MARK: - recent()
+
+    func test_recent_returnsEmpty_whenCacheIsEmpty() async {
+        let cache = makeCache()
+        let recent = await cache.recent(limit: 5)
+        XCTAssertTrue(recent.isEmpty)
+    }
+
+    func test_recent_returnsMostRecentlyWrittenFirst() async throws {
+        let cache = makeCache()
+        await cache.write(sample(barcode: "1111111111111"))
+        // Force a measurable mtime gap so the ordering is deterministic
+        // on file systems that don't store sub-second resolution.
+        try await Task.sleep(for: .milliseconds(1100))
+        await cache.write(sample(barcode: "2222222222222"))
+        try await Task.sleep(for: .milliseconds(1100))
+        await cache.write(sample(barcode: "3333333333333"))
+
+        let recent = await cache.recent(limit: 5)
+        XCTAssertEqual(recent.map(\.barcode), ["3333333333333", "2222222222222", "1111111111111"])
+    }
+
+    func test_recent_capsAtLimit() async {
+        let cache = makeCache()
+        for i in 0..<6 {
+            await cache.write(sample(barcode: "100000000000\(i)"))
+        }
+        let recent = await cache.recent(limit: 3)
+        XCTAssertEqual(recent.count, 3)
+    }
+
+    func test_recent_skipsExpiredEntries() async {
+        let cache = BarcodeProductCache(directory: tempDir, ttl: -1)
+        await cache.write(sample())
+        let recent = await cache.recent(limit: 5)
+        XCTAssertTrue(recent.isEmpty)
+    }
+
+    // MARK: - LRU eviction
+
+    func test_write_evictsOldestWhenAboveCap() async throws {
+        let cache = BarcodeProductCache(directory: tempDir, ttl: 60 * 60, maxEntries: 3)
+        await cache.write(sample(barcode: "1111111111111"))
+        try await Task.sleep(for: .milliseconds(1100))
+        await cache.write(sample(barcode: "2222222222222"))
+        try await Task.sleep(for: .milliseconds(1100))
+        await cache.write(sample(barcode: "3333333333333"))
+        try await Task.sleep(for: .milliseconds(1100))
+        await cache.write(sample(barcode: "4444444444444"))      // pushes #1 out
+
+        let one   = await cache.read(barcode: "1111111111111")
+        let four  = await cache.read(barcode: "4444444444444")
+        XCTAssertNil(one,  "Oldest entry should be evicted once over the cap")
+        XCTAssertNotNil(four)
+    }
 }
