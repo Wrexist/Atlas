@@ -17,15 +17,30 @@ import Foundation
 final class AIResearchService: Sendable {
     static let shared = AIResearchService()
 
-    private let session: URLSession = .shared
+    private let session: URLSession
     private let model = "claude-sonnet-4-6"
+    private let endpointOverride: URL?
+    private let proxySecretOverride: String?
+
+    /// Designated init — see `MealScannerService.init` for the same
+    /// pattern. Production goes through `.shared`; tests pass a
+    /// `URLSession` configured with a `MockURLProtocol`.
+    init(
+        session: URLSession = .shared,
+        endpoint: URL? = nil,
+        proxySecret: String? = nil
+    ) {
+        self.session = session
+        self.endpointOverride = endpoint
+        self.proxySecretOverride = proxySecret
+    }
 
     private var endpoint: URL? {
-        MealScannerService.urlSetting(forKey: "AI_RESEARCH_ENDPOINT")
+        endpointOverride ?? MealScannerService.urlSetting(forKey: "AI_RESEARCH_ENDPOINT")
     }
 
     private var proxySecret: String? {
-        MealScannerService.stringSetting(forKey: "AI_RESEARCH_SECRET")
+        proxySecretOverride ?? MealScannerService.stringSetting(forKey: "AI_RESEARCH_SECRET")
     }
 
     enum ChatError: Error, LocalizedError {
@@ -56,8 +71,6 @@ final class AIResearchService: Sendable {
             self.createdAt = createdAt
         }
     }
-
-    private init() {}
 
     /// Sends `history` (conversation so far) plus the user's new
     /// `prompt` and returns the assistant's text. The system prompt

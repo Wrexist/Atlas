@@ -15,14 +15,30 @@ import UIKit
 final class MealScannerService: Sendable {
     static let shared = MealScannerService()
 
-    private let session: URLSession = .shared
+    private let session: URLSession
     private let model = "claude-sonnet-4-6"
+    private let endpointOverride: URL?
+    private let proxySecretOverride: String?
+
+    /// Designated init — exposed for tests so a `URLSession` with a
+    /// `MockURLProtocol` config can be injected. Production callers go
+    /// through `.shared`. Overrides win over the Info.plist / env-var
+    /// lookups so a test never accidentally hits the real proxy URL.
+    init(
+        session: URLSession = .shared,
+        endpoint: URL? = nil,
+        proxySecret: String? = nil
+    ) {
+        self.session = session
+        self.endpointOverride = endpoint
+        self.proxySecretOverride = proxySecret
+    }
 
     /// Proxy endpoint. Read from `MEAL_SCANNER_ENDPOINT` (Info.plist
     /// or scheme env). No default — bare-bones safety guarantee that
     /// no build accidentally talks to Anthropic directly.
     private var endpoint: URL? {
-        Self.urlSetting(forKey: "MEAL_SCANNER_ENDPOINT")
+        endpointOverride ?? Self.urlSetting(forKey: "MEAL_SCANNER_ENDPOINT")
     }
 
     /// Shared secret echoed back as `X-Peptide-Proxy`. The server
@@ -30,7 +46,7 @@ final class MealScannerService: Sendable {
     /// bar significantly against URL-leak abuse (an attacker has to
     /// recover both pieces). Read from `MEAL_SCANNER_SECRET`.
     private var proxySecret: String? {
-        Self.stringSetting(forKey: "MEAL_SCANNER_SECRET")
+        proxySecretOverride ?? Self.stringSetting(forKey: "MEAL_SCANNER_SECRET")
     }
 
     enum ScanError: Error, LocalizedError {
@@ -72,8 +88,6 @@ final class MealScannerService: Sendable {
             case confidence  = "confidence"
         }
     }
-
-    private init() {}
 
     /// Compresses + base64-encodes the image, posts it to the proxy,
     /// then parses the JSON the model is instructed to return.
