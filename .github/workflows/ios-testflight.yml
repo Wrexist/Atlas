@@ -142,7 +142,20 @@ jobs:
 
       - name: Install XcodeGen and generate Xcode project
         run: |
-          brew install xcodegen || true
+          # `|| true` previously masked brew failures and the next line
+          # would die with "xcodegen: command not found". Install, ensure
+          # the brew bin is on PATH for this step, then verify before
+          # invoking — fail loud with a clear message if it isn't there.
+          if ! command -v xcodegen &>/dev/null; then
+            brew install xcodegen || brew reinstall xcodegen
+          fi
+          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
+          export PATH="$(brew --prefix)/bin:$PATH"
+          if ! command -v xcodegen &>/dev/null; then
+            echo "::error::xcodegen still not on PATH after install"
+            exit 1
+          fi
+          echo "XcodeGen ready: $(xcodegen --version)"
           xcodegen generate
 
       - name: Stamp version + build number into bundle plists
@@ -159,7 +172,13 @@ jobs:
           # automatically. The find expression covers every Info.plist
           # under the project's top-level target directories and
           # excludes the build/derived-data caches.
-          mapfile -t PLISTS < <(find . \
+          # macOS runners ship bash 3.2 at /bin/bash, which predates the
+          # `mapfile` builtin (bash 4+). Use a portable while-read loop
+          # so this step works regardless of which bash GHA picks.
+          PLISTS=()
+          while IFS= read -r line; do
+            PLISTS+=("$line")
+          done < <(find . \
             \( -path './build' -o -path './DerivedData' -o -path './.build' -o -path './vendor' \) -prune -false \
             -o -name 'Info.plist' -type f -print | sort)
 
