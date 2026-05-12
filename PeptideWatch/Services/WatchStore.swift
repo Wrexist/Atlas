@@ -95,16 +95,23 @@ extension WatchStore: WCSessionDelegate {
     nonisolated func session(_ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {}
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        guard let dict = message["watchData"] as? [String: Any],
-              let data = try? JSONSerialization.data(withJSONObject: dict),
-              let decoded = try? JSONDecoder().decode(WatchData.self, from: data) else { return }
+        guard let decoded = Self.decodeWatchData(from: message) else { return }
         Task { @MainActor in self.watchData = decoded }
     }
 
     nonisolated func session(_ session: WCSession, didReceiveApplicationContext context: [String: Any]) {
-        guard let dict = context["watchData"] as? [String: Any],
-              let data = try? JSONSerialization.data(withJSONObject: dict),
-              let decoded = try? JSONDecoder().decode(WatchData.self, from: data) else { return }
+        guard let decoded = Self.decodeWatchData(from: context) else { return }
         Task { @MainActor in self.watchData = decoded }
+    }
+
+    /// Phone encodes `lastUpdated` as ISO-8601, so the receive-side decoder
+    /// must match — a default `JSONDecoder()` expects `.deferredToDate`
+    /// (numeric timestamps) and silently drops every push.
+    nonisolated private static func decodeWatchData(from payload: [String: Any]) -> WatchData? {
+        guard let dict = payload["watchData"] as? [String: Any],
+              let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .iso8601
+        return try? d.decode(WatchData.self, from: data)
     }
 }

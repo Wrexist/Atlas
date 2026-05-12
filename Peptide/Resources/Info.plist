@@ -22,7 +22,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSCameraUsageDescription</key>
-	<string>PeptideX uses the camera to scan food barcodes, photograph meals for AI nutrition estimates, and take a profile photo. Images stay on your device.</string>
+	<string>PeptideX uses the camera to scan food barcodes, take a profile photo (stored locally), and photograph meals for nutrition estimation. Meal photos are sent securely to our AI service for analysis and are not retained after the response. Barcode and profile photos stay on your device.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>

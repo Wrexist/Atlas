@@ -168,7 +168,7 @@ final class AuthService {
                 AppLog.auth.info("Sign in with Apple: user canceled")
                 lastError = .canceled
             default:
-                AppLog.auth.error("Sign in with Apple failed: \(error.localizedDescription, privacy: .public)")
+                AppLog.auth.error("Sign in with Apple failed: \(error.localizedDescription, privacy: .private)")
                 lastError = .failed(error.localizedDescription)
             }
         }
@@ -230,7 +230,7 @@ final class AuthService {
                 AppLog.auth.error("Unknown credential state \(state.rawValue, privacy: .public); keeping session")
             }
         } catch {
-            AppLog.auth.error("credentialState lookup failed (keeping session): \(error.localizedDescription, privacy: .public)")
+            AppLog.auth.error("credentialState lookup failed (keeping session): \(error.localizedDescription, privacy: .private)")
         }
     }
 
@@ -257,13 +257,14 @@ final class AuthService {
         ]
 
         // Update-first upsert: avoids a window where the item is absent.
-        // `WhenUnlockedThisDeviceOnly`: requires the device to be unlocked
-        // every time (not just once after reboot), and the item never
-        // syncs to iCloud Keychain or restores to another device — so
-        // Apple-relayed email/name PII stays bound to the original phone.
+        // `AfterFirstUnlockThisDeviceOnly`: never syncs to iCloud Keychain
+        // or restores to another device — so Apple-relayed email/name PII
+        // stays bound to the original phone — while still being readable
+        // after the first post-reboot unlock, which keeps widgets, the
+        // Watch app, and HealthKit background observers working.
         let updateAttrs: [String: Any] = [
             kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
         ]
         let updateStatus = SecItemUpdate(query as CFDictionary, updateAttrs as CFDictionary)
         if updateStatus == errSecSuccess { return errSecSuccess }
@@ -271,7 +272,7 @@ final class AuthService {
 
         var addQuery = query
         addQuery[kSecValueData as String]      = data
-        addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         return SecItemAdd(addQuery as CFDictionary, nil)
     }
 
@@ -365,7 +366,7 @@ extension AppleSignInCoordinator: ASAuthorizationControllerDelegate {
         didCompleteWithError error: Error
     ) {
         MainActor.assumeIsolated {
-            AppLog.auth.info("ASAuthorizationController: didCompleteWithError \(error.localizedDescription, privacy: .public)")
+            AppLog.auth.info("ASAuthorizationController: didCompleteWithError \(error.localizedDescription, privacy: .private)")
             self.finish(.failure(error))
         }
     }

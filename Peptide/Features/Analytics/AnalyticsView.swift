@@ -200,9 +200,10 @@ struct AnalyticsView: View {
         // O(days) lookups against the dictionary.
         let calendar = Calendar.current
         let grouped = dataStore.entriesByDay
+        let now = Date()
 
         return (0..<selectedRange.days).compactMap { dayOffset in
-            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { return nil }
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: now) else { return nil }
             let key = calendar.startOfDay(for: date)
             guard let dayEntries = grouped[key], !dayEntries.isEmpty else { return nil }
             let compliance = Double(dayEntries.filter(\.completed).count) / Double(dayEntries.count)

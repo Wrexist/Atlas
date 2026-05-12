@@ -4,7 +4,7 @@ import XCTest
 @MainActor
 final class ShareCardRendererTests: XCTestCase {
     func testRenderProducesExactDimensions() throws {
-        let url = try ShareCardRenderer.renderPNG(for: MockProtocols.recoveryStack)
+        let url = try ShareCardRenderer.renderPNG(for: Self.makeModel(from: MockProtocols.recoveryStack))
         defer { try? FileManager.default.removeItem(at: url) }
 
         let data = try Data(contentsOf: url)
@@ -15,7 +15,7 @@ final class ShareCardRendererTests: XCTestCase {
     }
 
     func testRenderImageIsOpaque() throws {
-        let image = try ShareCardRenderer.renderImage(for: MockProtocols.recoveryStack)
+        let image = try ShareCardRenderer.renderImage(for: Self.makeModel(from: MockProtocols.recoveryStack))
         XCTAssertEqual(image.size.width, ShareCardRenderer.canvasSize.width)
         XCTAssertEqual(image.size.height, ShareCardRenderer.canvasSize.height)
     }
@@ -35,7 +35,7 @@ final class ShareCardRendererTests: XCTestCase {
             status: .active,
             notes: ""
         )
-        let url = try ShareCardRenderer.renderPNG(for: single)
+        let url = try ShareCardRenderer.renderPNG(for: Self.makeModel(from: single))
         defer { try? FileManager.default.removeItem(at: url) }
 
         let image = try XCTUnwrap(UIImage(data: Data(contentsOf: url)))
@@ -44,5 +44,23 @@ final class ShareCardRendererTests: XCTestCase {
         // PNG with no detached overlay.
         XCTAssertEqual(image.size.width, 1080, accuracy: 0.5)
         XCTAssertEqual(image.size.height, 1350, accuracy: 0.5)
+    }
+
+    /// Builds a CycleCardModel for a given protocol with deterministic
+    /// stats — these tests only assert dimensions / size, so the exact
+    /// numbers don't matter; we just need a populated model the renderer
+    /// can lay out.
+    private static func makeModel(from proto: PeptideProtocol) -> CycleCardModel {
+        CycleCardModel(
+            subjectTitle: proto.name,
+            peptides: proto.peptides,
+            activeSinceDate: proto.startDate,
+            cycleDay: 1,
+            cycleTotalDays: max(1, proto.cycleLengthWeeks * 7),
+            dosesLogged: 0,
+            adherencePercent: 0,
+            currentStreakDays: 0,
+            healthSummary: nil
+        )
     }
 }

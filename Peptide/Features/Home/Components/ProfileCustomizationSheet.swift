@@ -1,6 +1,13 @@
 import PhotosUI
 import SwiftUI
 
+/// File-scope so the off-main-actor `normalize`/`downscale` helpers below
+/// can read them without crossing actor boundaries. The enclosing
+/// SwiftUI View is @MainActor-isolated, which would otherwise pull
+/// these along with it.
+private let avatarMaxDimension: CGFloat = 1024
+private let avatarJPEGQuality: CGFloat = 0.82
+
 /// Detailed profile customization surface presented from the Home tab when the
 /// user taps the avatar in the WelcomeHeader. Lets the user upload a profile
 /// image, edit identity (name, bio), pick an accent color, review goals, see
@@ -12,10 +19,6 @@ struct ProfileCustomizationSheet: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
 
-    /// Maximum dimension for the stored avatar — anything larger is downscaled
-    /// before JPEG-encoding to keep the profile JSON under a few hundred KB.
-    private static let avatarMaxDimension: CGFloat = 1024
-    private static let avatarJPEGQuality: CGFloat = 0.82
     private static let bioCharacterLimit = 280
 
     private static let availableGoals = [
@@ -247,7 +250,7 @@ struct ProfileCustomizationSheet: View {
 
     @ViewBuilder
     private var photoSourceButtons: some View {
-        if UIImagePickerController.cameraIsAvailable {
+        if UIImagePickerController.isSourceTypeAvailable(.camera) {
             Button("Take Photo") { isShowingCamera = true }
         }
         Button("Choose from Library") { isShowingLibrary = true }

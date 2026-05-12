@@ -65,6 +65,19 @@ final class DataStore: DataServiceProtocol {
         return grouped
     }
 
+    /// `entriesByDay` filtered down to entries that belong to a currently
+    /// active protocol. Streak math uses this so a user who paused a
+    /// protocol mid-cycle isn't credited for days that no longer count,
+    /// and historical views (e.g. `weeklyCompletion`) keep using the full
+    /// `entriesByDay`.
+    var activeEntriesByDay: [Date: [ProtocolEntry]] {
+        let activeIds = Set(activeProtocols.map(\.id))
+        return entriesByDay.compactMapValues { dayEntries -> [ProtocolEntry]? in
+            let filtered = dayEntries.filter { activeIds.contains($0.protocolId) }
+            return filtered.isEmpty ? nil : filtered
+        }
+    }
+
     init(seedSampleData: Bool = false) {
         // Initialize ALL stored properties first so Swift's two-phase init
         // is satisfied before any method calls on self.
@@ -362,7 +375,7 @@ final class DataStore: DataServiceProtocol {
         bumpVersionIfDayChanged()
         if let cached = _currentStreak, cached.version == cacheVersion { return cached.value }
         let calendar = Calendar.current
-        let grouped = entriesByDay
+        let grouped = activeEntriesByDay
         let todayStart = calendar.startOfDay(for: Date())
 
         let todayHasCompleted = todayEntries.contains(where: \.completed)
@@ -404,7 +417,7 @@ final class DataStore: DataServiceProtocol {
 
     var bestStreak: Int {
         if let cached = _bestStreak, cached.version == cacheVersion { return cached.value }
-        let grouped = entriesByDay
+        let grouped = activeEntriesByDay
         let scheduledDays = grouped.keys.sorted()
         guard !scheduledDays.isEmpty else { return 0 }
 
@@ -865,10 +878,10 @@ final class DataStore: DataServiceProtocol {
         scheduleAchievementCheck()
 
         pendingSaveTask?.cancel()
-        pendingSaveTask = Task { @MainActor in
+        pendingSaveTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(Int64(Self.saveDebounceMs)))
-            guard !Task.isCancelled else { return }
-            performSaveNow()
+            guard let self, !Task.isCancelled else { return }
+            self.performSaveNow()
         }
     }
 
@@ -997,8 +1010,8 @@ final class DataStore: DataServiceProtocol {
     /// device shows up without an app relaunch. Falls back to the existing
     /// in-memory state if the repo returns nil for that resource.
     func reloadFromDisk() {
-        if let saved = repo.loadProtocols() { protocols = saved }
-        if let saved = repo.loadEntries() { entries = saved }
+        protocols = repo.loadProtocols()
+        entries = repo.loadEntries()
         if let saved = repo.loadProfile() { profile = saved }
         regenerateTodayEntries()
     }

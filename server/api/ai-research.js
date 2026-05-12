@@ -1,11 +1,14 @@
 /**
- * Vercel proxy route for the PeptideX AI research assistant. Same
- * shape and protections as the meal-scan route — see meal-scan.js
- * for deploy steps.
+ * Vercel proxy route for the PeptideX AI research assistant. Thin
+ * wrapper over `forwardToAnthropic`; see `_lib/anthropic-proxy.js`
+ * for the server-side env vars and behavior.
  *
- * iOS env vars:
- *   AI_RESEARCH_ENDPOINT       = https://<deploy>/api/ai-research
- *   AI_RESEARCH_SHARED_SECRET  = <same PEPTIDE_SHARED_SECRET>
+ * iOS env vars (Info.plist or scheme env):
+ *   AI_RESEARCH_ENDPOINT = https://<deploy>/api/ai-research
+ *   AI_RESEARCH_SECRET   = the PROXY_SHARED_SECRET value (same value
+ *                          as MEAL_SCANNER_SECRET — one secret, two
+ *                          client env-var slots so each surface can
+ *                          point at a different deployment if needed)
  */
 import { forwardToAnthropic, sharedConfig } from './_lib/anthropic-proxy.js';
 
