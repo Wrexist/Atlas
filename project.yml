@@ -203,6 +203,11 @@ targets:
           - "**/.DS_Store"
     dependencies:
       - target: Peptide
+      # StoreKitTest is needed by StoreServiceTests so SKTestSession
+      # can drive purchases against the bundled Products.storekit
+      # config. The framework is part of the iOS 14+ SDK; nothing to
+      # vendor.
+      - sdk: StoreKitTest.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app.tests
