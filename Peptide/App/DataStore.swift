@@ -302,11 +302,15 @@ final class DataStore: DataServiceProtocol {
         )
         protocols[index] = updated
 
-        // Regenerate today's entries to reflect the new schedule.
-        entries.removeAll { entry in
-            entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
-        }
+        // Regenerate today's entries to reflect the new schedule — but
+        // only when the protocol is active. For paused / completed
+        // protocols, deleting today's entries would discard any doses
+        // the user already logged earlier today against that protocol,
+        // which is real data loss.
         if updated.status == .active {
+            entries.removeAll { entry in
+                entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
+            }
             entries.append(contentsOf: Self.generateTodayEntries(for: updated))
         }
 
@@ -418,19 +422,38 @@ final class DataStore: DataServiceProtocol {
     var bestStreak: Int {
         if let cached = _bestStreak, cached.version == cacheVersion { return cached.value }
         let grouped = activeEntriesByDay
-        let scheduledDays = grouped.keys.sorted()
-        guard !scheduledDays.isEmpty else { return 0 }
+        guard let earliest = grouped.keys.min() else { return 0 }
+        let calendar = Calendar.current
+        let todayStart = calendar.startOfDay(for: Date())
 
+        // Mirror currentStreak's gap-tolerance: a day with no entries
+        // doesn't break the streak (up to 2 in a row), a day with at
+        // least one completed entry extends it, a day with entries but
+        // none completed breaks it. Without this, non-daily schedules
+        // produce a `bestStreak` that's always ≤ `currentStreak`, which
+        // is misleading for users on every-other-day protocols.
         var best = 0
         var current = 0
-
-        for day in scheduledDays {
-            if let dayEntries = grouped[day], dayEntries.contains(where: \.completed) {
+        var consecutiveEmptyDays = 0
+        var day = earliest
+        while day <= todayStart {
+            let dayEntries = grouped[day] ?? []
+            if dayEntries.isEmpty {
+                consecutiveEmptyDays += 1
+                if consecutiveEmptyDays > 2 {
+                    current = 0
+                    consecutiveEmptyDays = 0
+                }
+            } else if dayEntries.contains(where: \.completed) {
+                consecutiveEmptyDays = 0
                 current += 1
                 best = max(best, current)
             } else {
                 current = 0
+                consecutiveEmptyDays = 0
             }
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            day = next
         }
 
         _bestStreak = (cacheVersion, best)
@@ -654,6 +677,24 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
+    /// Weight history with at-most-one entry per calendar day. CloudKit
+    /// sync can land a second entry from another device whose timestamp
+    /// differs by minutes — `logWeight`'s local dedup doesn't see those
+    /// because the merge happens outside this code path. Views that
+    /// render the sparkline / weekly delta should read through here so
+    /// the "one point per day" invariant survives multi-device use.
+    /// Keeps the most recently logged entry within each day.
+    var dedupedWeightHistory: [WeightEntry] {
+        let calendar = Calendar.current
+        var byDay: [Date: WeightEntry] = [:]
+        for entry in profile.weightHistory {
+            let day = calendar.startOfDay(for: entry.date)
+            if let existing = byDay[day], existing.date >= entry.date { continue }
+            byDay[day] = entry
+        }
+        return byDay.values.sorted { $0.date < $1.date }
+    }
+
     /// Removes a bodyweight entry by id. Used by the entry-list editor
     /// inside the weight log sheet.
     func deleteWeight(id: UUID) {
@@ -739,12 +780,20 @@ final class DataStore: DataServiceProtocol {
         // UTC day. ISO8601DateFormatter defaults to UTC, so a meal logged
         // at 11:00 PM in Auckland would otherwise key under tomorrow's
         // date and silently disappear from today's rings.
+        //
+        // The formatter is a `static let` so we don't pay the ~0.5 ms
+        // allocation on every `consumption(for:)` call — the macro
+        // rings call this on every render.
         let day = Calendar.current.startOfDay(for: date)
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withFullDate]
-        formatter.timeZone = Calendar.current.timeZone
-        return formatter.string(from: day)
+        Self.consumptionKeyFormatter.timeZone = Calendar.current.timeZone
+        return Self.consumptionKeyFormatter.string(from: day)
     }
+
+    private static let consumptionKeyFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withFullDate]
+        return f
+    }()
 
     /// Appends a workout session and keeps the array sorted oldest-first
     /// so the per-day rollup on the Lifestyle card reads stably.

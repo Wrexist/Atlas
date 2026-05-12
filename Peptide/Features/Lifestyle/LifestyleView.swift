@@ -51,7 +51,7 @@ struct LifestyleView: View {
                     )
 
                     WeightTrackingCard(
-                        history: dataStore.profile.weightHistory,
+                        history: dataStore.dedupedWeightHistory,
                         unit: dataStore.profile.bodyMetrics.unit,
                         onLog: { showWeightLog = true }
                     )

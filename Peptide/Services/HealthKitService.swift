@@ -222,7 +222,24 @@ final class HealthKitService {
                 return value == .asleepCore || value == .asleepDeep || value == .asleepREM
             }
             guard !asleepSamples.isEmpty else { return nil }
-            let totalSeconds = asleepSamples.reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
+            // Merge overlapping intervals before summing — Apple Watch
+            // plus a third-party tracker (Pillow, AutoSleep) both write
+            // their own samples for the same night, so a raw sum doubles
+            // the user's sleep duration. Sorting by start + collapsing
+            // overlaps gives the union of "any source said asleep".
+            let intervals = asleepSamples
+                .map { (start: $0.startDate, end: $0.endDate) }
+                .sorted { $0.start < $1.start }
+            var merged: [(start: Date, end: Date)] = []
+            for interval in intervals {
+                if var last = merged.last, last.end >= interval.start {
+                    last.end = max(last.end, interval.end)
+                    merged[merged.count - 1] = last
+                } else {
+                    merged.append(interval)
+                }
+            }
+            let totalSeconds = merged.reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) }
             return totalSeconds / 3600.0 / Double(days)
         } catch {
             AppLog.healthKit.error("averageSleepHours query failed: \(error.localizedDescription, privacy: .private)")

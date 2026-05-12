@@ -231,7 +231,9 @@ struct ShareCardSheet: View {
     /// closest to the cycle's start date. Returns nil when the user has
     /// fewer than two entries — a single point is a "no trend" signal.
     private func weightDeltaSinceCycleStart() -> Double? {
-        let history = dataStore.profile.weightHistory
+        // Use the deduped history so a CloudKit-synced double-log on
+        // the same calendar day doesn't skew the cycle delta.
+        let history = dataStore.dedupedWeightHistory
         guard let last = history.last else { return nil }
         let cycleStart = baseModel.activeSinceDate
         let baseline = history

@@ -237,15 +237,27 @@ enum SmartCyclePlanner {
 
     /// Maps an entry's wall-clock time back to one of the protocol's
     /// preferred time strings (e.g. "8:00 AM"). Used to bucket entries
-    /// for per-slot adherence math. Falls back to a 24h fmt key if the
-    /// entry doesn't match any preferred time.
-    private static func entryTimeKey(for date: Date, calendar: Calendar) -> String {
-        let components = calendar.dateComponents([.hour, .minute], from: date)
-        let hour = components.hour ?? 0
-        let minute = components.minute ?? 0
-        let suffix = hour < 12 ? "AM" : "PM"
-        let displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour)
-        let minuteString = String(format: "%02d", minute)
-        return "\(displayHour):\(minuteString) \(suffix)"
+    /// for per-slot adherence math.
+    ///
+    /// Producer (`ScheduleEditor.formatter`) and consumer (here) must
+    /// share an exact byte-identical format — iOS 17+ system locales
+    /// use a narrow no-break space (U+202F) before AM/PM via
+    /// `Date.formatted(...)`, which breaks naïve string equality.
+    /// Both sides use `h:mm a` + `en_US_POSIX` so the AM/PM separator
+    /// is a regular ASCII space and the bucket lookup keeps matching.
+    private static let timeKeyFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
+    private static func entryTimeKey(for date: Date, calendar _: Calendar) -> String {
+        // The formatter uses the user's current timezone by default,
+        // matching `ScheduleEditor.formatter` (the producer of the
+        // `preferredTimes` strings). The `calendar` argument is kept
+        // for API symmetry but unused — both producer and consumer
+        // operate in the user's local zone.
+        timeKeyFormatter.string(from: date)
     }
 }
