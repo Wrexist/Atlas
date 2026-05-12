@@ -1,5 +1,9 @@
 import SwiftUI
 
+/// Centered hero glyph used on most onboarding steps. Two concentric
+/// soft-light rings + a tinted disc behind the SF Symbol — gentle ambient
+/// motion (a slow breathing pulse) but no rotating gradients, which used
+/// to read as "vibe-coded" against the marketing copy.
 struct HeroIcon: View {
     let symbol: String
     var color: Color = AppColor.accentPrimary
@@ -8,60 +12,52 @@ struct HeroIcon: View {
     var bounceTrigger: Int = 0
 
     @State private var pulse = false
-    @State private var rotate = false
 
     var body: some View {
         ZStack {
             Circle()
-                .fill(color.opacity(0.18))
-                .frame(width: size * 2.0, height: size * 2.0)
-                .blur(radius: 30)
-                .scaleEffect(pulse ? 1.08 : 0.95)
+                .fill(color.opacity(0.16))
+                .frame(width: size * 1.9, height: size * 1.9)
+                .blur(radius: 32)
+                .scaleEffect(pulse ? 1.05 : 0.96)
 
             Circle()
-                .strokeBorder(
-                    AngularGradient(
-                        colors: [accent.opacity(0.6), color.opacity(0.0), accent.opacity(0.6)],
-                        center: .center
-                    ),
-                    lineWidth: 1
-                )
-                .frame(width: size * 1.6, height: size * 1.6)
-                .rotationEffect(.degrees(rotate ? 360 : 0))
+                .strokeBorder(Color.white.opacity(0.05), lineWidth: 0.5)
+                .frame(width: size * 1.55, height: size * 1.55)
 
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [color.opacity(0.35), color.opacity(0.05)],
+                        colors: [
+                            color.opacity(0.32),
+                            color.opacity(0.10),
+                            color.opacity(0.0),
+                        ],
                         center: .center,
                         startRadius: 0,
-                        endRadius: size * 0.7
+                        endRadius: size * 0.65
                     )
                 )
                 .frame(width: size * 1.25, height: size * 1.25)
                 .overlay {
-                    Circle()
-                        .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                    Circle().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
                 }
 
             Image(systemName: symbol)
-                .font(.system(size: size * 0.5, weight: .semibold))
+                .font(.system(size: size * 0.48, weight: .semibold))
                 .foregroundStyle(
                     LinearGradient(
                         colors: [accent, color],
-                        startPoint: .top,
-                        endPoint: .bottom
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
                 )
                 .symbolEffect(.bounce, value: bounceTrigger)
-                .shadow(color: color.opacity(0.6), radius: 10, x: 0, y: 4)
+                .shadow(color: color.opacity(0.45), radius: 8, x: 0, y: 3)
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true)) {
+            withAnimation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true)) {
                 pulse = true
-            }
-            withAnimation(.linear(duration: 28).repeatForever(autoreverses: false)) {
-                rotate = true
             }
         }
     }

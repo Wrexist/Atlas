@@ -2,14 +2,13 @@ import SwiftUI
 
 /// Brand color identities surfaced on the onboarding "Make it yours"
 /// step and reapplied across the app via `AppColor.accent*`. The first
-/// case (`purpleGradient`) is the brand default; its `primary` / `light`
-/// pair are the two stops of the marketing purple→pink gradient — every
-/// `LinearGradient(colors: [primary, light])` site in the app renders
-/// as that gradient automatically without per-site changes.
+/// case (`.teal`) is the brand default — a refined emerald→cyan pair
+/// that renders every `LinearGradient(colors: [primary, light])` site
+/// in the app as the signature green-to-cool-cyan gradient.
 enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
+    case teal
     case purpleGradient
     case ocean
-    case teal
     case amber
     case onyx
 
@@ -17,52 +16,52 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
 
     var displayName: String {
         switch self {
+        case .teal: "Emerald"
         case .purpleGradient: "Iris"
         case .ocean: "Ocean"
-        case .teal: "Teal"
         case .amber: "Amber"
-        case .onyx: "Onyx"
+        case .onyx: "Graphite"
         }
     }
 
     var primary: Color {
         switch self {
+        case .teal: Color(hex: 0x10B981)          // emerald-500
         case .purpleGradient: Color(hex: 0x7F77DD)
         case .ocean: Color(hex: 0x378ADD)
-        case .teal: Color(hex: 0x1D9E75)
         case .amber: Color(hex: 0xBA7517)
-        case .onyx: Color(hex: 0x2C2C2A)
+        case .onyx: Color(hex: 0x3F3F3D)
         }
     }
 
-    /// Second stop for the marketing gradient. For solid-colour themes
-    /// it's a slightly lifted version of `primary` so the existing
-    /// `[primary, light]` gradient sites still produce a tasteful sheen.
+    /// Second stop for the marketing gradient. For the default emerald
+    /// theme this is a cool cyan partner so every `[primary, light]`
+    /// gradient renders as a green→cyan sweep without per-site changes.
     var light: Color {
         switch self {
+        case .teal: Color(hex: 0x22D3EE)          // cyan-400
         case .purpleGradient: Color(hex: 0xD4537E)
         case .ocean: Color(hex: 0x6CA9E6)
-        case .teal: Color(hex: 0x35BC91)
         case .amber: Color(hex: 0xD89438)
-        case .onyx: Color(hex: 0x4A4A48)
+        case .onyx: Color(hex: 0x5C5C5A)
         }
     }
 
     var dark: Color {
         switch self {
+        case .teal: Color(hex: 0x047857)          // emerald-700
         case .purpleGradient: Color(hex: 0x534B96)
         case .ocean: Color(hex: 0x256AAA)
-        case .teal: Color(hex: 0x167A5A)
         case .amber: Color(hex: 0x8E5A12)
-        case .onyx: Color(hex: 0x1A1A18)
+        case .onyx: Color(hex: 0x1F1F1D)
         }
     }
 
     var highlight: Color {
         switch self {
+        case .teal: Color(hex: 0xA7F3D0)          // emerald-200
         case .purpleGradient: Color(hex: 0xE8D2E2)
         case .ocean: Color(hex: 0xC4DCF1)
-        case .teal: Color(hex: 0xC0E8D8)
         case .amber: Color(hex: 0xF1D8B0)
         case .onyx: Color(hex: 0xC9C9C7)
         }
@@ -77,7 +76,7 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
         case "forest", "cyan": return .teal
         case "amethyst", "rose": return .purpleGradient
         case "sunset": return .amber
-        default: return .purpleGradient
+        default: return .teal
         }
     }
 }

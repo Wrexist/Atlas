@@ -1,19 +1,15 @@
 import SwiftUI
 
+/// Ambient onboarding backdrop. Two large, very slowly drifting orbs tinted
+/// with the active brand colours sit behind every step — enough light to
+/// give depth to glass surfaces, never so much that text loses contrast.
+/// The previous implementation used three near-opaque orbs that read as
+/// "vibe-coded" on a marketing flow; this is intentionally restrained.
 struct OnboardingBackground: View {
     let step: Int
 
     @State private var phase: CGFloat = 0
     @State private var appeared = false
-
-    private var palette: [Color] {
-        switch step % 4 {
-        case 0: [AppColor.accentPrimary, AppColor.accentLight, OnboardingTint.muscleRecovery]
-        case 1: [OnboardingTint.sleep, AppColor.accentPrimary, AppColor.accentLight]
-        case 2: [AppColor.accentLight, OnboardingTint.antiAging, AppColor.accentPrimary]
-        default: [AppColor.accentPrimary, OnboardingTint.muscleRecovery, AppColor.accentLight]
-        }
-    }
 
     var body: some View {
         ZStack {
@@ -23,31 +19,27 @@ struct OnboardingBackground: View {
                 let w = geo.size.width
                 let h = geo.size.height
 
-                orb(color: palette[0], size: w * 0.95)
+                orb(color: AppColor.accentPrimary, size: w * 1.05)
                     .position(
-                        x: w * (0.25 + sin(phase) * 0.15),
-                        y: h * (0.20 + cos(phase * 0.9) * 0.08)
+                        x: w * (0.18 + sin(phase) * 0.06),
+                        y: h * (0.18 + cos(phase * 0.8) * 0.04)
                     )
 
-                orb(color: palette[1], size: w * 0.85)
+                orb(color: AppColor.accentLight, size: w * 0.85)
                     .position(
-                        x: w * (0.85 - sin(phase * 0.8) * 0.18),
-                        y: h * (0.70 + cos(phase * 0.7) * 0.10)
-                    )
-
-                orb(color: palette[2], size: w * 0.7)
-                    .position(
-                        x: w * (0.50 + sin(phase * 1.1) * 0.20),
-                        y: h * (0.50 + cos(phase * 1.3) * 0.16)
+                        x: w * (0.86 - sin(phase * 0.7) * 0.07),
+                        y: h * (0.82 + cos(phase * 0.6) * 0.05)
                     )
             }
-            .blur(radius: 70)
-            .opacity(appeared ? 0.55 : 0.0)
+            .blur(radius: 90)
+            .opacity(appeared ? 0.32 : 0.0)
             .animation(.easeOut(duration: 1.4), value: appeared)
             .animation(.easeInOut(duration: 1.2), value: step)
 
+            // Subtle top→bottom darkening keeps copy readable regardless of
+            // where the orbs drift on a given step.
             LinearGradient(
-                colors: [Color.black.opacity(0.35), .clear, Color.black.opacity(0.55)],
+                colors: [Color.black.opacity(0.25), .clear, Color.black.opacity(0.55)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -55,7 +47,7 @@ struct OnboardingBackground: View {
         .ignoresSafeArea()
         .onAppear {
             appeared = true
-            withAnimation(.linear(duration: 22).repeatForever(autoreverses: false)) {
+            withAnimation(.linear(duration: 32).repeatForever(autoreverses: false)) {
                 phase = .pi * 2
             }
         }
@@ -65,7 +57,7 @@ struct OnboardingBackground: View {
         Circle()
             .fill(
                 RadialGradient(
-                    colors: [color.opacity(0.95), color.opacity(0.0)],
+                    colors: [color.opacity(0.75), color.opacity(0.0)],
                     center: .center,
                     startRadius: 0,
                     endRadius: size / 2

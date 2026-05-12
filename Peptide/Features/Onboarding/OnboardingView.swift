@@ -160,7 +160,7 @@ struct OnboardingView: View {
         pageScaffold(
             hero: HeroIcon(symbol: "flask.fill", size: 110, bounceTrigger: bounceTrigger),
             content: {
-                VStack(spacing: Spacing.md) {
+                VStack(spacing: Spacing.lg) {
                     Text("Welcome to PeptideX")
                         .font(AppFont.largeTitle)
                         .foregroundStyle(
@@ -178,7 +178,7 @@ struct OnboardingView: View {
                     + Text("peptide protocols")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(AppColor.accentLight)
-                    + Text(" with precision")
+                    + Text(" with precision.")
                         .font(AppFont.body)
                         .foregroundStyle(AppColor.textSecondary))
                         .multilineTextAlignment(.center)

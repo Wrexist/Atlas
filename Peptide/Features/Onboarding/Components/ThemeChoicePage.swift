@@ -9,14 +9,14 @@ struct ThemeChoicePage: View {
     @Bindable var theme: ThemeManager
 
     var body: some View {
-        VStack(spacing: Spacing.xl) {
+        VStack(spacing: Spacing.xxl) {
             VStack(spacing: Spacing.sm) {
                 Text("Make it yours.")
                     .font(AppFont.title)
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
 
-                Text("Choose your look. Change it any time in Settings.")
+                Text("Choose your look. You can change this any time in Settings.")
                     .font(AppFont.body)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
@@ -32,12 +32,12 @@ struct ThemeChoicePage: View {
     // MARK: - Display mode
 
     private var displayModeSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
+        VStack(alignment: .leading, spacing: Spacing.md) {
             sectionHeader("DISPLAY MODE")
 
             HStack(spacing: Spacing.md) {
-                displayModeCard(.light, icon: "sun.max", label: "Light")
-                displayModeCard(.dark, icon: "moon", label: "Dark")
+                displayModeCard(.light, icon: "sun.max.fill", label: "Light")
+                displayModeCard(.dark, icon: "moon.fill", label: "Dark")
             }
         }
     }
@@ -53,29 +53,29 @@ struct ThemeChoicePage: View {
         } label: {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
-                    .font(.system(size: 28, weight: .medium))
+                    .font(.system(size: 26, weight: .medium))
                     .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
                     .symbolEffect(.bounce, value: isSelected)
+                    .frame(height: 30)
 
                 Text(label)
                     .font(AppFont.headline)
-                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textPrimary)
-
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary.opacity(0.4))
-                    .contentTransition(.symbolEffect(.replace))
+                    .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.lg)
+            .padding(.vertical, Spacing.xl)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.6))
+                    .fill(
+                        isSelected
+                            ? AppColor.accentPrimary.opacity(0.10)
+                            : AppColor.surfaceSecondary.opacity(0.6)
+                    )
                     .overlay {
                         RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                             .strokeBorder(
-                                isSelected ? AppColor.accentPrimary : AppColor.glassBorder,
-                                lineWidth: isSelected ? 2 : 0.5
+                                isSelected ? AppColor.accentPrimary.opacity(0.55) : AppColor.glassBorder,
+                                lineWidth: isSelected ? 1.5 : 0.5
                             )
                     }
             }
@@ -87,7 +87,7 @@ struct ThemeChoicePage: View {
     // MARK: - Color theme
 
     private var colorThemeSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
+        VStack(alignment: .leading, spacing: Spacing.md) {
             sectionHeader("COLOR THEME")
 
             HStack(spacing: Spacing.sm) {
@@ -103,34 +103,36 @@ struct ThemeChoicePage: View {
         return Button {
             select(themeColor)
         } label: {
-            VStack(spacing: Spacing.xs) {
-                Capsule()
+            ZStack {
+                Circle()
                     .fill(pillFill(for: themeColor))
-                    .frame(height: 28)
+                    .frame(width: 36, height: 36)
                     .overlay {
-                        if isSelected {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(.white)
-                                .shadow(color: .black.opacity(0.3), radius: 1)
-                        }
+                        Circle().strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
                     }
+                    .shadow(color: themeColor.primary.opacity(isSelected ? 0.55 : 0.0), radius: 8, y: 2)
 
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary.opacity(0.4))
-                    .contentTransition(.symbolEffect(.replace))
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.35), radius: 1)
+                }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.sm)
+            .padding(.vertical, Spacing.md)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.6))
+                    .fill(
+                        isSelected
+                            ? themeColor.primary.opacity(0.10)
+                            : AppColor.surfaceSecondary.opacity(0.55)
+                    )
                     .overlay {
                         RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                             .strokeBorder(
-                                isSelected ? AppColor.accentPrimary : AppColor.glassBorder,
-                                lineWidth: isSelected ? 2 : 0.5
+                                isSelected ? themeColor.primary.opacity(0.55) : AppColor.glassBorder,
+                                lineWidth: isSelected ? 1.5 : 0.5
                             )
                     }
             }
@@ -145,18 +147,13 @@ struct ThemeChoicePage: View {
     // longer auto-wraps them into a conforming opaque return. Erase to
     // AnyShapeStyle at the boundary so callers stay generic.
     private func pillFill(for themeColor: AppThemeColor) -> AnyShapeStyle {
-        switch themeColor {
-        case .purpleGradient:
-            return AnyShapeStyle(
-                LinearGradient(
-                    colors: [themeColor.primary, themeColor.light],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
+        AnyShapeStyle(
+            LinearGradient(
+                colors: [themeColor.primary, themeColor.light],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
-        default:
-            return AnyShapeStyle(themeColor.primary)
-        }
+        )
     }
 
     // MARK: - Helpers

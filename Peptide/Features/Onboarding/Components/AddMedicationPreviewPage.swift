@@ -14,14 +14,14 @@ struct AddMedicationPreviewPage: View {
     ]
 
     var body: some View {
-        VStack(spacing: Spacing.lg) {
-            VStack(spacing: Spacing.sm) {
-                Text("Add Your First Medication")
+        VStack(spacing: Spacing.xl) {
+            VStack(spacing: Spacing.md) {
+                Text("Add your first medication")
                     .font(AppFont.title)
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
 
-                Text("Start by adding the medication you plan to use. Once it's in PeptideX, you can create schedules and track what's left.")
+                Text("Add what you're running. PeptideX builds the schedule and tracks what's left in each vial.")
                     .font(AppFont.body)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
@@ -29,9 +29,6 @@ struct AddMedicationPreviewPage: View {
             }
 
             shelf
-                .padding(.top, Spacing.md)
-
-            placeholderRow
 
             Text("You'll add it right after onboarding.")
                 .font(AppFont.caption)
@@ -58,7 +55,7 @@ struct AddMedicationPreviewPage: View {
                         labelText: demo.labelText,
                         size: .md
                     )
-                    .scaleEffect(animateIn ? 1 : 0.4)
+                    .scaleEffect(animateIn ? 1 : 0.6)
                     .opacity(animateIn ? 1 : 0)
                     .animation(
                         .spring(response: 0.55, dampingFraction: 0.7).delay(Double(index) * 0.10),
@@ -71,36 +68,35 @@ struct AddMedicationPreviewPage: View {
         .frame(maxWidth: .infinity)
     }
 
+    /// Subtle shelf surface — a thin gradient capsule with a soft drop shadow
+    /// underneath. Reads as a real shelf in front of the ambient backdrop
+    /// instead of a floating tab.
     private var shelfPlatform: some View {
-        Capsule()
-            .fill(AppColor.surfaceSecondary.opacity(0.5))
-            .frame(height: 14)
-            .overlay {
-                Capsule()
-                    .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-            }
-            .padding(.horizontal, Spacing.lg)
-    }
-
-    private var placeholderRow: some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: "plus")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(AppColor.textSecondary)
-            Text("Add Medication")
-                .font(AppFont.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .strokeBorder(
-                    AppColor.glassBorder,
-                    style: StrokeStyle(lineWidth: 1.0, dash: [5, 4])
+        VStack(spacing: 0) {
+            Capsule()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            AppColor.surfaceElevated.opacity(0.95),
+                            AppColor.surfaceSecondary.opacity(0.85),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                 )
+                .frame(height: 10)
+                .overlay {
+                    Capsule().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                }
+
+            Capsule()
+                .fill(Color.black.opacity(0.35))
+                .frame(height: 3)
+                .blur(radius: 3)
+                .padding(.horizontal, Spacing.xl)
+                .padding(.top, 2)
         }
+        .padding(.horizontal, Spacing.md)
     }
 
     private struct Demo {
