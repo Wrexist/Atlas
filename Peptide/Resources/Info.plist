@@ -23,10 +23,6 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSCameraUsageDescription</key>
 	<string>PeptideX uses the camera to scan food barcodes, take a profile photo (stored locally), and photograph meals for nutrition estimation. Meal photos are sent securely to our AI service for analysis and are not retained after the response. Barcode and profile photos stay on your device.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>processing</string>
-	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>PeptideX uses Face ID to optionally lock the app, so your protocols and health data stay private if your device is unlocked. Face ID is optional — you can disable it in Settings.</string>
 	<key>NSHealthShareUsageDescription</key>

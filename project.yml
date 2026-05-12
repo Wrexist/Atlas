@@ -66,8 +66,6 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         NSSupportsLiveActivities: true
         NSCameraUsageDescription: "PeptideX uses the camera to scan food barcodes, take a profile photo (stored locally), and photograph meals for nutrition estimation. Meal photos are sent securely to our AI service for analysis and are not retained after the response. Barcode and profile photos stay on your device."
-        UIBackgroundModes:
-          - processing
         NSFaceIDUsageDescription: "PeptideX uses Face ID to optionally lock the app, so your protocols and health data stay private if your device is unlocked. Face ID is optional — you can disable it in Settings."
         NSHealthShareUsageDescription: "PeptideX reads heart rate, HRV, resting heart rate, body mass, steps, and active energy from Apple Health to correlate your peptide protocols with biometric trends. PeptideX never writes to Apple Health and all analysis happens on your device."
         NSHealthUpdateUsageDescription: "PeptideX does not write to Apple Health and never modifies your health records."
