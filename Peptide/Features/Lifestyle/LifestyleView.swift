@@ -11,6 +11,9 @@ struct LifestyleView: View {
     @State private var showWeightLog = false
     @State private var showWorkoutLog = false
     @State private var showTargetsEditor = false
+    #if DEBUG
+    @State private var showBarcodeScan = false
+    #endif
 
     private var targets: NutritionTargets {
         dataStore.profile.nutritionTargets ?? .placeholder
@@ -21,6 +24,13 @@ struct LifestyleView: View {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     MealScanBanner(action: { showMealScan = true })
+
+                    #if DEBUG
+                    Button("DEBUG · Scan barcode") { showBarcodeScan = true }
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.accentLight)
+                        .frame(maxWidth: .infinity)
+                    #endif
 
                     if dataStore.profile.nutritionTargets == nil {
                         targetsPrompt
@@ -63,6 +73,12 @@ struct LifestyleView: View {
                 MealScanFlow(onClose: { showMealScan = false })
                     .environment(dataStore)
             }
+            #if DEBUG
+            .sheet(isPresented: $showBarcodeScan) {
+                BarcodeScanFlow(onClose: { showBarcodeScan = false })
+                    .environment(dataStore)
+            }
+            #endif
             .sheet(isPresented: $showWeightLog) {
                 WeightLogSheet(
                     history: dataStore.profile.weightHistory,
