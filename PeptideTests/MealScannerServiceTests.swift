@@ -177,21 +177,22 @@ final class MealScannerServiceTests: XCTestCase {
         }
     }
 
-    func test_analyze_throwsRequestFailedOn401() async {
+    func test_analyze_throwsUnauthorisedOn401() async {
         MockURLProtocol.handler = { request in
             (Self.response(for: request, status: 401), Data())
         }
         await XCTAssertThrowsErrorAsync(try await service.analyze(image: tinyImage())) { error in
-            if case .requestFailed(let message) = error as? MealScannerService.ScanError {
-                XCTAssertTrue(message.contains("401"))
-                // Must not leak the upstream body (which can carry the
-                // masked Anthropic key fingerprint). The error string
-                // is generated client-side; assert it does NOT contain
-                // anything that would suggest body echoing.
-                XCTAssertFalse(message.contains("anthropic"))
-            } else {
-                XCTFail("Expected .requestFailed, got \(error)")
+            guard case .unauthorised = error as? MealScannerService.ScanError else {
+                XCTFail("Expected .unauthorised, got \(error)")
+                return
             }
+            // Must not leak the upstream body (which can carry the
+            // masked Anthropic key fingerprint). The user-facing
+            // description is generated client-side; assert it does NOT
+            // contain anything that would suggest body echoing.
+            let description = (error as? LocalizedError)?.errorDescription ?? ""
+            XCTAssertFalse(description.lowercased().contains("anthropic"))
+            XCTAssertFalse(description.contains("401"))
         }
     }
 

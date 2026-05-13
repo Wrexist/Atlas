@@ -219,6 +219,20 @@ jobs:
           AI_RESEARCH_SECRET:    ${{ secrets.AI_RESEARCH_SECRET }}
         run: |
           PLIST=Peptide/Resources/Info.plist
+          # Strip every flavor of whitespace (spaces, tabs, CR, LF) from
+          # the start and end of each secret. A stray newline pasted into
+          # a GitHub Actions secret would otherwise be written verbatim
+          # into Info.plist; the proxy compares via timingSafeEqual on
+          # equal length, so a single trailing \n is enough to produce
+          # a 401 forever despite "looking right" in both dashboards.
+          trim() {
+            printf '%s' "$1" | awk '{ gsub(/^[[:space:]]+|[[:space:]]+$/, ""); print }'
+          }
+          MEAL_SCANNER_ENDPOINT=$(trim "$MEAL_SCANNER_ENDPOINT")
+          MEAL_SCANNER_SECRET=$(trim "$MEAL_SCANNER_SECRET")
+          AI_RESEARCH_ENDPOINT=$(trim "$AI_RESEARCH_ENDPOINT")
+          AI_RESEARCH_SECRET=$(trim "$AI_RESEARCH_SECRET")
+
           # Fail loudly rather than ship a build with the AI features
           # silently disabled — a missing secret here means GitHub repo
           # secrets weren't configured. Fix the secrets, re-run the
@@ -229,6 +243,17 @@ jobs:
               exit 1
             fi
           done
+
+          # Print byte-lengths (never the values) so a future paste-error
+          # is easy to diagnose by comparing against Vercel's secret
+          # length in the dashboard. The lengths themselves are not
+          # sensitive — they're already implied by every 200/401 round
+          # trip.
+          for VAR in MEAL_SCANNER_ENDPOINT MEAL_SCANNER_SECRET AI_RESEARCH_ENDPOINT AI_RESEARCH_SECRET; do
+            VALUE="${!VAR}"
+            echo "  $VAR length: ${#VALUE} bytes"
+          done
+
           for KEY in MEAL_SCANNER_ENDPOINT MEAL_SCANNER_SECRET AI_RESEARCH_ENDPOINT AI_RESEARCH_SECRET; do
             VALUE="${!KEY}"
             /usr/libexec/PlistBuddy -c "Set :$KEY $VALUE" "$PLIST" 2>/dev/null \

@@ -51,6 +51,7 @@ final class MealScannerService: Sendable {
 
     enum ScanError: Error, LocalizedError {
         case proxyNotConfigured
+        case unauthorised
         case imageTooLarge
         case requestFailed(String)
         case invalidResponse
@@ -60,6 +61,7 @@ final class MealScannerService: Sendable {
         var errorDescription: String? {
             switch self {
             case .proxyNotConfigured:   "Meal scanner isn't configured for this build. Set MEAL_SCANNER_ENDPOINT and MEAL_SCANNER_SECRET in Secrets.xcconfig and rebuild."
+            case .unauthorised:         "Couldn't sign in to the meal scanner. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
             case .imageTooLarge:        "Photo is too large to upload. Try a smaller image."
             case .requestFailed(let m): m
             case .invalidResponse:      "The scanner returned an unexpected response."
@@ -117,7 +119,13 @@ final class MealScannerService: Sendable {
         guard (200..<300).contains(http.statusCode) else {
             // Surface only the status code — never echo the upstream
             // response body, which can include the request id and key
-            // fingerprint on auth failures.
+            // fingerprint on auth failures. 401 is broken out because
+            // it's actionable for the user (build's shared secret no
+            // longer matches the proxy's) rather than a transient
+            // network error.
+            if http.statusCode == 401 {
+                throw ScanError.unauthorised
+            }
             throw ScanError.requestFailed("Meal scanner returned HTTP \(http.statusCode).")
         }
 

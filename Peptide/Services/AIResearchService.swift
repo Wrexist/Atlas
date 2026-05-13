@@ -45,12 +45,14 @@ final class AIResearchService: Sendable {
 
     enum ChatError: Error, LocalizedError {
         case proxyNotConfigured
+        case unauthorised
         case requestFailed(String)
         case invalidResponse
 
         var errorDescription: String? {
             switch self {
             case .proxyNotConfigured:   "AI research isn't configured for this build. Set AI_RESEARCH_ENDPOINT and AI_RESEARCH_SECRET in Secrets.xcconfig and rebuild."
+            case .unauthorised:         "Couldn't sign in to the research assistant. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
             case .requestFailed(let m): m
             case .invalidResponse:      "The assistant returned an unexpected response."
             }
@@ -102,6 +104,12 @@ final class AIResearchService: Sendable {
         guard (200..<300).contains(http.statusCode) else {
             // Don't echo upstream body — Anthropic auth-failure responses
             // include masked-key fingerprints that the user shouldn't see.
+            // 401 is broken out from the generic requestFailed envelope so
+            // the user sees an actionable message rather than a bare HTTP
+            // status code.
+            if http.statusCode == 401 {
+                throw ChatError.unauthorised
+            }
             throw ChatError.requestFailed("AI research returned HTTP \(http.statusCode).")
         }
 

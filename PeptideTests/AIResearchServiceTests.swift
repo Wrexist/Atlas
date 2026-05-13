@@ -215,6 +215,21 @@ final class AIResearchServiceTests: XCTestCase {
         }
     }
 
+    func test_reply_throwsUnauthorisedOn401() async {
+        MockURLProtocol.handler = { request in
+            (Self.response(for: request, status: 401), Data())
+        }
+        await XCTAssertThrowsErrorAsyncResearch(try await service.reply(history: [], newUserPrompt: "hi", in: [])) { error in
+            guard case .unauthorised = error as? AIResearchService.ChatError else {
+                XCTFail("Expected .unauthorised, got \(error)")
+                return
+            }
+            let description = (error as? LocalizedError)?.errorDescription ?? ""
+            XCTAssertFalse(description.lowercased().contains("anthropic"))
+            XCTAssertFalse(description.contains("401"))
+        }
+    }
+
     func test_reply_throwsInvalidResponseOnBadEnvelope() async {
         MockURLProtocol.handler = { request in
             (Self.ok(for: request), Data(#"{"oops":true}"#.utf8))
