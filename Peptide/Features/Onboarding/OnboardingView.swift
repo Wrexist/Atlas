@@ -486,19 +486,20 @@ struct OnboardingView: View {
             withAnimation(AppAnimation.springSnappy) { experienceLevel = level }
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         } label: {
-            HStack(spacing: Spacing.lg) {
+            HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
-                    .frame(width: 44, height: 44)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
+                    .frame(width: 42, height: 42)
                     .background {
-                        Circle()
-                            .fill(isSelected ? AppColor.glassTint : AppColor.surfaceElevated)
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(isSelected ? AppColor.accentPrimary.opacity(0.18) : AppColor.surfaceElevated)
                             .overlay {
-                                Circle().strokeBorder(
-                                    isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                    lineWidth: 0.5
-                                )
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(
+                                        isSelected ? AppColor.accentPrimary.opacity(0.35) : AppColor.glassBorder,
+                                        lineWidth: 0.5
+                                    )
                             }
                     }
                     .symbolEffect(.bounce, value: isSelected)
@@ -512,21 +513,31 @@ struct OnboardingView: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
 
-                Spacer()
+                Spacer(minLength: Spacing.sm)
 
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22))
-                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
-                    .contentTransition(.symbolEffect(.replace))
+                // Single trailing indicator only when selected — keeps the
+                // unselected row visually quiet so the user reads the title
+                // hierarchy first instead of the trailing circle.
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(.white)
+                        .frame(width: 22, height: 22)
+                        .background {
+                            Circle().fill(AppColor.accentPrimary)
+                        }
+                        .transition(.scale.combined(with: .opacity))
+                }
             }
-            .padding(Spacing.md)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.md)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                     .fill(isSelected ? AppColor.accentPrimary.opacity(0.10) : AppColor.surfaceSecondary.opacity(0.6))
                     .overlay {
                         RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                             .strokeBorder(
-                                isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
+                                isSelected ? AppColor.accentPrimary.opacity(0.45) : AppColor.glassBorder,
                                 lineWidth: isSelected ? 1.0 : 0.5
                             )
                     }
@@ -704,13 +715,14 @@ struct OnboardingView: View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
-                .frame(width: 28, height: 28)
+                .foregroundStyle(AppColor.accentPrimary)
+                .frame(width: 30, height: 30)
                 .background {
-                    Circle()
-                        .fill(AppColor.glassTint)
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(AppColor.accentPrimary.opacity(0.14))
                         .overlay {
-                            Circle().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                .strokeBorder(AppColor.accentPrimary.opacity(0.28), lineWidth: 0.5)
                         }
                 }
 
@@ -1189,13 +1201,21 @@ struct OnboardingView: View {
         @ViewBuilder content: @escaping () -> Content,
         @ViewBuilder footer: @escaping () -> Footer
     ) -> some View {
-        GeometryReader { proxy in
+        // EmptyView reports zero size but `.padding(.bottom, xl)` still
+        // reserves 20 pt of layout space, which left a phantom gap above
+        // the title on every step that opts out of a hero icon (review
+        // prompt, theme choice, add-medication preview, …). Detect the
+        // EmptyView case at the generic boundary and skip the padding.
+        let heroIsEmpty = Hero.self == EmptyView.self
+        return GeometryReader { proxy in
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     Spacer(minLength: Spacing.lg)
 
-                    hero
-                        .padding(.bottom, Spacing.xl)
+                    if !heroIsEmpty {
+                        hero
+                            .padding(.bottom, Spacing.xl)
+                    }
 
                     content()
                         .padding(.horizontal, Spacing.screenPadding)

@@ -49,18 +49,12 @@ struct ConsistencyChart: View {
                     endpointDot(at: pointA(at: 1, in: size))
                         .opacity(endpointsVisible ? 1 : 0)
 
-                    Text("With PeptideX")
-                        .font(AppFont.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(lineColorA)
-                        .position(x: size.width * 0.22, y: size.height * 0.22)
+                    seriesLabel("With PeptideX", color: lineColorA)
+                        .position(x: size.width * 0.22, y: size.height * 0.18)
                         .opacity(drawA)
 
-                    Text("Without tracking")
-                        .font(AppFont.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(lineColorB)
-                        .position(x: size.width * 0.75, y: size.height * 0.95)
+                    seriesLabel("Without tracking", color: lineColorB)
+                        .position(x: size.width * 0.72, y: size.height * 0.92)
                         .opacity(drawB)
                 }
             }
@@ -167,6 +161,30 @@ struct ConsistencyChart: View {
             .background(Circle().fill(AppColor.background))
             .frame(width: 12, height: 12)
             .position(point)
+    }
+
+    /// Series label with a leading colour dot. Reads as a tiny inline
+    /// legend rather than free-floating coloured text the eye has to
+    /// visually associate with the right curve.
+    private func seriesLabel(_ text: LocalizedStringKey, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 6, height: 6)
+            Text(text)
+                .font(AppFont.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(color)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background {
+            Capsule()
+                .fill(AppColor.background.opacity(0.85))
+                .overlay {
+                    Capsule().strokeBorder(color.opacity(0.25), lineWidth: 0.5)
+                }
+        }
     }
 }
 
