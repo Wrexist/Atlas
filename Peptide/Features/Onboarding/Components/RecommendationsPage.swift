@@ -142,9 +142,13 @@ private struct SuggestionRow: View {
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(2)
 
+                    // Rationale was previously rendered in accentLight (cyan)
+                    // at full opacity, which screamed louder than the
+                    // peptide name. Mute it so the visual hierarchy reads
+                    // name → rationale, not the other way around.
                     Text(suggestion.rationale)
                         .font(AppFont.caption)
-                        .foregroundStyle(AppColor.accentLight)
+                        .foregroundStyle(AppColor.textTertiary)
                         .lineLimit(2)
                         .padding(.top, 2)
                 }
