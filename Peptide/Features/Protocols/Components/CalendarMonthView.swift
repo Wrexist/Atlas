@@ -30,16 +30,23 @@ struct CalendarMonthView: View {
     private let calendar: Calendar = .current
     private static let maxDots = 3
     private static let maxBands = 4
+    private static let rowHeight: CGFloat = 52
 
     private var firstWeekday: Int { calendar.firstWeekday }
     private var grid: [Date] { CalendarMonth.grid(for: monthDate, firstWeekday: firstWeekday, calendar: calendar) }
     private var weekdays: [String] { CalendarMonth.weekdaySymbols(firstWeekday: firstWeekday, calendar: calendar) }
 
     var body: some View {
-        VStack(spacing: Spacing.xs) {
+        VStack(spacing: 0) {
             weekdayHeader
+                .padding(.bottom, Spacing.sm)
 
-            VStack(spacing: 4) {
+            Rectangle()
+                .fill(AppColor.glassBorder)
+                .frame(height: 0.5)
+                .padding(.bottom, Spacing.xs)
+
+            VStack(spacing: 0) {
                 ForEach(0..<6, id: \.self) { row in
                     weekRow(at: row)
                 }
@@ -48,7 +55,7 @@ struct CalendarMonthView: View {
     }
 
     private func weekRow(at row: Int) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 0) {
             HStack(spacing: 0) {
                 ForEach(0..<7, id: \.self) { col in
                     let date = grid[row * 7 + col]
@@ -56,9 +63,12 @@ struct CalendarMonthView: View {
                         .frame(maxWidth: .infinity)
                 }
             }
+            .frame(height: Self.rowHeight)
+
             if displayMode == .cycle {
                 bandStrip(for: bandsPerRow[safe: row] ?? [])
                     .padding(.horizontal, 4)
+                    .padding(.bottom, 4)
             }
         }
     }
@@ -67,11 +77,11 @@ struct CalendarMonthView: View {
 
     private var weekdayHeader: some View {
         HStack(spacing: 0) {
-            ForEach(weekdays, id: \.self) { symbol in
-                Text(symbol)
-                    .font(AppFont.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.textSecondary)
+            ForEach(Array(weekdays.enumerated()), id: \.offset) { _, symbol in
+                Text(symbol.prefix(3).uppercased())
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(0.8)
+                    .foregroundStyle(AppColor.textTertiary)
                     .frame(maxWidth: .infinity)
             }
         }
@@ -89,31 +99,26 @@ struct CalendarMonthView: View {
             selectedDay = calendar.startOfDay(for: date)
             UISelectionFeedbackGenerator().selectionChanged()
         } label: {
-            VStack(spacing: 3) {
+            VStack(spacing: 4) {
                 ZStack {
                     if isSelected {
                         Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [AppColor.accentPrimary, AppColor.accentLight],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 30, height: 30)
+                            .fill(AppColor.accentPrimary)
+                            .frame(width: 34, height: 34)
                     } else if isToday {
                         Circle()
-                            .strokeBorder(AppColor.accentPrimary, lineWidth: 1.5)
-                            .frame(width: 30, height: 30)
+                            .fill(AppColor.accentPrimary.opacity(0.14))
+                            .frame(width: 34, height: 34)
                     }
                     Text(dayNumber(for: date))
-                        .font(.system(size: 15, weight: isCurrentMonth ? .semibold : .regular, design: .rounded))
+                        .font(.system(size: 15, weight: dayWeight(isSelected: isSelected, isToday: isToday), design: .rounded))
                         .foregroundStyle(dateColor(isCurrentMonth: isCurrentMonth, isSelected: isSelected, isToday: isToday))
                         .monospacedDigit()
                 }
+                .frame(height: 34)
 
                 if displayMode == .schedule {
-                    dotRow(for: marks)
+                    dotRow(for: marks, isSelected: isSelected)
                         .frame(height: 6)
                 } else {
                     // Reserve the same vertical space so cells don't
@@ -121,7 +126,8 @@ struct CalendarMonthView: View {
                     Color.clear.frame(height: 6)
                 }
             }
-            .frame(height: 44)
+            .frame(maxWidth: .infinity)
+            .frame(height: Self.rowHeight)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -129,32 +135,33 @@ struct CalendarMonthView: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private func dotRow(for marks: [CalendarDoseMark]) -> some View {
+    private func dotRow(for marks: [CalendarDoseMark], isSelected: Bool) -> some View {
         HStack(spacing: 3) {
             let visible = Array(marks.prefix(Self.maxDots))
             ForEach(visible) { mark in
-                doseDot(for: mark)
+                doseDot(for: mark, dimmed: isSelected)
             }
             if marks.count > Self.maxDots {
                 Text("+\(marks.count - Self.maxDots)")
                     .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(AppColor.textTertiary)
+                    .foregroundStyle(isSelected ? Color.white.opacity(0.8) : AppColor.textTertiary)
                     .monospacedDigit()
             }
         }
     }
 
-    private func doseDot(for mark: CalendarDoseMark) -> some View {
+    private func doseDot(for mark: CalendarDoseMark, dimmed: Bool) -> some View {
         let palette = VialPalette.colors(for: mark.peptideName)
+        let tint = dimmed ? Color.white.opacity(0.9) : palette.fill
         return Group {
             switch mark.kind {
             case .logged:
-                Circle().fill(palette.fill)
+                Circle().fill(tint)
             case .scheduled:
-                Circle().strokeBorder(palette.fill, lineWidth: 1.2)
+                Circle().strokeBorder(tint, lineWidth: 1.2)
             }
         }
-        .frame(width: 6, height: 6)
+        .frame(width: 5, height: 5)
     }
 
     // MARK: - Cycle bands
@@ -164,7 +171,7 @@ struct CalendarMonthView: View {
             let visible = Array(bands.prefix(Self.maxBands))
             ForEach(visible) { band in
                 Capsule()
-                    .fill(band.color.opacity(0.8))
+                    .fill(band.color.opacity(0.85))
                     .frame(height: 3)
                     .accessibilityLabel(Text("\(band.name) active this week"))
             }
@@ -182,10 +189,16 @@ struct CalendarMonthView: View {
         String(calendar.component(.day, from: date))
     }
 
+    private func dayWeight(isSelected: Bool, isToday: Bool) -> Font.Weight {
+        if isSelected { return .bold }
+        if isToday { return .bold }
+        return .medium
+    }
+
     private func dateColor(isCurrentMonth: Bool, isSelected: Bool, isToday: Bool) -> Color {
         if isSelected { return .white }
-        if !isCurrentMonth { return AppColor.textTertiary.opacity(0.5) }
-        if isToday { return AppColor.accentPrimary }
+        if !isCurrentMonth { return AppColor.textTertiary.opacity(0.4) }
+        if isToday { return AppColor.accentLight }
         return AppColor.textPrimary
     }
 

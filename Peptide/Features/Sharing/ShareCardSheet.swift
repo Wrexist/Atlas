@@ -29,10 +29,14 @@ struct ShareCardSheet: View {
     @State private var showShareSheet = false
     @State private var isRendering = false
     @State private var errorMessage: String?
+    @State private var previewImage: UIImage?
+    @State private var previewToken: UUID = UUID()
 
-    private static let previewScale: CGFloat = 0.22
-    private var previewWidth: CGFloat { ShareCardRenderer.canvasSize.width * Self.previewScale }
-    private var previewHeight: CGFloat { ShareCardRenderer.canvasSize.height * Self.previewScale }
+    /// 9:16 aspect ratio matching the 1080×1920 export. The preview is
+    /// width-constrained by its container, so we only need the aspect
+    /// ratio here — `ImageRenderer` handles the actual pixel size.
+    private static let previewAspect: CGFloat = 1080.0 / 1920.0
+    private static let previewWidth: CGFloat = 240
 
     @MainActor
     private var baseModel: CycleCardModel {
@@ -111,26 +115,59 @@ struct ShareCardSheet: View {
                 if newValue && healthSummary == nil {
                     Task { await loadHealthSummary() }
                 }
+                refreshPreview()
             }
+            .onChange(of: healthSummary) { _, _ in refreshPreview() }
+            .task { refreshPreview() }
         }
     }
 
     // MARK: - Preview
 
     private var preview: some View {
-        CycleCardView(model: modelForRender)
-            .frame(
-                width: ShareCardRenderer.canvasSize.width,
-                height: ShareCardRenderer.canvasSize.height
-            )
-            .scaleEffect(Self.previewScale, anchor: .topLeading)
-            .frame(width: previewWidth, height: previewHeight)
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-            )
-            .shadow(color: AppColor.accentGlow, radius: 24, x: 0, y: 12)
+        let previewHeight = Self.previewWidth / Self.previewAspect
+        return ZStack {
+            if let previewImage {
+                Image(uiImage: previewImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.051, green: 0.051, blue: 0.102),
+                        Color(red: 0.102, green: 0.039, blue: 0.180),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                ProgressView()
+                    .tint(AppColor.accentLight)
+            }
+        }
+        .frame(width: Self.previewWidth, height: previewHeight)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+        )
+        .shadow(color: AppColor.accentGlow, radius: 24, x: 0, y: 12)
+    }
+
+    /// Re-renders the preview off the main runloop tick. Coalesces rapid
+    /// toggles (privacy switch + async health summary arrival) by tagging
+    /// each request with a fresh token and discarding stale results.
+    private func refreshPreview() {
+        let token = UUID()
+        previewToken = token
+        Task { @MainActor in
+            // Yield so the SwiftUI state change driving this refresh has
+            // flushed before the (synchronous) ImageRenderer captures.
+            await Task.yield()
+            guard previewToken == token else { return }
+            let image = try? ShareCardRenderer.renderImage(for: modelForRender)
+            guard previewToken == token else { return }
+            previewImage = image
+        }
     }
 
     // MARK: - Privacy toggle

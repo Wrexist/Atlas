@@ -186,8 +186,8 @@ struct TrackCalendarSection: View {
     // MARK: - Calendar card
 
     private var calendarCard: some View {
-        GlassCard {
-            VStack(spacing: Spacing.md) {
+        GlassCard(padding: Spacing.lg) {
+            VStack(spacing: Spacing.lg) {
                 navigationHeader
                 CalendarMonthView(
                     monthDate: monthDate,
@@ -201,20 +201,60 @@ struct TrackCalendarSection: View {
     }
 
     private var navigationHeader: some View {
-        HStack {
-            chevronButton(direction: -1, icon: "chevron.left")
+        HStack(alignment: .center, spacing: Spacing.md) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(monthDate.formatted(.dateTime.month(.wide)))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .contentTransition(.numericText())
+                Text(monthDate.formatted(.dateTime.year()))
+                    .font(.system(size: 12, weight: .semibold))
+                    .tracking(1)
+                    .foregroundStyle(AppColor.textTertiary)
+            }
 
             Spacer()
 
-            Text(monthDate.formatted(.dateTime.month(.wide).year()))
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.textPrimary)
-                .contentTransition(.numericText())
+            todayButton
 
-            Spacer()
-
-            chevronButton(direction: 1, icon: "chevron.right")
+            HStack(spacing: 4) {
+                chevronButton(direction: -1, icon: "chevron.left")
+                chevronButton(direction: 1, icon: "chevron.right")
+            }
         }
+    }
+
+    private var todayButton: some View {
+        let isOnCurrentMonth = Calendar.current.isDate(
+            monthDate,
+            equalTo: Date(),
+            toGranularity: .month
+        )
+        return Button {
+            let now = Date()
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                monthDate = Calendar.current.startOfMonth(for: now)
+                selectedDay = Calendar.current.startOfDay(for: now)
+            }
+            UISelectionFeedbackGenerator().selectionChanged()
+        } label: {
+            Text("Today")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(isOnCurrentMonth ? AppColor.textTertiary : AppColor.accentLight)
+                .padding(.horizontal, Spacing.sm)
+                .padding(.vertical, 6)
+                .background {
+                    Capsule()
+                        .strokeBorder(
+                            isOnCurrentMonth ? AppColor.glassBorder : AppColor.accentPrimary.opacity(0.4),
+                            lineWidth: 0.5
+                        )
+                }
+        }
+        .buttonStyle(.plain)
+        .disabled(isOnCurrentMonth)
+        .opacity(isOnCurrentMonth ? 0.55 : 1)
+        .accessibilityLabel("Jump to today")
     }
 
     private func chevronButton(direction: Int, icon: String) -> some View {
@@ -222,12 +262,19 @@ struct TrackCalendarSection: View {
             shiftMonth(by: direction)
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(AppColor.textSecondary)
-                .frame(width: 32, height: 32)
+                .frame(width: 30, height: 30)
+                .background {
+                    Circle()
+                        .fill(AppColor.surfaceElevated.opacity(0.6))
+                        .overlay {
+                            Circle().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                        }
+                }
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.9))
         .accessibilityLabel(direction < 0 ? "Previous month" : "Next month")
     }
 
