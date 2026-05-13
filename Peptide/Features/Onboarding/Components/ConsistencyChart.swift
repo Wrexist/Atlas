@@ -7,14 +7,14 @@ import SwiftUI
 /// follows curve A first — same effect as Framer Motion's pathLength
 /// keyframes.
 ///
-/// Colours are hard-coded to the spec hexes (#4F46E5 / #9CA3AF) instead
-/// of `AppColor.accent*` so the chart renders identically across themes.
+/// Curve A picks up the active brand accent so the chart never clashes
+/// with the user's chosen theme; curve B stays neutral grey.
 struct ConsistencyChart: View {
     @State private var drawA: CGFloat = 0
     @State private var drawB: CGFloat = 0
     @State private var endpointsVisible = false
 
-    private let lineColorA = Color(red: 0.310, green: 0.275, blue: 0.898) // #4F46E5
+    private var lineColorA: Color { AppColor.accentPrimary }
     private let lineColorB = Color(red: 0.612, green: 0.639, blue: 0.686) // #9CA3AF
 
     var body: some View {

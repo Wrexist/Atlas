@@ -10,8 +10,8 @@ struct DailyTargetsPage: View {
     let metrics: BodyMetrics
 
     var body: some View {
-        VStack(spacing: Spacing.lg) {
-            VStack(spacing: Spacing.sm) {
+        VStack(spacing: Spacing.xl) {
+            VStack(spacing: Spacing.md) {
                 Text("Your daily targets")
                     .font(AppFont.title)
                     .foregroundStyle(AppColor.textPrimary)
@@ -39,64 +39,77 @@ struct DailyTargetsPage: View {
 struct DailyTargetsCard: View {
     let targets: NutritionTargets?
 
+    /// Cool, harmonised macro accents — slightly desaturated so the card
+    /// reads as a unified system rather than four random highlight chips.
+    private let proteinTint = Color(hex: 0xF472B6)   // rose-400
+    private let carbsTint   = Color(hex: 0xFB923C)   // orange-400
+    private let fatTint     = Color(hex: 0xFBBF24)   // amber-400
+    private let fiberTint   = Color(hex: 0x60A5FA)   // blue-400
+
     var body: some View {
         GlassCard(cornerRadius: Spacing.cardCornerRadius, tinted: true) {
-            VStack(spacing: Spacing.lg) {
+            VStack(spacing: Spacing.xl) {
                 calorieBlock
 
                 LazyVGrid(
                     columns: [
-                        GridItem(.flexible(), spacing: Spacing.sm),
-                        GridItem(.flexible(), spacing: Spacing.sm),
+                        GridItem(.flexible(), spacing: Spacing.md),
+                        GridItem(.flexible(), spacing: Spacing.md),
                     ],
-                    spacing: Spacing.sm
+                    spacing: Spacing.md
                 ) {
-                    macroTile(label: "Protein", grams: targets?.proteinG, tint: AppColor.accentLight)
-                    macroTile(label: "Carbs",   grams: targets?.carbsG,   tint: OnboardingTint.fatLoss)
-                    macroTile(label: "Fat",     grams: targets?.fatG,     tint: OnboardingTint.antiAging)
-                    macroTile(label: "Fiber",   grams: targets?.fiberG,   tint: OnboardingTint.muscleRecovery)
+                    macroTile(label: "Protein", grams: targets?.proteinG, tint: proteinTint)
+                    macroTile(label: "Carbs",   grams: targets?.carbsG,   tint: carbsTint)
+                    macroTile(label: "Fat",     grams: targets?.fatG,     tint: fatTint)
+                    macroTile(label: "Fiber",   grams: targets?.fiberG,   tint: fiberTint)
                 }
             }
         }
     }
 
     private var calorieBlock: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 4) {
             Text(targets.map { "\($0.calories)" } ?? "—")
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundStyle(AppColor.accentPrimary)
+                .font(.system(size: 44, weight: .bold, design: .rounded))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [AppColor.accentLight, AppColor.accentPrimary],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
                 .contentTransition(.numericText())
                 .animation(AppAnimation.springSmooth, value: targets?.calories)
 
             Text("kcal / day")
-                .font(AppFont.caption)
+                .font(.system(size: 11, weight: .heavy))
                 .foregroundStyle(AppColor.textSecondary)
                 .textCase(.uppercase)
-                .tracking(1.2)
+                .tracking(1.6)
         }
         .frame(maxWidth: .infinity)
     }
 
     private func macroTile(label: LocalizedStringKey, grams: Int?, tint: Color) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 4) {
             Text(grams.map { "\($0) g" } ?? "—")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundStyle(tint)
                 .contentTransition(.numericText())
                 .animation(AppAnimation.springSmooth, value: grams)
 
             Text(label)
-                .font(AppFont.caption)
+                .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.sm)
+        .padding(.vertical, Spacing.md)
         .background {
             RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(tint.opacity(0.08))
+                .fill(tint.opacity(0.10))
                 .overlay {
                     RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(tint.opacity(0.25), lineWidth: 0.5)
+                        .strokeBorder(tint.opacity(0.22), lineWidth: 0.5)
                 }
         }
     }

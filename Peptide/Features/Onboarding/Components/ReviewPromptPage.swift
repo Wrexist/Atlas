@@ -6,9 +6,9 @@ struct ReviewPromptPage: View {
     @State private var stagger = false
 
     var body: some View {
-        VStack(spacing: Spacing.lg) {
-            VStack(spacing: Spacing.sm) {
-                Text("Join 10,000+ biohackers tracking smarter.")
+        VStack(spacing: Spacing.xl) {
+            VStack(spacing: Spacing.md) {
+                Text("Join 10,000+ biohackers tracking smarter")
                     .font(AppFont.largeTitle)
                     .foregroundStyle(
                         LinearGradient(
@@ -18,8 +18,9 @@ struct ReviewPromptPage: View {
                         )
                     )
                     .multilineTextAlignment(.center)
+                    .lineSpacing(2)
 
-                Text("This app was built for people serious about their protocols.")
+                Text("Built for people serious about their protocols.")
                     .font(AppFont.body)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
@@ -70,11 +71,21 @@ struct ReviewPromptPage: View {
 /// Sits below the subtitle as a quick at-a-glance social proof anchor
 /// before the longer testimonial cards below.
 private struct UsersPill: View {
-    private let avatars: [(initials: String, tint: Color)] = [
-        ("MT", Color(hex: 0xC4B5FD)),  // light purple
-        ("AR", AppColor.accentLight),
-        ("JK", AppColor.accentPrimary),
-    ]
+    private struct Avatar {
+        let initials: String
+        let tint: Color
+    }
+
+    private var avatars: [Avatar] {
+        [
+            Avatar(initials: "MT", tint: AppColor.accentPrimary),
+            Avatar(initials: "AR", tint: AppColor.accentLight),
+            Avatar(initials: "JK", tint: Color(hex: 0xC4B5FD)),
+        ]
+    }
+
+    private let diameter: CGFloat = 28
+    private let overlap: CGFloat = 10
 
     var body: some View {
         HStack(spacing: Spacing.sm) {
@@ -84,7 +95,8 @@ private struct UsersPill: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
         }
-        .padding(.horizontal, Spacing.md)
+        .padding(.leading, Spacing.sm)
+        .padding(.trailing, Spacing.md)
         .padding(.vertical, Spacing.xs)
         .background {
             Capsule()
@@ -96,20 +108,26 @@ private struct UsersPill: View {
         .liquidGlass(.capsule)
     }
 
+    /// Avatars overlap by `overlap` pt. Each is an opaque tinted disc with
+    /// a 2 pt ring matching the page background so the underlying disc
+    /// reads as cleanly punched out from the one above — no bleed-through
+    /// like the previous semi-transparent fill produced.
     private var stack: some View {
-        HStack(spacing: -10) {
+        HStack(spacing: -overlap) {
             ForEach(Array(avatars.enumerated()), id: \.offset) { _, avatar in
                 ZStack {
+                    Circle().fill(AppColor.background)
+
                     Circle()
-                        .fill(avatar.tint.opacity(0.30))
-                        .overlay {
-                            Circle().strokeBorder(AppColor.background, lineWidth: 1.5)
-                        }
+                        .fill(avatar.tint.opacity(0.85))
+                        .padding(2)
+
                     Text(avatar.initials)
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundStyle(avatar.tint)
+                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.25), radius: 0.5, y: 0.5)
                 }
-                .frame(width: 26, height: 26)
+                .frame(width: diameter, height: diameter)
             }
         }
     }
@@ -119,32 +137,35 @@ private struct TestimonialCard: View {
     let testimonial: ReviewPromptPage.Testimonial
 
     var body: some View {
-        HStack(alignment: .top, spacing: Spacing.md) {
-            avatar
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack(spacing: Spacing.md) {
+                avatar
 
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text(testimonial.name)
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(AppColor.textPrimary)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(testimonial.name)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(AppColor.textPrimary)
 
-                HStack(spacing: 2) {
-                    ForEach(0..<5) { _ in
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(reviewStarGold)
+                    HStack(spacing: 2) {
+                        ForEach(0..<5) { _ in
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(reviewStarGold)
+                        }
                     }
                 }
 
-                Text(testimonial.quote)
-                    .font(.system(size: 14))
-                    .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 2)
+                Spacer(minLength: 0)
             }
 
-            Spacer(minLength: 0)
+            Text(testimonial.quote)
+                .font(.system(size: 14))
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineSpacing(2)
         }
-        .padding(Spacing.md)
+        .padding(Spacing.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                 .fill(AppColor.surfaceSecondary.opacity(0.6))
@@ -158,15 +179,16 @@ private struct TestimonialCard: View {
     private var avatar: some View {
         ZStack {
             Circle()
-                .fill(testimonial.tint.opacity(0.22))
-                .overlay {
-                    Circle().strokeBorder(testimonial.tint.opacity(0.45), lineWidth: 0.5)
-                }
+                .fill(testimonial.tint.opacity(0.9))
             Text(testimonial.initials)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(testimonial.tint)
+                .font(.system(size: 14, weight: .heavy, design: .rounded))
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.2), radius: 0.5, y: 0.5)
         }
         .frame(width: 40, height: 40)
+        .overlay {
+            Circle().strokeBorder(Color.white.opacity(0.10), lineWidth: 0.5)
+        }
     }
 }
 
