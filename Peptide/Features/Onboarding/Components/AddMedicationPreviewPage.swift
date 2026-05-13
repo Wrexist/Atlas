@@ -44,9 +44,7 @@ struct AddMedicationPreviewPage: View {
     // MARK: - Shelf
 
     private var shelf: some View {
-        ZStack(alignment: .bottom) {
-            shelfPlatform
-
+        VStack(spacing: 0) {
             HStack(alignment: .bottom, spacing: Spacing.md) {
                 ForEach(Array(demos.enumerated()), id: \.offset) { index, demo in
                     VialIllustration(
@@ -63,16 +61,18 @@ struct AddMedicationPreviewPage: View {
                     )
                 }
             }
-            .padding(.bottom, Spacing.sm)
+
+            shelfPlatform
+                .padding(.top, Spacing.xs)
         }
         .frame(maxWidth: .infinity)
     }
 
-    /// Subtle shelf surface — a thin gradient capsule with a soft drop shadow
-    /// underneath. Reads as a real shelf in front of the ambient backdrop
-    /// instead of a floating tab.
+    /// Subtle shelf surface — a thin gradient capsule with a soft drop
+    /// shadow underneath. Reads as a real shelf the vials are standing on,
+    /// not a stripe behind them.
     private var shelfPlatform: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 4) {
             Capsule()
                 .fill(
                     LinearGradient(
@@ -94,7 +94,6 @@ struct AddMedicationPreviewPage: View {
                 .frame(height: 3)
                 .blur(radius: 3)
                 .padding(.horizontal, Spacing.xl)
-                .padding(.top, 2)
         }
         .padding(.horizontal, Spacing.md)
     }

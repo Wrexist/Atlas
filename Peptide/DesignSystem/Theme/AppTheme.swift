@@ -112,7 +112,9 @@ final class ThemeManager: @unchecked Sendable {
     /// pinned to dark — every surface uses dark hexes, every component
     /// preview is dark — so flipping this to `.light` will make panels
     /// hard to read until the design system gains light-mode variants.
-    /// Stored anyway so the onboarding choice survives the upgrade.
+    /// The onboarding picker disables Light with a "SOON" badge for that
+    /// reason; this storage is kept so the choice can survive an upgrade
+    /// once light surfaces ship.
     var displayMode: DisplayMode {
         didSet {
             UserDefaults.standard.set(displayMode.rawValue, forKey: Self.displayModeKey)
@@ -123,7 +125,11 @@ final class ThemeManager: @unchecked Sendable {
         let rawColor = UserDefaults.standard.string(forKey: Self.colorKey) ?? ""
         self.theme = AppThemeColor.resolving(rawValue: rawColor)
 
+        // Force-clamp to dark on launch until light surfaces exist. Legacy
+        // users who picked Light in a previous build would otherwise wake
+        // up to white-on-white panels everywhere.
         let rawMode = UserDefaults.standard.string(forKey: Self.displayModeKey) ?? ""
-        self.displayMode = DisplayMode(rawValue: rawMode) ?? .dark
+        let stored = DisplayMode(rawValue: rawMode) ?? .dark
+        self.displayMode = (stored == .light) ? .dark : stored
     }
 }

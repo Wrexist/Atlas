@@ -36,7 +36,11 @@ struct ThemeChoicePage: View {
             sectionHeader("DISPLAY MODE")
 
             HStack(spacing: Spacing.md) {
-                displayModeCard(.light, icon: "sun.max.fill", label: "Light")
+                // Light mode is intentionally disabled until the design system
+                // gains light-mode surface variants — every panel and text
+                // colour is currently a hardcoded dark hex, so flipping the
+                // colour scheme would render the app unreadable.
+                displayModeCard(.light, icon: "sun.max.fill", label: "Light", comingSoon: true)
                 displayModeCard(.dark, icon: "moon.fill", label: "Dark")
             }
         }
@@ -45,31 +49,63 @@ struct ThemeChoicePage: View {
     private func displayModeCard(
         _ mode: DisplayMode,
         icon: String,
-        label: LocalizedStringKey
+        label: LocalizedStringKey,
+        comingSoon: Bool = false
     ) -> some View {
-        let isSelected = theme.displayMode == mode
+        let isSelected = theme.displayMode == mode && !comingSoon
         return Button {
+            guard !comingSoon else {
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                return
+            }
             select(mode)
         } label: {
-            VStack(spacing: Spacing.sm) {
-                Image(systemName: icon)
-                    .font(.system(size: 26, weight: .medium))
-                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
-                    .symbolEffect(.bounce, value: isSelected)
-                    .frame(height: 30)
+            ZStack(alignment: .topTrailing) {
+                VStack(spacing: Spacing.sm) {
+                    Image(systemName: icon)
+                        .font(.system(size: 26, weight: .medium))
+                        .foregroundStyle(
+                            comingSoon
+                                ? AppColor.textTertiary
+                                : (isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
+                        )
+                        .symbolEffect(.bounce, value: isSelected)
+                        .frame(height: 30)
 
-                Text(label)
-                    .font(AppFont.headline)
-                    .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
+                    Text(label)
+                        .font(AppFont.headline)
+                        .foregroundStyle(
+                            comingSoon
+                                ? AppColor.textTertiary
+                                : (isSelected ? AppColor.textPrimary : AppColor.textSecondary)
+                        )
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Spacing.xl)
+
+                if comingSoon {
+                    Text("SOON")
+                        .font(.system(size: 9, weight: .heavy))
+                        .tracking(1.0)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background {
+                            Capsule()
+                                .fill(AppColor.surfaceElevated)
+                                .overlay {
+                                    Capsule().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                                }
+                        }
+                        .padding(Spacing.sm)
+                }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.xl)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                     .fill(
                         isSelected
                             ? AppColor.accentPrimary.opacity(0.10)
-                            : AppColor.surfaceSecondary.opacity(0.6)
+                            : AppColor.surfaceSecondary.opacity(comingSoon ? 0.4 : 0.6)
                     )
                     .overlay {
                         RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
@@ -79,6 +115,7 @@ struct ThemeChoicePage: View {
                             )
                     }
             }
+            .opacity(comingSoon ? 0.55 : 1.0)
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
