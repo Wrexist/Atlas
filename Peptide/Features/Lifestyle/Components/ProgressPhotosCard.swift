@@ -16,6 +16,11 @@ struct ProgressPhotosCard: View {
     @State private var revealedFilename: String?
     @State private var pendingDelete: String?
     @State private var errorText: String?
+    /// Drives the push to `ProgressPhotoDetailView`. Holds the filename
+    /// the user tapped from the context menu (or, when the user picked
+    /// "View all", the most recent filename) so the detail view opens
+    /// on the right page rather than always at index 0.
+    @State private var openingFilename: String?
 
     private static let slotCount = 4
 
@@ -23,6 +28,12 @@ struct ProgressPhotosCard: View {
     /// fills top-left → bottom-right with the latest photos.
     private var recentFilenames: [String] {
         Array(dataStore.profile.progressPhotoFilenames.suffix(Self.slotCount).reversed())
+    }
+
+    /// Most recent filename overall — used by the "View all" affordance
+    /// so the detail view opens on the latest photo by default.
+    private var mostRecentFilename: String? {
+        dataStore.profile.progressPhotoFilenames.last
     }
 
     var body: some View {
@@ -72,6 +83,10 @@ struct ProgressPhotosCard: View {
         } message: {
             Text(errorText ?? "")
         }
+        .navigationDestination(item: $openingFilename) { filename in
+            ProgressPhotoDetailView(initialFilename: filename)
+                .environment(dataStore)
+        }
     }
 
     private var header: some View {
@@ -86,6 +101,10 @@ struct ProgressPhotosCard: View {
             }
 
             Spacer(minLength: 0)
+
+            if let mostRecentFilename {
+                viewAllButton(latest: mostRecentFilename)
+            }
 
             PhotosPicker(
                 selection: $pickerItem,
@@ -117,6 +136,39 @@ struct ProgressPhotosCard: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    /// "View all" pill rendered to the left of the Add-photo button when
+    /// the user has at least one photo. Pushes the timeline open at the
+    /// most-recent filename so the user lands on what they last shot.
+    private func viewAllButton(latest filename: String) -> some View {
+        Button {
+            openingFilename = filename
+            if dataStore.profile.hapticFeedbackEnabled {
+                UISelectionFeedbackGenerator().selectionChanged()
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text("View all")
+                    .font(.system(size: 12, weight: .semibold))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .bold))
+            }
+            .foregroundStyle(AppColor.textSecondary)
+            .padding(.horizontal, Spacing.sm)
+            .padding(.vertical, 6)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(AppColor.surfaceElevated.opacity(0.6))
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                    }
+            }
+            .liquidGlass(.capsule)
+        }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.95))
+        .accessibilityLabel("View all progress photos")
     }
 
     @ViewBuilder
@@ -157,6 +209,11 @@ struct ProgressPhotosCard: View {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
             .contextMenu {
+                Button {
+                    openingFilename = filename
+                } label: {
+                    Label("Open", systemImage: "arrow.up.left.and.arrow.down.right")
+                }
                 Button(role: .destructive) {
                     pendingDelete = filename
                 } label: {
