@@ -1,12 +1,36 @@
 import SwiftUI
 
 /// Per-day dose detail panel surfaced under the calendar grid. Shows
-/// every logged or scheduled mark for the currently-selected day. Cards
-/// are read-only in this iteration — swipe-to-delete and tap-to-edit
-/// dose modals are tracked as separate work items.
+/// every logged or scheduled mark for the currently-selected day.
+///
+/// Logged marks are interactive: a tap opens the dose-edit sheet for
+/// that entry and a long-press surfaces an Edit / Delete context menu.
+/// Scheduled marks are static — they're synthesized from the protocol
+/// schedule, not real entries, so there's nothing to mutate.
+///
+/// The panel itself is purely a view; the caller (`TrackCalendarSection`)
+/// owns the `editingEntry` state and the DataStore handles persistence,
+/// keeping this file dependency-free.
 struct DoseDayDetailPanel: View {
     let day: Date
     let marks: [CalendarDoseMark]
+    /// Fires when the user taps a logged mark (or picks "Edit" from the
+    /// context menu). `nil` when the caller hasn't wired up editing yet,
+    /// in which case logged cards render non-interactively.
+    var onEditEntry: ((UUID) -> Void)? = nil
+    /// Fires when the user picks "Delete" from a logged mark's context
+    /// menu. Caller is expected to call `DataStore.unlogDose(entryId:)`
+    /// so the actual* capture fields are cleared rather than just
+    /// flipping `completed`.
+    var onDeleteEntry: ((UUID) -> Void)? = nil
+
+    @State private var pendingDeletion: PendingDeletion?
+
+    private struct PendingDeletion: Identifiable {
+        let entryID: UUID
+        let peptideName: String
+        var id: UUID { entryID }
+    }
 
     private var sortedMarks: [CalendarDoseMark] {
         // Logged first, then scheduled — within each group, alphabetical
@@ -33,6 +57,35 @@ struct DoseDayDetailPanel: View {
                 }
             }
         }
+        .confirmationDialog(
+            confirmationTitle,
+            isPresented: confirmationBinding,
+            presenting: pendingDeletion
+        ) { item in
+            Button("Remove log", role: .destructive) {
+                onDeleteEntry?(item.entryID)
+                pendingDeletion = nil
+            }
+            Button("Cancel", role: .cancel) {
+                pendingDeletion = nil
+            }
+        } message: { _ in
+            Text("The dose returns to its scheduled state. You can re-log it later.")
+        }
+    }
+
+    private var confirmationTitle: String {
+        guard let pending = pendingDeletion else { return "Remove this log?" }
+        return "Remove the \(pending.peptideName) log?"
+    }
+
+    private var confirmationBinding: Binding<Bool> {
+        Binding(
+            get: { pendingDeletion != nil },
+            set: { newValue in
+                if !newValue { pendingDeletion = nil }
+            }
+        )
     }
 
     // MARK: - Header
@@ -82,7 +135,43 @@ struct DoseDayDetailPanel: View {
 
     // MARK: - Dose card
 
+    @ViewBuilder
     private func doseCard(for mark: CalendarDoseMark) -> some View {
+        // Scheduled marks are synthesized from the protocol schedule and
+        // have no entryID, so there's nothing to edit or delete — render
+        // as a static row. Logged marks wrap in a Button so tapping opens
+        // the edit sheet and a context menu surfaces Edit / Delete.
+        if mark.kind == .logged, let entryID = mark.entryID, onEditEntry != nil {
+            Button {
+                onEditEntry?(entryID)
+            } label: {
+                cardContent(for: mark)
+            }
+            .buttonStyle(.plain)
+            .contextMenu {
+                Button {
+                    onEditEntry?(entryID)
+                } label: {
+                    Label("Edit dose", systemImage: "pencil")
+                }
+                if onDeleteEntry != nil {
+                    Button(role: .destructive) {
+                        pendingDeletion = PendingDeletion(
+                            entryID: entryID,
+                            peptideName: mark.peptideName
+                        )
+                    } label: {
+                        Label("Remove log", systemImage: "trash")
+                    }
+                }
+            }
+            .accessibilityHint("Double-tap to edit, long-press for more options")
+        } else {
+            cardContent(for: mark)
+        }
+    }
+
+    private func cardContent(for mark: CalendarDoseMark) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             // Logged marks render the vial at the level it sat at when the
             // dose was pulled (.kind == .logged drops slightly below full
@@ -126,8 +215,16 @@ struct DoseDayDetailPanel: View {
             }
 
             Spacer(minLength: 0)
+
+            if mark.kind == .logged, onEditEntry != nil {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
+            }
         }
         .padding(Spacing.md)
+        .contentShape(Rectangle())
         .background {
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                 .fill(AppColor.surfaceSecondary.opacity(0.6))

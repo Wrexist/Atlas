@@ -5,6 +5,8 @@ import SwiftUI
 /// underneath. Self-contained so it can drop into the existing
 /// `ProtocolListView` scroll content without entangling its other cards.
 struct TrackCalendarSection: View {
+    @Environment(DataStore.self) private var dataStore
+
     let entries: [ProtocolEntry]
     let protocols: [PeptideProtocol]
     let activePeptides: [Peptide]
@@ -13,6 +15,10 @@ struct TrackCalendarSection: View {
     @State private var selectedDay: Date = Calendar.current.startOfDay(for: Date())
     @State private var filterPeptideID: UUID?
     @State private var displayMode: CalendarDisplayMode = .schedule
+    /// Drives the dose edit sheet. Set when the user taps a logged mark
+    /// in the day panel or picks "Edit" from its context menu. `.sheet(item:)`
+    /// owns presentation so SwiftUI cleans the modal up after dismiss.
+    @State private var editingEntry: ProtocolEntry?
 
     private var filteredMap: [Date: [CalendarDoseMark]] {
         let raw = DoseDayMap.build(
@@ -51,7 +57,31 @@ struct TrackCalendarSection: View {
 
             calendarCard
 
-            DoseDayDetailPanel(day: selectedDay, marks: selectedDayMarks)
+            DoseDayDetailPanel(
+                day: selectedDay,
+                marks: selectedDayMarks,
+                onEditEntry: { entryID in
+                    // Resolve to the live entry — the panel only carries the
+                    // ID, not the full ProtocolEntry, so re-renders after a
+                    // log mutation always pick up the latest snapshot.
+                    editingEntry = entries.first { $0.id == entryID }
+                },
+                onDeleteEntry: { entryID in
+                    dataStore.unlogDose(entryId: entryID)
+                }
+            )
+        }
+        .sheet(item: $editingEntry) { entry in
+            DoseLoggingSheet(entry: entry) { actualDose, actualTime, site, notes in
+                dataStore.logDose(
+                    entryId: entry.id,
+                    actualDose: actualDose,
+                    actualTime: actualTime,
+                    injectionSite: site,
+                    notes: notes
+                )
+            }
+            .liquidGlassPresentation()
         }
     }
 
