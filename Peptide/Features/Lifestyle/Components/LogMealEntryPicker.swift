@@ -1,33 +1,37 @@
 import SwiftUI
 
-/// Two-tile chooser that opens either the barcode scanner (for
-/// packaged food) or the photo-based meal scanner (for plates and
-/// fresh meals). Replaces the single `MealScanBanner` that previously
-/// sat at the top of the Lifestyle tab.
+/// Two-tile chooser that opens either the barcode scanner (for packaged
+/// food) or the photo-based meal scanner (for plates and fresh meals).
 ///
-/// Each tile uses the same indigo→violet gradient as the old banner so
-/// the meal-logging surface still reads as a single feature, just with
-/// two clearly-labelled paths in.
+/// Replaces the saturated purple banner with a paired Liquid Glass card:
+/// a subtle accent-tinted background, a hierarchical SF Symbol icon at
+/// the top, and the title + subtitle stack underneath. The two tiles
+/// share a single `GlassEffectContainer` on iOS 26 so their glass
+/// shapes can morph against each other on press.
 struct LogMealEntryPicker: View {
     let onScanBarcode: () -> Void
     let onSnapPhoto: () -> Void
 
     var body: some View {
-        HStack(spacing: Spacing.sm) {
-            tile(
-                icon: "barcode.viewfinder",
-                title: "Scan barcode",
-                subtitle: "Packaged food",
-                accessibilityHint: "Opens the camera to scan a food barcode and log its nutrition.",
-                action: onScanBarcode
-            )
-            tile(
-                icon: "camera.fill",
-                title: "Snap photo",
-                subtitle: "Meals & plates",
-                accessibilityHint: "Opens the camera to photograph a meal for an AI-estimated nutrition breakdown.",
-                action: onSnapPhoto
-            )
+        LiquidGlassContainer(spacing: Spacing.sm) {
+            HStack(spacing: Spacing.sm) {
+                tile(
+                    icon: "barcode.viewfinder",
+                    title: "Scan barcode",
+                    subtitle: "Packaged food",
+                    accent: AppColor.accentLight,
+                    accessibilityHint: "Opens the camera to scan a food barcode and log its nutrition.",
+                    action: onScanBarcode
+                )
+                tile(
+                    icon: "viewfinder.circle.fill",
+                    title: "Snap photo",
+                    subtitle: "Meals & plates",
+                    accent: AppColor.accentPrimary,
+                    accessibilityHint: "Opens the camera to photograph a meal for an AI-estimated nutrition breakdown.",
+                    action: onSnapPhoto
+                )
+            }
         }
     }
 
@@ -35,46 +39,67 @@ struct LogMealEntryPicker: View {
         icon: String,
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey,
+        accent: Color,
         accessibilityHint: String,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Image(systemName: icon)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
-                    .background {
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .fill(Color.white.opacity(0.18))
-                    }
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    accent.opacity(0.55),
+                                    accent.opacity(0.25),
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 38, height: 38)
+                    Image(systemName: icon)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Color.white)
+                }
+                .shadow(color: accent.opacity(0.35), radius: 8, y: 4)
 
-                Spacer(minLength: Spacing.xs)
+                Spacer(minLength: 0)
 
-                Text(title)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
-                Text(subtitle)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.78))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(subtitle)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(AppColor.textSecondary)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(Spacing.md)
             .frame(minHeight: 108)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.310, green: 0.275, blue: 0.898), // #4F46E5
-                                Color(red: 0.486, green: 0.227, blue: 0.929), // #7C3AED
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(AppColor.surfaceSecondary.opacity(0.55))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        accent.opacity(0.18),
+                                        Color.clear,
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                    }
             }
-            .shadow(color: AppColor.accentGlow, radius: 12, y: 5)
+            .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.97))
         .accessibilityElement(children: .ignore)

@@ -197,6 +197,7 @@ struct HomeView: View {
             }
             .background(AppColor.background)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .sheet(item: $selectedEntry) { entry in
                 DoseLoggingSheet(entry: entry) { actualDose, actualTime, site, notes in
                     dataStore.logDose(

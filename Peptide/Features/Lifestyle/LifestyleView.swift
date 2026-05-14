@@ -1,9 +1,15 @@
 import SwiftUI
 
-/// "Lifestyle" tab. Stacks the meal-logging picker (barcode + photo),
-/// the macro summary row, the workout drill-in, weight tracking, and
-/// progress photos. All persistence lives on `dataStore.profile` so a
-/// relaunch restores the full state without a separate cache layer.
+/// "Lifestyle" section of the Home tab. Stacks the meal-logging picker
+/// (barcode + photo), the nutrition rings hero, the workout drill-in,
+/// weight tracking, and progress photos. All persistence lives on
+/// `dataStore.profile` so a relaunch restores the full state without a
+/// separate cache layer.
+///
+/// Lives under `HomeContainerView`, which provides the floating top
+/// tab bar via `safeAreaInset`. The view intentionally omits a
+/// navigation title since the top pill already labels it as
+/// "Lifestyle" — a system nav title would duplicate that.
 struct LifestyleView: View {
     @Environment(DataStore.self) private var dataStore
 
@@ -21,15 +27,43 @@ struct LifestyleView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: Spacing.lg) {
+                VStack(spacing: Spacing.xl) {
+                    sectionHeader(
+                        eyebrow: "Today",
+                        title: "Capture a meal"
+                    )
+                    .sectionAppear(index: 0)
+
                     LogMealEntryPicker(
                         onScanBarcode: { showBarcodeScan = true },
                         onSnapPhoto: { showMealScan = true }
                     )
+                    .sectionAppear(index: 1)
 
                     if dataStore.profile.nutritionTargets == nil {
                         targetsPrompt
+                            .sectionAppear(index: 2)
                     }
+
+                    sectionHeader(
+                        eyebrow: "Daily Rings",
+                        title: "Nutrition",
+                        trailing: {
+                            Button {
+                                showTargetsEditor = true
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "slider.horizontal.3")
+                                        .font(.system(size: 11, weight: .semibold))
+                                    Text("Edit targets")
+                                        .font(.system(size: 12, weight: .semibold))
+                                }
+                                .foregroundStyle(AppColor.accentLight)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    )
+                    .sectionAppear(index: 2)
 
                     MacroSummaryRow(
                         targets: targets,
@@ -43,27 +77,37 @@ struct LifestyleView: View {
                             showTargetsEditor = true
                         }
                     }
+                    .sectionAppear(index: 3)
+
+                    sectionHeader(eyebrow: "Movement", title: "Training")
+                        .sectionAppear(index: 4)
 
                     WorkoutCard(
                         exerciseCountToday: dataStore.workoutSummary().count,
                         durationMinutesToday: dataStore.workoutSummary().minutes,
                         onTap: { showWorkoutLog = true }
                     )
+                    .sectionAppear(index: 4)
+
+                    sectionHeader(eyebrow: "Body", title: "Trends")
+                        .sectionAppear(index: 4)
 
                     WeightTrackingCard(
                         history: dataStore.dedupedWeightHistory,
                         unit: dataStore.profile.bodyMetrics.unit,
                         onLog: { showWeightLog = true }
                     )
+                    .sectionAppear(index: 4)
 
                     ProgressPhotosCard()
+                        .sectionAppear(index: 4)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.top, Spacing.md)
-                .padding(.bottom, Spacing.xxxl)
+                .padding(.bottom, Spacing.xxxxl)
             }
-            .background(AppColor.background.ignoresSafeArea())
-            .navigationTitle("Lifestyle")
+            .background(lifestyleBackground.ignoresSafeArea())
+            .toolbarBackground(.hidden, for: .navigationBar)
             .sheet(isPresented: $showMealScan) {
                 MealScanFlow(onClose: { showMealScan = false })
                     .environment(dataStore)
@@ -129,22 +173,96 @@ struct LifestyleView: View {
         showBarcodeScan = false
     }
 
-    private var targetsPrompt: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("Set your daily targets first")
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.textPrimary)
-            Text("Add height, weight, age, and gender on Profile to compute calorie and macro reference targets, or tap Edit to set them manually.")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Button("Edit targets") { showTargetsEditor = true }
-                .font(AppFont.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.accentPrimary)
-                .padding(.top, Spacing.xs)
+    @ViewBuilder
+    private func sectionHeader<Trailing: View>(
+        eyebrow: LocalizedStringKey,
+        title: LocalizedStringKey,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        HStack(alignment: .lastTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(eyebrow)
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(0.8)
+                    .textCase(.uppercase)
+                    .foregroundStyle(AppColor.accentLight.opacity(0.85))
+                Text(title)
+                    .font(.system(.title2, design: .rounded, weight: .bold))
+                    .foregroundStyle(AppColor.textPrimary)
+            }
+            Spacer(minLength: 0)
+            trailing()
         }
-        .padding(Spacing.md)
+        .padding(.top, Spacing.xs)
+    }
+
+    private func sectionHeader(
+        eyebrow: LocalizedStringKey,
+        title: LocalizedStringKey
+    ) -> some View {
+        sectionHeader(eyebrow: eyebrow, title: title) { EmptyView() }
+    }
+
+    private var lifestyleBackground: some View {
+        ZStack {
+            AppColor.background
+
+            // Soft top-of-page accent glow so the floating tab pill sits
+            // on a surface that subtly references the brand gradient
+            // without overpowering the content underneath.
+            RadialGradient(
+                colors: [
+                    AppColor.accentPrimary.opacity(0.20),
+                    Color.clear,
+                ],
+                center: .init(x: 0.85, y: 0.05),
+                startRadius: 0,
+                endRadius: 360
+            )
+            .blendMode(.plusLighter)
+            .opacity(0.7)
+
+            RadialGradient(
+                colors: [
+                    AppColor.accentLight.opacity(0.12),
+                    Color.clear,
+                ],
+                center: .init(x: 0.1, y: 0.0),
+                startRadius: 0,
+                endRadius: 280
+            )
+            .blendMode(.plusLighter)
+            .opacity(0.6)
+        }
+    }
+
+    private var targetsPrompt: some View {
+        HStack(alignment: .top, spacing: Spacing.md) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+                .frame(width: 36, height: 36)
+                .background {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(AppColor.accentPrimary.opacity(0.18))
+                }
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text("Set your daily targets first")
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("Add height, weight, age, and gender on Profile to compute calorie and macro targets, or tap Edit to set them manually.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Edit targets") { showTargetsEditor = true }
+                    .font(AppFont.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColor.accentLight)
+                    .padding(.top, Spacing.xs)
+            }
+        }
+        .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
@@ -154,6 +272,7 @@ struct LifestyleView: View {
                         .strokeBorder(AppColor.accentPrimary.opacity(0.35), lineWidth: 1)
                 }
         }
+        .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
     }
 }
 

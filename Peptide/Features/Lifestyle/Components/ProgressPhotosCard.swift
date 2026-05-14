@@ -41,9 +41,10 @@ struct ProgressPhotosCard: View {
                 }
             }
         }
-        .padding(Spacing.md)
+        .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(cardBackground)
+        .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
         .onChange(of: pickerItem) { _, newValue in
             Task { await loadAndPersist(item: newValue) }
         }
@@ -98,11 +99,21 @@ struct ProgressPhotosCard: View {
                         .font(.system(size: 12, weight: .semibold))
                 }
                 .foregroundStyle(AppColor.accentLight)
-                .padding(.horizontal, Spacing.sm)
-                .padding(.vertical, 4)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, 6)
                 .background {
-                    Capsule().fill(AppColor.accentPrimary.opacity(0.15))
+                    Capsule(style: .continuous)
+                        .fill(AppColor.accentPrimary.opacity(0.18))
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                        }
                 }
+                // `.liquidGlass(.capsule)` is intentionally omitted here:
+                // PhotosPicker's `label:` closure isn't @MainActor-isolated
+                // under Swift 6 strict concurrency, and the MainActor-bound
+                // `liquidGlass` modifier can't be applied inside it. The
+                // capsule's fill + stroke still read as glass.
             }
             .buttonStyle(.plain)
         }

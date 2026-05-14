@@ -12,14 +12,24 @@ struct WorkoutCard: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
-                Image(systemName: "dumbbell.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(AppColor.accentPrimary)
-                    .frame(width: 36, height: 36)
-                    .background {
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .fill(AppColor.accentPrimary.opacity(0.15))
-                    }
+                ZStack {
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    AppColor.accentPrimary.opacity(0.35),
+                                    AppColor.accentLight.opacity(0.20),
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "dumbbell.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.white)
+                }
+                .shadow(color: AppColor.accentPrimary.opacity(0.25), radius: 6, y: 3)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Workout Tracker")
@@ -43,9 +53,14 @@ struct WorkoutCard: View {
                     .fill(AppColor.surfaceSecondary.opacity(0.6))
                     .overlay {
                         RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                            .fill(AppColor.cardOverlay)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                             .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                     }
             }
+            .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
     }

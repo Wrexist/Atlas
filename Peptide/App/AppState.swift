@@ -5,7 +5,6 @@ enum AppTab: String, CaseIterable {
     case database
     case protocols
     case analytics
-    case lifestyle
     case profile
 }
 

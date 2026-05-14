@@ -30,16 +30,21 @@ struct WeightTrackingCard: View {
                 trendBadge
             }
         }
-        .padding(Spacing.md)
+        .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                 .fill(AppColor.surfaceSecondary.opacity(0.6))
                 .overlay {
                     RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .fill(AppColor.cardOverlay)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                         .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                 }
         }
+        .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
     }
 
     private var header: some View {
@@ -64,9 +69,9 @@ struct WeightTrackingCard: View {
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, Spacing.md)
-                .padding(.vertical, 6)
+                .padding(.vertical, 7)
                 .background {
-                    Capsule()
+                    Capsule(style: .continuous)
                         .fill(
                             LinearGradient(
                                 colors: [AppColor.accentPrimary, AppColor.accentLight],
@@ -74,9 +79,15 @@ struct WeightTrackingCard: View {
                                 endPoint: .trailing
                             )
                         )
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                        }
                 }
+                .shadow(color: AppColor.accentPrimary.opacity(0.45), radius: 8, y: 3)
+                .liquidGlass(.capsule)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ScalePressStyle(pressedScale: 0.95))
         }
     }
 
