@@ -17,7 +17,7 @@ struct LifestyleView: View {
     @State private var showBarcodeScan = false
     @State private var pendingPhotoFallback = false
     @State private var showWeightLog = false
-    @State private var showWorkoutLog = false
+    @State private var showWorkoutDetail = false
     @State private var showTargetsEditor = false
 
     private var targets: NutritionTargets {
@@ -85,7 +85,7 @@ struct LifestyleView: View {
                     WorkoutCard(
                         exerciseCountToday: dataStore.workoutSummary().count,
                         durationMinutesToday: dataStore.workoutSummary().minutes,
-                        onTap: { showWorkoutLog = true }
+                        onTap: { showWorkoutDetail = true }
                     )
                     .sectionAppear(index: 4)
 
@@ -142,13 +142,9 @@ struct LifestyleView: View {
                     onClose: { showWeightLog = false }
                 )
             }
-            .sheet(isPresented: $showWorkoutLog) {
-                WorkoutLogSheet(
-                    history: dataStore.profile.workoutHistory,
-                    onLog: { entry in dataStore.logWorkout(entry) },
-                    onDelete: { id in dataStore.deleteWorkout(id: id) },
-                    onClose: { showWorkoutLog = false }
-                )
+            .navigationDestination(isPresented: $showWorkoutDetail) {
+                WorkoutDetailView()
+                    .environment(dataStore)
             }
             .sheet(isPresented: $showTargetsEditor) {
                 NutritionTargetsEditor(
