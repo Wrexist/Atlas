@@ -109,7 +109,11 @@ struct ProgressPhotosCard: View {
                                 .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
                         }
                 }
-                .liquidGlass(.capsule)
+                // `.liquidGlass(.capsule)` is intentionally omitted here:
+                // PhotosPicker's `label:` closure isn't @MainActor-isolated
+                // under Swift 6 strict concurrency, and the MainActor-bound
+                // `liquidGlass` modifier can't be applied inside it. The
+                // capsule's fill + stroke still read as glass.
             }
             .buttonStyle(.plain)
         }
