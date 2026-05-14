@@ -29,6 +29,7 @@ struct BarcodeScanFlow: View {
     @State private var manualOverride: LoggableMeal?
     @State private var showEditSheet = false
     @State private var loggedSnapshot: LoggedSnapshot?
+    @State private var torchOn = false
 
     private enum Phase: Equatable {
         case preflight       // checking camera permission + device support
@@ -133,9 +134,19 @@ struct BarcodeScanFlow: View {
                         .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                 }
 
-                reticle
+                BarcodeScannerOverlay(torchOn: $torchOn)
             }
             .frame(height: 320)
+            .onDisappear {
+                // Turn the torch back off when leaving the scanner —
+                // it would otherwise stay on for the photo-capture
+                // path or until the app loses the camera, which would
+                // surprise the user.
+                if torchOn {
+                    torchOn = false
+                    BarcodeTorch.set(false)
+                }
+            }
 
             Text("Hold a packaged food's barcode inside the frame.")
                 .font(AppFont.subheadline)
@@ -202,14 +213,6 @@ struct BarcodeScanFlow: View {
         .accessibilityLabel("Re-log \(product.name)")
     }
 
-    private var reticle: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .strokeBorder(AppColor.accentLight.opacity(0.85), lineWidth: 2)
-            .frame(width: 240, height: 140)
-            .shadow(color: AppColor.accentGlow, radius: 12)
-            .allowsHitTesting(false)
-    }
-
     private var manualEntry: some View {
         VStack(spacing: Spacing.lg) {
             Image(systemName: "barcode.viewfinder")
@@ -262,14 +265,11 @@ struct BarcodeScanFlow: View {
     }
 
     private var lookingUp: some View {
-        VStack(spacing: Spacing.lg) {
-            ProgressView()
-                .progressViewStyle(.circular)
-                .tint(AppColor.accentLight)
-            Text("Looking up the product…")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-        }
+        // Skeleton-shimmer card matches the review-card destination
+        // so the transition feels like the content materialised into
+        // an already-staged container. Cuts perceived latency vs. a
+        // bare ProgressView, especially on a slow network.
+        BarcodeLookupSkeleton()
     }
 
     @ViewBuilder
@@ -386,37 +386,30 @@ struct BarcodeScanFlow: View {
     }
 
     private func portionPicker(for product: ScannedProduct) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("How much did you have?")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
+        GlassCard(padding: Spacing.md) {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                Text("How much did you have?")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
 
-            HStack(spacing: Spacing.sm) {
-                if product.servingGrams != nil {
-                    modeChip(title: "Serving", isActive: portion.isServings) {
-                        portion = .servings(1)
+                HStack(spacing: Spacing.sm) {
+                    if product.servingGrams != nil {
+                        modeChip(title: "Serving", isActive: portion.isServings) {
+                            portion = .servings(1)
+                        }
+                    }
+                    if product.packageGrams != nil {
+                        modeChip(title: "Whole pack", isActive: portion == .wholePackage) {
+                            portion = .wholePackage
+                        }
+                    }
+                    modeChip(title: "Grams", isActive: portion.isGrams) {
+                        portion = .grams(100)
                     }
                 }
-                if product.packageGrams != nil {
-                    modeChip(title: "Whole pack", isActive: portion == .wholePackage) {
-                        portion = .wholePackage
-                    }
-                }
-                modeChip(title: "Grams", isActive: portion.isGrams) {
-                    portion = .grams(100)
-                }
+
+                portionControl(for: product)
             }
-
-            portionControl(for: product)
-        }
-        .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
         }
     }
 
@@ -500,7 +493,8 @@ struct BarcodeScanFlow: View {
 
     private func macroPanel(for product: ScannedProduct) -> some View {
         let meal = currentMacros(for: product)
-        return VStack(alignment: .leading, spacing: Spacing.sm) {
+        return GlassCard(tinted: true, padding: Spacing.md) {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack {
                 Text("Nutrition")
                     .font(AppFont.caption)
@@ -529,15 +523,7 @@ struct BarcodeScanFlow: View {
             macroRow(label: "Protein",  value: "\(meal?.proteinG ?? 0) g")
             macroRow(label: "Carbs",    value: "\(meal?.carbsG ?? 0) g")
             macroRow(label: "Fat",      value: "\(meal?.fatG ?? 0) g")
-        }
-        .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.accentPrimary.opacity(0.35), lineWidth: 1)
-                }
+            }
         }
     }
 
@@ -788,7 +774,7 @@ struct BarcodeScanFlow: View {
                 portion = result.defaultPortion
                 phase = .review
                 if dataStore.profile.hapticFeedbackEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    BarcodeHaptics.lookupSuccess()
                 }
             }
         } catch let lookupError as OpenFoodFactsService.LookupError {
@@ -796,7 +782,7 @@ struct BarcodeScanFlow: View {
                 errorText = lookupError.errorDescription
                 phase = (lookupError == .notFound) ? .notFound : .error
                 if dataStore.profile.hapticFeedbackEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.error)
+                    BarcodeHaptics.lookupFailure()
                 }
             }
         } catch {
@@ -804,7 +790,7 @@ struct BarcodeScanFlow: View {
                 errorText = error.localizedDescription
                 phase = .error
                 if dataStore.profile.hapticFeedbackEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.error)
+                    BarcodeHaptics.lookupFailure()
                 }
             }
         }
@@ -827,7 +813,10 @@ struct BarcodeScanFlow: View {
             date: now
         )
         if dataStore.profile.hapticFeedbackEnabled {
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            // .logCommitted carries a heavier impact than the lookup
+            // success — the user feels "I just logged a meal" as a
+            // distinct beat from "I just scanned a barcode".
+            BarcodeHaptics.logCommitted()
         }
         loggedSnapshot = LoggedSnapshot(productName: product.name, meal: meal, date: now)
         phase = .logged                                  // .task(id: phase) above starts the 5-s auto-close
@@ -846,7 +835,7 @@ struct BarcodeScanFlow: View {
             date: snapshot.date
         )
         if dataStore.profile.hapticFeedbackEnabled {
-            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            BarcodeHaptics.logUndone()
         }
         onClose()
     }
