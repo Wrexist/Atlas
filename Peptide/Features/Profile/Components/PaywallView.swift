@@ -44,10 +44,7 @@ struct PaywallView: View {
                     subCTA
 
                     if let errorMessage {
-                        Text(errorMessage)
-                            .font(AppFont.caption)
-                            .foregroundStyle(AppColor.destructive)
-                            .multilineTextAlignment(.center)
+                        purchaseErrorBanner(message: errorMessage)
                     }
 
                     footerLinks
@@ -144,6 +141,67 @@ struct PaywallView: View {
             featureRow("Half-life decay overlays for any stack")
             featureRow("AI reconstitution calculator for every vial")
             featureRow("Protocol insights & shareable cycle cards")
+        }
+    }
+
+    /// Friendly error surface for purchase / restore failures. Replaces the
+    /// previous raw `Text(errorMessage).foregroundStyle(.destructive)` line
+    /// that just dumped the StoreKit description on the user with no path
+    /// forward. Surfaces a localized headline + the underlying detail in
+    /// muted secondary text, plus an explicit Restore Purchases shortcut so
+    /// a transient StoreKit failure isn't a dead end.
+    private func purchaseErrorBanner(message: String) -> some View {
+        VStack(spacing: Spacing.xs) {
+            HStack(alignment: .top, spacing: Spacing.sm) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.destructive)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Purchase didn't go through")
+                        .font(AppFont.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(message)
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+
+            HStack(spacing: Spacing.sm) {
+                if let product = selectedProduct {
+                    Button("Try again") {
+                        errorMessage = nil
+                        Task { await purchase(product) }
+                    }
+                    .font(AppFont.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColor.accentLight)
+                }
+
+                Button("Restore purchases") {
+                    errorMessage = nil
+                    restore()
+                }
+                .font(AppFont.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColor.textSecondary)
+
+                Spacer(minLength: 0)
+            }
+            .padding(.top, Spacing.xs)
+        }
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.destructive.opacity(0.12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.destructive.opacity(0.30), lineWidth: 0.5)
+                }
         }
     }
 

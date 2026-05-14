@@ -140,8 +140,14 @@ struct ShareCardSheet: View {
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                ProgressView()
-                    .tint(AppColor.accentLight)
+                VStack(spacing: Spacing.sm) {
+                    ProgressView()
+                        .tint(AppColor.accentLight)
+                    Text("Rendering share card…")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+                .accessibilityElement(children: .combine)
             }
         }
         .frame(width: Self.previewWidth, height: previewHeight)

@@ -55,11 +55,13 @@ struct HealthConnectionCard: View {
                                 Image(systemName: iconFor(metric))
                                     .font(.system(size: 16))
                                     .foregroundStyle(colorFor(metric))
+                                    .accessibilityHidden(true)
                                 Text(metric)
                                     .font(AppFont.caption)
                                     .foregroundStyle(AppColor.textTertiary)
                             }
                             .frame(maxWidth: .infinity)
+                            .accessibilityElement(children: .combine)
                         }
                     }
 
@@ -83,10 +85,10 @@ struct HealthConnectionCard: View {
 
     private func colorFor(_ metric: String) -> Color {
         switch metric {
-        case "Heart Rate": Color(hex: 0xCF7272)
-        case "HRV": Color(hex: 0x9B72CF)
-        case "Sleep": Color(hex: 0xD4A844)
-        case "Activity": Color(hex: 0x4A7C59)
+        case "Heart Rate": AppColor.metricHeartRate
+        case "HRV": AppColor.metricHRV
+        case "Sleep": AppColor.metricSleep
+        case "Activity": AppColor.metricActivity
         default: AppColor.textTertiary
         }
     }

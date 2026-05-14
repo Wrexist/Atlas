@@ -122,7 +122,7 @@ private struct HomeMock: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .padding(8)
+        .padding(Spacing.sm)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(AppColor.surfaceSecondary.opacity(0.6))
     }
@@ -177,7 +177,7 @@ private struct HalfLifeMock: View {
             .font(.system(size: 7))
             .foregroundStyle(AppColor.textTertiary)
         }
-        .padding(8)
+        .padding(Spacing.sm)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(AppColor.surfaceSecondary.opacity(0.6))
     }
@@ -228,7 +228,7 @@ private struct CycleCardMock: View {
 
             Spacer(minLength: 0)
         }
-        .padding(8)
+        .padding(Spacing.sm)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(AppColor.surfaceSecondary.opacity(0.6))
     }

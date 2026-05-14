@@ -124,7 +124,7 @@ struct PeptideScheduleSheet: View {
                     .foregroundStyle(peptide.category.color)
                     .frame(width: 40, height: 40)
                     .background {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                             .fill(peptide.category.color.opacity(0.15))
                     }
 
@@ -237,6 +237,7 @@ struct PeptideScheduleSheet: View {
                                 .font(.system(size: 18))
                                 .foregroundStyle(AppColor.textTertiary)
                         }
+                        .accessibilityLabel("Clear dose")
                         .buttonStyle(.plain)
                         .accessibilityLabel("Clear dose")
                         .transition(.opacity)

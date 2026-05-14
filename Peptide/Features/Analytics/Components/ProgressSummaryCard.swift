@@ -35,14 +35,14 @@ struct ProgressSummaryCard: View {
                         value: "\(currentStreak)",
                         label: "Current Streak",
                         icon: "flame.fill",
-                        color: Color(hex: 0xE88D4F)
+                        color: AppColor.streak
                     )
 
                     SummaryStatCell(
                         value: "\(bestStreak)",
                         label: "Best Streak",
                         icon: "trophy.fill",
-                        color: Color(hex: 0xD4A844)
+                        color: AppColor.achievement
                     )
                 }
             }

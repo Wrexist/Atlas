@@ -25,6 +25,33 @@ enum AppColor {
     static let glassBorder = Color.white.opacity(0.08)
     static var glassBorderActive: Color { ThemeManager.shared.theme.primary.opacity(0.3) }
     static let cardOverlay = Color.white.opacity(0.04)
+
+    // MARK: - Semantic accents
+    //
+    // Theme-independent colors for icons whose meaning is tied to a real-world
+    // concept (a flame is always warm orange, gold is always achievement). Pulled
+    // out of inline hex literals so every site that renders the same idea uses
+    // the same color and a future palette tweak is one edit.
+
+    /// Warm orange used for streak flames and "consecutive days" affordances.
+    static let streak = Color(hex: 0xE88D4F)
+
+    /// Soft gold used for achievement / trophy iconography.
+    static let achievement = Color(hex: 0xD4A844)
+
+    /// Canonical macro colors. Match the rings + legend on the Lifestyle
+    /// Nutrition card so the same idea reads consistently across the app.
+    static let macroProtein = Color(hex: 0xEF9F27)
+    static let macroProteinLight = Color(hex: 0xF5C56C)
+    static let macroWater = Color(hex: 0x378ADD)
+    static let macroWaterLight = Color(hex: 0x7CC5FF)
+
+    /// HealthKit metric category colors. Each represents a physiological
+    /// signal, not the brand — they intentionally stay constant across themes.
+    static let metricHeartRate = Color(hex: 0xCF7272)
+    static let metricHRV = Color(hex: 0x9B72CF)
+    static let metricSleep = Color(hex: 0xD4A844)
+    static let metricActivity = Color(hex: 0x4A7C59)
 }
 
 extension Color {

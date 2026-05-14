@@ -66,12 +66,12 @@ struct DailyPlanCard: View {
     private func countBadge(icon: String, count: Int, color: Color) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppFont.badgeSmall)
             Text("\(count)")
-                .font(.system(size: 11, weight: .bold))
+                .font(AppFont.badge)
         }
         .foregroundStyle(color)
-        .padding(.horizontal, 8)
+        .padding(.horizontal, Spacing.sm)
         .padding(.vertical, 3)
         .background { Capsule().fill(color.opacity(0.15)) }
     }
@@ -79,15 +79,12 @@ struct DailyPlanCard: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: "calendar.badge.exclamationmark")
-                .font(.system(size: 20))
-                .foregroundStyle(AppColor.textTertiary)
-            Text("No doses scheduled today. Add a protocol to see your organized plan.")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            Spacer()
-        }
+        EmptyStateView(
+            icon: "calendar.badge.exclamationmark",
+            title: "No doses today",
+            message: "Add a protocol to see your organized plan.",
+            style: .compact
+        )
     }
 
     // MARK: - Slot section

@@ -42,18 +42,12 @@ struct HealthCorrelationChart: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: Spacing.sm) {
-            Image(systemName: "heart.text.square")
-                .font(.system(size: 32))
-                .foregroundStyle(AppColor.textTertiary)
-            Text("No HealthKit data yet")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            Text("Connect Apple Health to overlay your HRV against your adherence.")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textTertiary)
-                .multilineTextAlignment(.center)
-        }
+        EmptyStateView(
+            icon: "heart.text.square",
+            title: "No HealthKit data yet",
+            message: "Connect Apple Health to overlay your HRV against your adherence.",
+            style: .compact
+        )
         .frame(maxWidth: .infinity)
         .padding(.vertical, Spacing.lg)
     }
