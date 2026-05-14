@@ -84,6 +84,19 @@ final class AIResearchService: Sendable {
         in database: [Peptide]
     ) async throws -> String {
         guard let endpoint, let proxySecret, !proxySecret.isEmpty else {
+            // Mirror MealScannerService: keep the public error generic but
+            // log which side is missing so misconfigurations are
+            // diagnosable from Console.app on a TestFlight device.
+            if endpoint == nil {
+                AppLog.persistence.error(
+                    "AI research not configured: AI_RESEARCH_ENDPOINT is empty in Info.plist + env."
+                )
+            }
+            if proxySecret == nil || proxySecret?.isEmpty == true {
+                AppLog.persistence.error(
+                    "AI research not configured: AI_RESEARCH_SECRET is empty in Info.plist + env."
+                )
+            }
             throw ChatError.proxyNotConfigured
         }
 

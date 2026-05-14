@@ -95,6 +95,20 @@ final class MealScannerService: Sendable {
     /// then parses the JSON the model is instructed to return.
     func analyze(image: UIImage) async throws -> MealEstimate {
         guard let endpoint, let proxySecret, !proxySecret.isEmpty else {
+            // The user-facing error stays generic so the public surface
+            // doesn't leak which side is misconfigured, but the log call
+            // names the missing key so a build-time misconfiguration is
+            // diagnosable from Console.app without recompiling.
+            if endpoint == nil {
+                AppLog.persistence.error(
+                    "Meal scanner not configured: MEAL_SCANNER_ENDPOINT is empty in Info.plist + env."
+                )
+            }
+            if proxySecret == nil || proxySecret?.isEmpty == true {
+                AppLog.persistence.error(
+                    "Meal scanner not configured: MEAL_SCANNER_SECRET is empty in Info.plist + env."
+                )
+            }
             throw ScanError.proxyNotConfigured
         }
 

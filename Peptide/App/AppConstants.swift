@@ -25,7 +25,14 @@ extension URL {
     /// through here.
     static func staticHTTPS(_ literal: StaticString) -> URL {
         let raw = literal.withUTF8Buffer { String(decoding: $0, as: UTF8.self) }
-        // swiftlint:disable:next force_unwrapping
-        return URL(string: raw)!
+        guard let url = URL(string: raw) else {
+            // Compile-time-known input — if URL.init rejects it, that's a
+            // programmer bug at the literal site, not a runtime condition.
+            // Crashing with the offending string is leagues better than a
+            // bare `!` that says nothing at the EXC_BAD_INSTRUCTION
+            // breakpoint.
+            fatalError("AppConstants.staticHTTPS received a malformed URL literal: \(raw)")
+        }
+        return url
     }
 }
