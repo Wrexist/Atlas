@@ -227,6 +227,35 @@ final class DataStore: DataServiceProtocol {
         }
     }
 
+    /// Removes a previously-logged dose — flips `completed` back to false
+    /// AND clears the `actual*` capture fields so a future re-log starts
+    /// from a clean slate. `toggleEntry` only flips completion, which
+    /// leaves stale `actualDose`/`actualTime`/`injectionSite`/`notes`
+    /// behind that the next render would have to ignore. Surfaces the
+    /// Live Activity reconcile so a lock-screen dose that's now no
+    /// longer logged returns to its pre-completion state.
+    func unlogDose(entryId: UUID) {
+        guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
+        let existing = entries[index]
+        entries[index] = ProtocolEntry(
+            id: existing.id,
+            protocolId: existing.protocolId,
+            peptide: existing.peptide,
+            date: existing.date,
+            dose: existing.dose,
+            notes: "",
+            completed: false,
+            actualDose: nil,
+            actualTime: nil,
+            injectionSite: nil
+        )
+        save()
+        if profile.hapticFeedbackEnabled {
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        }
+        DoseLiveActivityService.shared.reconcile(entries: entries)
+    }
+
     func protocolsContaining(peptideId: UUID) -> [PeptideProtocol] {
         protocols.filter { proto in
             proto.peptides.contains { $0.id == peptideId }
