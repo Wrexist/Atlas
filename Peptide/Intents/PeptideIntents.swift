@@ -171,9 +171,11 @@ private struct IntentDataSnapshot {
         )
     }
 
-    /// Mirrors DataStore.consumptionKey — pin to the local timezone so a
-    /// late-night Siri query asks about the user's wall-clock today, not
-    /// UTC's.
+    /// Mirrors LifestyleDataLogic.consumptionKey — pin to the local timezone
+    /// so a late-night Siri query asks about the user's wall-clock today,
+    /// not UTC's. Kept duplicated here (rather than calling through) so the
+    /// Intents target doesn't have to import the app's LifestyleDataLogic
+    /// module — Intents resolve in a separate extension process.
     private static func todayConsumptionKey() -> String {
         let day = Calendar.current.startOfDay(for: Date())
         let formatter = ISO8601DateFormatter()
