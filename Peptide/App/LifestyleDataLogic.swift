@@ -177,7 +177,16 @@ enum LifestyleDataLogic {
     /// `static let` so we don't pay the ~0.5 ms allocation on every
     /// `consumption(for:)` call — the macro rings call this on every
     /// render.
-    private static let consumptionKeyFormatter: ISO8601DateFormatter = {
+    ///
+    /// `nonisolated(unsafe)` because `ISO8601DateFormatter` isn't
+    /// `Sendable` under Swift 6 strict concurrency. The formatter is
+    /// configured once at init time and only ever read from
+    /// `consumptionKey(for:)`, which sets `timeZone` per call —
+    /// callers are already serialised by `DataStore`'s `@MainActor`
+    /// isolation, so the unsafe annotation is sound. Same pattern
+    /// used by `NotificationService.timeFormatter` and
+    /// `DataStore.timeStringParser`.
+    nonisolated(unsafe) private static let consumptionKeyFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withFullDate]
         return f

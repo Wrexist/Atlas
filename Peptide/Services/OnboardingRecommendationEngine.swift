@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI            // LocalizedStringKey on Recommendation.rationale
 
 /// Cold-start educational matcher used by the onboarding flow. Maps the
 /// user's selected goals to a small list of peptides drawn from the canonical
