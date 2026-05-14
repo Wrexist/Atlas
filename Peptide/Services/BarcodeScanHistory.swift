@@ -193,7 +193,7 @@ actor BarcodeScanHistory {
     private func prune(_ store: [String: Entry]) -> [String: Entry] {
         guard store.count > Self.maxEntries else { return store }
         let sorted = store.sorted { $0.value.lastScanned > $1.value.lastScanned }
-        return Dictionary(uniqueKeysWithValues: sorted.prefix(Self.maxEntries))
+        return Dictionary(uniqueKeysWithValues: sorted.prefix(Self.maxEntries).map { ($0.key, $0.value) })
     }
 
     private static let encoder: JSONEncoder = {
