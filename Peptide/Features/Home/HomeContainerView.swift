@@ -5,6 +5,13 @@ import SwiftUI
 /// and `.navigationDestination` modifiers stay scoped, and the top bar
 /// is overlaid as a `safeAreaInset` so the underlying ScrollViews
 /// naturally clear the pill instead of hard-coding a magic top padding.
+///
+/// Both subviews are mounted simultaneously and gated by opacity +
+/// `allowsHitTesting` so switching sections preserves each stack's
+/// push history, scroll position, and any half-completed sheet state.
+/// A `switch`-driven view swap would have torn the unselected hierarchy
+/// down and recreated it on every pill tap — wrong for an "independent
+/// stacks" model.
 struct HomeContainerView: View {
     @Environment(DataStore.self) private var dataStore
 
@@ -13,23 +20,17 @@ struct HomeContainerView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            Group {
-                switch section {
-                case .home:
-                    HomeView()
-                        .transition(.asymmetric(
-                            insertion: .opacity.combined(with: .move(edge: .leading)),
-                            removal: .opacity.combined(with: .move(edge: .trailing))
-                        ))
-                case .lifestyle:
-                    LifestyleView()
-                        .transition(.asymmetric(
-                            insertion: .opacity.combined(with: .move(edge: .trailing)),
-                            removal: .opacity.combined(with: .move(edge: .leading))
-                        ))
-                }
-            }
+            HomeView()
+                .opacity(section == .home ? 1 : 0)
+                .allowsHitTesting(section == .home)
+                .accessibilityHidden(section != .home)
+
+            LifestyleView()
+                .opacity(section == .lifestyle ? 1 : 0)
+                .allowsHitTesting(section == .lifestyle)
+                .accessibilityHidden(section != .lifestyle)
         }
+        .animation(.easeInOut(duration: 0.22), value: section)
         .safeAreaInset(edge: .top, spacing: 0) {
             HomeTopTabBar(
                 selection: $section,

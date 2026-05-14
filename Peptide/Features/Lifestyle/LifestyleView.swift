@@ -107,7 +107,7 @@ struct LifestyleView: View {
                 .padding(.bottom, Spacing.xxxxl)
             }
             .background(lifestyleBackground.ignoresSafeArea())
-            .toolbar(.hidden, for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .sheet(isPresented: $showMealScan) {
                 MealScanFlow(onClose: { showMealScan = false })
                     .environment(dataStore)
