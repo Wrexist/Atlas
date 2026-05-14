@@ -61,16 +61,42 @@ struct PaywallPhoneMockupRow: View {
         .frame(width: 130, height: 220)
     }
 
+    /// Tries the corresponding asset-catalog screenshot first
+    /// (`paywall-home`, `paywall-halflife`, `paywall-cyclecard`).
+    /// Falls back to the hand-built SwiftUI mock when the asset is
+    /// missing so the paywall always renders, even before the
+    /// snapshot pipeline runs. Drop a 1170×2532 PNG (3x of
+    /// 390×844) into Assets.xcassets under any of the three names
+    /// above and it'll replace its mock on the next launch.
     @ViewBuilder
     private func mockContent(for kind: MockupKind) -> some View {
-        switch kind {
-        case .home:      HomeMock()
-        case .halfLife:  HalfLifeMock()
-        case .cycleCard: CycleCardMock()
+        if let uiImage = UIImage(named: kind.assetName) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+        } else {
+            switch kind {
+            case .home:      HomeMock()
+            case .halfLife:  HalfLifeMock()
+            case .cycleCard: CycleCardMock()
+            }
         }
     }
 
-    private enum MockupKind { case home, halfLife, cycleCard }
+    private enum MockupKind {
+        case home, halfLife, cycleCard
+
+        /// Asset-catalog name the mockup row tries to load before
+        /// falling back to the SwiftUI mock. Keep these stable —
+        /// the snapshot pipeline writes PNGs under these exact names.
+        var assetName: String {
+            switch self {
+            case .home:      "paywall-home"
+            case .halfLife:  "paywall-halflife"
+            case .cycleCard: "paywall-cyclecard"
+            }
+        }
+    }
 }
 
 // MARK: - Stylised in-frame content
