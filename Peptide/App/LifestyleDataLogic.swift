@@ -176,8 +176,12 @@ enum LifestyleDataLogic {
 
     /// `static let` so we don't pay the ~0.5 ms allocation on every
     /// `consumption(for:)` call — the macro rings call this on every
-    /// render.
-    private static let consumptionKeyFormatter: ISO8601DateFormatter = {
+    /// render. `nonisolated(unsafe)` because `ISO8601DateFormatter` is
+    /// not `Sendable`; the safety invariant ("only ever mutated from
+    /// DataStore's `@MainActor` callsites") is documented at the top
+    /// of this file. Move to per-call allocation or `@MainActor` if a
+    /// future caller fires from a non-MainActor context.
+    private nonisolated(unsafe) static let consumptionKeyFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withFullDate]
         return f
