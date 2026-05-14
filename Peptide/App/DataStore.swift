@@ -662,92 +662,66 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
-    /// Appends a bodyweight entry, replaces any existing entry with the
-    /// same calendar day so the sparkline shows one point per day even
-    /// when the user logs more than once, and keeps the array sorted
-    /// oldest-first.
+    // MARK: - Lifestyle data
+    //
+    // Bodyweight, nutrition, water, workouts, and the progress-photo
+    // manifest. The mutating business logic lives in
+    // `LifestyleDataLogic` so it's unit-testable in isolation; the
+    // methods here are thin coordinators that delegate, then `save()`.
+    // Read-only accessors (`dedupedWeightHistory`, `consumption(for:)`,
+    // `workoutSummary(for:)`) follow the same pattern so every site has
+    // one place to find the rule.
+
+    /// Appends a bodyweight entry; dedups to one entry per calendar day.
     func logWeight(kg: Double, date: Date = Date()) {
-        let day = Calendar.current.startOfDay(for: date)
-        var trimmed = profile.weightHistory.filter {
-            !Calendar.current.isDate($0.date, inSameDayAs: day)
-        }
-        trimmed.append(WeightEntry(date: date, kg: kg))
-        trimmed.sort { $0.date < $1.date }
-        profile.weightHistory = trimmed
+        LifestyleDataLogic.logWeight(into: &profile, kg: kg, date: date)
         save()
     }
 
-    /// Weight history with at-most-one entry per calendar day. CloudKit
-    /// sync can land a second entry from another device whose timestamp
-    /// differs by minutes — `logWeight`'s local dedup doesn't see those
-    /// because the merge happens outside this code path. Views that
-    /// render the sparkline / weekly delta should read through here so
-    /// the "one point per day" invariant survives multi-device use.
-    /// Keeps the most recently logged entry within each day.
+    /// Weight history with at-most-one entry per calendar day.
+    /// See `LifestyleDataLogic.dedupedWeightHistory` for the dedup rule
+    /// (most recently logged entry within each day wins).
     var dedupedWeightHistory: [WeightEntry] {
-        let calendar = Calendar.current
-        var byDay: [Date: WeightEntry] = [:]
-        for entry in profile.weightHistory {
-            let day = calendar.startOfDay(for: entry.date)
-            if let existing = byDay[day], existing.date >= entry.date { continue }
-            byDay[day] = entry
-        }
-        return byDay.values.sorted { $0.date < $1.date }
+        LifestyleDataLogic.dedupedWeightHistory(profile)
     }
 
-    /// Removes a bodyweight entry by id. Used by the entry-list editor
-    /// inside the weight log sheet.
     func deleteWeight(id: UUID) {
-        profile.weightHistory.removeAll { $0.id == id }
+        LifestyleDataLogic.deleteWeight(from: &profile, id: id)
         save()
     }
 
-    /// Adds a meal's macros to today's consumption bucket, creating the
-    /// bucket on first use. Caller is responsible for the unit choices
-    /// (kcal, grams) — `MealScannerService` returns spec-shaped numbers.
     func logMeal(calories: Int, proteinG: Int, carbsG: Int, fatG: Int, date: Date = Date()) {
-        let key = consumptionKey(for: date)
-        var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
-        bucket.caloriesKcal += calories
-        bucket.proteinG += proteinG
-        bucket.carbsG += carbsG
-        bucket.fatG += fatG
-        profile.dailyConsumption[key] = bucket
+        LifestyleDataLogic.logMeal(
+            into: &profile,
+            calories: calories,
+            proteinG: proteinG,
+            carbsG: carbsG,
+            fatG: fatG,
+            date: date
+        )
         save()
     }
 
-    /// Reverses a `logMeal` call by subtracting the same macros from the
-    /// same day's bucket. Clamps every field at zero so an over-eager
-    /// undo can't push the bucket negative. Used by the Undo affordance
-    /// on the barcode-scan success screen.
     func unlogMeal(calories: Int, proteinG: Int, carbsG: Int, fatG: Int, date: Date = Date()) {
-        let key = consumptionKey(for: date)
-        guard var bucket = profile.dailyConsumption[key] else { return }
-        bucket.caloriesKcal = max(0, bucket.caloriesKcal - calories)
-        bucket.proteinG    = max(0, bucket.proteinG    - proteinG)
-        bucket.carbsG      = max(0, bucket.carbsG      - carbsG)
-        bucket.fatG        = max(0, bucket.fatG        - fatG)
-        profile.dailyConsumption[key] = bucket
+        LifestyleDataLogic.unlogMeal(
+            from: &profile,
+            calories: calories,
+            proteinG: proteinG,
+            carbsG: carbsG,
+            fatG: fatG,
+            date: date
+        )
         save()
     }
 
-    /// Adds water (oz) to today's consumption bucket. Quick-add buttons
-    /// on the Lifestyle tab call this with +250 mL ≈ 8.5 oz and +500 mL
-    /// ≈ 16.9 oz pre-converted to integer ounces.
     func logWater(oz: Int, date: Date = Date()) {
-        let key = consumptionKey(for: date)
-        var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
-        bucket.waterOz += oz
-        profile.dailyConsumption[key] = bucket
+        LifestyleDataLogic.logWater(into: &profile, oz: oz, date: date)
         save()
     }
 
-    /// Convenience accessor used by the macro rings — returns today's
-    /// bucket or an empty stub so callers don't have to optional-chain
-    /// the dictionary lookup at every render.
+    /// Today's (or any day's) consumption bucket, or an empty stub.
     func consumption(for date: Date = Date()) -> DailyConsumption {
-        profile.dailyConsumption[consumptionKey(for: date)]
-            ?? DailyConsumption.empty(on: date)
+        LifestyleDataLogic.consumption(in: profile, for: date)
     }
 
     // MARK: - Vial inventory (derived)
@@ -775,62 +749,29 @@ final class DataStore: DataServiceProtocol {
         return max(0.05, 1.0 - Double(consumed) / Double(Self.defaultDosesPerVial))
     }
 
-    private func consumptionKey(for date: Date) -> String {
-        // The bucket key has to match the user's wall-clock day, not the
-        // UTC day. ISO8601DateFormatter defaults to UTC, so a meal logged
-        // at 11:00 PM in Auckland would otherwise key under tomorrow's
-        // date and silently disappear from today's rings.
-        //
-        // The formatter is a `static let` so we don't pay the ~0.5 ms
-        // allocation on every `consumption(for:)` call — the macro
-        // rings call this on every render.
-        let day = Calendar.current.startOfDay(for: date)
-        Self.consumptionKeyFormatter.timeZone = Calendar.current.timeZone
-        return Self.consumptionKeyFormatter.string(from: day)
-    }
-
-    private static let consumptionKeyFormatter: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withFullDate]
-        return f
-    }()
-
-    /// Appends a workout session and keeps the array sorted oldest-first
-    /// so the per-day rollup on the Lifestyle card reads stably.
     func logWorkout(_ entry: WorkoutEntry) {
-        var trimmed = profile.workoutHistory
-        trimmed.append(entry)
-        trimmed.sort { $0.date < $1.date }
-        profile.workoutHistory = trimmed
+        LifestyleDataLogic.logWorkout(into: &profile, entry: entry)
         save()
     }
 
     func deleteWorkout(id: UUID) {
-        profile.workoutHistory.removeAll { $0.id == id }
+        LifestyleDataLogic.deleteWorkout(from: &profile, id: id)
         save()
     }
 
-    /// Convenience accessor for the Lifestyle card subtitle. Returns
-    /// (count, totalMinutes) for sessions logged on `date`'s calendar
-    /// day. Empty tuple when the user hasn't logged anything yet.
+    /// (count, totalMinutes) for workout sessions logged on `date`'s
+    /// calendar day.
     func workoutSummary(for date: Date = Date()) -> (count: Int, minutes: Int) {
-        let sessions = profile.workoutHistory.filter {
-            Calendar.current.isDate($0.date, inSameDayAs: date)
-        }
-        let minutes = sessions.reduce(0) { $0 + $1.durationMinutes }
-        return (sessions.count, minutes)
+        LifestyleDataLogic.workoutSummary(of: profile, for: date)
     }
 
-    /// Records a progress-photo filename. Caller writes the JPEG to
-    /// `Documents/<filename>` first; this only updates the manifest.
     func addProgressPhotoFilename(_ filename: String) {
-        guard !profile.progressPhotoFilenames.contains(filename) else { return }
-        profile.progressPhotoFilenames.append(filename)
+        LifestyleDataLogic.addProgressPhotoFilename(to: &profile, filename)
         save()
     }
 
     func removeProgressPhotoFilename(_ filename: String) {
-        profile.progressPhotoFilenames.removeAll { $0 == filename }
+        LifestyleDataLogic.removeProgressPhotoFilename(from: &profile, filename)
         save()
     }
 
