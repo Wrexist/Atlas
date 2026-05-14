@@ -1,4 +1,6 @@
 import Foundation
+import SwiftUI    // Suggestion.rationale + rationale(for:matchedGoals:) use
+                  // LocalizedStringKey so the interpolated copy localizes.
 
 /// Cold-start educational matcher used by the onboarding flow. Maps the
 /// user's selected goals to a small list of peptides drawn from the canonical

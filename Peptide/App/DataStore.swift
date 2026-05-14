@@ -761,21 +761,15 @@ final class DataStore: DataServiceProtocol {
     /// reads as a believable "vial swap" cadence in the Home shelf.
     static let defaultDosesPerVial = 30
 
-    /// Liquid-fill fraction for a compound's vial, derived from how many
-    /// completed entries exist for that peptide. Wraps via modulo so the
-    /// shelf visually "refills" each time the user crosses a 30-dose
-    /// boundary — reads as a believable vial swap on continuously-used
-    /// compounds. A peptide with zero logged doses returns 1.0 so a
-    /// brand-new shelf shows full vials, not empty ones.
+    /// Liquid-fill fraction for a compound's vial. Math lives in
+    /// `VialInventoryLogic.liquidLevel(for:in:dosesPerVial:)` so it's
+    /// unit-testable in isolation; this method only forwards.
     func liquidLevel(for peptide: Peptide) -> Double {
-        let doseCount = entries.filter { $0.peptide.id == peptide.id && $0.completed }.count
-        guard doseCount != 0 else { return 1.0 }
-        let consumed = doseCount % Self.defaultDosesPerVial
-        // When the modulo lands exactly on the vial boundary the user
-        // just finished a vial — show a fresh full one rather than an
-        // empty one so the next dose drains from full again.
-        if consumed == 0 { return 1.0 }
-        return max(0.05, 1.0 - Double(consumed) / Double(Self.defaultDosesPerVial))
+        VialInventoryLogic.liquidLevel(
+            for: peptide,
+            in: entries,
+            dosesPerVial: Self.defaultDosesPerVial
+        )
     }
 
     func logWorkout(_ entry: WorkoutEntry) {
@@ -920,39 +914,20 @@ final class DataStore: DataServiceProtocol {
         updateWatchData()
     }
 
+    /// Builds a snapshot via `WidgetSnapshotBuilder` and pushes it through
+    /// the persistence + WidgetCenter side effects. The pure transform
+    /// lives in the builder so a snapshot regression is testable without
+    /// standing up `DataStore` + `PersistenceService`.
     private func updateWidgetData() {
-        let today = todayEntries
-        let completed = today.filter(\.completed).count
-        let next = nextDose
-
-        // Surface the next 3 doses (chronological) for the Medium widget's
-        // today list — see slot 7 in docs/APP_STORE_SCREENSHOTS_GUIDE_1.md.
-        let upcoming = today
-            .sorted { $0.date < $1.date }
-            .prefix(3)
-            .map { entry in
-                WidgetDoseSlot(
-                    peptideName: entry.peptide.abbreviation,
-                    dose: entry.dose,
-                    time: entry.date,
-                    completed: entry.completed
-                )
-            }
-
-        let data = WidgetData(
-            nextPeptideName: next?.peptide.abbreviation ?? "",
-            nextDose: next?.dose ?? "",
-            nextDoseTime: next?.date,
-            completedToday: completed,
-            totalToday: today.count,
-            lastUpdated: Date(),
-            upcoming: Array(upcoming)
-        )
-
+        let data = WidgetSnapshotBuilder.build(today: todayEntries, next: nextDose)
         PersistenceService.shared.updateWidgetData(data)
         WidgetCenter.shared.reloadAllTimelines()
     }
 
+    /// Pushes a snapshot through `WatchSyncService`. Math (compliance
+    /// fraction, lifetime total) is delegated to `EntryAnalytics` so the
+    /// definitions are shared with any future watch / widget / share-card
+    /// surface that needs the same numbers.
     private func updateWatchData() {
         // Surface the same stats the Stats page on the watch reads —
         // streak, week compliance, total logged. The watch carries
@@ -962,26 +937,9 @@ final class DataStore: DataServiceProtocol {
             entries: entries,
             protocols: protocols,
             currentStreak: currentStreak,
-            weeklyCompliance: weeklyComplianceFraction(),
-            totalDosesLogged: totalDosesLoggedCount()
+            weeklyCompliance: EntryAnalytics.weeklyComplianceFraction(in: entries),
+            totalDosesLogged: EntryAnalytics.totalDosesLogged(in: entries)
         )
-    }
-
-    /// 7-day completed-vs-scheduled ratio. Returns 0 when nothing was
-    /// scheduled (rather than NaN) so the watch ring doesn't render an
-    /// undefined fraction.
-    private func weeklyComplianceFraction() -> Double {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
-        let window = entries.filter { $0.date >= cutoff }
-        guard !window.isEmpty else { return 0 }
-        return Double(window.filter(\.completed).count) / Double(window.count)
-    }
-
-    /// Lifetime completed-entry count. Light enough to recompute on every
-    /// sync — the array is already in-memory and the watch pipeline
-    /// debounces by app activation, not by entry mutation.
-    private func totalDosesLoggedCount() -> Int {
-        entries.filter(\.completed).count
     }
 
 
