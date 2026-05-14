@@ -220,7 +220,7 @@ struct HomeView: View {
                             // Defer until the alert sheet has finished dismissing — SwiftUI can't
                             // chain two sheets in the same runloop tick.
                             Task { @MainActor in
-                                try? await Task.sleep(for: .milliseconds(350))
+                                try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
                                 adjustingAlert = warning
                             }
                         } else {
@@ -265,7 +265,7 @@ struct HomeView: View {
                         // finished dismissing before the share sheet mounts —
                         // SwiftUI can't chain two sheets in the same tick.
                         Task { @MainActor in
-                            try? await Task.sleep(for: .milliseconds(300))
+                            try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
                             milestoneShareProtocol = proto
                         }
                     },

@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 
 /// Cold-start educational matcher used by the onboarding flow. Maps the
 /// user's selected goals to a small list of peptides drawn from the canonical

@@ -12,6 +12,21 @@ enum AppAnimation {
     static let staggerDelay: Double = 0.05
     static let sectionDelay: Double = 0.15
 
+    /// Canonical "wait for a presented sheet to finish its dismiss
+    /// animation before presenting the next one" delay. SwiftUI
+    /// silently drops a second `.sheet(item:)` / `.sheet(isPresented:)`
+    /// presentation that races with the first on the same runloop
+    /// tick; 350 ms covers both standard and Reduce Motion timings
+    /// without feeling laggy. Use with `Task.sleep(for:)` right after
+    /// flipping the first binding to false.
+    ///
+    /// Replaces the inline `try? await Task.sleep(for: .milliseconds(350))`
+    /// (and a stray 300ms variant) that were sprinkled across HomeView
+    /// and LifestyleView — name the magic number once so the next
+    /// sheet-chain author doesn't pick a different value and find out
+    /// the hard way that 200ms is too short.
+    static let sheetDismissDelay: Duration = .milliseconds(350)
+
     // Cap the visible delay so long lists (10+ cards) don't take 1.5s+ to settle.
     private static let maxStaggerIndex = 8
     private static let maxSectionIndex = 4
