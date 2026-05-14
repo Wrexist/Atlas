@@ -44,11 +44,17 @@ struct BarcodeScanFlow: View {
 
     /// Captures what was logged so the Undo button can reverse it
     /// exactly. Stored on the view so a re-render can't lose the
-    /// reversal data while the success screen is up.
+    /// reversal data while the success screen is up. Includes
+    /// `barcode` + `portion` so Undo can also roll back the
+    /// scan-history record (otherwise an undone scan still inflates
+    /// the recents-row ranking and preselects the wrong portion next
+    /// time).
     private struct LoggedSnapshot: Equatable {
         let productName: String
         let meal: LoggableMeal
         let date: Date
+        let barcode: String
+        let portion: ScannedProduct.Portion
     }
 
     var body: some View {
@@ -555,16 +561,18 @@ struct BarcodeScanFlow: View {
                 .foregroundStyle(AppColor.textPrimary)
 
             if let snapshot = loggedSnapshot {
-                VStack(spacing: 4) {
-                    Text(snapshot.productName)
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .multilineTextAlignment(.center)
-                    Text("\(snapshot.meal.calories) kcal · \(snapshot.meal.proteinG) g protein")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .monospacedDigit()
-                }
+                // Calorie-ring micro-update: animates from
+                // (today - just-logged) to today on appear, so the
+                // user sees the meal's effect on today's target as
+                // visceral feedback rather than a plain "420 kcal"
+                // readout. The kcal target falls back to the
+                // placeholder when no profile target is set.
+                LoggedCaloriePanel(
+                    productName: snapshot.productName,
+                    deltaCalories: snapshot.meal.calories,
+                    totalCalories: dataStore.consumption().caloriesKcal,
+                    targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories
+                )
             }
 
             VStack(spacing: Spacing.sm) {
@@ -769,9 +777,15 @@ struct BarcodeScanFlow: View {
     private func lookup(barcode: String) async {
         do {
             let result = try await OpenFoodFactsService.shared.fetch(barcode: barcode)
+            // History-aware default: if the user has logged this
+            // barcode before, restore their previous portion choice.
+            // Falls through to the product's own default for first-
+            // time scans. The lookup is async (actor read), so it
+            // happens here before we hop to main.
+            let remembered = await BarcodeScanHistory.shared.lastPortion(for: result.barcode)
             await MainActor.run {
                 product = result
-                portion = result.defaultPortion
+                portion = remembered ?? result.defaultPortion
                 phase = .review
                 if dataStore.profile.hapticFeedbackEnabled {
                     BarcodeHaptics.lookupSuccess()
@@ -818,7 +832,19 @@ struct BarcodeScanFlow: View {
             // distinct beat from "I just scanned a barcode".
             BarcodeHaptics.logCommitted()
         }
-        loggedSnapshot = LoggedSnapshot(productName: product.name, meal: meal, date: now)
+        loggedSnapshot = LoggedSnapshot(productName: product.name, meal: meal, date: now, barcode: product.barcode, portion: portion)
+        // Record the scan + portion choice in history so the recents
+        // row re-ranks and the next re-scan of this product preselects
+        // the same portion. Fire-and-forget — UI doesn't need to wait.
+        let recordedBarcode = product.barcode
+        let recordedPortion = portion
+        Task {
+            await BarcodeScanHistory.shared.recordLog(
+                barcode: recordedBarcode,
+                portion: recordedPortion,
+                at: now
+            )
+        }
         phase = .logged                                  // .task(id: phase) above starts the 5-s auto-close
     }
 
@@ -834,6 +860,11 @@ struct BarcodeScanFlow: View {
             fatG: snapshot.meal.fatG,
             date: snapshot.date
         )
+        // Roll back the scan-history record too so an undone scan
+        // doesn't inflate the recents ranking or preselect the wrong
+        // portion next time. Fire-and-forget — UI is closing anyway.
+        let undoneBarcode = snapshot.barcode
+        Task { await BarcodeScanHistory.shared.undoLog(barcode: undoneBarcode) }
         if dataStore.profile.hapticFeedbackEnabled {
             BarcodeHaptics.logUndone()
         }
@@ -862,7 +893,22 @@ struct BarcodeScanFlow: View {
     }
 
     private func loadRecentlyScanned() async {
-        recentlyScanned = await OpenFoodFactsService.shared.recent(limit: 5)
+        // Pull more than `limit` candidates from the cache, then rank
+        // by `BarcodeScanHistory`'s recency × frequency score and take
+        // the top 5. Means the protein bar a user scans every morning
+        // stays in the row even when a one-off product was scanned
+        // more recently. Products with no log history (cache-only,
+        // never confirmed) score 0 and sink to the end.
+        let candidates = await OpenFoodFactsService.shared.recent(limit: 20)
+        guard !candidates.isEmpty else {
+            recentlyScanned = []
+            return
+        }
+        let scores = await BarcodeScanHistory.shared.scores(for: candidates.map(\.barcode))
+        recentlyScanned = candidates
+            .sorted { (scores[$0.barcode] ?? 0) > (scores[$1.barcode] ?? 0) }
+            .prefix(5)
+            .map { $0 }
     }
 
     // MARK: - Helpers
