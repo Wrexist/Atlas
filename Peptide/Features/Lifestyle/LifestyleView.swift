@@ -124,12 +124,12 @@ struct LifestyleView: View {
                 // a pending fallback, present the photo sheet. The
                 // brief sleep lets SwiftUI finish the dismiss animation
                 // — iOS otherwise silently drops a second presentation
-                // that races with the first. 350 ms covers both
-                // standard and Reduce Motion timings.
+                // that races with the first. The canonical delay lives
+                // on AppAnimation so every sheet-chain site agrees.
                 guard !isPresented, pendingPhotoFallback else { return }
                 pendingPhotoFallback = false
                 Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(350))
+                    try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
                     showMealScan = true
                 }
             }
