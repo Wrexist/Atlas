@@ -19,6 +19,7 @@ struct LifestyleView: View {
     @State private var showWeightLog = false
     @State private var showWorkoutLog = false
     @State private var showTargetsEditor = false
+    @State private var showManualMealEntry = false
 
     private var targets: NutritionTargets {
         dataStore.profile.nutritionTargets ?? .placeholder
@@ -70,9 +71,13 @@ struct LifestyleView: View {
                         consumed: dataStore.consumption(),
                         onAddWater: { oz in
                             dataStore.logWater(oz: oz)
-                        }
+                        },
+                        onAddMeal: { showManualMealEntry = true }
                     )
                     .contextMenu {
+                        Button("Log food manually", systemImage: "fork.knife") {
+                            showManualMealEntry = true
+                        }
                         Button("Edit targets", systemImage: "pencil") {
                             showTargetsEditor = true
                         }
@@ -158,6 +163,20 @@ struct LifestyleView: View {
                         showTargetsEditor = false
                     },
                     onCancel: { showTargetsEditor = false }
+                )
+            }
+            .sheet(isPresented: $showManualMealEntry) {
+                ManualMacroEntrySheet(
+                    onLog: { calories, protein, carbs, fat, date in
+                        dataStore.logMeal(
+                            calories: calories,
+                            proteinG: protein,
+                            carbsG: carbs,
+                            fatG: fat,
+                            date: date
+                        )
+                    },
+                    onClose: { showManualMealEntry = false }
                 )
             }
         }

@@ -10,6 +10,12 @@ struct MacroSummaryRow: View {
     let targets: NutritionTargets
     let consumed: DailyConsumption
     let onAddWater: (Int) -> Void
+    /// Optional callback for manual food entry. When provided, the card
+    /// renders a "Log food" button below the water quick-adds so the
+    /// user can drop in macros for anything the scanner can't see.
+    /// Nil keeps the card backward-compatible with callers that don't
+    /// support manual entry yet.
+    var onAddMeal: (() -> Void)? = nil
 
     private static let waterTargetOz: Int = 100
 
@@ -64,10 +70,49 @@ struct MacroSummaryRow: View {
                 quickAddButton(label: "+500 mL", oz: 17)
                 quickAddButton(label: "+1 L", oz: 34)
             }
+
+            if let onAddMeal {
+                logFoodButton(action: onAddMeal)
+            }
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(cardBackground)
+    }
+
+    /// Tertiary CTA below the water row. Visually subordinate to the rings
+    /// and the water chips — same height as a quick-add but full-width
+    /// and tinted toward the accent so it reads as the "everything else"
+    /// log path. The scan tiles above the card stay the primary entry
+    /// points for users with a camera in hand.
+    private func logFoodButton(action: @escaping () -> Void) -> some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "fork.knife")
+                    .font(.system(size: 11, weight: .bold))
+                Text("Log food manually")
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            .foregroundStyle(AppColor.accentLight)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(AppColor.accentPrimary.opacity(0.18))
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                    }
+            }
+            .liquidGlass(.capsule)
+        }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.96))
+        .accessibilityLabel("Log food manually")
+        .accessibilityHint("Open the macro entry form to add a meal without scanning")
     }
 
     private var ringStack: some View {
