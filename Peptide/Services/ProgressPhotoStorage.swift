@@ -47,8 +47,15 @@ enum ProgressPhotoStorage {
     }
 
     static func loadImage(for filename: String) -> UIImage? {
-        guard let url = try? url(for: filename) else { return nil }
-        return UIImage(contentsOfFile: url.path)
+        do {
+            let url = try url(for: filename)
+            return UIImage(contentsOfFile: url.path)
+        } catch {
+            AppLog.persistence.error(
+                "ProgressPhotoStorage.loadImage URL failed for \(filename, privacy: .public): \(error.localizedDescription, privacy: .public)"
+            )
+            return nil
+        }
     }
 
     /// Removes the on-disk file. Caller still has to drop the filename
@@ -56,8 +63,25 @@ enum ProgressPhotoStorage {
     /// half-completed deletes (file gone but profile still references
     /// it) self-heal on next read via `loadImage(for:) == nil`.
     static func delete(filename: String) {
-        guard let url = try? url(for: filename) else { return }
-        try? FileManager.default.removeItem(at: url)
+        let url: URL
+        do {
+            url = try self.url(for: filename)
+        } catch {
+            AppLog.persistence.error(
+                "ProgressPhotoStorage.delete URL failed for \(filename, privacy: .public): \(error.localizedDescription, privacy: .public)"
+            )
+            return
+        }
+        do {
+            try FileManager.default.removeItem(at: url)
+        } catch CocoaError.fileNoSuchFile {
+            // Already gone — half-completed delete self-healing path.
+            // Not an error; the caller still drops the profile entry.
+        } catch {
+            AppLog.persistence.error(
+                "ProgressPhotoStorage.delete failed for \(filename, privacy: .public): \(error.localizedDescription, privacy: .public)"
+            )
+        }
     }
 
     static func url(for filename: String) throws -> URL {

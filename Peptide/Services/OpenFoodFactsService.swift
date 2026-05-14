@@ -92,7 +92,18 @@ final class OpenFoodFactsService: Sendable {
                 // is correct and avoids silently dropping work if a
                 // test ever decoupled the singleton lifecycle.
                 Task.detached {
-                    try? await self.refreshInBackground(barcode: normalized)
+                    do {
+                        try await self.refreshInBackground(barcode: normalized)
+                    } catch {
+                        // Background refresh failures used to disappear
+                        // silently. Surface them to Console.app so a
+                        // batch of stale entries doesn't go unnoticed —
+                        // the user still gets the cached response on
+                        // this call, so this is diagnostic-only.
+                        AppLog.persistence.error(
+                            "Barcode background refresh failed for \(normalized, privacy: .public): \(error.localizedDescription, privacy: .public)"
+                        )
+                    }
                 }
             }
             return cached

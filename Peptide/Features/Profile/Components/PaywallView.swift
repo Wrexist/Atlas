@@ -172,24 +172,36 @@ struct PaywallView: View {
     }
 
     /// Surfaces the attribution captured on the onboarding creator-code
-    /// step. The actual discount-on-purchase wiring is a follow-up — it
-    /// requires either RevenueCat (not in this app) or App-Store-Connect
-    /// signed promo offers. The banner is present so the attribution
-    /// shows up the moment the user reaches the paywall; copy will read
-    /// honestly once the price actually changes.
+    /// step. The discount percentage is stored on the profile but is
+    /// NOT shown until the StoreKit / RevenueCat wiring actually applies
+    /// it at checkout — claiming "X% off applied" while charging the
+    /// full price is a trust regression we don't want users to spot
+    /// post-purchase. Once the discount-on-purchase pipeline lands,
+    /// switch the copy back to the "X% off applied — thanks to Y!"
+    /// form via the `appliedDiscount` branch below.
     private func creatorBanner(_ attribution: CreatorAttribution) -> some View {
         let bannerGreen = Color(red: 0.063, green: 0.725, blue: 0.506) // #10B981
         return HStack(spacing: Spacing.sm) {
             Image(systemName: "tag.fill")
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(bannerGreen)
-                .accessibilityHidden(true)              // Text alongside carries the discount label
+                .accessibilityHidden(true)              // Text alongside carries the meaning
 
-            Text("\(attribution.discountPercent)% off applied — thanks to \(attribution.creatorName)!")
-                .font(AppFont.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 2) {
+                if let percent = appliedDiscount(for: attribution) {
+                    Text("\(percent)% off applied — thanks to \(attribution.creatorName)!")
+                        .font(AppFont.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Thanks for using \(attribution.creatorName)'s code")
+                        .font(AppFont.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
 
             Spacer(minLength: 0)
         }
@@ -203,6 +215,18 @@ struct PaywallView: View {
                         .strokeBorder(bannerGreen.opacity(0.45), lineWidth: 1)
                 }
         }
+    }
+
+    /// Returns the discount percent only when the checkout pipeline can
+    /// actually apply it. Today that's never — the StoreKit / RevenueCat
+    /// integration is a deferred follow-up — so the banner falls back to
+    /// attribution-only copy. When billing-side support lands, return
+    /// `attribution.discountPercent` here (or a value StoreService can
+    /// confirm is live) and the banner reads "X% off applied" again.
+    private func appliedDiscount(for attribution: CreatorAttribution) -> Int? {
+        // Intentionally returns nil until the discount is actually wired
+        // into the purchase flow. Don't promise a discount we can't deliver.
+        nil
     }
 
     // MARK: - Pricing cards
