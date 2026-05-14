@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import PhotosUI
 
 /// End-to-end barcode-scan sheet: opens the camera, resolves the
 /// detected code against Open Food Facts, lets the user dial in a
@@ -30,12 +31,14 @@ struct BarcodeScanFlow: View {
     @State private var showEditSheet = false
     @State private var loggedSnapshot: LoggedSnapshot?
     @State private var torchOn = false
+    @State private var ocrPickerItem: PhotosPickerItem?
 
     private enum Phase: Equatable {
         case preflight       // checking camera permission + device support
         case scanning        // DataScanner live
         case manualEntry     // simulator / unsupported devices type a code
         case lookingUp       // OFF network round-trip
+        case ocrProcessing   // VisionKit text recognition on a label photo
         case review          // product + portion + macros
         case logged          // success screen with Undo + auto-close
         case notFound        // barcode looked up cleanly but no product
@@ -55,14 +58,15 @@ struct BarcodeScanFlow: View {
         NavigationStack {
             VStack(spacing: Spacing.lg) {
                 switch phase {
-                case .preflight:    preflight
-                case .scanning:     scanner
-                case .manualEntry:  manualEntry
-                case .lookingUp:    lookingUp
-                case .review:       reviewCard
-                case .logged:       loggedCard
-                case .notFound:     notFoundCard
-                case .error:        errorCard
+                case .preflight:        preflight
+                case .scanning:         scanner
+                case .manualEntry:      manualEntry
+                case .lookingUp:        lookingUp
+                case .ocrProcessing:    ocrProcessing
+                case .review:           reviewCard
+                case .logged:           loggedCard
+                case .notFound:         notFoundCard
+                case .error:            errorCard
                 }
             }
             .padding(Spacing.xl)
@@ -270,6 +274,20 @@ struct BarcodeScanFlow: View {
         // an already-staged container. Cuts perceived latency vs. a
         // bare ProgressView, especially on a slow network.
         BarcodeLookupSkeleton()
+    }
+
+    private var ocrProcessing: some View {
+        // Reuse the same skeleton — Vision text recognition is local
+        // and fast (~200-400ms on modern devices), but the user
+        // benefits from the staged-card layout the same way they do
+        // for the network lookup. Different message tells them what's
+        // happening so the wait isn't ambiguous.
+        VStack(spacing: Spacing.lg) {
+            BarcodeLookupSkeleton()
+            Text("Reading the label…")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+        }
     }
 
     @ViewBuilder
@@ -596,22 +614,41 @@ struct BarcodeScanFlow: View {
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
-            Text("Open Food Facts doesn't know this product. You can photograph the meal instead — Claude will estimate the macros from the picture.")
+            Text("Open Food Facts doesn't know this product. Snap the nutrition label and we'll read it directly, or use the AI photo path for plates and meals.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
             VStack(spacing: Spacing.sm) {
+                // Primary fallback: on-device OCR of the nutrition
+                // panel. Free, fast, accurate when the photo is
+                // clean — no AI cost, no cloud round-trip.
+                PhotosPicker(
+                    selection: $ocrPickerItem,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
+                    HStack(spacing: Spacing.sm) {
+                        Image(systemName: "doc.text.viewfinder")
+                        Text("Scan the nutrition label")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColor.accentPrimary)
+
+                // Secondary fallback: AI vision on a meal photo.
+                // Costs an API call; better for "what did I eat"
+                // (a plate of food) than "what's in this jar".
                 Button {
                     onRequestPhotoFallback()
                 } label: {
                     HStack(spacing: Spacing.sm) {
                         Image(systemName: "camera.fill")
-                        Text("Snap a photo instead")
+                        Text("Use the AI meal scanner")
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColor.accentPrimary)
+                .buttonStyle(.bordered)
+                .tint(AppColor.accentLight)
 
                 Button("Try another barcode") {
                     product = nil
@@ -623,6 +660,11 @@ struct BarcodeScanFlow: View {
                 .tint(AppColor.textSecondary)
             }
             .padding(.top, Spacing.sm)
+        }
+        .onChange(of: ocrPickerItem) { _, newValue in
+            guard let newValue else { return }
+            phase = .ocrProcessing
+            Task { await runOCR(on: newValue) }
         }
     }
 
@@ -764,6 +806,56 @@ struct BarcodeScanFlow: View {
         guard phase == .scanning || phase == .manualEntry else { return }
         phase = .lookingUp
         Task { await lookup(barcode: barcode) }
+    }
+
+    /// OCR fallback: load the picked image, run on-device text
+    /// recognition, parse the panel, hand the synthetic
+    /// `ScannedProduct` to the existing review flow. The result
+    /// carries an `ocr:<uuid>` synthetic barcode so it doesn't pollute
+    /// the OFF cache or the recents row, and history-based portion
+    /// restore is intentionally skipped (each OCR scan is unique).
+    private func runOCR(on item: PhotosPickerItem) async {
+        do {
+            guard
+                let data = try await item.loadTransferable(type: Data.self),
+                let image = UIImage(data: data)
+            else {
+                await MainActor.run {
+                    errorText = "Couldn't load that photo. Try a different one."
+                    phase = .error
+                    ocrPickerItem = nil
+                }
+                return
+            }
+            let recognised = try await NutritionLabelOCR.recognize(image: image)
+            await MainActor.run {
+                product = recognised
+                portion = recognised.defaultPortion
+                phase = .review
+                ocrPickerItem = nil
+                if dataStore.profile.hapticFeedbackEnabled {
+                    BarcodeHaptics.lookupSuccess()
+                }
+            }
+        } catch let ocrError as NutritionLabelOCR.OCRError {
+            await MainActor.run {
+                errorText = ocrError.errorDescription
+                phase = .error
+                ocrPickerItem = nil
+                if dataStore.profile.hapticFeedbackEnabled {
+                    BarcodeHaptics.lookupFailure()
+                }
+            }
+        } catch {
+            await MainActor.run {
+                errorText = error.localizedDescription
+                phase = .error
+                ocrPickerItem = nil
+                if dataStore.profile.hapticFeedbackEnabled {
+                    BarcodeHaptics.lookupFailure()
+                }
+            }
+        }
     }
 
     private func lookup(barcode: String) async {
