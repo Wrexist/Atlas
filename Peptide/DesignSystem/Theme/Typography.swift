@@ -22,4 +22,12 @@ enum AppFont {
     static let statValue      = Font.system(size: 48, weight: .bold, design: .rounded)
     static let statValueSmall = Font.system(size: 32, weight: .bold, design: .rounded)
     static let scoreLarge     = Font.system(size: 64, weight: .bold, design: .rounded)
+
+    // Badges / chips — fixed sizes for dense iconography that would feel
+    // oversized at the standard Dynamic Type ramp. Use sparingly and only
+    // for tightly-constrained UI like count pills, status chips, and the
+    // little flags inside list rows.
+    static let badge          = Font.system(size: 11, weight: .bold)
+    static let badgeSmall     = Font.system(size: 10, weight: .semibold)
+    static let chipText       = Font.system(size: 12, weight: .semibold)
 }

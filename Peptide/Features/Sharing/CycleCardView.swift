@@ -83,6 +83,7 @@ struct CycleCardView: View {
                             endPoint: .bottom
                         )
                     )
+                    .accessibilityHidden(true)
                 Text("PeptideX")
                     .font(.system(size: 38, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white)

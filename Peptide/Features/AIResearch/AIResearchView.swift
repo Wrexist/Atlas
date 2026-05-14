@@ -14,6 +14,9 @@ struct AIResearchView: View {
     @State private var input: String = ""
     @State private var isStreaming = false
     @State private var errorText: String?
+    /// The last prompt that hit an error, kept around so the Retry button on
+    /// the alert can re-send it without making the user retype.
+    @State private var lastFailedPrompt: String?
     @State private var transcript: [AIResearchService.Turn] = []
     @FocusState private var inputFocused: Bool
 
@@ -39,9 +42,19 @@ struct AIResearchView: View {
                     set: { if !$0 { errorText = nil } }
                 )
             ) {
-                Button("OK", role: .cancel) {}
+                if let prompt = lastFailedPrompt {
+                    Button("Retry") {
+                        errorText = nil
+                        lastFailedPrompt = nil
+                        input = prompt
+                        send()
+                    }
+                }
+                Button("Dismiss", role: .cancel) {
+                    lastFailedPrompt = nil
+                }
             } message: {
-                Text(errorText ?? "")
+                Text(errorText ?? "Something went wrong reaching the research assistant. Check your connection and try again.")
             }
         }
         .preferredColorScheme(.dark)
@@ -224,6 +237,7 @@ struct AIResearchView: View {
                 transcript.append(AIResearchService.Turn(role: .assistant, content: reply))
             } catch {
                 errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                lastFailedPrompt = prompt
                 if dataStore.profile.hapticFeedbackEnabled {
                     UINotificationFeedbackGenerator().notificationOccurred(.error)
                 }

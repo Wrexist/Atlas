@@ -74,7 +74,7 @@ struct RecommendedPeptidesCard: View {
     ) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             ZStack {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                     .fill(rec.peptide.category.color.opacity(0.15))
                     .frame(width: 40, height: 40)
 

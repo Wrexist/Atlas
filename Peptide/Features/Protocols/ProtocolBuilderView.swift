@@ -178,7 +178,7 @@ struct ProtocolBuilderView: View {
                         } label: {
                             HStack(spacing: 2) {
                                 Image(systemName: "chevron.left")
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.system(.subheadline, weight: .semibold))
                                 Text("Back")
                             }
                             .foregroundStyle(AppColor.textSecondary)
@@ -453,7 +453,7 @@ struct ProtocolBuilderView: View {
                 ForEach(topWarnings, id: \.title) { warning in
                     HStack(alignment: .top, spacing: Spacing.sm) {
                         Image(systemName: warning.icon)
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(.subheadline, weight: .semibold))
                             .foregroundStyle(AppColor.warning)
                             .frame(width: 18, alignment: .center)
                         VStack(alignment: .leading, spacing: 2) {

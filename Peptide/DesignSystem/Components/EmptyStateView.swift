@@ -4,11 +4,21 @@ import SwiftUI
 /// per-protocol dose log) so they all read with the same visual rhythm
 /// instead of three slightly-different inline VStacks. Optional `action`
 /// renders a primary `GlassButton` underneath the copy.
+///
+/// Pass `style: .compact` for in-card empty states (Daily Plan, Health
+/// Correlation, inline detail panels) where the full-bleed treatment
+/// would overpower the surrounding card.
 struct EmptyStateView: View {
     let icon: String
     let title: LocalizedStringKey
     let message: LocalizedStringKey
     var action: Action? = nil
+    var style: Style = .fullScreen
+
+    enum Style {
+        case fullScreen
+        case compact
+    }
 
     struct Action {
         let title: LocalizedStringKey
@@ -23,20 +33,20 @@ struct EmptyStateView: View {
     }
 
     var body: some View {
-        VStack(spacing: Spacing.lg) {
+        VStack(spacing: spacing) {
             Image(systemName: icon)
-                .font(.system(size: 48))
+                .font(.system(size: iconSize))
                 .foregroundStyle(AppColor.textTertiary)
                 .symbolRenderingMode(.hierarchical)
 
-            VStack(spacing: Spacing.sm) {
+            VStack(spacing: innerSpacing) {
                 Text(title)
-                    .font(AppFont.title2)
+                    .font(titleFont)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
 
                 Text(message)
-                    .font(AppFont.subheadline)
+                    .font(messageFont)
                     .foregroundStyle(AppColor.textTertiary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -55,8 +65,50 @@ struct EmptyStateView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.xxxl)
+        .padding(.vertical, verticalPadding)
         .accessibilityElement(children: .combine)
+    }
+
+    private var spacing: CGFloat {
+        switch style {
+        case .fullScreen: Spacing.lg
+        case .compact: Spacing.sm
+        }
+    }
+
+    private var innerSpacing: CGFloat {
+        switch style {
+        case .fullScreen: Spacing.sm
+        case .compact: Spacing.xs
+        }
+    }
+
+    private var iconSize: CGFloat {
+        switch style {
+        case .fullScreen: 48
+        case .compact: 26
+        }
+    }
+
+    private var titleFont: Font {
+        switch style {
+        case .fullScreen: AppFont.title2
+        case .compact: AppFont.subheadline
+        }
+    }
+
+    private var messageFont: Font {
+        switch style {
+        case .fullScreen: AppFont.subheadline
+        case .compact: AppFont.caption
+        }
+    }
+
+    private var verticalPadding: CGFloat {
+        switch style {
+        case .fullScreen: Spacing.xxxl
+        case .compact: Spacing.md
+        }
     }
 }
 

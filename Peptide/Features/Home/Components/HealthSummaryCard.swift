@@ -23,13 +23,16 @@ struct HealthSummaryCard: View {
                 }
 
                 if isLoading {
-                    HStack {
-                        Spacer()
+                    HStack(spacing: Spacing.sm) {
                         ProgressView()
                             .tint(AppColor.accentPrimary)
-                        Spacer()
+                        Text("Loading your health metrics…")
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                        Spacer(minLength: 0)
                     }
                     .padding(.vertical, Spacing.md)
+                    .accessibilityElement(children: .combine)
                 } else if !isAvailable {
                     unavailableState
                 } else if !hasAnyData {

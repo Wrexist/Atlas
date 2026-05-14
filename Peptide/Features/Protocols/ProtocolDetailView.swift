@@ -191,16 +191,12 @@ struct ProtocolDetailView: View {
                         }
 
                         if recentEntries.isEmpty {
-                            VStack(spacing: Spacing.xs) {
-                                Image(systemName: "tray")
-                                    .font(.system(size: 28))
-                                    .foregroundStyle(AppColor.textTertiary)
-                                Text("No entries yet")
-                                    .font(AppFont.subheadline)
-                                    .foregroundStyle(AppColor.textTertiary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.vertical, Spacing.lg)
+                            EmptyStateView(
+                                icon: "tray",
+                                title: "No entries yet",
+                                message: "Logged doses for this protocol will appear here.",
+                                style: .compact
+                            )
                         } else {
                             ForEach(Array(recentEntries.enumerated()), id: \.element.id) { index, entry in
                                 Button {
