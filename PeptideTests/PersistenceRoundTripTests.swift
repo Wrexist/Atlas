@@ -374,6 +374,33 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(MealCategory.auto(for: lateNight), .snack)
     }
 
+    func test_userProfile_healthKitNutritionEnabled_defaultsOffAndRoundTrips() throws {
+        // Default: opt-in flag is off so a fresh install never writes
+        // to Apple Health silently.
+        let fresh = UserProfile.fresh
+        XCTAssertFalse(fresh.healthKitNutritionEnabled)
+
+        let opted = UserProfile(
+            name: "Casey",
+            goals: [],
+            memberSince: Date(),
+            healthConnected: true,
+            healthKitNutritionEnabled: true
+        )
+        XCTAssertTrue(opted.healthKitNutritionEnabled)
+
+        let data = try encoder.encode(opted)
+        let decoded = try decoder.decode(UserProfile.self, from: data)
+        XCTAssertTrue(decoded.healthKitNutritionEnabled)
+
+        // StoredProfile round-trip too — the SwiftData sidecar carries
+        // the same flag, so the toggle survives a relaunch + CloudKit
+        // pull on a second device.
+        let stored = try StoredProfile.make(from: opted)
+        let roundTripped = try stored.toUserProfile()
+        XCTAssertTrue(roundTripped.healthKitNutritionEnabled)
+    }
+
     func test_userProfile_legacyJSON_decodesWithEmptyFoodLibraryDefaults() throws {
         // Older builds had no customFoods / favoriteFoodIDs columns —
         // their on-disk JSON omits both keys. The decode path must
@@ -397,6 +424,7 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertTrue(decoded.customFoods.isEmpty)
         XCTAssertTrue(decoded.favoriteFoodIDs.isEmpty)
         XCTAssertTrue(decoded.mealHistory.isEmpty)
+        XCTAssertFalse(decoded.healthKitNutritionEnabled)
     }
 
     func test_userProfile_emptyBio_roundTripsAsEmptyString() throws {

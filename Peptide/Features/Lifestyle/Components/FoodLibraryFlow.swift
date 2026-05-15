@@ -1314,17 +1314,45 @@ struct FoodLibraryFlow: View {
     /// "P") so the screen-reader voice reads naturally instead of
     /// stuttering "pee see eff" through the abbreviations the visible
     /// chips use.
+    ///
+    /// Each interpolated segment is wrapped in `String(localized:)`
+    /// so the catalog can hold localizations for "kilocalories",
+    /// "grams protein", etc. without forcing the whole sentence to
+    /// be re-translated for every product name.
     private static func rowAccessibilityLabel(
         name: String,
         brand: String?,
         n: ScannedProduct.Nutriments
     ) -> String {
-        let brandPart = (brand?.isEmpty == false) ? ", \(brand!)" : ""
-        return "\(name)\(brandPart), per 100 grams: " +
-            "\(Int(n.calories.rounded())) kilocalories, " +
-            "\(Int(n.proteinG.rounded())) grams protein, " +
-            "\(Int(n.carbsG.rounded())) grams carbs, " +
-            "\(Int(n.fatG.rounded())) grams fat."
+        let header: String
+        if let brand, !brand.isEmpty {
+            header = String(
+                localized: "\(name), \(brand), per 100 grams:",
+                comment: "Accessibility row header with brand."
+            )
+        } else {
+            header = String(
+                localized: "\(name), per 100 grams:",
+                comment: "Accessibility row header without brand."
+            )
+        }
+        let kcal = String(
+            localized: "\(Int(n.calories.rounded())) kilocalories",
+            comment: "VoiceOver readout of calories per serving."
+        )
+        let protein = String(
+            localized: "\(Int(n.proteinG.rounded())) grams protein",
+            comment: "VoiceOver readout of protein grams."
+        )
+        let carbs = String(
+            localized: "\(Int(n.carbsG.rounded())) grams carbs",
+            comment: "VoiceOver readout of carbohydrate grams."
+        )
+        let fat = String(
+            localized: "\(Int(n.fatG.rounded())) grams fat",
+            comment: "VoiceOver readout of fat grams."
+        )
+        return "\(header) \(kcal), \(protein), \(carbs), \(fat)."
     }
 }
 

@@ -61,6 +61,10 @@ struct ProfileView: View {
 
                     HealthConnectionCard(
                         isConnected: dataStore.profile.healthConnected,
+                        nutritionWriteEnabled: dataStore.profile.healthKitNutritionEnabled,
+                        onToggleNutritionWrite: { enabled in
+                            Task { await dataStore.setHealthKitNutritionEnabled(enabled) }
+                        },
                         onConnect: { connectHealthKit() }
                     )
                     .sectionAppear(index: 6)

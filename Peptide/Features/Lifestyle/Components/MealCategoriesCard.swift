@@ -145,10 +145,30 @@ struct MealCategoriesCard: View {
         totals: LifestyleDataLogic.CategoryTotals
     ) -> String {
         if totals.entryCount == 0 {
-            return "\(label), no entries"
+            return String(
+                localized: "\(label), no entries",
+                comment: "VoiceOver: empty meal-category row on the breakdown card."
+            )
         }
-        let items = totals.entryCount == 1 ? "1 item" : "\(totals.entryCount) items"
-        return "\(label), \(items), \(totals.calories) kilocalories, " +
-            "\(totals.proteinG) grams protein, \(totals.carbsG) grams carbs, \(totals.fatG) grams fat."
+        let items = totals.entryCount == 1
+            ? String(localized: "1 item", comment: "Singular form for the per-meal entry count.")
+            : String(localized: "\(totals.entryCount) items", comment: "Plural form for the per-meal entry count.")
+        let kcal = String(
+            localized: "\(totals.calories) kilocalories",
+            comment: "VoiceOver readout of total calories in a meal category."
+        )
+        let protein = String(
+            localized: "\(totals.proteinG) grams protein",
+            comment: "VoiceOver readout of protein grams in a meal category."
+        )
+        let carbs = String(
+            localized: "\(totals.carbsG) grams carbs",
+            comment: "VoiceOver readout of carb grams in a meal category."
+        )
+        let fat = String(
+            localized: "\(totals.fatG) grams fat",
+            comment: "VoiceOver readout of fat grams in a meal category."
+        )
+        return "\(label), \(items), \(kcal), \(protein), \(carbs), \(fat)."
     }
 }

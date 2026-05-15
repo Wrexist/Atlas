@@ -12,12 +12,17 @@ enum MealCategory: String, Codable, CaseIterable, Identifiable, Sendable {
     case breakfast, lunch, dinner, snack
     var id: String { rawValue }
 
+    /// Localized display name. Pulled through `String(localized:)` so
+    /// the strings are picked up by Xcode's string-catalog extractor
+    /// and travel with the app's existing `Localizable.xcstrings`.
+    /// Surfaced anywhere the user sees a category — picker pills,
+    /// breakdown card rows, accessibility labels.
     var displayName: String {
         switch self {
-        case .breakfast: "Breakfast"
-        case .lunch:     "Lunch"
-        case .dinner:    "Dinner"
-        case .snack:     "Snack"
+        case .breakfast: String(localized: "Breakfast", comment: "Meal category — morning meal")
+        case .lunch:     String(localized: "Lunch",     comment: "Meal category — midday meal")
+        case .dinner:    String(localized: "Dinner",    comment: "Meal category — evening meal")
+        case .snack:     String(localized: "Snack",     comment: "Meal category — anything not breakfast/lunch/dinner")
         }
     }
 

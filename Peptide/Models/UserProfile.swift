@@ -277,6 +277,12 @@ struct UserProfile: Codable {
     /// the macro rings; this is the per-meal sidecar. Newest-last so
     /// chronological iteration matches the visual log order.
     var mealHistory: [MealEntry]
+    /// User opted in to having each logged meal mirrored as Apple
+    /// Health dietary-energy / protein / carbs / fat / fiber samples.
+    /// Disabled by default — we only prompt for HK write permission
+    /// after the user flips this on in Profile. The corresponding HK
+    /// authorization is requested at toggle-time, not at install.
+    var healthKitNutritionEnabled: Bool
 
     init(
         name: String,
@@ -299,7 +305,8 @@ struct UserProfile: Codable {
         primaryGoal: String? = nil,
         customFoods: [CustomFood] = [],
         favoriteFoodIDs: Set<String> = [],
-        mealHistory: [MealEntry] = []
+        mealHistory: [MealEntry] = [],
+        healthKitNutritionEnabled: Bool = false
     ) {
         self.name = name
         self.goals = goals
@@ -322,6 +329,7 @@ struct UserProfile: Codable {
         self.customFoods = customFoods
         self.favoriteFoodIDs = favoriteFoodIDs
         self.mealHistory = mealHistory
+        self.healthKitNutritionEnabled = healthKitNutritionEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -349,6 +357,7 @@ struct UserProfile: Codable {
             try container.decodeIfPresent([String].self, forKey: .favoriteFoodIDs) ?? []
         )
         mealHistory = try container.decodeIfPresent([MealEntry].self, forKey: .mealHistory) ?? []
+        healthKitNutritionEnabled = try container.decodeIfPresent(Bool.self, forKey: .healthKitNutritionEnabled) ?? false
     }
 
     static var fresh: UserProfile {

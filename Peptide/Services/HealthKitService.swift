@@ -51,6 +51,178 @@ final class HealthKitService {
         }
     }
 
+    // MARK: - Nutrition write authorization
+
+    /// HK quantity types we write when the user opts in. Kept as a
+    /// computed property (not a static let) because `HKQuantityType`
+    /// is non-Sendable and a `static let` of a non-Sendable type on a
+    /// MainActor-isolated class produces Swift 6 warnings.
+    private var nutritionWriteTypes: Set<HKSampleType> {
+        [
+            HKQuantityType(.dietaryEnergyConsumed),
+            HKQuantityType(.dietaryProtein),
+            HKQuantityType(.dietaryCarbohydrates),
+            HKQuantityType(.dietaryFatTotal),
+            HKQuantityType(.dietaryFiber),
+        ]
+    }
+
+    /// Asks Apple Health for write permission on the nutrition types.
+    /// Separate from `requestAuthorization()` so the user only gets
+    /// the meal-write prompt when they explicitly opt in, not on
+    /// every fresh install — matches the Lifesum/MFP pattern where
+    /// nutrition sync is a deliberate setting toggle.
+    ///
+    /// HKHealthStore intentionally won't tell us whether the user
+    /// granted or denied — Apple's privacy model is "your app should
+    /// behave the same either way". We return `true` on success of
+    /// the request itself (i.e. the prompt was shown without throwing).
+    func requestNutritionWriteAuthorization() async -> Bool {
+        guard isAvailable else { return false }
+        do {
+            try await store.requestAuthorization(
+                toShare: nutritionWriteTypes,
+                read: []
+            )
+            return true
+        } catch {
+            AppLog.healthKit.error(
+                "Nutrition write authorization failed: \(error.localizedDescription, privacy: .private)"
+            )
+            return false
+        }
+    }
+
+    // MARK: - Nutrition write
+
+    /// Writes a `MealEntry`'s macros to Apple Health as five quantity
+    /// samples (energy, protein, carbs, fat, fiber). Each sample's
+    /// `HKMetadataKeyExternalUUID` is set to the entry's UUID so the
+    /// matching `deleteSamples(forEntryID:)` call can find them again
+    /// on undo — without that anchor we'd have to delete by date
+    /// range, which would clobber concurrent writes from other apps.
+    ///
+    /// Silent no-op when HealthKit isn't available, the user denied
+    /// write permission, or the entry has zero of every macro. Errors
+    /// are logged and swallowed — failing to write to HK shouldn't
+    /// block the user's in-app log.
+    func writeMealEntry(_ entry: MealEntry) async {
+        guard isAvailable else { return }
+
+        // `HKMetadataKeyExternalUUID` anchors the samples back to our
+        // `MealEntry.id` so delete-on-undo can target exactly what we
+        // wrote. `HKMetadataKeyFoodType` carries the food name into
+        // Apple Health's nutrition timeline. `HKMetadataKeyMealType`
+        // is intentionally omitted — its public values are documented
+        // for workouts (pre/intra/post), not generic nutrition logs.
+        // The Health app uses sample time-of-day to bucket meals on
+        // its own, so the category is implicitly preserved.
+        let baseMetadata: [String: Any] = [
+            HKMetadataKeyExternalUUID: entry.id.uuidString,
+            HKMetadataKeyFoodType: entry.name,
+        ]
+
+        var samples: [HKQuantitySample] = []
+        if entry.calories > 0 {
+            samples.append(makeSample(
+                type: .dietaryEnergyConsumed,
+                unit: .kilocalorie(),
+                value: Double(entry.calories),
+                date: entry.date,
+                metadata: baseMetadata
+            ))
+        }
+        if entry.proteinG > 0 {
+            samples.append(makeSample(
+                type: .dietaryProtein,
+                unit: .gram(),
+                value: Double(entry.proteinG),
+                date: entry.date,
+                metadata: baseMetadata
+            ))
+        }
+        if entry.carbsG > 0 {
+            samples.append(makeSample(
+                type: .dietaryCarbohydrates,
+                unit: .gram(),
+                value: Double(entry.carbsG),
+                date: entry.date,
+                metadata: baseMetadata
+            ))
+        }
+        if entry.fatG > 0 {
+            samples.append(makeSample(
+                type: .dietaryFatTotal,
+                unit: .gram(),
+                value: Double(entry.fatG),
+                date: entry.date,
+                metadata: baseMetadata
+            ))
+        }
+        guard !samples.isEmpty else { return }
+
+        do {
+            try await store.save(samples)
+        } catch {
+            AppLog.healthKit.error(
+                "writeMealEntry failed: \(error.localizedDescription, privacy: .private)"
+            )
+        }
+    }
+
+    /// Removes every nutrition sample previously written for the given
+    /// `MealEntry.id`. Used by the Undo affordance on the review-
+    /// success screen and (eventually) by an explicit meal-history
+    /// delete UI.
+    ///
+    /// Uses the documented `HKMetadataKeyExternalUUID` predicate so we
+    /// only touch samples we wrote, never other apps' data. Routine
+    /// for the user to deny delete permission (Apple Health asks
+    /// separately) — when that happens we log and drop the request.
+    func deleteSamples(forEntryID id: UUID) async {
+        guard isAvailable else { return }
+
+        let predicate = HKQuery.predicateForObjects(
+            withMetadataKey: HKMetadataKeyExternalUUID,
+            operatorType: .equalTo,
+            value: id.uuidString
+        )
+        for type in nutritionWriteTypes {
+            do {
+                try await store.deleteObjects(of: type, predicate: predicate)
+            } catch let hkError as HKError where hkError.code == .errorAuthorizationDenied
+                                              || hkError.code == .errorAuthorizationNotDetermined {
+                // User hasn't granted delete permission. Logging once
+                // is enough — no point hammering on every undo.
+                AppLog.healthKit.debug(
+                    "deleteSamples denied for \(type.identifier, privacy: .public)"
+                )
+                return
+            } catch {
+                AppLog.healthKit.error(
+                    "deleteSamples \(type.identifier, privacy: .public) failed: \(error.localizedDescription, privacy: .private)"
+                )
+            }
+        }
+    }
+
+    private func makeSample(
+        type: HKQuantityTypeIdentifier,
+        unit: HKUnit,
+        value: Double,
+        date: Date,
+        metadata: [String: Any]
+    ) -> HKQuantitySample {
+        HKQuantitySample(
+            type: HKQuantityType(type),
+            quantity: HKQuantity(unit: unit, doubleValue: value),
+            start: date,
+            end: date,
+            metadata: metadata
+        )
+    }
+
+
     // MARK: - Background Delivery
 
     func startBackgroundDelivery() async {

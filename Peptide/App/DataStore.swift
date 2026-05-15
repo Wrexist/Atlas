@@ -759,18 +759,57 @@ final class DataStore: DataServiceProtocol {
     /// keeps the per-day aggregate in lockstep. Prefer over the
     /// legacy `logMeal(...)` for new code — gives you per-meal
     /// undo, category breakdowns, and a stable identifier you can
-    /// hold onto for HealthKit sample mapping later.
+    /// hold onto for HealthKit sample mapping.
+    ///
+    /// When `healthKitNutritionEnabled` is on, fires a background
+    /// HealthKit write tagged with the entry's UUID. The HK write is
+    /// fire-and-forget — failures log and disappear because they
+    /// shouldn't block the in-app log. Undo removes the matching
+    /// samples by metadata anchor.
     func logMealEntry(_ entry: MealEntry) {
         LifestyleDataLogic.logMealEntry(into: &profile, entry: entry)
         save()
+        if profile.healthKitNutritionEnabled {
+            Task { await HealthKitService.shared.writeMealEntry(entry) }
+        }
     }
 
     /// Removes a meal entry by id and rolls back its contribution to
     /// the day's aggregate. Used by every review screen's Undo button
     /// once it switches to the new logging path.
     func unlogMealEntry(id: UUID) {
+        let mirroredToHealthKit = profile.healthKitNutritionEnabled
         LifestyleDataLogic.unlogMealEntry(from: &profile, id: id)
         save()
+        if mirroredToHealthKit {
+            Task { await HealthKitService.shared.deleteSamples(forEntryID: id) }
+        }
+    }
+
+    /// Flips the Apple Health write toggle. When turning ON, requests
+    /// HK write permission first — if that fails (sim, denied, no
+    /// HealthKit on iPad), the toggle stays off and we surface the
+    /// failure via the returned Bool so the caller can show an
+    /// error pill or revert the switch.
+    ///
+    /// Apple's privacy model doesn't tell us whether the user
+    /// approved or denied; we treat "permission prompt completed
+    /// without throwing" as success. The user can revoke any time in
+    /// the Settings → Health pane, which is the right level of
+    /// indirection for a delete-everything action.
+    @discardableResult
+    func setHealthKitNutritionEnabled(_ enabled: Bool) async -> Bool {
+        if enabled {
+            let granted = await HealthKitService.shared.requestNutritionWriteAuthorization()
+            guard granted else {
+                profile.healthKitNutritionEnabled = false
+                save()
+                return false
+            }
+        }
+        profile.healthKitNutritionEnabled = enabled
+        save()
+        return true
     }
 
     /// Per-category breakdown for today (or any day). Used by the new

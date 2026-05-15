@@ -75,14 +75,28 @@ final class OpenFoodFactsService: Sendable {
         case requestFailed(status: Int)
         case decodeFailure
 
+        // Wrapped in `String(localized:)` so each case's copy gets
+        // picked up by Xcode's string-catalog extractor and matched
+        // against `Localizable.xcstrings`. SwiftUI `Text(...)` would
+        // auto-localize for us, but error messages get surfaced via
+        // `errorDescription` (a plain `String?`), bypassing that path.
         var errorDescription: String? {
             switch self {
-            case .invalidBarcode:        "That barcode doesn't look right. Try scanning again."
-            case .notFound:              "We couldn't find that product. Try a photo instead?"
-            case .rateLimited:           "Open Food Facts is busy right now. Try again in a minute."
-            case .networkUnavailable:    "You're offline. We'll use cached results when available."
-            case .requestFailed(let s):  "Lookup failed (status \(s)). Please try again."
-            case .decodeFailure:         "We got an unexpected response from the food database."
+            case .invalidBarcode:
+                String(localized: "That barcode doesn't look right. Try scanning again.")
+            case .notFound:
+                String(localized: "We couldn't find that product. Try a photo instead?")
+            case .rateLimited:
+                String(localized: "Open Food Facts is busy right now. Try again in a minute.")
+            case .networkUnavailable:
+                String(localized: "You're offline. We'll use cached results when available.")
+            case .requestFailed(let status):
+                String(
+                    localized: "Lookup failed (status \(status)). Please try again.",
+                    comment: "Status code is an HTTP code or -1 for transport errors."
+                )
+            case .decodeFailure:
+                String(localized: "We got an unexpected response from the food database.")
             }
         }
     }
