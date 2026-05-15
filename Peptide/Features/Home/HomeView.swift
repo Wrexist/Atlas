@@ -103,6 +103,21 @@ struct HomeView: View {
                     )
                     .sectionAppear(index: 0)
 
+                    // Bevel-style twin context pills — current cycle
+                    // status on the left (tap → Protocols tab), date
+                    // on the right. Glanceable context without
+                    // claiming a full section.
+                    TodayContextRow(
+                        activeProtocol: dataStore.activeProtocols.first,
+                        date: Date(),
+                        onTapCycle: {
+                            withAnimation(AppAnimation.springSnappy) {
+                                appState.selectedTab = .protocols
+                            }
+                        }
+                    )
+                    .sectionAppear(index: 0)
+
                     // Quick-jump chips — sits below the greeting so the
                     // user reaches Meals / Wellness / Movement / the
                     // Insights tab in one tap instead of scrolling past
