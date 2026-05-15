@@ -278,14 +278,14 @@ struct PeptideApp: App {
             Tab("Train", systemImage: "figure.strengthtraining.traditional", value: .train) {
                 TrainContainerView()
             }
-            Tab("Library", systemImage: "books.vertical.fill", value: .library) {
-                PeptideListView()
+            Tab("Meals", systemImage: "fork.knife", value: .meals) {
+                MealsContainerView()
             }
             Tab("Insights", systemImage: "chart.line.uptrend.xyaxis", value: .insights) {
                 InsightsView()
             }
-            Tab("Profile", systemImage: "person.crop.circle.fill", value: .profile) {
-                ProfileView()
+            Tab("Library", systemImage: "books.vertical.fill", value: .library) {
+                PeptideListView()
             }
         }
         .onChange(of: appState.selectedTab) { _, _ in

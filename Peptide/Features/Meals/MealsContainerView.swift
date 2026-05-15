@@ -1,0 +1,41 @@
+import SwiftUI
+
+/// Meals tab root. Phase D of the training pivot promotes the
+/// nutrition surfaces out of the Today scroll into their own
+/// top-level tab so food gets first-class real estate alongside
+/// training.
+///
+/// Composed from the existing `HomeMealsSection` — already a self-
+/// contained, sheet-owning view that bubbles its modals up the
+/// SwiftUI hierarchy — so mounting it here gives the user a
+/// single Meals destination without duplicating logic. The
+/// previous mount point on Today still works during the transition;
+/// removing it is a follow-up cleanup pass.
+///
+/// Weight tracking and progress photos stay on the Today scroll
+/// for now (they're body-tracking, not nutrition) — a future
+/// refinement could split them into a "Body" sub-tab here.
+struct MealsContainerView: View {
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: Spacing.lg) {
+                    HomeMealsSection()
+                }
+                .padding(.horizontal, Spacing.screenPadding)
+                .padding(.top, Spacing.lg)
+                .padding(.bottom, Spacing.xxxxl)
+            }
+            .background(AppColor.background.ignoresSafeArea())
+            .navigationTitle("Meals")
+            .navigationBarTitleDisplayMode(.large)
+        }
+    }
+}
+
+#Preview {
+    MealsContainerView()
+        .environment(DataStore(seedSampleData: true))
+        .environment(AppState())
+        .preferredColorScheme(.dark)
+}
