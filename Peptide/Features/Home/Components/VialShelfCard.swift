@@ -8,8 +8,8 @@ import SwiftUI
 /// Liquid level for each compound is now derived from
 /// `DataStore.liquidLevel(for:)` which counts completed entries and
 /// wraps modulo a default 30-doses-per-vial. The spec'd 800 ms drain
-/// animation inside `VialIllustration` reacts to that fraction
-/// changing, so the next dose log visibly nudges the meniscus down.
+/// animation inside `CompoundVial` reacts to that fraction changing,
+/// so the next dose log visibly nudges the meniscus down.
 struct VialShelfCard: View {
     @Environment(DataStore.self) private var dataStore
     let peptides: [Peptide]
@@ -31,8 +31,9 @@ struct VialShelfCard: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(alignment: .bottom, spacing: Spacing.lg) {
                             ForEach(displayed) { peptide in
-                                VialIllustration(
+                                CompoundVial(
                                     compoundName: peptide.name,
+                                    category: peptide.category,
                                     liquidLevel: dataStore.liquidLevel(for: peptide),
                                     labelText: peptide.abbreviation,
                                     size: .md

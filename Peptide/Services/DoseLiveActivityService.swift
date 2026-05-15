@@ -129,7 +129,7 @@ final class DoseLiveActivityService {
 
     @available(iOS 16.1, *)
     private func startActivity(for entry: ProtocolEntry) {
-        let palette = VialPalette.colors(for: entry.peptide.name)
+        let palette = VialPalette.colors(for: entry.peptide.name, category: entry.peptide.category)
         let attributes = DoseWindowAttributes(
             entryId: entry.id,
             peptideAbbreviation: entry.peptide.abbreviation,

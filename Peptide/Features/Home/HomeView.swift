@@ -32,7 +32,24 @@ struct HomeView: View {
     /// modals across runloop ticks.
     @State private var milestonePrompt: MilestonePromptItem?
     @State private var milestoneShareProtocol: PeptideProtocol?
+    /// Tracks which jump-bar section is currently nearest the top of
+    /// the viewport so the corresponding chip highlights. Driven by
+    /// per-section preference reads in `.onScrollGeometryChange` —
+    /// effectively free since the scroll geometry callback is already
+    /// firing for the sticky-header progress.
+    @State private var activeJumpAnchor: TodayJumpBar.SectionAnchor? = .doses
+    /// Routes the chip-bar "+ Log" button. The dialog flag controls
+    /// the picker; the action enum drives which sheet actually mounts.
+    @State private var showQuickLogDialog = false
+    @State private var quickLogAction: QuickLogAction?
     @Environment(\.requestReview) private var requestReview
+
+    private enum QuickLogAction: Identifiable {
+        case meal, dose
+        var id: Int {
+            switch self { case .meal: 0; case .dose: 1 }
+        }
+    }
 
     private static let reviewWorthyAchievements: Set<String> = [
         "streak_7", "streak_14", "streak_30", "streak_90",
@@ -65,6 +82,7 @@ struct HomeView: View {
         let overview = TodayOverviewSnapshot.build(from: dataStore)
 
         NavigationStack {
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: Spacing.xl) {
                     WelcomeHeader(
@@ -78,6 +96,22 @@ struct HomeView: View {
                             }
                             showProfileCustomization = true
                         }
+                    )
+                    .sectionAppear(index: 0)
+
+                    // Quick-jump chips — sits below the greeting so the
+                    // user reaches Meals / Wellness / Movement / the
+                    // Insights tab in one tap instead of scrolling past
+                    // the day-at-a-glance, score, plan, and schedule
+                    // cards. Also hosts the "+ Log" quick-log Menu so
+                    // primary log actions are reachable from above the
+                    // fold.
+                    TodayJumpBar(
+                        activeAnchor: activeJumpAnchor,
+                        showsDoses: !dataStore.protocols.isEmpty,
+                        onSelect: { anchor in handleJump(to: anchor, proxy: proxy) },
+                        onQuickLog: { showQuickLogMenu() },
+                        hapticsEnabled: dataStore.profile.hapticFeedbackEnabled
                     )
                     .sectionAppear(index: 0)
 
@@ -140,12 +174,29 @@ struct HomeView: View {
                             weeklyCompletion: dataStore.weeklyCompletion
                         )
                         .sectionAppear(index: 1)
+                    }
 
+                    // MARK: - Meals / Wellness / Movement
+                    //
+                    // Meals is the most-used surface on Today, so it
+                    // sits ABOVE the dose plan/schedule cards now —
+                    // users reached for it most and were scrolling
+                    // past four cards to get there. Doses are still
+                    // surfaced in TodayOverviewCard's hero, and the
+                    // jump chips above reach the full schedule in
+                    // one tap.
+
+                    HomeMealsSection()
+                        .id(TodayJumpBar.SectionAnchor.meals)
+                        .sectionAppear(index: 2)
+
+                    if !dataStore.protocols.isEmpty {
                         DailyPlanCard(
                             plan: dailyPlan,
                             onTapDose: { entry in selectedEntry = entry }
                         )
-                        .sectionAppear(index: 2)
+                        .id(TodayJumpBar.SectionAnchor.doses)
+                        .sectionAppear(index: 3)
 
                         TodayScheduleCard(
                             entries: stats.entries,
@@ -163,57 +214,20 @@ struct HomeView: View {
                         .sectionAppear(index: 4)
                     }
 
-                    // MARK: - Meals / Wellness / Movement
-                    //
-                    // Merged into Today in Phase 33 — these used to
-                    // live on a separate Lifestyle pill that the
-                    // user had to discover. They render unconditionally
-                    // (regardless of `dataStore.protocols.isEmpty`)
-                    // because the user can log meals or check-ins
-                    // before ever creating their first protocol.
-
-                    HomeMealsSection()
-                        .sectionAppear(index: 5)
-
                     HomeWellnessSection()
+                        .id(TodayJumpBar.SectionAnchor.wellness)
                         .sectionAppear(index: 5)
 
                     HomeMovementSection()
+                        .id(TodayJumpBar.SectionAnchor.movement)
                         .sectionAppear(index: 5)
 
-                    // Stack-management cards (vial shelf, warnings,
-                    // completeness, transitions, planner,
-                    // recommendations, health summary) migrated to
-                    // the Protocols tab in Phase 34. Today now ends
-                    // on a single daily-flavoured insight so the
-                    // scroll has a clean tail without doubling as a
-                    // stack-configuration surface.
-
-                    if !dataStore.protocols.isEmpty,
-                       let topInsight = dataStore.topInsight {
-                        GlassCard {
-                            HStack(spacing: Spacing.md) {
-                                Image(systemName: topInsight.icon)
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(AppColor.accentPrimary)
-                                    .frame(width: 28, height: 28)
-                                    .background {
-                                        Circle().fill(AppColor.accentPrimary.opacity(0.15))
-                                    }
-                                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                    Text(topInsight.title)
-                                        .font(AppFont.subheadline)
-                                        .fontWeight(.medium)
-                                        .foregroundStyle(AppColor.textPrimary)
-                                    Text(topInsight.description)
-                                        .font(AppFont.caption)
-                                        .foregroundStyle(AppColor.textSecondary)
-                                }
-                                Spacer()
-                            }
-                        }
-                        .sectionAppear(index: 6)
-                    }
+                    // The standalone bottom insight card used to live
+                    // here; removed in this pass because TodayOverviewCard
+                    // already surfaces the same `dataStore.topInsight`
+                    // (via TodayOverviewSnapshot.pickBottomInsight) at the
+                    // top of the scroll. Showing it twice was duplication,
+                    // not depth.
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
@@ -341,6 +355,70 @@ struct HomeView: View {
                         onRefresh: { await loadWeeklySummary(forceRefresh: true) }
                     )
                 }
+            }
+            .sheet(item: $quickLogAction, content: quickLogSheet)
+            .confirmationDialog(
+                "Quick log",
+                isPresented: $showQuickLogDialog,
+                titleVisibility: .visible
+            ) {
+                Button("Snap a meal photo") { quickLogAction = .meal }
+                if dataStore.nextDose != nil {
+                    Button("Log next dose") { quickLogAction = .dose }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Capture something without scrolling.")
+            }
+            }   // closes ScrollViewReader
+        }
+    }
+
+    // MARK: - Quick-log routing
+
+    /// Routes a jump-bar chip tap to a scroll target or a tab switch.
+    /// `.insights` jumps to the Insights tab via `AppState`; every
+    /// other anchor scrolls within Today's existing `ScrollViewReader`.
+    private func handleJump(to anchor: TodayJumpBar.SectionAnchor, proxy: ScrollViewProxy) {
+        switch anchor {
+        case .insights:
+            withAnimation(AppAnimation.springSnappy) {
+                appState.selectedTab = .insights
+            }
+        case .doses, .meals, .wellness, .movement:
+            withAnimation(.smooth(duration: 0.35)) {
+                proxy.scrollTo(anchor, anchor: .top)
+            }
+            activeJumpAnchor = anchor
+        }
+    }
+
+    private func showQuickLogMenu() {
+        showQuickLogDialog = true
+    }
+
+    @ViewBuilder
+    private func quickLogSheet(for action: QuickLogAction) -> some View {
+        switch action {
+        case .meal:
+            MealScanFlow(onClose: { quickLogAction = nil })
+                .environment(dataStore)
+                .liquidGlassPresentation()
+        case .dose:
+            if let next = dataStore.nextDose {
+                DoseLoggingSheet(entry: next) { actualDose, actualTime, site, notes in
+                    dataStore.logDose(
+                        entryId: next.id,
+                        actualDose: actualDose,
+                        actualTime: actualTime,
+                        injectionSite: site,
+                        notes: notes
+                    )
+                    quickLogAction = nil
+                }
+                .liquidGlassPresentation()
+            } else {
+                EmptyView()
             }
         }
     }
