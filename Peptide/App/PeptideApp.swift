@@ -148,7 +148,7 @@ struct PeptideApp: App {
                 // version stamp wouldn't land — they'd see it
                 // again on the next launch.
                 WhatsNewTourSheet(
-                    pages: WhatsNewPage.v2,
+                    pages: WhatsNewPage.v2_1,
                     onComplete: {
                         WhatsNewService.shared.markCurrentTourSeen()
                         showWhatsNewTour = false

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AboutSection: View {
     @State private var showDisclaimer = false
+    @State private var showWhatsNewReplay = false
 
     var body: some View {
         GlassCard {
@@ -44,6 +45,19 @@ struct AboutSection: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    Divider().foregroundStyle(AppColor.glassBorder)
+                    Button { showWhatsNewReplay = true } label: {
+                        HStack {
+                            Label("Replay What's New tour", systemImage: "sparkles")
+                                .font(AppFont.subheadline)
+                                .foregroundStyle(AppColor.accentLight)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(AppColor.textTertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 HStack {
@@ -73,6 +87,17 @@ struct AboutSection: View {
         .sheet(isPresented: $showDisclaimer) {
             MedicalDisclaimerSheet()
                 .liquidGlassPresentation()
+        }
+        .sheet(isPresented: $showWhatsNewReplay) {
+            // Doesn't mark-as-seen since this is a manual replay
+            // initiated by the user — leaving the version stamp
+            // alone keeps the auto-fire behaviour predictable
+            // (the tour fires on next launch only if the user
+            // actually bumps to a newer version).
+            WhatsNewTourSheet(
+                pages: WhatsNewPage.v2_1,
+                onComplete: { showWhatsNewReplay = false }
+            )
         }
     }
 }

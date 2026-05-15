@@ -40,11 +40,123 @@ struct WhatsNewPage: Identifiable, Equatable {
 
 extension WhatsNewPage {
 
-    /// Tour content for the v2.0 release — the food library +
-    /// labs + correlation + Watch + Siri stack. Edits to this
-    /// list show up next time the tour fires; bump
-    /// `WhatsNewService.currentTourVersion` so users who already
-    /// saw the old tour see the new one.
+    /// Tour content for the v2.1 release — the IA spine pass.
+    /// Covers the merged Today scroll, the new Insights tab, the
+    /// enriched Protocols tab, the premium Live Activity, and the
+    /// Today overview card. Mounted automatically on first launch
+    /// after a bump to `WhatsNewService.currentTourVersion` so
+    /// existing users see the new map before they have to discover
+    /// it themselves.
+    static let v2_1: [WhatsNewPage] = [
+        WhatsNewPage(
+            id: "v2_1_welcome",
+            eyebrow: "What's new",
+            title: "Rebuilt for everyday flow",
+            body: "PeptideX 2.1 reorganises the whole app around the question you actually open it to answer: \"What do I do today?\"",
+            icon: "sparkles",
+            gradient: [
+                Color(red: 0.55, green: 0.50, blue: 0.92),
+                Color(red: 0.95, green: 0.50, blue: 0.55),
+            ],
+            accent: Color(red: 0.55, green: 0.50, blue: 0.92),
+            bullets: [
+                "One Today scroll, no more sub-tabs",
+                "A dedicated Insights tab for trends",
+                "Premium Live Activity for every dose",
+            ]
+        ),
+        WhatsNewPage(
+            id: "v2_1_today",
+            eyebrow: "Today",
+            title: "Your day, at a glance",
+            body: "The new Today overview card pulls one number from each domain — compliance, calories, meal streak, daily check-in, water — into a single hero at the top of the scroll.",
+            icon: "house.fill",
+            gradient: [
+                Color(red: 0.40, green: 0.74, blue: 0.92),
+                Color(red: 0.48, green: 0.50, blue: 0.92),
+            ],
+            accent: Color(red: 0.40, green: 0.74, blue: 0.92),
+            bullets: [
+                "Tap the hero to log your next dose",
+                "Meals + check-in folded into Today",
+                "Sticky header on scroll so you never lose context",
+            ]
+        ),
+        WhatsNewPage(
+            id: "v2_1_insights",
+            eyebrow: "Insights",
+            title: "See what's actually working",
+            body: "Compliance, correlation, labs, and body trends now share one tab so the question \"is this protocol working?\" gets one clear answer instead of three scattered surfaces.",
+            icon: "chart.line.uptrend.xyaxis",
+            gradient: [
+                Color(red: 0.92, green: 0.45, blue: 0.62),
+                Color(red: 0.55, green: 0.50, blue: 0.85),
+            ],
+            accent: Color(red: 0.92, green: 0.45, blue: 0.62),
+            bullets: [
+                "Labs now live alongside the trends",
+                "Outcome + biometric correlations consolidated",
+                "Weight + photos under one Body section",
+            ]
+        ),
+        WhatsNewPage(
+            id: "v2_1_protocols",
+            eyebrow: "Protocols",
+            title: "Your stack in one place",
+            body: "Stack health, interactions, cycle transitions, and discovery moved out of Today and into the Protocols tab — the configuration surface they actually belong to.",
+            icon: "square.stack.3d.up.fill",
+            gradient: [
+                Color(red: 1.00, green: 0.62, blue: 0.30),
+                Color(red: 0.95, green: 0.50, blue: 0.30),
+            ],
+            accent: Color(red: 1.00, green: 0.62, blue: 0.30),
+            bullets: [
+                "Vial shelf at the top — glance at your stack",
+                "Stack-health cards + warnings consolidated",
+                "Discover section for cycle planner suggestions",
+            ]
+        ),
+        WhatsNewPage(
+            id: "v2_1_live_activity",
+            eyebrow: "Live Activity",
+            title: "Lock-screen log button",
+            body: "Every dose now gets a Live Activity 30 minutes before it's due. Tap Log right from the lock screen — no unlock, no app launch.",
+            icon: "lock.iphone",
+            gradient: [
+                Color(red: 0.36, green: 0.78, blue: 0.55),
+                Color(red: 0.40, green: 0.74, blue: 0.92),
+            ],
+            accent: Color(red: 0.36, green: 0.78, blue: 0.55),
+            bullets: [
+                "Animated progress ring around the dose window",
+                "Status-aware tinting (upcoming / due / late / logged)",
+                "Dynamic Island shows the timer everywhere on iOS",
+            ]
+        ),
+        WhatsNewPage(
+            id: "v2_1_outro",
+            eyebrow: "And more",
+            title: "Plus everything from 2.0",
+            body: "All of the food library, Siri, Action Button, Spotlight, and Watch features from the 2.0 release are still here — just better organised.",
+            icon: "checkmark.seal.fill",
+            gradient: [
+                Color(red: 0.48, green: 0.50, blue: 0.92),
+                Color(red: 0.36, green: 0.78, blue: 0.55),
+            ],
+            accent: Color(red: 0.48, green: 0.50, blue: 0.92),
+            bullets: [
+                "Food library + barcode scan",
+                "Siri, Action Button, Shortcuts, Watch",
+                "Reconstitution calculator + travel mode",
+            ]
+        ),
+    ]
+
+    /// Legacy v2.0 tour content. Kept in source for two reasons:
+    /// (1) the previous-version content stays archivable for
+    /// localisation diffs, and (2) the test suite asserts the page
+    /// shapes against this fixture without needing to re-edit
+    /// every assertion when the live tour content evolves.
     static let v2: [WhatsNewPage] = [
         WhatsNewPage(
             id: "welcome",
