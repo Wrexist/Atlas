@@ -90,12 +90,15 @@ final class StoredProtocol {
         // Try the new wrapped format first; fall back to bare ProtocolSchedule for legacy saves.
         let schedule: ProtocolSchedule
         let overrides: [UUID: ProtocolSchedule]
+        let washoutWeeks: Int
         if let wrapped = try? sdDecoder.decode(EncodedSchedule.self, from: scheduleData) {
             schedule = wrapped.defaultSchedule
             overrides = wrapped.decodedOverrides
+            washoutWeeks = wrapped.decodedWashoutWeeks
         } else {
             schedule = try sdDecoder.decode(ProtocolSchedule.self, from: scheduleData)
             overrides = [:]
+            washoutWeeks = 0
         }
 
         return PeptideProtocol(
@@ -105,6 +108,7 @@ final class StoredProtocol {
             schedule: schedule,
             peptideSchedules: overrides,
             cycleLengthWeeks: cycleLengthWeeks,
+            washoutWeeks: washoutWeeks,
             startDate: startDate,
             status: status,
             notes: notes,
@@ -122,6 +126,12 @@ final class StoredProtocol {
 private struct EncodedSchedule: Codable {
     let defaultSchedule: ProtocolSchedule
     let overrides: [String: ProtocolSchedule]?
+    /// Wash-out duration in weeks. Optional + decode-if-present so
+    /// legacy rows (written before cycle/wash-out shipped) still
+    /// decode cleanly — they default to `0`, which preserves the
+    /// single-cycle behaviour exactly. Encoded only when non-zero
+    /// so the blob stays compact for the typical non-cycling case.
+    let washoutWeeks: Int?
 
     init(from proto: PeptideProtocol) {
         self.defaultSchedule = proto.schedule
@@ -132,6 +142,7 @@ private struct EncodedSchedule: Codable {
                 proto.peptideSchedules.map { ($0.key.uuidString, $0.value) }
             )
         }
+        self.washoutWeeks = proto.washoutWeeks > 0 ? proto.washoutWeeks : nil
     }
 
     var decodedOverrides: [UUID: ProtocolSchedule] {
@@ -140,6 +151,8 @@ private struct EncodedSchedule: Codable {
             UUID(uuidString: key).map { ($0, value) }
         })
     }
+
+    var decodedWashoutWeeks: Int { washoutWeeks ?? 0 }
 }
 
 // MARK: - StoredEntry

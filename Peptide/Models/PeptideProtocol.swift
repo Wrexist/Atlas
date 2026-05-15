@@ -134,6 +134,14 @@ struct PeptideProtocol: Identifiable, Hashable, Codable {
     let schedule: ProtocolSchedule
     let peptideSchedules: [UUID: ProtocolSchedule]
     let cycleLengthWeeks: Int
+    /// Wash-out duration between repeated cycles, in weeks. `0`
+    /// (default) means the protocol runs a single cycle and ends —
+    /// no wash-out, no repeat. Non-zero means an alternating on/off
+    /// pattern: `cycleLengthWeeks` on, `washoutWeeks` off, repeat.
+    /// Lets the cycle-phase engine compute whether the user is
+    /// currently in an "on" phase or a "wash-out" phase without
+    /// inventing the data after the fact.
+    let washoutWeeks: Int
     let startDate: Date
     var status: ProtocolStatus
     let notes: String
@@ -149,6 +157,7 @@ struct PeptideProtocol: Identifiable, Hashable, Codable {
         schedule: ProtocolSchedule,
         peptideSchedules: [UUID: ProtocolSchedule] = [:],
         cycleLengthWeeks: Int,
+        washoutWeeks: Int = 0,
         startDate: Date,
         status: ProtocolStatus,
         notes: String,
@@ -163,6 +172,7 @@ struct PeptideProtocol: Identifiable, Hashable, Codable {
         self.schedule = schedule
         self.peptideSchedules = peptideSchedules
         self.cycleLengthWeeks = cycleLengthWeeks
+        self.washoutWeeks = washoutWeeks
         self.startDate = startDate
         self.status = status
         self.notes = notes
@@ -214,7 +224,7 @@ struct PeptideProtocol: Identifiable, Hashable, Codable {
 
     private enum CodingKeys: String, CodingKey {
         case id, name, peptides, schedule, peptideSchedules
-        case cycleLengthWeeks, startDate, status, notes
+        case cycleLengthWeeks, washoutWeeks, startDate, status, notes
         case authorName, authorHandle, forkedFromStackId, createdAt
     }
 
@@ -233,6 +243,11 @@ struct PeptideProtocol: Identifiable, Hashable, Codable {
             self.peptideSchedules = [:]
         }
         self.cycleLengthWeeks = try c.decode(Int.self, forKey: .cycleLengthWeeks)
+        // `washoutWeeks` is new — decode-if-present so protocols
+        // persisted before this shipped still decode (they default
+        // to `0`, which preserves the old "single-cycle, no wash-out"
+        // behaviour exactly).
+        self.washoutWeeks = try c.decodeIfPresent(Int.self, forKey: .washoutWeeks) ?? 0
         self.startDate = try c.decode(Date.self, forKey: .startDate)
         self.status = try c.decode(ProtocolStatus.self, forKey: .status)
         self.notes = try c.decode(String.self, forKey: .notes)
@@ -253,6 +268,11 @@ struct PeptideProtocol: Identifiable, Hashable, Codable {
             try c.encode(raw, forKey: .peptideSchedules)
         }
         try c.encode(cycleLengthWeeks, forKey: .cycleLengthWeeks)
+        // Skip encoding when zero so the on-disk shape stays
+        // compact for the common case (no wash-out configured).
+        if washoutWeeks > 0 {
+            try c.encode(washoutWeeks, forKey: .washoutWeeks)
+        }
         try c.encode(startDate, forKey: .startDate)
         try c.encode(status, forKey: .status)
         try c.encode(notes, forKey: .notes)

@@ -673,6 +673,102 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(tt?.latest.value, 720, "Most recent value should win")
     }
 
+    func test_cyclePhaseEngine_singleCycle_progressesThenCompletes() {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: Date())
+        let proto = PeptideProtocol(
+            id: UUID(),
+            name: "BPC",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(
+                daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+                timesPerDay: 1,
+                preferredTimes: ["8:00 AM"]
+            ),
+            cycleLengthWeeks: 4,
+            washoutWeeks: 0,
+            startDate: start,
+            status: .active,
+            notes: ""
+        )
+
+        // Day 1 in.
+        let day1 = CyclePhaseEngine.status(for: proto, at: start)
+        if case .onCycle(let d, let t) = day1.phase {
+            XCTAssertEqual(d, 1)
+            XCTAssertEqual(t, 28)
+        } else { XCTFail("Expected onCycle on day 1") }
+
+        // Past the end — single-cycle path completes (no washout).
+        let after = calendar.date(byAdding: .day, value: 30, to: start)!
+        XCTAssertEqual(CyclePhaseEngine.status(for: proto, at: after).phase, .completed)
+    }
+
+    func test_cyclePhaseEngine_repeatingCycle_alternatesOnAndWashout() {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: Date())
+        let proto = PeptideProtocol(
+            id: UUID(),
+            name: "BPC cycled",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(
+                daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+                timesPerDay: 1,
+                preferredTimes: ["8:00 AM"]
+            ),
+            cycleLengthWeeks: 4,       // 28 days on
+            washoutWeeks: 2,           // 14 days off
+            startDate: start,
+            status: .active,
+            notes: ""
+        )
+
+        // Day 1: onCycle, cycle 1.
+        if case .onCycle(let d, _) = CyclePhaseEngine.status(for: proto, at: start).phase {
+            XCTAssertEqual(d, 1)
+        } else { XCTFail("Expected onCycle on day 1") }
+
+        // Day 30: 28 days on done + 2 days into wash-out.
+        let day30 = calendar.date(byAdding: .day, value: 29, to: start)!
+        let phaseDay30 = CyclePhaseEngine.status(for: proto, at: day30)
+        if case .washout(let d, let t) = phaseDay30.phase {
+            XCTAssertEqual(d, 2)
+            XCTAssertEqual(t, 14)
+        } else { XCTFail("Expected washout on day 30") }
+        XCTAssertEqual(phaseDay30.cycleNumber, 1)
+
+        // Day 43: 28+14 = 42 days completed → onCycle day 1 of cycle 2.
+        let day43 = calendar.date(byAdding: .day, value: 42, to: start)!
+        let phaseDay43 = CyclePhaseEngine.status(for: proto, at: day43)
+        if case .onCycle(let d, _) = phaseDay43.phase {
+            XCTAssertEqual(d, 1)
+        } else { XCTFail("Expected onCycle on day 43") }
+        XCTAssertEqual(phaseDay43.cycleNumber, 2)
+    }
+
+    func test_cyclePhaseEngine_beforeStart_reportsUpcoming() {
+        let calendar = Calendar.current
+        let futureStart = calendar.date(byAdding: .day, value: 5, to: calendar.startOfDay(for: Date()))!
+        let proto = PeptideProtocol(
+            id: UUID(),
+            name: "Future",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(
+                daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+                timesPerDay: 1,
+                preferredTimes: ["8:00 AM"]
+            ),
+            cycleLengthWeeks: 4,
+            washoutWeeks: 0,
+            startDate: futureStart,
+            status: .active,
+            notes: ""
+        )
+        if case .upcoming(let days) = CyclePhaseEngine.status(for: proto).phase {
+            XCTAssertEqual(days, 5)
+        } else { XCTFail("Expected upcoming") }
+    }
+
     func test_offRateLimiter_allowsUpToCapThenDenies() async {
         // 3 calls / 60-second window — easier to assert than the
         // production 8/60s config without changing the algorithm.

@@ -294,6 +294,7 @@ final class DataStore: DataServiceProtocol {
             schedule: existing.schedule,
             peptideSchedules: existing.peptideSchedules,
             cycleLengthWeeks: existing.cycleLengthWeeks,
+            washoutWeeks: existing.washoutWeeks,
             startDate: existing.startDate,
             status: existing.status,
             notes: existing.notes
@@ -324,6 +325,7 @@ final class DataStore: DataServiceProtocol {
         schedule: ProtocolSchedule,
         peptideSchedules: [UUID: ProtocolSchedule] = [:],
         cycleLengthWeeks: Int,
+        washoutWeeks: Int = 0,
         notes: String
     ) {
         guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
@@ -340,6 +342,7 @@ final class DataStore: DataServiceProtocol {
             schedule: schedule,
             peptideSchedules: cleanedOverrides,
             cycleLengthWeeks: cycleLengthWeeks,
+            washoutWeeks: washoutWeeks,
             startDate: existing.startDate,
             status: existing.status,
             notes: notes,
@@ -386,6 +389,7 @@ final class DataStore: DataServiceProtocol {
             schedule: existing.schedule,
             peptideSchedules: overrides,
             cycleLengthWeeks: existing.cycleLengthWeeks,
+            washoutWeeks: existing.washoutWeeks,
             startDate: existing.startDate,
             status: existing.status,
             notes: existing.notes,
