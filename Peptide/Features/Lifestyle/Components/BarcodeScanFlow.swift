@@ -1,5 +1,5 @@
 import SwiftUI
-import AVFoundation
+@preconcurrency import AVFoundation
 import PhotosUI
 
 /// End-to-end barcode-scan sheet: opens the camera, resolves the

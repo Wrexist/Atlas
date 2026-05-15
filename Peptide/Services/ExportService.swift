@@ -448,7 +448,7 @@ final class ExportService {
     }
 }
 
-struct AppBackup: Codable {
+struct AppBackup: Codable, Sendable {
     let exportDate: Date
     let version: String
     let protocols: [PeptideProtocol]

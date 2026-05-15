@@ -1,6 +1,6 @@
 import Foundation
 import UIKit
-import Vision
+@preconcurrency import Vision
 
 /// Reads a nutrition-facts label from a photo and produces a
 /// `ScannedProduct` that flows through the same review-and-log path

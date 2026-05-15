@@ -1,5 +1,5 @@
 import Foundation
-import WatchConnectivity
+@preconcurrency import WatchConnectivity
 
 /// Writes WatchData to the shared App Group container and handles
 /// WCSession messaging between the iOS app and the Watch companion.

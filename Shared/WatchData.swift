@@ -1,6 +1,6 @@
 import Foundation
 
-struct WatchEntry: Codable, Identifiable {
+struct WatchEntry: Codable, Identifiable, Sendable {
     let id: UUID
     let protocolId: UUID
     let peptideName: String
@@ -23,7 +23,7 @@ struct WatchEntry: Codable, Identifiable {
 /// iOS-only target. Optional throughout so the Watch app can
 /// hide nutrition gracefully on installs where the user hasn't
 /// logged anything yet.
-struct WatchNutritionSnapshot: Codable, Hashable {
+struct WatchNutritionSnapshot: Codable, Hashable, Sendable {
     let caloriesToday: Int
     let calorieTarget: Int
     let proteinToday: Int
@@ -44,7 +44,7 @@ struct WatchNutritionSnapshot: Codable, Hashable {
     }
 }
 
-struct WatchData: Codable {
+struct WatchData: Codable, Sendable {
     let todayEntries: [WatchEntry]
     let completedToday: Int
     let totalToday: Int

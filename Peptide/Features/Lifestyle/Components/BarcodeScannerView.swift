@@ -1,6 +1,6 @@
 import SwiftUI
 import VisionKit
-import AVFoundation
+@preconcurrency import AVFoundation
 
 /// Live barcode-capture surface wrapping `DataScannerViewController`.
 ///

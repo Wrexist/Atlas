@@ -1,5 +1,5 @@
 import UIKit
-import AVFoundation
+@preconcurrency import AVFoundation
 
 /// Single source of truth for the barcode-scan flow's haptic vocabulary.
 /// Centralised so the feel stays consistent as the flow grows and so a

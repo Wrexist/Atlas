@@ -1,6 +1,6 @@
 import Foundation
 
-enum BiologicalSex: String, Codable, CaseIterable, Identifiable {
+enum BiologicalSex: String, Codable, CaseIterable, Identifiable, Sendable {
     case male, female, other, unspecified
     var id: String { rawValue }
 
@@ -30,7 +30,7 @@ enum BiologicalSex: String, Codable, CaseIterable, Identifiable {
     static let onboardingChoices: [BiologicalSex] = [.male, .female, .other]
 }
 
-enum ActivityLevel: String, Codable, CaseIterable, Identifiable {
+enum ActivityLevel: String, Codable, CaseIterable, Identifiable, Sendable {
     case sedentary, light, moderate, active, athlete
     var id: String { rawValue }
 
@@ -55,7 +55,7 @@ enum ActivityLevel: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-enum MeasurementUnit: String, Codable {
+enum MeasurementUnit: String, Codable, Sendable {
     case metric    // kg, cm
     case imperial  // lb, in
 }
@@ -65,7 +65,7 @@ enum MeasurementUnit: String, Codable {
 /// metrics step. Stored canonically in metric units; the UI converts on
 /// read/write. Atlas does NOT use these values to calculate, scale, or
 /// recommend any dose.
-struct BodyMetrics: Codable, Hashable {
+struct BodyMetrics: Codable, Hashable, Sendable {
     var weightKg: Double?
     var heightCm: Double?
     var age: Int?
@@ -105,7 +105,7 @@ struct BodyMetrics: Codable, Hashable {
 /// Daily macro targets derived from the user's body stats during onboarding
 /// and surfaced on the Lifestyle tab. Stored as integers because they're
 /// reference targets — the user doesn't need 0.1 g of protein resolution.
-struct NutritionTargets: Codable, Hashable {
+struct NutritionTargets: Codable, Hashable, Sendable {
     var calories: Int
     var proteinG: Int
     var carbsG: Int
@@ -121,7 +121,7 @@ struct NutritionTargets: Codable, Hashable {
 /// Matching today is local-only against `CreatorCodeService.seeded` —
 /// the spec'd Supabase pipeline (creator_codes table, RPC counters,
 /// dashboard) is tracked as a follow-up.
-struct CreatorAttribution: Codable, Hashable {
+struct CreatorAttribution: Codable, Hashable, Sendable {
     let code: String
     let creatorName: String
     let discountPercent: Int
@@ -133,7 +133,7 @@ struct CreatorAttribution: Codable, Hashable {
 /// pg_cron retargeting is a separate piece of work that needs the
 /// backend in place. The local record carries enough context that the
 /// eventual sync job can replay the row 1:1 from this struct.
-struct EmailSubscription: Codable, Hashable {
+struct EmailSubscription: Codable, Hashable, Sendable {
     let email: String
     let capturedAt: Date
 }
@@ -142,7 +142,7 @@ struct EmailSubscription: Codable, Hashable {
 /// The Lifestyle tab renders the trend over the most recent 14 days
 /// and exposes the deltas; everything else converts to/from imperial
 /// at the UI boundary based on `bodyMetrics.unit`.
-struct WeightEntry: Codable, Hashable, Identifiable {
+struct WeightEntry: Codable, Hashable, Identifiable, Sendable {
     let id: UUID
     let date: Date
     let kg: Double
@@ -159,7 +159,7 @@ struct WeightEntry: Codable, Hashable, Identifiable {
 /// fields — intentionally lightweight so this isn't a competing gym
 /// app, just enough structure to feed the daily card subtitle and a
 /// future Analytics-tab workout summary.
-struct WorkoutEntry: Codable, Hashable, Identifiable {
+struct WorkoutEntry: Codable, Hashable, Identifiable, Sendable {
     let id: UUID
     let date: Date
     let name: String
@@ -189,7 +189,7 @@ struct WorkoutEntry: Codable, Hashable, Identifiable {
 /// daily buckets, matching the dialing the user sees on the Lifestyle
 /// rings. Currently populated by the meal-scanner flow; manual logging
 /// is a follow-up.
-struct DailyConsumption: Codable, Hashable {
+struct DailyConsumption: Codable, Hashable, Sendable {
     var date: Date
     var caloriesKcal: Int
     var proteinG: Int
@@ -209,7 +209,7 @@ struct DailyConsumption: Codable, Hashable {
     }
 }
 
-struct UserProfile: Codable {
+struct UserProfile: Codable, Sendable {
     var name: String
     var goals: [String]
     var memberSince: Date

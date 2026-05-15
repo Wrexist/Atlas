@@ -1,5 +1,5 @@
 import Foundation
-import WatchConnectivity
+@preconcurrency import WatchConnectivity
 import WatchKit
 
 /// Observable store for the Watch app. Reads WatchData from the shared

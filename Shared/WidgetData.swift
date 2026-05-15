@@ -7,7 +7,7 @@ enum AppGroup {
 /// One row in the Medium widget's "today" list. Three of these are
 /// surfaced — enough to fill the widget without truncation under default
 /// Dynamic Type, per `docs/SCREENSHOT_SEED_DATA_AND_FIXES.md` slot 7.
-struct WidgetDoseSlot: Codable, Hashable {
+struct WidgetDoseSlot: Codable, Hashable, Sendable {
     let peptideName: String
     let dose: String
     let time: Date
@@ -18,13 +18,13 @@ struct WidgetDoseSlot: Codable, Hashable {
 /// widget. Mirrors `LifestyleDataLogic.CategoryTotals` stripped to
 /// the fields the widget actually renders so the shared-container
 /// payload stays compact.
-struct WidgetMealSlot: Codable, Hashable {
+struct WidgetMealSlot: Codable, Hashable, Sendable {
     let category: String        // "Breakfast" / "Lunch" / "Dinner" / "Snack"
     let calories: Int
     let entryCount: Int
 }
 
-struct WidgetData: Codable {
+struct WidgetData: Codable, Sendable {
     let nextPeptideName: String
     let nextDose: String
     let nextDoseTime: Date?
