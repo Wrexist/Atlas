@@ -294,6 +294,23 @@ struct UserProfile: Codable {
     /// the view side. CloudKit-synced so a user can see their full
     /// labs history on any device.
     var labHistory: [LabValue]
+    /// Identifier of the timezone the user was in on the last app
+    /// launch. Compared against `TimeZone.current` on every launch
+    /// so the travel-detection prompt can fire when the user has
+    /// crossed into a new zone — either to offer a schedule shift
+    /// to local clock, or to keep doses on the origin clock.
+    /// Stored as `String` (the IANA identifier) for stable diffs;
+    /// `nil` only on a fresh install before the first launch.
+    var lastKnownTimezoneIdentifier: String?
+    /// Calendar days the user has "frozen" their streak against —
+    /// either deliberately (tapped Use freeze before a missed
+    /// day) or earned from a milestone reward. Keyed by start-of-
+    /// day so the streak engine can treat them as
+    /// counted-as-completed. Stored as ISO yyyy-MM-dd strings
+    /// because Set<Date> would need a hashing strategy that
+    /// matched the engine's day key; strings are unambiguous and
+    /// human-readable in the JSON dump.
+    var streakFreezeDays: Set<String>
 
     init(
         name: String,
@@ -319,7 +336,9 @@ struct UserProfile: Codable {
         mealHistory: [MealEntry] = [],
         healthKitNutritionEnabled: Bool = false,
         outcomeHistory: [OutcomeEntry] = [],
-        labHistory: [LabValue] = []
+        labHistory: [LabValue] = [],
+        lastKnownTimezoneIdentifier: String? = nil,
+        streakFreezeDays: Set<String> = []
     ) {
         self.name = name
         self.goals = goals
@@ -345,6 +364,8 @@ struct UserProfile: Codable {
         self.healthKitNutritionEnabled = healthKitNutritionEnabled
         self.outcomeHistory = outcomeHistory
         self.labHistory = labHistory
+        self.lastKnownTimezoneIdentifier = lastKnownTimezoneIdentifier
+        self.streakFreezeDays = streakFreezeDays
     }
 
     init(from decoder: Decoder) throws {
@@ -375,6 +396,10 @@ struct UserProfile: Codable {
         healthKitNutritionEnabled = try container.decodeIfPresent(Bool.self, forKey: .healthKitNutritionEnabled) ?? false
         outcomeHistory = try container.decodeIfPresent([OutcomeEntry].self, forKey: .outcomeHistory) ?? []
         labHistory = try container.decodeIfPresent([LabValue].self, forKey: .labHistory) ?? []
+        lastKnownTimezoneIdentifier = try container.decodeIfPresent(String.self, forKey: .lastKnownTimezoneIdentifier)
+        streakFreezeDays = Set(
+            try container.decodeIfPresent([String].self, forKey: .streakFreezeDays) ?? []
+        )
     }
 
     static var fresh: UserProfile {

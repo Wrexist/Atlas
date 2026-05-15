@@ -241,15 +241,23 @@ enum LifestyleDataLogic {
         for entry in profile.mealHistory {
             loggedDays.insert(calendar.startOfDay(for: entry.date))
         }
-        guard !loggedDays.isEmpty else { return 0 }
+        guard !loggedDays.isEmpty || !profile.streakFreezeDays.isEmpty else { return 0 }
 
-        // Anchor: start from today if today has a log, else from
-        // yesterday (today is the grace day). If yesterday is also
-        // empty, the streak is 0.
+        // Streak-shielding: a freeze day is treated identically to
+        // a logged day for the purpose of consecutive-day counting.
+        // Lets a user spend a freeze the morning after a missed
+        // day to keep their streak alive.
+        let isCovered: (Date) -> Bool = { day in
+            loggedDays.contains(day) || StreakFreezeService.isFrozen(day, in: profile)
+        }
+
+        // Anchor: start from today if today has a log/freeze, else
+        // from yesterday (today is the grace day). If yesterday is
+        // also empty, the streak is 0.
         let anchor: Date
-        if loggedDays.contains(today) {
+        if isCovered(today) {
             anchor = today
-        } else if loggedDays.contains(yesterday) {
+        } else if isCovered(yesterday) {
             anchor = yesterday
         } else {
             return 0
@@ -257,7 +265,7 @@ enum LifestyleDataLogic {
 
         var streak = 0
         var cursor = anchor
-        while loggedDays.contains(cursor) {
+        while isCovered(cursor) {
             streak += 1
             guard let previous = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
             cursor = previous

@@ -793,6 +793,89 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(ProgressPhotoMetadata.daysBetween(fnB, fnA), 10, "Should be absolute")
     }
 
+    func test_timezoneDetector_returnsNilWhenIdentifiersMatch() {
+        let zone = TimeZone(identifier: "America/Los_Angeles")!
+        XCTAssertNil(TimezoneChangeDetector.detect(
+            previousIdentifier: zone.identifier,
+            currentZone: zone
+        ))
+    }
+
+    func test_timezoneDetector_detectsHourCrossingWithSignedDelta() {
+        // LA → NY: +3 hours (clock moves forward by 3).
+        let la = TimeZone(identifier: "America/Los_Angeles")!
+        let ny = TimeZone(identifier: "America/New_York")!
+        let change = TimezoneChangeDetector.detect(
+            previousIdentifier: la.identifier,
+            currentZone: ny
+        )
+        XCTAssertNotNil(change)
+        XCTAssertEqual(change?.hoursDelta, 3)
+        XCTAssertEqual(change?.minutesRemainder, 0)
+    }
+
+    func test_timezoneDetector_includesMinuteRemainderForOffsetZones() {
+        // LA → Mumbai: +12:30 ahead in standard time terms.
+        let la = TimeZone(identifier: "America/Los_Angeles")!
+        let mumbai = TimeZone(identifier: "Asia/Kolkata")!
+        let change = TimezoneChangeDetector.detect(
+            previousIdentifier: la.identifier,
+            currentZone: mumbai,
+            at: Date(timeIntervalSince1970: 1_715_000_000)
+        )
+        XCTAssertNotNil(change)
+        XCTAssertEqual(abs(change!.minutesRemainder), 30)
+    }
+
+    func test_travelModeLogic_shiftsPreferredTimes() {
+        let original = "8:00 AM"
+        let shifted = TravelModeLogic.shiftTime(original, byHours: 3)
+        XCTAssertEqual(shifted, "11:00 AM")
+
+        let crossNoon = TravelModeLogic.shiftTime("11:00 AM", byHours: 5)
+        XCTAssertEqual(crossNoon, "4:00 PM")
+
+        // Negative shift (travelled west, clock moves back).
+        XCTAssertEqual(TravelModeLogic.shiftTime("11:00 AM", byHours: -3), "8:00 AM")
+    }
+
+    func test_streakFreeze_isLimitedToOnePerMonth() {
+        var profile = UserProfile.fresh
+        let today = Date()
+        XCTAssertTrue(StreakFreezeService.hasFreezeAvailable(in: profile, now: today))
+
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
+        XCTAssertTrue(StreakFreezeService.applyFreeze(in: &profile, for: yesterday, now: today))
+        XCTAssertFalse(StreakFreezeService.hasFreezeAvailable(in: profile, now: today))
+
+        // Second freeze in the same month is rejected.
+        let twoDaysAgo = Calendar.current.date(byAdding: .day, value: -2, to: today)!
+        XCTAssertFalse(StreakFreezeService.applyFreeze(in: &profile, for: twoDaysAgo, now: today))
+    }
+
+    func test_streakFreeze_shieldsMissedDay() {
+        // Logged today + 2 days ago. Yesterday is missing — without
+        // a freeze the streak would break, with one it survives.
+        var profile = UserProfile.fresh
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let twoDaysAgo = cal.date(byAdding: .day, value: -2, to: today)!
+        for day in [today, twoDaysAgo] {
+            profile.mealHistory.append(MealEntry(
+                date: day, category: .lunch, name: "Lunch",
+                calories: 400, proteinG: 30, carbsG: 40, fatG: 10,
+                source: .openFoodFacts
+            ))
+        }
+        XCTAssertEqual(LifestyleDataLogic.mealLoggingStreak(in: profile, asOf: today), 1,
+                       "Yesterday gap should break the streak when no freeze is applied")
+
+        let yesterday = cal.date(byAdding: .day, value: -1, to: today)!
+        _ = StreakFreezeService.applyFreeze(in: &profile, for: yesterday, now: today)
+        XCTAssertEqual(LifestyleDataLogic.mealLoggingStreak(in: profile, asOf: today), 3,
+                       "Freeze should bridge the gap and extend the streak across 3 days")
+    }
+
     func test_offRateLimiter_allowsUpToCapThenDenies() async {
         // 3 calls / 60-second window — easier to assert than the
         // production 8/60s config without changing the algorithm.

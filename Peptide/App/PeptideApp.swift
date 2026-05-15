@@ -12,6 +12,7 @@ struct PeptideApp: App {
     @State private var notificationDelegate: NotificationDelegate?
     @State private var isUnlocked = false
     @Environment(\.scenePhase) private var scenePhase
+    @State private var travelChange: TimezoneChangeDetector.Change?
 
     init() {
         // SwiftUI's `AsyncImage` reads through `URLCache.shared`. The
@@ -98,6 +99,23 @@ struct PeptideApp: App {
                 appState.selectedTab = .home
                 appState.pendingFoodLogID = deepLink
             }
+            .sheet(item: $travelChange) { change in
+                TravelModePromptSheet(
+                    change: change,
+                    exampleShift: travelExampleShift(for: change),
+                    onShift: {
+                        dataStore.applyTravelShift(
+                            toTimezone: change.currentIdentifier,
+                            hoursDelta: change.hoursDelta
+                        )
+                        travelChange = nil
+                    },
+                    onKeep: {
+                        dataStore.acknowledgeTimezone(change.currentIdentifier)
+                        travelChange = nil
+                    }
+                )
+            }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background {
@@ -117,8 +135,41 @@ struct PeptideApp: App {
                 // start / end without needing the user to open the
                 // app to a specific tab.
                 DoseLiveActivityService.shared.reconcile(entries: dataStore.entries)
+                detectTimezoneChange()
             }
         }
+    }
+
+    /// One-shot travel detection on every transition to `.active`.
+    /// Reads the user's last-known zone from `dataStore.profile`,
+    /// hands it to `TimezoneChangeDetector`, and sets
+    /// `travelChange` (which drives the prompt sheet) only on a
+    /// real crossing. On a fresh install (no previous identifier)
+    /// we silently record the current zone so the next launch has
+    /// a baseline to compare against.
+    private func detectTimezoneChange() {
+        let stored = dataStore.profile.lastKnownTimezoneIdentifier
+        if stored == nil {
+            dataStore.acknowledgeTimezone(TimeZone.current.identifier)
+            return
+        }
+        if let change = TimezoneChangeDetector.detect(previousIdentifier: stored) {
+            travelChange = change
+        }
+    }
+
+    /// First active protocol's first preferred time, paired with
+    /// what it would shift to under the proposed delta. Returns
+    /// nil when the user has no active protocols (the prompt is
+    /// still useful — they can apply the shift before adding any).
+    private func travelExampleShift(
+        for change: TimezoneChangeDetector.Change
+    ) -> (original: String, shifted: String)? {
+        guard let firstActive = dataStore.activeProtocols.first,
+              let firstTime = firstActive.schedule.preferredTimes.first
+        else { return nil }
+        let shifted = TravelModeLogic.shiftTime(firstTime, byHours: change.hoursDelta)
+        return (firstTime, shifted)
     }
 
     private var coreTabView: some View {

@@ -921,6 +921,50 @@ final class DataStore: DataServiceProtocol {
         LabDataLogic.latestPerPanel(in: profile)
     }
 
+    // MARK: - Travel mode
+
+    /// Shifts every active protocol's preferred dose times by the
+    /// timezone delta. Use when the user opts to translate their
+    /// schedule to local clock after a flight. Also acknowledges
+    /// the new timezone so the prompt won't re-fire on the next
+    /// launch in the same zone. Regenerates today's entries so
+    /// the new times reflect immediately on the Home + Lifestyle
+    /// tabs, and re-schedules notifications via the standard save
+    /// path.
+    func applyTravelShift(toTimezone identifier: String, hoursDelta: Int) {
+        TravelModeLogic.shiftProtocolTimes(in: &protocols, byHours: hoursDelta)
+        TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
+        regenerateTodayEntries()
+        save()
+    }
+
+    /// User declined the schedule shift but acknowledged the
+    /// detection. Records the new identifier so we don't keep
+    /// re-prompting at every launch.
+    func acknowledgeTimezone(_ identifier: String) {
+        TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
+        save()
+    }
+
+    // MARK: - Streak freeze
+
+    /// True when the user has a freeze available this calendar
+    /// month. Drives the at-risk prompt's "Use freeze" button.
+    var streakFreezeAvailable: Bool {
+        StreakFreezeService.hasFreezeAvailable(in: profile)
+    }
+
+    /// Spends one freeze on the given calendar day (defaults to
+    /// yesterday — the day the user is trying to shield). Returns
+    /// true on success; false when no freeze is available or the
+    /// day is already covered.
+    @discardableResult
+    func applyStreakFreeze(for date: Date = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()) -> Bool {
+        let applied = StreakFreezeService.applyFreeze(in: &profile, for: date)
+        if applied { save() }
+        return applied
+    }
+
     // MARK: - Food library
 
     /// Adds (or replaces) a user-defined food in the library. Replace
