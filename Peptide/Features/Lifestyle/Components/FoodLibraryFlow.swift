@@ -809,6 +809,7 @@ struct FoodLibraryFlow: View {
                 .fill(AppColor.surfaceSecondary.opacity(0.3))
         }
         .opacity(0.6)
+        .shimmer()
     }
 
     // MARK: - Row variants
