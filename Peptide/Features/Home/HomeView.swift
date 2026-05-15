@@ -42,6 +42,10 @@ struct HomeView: View {
     /// the picker; the action enum drives which sheet actually mounts.
     @State private var showQuickLogDialog = false
     @State private var quickLogAction: QuickLogAction?
+    /// Bevel-style hero metric trio snapshot. Loaded async on first
+    /// appear + on each .active scene transition so the rings reflect
+    /// the freshest HealthKit reads without blocking the view body.
+    @State private var heroSnapshot: HeroMetricSnapshot = .empty
     @Environment(\.requestReview) private var requestReview
 
     private enum QuickLogAction: Identifiable {
@@ -141,6 +145,19 @@ struct HomeView: View {
                         )
                         .sectionAppear(index: 0)
                     }
+
+                    // Bevel-style hero trio — Adherence / Recovery /
+                    // Sleep. Replaces the single-ring "score" model
+                    // with three at-a-glance numbers that map to the
+                    // user's mental model from Whoop / Oura / Bevel.
+                    HeroMetricTrio(snapshot: heroSnapshot) { kind in
+                        // Tap-to-detail is intentional dead-end for now —
+                        // Phase 1.2 attaches an expanded detail sheet
+                        // per ring. The button affordance stays so the
+                        // gesture is discoverable.
+                        _ = kind
+                    }
+                    .sectionAppear(index: 0)
 
                     if overview.hasAnySignal {
                         TodayOverviewCard(
@@ -341,9 +358,17 @@ struct HomeView: View {
                 consumePendingDoseDeepLink()
                 consumeWeeklyDeepLink()
                 Task { await loadWeeklySummary(forceRefresh: false) }
+                Task { await refreshHeroSnapshot() }
             }
             .onChange(of: appState.pendingDoseLogEntryId) { _, _ in
                 consumePendingDoseDeepLink()
+            }
+            // Re-fetch the hero trio whenever today's adherence ratio
+            // shifts (a dose was logged/unlogged) so the Adherence
+            // ring reflects the action without waiting for a scene-
+            // phase round-trip.
+            .onChange(of: stats.score) { _, _ in
+                Task { await refreshHeroSnapshot() }
             }
             .onChange(of: appState.pendingWeeklyRecap) { _, _ in
                 consumeWeeklyDeepLink()
@@ -395,6 +420,18 @@ struct HomeView: View {
 
     private func showQuickLogMenu() {
         showQuickLogDialog = true
+    }
+
+    /// Rebuilds the hero metric trio snapshot. Adherence is read
+    /// synchronously from `todayStats`; Recovery + Sleep round-trip
+    /// to HealthKit. Cheap to call — the underlying queries are
+    /// cached for short windows by HealthKit itself.
+    private func refreshHeroSnapshot() async {
+        let snapshot = await HeroMetricSnapshot.build(
+            adherenceRatio: todayStats.score,
+            healthConnected: dataStore.profile.healthConnected
+        )
+        heroSnapshot = snapshot
     }
 
     @ViewBuilder
