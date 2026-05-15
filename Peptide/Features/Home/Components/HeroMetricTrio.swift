@@ -176,6 +176,16 @@ struct HeroMetricSnapshot: Equatable, Sendable {
     let recovery: HeroMetricValue
     let sleep: HeroMetricValue
     let healthConnected: Bool
+    /// Recovery score breakdown captured at build time so the
+    /// detail sheet can show "HRV vs baseline / Sleep vs target /
+    /// RHR vs baseline" without re-running the HealthKit reads.
+    /// Nil when HealthKit isn't connected or the score couldn't be
+    /// computed.
+    let recoveryComponents: RecoveryScoreEngine.Components?
+    /// Last-night sleep duration in hours, captured for the same
+    /// reason — the sleep detail sheet shows "Slept N h" without a
+    /// second HealthKit hop.
+    let lastSleepHours: Double?
 
     /// True when Recovery or Sleep are unavailable AND the user
     /// hasn't connected HealthKit. Drives the footer prompt. Once
@@ -189,7 +199,9 @@ struct HeroMetricSnapshot: Equatable, Sendable {
         adherence: .unavailable,
         recovery: .unavailable,
         sleep: .unavailable,
-        healthConnected: false
+        healthConnected: false,
+        recoveryComponents: nil,
+        lastSleepHours: nil
     )
 
     /// Builds the snapshot. Adherence is synchronous (uses the
@@ -207,7 +219,9 @@ struct HeroMetricSnapshot: Equatable, Sendable {
                 adherence: .percent(adherenceRatio),
                 recovery: .unavailable,
                 sleep: .unavailable,
-                healthConnected: false
+                healthConnected: false,
+                recoveryComponents: nil,
+                lastSleepHours: nil
             )
         }
 
@@ -242,7 +256,9 @@ struct HeroMetricSnapshot: Equatable, Sendable {
             adherence: .percent(adherenceRatio),
             recovery: recoveryValue,
             sleep: sleepValue,
-            healthConnected: true
+            healthConnected: true,
+            recoveryComponents: recoveryScore?.components,
+            lastSleepHours: inputs.lastSleepHours
         )
     }
 }
@@ -255,7 +271,9 @@ struct HeroMetricSnapshot: Equatable, Sendable {
                 adherence: .percent(0.75),
                 recovery: .percent(0.85),
                 sleep: .percent(0.82),
-                healthConnected: true
+                healthConnected: true,
+                recoveryComponents: .init(hrv: 0.9, sleep: 0.85, rhr: 0.6),
+                lastSleepHours: 7.5
             )
         )
         .padding(Spacing.lg)
@@ -271,7 +289,9 @@ struct HeroMetricSnapshot: Equatable, Sendable {
                 adherence: .percent(0.50),
                 recovery: .unavailable,
                 sleep: .unavailable,
-                healthConnected: false
+                healthConnected: false,
+                recoveryComponents: nil,
+                lastSleepHours: nil
             )
         )
         .padding(Spacing.lg)

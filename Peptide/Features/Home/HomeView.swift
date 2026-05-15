@@ -54,7 +54,16 @@ struct HomeView: View {
     /// each successful refresh of the hero + health-range snapshots
     /// so the user gets visible confirmation the dashboard is fresh.
     @State private var showSyncToast = false
+    /// Identifies which hero-trio ring the user tapped so the
+    /// detail sheet can route. Non-optional Identifiable wrapper so
+    /// `.sheet(item:)` does the right thing.
+    @State private var heroDetailKind: HeroDetailItem?
     @Environment(\.requestReview) private var requestReview
+
+    private struct HeroDetailItem: Identifiable {
+        let kind: HeroMetricKind
+        var id: HeroMetricKind { kind }
+    }
 
     private enum QuickLogAction: Identifiable {
         case meal, dose
@@ -174,11 +183,10 @@ struct HomeView: View {
                     // with three at-a-glance numbers that map to the
                     // user's mental model from Whoop / Oura / Bevel.
                     HeroMetricTrio(snapshot: heroSnapshot) { kind in
-                        // Tap-to-detail is intentional dead-end for now —
-                        // a future commit attaches an expanded detail
-                        // sheet per ring. The button affordance stays
-                        // so the gesture is discoverable.
-                        _ = kind
+                        if dataStore.profile.hapticFeedbackEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        heroDetailKind = HeroDetailItem(kind: kind)
                     }
                     .sectionAppear(index: 0)
 
@@ -428,6 +436,19 @@ struct HomeView: View {
                 }
             }
             .sheet(item: $quickLogAction, content: quickLogSheet)
+            .sheet(item: $heroDetailKind) { item in
+                HeroMetricDetailSheet(
+                    kind: item.kind,
+                    snapshot: heroSnapshot,
+                    context: .init(
+                        todayEntries: stats.entries,
+                        recoveryComponents: heroSnapshot.recoveryComponents,
+                        lastSleepHours: heroSnapshot.lastSleepHours,
+                        sleepTargetHours: 8.0
+                    )
+                )
+                .liquidGlassPresentation()
+            }
             .confirmationDialog(
                 "Quick log",
                 isPresented: $showQuickLogDialog,
