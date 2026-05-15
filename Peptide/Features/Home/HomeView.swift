@@ -277,13 +277,20 @@ struct HomeView: View {
                         .id(TodayJumpBar.SectionAnchor.movement)
                         .sectionAppear(index: 5)
 
+                    // Bevel-style chronological feed — doses + meals
+                    // + check-in + workouts merged into one sorted
+                    // list. Hides itself when the day has no events
+                    // (a brand-new install before the first log).
+                    TodayTimelineCard(events: timelineEvents)
+                        .sectionAppear(index: 6)
+
                     // Bevel-style Health Monitor grid — HRV / RHR /
                     // Sleep with personal-range indicators. Hides
                     // individual cards (or the whole grid) when
                     // there's not enough HealthKit history to render
                     // a meaningful range.
                     HealthMonitorGrid(snapshot: healthRange)
-                        .sectionAppear(index: 6)
+                        .sectionAppear(index: 7)
 
                     // The standalone bottom insight card used to live
                     // here; removed in this pass because TodayOverviewCard
@@ -487,6 +494,26 @@ struct HomeView: View {
 
     private func showQuickLogMenu() {
         showQuickLogDialog = true
+    }
+
+    /// Today's chronological event feed for `TodayTimelineCard`.
+    /// Pulls doses + meals + check-in + workouts and hands them
+    /// to the pure `TodayTimelineEvent.build` for sorting + row
+    /// construction. Recomputes cheaply on every body re-eval
+    /// (small lists, all in-memory).
+    private var timelineEvents: [TodayTimelineEvent] {
+        let now = Date()
+        let cal = Calendar.current
+        let workoutsToday = dataStore.profile.workoutHistory.filter { entry in
+            cal.isDate(entry.date, inSameDayAs: now)
+        }
+        return TodayTimelineEvent.build(
+            doses: dataStore.todayEntries,
+            meals: dataStore.mealEntries(),
+            checkIn: dataStore.outcome(),
+            workouts: workoutsToday,
+            now: now
+        )
     }
 
     /// Builds the coaching context from the current store + hero
