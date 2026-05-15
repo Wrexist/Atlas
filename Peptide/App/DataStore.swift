@@ -888,6 +888,35 @@ final class DataStore: DataServiceProtocol {
         LifestyleDataLogic.recentOutcomes(in: profile, days: days)
     }
 
+    // MARK: - Lab values
+
+    /// Saves a new lab entry or replaces an existing one matched
+    /// by id. The list keeps a newest-first sort order so list
+    /// views read without an extra sort pass.
+    func saveLabValue(_ value: LabValue) {
+        LabDataLogic.saveLabValue(into: &profile, value: value)
+        save()
+    }
+
+    /// Removes a lab entry by id. Idempotent — calling twice on
+    /// the same id is a no-op the second time.
+    func deleteLabValue(id: UUID) {
+        LabDataLogic.deleteLabValue(from: &profile, id: id)
+        save()
+    }
+
+    /// All entries for one panel, oldest-first. Used by the per-
+    /// panel chart view.
+    func labEntries(for panel: LabPanel) -> [LabValue] {
+        LabDataLogic.entries(in: profile, for: panel)
+    }
+
+    /// Most-recent value + trend direction for every panel the
+    /// user has logged. Drives the headline grid on the labs view.
+    var latestLabSummaries: [LabDataLogic.LatestSummary] {
+        LabDataLogic.latestPerPanel(in: profile)
+    }
+
     // MARK: - Food library
 
     /// Adds (or replaces) a user-defined food in the library. Replace

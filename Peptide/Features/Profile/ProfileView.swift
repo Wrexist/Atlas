@@ -6,6 +6,7 @@ struct ProfileView: View {
     @State private var achievementService = AchievementService.shared
     @State private var authService = AuthService.shared
     @State private var showReconstitutionCalculator = false
+    @State private var showLabs = false
 
     // Kept in sync with OnboardingView's `goals` array so a goal selected
     // during onboarding remains visible/editable here.
@@ -70,6 +71,13 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 6)
 
+                    LabsEntryCard(
+                        labCount: dataStore.profile.labHistory.count,
+                        panelCount: Set(dataStore.profile.labHistory.map(\.panel)).count,
+                        onTap: { showLabs = true }
+                    )
+                    .sectionAppear(index: 7)
+
                     ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
                         .sectionAppear(index: 7)
 
@@ -93,6 +101,10 @@ struct ProfileView: View {
             .task { await authService.validateCredential() }
             .sheet(isPresented: $showReconstitutionCalculator) {
                 ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
+            }
+            .sheet(isPresented: $showLabs) {
+                LabsView()
+                    .environment(dataStore)
             }
         }
     }

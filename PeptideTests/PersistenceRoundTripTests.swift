@@ -602,6 +602,77 @@ final class PersistenceRoundTripTests: XCTestCase {
         ))
     }
 
+    func test_saveLabValue_replacesByIdAndSortsNewestFirst() {
+        var profile = UserProfile.fresh
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let id = UUID()
+
+        let v1 = LabValue(
+            id: id, date: today, panel: .totalTestosterone, value: 600
+        )
+        let oldDate = calendar.date(byAdding: .day, value: -30, to: today)!
+        let v2 = LabValue(
+            date: oldDate, panel: .totalTestosterone, value: 480
+        )
+        LabDataLogic.saveLabValue(into: &profile, value: v1)
+        LabDataLogic.saveLabValue(into: &profile, value: v2)
+        XCTAssertEqual(profile.labHistory.count, 2)
+        XCTAssertEqual(profile.labHistory.first?.id, id, "Newest entry should sort first")
+
+        // Update v1's value — should replace, not duplicate.
+        let v1Revised = LabValue(
+            id: id, date: today, panel: .totalTestosterone, value: 720
+        )
+        LabDataLogic.saveLabValue(into: &profile, value: v1Revised)
+        XCTAssertEqual(profile.labHistory.count, 2)
+        XCTAssertEqual(profile.labHistory.first?.value, 720)
+    }
+
+    func test_labTrend_stable_belowFivePercentDelta() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let prev = LabValue(
+            date: calendar.date(byAdding: .day, value: -30, to: today)!,
+            panel: .totalTestosterone, value: 600
+        )
+        let nextWithin = LabValue(
+            date: today, panel: .totalTestosterone, value: 620   // ~3.3% delta
+        )
+        XCTAssertEqual(LabDataLogic.computeTrend(entries: [prev, nextWithin]), .stable)
+
+        let nextRising = LabValue(
+            date: today, panel: .totalTestosterone, value: 720   // 20% delta
+        )
+        if case .rising(let delta) = LabDataLogic.computeTrend(entries: [prev, nextRising]) {
+            XCTAssertEqual(delta, 120, accuracy: 0.01)
+        } else {
+            XCTFail("Expected rising trend for +20% delta")
+        }
+    }
+
+    func test_latestPerPanel_returnsMostRecentPerPanelAndPreservesCategoryOrder() {
+        var profile = UserProfile.fresh
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let yesterday = cal.date(byAdding: .day, value: -1, to: today)!
+
+        LabDataLogic.saveLabValue(into: &profile, value:
+            LabValue(date: yesterday, panel: .totalTestosterone, value: 480)
+        )
+        LabDataLogic.saveLabValue(into: &profile, value:
+            LabValue(date: today, panel: .totalTestosterone, value: 720)
+        )
+        LabDataLogic.saveLabValue(into: &profile, value:
+            LabValue(date: today, panel: .igf1, value: 220)
+        )
+
+        let summaries = LabDataLogic.latestPerPanel(in: profile)
+        XCTAssertEqual(summaries.count, 2)
+        let tt = summaries.first(where: { $0.latest.panel == .totalTestosterone })
+        XCTAssertEqual(tt?.latest.value, 720, "Most recent value should win")
+    }
+
     func test_offRateLimiter_allowsUpToCapThenDenies() async {
         // 3 calls / 60-second window — easier to assert than the
         // production 8/60s config without changing the algorithm.

@@ -288,6 +288,12 @@ struct UserProfile: Codable {
     /// `LifestyleDataLogic.logOutcome`. Newest-last so chronological
     /// iteration matches visual timeline order.
     var outcomeHistory: [OutcomeEntry]
+    /// Blood-work entries — the optimisation cohort's signal for
+    /// "is this protocol moving real biomarkers?" Multiple entries
+    /// per panel allowed (one per draw date); ordering enforced on
+    /// the view side. CloudKit-synced so a user can see their full
+    /// labs history on any device.
+    var labHistory: [LabValue]
 
     init(
         name: String,
@@ -312,7 +318,8 @@ struct UserProfile: Codable {
         favoriteFoodIDs: Set<String> = [],
         mealHistory: [MealEntry] = [],
         healthKitNutritionEnabled: Bool = false,
-        outcomeHistory: [OutcomeEntry] = []
+        outcomeHistory: [OutcomeEntry] = [],
+        labHistory: [LabValue] = []
     ) {
         self.name = name
         self.goals = goals
@@ -337,6 +344,7 @@ struct UserProfile: Codable {
         self.mealHistory = mealHistory
         self.healthKitNutritionEnabled = healthKitNutritionEnabled
         self.outcomeHistory = outcomeHistory
+        self.labHistory = labHistory
     }
 
     init(from decoder: Decoder) throws {
@@ -366,6 +374,7 @@ struct UserProfile: Codable {
         mealHistory = try container.decodeIfPresent([MealEntry].self, forKey: .mealHistory) ?? []
         healthKitNutritionEnabled = try container.decodeIfPresent(Bool.self, forKey: .healthKitNutritionEnabled) ?? false
         outcomeHistory = try container.decodeIfPresent([OutcomeEntry].self, forKey: .outcomeHistory) ?? []
+        labHistory = try container.decodeIfPresent([LabValue].self, forKey: .labHistory) ?? []
     }
 
     static var fresh: UserProfile {
