@@ -1068,6 +1068,44 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertTrue(decoded.protocolNotes.isEmpty)
     }
 
+    func test_whatsNewService_freshInstallStampsAndSuppressesTour() {
+        let suiteName = "whatsNewServiceTest.fresh.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let service = WhatsNewService(defaults: defaults)
+
+        // Fresh install: no stamp, onboarding not done. Bootstrap
+        // should stamp preemptively.
+        service.bootstrapForFreshInstallIfNeeded(hasCompletedOnboarding: false)
+        XCTAssertFalse(service.shouldShowTour(hasCompletedOnboarding: true),
+                       "Fresh install should not see the tour after onboarding")
+    }
+
+    func test_whatsNewService_returningUserSeesTourOnce() {
+        let suiteName = "whatsNewServiceTest.returning.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let service = WhatsNewService(defaults: defaults)
+
+        // Returning user: hasCompletedOnboarding = true on the
+        // first call (existing install pre-update). Bootstrap
+        // skips. shouldShowTour returns true.
+        service.bootstrapForFreshInstallIfNeeded(hasCompletedOnboarding: true)
+        XCTAssertTrue(service.shouldShowTour(hasCompletedOnboarding: true))
+
+        // Marking seen suppresses the next launch.
+        service.markCurrentTourSeen()
+        XCTAssertFalse(service.shouldShowTour(hasCompletedOnboarding: true))
+    }
+
+    func test_whatsNewService_doesNotFireWhenOnboardingIncomplete() {
+        let suiteName = "whatsNewServiceTest.onboarding.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let service = WhatsNewService(defaults: defaults)
+        XCTAssertFalse(service.shouldShowTour(hasCompletedOnboarding: false))
+    }
+
     func test_offRateLimiter_allowsUpToCapThenDenies() async {
         // 3 calls / 60-second window — easier to assert than the
         // production 8/60s config without changing the algorithm.

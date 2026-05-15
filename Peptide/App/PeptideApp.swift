@@ -13,6 +13,9 @@ struct PeptideApp: App {
     @State private var isUnlocked = false
     @Environment(\.scenePhase) private var scenePhase
     @State private var travelChange: TimezoneChangeDetector.Change?
+    /// Drives the "What's New" splash. Set on first launch after
+    /// an update, cleared once the user finishes the tour.
+    @State private var showWhatsNewTour: Bool = false
 
     init() {
         // SwiftUI's `AsyncImage` reads through `URLCache.shared`. The
@@ -119,6 +122,23 @@ struct PeptideApp: App {
                     }
                 )
             }
+            .sheet(isPresented: $showWhatsNewTour) {
+                // Full-screen, drag-to-dismiss disabled — the tour
+                // is a deliberate one-time read, not an
+                // afterthought sheet. Swipe-down would otherwise
+                // dismiss before the user reaches the "Get
+                // started" button on the last page, and the
+                // version stamp wouldn't land — they'd see it
+                // again on the next launch.
+                WhatsNewTourSheet(
+                    pages: WhatsNewPage.v2,
+                    onComplete: {
+                        WhatsNewService.shared.markCurrentTourSeen()
+                        showWhatsNewTour = false
+                    }
+                )
+                .interactiveDismissDisabled()
+            }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background {
@@ -139,7 +159,39 @@ struct PeptideApp: App {
                 // app to a specific tab.
                 DoseLiveActivityService.shared.reconcile(entries: dataStore.entries)
                 detectTimezoneChange()
+                maybePresentWhatsNewTour()
             }
+        }
+    }
+
+    /// Presents the "What's New" tour exactly once per version
+    /// bump for existing users. Fresh installs (i.e. users who
+    /// haven't finished onboarding yet) are excluded — the
+    /// regular onboarding flow already covers the basics, and
+    /// double-stacking sheets at first launch would feel
+    /// overwhelming. A small delay lets any other launch-time
+    /// sheet (Live Activity reconcile, biometric unlock) settle
+    /// first so the tour reads as the headline event, not a
+    /// jump-cut.
+    private func maybePresentWhatsNewTour() {
+        // First-launch bootstrap: stamp the current version on a
+        // brand-new install so the post-onboarding launch doesn't
+        // double up with a tour the regular onboarding already
+        // covered. Idempotent after the first stamp.
+        WhatsNewService.shared.bootstrapForFreshInstallIfNeeded(
+            hasCompletedOnboarding: hasCompletedOnboarding
+        )
+
+        guard !showWhatsNewTour,
+              WhatsNewService.shared.shouldShowTour(hasCompletedOnboarding: hasCompletedOnboarding)
+        else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(450))
+            // Re-check inside the Task — another launch in the
+            // same scene tick could have already presented the
+            // sheet, and we don't want a double-present race.
+            guard !showWhatsNewTour else { return }
+            showWhatsNewTour = true
         }
     }
 
