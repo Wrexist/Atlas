@@ -50,6 +50,10 @@ struct HomeView: View {
     /// personal-range envelopes. Same refresh cadence as the hero
     /// trio so a freshly-synced HealthKit write updates both at once.
     @State private var healthRange: HealthRangeService.Snapshot = .init(hrv: nil, rhr: nil, sleep: nil)
+    /// Drives the Bevel-style "Sync Complete" toast. Set true after
+    /// each successful refresh of the hero + health-range snapshots
+    /// so the user gets visible confirmation the dashboard is fresh.
+    @State private var showSyncToast = false
     @Environment(\.requestReview) private var requestReview
 
     private enum QuickLogAction: Identifiable {
@@ -368,6 +372,13 @@ struct HomeView: View {
                     AchievementToastView(achievement: achievement, isShowing: $showAchievementToast)
                 }
             }
+            .overlay(alignment: .top) {
+                // Bevel-style sync-complete pill. The toast manages
+                // its own auto-dismiss timer (2.4s) so we just bind
+                // the visibility flag and forget about it.
+                SyncToast(isShowing: $showSyncToast)
+                    .padding(.top, Spacing.sm)
+            }
             .onChange(of: achievementService.latestUnlock?.id) { _, newId in
                 if let newId, let achievement = achievementService.achievements.first(where: { $0.id == newId }) {
                     toastAchievement = achievement
@@ -504,6 +515,13 @@ struct HomeView: View {
             return
         }
         healthRange = await HealthRangeService.build()
+        // Surface the Bevel-style "Sync Complete" toast only when the
+        // refresh actually produced at least one card — avoids the
+        // false-positive of "synced!" on a brand-new install that
+        // has no HealthKit data yet.
+        if healthRange.hrv != nil || healthRange.rhr != nil || healthRange.sleep != nil {
+            showSyncToast = true
+        }
     }
 
     @ViewBuilder
