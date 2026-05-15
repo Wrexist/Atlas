@@ -117,7 +117,26 @@ final class DataStore: DataServiceProtocol {
             performSaveNow()
         }
         // else: clean slate — already set to [] and .fresh above
+
+        // Self-register the current instance so App Intents and
+        // other extension-style entry points can reach the running
+        // store from outside the View hierarchy. Setting at the end
+        // of init means callers never see a half-initialised store.
+        Self.current = self
     }
+
+    /// The currently-active `DataStore`, set by `init` and consumed
+    /// by code that can't go through SwiftUI's `@Environment` —
+    /// notably App Intents (Siri / Shortcuts / Action Button), which
+    /// run in the app's process but outside the view tree.
+    ///
+    /// `Optional` rather than force-construct because intents can in
+    /// theory fire before the SwiftUI scene's init completes the
+    /// `_dataStore = State(...)` wrapping. Callers should fall
+    /// through to "create a fresh one" (`DataStore()` reads from
+    /// disk) on a nil read.
+    @ObservationIgnored
+    static var current: DataStore?
 
     // MARK: - Peptide Database
 

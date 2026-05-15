@@ -1,246 +1,312 @@
 import AppIntents
 import Foundation
 
-// MARK: - Next Dose Intent
+// PeptideX's App Intents surface. Each intent owns its own
+// presentation logic; the entity types (`PeptideEntity`,
+// `FoodEntity`) and the data-access helper (`IntentDataStore`)
+// live in sibling files so multiple intents can share them.
+//
+// Naming convention:
+//   • `Show...Intent` = read-only, returns a Siri dialog (+ value
+//     for the Shortcuts pipeline when useful)
+//   • `Log...Intent`  = side-effecting, hops to MainActor through
+//     `IntentDataStore` and force-flushes the save before
+//     returning so the change is durable.
+
+// MARK: - Next Dose
 
 struct NextDoseIntent: AppIntent {
-    static let title: LocalizedStringResource = "What's My Next Dose?"
-    static let description = IntentDescription("Shows your next scheduled peptide dose")
+    static let title: LocalizedStringResource = "Show next dose"
+    static let description = IntentDescription(
+        "Tells you the next scheduled peptide dose for today.",
+        categoryName: "Doses"
+    )
     static let openAppWhenRun: Bool = false
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let snapshot = await IntentDataSnapshot.load()
-        if snapshot.isLocked { return .result(dialog: "Open PeptideX to view your next dose.") }
-        guard !snapshot.protocols.isEmpty else {
-            return .result(dialog: "No protocols found. Open PeptideX to get started.")
+        let snapshot: NextDoseReadout = await MainActor.run {
+            let store = IntentDataStore.resolve()
+            guard let next = store.nextDose else { return .allDone }
+            return .upcoming(name: next.peptide.name, dose: next.dose, date: next.date)
         }
 
-        let calendar = Calendar.current
-        let now = Date()
-        let activeIds = Set(snapshot.protocols.filter { $0.status == .active }.map(\.id))
-        let todayEntries = snapshot.entries
-            .filter { calendar.isDateInToday($0.date) && activeIds.contains($0.protocolId) && !$0.completed }
-            .sorted { $0.date < $1.date }
-
-        guard let next = todayEntries.first(where: { $0.date > now }) ?? todayEntries.first else {
-            return .result(dialog: "All doses completed for today! Great job.")
+        switch snapshot {
+        case .allDone:
+            return .result(dialog: IntentDialog(
+                LocalizedStringResource(
+                    "You've logged everything for today. Nice work.",
+                    comment: "Siri response when no doses remain today."
+                )
+            ))
+        case .upcoming(let name, let dose, let date):
+            let time = date.formatted(date: .omitted, time: .shortened)
+            let relative = Self.relativePhrase(for: date)
+            return .result(dialog: IntentDialog(
+                LocalizedStringResource(
+                    "Next up: \(name), \(dose), at \(time). \(relative).",
+                    comment: "Siri readout of the next scheduled dose."
+                )
+            ))
         }
+    }
 
-        let timeStr = next.date.formatted(.dateTime.hour().minute())
-        return .result(dialog: "Next up: \(next.peptide.abbreviation) \(next.dose) at \(timeStr)")
+    private static func relativePhrase(for date: Date) -> String {
+        let interval = date.timeIntervalSinceNow
+        if abs(interval) < 60 {
+            return String(localized: "Now")
+        }
+        if interval < 0 {
+            return String(localized: "Earlier today")
+        }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.dateTimeStyle = .named
+        formatter.unitsStyle = .full
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    private enum NextDoseReadout {
+        case allDone
+        case upcoming(name: String, dose: String, date: Date)
     }
 }
 
-// MARK: - Compliance Intent
+// MARK: - Compliance
 
 struct ComplianceIntent: AppIntent {
-    static let title: LocalizedStringResource = "How's My Compliance?"
-    static let description = IntentDescription("Shows your current compliance stats")
+    static let title: LocalizedStringResource = "Show compliance"
+    static let description = IntentDescription(
+        "Reads back your 7-day peptide compliance.",
+        categoryName: "Doses"
+    )
     static let openAppWhenRun: Bool = false
 
-    func perform() async throws -> some IntentResult & ProvidesDialog {
-        let snapshot = await IntentDataSnapshot.load()
-        if snapshot.isLocked { return .result(dialog: "Open PeptideX to view your compliance.") }
-        let calendar = Calendar.current
-        guard let cutoff = calendar.date(byAdding: .day, value: -7, to: Date()) else {
-            return .result(dialog: "Couldn't compute the compliance window.")
-        }
-        let activeIds = Set(snapshot.protocols.filter { $0.status == .active }.map(\.id))
-        let last7Days = snapshot.entries.filter {
-            $0.date >= cutoff && activeIds.contains($0.protocolId)
-        }
-        guard !last7Days.isEmpty else {
-            return .result(dialog: "No recent data. Start logging doses in PeptideX.")
-        }
-
-        let compliance = Double(last7Days.filter(\.completed).count) / Double(last7Days.count)
-        let percentage = Int(compliance * 100)
-        return .result(dialog: "Your 7-day compliance is \(percentage)%. Keep it up!")
-    }
-}
-
-// MARK: - Log Dose Intent
-
-struct LogDoseIntent: AppIntent {
-    static let title: LocalizedStringResource = "Log My Dose"
-    static let description = IntentDescription("Marks your next scheduled dose as taken")
-    static let openAppWhenRun: Bool = true
-
-    func perform() async throws -> some IntentResult & ProvidesDialog {
-        return .result(dialog: "Opening PeptideX...")
-    }
-}
-
-// MARK: - Log Specific Peptide Intent (parameterized)
-
-/// Parameterized variant — "Log my BPC-157" via Siri. Takes a peptide
-/// name string and disambiguates against the active stack so the user
-/// doesn't have to repeat the full name. Routes through the app on
-/// success so the user can confirm the dose details before persisting.
-struct LogSpecificPeptideIntent: AppIntent {
-    static let title: LocalizedStringResource = "Log a Peptide"
-    static let description = IntentDescription("Logs a dose for a specific peptide in your active stack")
-    static let openAppWhenRun: Bool = true
-
-    @Parameter(title: "Peptide", description: "Compound abbreviation or name")
-    var peptideName: String
-
-    func perform() async throws -> some IntentResult & ProvidesDialog {
-        let snapshot = await IntentDataSnapshot.load()
-        let needle = peptideName.lowercased()
-        let active = snapshot.protocols.filter { $0.status == .active }
-        let candidates: [Peptide] = active
-            .flatMap(\.peptides)
-            .filter { $0.name.lowercased().contains(needle) || $0.abbreviation.lowercased().contains(needle) }
-        guard let match = candidates.first else {
-            return .result(dialog: "Couldn't find \(peptideName) in your active stack.")
-        }
-        return .result(dialog: "Opening \(match.abbreviation) so you can confirm the dose.")
-    }
-}
-
-// MARK: - Today Macros Intent
-
-/// "What are my macros today?" — surfaces the calorie + protein totals
-/// from the Lifestyle tab's daily consumption bucket so the user can
-/// check progress without opening the app.
-struct TodayMacrosIntent: AppIntent {
-    static let title: LocalizedStringResource = "Today's Macros"
-    static let description = IntentDescription("Shows your calories and protein eaten today")
-    static let openAppWhenRun: Bool = false
-
-    func perform() async throws -> some IntentResult & ProvidesDialog {
-        let snapshot = await IntentDataSnapshot.load()
-        if snapshot.isLocked { return .result(dialog: "Open PeptideX to view today's macros.") }
-        guard let consumption = snapshot.todaysConsumption else {
-            return .result(dialog: "No meals logged today. Open PeptideX to scan one.")
-        }
-        let summary = "Today: \(consumption.caloriesKcal) kcal, \(consumption.proteinG) g protein."
-        return .result(dialog: IntentDialog(stringLiteral: summary))
-    }
-}
-
-// MARK: - Snapshot
-
-/// Reads protocols/entries from the SwiftData store on the main actor so AppIntents
-/// see the same data the live app does. Falls back to legacy JSON files only when
-/// SwiftData is empty (pre-migration), to maintain compatibility for users who haven't
-/// reopened the app after upgrading.
-private struct IntentDataSnapshot {
-    let protocols: [PeptideProtocol]
-    let entries: [ProtocolEntry]
-    let todaysConsumption: DailyConsumption?
-    /// True when the user has opted into biometric lock. Intents that
-    /// expose health-adjacent data should bail with a generic "open
-    /// PeptideX" message in that case so a bystander on an unlocked
-    /// device can't bypass the lock via Siri.
-    let isLocked: Bool
-
-    @MainActor
-    static func load() -> IntentDataSnapshot {
-        let repo = SwiftDataRepository.shared
-        let protocols = repo.loadProtocols()
-        let entries = repo.loadEntries()
-        // Read profile from SwiftData first — that's the live source of
-        // truth post-migration. The legacy JSON via PersistenceService
-        // may be stale or missing, which (per Codex review on PR #104)
-        // could leave `locked = false` even with biometric lock enabled.
-        let swiftDataProfile = repo.loadProfile()
-        let legacyProfile = PersistenceService.shared.loadProfile()
-        let profile = swiftDataProfile ?? legacyProfile
-        let key = todayConsumptionKey()
-        let consumption = profile?.dailyConsumption[key]
-        let locked = profile?.biometricLockEnabled ?? false
-
-        if !protocols.isEmpty || !entries.isEmpty {
-            return IntentDataSnapshot(
-                protocols: protocols,
-                entries: entries,
-                todaysConsumption: consumption,
-                isLocked: locked
+    func perform() async throws -> some IntentResult & ProvidesDialog & ReturnsValue<Int> {
+        let snapshot: ComplianceReadout = await MainActor.run {
+            let store = IntentDataStore.resolve()
+            let fraction = EntryAnalytics.weeklyComplianceFraction(in: store.entries)
+            return ComplianceReadout(
+                percent: Int((fraction * 100).rounded()),
+                hasData: !store.entries.isEmpty
             )
         }
 
-        // Fallback: data is still in legacy JSON (migration hasn't run yet).
-        let persistence = PersistenceService.shared
-        return IntentDataSnapshot(
-            protocols: persistence.loadProtocols() ?? [],
-            entries: persistence.loadEntries() ?? [],
-            todaysConsumption: consumption,
-            isLocked: locked
-        )
+        guard snapshot.hasData else {
+            return .result(value: 0, dialog: IntentDialog(
+                LocalizedStringResource(
+                    "No recent data. Start logging doses in PeptideX.",
+                    comment: "Siri response when there are no entries yet."
+                )
+            ))
+        }
+        return .result(value: snapshot.percent, dialog: IntentDialog(
+            LocalizedStringResource(
+                "Your 7-day compliance is \(snapshot.percent) percent. Keep it up.",
+                comment: "Siri readout — weekly compliance percentage."
+            )
+        ))
     }
 
-    /// Mirrors LifestyleDataLogic.consumptionKey — pin to the local timezone
-    /// so a late-night Siri query asks about the user's wall-clock today,
-    /// not UTC's. Kept duplicated here (rather than calling through) so the
-    /// Intents target doesn't have to import the app's LifestyleDataLogic
-    /// module — Intents resolve in a separate extension process.
-    private static func todayConsumptionKey() -> String {
-        let day = Calendar.current.startOfDay(for: Date())
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withFullDate]
-        formatter.timeZone = Calendar.current.timeZone
-        return formatter.string(from: day)
+    private struct ComplianceReadout {
+        let percent: Int
+        let hasData: Bool
+    }
+}
+
+// MARK: - Log Dose
+
+/// "Log my [peptide] dose" — primary voice / Action Button surface.
+///
+/// Marks today's first incomplete dose of the chosen peptide as
+/// complete, mirroring the in-app tap on a `DoseRowView` checkmark.
+/// Earliest-incomplete picking lets a user with morning + evening
+/// doses say "log my BPC-157" twice and hit both without
+/// disambiguation.
+struct LogDoseIntent: AppIntent {
+    static let title: LocalizedStringResource = "Log peptide dose"
+    static let description = IntentDescription(
+        "Marks the next scheduled dose of a peptide as completed.",
+        categoryName: "Doses"
+    )
+    static let openAppWhenRun: Bool = false
+
+    @Parameter(
+        title: "Peptide",
+        description: "Which peptide to log a dose for.",
+        requestValueDialog: IntentDialog("Which peptide?")
+    )
+    var peptide: PeptideEntity
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let chosenID = peptide.id
+        let chosenName = peptide.displayName
+
+        let resolution: ToggleResolution = await MainActor.run {
+            let store = IntentDataStore.resolve()
+            let candidate = store.todayEntries
+                .sorted { $0.date < $1.date }
+                .first { !$0.completed && $0.peptide.id.uuidString == chosenID }
+            guard let entry = candidate else { return .nothingToLog }
+            store.toggleEntry(entry.id)
+            store.flushPendingSave()
+            return .logged(at: entry.date, dose: entry.dose)
+        }
+
+        switch resolution {
+        case .nothingToLog:
+            return .result(dialog: IntentDialog(
+                LocalizedStringResource(
+                    "No more \(chosenName) doses scheduled for today.",
+                    comment: "Siri response when no doses remain."
+                )
+            ))
+        case .logged(let date, let dose):
+            let time = date.formatted(date: .omitted, time: .shortened)
+            return .result(dialog: IntentDialog(
+                LocalizedStringResource(
+                    "Logged \(chosenName) \(dose) at \(time).",
+                    comment: "Siri confirmation after marking a dose complete."
+                )
+            ))
+        }
+    }
+
+    private enum ToggleResolution {
+        case logged(at: Date, dose: String)
+        case nothingToLog
+    }
+}
+
+// MARK: - Today Macros
+
+struct TodayMacrosIntent: AppIntent {
+    static let title: LocalizedStringResource = "Show today's nutrition"
+    static let description = IntentDescription(
+        "Reads back today's calories, protein, carbs, and fat against your targets.",
+        categoryName: "Nutrition"
+    )
+    static let openAppWhenRun: Bool = false
+
+    func perform() async throws -> some IntentResult & ProvidesDialog & ReturnsValue<Int> {
+        let snapshot: MacrosReadout = await MainActor.run {
+            let store = IntentDataStore.resolve()
+            let consumed = store.consumption()
+            let targets = store.profile.nutritionTargets
+            return MacrosReadout(
+                calories: consumed.caloriesKcal,
+                calorieTarget: targets?.calories ?? 0,
+                protein: consumed.proteinG,
+                carbs: consumed.carbsG,
+                fat: consumed.fatG
+            )
+        }
+
+        let dialog: IntentDialog
+        if snapshot.calorieTarget > 0 {
+            let remaining = max(0, snapshot.calorieTarget - snapshot.calories)
+            dialog = IntentDialog(
+                LocalizedStringResource(
+                    "\(snapshot.calories) of \(snapshot.calorieTarget) calories. \(remaining) remaining. \(snapshot.protein) grams protein, \(snapshot.carbs) grams carbs, \(snapshot.fat) grams fat.",
+                    comment: "Siri readout — calorie totals against target plus macro line."
+                )
+            )
+        } else {
+            dialog = IntentDialog(
+                LocalizedStringResource(
+                    "\(snapshot.calories) calories so far. \(snapshot.protein) grams protein, \(snapshot.carbs) grams carbs, \(snapshot.fat) grams fat.",
+                    comment: "Siri readout when no calorie target is set."
+                )
+            )
+        }
+        return .result(value: snapshot.calories, dialog: dialog)
+    }
+
+    private struct MacrosReadout {
+        let calories: Int
+        let calorieTarget: Int
+        let protein: Int
+        let carbs: Int
+        let fat: Int
     }
 }
 
 // MARK: - App Shortcuts Provider
 
+/// Registers every intent with the system. Apple permits a single
+/// `AppShortcutsProvider` per app target; collapsing the
+/// dose-shortcuts + nutrition-shortcuts surfaces here keeps that
+/// constraint satisfied while letting both sets share the same
+/// pleasant invocation phrases.
 struct PeptideShortcuts: AppShortcutsProvider {
+
+    static var shortcutTileColor: ShortcutTileColor = .lightBlue
+
     static var appShortcuts: [AppShortcut] {
+        AppShortcut(
+            intent: LogDoseIntent(),
+            phrases: [
+                "Log a \(.applicationName) dose",
+                "Log my dose in \(.applicationName)",
+                "Mark my peptide complete in \(.applicationName)",
+            ],
+            shortTitle: "Log Dose",
+            systemImageName: "syringe.fill"
+        )
         AppShortcut(
             intent: NextDoseIntent(),
             phrases: [
-                "What's my next dose in \(.applicationName)",
-                "Next peptide dose in \(.applicationName)",
-                "When is my next dose \(.applicationName)",
+                "What's my next \(.applicationName) dose",
+                "Next dose in \(.applicationName)",
+                "When is my next peptide in \(.applicationName)",
             ],
             shortTitle: "Next Dose",
-            systemImageName: "syringe.fill"
+            systemImageName: "clock.badge.fill"
         )
         AppShortcut(
             intent: ComplianceIntent(),
             phrases: [
                 "How's my compliance in \(.applicationName)",
-                "Check my peptide compliance \(.applicationName)",
-                "My compliance stats \(.applicationName)",
+                "Check my \(.applicationName) compliance",
+                "Show \(.applicationName) stats",
             ],
             shortTitle: "Compliance",
             systemImageName: "chart.bar.fill"
         )
         AppShortcut(
-            intent: LogDoseIntent(),
+            intent: ShowStreakIntent(),
             phrases: [
-                "Log my dose in \(.applicationName)",
-                "Mark dose as taken \(.applicationName)",
+                "Show my \(.applicationName) streak",
+                "What's my streak in \(.applicationName)",
             ],
-            shortTitle: "Log Dose",
-            systemImageName: "checkmark.circle.fill"
+            shortTitle: "Streaks",
+            systemImageName: "flame.fill"
         )
-        // Phrases for this intent intentionally don't interpolate the
-        // `peptideName` parameter — AppShortcut phrase interpolation
-        // requires the parameter type to be AppEntity or AppEnum, but
-        // peptideName is a free-form String so users can match against
-        // both the bundled database and custom peptides. Siri will
-        // prompt the user for the peptide on invocation instead.
         AppShortcut(
-            intent: LogSpecificPeptideIntent(),
+            intent: LogWaterIntent(),
             phrases: [
-                "Log a peptide in \(.applicationName)",
-                "Take a peptide in \(.applicationName)",
+                "Log water in \(.applicationName)",
+                "Add water in \(.applicationName)",
+                "Log a glass of water in \(.applicationName)",
             ],
-            shortTitle: "Log Specific Peptide",
-            systemImageName: "syringe"
+            shortTitle: "Log Water",
+            systemImageName: "drop.fill"
         )
         AppShortcut(
             intent: TodayMacrosIntent(),
             phrases: [
-                "What are my macros today in \(.applicationName)",
-                "How many calories have I eaten today in \(.applicationName)",
-                "Today's protein in \(.applicationName)",
+                "Show my calories in \(.applicationName)",
+                "How many calories in \(.applicationName)",
+                "Today's nutrition in \(.applicationName)",
             ],
-            shortTitle: "Today's Macros",
+            shortTitle: "Today's Nutrition",
+            systemImageName: "fork.knife"
+        )
+        AppShortcut(
+            intent: LogMealIntent(),
+            phrases: [
+                "Log a meal in \(.applicationName)",
+                "Log my food in \(.applicationName)",
+            ],
+            shortTitle: "Log Meal",
             systemImageName: "fork.knife.circle.fill"
         )
     }
