@@ -182,12 +182,16 @@ struct HomeView: View {
                     // Sleep. Replaces the single-ring "score" model
                     // with three at-a-glance numbers that map to the
                     // user's mental model from Whoop / Oura / Bevel.
-                    HeroMetricTrio(snapshot: heroSnapshot) { kind in
-                        if dataStore.profile.hapticFeedbackEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        }
-                        heroDetailKind = HeroDetailItem(kind: kind)
-                    }
+                    HeroMetricTrio(
+                        snapshot: heroSnapshot,
+                        onTapRing: { kind in
+                            if dataStore.profile.hapticFeedbackEnabled {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            }
+                            heroDetailKind = HeroDetailItem(kind: kind)
+                        },
+                        hapticsEnabled: dataStore.profile.hapticFeedbackEnabled
+                    )
                     .sectionAppear(index: 0)
 
                     // Coaching line — turns the trio's three numbers
