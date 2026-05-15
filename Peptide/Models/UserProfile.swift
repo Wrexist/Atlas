@@ -323,6 +323,16 @@ struct UserProfile: Codable {
     /// great after BPC today" or "side-effect: mild headache"
     /// without the user reaching for a separate notes app.
     var protocolNotes: [ProtocolNote]
+    /// User-controlled opt-out for the AI weekly summary feature
+    /// (Pro-only, defaults to on). Surfaces as a toggle on the
+    /// Profile → Settings row. Set to `false` to suppress both
+    /// the Sunday notification and the on-device Today card.
+    var weeklySummaryEnabled: Bool
+    /// Cached weekly summaries keyed by ISO week-start ("yyyy-MM-dd"
+    /// of the Monday). One entry per generated week — capped on
+    /// write to the most-recent 26 weeks so the JSON stays small
+    /// (~13 KB at full cap).
+    var weeklySummaries: [String: WeeklySummary]
 
     init(
         name: String,
@@ -352,7 +362,9 @@ struct UserProfile: Codable {
         lastKnownTimezoneIdentifier: String? = nil,
         streakFreezeDays: Set<String> = [],
         recipes: [Recipe] = [],
-        protocolNotes: [ProtocolNote] = []
+        protocolNotes: [ProtocolNote] = [],
+        weeklySummaryEnabled: Bool = true,
+        weeklySummaries: [String: WeeklySummary] = [:]
     ) {
         self.name = name
         self.goals = goals
@@ -382,6 +394,8 @@ struct UserProfile: Codable {
         self.streakFreezeDays = streakFreezeDays
         self.recipes = recipes
         self.protocolNotes = protocolNotes
+        self.weeklySummaryEnabled = weeklySummaryEnabled
+        self.weeklySummaries = weeklySummaries
     }
 
     init(from decoder: Decoder) throws {
@@ -418,6 +432,8 @@ struct UserProfile: Codable {
         )
         recipes = try container.decodeIfPresent([Recipe].self, forKey: .recipes) ?? []
         protocolNotes = try container.decodeIfPresent([ProtocolNote].self, forKey: .protocolNotes) ?? []
+        weeklySummaryEnabled = try container.decodeIfPresent(Bool.self, forKey: .weeklySummaryEnabled) ?? true
+        weeklySummaries = try container.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries) ?? [:]
     }
 
     static var fresh: UserProfile {
