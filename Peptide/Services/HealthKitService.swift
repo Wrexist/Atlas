@@ -351,6 +351,80 @@ final class HealthKitService {
         )
     }
 
+    /// One resting-heart-rate value per day (bpm). Powers the
+    /// biometric correlation engine's "dose days vs off days"
+    /// comparison alongside HRV and sleep.
+    func dailyRestingHeartRate(days: Int) async -> [(date: Date, value: Double)] {
+        await dailyQuantity(
+            type: .restingHeartRate,
+            unit: .count().unitDivided(by: .minute()),
+            days: days,
+            options: .discreteAverage,
+            extract: { $0.averageQuantity() }
+        )
+    }
+
+    /// Sleep hours per night, attributed to the wake-up day. Apple
+    /// Watch (and most third-party trackers) write sleep samples
+    /// across midnight; convention here is "the night that ended
+    /// on date X" gets attributed to X. Lets a Tuesday dose →
+    /// Wednesday-morning HRV correlation read naturally.
+    ///
+    /// Merges overlapping samples (same logic as `averageSleepHours`)
+    /// so the Apple Watch + Pillow / AutoSleep duplicating their
+    /// own samples doesn't double a night's total.
+    func dailySleepHours(days: Int) async -> [(date: Date, value: Double)] {
+        guard isAvailable, days > 0 else { return [] }
+        let calendar = Calendar.current
+        let endDate = calendar.startOfDay(for: Date()).addingTimeInterval(86_400)
+        guard let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { return [] }
+
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.categorySample(type: HKCategoryType(.sleepAnalysis), predicate: predicate)],
+            sortDescriptors: [SortDescriptor(\.startDate)]
+        )
+
+        do {
+            let samples = try await descriptor.result(for: store)
+            let asleep = samples.filter { sample in
+                let value = HKCategoryValueSleepAnalysis(rawValue: sample.value)
+                return value == .asleepCore || value == .asleepDeep || value == .asleepREM
+            }
+            // Merge overlapping intervals before bucketing so a
+            // night with two trackers doesn't double-count.
+            let intervals = asleep
+                .map { (start: $0.startDate, end: $0.endDate) }
+                .sorted { $0.start < $1.start }
+            var merged: [(start: Date, end: Date)] = []
+            for interval in intervals {
+                if var last = merged.last, last.end >= interval.start {
+                    last.end = max(last.end, interval.end)
+                    merged[merged.count - 1] = last
+                } else {
+                    merged.append(interval)
+                }
+            }
+            // Bucket by the wake-up day (the day the interval
+            // ended). Sleeping past midnight attributes to the
+            // morning's date — what the user thinks of as
+            // "Wednesday's sleep".
+            var buckets: [Date: TimeInterval] = [:]
+            for interval in merged {
+                let wakeDay = calendar.startOfDay(for: interval.end)
+                buckets[wakeDay, default: 0] += interval.end.timeIntervalSince(interval.start)
+            }
+            return buckets
+                .sorted { $0.key < $1.key }
+                .map { ($0.key, $0.value / 3600.0) }
+        } catch {
+            AppLog.healthKit.error(
+                "dailySleepHours query failed: \(error.localizedDescription, privacy: .private)"
+            )
+            return []
+        }
+    }
+
     // MARK: - Body
 
     func latestWeight() async -> Double? {

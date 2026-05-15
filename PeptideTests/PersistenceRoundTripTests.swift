@@ -876,6 +876,86 @@ final class PersistenceRoundTripTests: XCTestCase {
                        "Freeze should bridge the gap and extend the streak across 3 days")
     }
 
+    func test_biometricCorrelation_findsPositiveHRVDelta() {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        var hrvSeries: [(Date, Double)] = []
+        var entries: [ProtocolEntry] = []
+
+        for daysAgo in 0..<14 {
+            let date = cal.date(byAdding: .day, value: -daysAgo, to: today)!
+            let isDosing = daysAgo.isMultiple(of: 2)
+            // Dosing days: 65 ms HRV. Off days: 50 ms.
+            hrvSeries.append((date, isDosing ? 65 : 50))
+            if isDosing {
+                entries.append(ProtocolEntry(
+                    id: UUID(), protocolId: UUID(),
+                    peptide: MockPeptides.bpc157, date: date,
+                    dose: "250 mcg", notes: "",
+                    completed: true, actualDose: nil,
+                    actualTime: nil, injectionSite: nil
+                ))
+            }
+        }
+
+        let findings = BiometricCorrelationEngine.correlations(
+            seriesByMetric: [.hrv: hrvSeries],
+            entries: entries
+        )
+        XCTAssertEqual(findings.count, 1)
+        let finding = try? XCTUnwrap(findings.first)
+        XCTAssertEqual(finding?.metric, .hrv)
+        XCTAssertEqual(finding?.delta ?? 0, 15, accuracy: 0.001)
+        XCTAssertTrue(finding?.isFavourable ?? false)
+
+        let headline = BiometricCorrelationEngine.headline(from: findings)
+        XCTAssertEqual(headline?.metric, .hrv)
+    }
+
+    func test_biometricCorrelation_dropsBelowSampleThreshold() {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        // Only 3 dosing days — below the 4-per-bucket minimum.
+        var hrvSeries: [(Date, Double)] = []
+        var entries: [ProtocolEntry] = []
+        for daysAgo in 0..<3 {
+            let date = cal.date(byAdding: .day, value: -daysAgo, to: today)!
+            hrvSeries.append((date, 100))   // huge effect
+            entries.append(ProtocolEntry(
+                id: UUID(), protocolId: UUID(),
+                peptide: MockPeptides.bpc157, date: date,
+                dose: "250 mcg", notes: "",
+                completed: true, actualDose: nil,
+                actualTime: nil, injectionSite: nil
+            ))
+        }
+        let findings = BiometricCorrelationEngine.correlations(
+            seriesByMetric: [.hrv: hrvSeries],
+            entries: entries
+        )
+        XCTAssertTrue(findings.isEmpty, "Should suppress until 4 days per bucket exist")
+    }
+
+    func test_biometricMetric_directionOfGood_drivesFavourabilityCorrectly() {
+        // RHR is "lower is better". A negative delta on a dosing
+        // day should be favourable; positive (RHR went up) should
+        // not surface as a headline.
+        let bad = BiometricCorrelationEngine.Finding(
+            metric: .restingHeartRate,
+            onDoseDays: 65, offDoseDays: 60,    // RHR is HIGHER on dose days
+            doseDayCount: 7, offDayCount: 7
+        )
+        XCTAssertFalse(bad.isFavourable)
+
+        let good = BiometricCorrelationEngine.Finding(
+            metric: .restingHeartRate,
+            onDoseDays: 55, offDoseDays: 60,    // RHR is LOWER on dose days
+            doseDayCount: 7, offDayCount: 7
+        )
+        XCTAssertTrue(good.isFavourable)
+        XCTAssertNotNil(BiometricCorrelationEngine.headline(from: [bad, good]))
+    }
+
     func test_offRateLimiter_allowsUpToCapThenDenies() async {
         // 3 calls / 60-second window — easier to assert than the
         // production 8/60s config without changing the algorithm.

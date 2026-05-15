@@ -141,6 +141,12 @@ struct LifestyleView: View {
                         .sectionAppear(index: 4)
                     }
 
+                    BiometricCorrelationCard(
+                        entries: dataStore.entries,
+                        healthConnected: dataStore.profile.healthConnected
+                    )
+                    .sectionAppear(index: 4)
+
                     let todaysEntries = dataStore.mealEntries()
                     if dataStore.consumption().caloriesKcal > 0 || !todaysEntries.isEmpty {
                         MealCategoriesCard(breakdown: dailyBreakdown)
