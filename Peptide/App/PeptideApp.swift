@@ -42,6 +42,9 @@ struct PeptideApp: App {
                     store.toggleEntry(entryId)
                 }
             }
+            WatchSyncService.shared.onLogWater = { oz in
+                store.logWater(oz: oz)
+            }
             return store
         })
     }

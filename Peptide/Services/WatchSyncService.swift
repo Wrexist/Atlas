@@ -9,6 +9,11 @@ final class WatchSyncService: NSObject {
 
     var onMarkComplete: ((UUID, UUID) -> Void)?
     var onMarkIncomplete: ((UUID, UUID) -> Void)?
+    /// Callback fired when the watch logs water. Receives the
+    /// ounces amount; the phone-side handler routes through
+    /// `dataStore.logWater` so the widget reload + watch sync +
+    /// HK write all fire for free.
+    var onLogWater: ((Int) -> Void)?
 
     private let encoder: JSONEncoder = {
         let e = JSONEncoder()
@@ -117,8 +122,20 @@ extension WatchSyncService: WCSessionDelegate {
     }
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        guard let action = message["action"] as? String,
-              let entryIdStr = message[WatchMessage.entryIdKey] as? String,
+        guard let action = message["action"] as? String else { return }
+
+        // Water-log path is its own shape — no entry/protocol IDs,
+        // just the ounces. Branch early so the dose-related guard
+        // below doesn't reject it.
+        if action == WatchMessage.logWater {
+            guard let oz = message[WatchMessage.ozKey] as? Int else { return }
+            Task { [weak self] in
+                await self?.handleWaterMessage(oz: oz)
+            }
+            return
+        }
+
+        guard let entryIdStr = message[WatchMessage.entryIdKey] as? String,
               let protocolIdStr = message[WatchMessage.protocolIdKey] as? String,
               let entryId = UUID(uuidString: entryIdStr),
               let protocolId = UUID(uuidString: protocolIdStr) else { return }
@@ -135,6 +152,10 @@ extension WatchSyncService: WCSessionDelegate {
 }
 
 private extension WatchSyncService {
+    func handleWaterMessage(oz: Int) {
+        onLogWater?(oz)
+    }
+
     func handleWatchMessage(action: String, entryId: UUID, protocolId: UUID) {
         switch action {
         case WatchMessage.markComplete:

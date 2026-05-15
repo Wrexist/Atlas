@@ -20,8 +20,10 @@ struct WatchNutritionView: View {
                     proteinRow(nutrition)
                     streakRow(nutrition)
                     mealsRow(nutrition)
+                    waterQuickAddRow
                 } else {
                     emptyState
+                    waterQuickAddRow
                 }
                 Spacer(minLength: 0)
             }
@@ -30,6 +32,46 @@ struct WatchNutritionView: View {
         }
         .navigationTitle("Nutrition")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    // MARK: - Water quick-add
+
+    private var waterQuickAddRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 4) {
+                Image(systemName: "drop.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.blue)
+                Text("Log water")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            HStack(spacing: 6) {
+                waterButton(label: "+8oz",  oz: 8)
+                waterButton(label: "+16oz", oz: 16)
+                waterButton(label: "+32oz", oz: 32)
+            }
+        }
+    }
+
+    private func waterButton(label: String, oz: Int) -> some View {
+        Button {
+            store.logWater(oz: oz)
+        } label: {
+            Text(label)
+                .font(.system(size: 12, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.blue.opacity(0.6))
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(store.isSending)
+        .accessibilityLabel("Log \(oz) ounces of water")
     }
 
     // MARK: - Calorie ring

@@ -17,6 +17,27 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     ) {
         let action = response.actionIdentifier
 
+        // Snooze handling: any of the three snooze action IDs
+        // resolves to a duration through the service. Single
+        // reschedule path keeps the durations + identifiers in
+        // sync — adding a fourth duration only requires a new
+        // case in the service's switch, not a delegate change.
+        if let snoozeSeconds = NotificationService.snoozeDuration(forActionIdentifier: action) {
+            guard let content = response.notification.request.content.mutableCopy() as? UNMutableNotificationContent else {
+                completionHandler()
+                return
+            }
+            let snoozeID = "\(NotificationService.snoozeIDPrefix)\(UUID().uuidString)"
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: snoozeSeconds, repeats: false)
+            let request = UNNotificationRequest(identifier: snoozeID, content: content, trigger: trigger)
+            center.add(request)
+            Task { @MainActor in
+                NotificationService.shared.registerPendingSnooze(id: snoozeID)
+            }
+            completionHandler()
+            return
+        }
+
         switch action {
         case "MARK_TAKEN":
             let userInfo = response.notification.request.content.userInfo
@@ -49,23 +70,6 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                 }
             }
             return
-
-        case "SNOOZE":
-            // Build the snooze locally — UNNotificationRequest isn't Sendable
-            // so we can't bounce it across to the @MainActor task. The center
-            // is thread-safe; only currentIDs (MainActor-isolated) needs the
-            // hop, so we ship just the identifier string.
-            guard let content = response.notification.request.content.mutableCopy() as? UNMutableNotificationContent else {
-                completionHandler()
-                return
-            }
-            let snoozeID = "\(NotificationService.snoozeIDPrefix)\(UUID().uuidString)"
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 15 * 60, repeats: false)
-            let request = UNNotificationRequest(identifier: snoozeID, content: content, trigger: trigger)
-            center.add(request)
-            Task { @MainActor in
-                NotificationService.shared.registerPendingSnooze(id: snoozeID)
-            }
 
         default:
             break

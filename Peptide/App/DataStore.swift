@@ -1342,6 +1342,21 @@ final class DataStore: DataServiceProtocol {
                 protocolCount: self.protocols.count,
                 daysLogged: self.totalDaysLogged
             )
+            // Lifestyle milestones run on the same hook so the
+            // achievement toast pipeline doesn't fire twice for
+            // unrelated mutations. The two `checkAchievements`
+            // calls each manage their own `latestUnlock` — only
+            // the second one's value survives, but in practice
+            // the two domains rarely cross a threshold on the
+            // same mutation.
+            AchievementService.shared.checkLifestyleAchievements(
+                mealsLogged: self.profile.mealHistory.count,
+                mealStreak: self.mealLoggingStreak,
+                labsLogged: self.profile.labHistory.count,
+                labPanelCount: Set(self.profile.labHistory.map(\.panel)).count,
+                recipesCount: self.profile.recipes.count,
+                checkInsLogged: self.profile.outcomeHistory.count
+            )
         }
     }
 

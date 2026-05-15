@@ -226,17 +226,46 @@ final class NotificationService {
             title: "Mark as Taken",
             options: [.foreground]
         )
-        let snoozeAction = UNNotificationAction(
-            identifier: "SNOOZE",
+        // Three snooze options instead of one — long-press on the
+        // notification banner reveals up to 4 actions on iOS, so
+        // we can give the user a real choice instead of one fixed
+        // 15-min default. The action identifier carries the
+        // duration in minutes so the delegate can branch with a
+        // single shared handler.
+        let snooze15 = UNNotificationAction(
+            identifier: "SNOOZE_15",
             title: "Remind in 15 min",
+            options: []
+        )
+        let snooze30 = UNNotificationAction(
+            identifier: "SNOOZE_30",
+            title: "Remind in 30 min",
+            options: []
+        )
+        let snooze60 = UNNotificationAction(
+            identifier: "SNOOZE_60",
+            title: "Remind in 1 hour",
             options: []
         )
         let category = UNNotificationCategory(
             identifier: "DOSE_REMINDER",
-            actions: [markAction, snoozeAction],
+            actions: [markAction, snooze15, snooze30, snooze60],
             intentIdentifiers: []
         )
         center.setNotificationCategories([category])
+    }
+
+    /// Returns the snooze duration (in seconds) for a notification
+    /// action identifier, or nil when the identifier isn't a
+    /// snooze. Lets `NotificationDelegate` share one
+    /// reschedule code path across the three durations.
+    static func snoozeDuration(forActionIdentifier identifier: String) -> TimeInterval? {
+        switch identifier {
+        case "SNOOZE", "SNOOZE_15":  return 15 * 60
+        case "SNOOZE_30":            return 30 * 60
+        case "SNOOZE_60":            return 60 * 60
+        default:                     return nil
+        }
     }
 
     func cancelAll() {

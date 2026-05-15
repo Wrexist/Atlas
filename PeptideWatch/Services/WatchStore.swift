@@ -43,6 +43,61 @@ final class WatchStore: NSObject, ObservableObject {
         watchData = decoded
     }
 
+    /// Sends a water-log message to the iOS app, then optimistically
+    /// updates the local nutrition snapshot so the ring on the
+    /// Watch reflects the new total without waiting for the round-
+    /// trip. Picks the smaller of the two haptic patterns
+    /// (.click) — water is a frequent micro-log, not a milestone.
+    func logWater(oz: Int) {
+        guard !isSending else { return }
+        isSending = true
+        WKInterfaceDevice.current().play(.click)
+        let message: [String: Any] = [
+            "action": WatchMessage.logWater,
+            WatchMessage.ozKey: oz,
+        ]
+
+        // Optimistic local update: bump the nutrition snapshot so
+        // the page reflects the new total immediately. The phone
+        // will push a fresh snapshot when it processes the
+        // message and re-saves; this just bridges the latency.
+        if let nutrition = watchData.nutrition {
+            let updatedNutrition = WatchNutritionSnapshot(
+                caloriesToday: nutrition.caloriesToday,
+                calorieTarget: nutrition.calorieTarget,
+                proteinToday: nutrition.proteinToday,
+                proteinTarget: nutrition.proteinTarget,
+                mealLoggingStreak: nutrition.mealLoggingStreak,
+                mealEntriesToday: nutrition.mealEntriesToday
+            )
+            // Nutrition snapshot doesn't carry water — the watch's
+            // visible value comes through the iOS-side regenerate.
+            // Kept the no-op assignment in place so a future
+            // `waterToday` field can be patched without rewriting
+            // the optimistic path.
+            watchData = WatchData(
+                todayEntries: watchData.todayEntries,
+                completedToday: watchData.completedToday,
+                totalToday: watchData.totalToday,
+                lastUpdated: Date(),
+                currentStreak: watchData.currentStreak,
+                weeklyCompliance: watchData.weeklyCompliance,
+                totalDosesLogged: watchData.totalDosesLogged,
+                nutrition: updatedNutrition
+            )
+        }
+
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(message, replyHandler: { [weak self] _ in
+                Task { @MainActor in self?.isSending = false }
+            }, errorHandler: { [weak self] _ in
+                Task { @MainActor in self?.isSending = false }
+            })
+        } else {
+            isSending = false
+        }
+    }
+
     func toggleEntry(_ entry: WatchEntry) {
         guard !isSending else { return }
         isSending = true
