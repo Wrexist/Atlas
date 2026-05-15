@@ -350,43 +350,21 @@ struct HomeView: View {
     }
 
     private var gettingStartedCard: some View {
-        GlassCard(tinted: true) {
-            VStack(spacing: Spacing.xl) {
-                Image(systemName: "flask.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(AppColor.accentPrimary)
-
-                VStack(spacing: Spacing.sm) {
-                    Text("Create Your First Protocol")
-                        .font(AppFont.title2)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .multilineTextAlignment(.center)
-
-                    Text("Set up a peptide protocol to start tracking doses, streaks, and compliance.")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .multilineTextAlignment(.center)
+        EmptyStateView(
+            icon: "flask.fill",
+            title: "Create your first protocol",
+            message: "Set up a peptide protocol to start tracking doses, streaks, and compliance.",
+            action: .init(title: "Get started", icon: "plus") {
+                withAnimation(AppAnimation.springSnappy) {
+                    appState.selectedTab = .protocols
                 }
-
-                GlassButton(title: "Get Started", icon: "plus", style: .primary, isFullWidth: true) {
-                    withAnimation(AppAnimation.springSnappy) {
-                        appState.selectedTab = .protocols
-                    }
-                }
-
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "info.circle")
-                        .font(.system(size: 12))
-                        .foregroundStyle(AppColor.textTertiary)
-                        .accessibilityHidden(true)              // Text below carries the meaning
-                    Text("Browse the Peptides tab to explore the database")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textTertiary)
+            },
+            secondary: .init(title: "Browse the library", icon: "magnifyingglass") {
+                withAnimation(AppAnimation.springSnappy) {
+                    appState.selectedTab = .library
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.lg)
-        }
+        )
     }
 
     // Stack-warning + stack-adjustment helpers moved to

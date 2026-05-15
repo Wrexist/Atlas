@@ -275,38 +275,28 @@ struct InsightsView: View {
         }.reversed()
     }
 
-    /// Shown when the user has no protocols yet — analytics over zero data
-    /// is meaningless, so we redirect them to the protocol builder instead
-    /// of rendering blank charts.
+    /// Shown when the user has no protocols yet — analytics over
+    /// zero data is meaningless, so we redirect them to the
+    /// protocol builder instead of rendering blank charts. Uses
+    /// the cool-blue accent so the empty state visually signals
+    /// "Insights tab" before the user reads the copy.
     private var emptyState: some View {
-        GlassCard(tinted: true) {
-            VStack(spacing: Spacing.lg) {
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.system(size: 44))
-                    .foregroundStyle(AppColor.accentPrimary)
-                    .padding(.top, Spacing.sm)
-
-                VStack(spacing: Spacing.sm) {
-                    Text("No data yet")
-                        .font(AppFont.title2)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .multilineTextAlignment(.center)
-
-                    Text("Create a protocol and log a few doses — your compliance, streaks, and trends will appear here.")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .multilineTextAlignment(.center)
+        EmptyStateView(
+            icon: "chart.line.uptrend.xyaxis",
+            title: "No data yet",
+            message: "Create a protocol and log a few doses — your compliance, streaks, and trends will appear here.",
+            accent: Color(red: 0.40, green: 0.74, blue: 0.92),
+            action: .init(title: "Create a protocol", icon: "plus") {
+                withAnimation(AppAnimation.springSnappy) {
+                    appState.selectedTab = .protocols
                 }
-
-                GlassButton(title: "Create a Protocol", icon: "plus", style: .primary, isFullWidth: true) {
-                    withAnimation(AppAnimation.springSnappy) {
-                        appState.selectedTab = .protocols
-                    }
+            },
+            secondary: .init(title: "Or log a check-in on Today", icon: "heart.text.square.fill") {
+                withAnimation(AppAnimation.springSnappy) {
+                    appState.selectedTab = .today
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.lg)
-        }
+        )
     }
 
     /// Discrete localized phrase per range — avoids interpolating an English
