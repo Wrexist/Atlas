@@ -187,6 +187,13 @@ struct InsightsView: View {
 
                         ProgressPhotosCard()
                             .sectionAppear(index: 10)
+
+                        // Weekly recap archive — only renders when
+                        // the user has at least one cached summary,
+                        // so the section gracefully disappears for
+                        // free users + new accounts.
+                        PastWeeksSection()
+                            .sectionAppear(index: 11)
                     }
                     .padding(.horizontal, Spacing.screenPadding)
                     .padding(.bottom, Spacing.xxxxl)

@@ -43,6 +43,13 @@ final class AppState {
     /// logging sheet in one bounce instead of dumping the user on the
     /// Home tab root and asking them to find the row.
     var pendingDoseLogEntryId: UUID?
+    /// Set by the Sunday `peptidex://weekly/current` deep-link
+    /// handler in `PeptideApp.onOpenURL`. HomeView consumes it on
+    /// its next appear by pushing the matching detail view. Two-step
+    /// (flag → consume) instead of pushing directly so the
+    /// onOpenURL closure doesn't need a reference to HomeView's
+    /// navigation path.
+    var pendingWeeklyRecap: Bool = false
 }
 
 /// Discriminated identifier for the Spotlight deep-link payload.

@@ -79,6 +79,9 @@ struct ProfileView: View {
                     ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
                         .sectionAppear(index: 7)
 
+                    WeeklySummaryToggleRow()
+                        .sectionAppear(index: 7)
+
                     ExportSection()
                         .sectionAppear(index: 7)
 

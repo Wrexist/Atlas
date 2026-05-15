@@ -100,11 +100,20 @@ struct PeptideApp: App {
                 // Unknown schemes / paths fall through silently so a
                 // garbled custom-scheme tap from another app doesn't
                 // log an error or open an unrelated view.
-                guard url.scheme == "peptidex", url.host == "dose",
-                      let entryUUID = UUID(uuidString: url.lastPathComponent)
-                else { return }
-                appState.selectedTab = .today
-                appState.pendingDoseLogEntryId = entryUUID
+                guard url.scheme == "peptidex" else { return }
+                switch url.host {
+                case "dose":
+                    // Live Activity tap → `peptidex://dose/<uuid>`.
+                    guard let entryUUID = UUID(uuidString: url.lastPathComponent) else { return }
+                    appState.selectedTab = .today
+                    appState.pendingDoseLogEntryId = entryUUID
+                case "weekly":
+                    // Weekly recap notification → `peptidex://weekly/current`.
+                    appState.selectedTab = .today
+                    appState.pendingWeeklyRecap = true
+                default:
+                    return
+                }
             }
             .onContinueUserActivity(CSSearchableItemActionType) { activity in
                 // Spotlight tapped a food index entry. Parse the
@@ -182,6 +191,16 @@ struct PeptideApp: App {
                 // start / end without needing the user to open the
                 // app to a specific tab.
                 DoseLiveActivityService.shared.reconcile(entries: dataStore.entries)
+                // Re-reconcile the Sunday weekly-recap notification
+                // on every active transition — handles "user toggled
+                // opt-out elsewhere", "user upgraded to Pro", and
+                // "permission status changed in Settings".
+                Task { @MainActor in
+                    await WeeklySummaryNotificationScheduler.reconcile(
+                        profile: dataStore.profile,
+                        isPro: StoreService.shared.isProUser
+                    )
+                }
                 detectTimezoneChange()
                 maybePresentWhatsNewTour()
             }

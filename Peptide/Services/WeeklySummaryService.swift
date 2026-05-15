@@ -55,19 +55,22 @@ final class WeeklySummaryService {
         case requestFailed(String)
     }
 
-    /// Generates the summary for the current week (or returns it
-    /// from cache). Caller mutates `dataStore.profile.weeklySummaries`
-    /// via the returned summary; the service itself never touches
-    /// the store directly so the mutation point stays one place.
+    /// Generates the summary for the current week. Pure with
+    /// respect to `profile` — never mutates it. Caller writes the
+    /// returned summary back via `record(_:in:)` once the await
+    /// resolves; splitting read + write avoids passing inout
+    /// across an await point, which Swift 6's exclusivity check
+    /// rightly complains about for reference-rooted lvalues.
     func generate(
-        in profile: inout UserProfile,
+        profile: UserProfile,
         protocols: [PeptideProtocol],
         entries: [ProtocolEntry],
         hrvSeries: [(date: Date, value: Double)] = [],
         rhrSeries: [(date: Date, value: Double)] = [],
         sleepSeries: [(date: Date, value: Double)] = [],
         topInsight: String? = nil,
-        referenceDate: Date = Date()
+        referenceDate: Date = Date(),
+        forceRefresh: Bool = false
     ) async throws -> WeeklySummary {
         guard isAvailable(profile: profile) else {
             throw GenerationError.disabled
@@ -86,16 +89,21 @@ final class WeeklySummaryService {
             throw GenerationError.insufficientData
         }
 
-        // Cache hit — return without re-firing the API call. The
-        // cache only invalidates on a fresh week or an explicit
-        // `forceRefresh` (not implemented here; future hook).
-        if let cached = profile.weeklySummaries[aggregate.weekStart] {
+        // Cache hit — return without re-firing the API call unless
+        // the caller explicitly asked for a refresh.
+        if !forceRefresh, let cached = profile.weeklySummaries[aggregate.weekStart] {
             return cached
         }
 
-        let summary = await fetchOrFallback(aggregate: aggregate)
+        return await fetchOrFallback(aggregate: aggregate)
+    }
+
+    /// Inserts the summary into the profile's cache and trims to
+    /// `maxCachedSummaries`. Sync, so calling sites can hop on the
+    /// main actor and write without crossing an await — Swift 6
+    /// exclusivity friendly.
+    func record(_ summary: WeeklySummary, in profile: inout UserProfile) {
         write(summary: summary, into: &profile)
-        return summary
     }
 
     /// Retrieves a cached summary if one exists for the week

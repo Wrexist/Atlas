@@ -17,6 +17,13 @@ struct HomeView: View {
     /// by `.onScrollGeometryChange` so the bar materialises in lock-
     /// step with the user's finger.
     @State private var stickyProgress: Double = 0
+    /// State of the Sunday-recap card on Today. Loads on the first
+    /// appear of each weekend; cached entries pre-fill the .ready
+    /// branch so re-appears don't refire the network call.
+    @State private var weeklySummaryState: WeeklySummaryHeroCard.State?
+    /// Set when the user taps the Today recap card; drives the
+    /// navigation push into the detail view.
+    @State private var detailWeekStart: String?
     /// Cycle-milestone prompt state. Both are nil unless the
     /// CycleMilestoneService has surfaced a pending (protocol,
     /// milestone) pair on appear; the prompt sheet routes into the
@@ -82,6 +89,21 @@ struct HomeView: View {
                         NotificationIssueBanner(
                             report: report,
                             droppedProtocolNames: dataStore.droppedReminderProtocolNames
+                        )
+                        .sectionAppear(index: 0)
+                    }
+
+                    if let weeklyState = weeklySummaryState,
+                       WeeklySummaryService.shared.isAvailable(profile: dataStore.profile),
+                       shouldShowWeeklyRecapOnToday {
+                        WeeklySummaryHeroCard(
+                            state: weeklyState,
+                            onTap: {
+                                if case .ready(let summary) = weeklyState {
+                                    detailWeekStart = summary.weekStart
+                                }
+                            },
+                            onRetry: { Task { await loadWeeklySummary(forceRefresh: true) } }
                         )
                         .sectionAppear(index: 0)
                     }
@@ -303,10 +325,111 @@ struct HomeView: View {
             .onAppear {
                 checkMilestonePrompt()
                 consumePendingDoseDeepLink()
+                consumeWeeklyDeepLink()
+                Task { await loadWeeklySummary(forceRefresh: false) }
             }
             .onChange(of: appState.pendingDoseLogEntryId) { _, _ in
                 consumePendingDoseDeepLink()
             }
+            .onChange(of: appState.pendingWeeklyRecap) { _, _ in
+                consumeWeeklyDeepLink()
+            }
+            .navigationDestination(item: $detailWeekStart) { weekStart in
+                if let binding = bindingForWeeklySummary(weekStart: weekStart) {
+                    WeeklySummaryDetailView(
+                        summary: binding,
+                        onRefresh: { await loadWeeklySummary(forceRefresh: true) }
+                    )
+                }
+            }
+        }
+    }
+
+    /// Whether to surface the weekly recap card on Today. Always
+    /// true for Pro users with the toggle on — the card's own
+    /// state machine handles the empty/insufficient-data case
+    /// gracefully by rendering its `.empty` branch. View layer
+    /// reads `WeeklySummaryService.isAvailable(...)` separately
+    /// to suppress entirely for free users + opt-outs.
+    private var shouldShowWeeklyRecapOnToday: Bool {
+        weeklySummaryState != nil
+    }
+
+    /// Builds the binding into `profile.weeklySummaries[weekStart]`
+    /// the detail view writes back into on refresh. Nil when the
+    /// entry has disappeared (deleted between push + render).
+    private func bindingForWeeklySummary(weekStart: String) -> Binding<WeeklySummary>? {
+        guard dataStore.profile.weeklySummaries[weekStart] != nil else { return nil }
+        return Binding(
+            get: { dataStore.profile.weeklySummaries[weekStart] ?? .placeholder(weekStart: weekStart) },
+            set: { newValue in
+                dataStore.profile.weeklySummaries[weekStart] = newValue
+                dataStore.persistProfile()
+            }
+        )
+    }
+
+    /// Loads (or refreshes) the current-week summary. Suppresses
+    /// the card entirely when the user isn't Pro + opted-in. Routes
+    /// through `WeeklySummaryService` so the Pro gate, opt-out gate,
+    /// network call, cache, and offline fallback all stay in one
+    /// place.
+    private func loadWeeklySummary(forceRefresh: Bool) async {
+        guard WeeklySummaryService.shared.isAvailable(profile: dataStore.profile) else {
+            weeklySummaryState = nil
+            return
+        }
+
+        // Cached value short-circuits unless the caller asked for
+        // a refresh. `cached(in:for:)` is a synchronous read so the
+        // .ready state lands before `generate(...)` returns.
+        if !forceRefresh, let cached = WeeklySummaryService.shared.cached(
+            in: dataStore.profile, for: Date()
+        ) {
+            weeklySummaryState = .ready(cached)
+            return
+        }
+
+        weeklySummaryState = .loading
+        do {
+            // Pull a fresh HRV series each refresh — cheaper than
+            // caching it on the @State, and the user is unlikely to
+            // refresh more than once per minute.
+            let hrv = dataStore.profile.healthConnected
+                ? await HealthKitService.shared.dailyHRV(days: 21)
+                : []
+            let summary = try await WeeklySummaryService.shared.generate(
+                profile: dataStore.profile,
+                protocols: dataStore.protocols,
+                entries: dataStore.entries,
+                hrvSeries: hrv,
+                topInsight: dataStore.topInsight?.title,
+                forceRefresh: forceRefresh
+            )
+            WeeklySummaryService.shared.record(summary, in: &dataStore.profile)
+            dataStore.persistProfile()
+            weeklySummaryState = .ready(summary)
+        } catch WeeklySummaryService.GenerationError.insufficientData {
+            weeklySummaryState = .empty
+        } catch {
+            weeklySummaryState = .empty
+        }
+    }
+
+    /// Honours the `peptidex://weekly/current` deep-link. Sets the
+    /// detail-push target to the most recent cached summary, or
+    /// triggers a generation if nothing is cached yet.
+    private func consumeWeeklyDeepLink() {
+        guard appState.pendingWeeklyRecap else { return }
+        appState.pendingWeeklyRecap = false
+
+        let latest = dataStore.profile.weeklySummaries
+            .values
+            .max(by: { $0.weekStart < $1.weekStart })
+        if let latest {
+            detailWeekStart = latest.weekStart
+        } else {
+            Task { await loadWeeklySummary(forceRefresh: true) }
         }
     }
 
