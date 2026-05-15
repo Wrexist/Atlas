@@ -16,6 +16,7 @@ struct LifestyleView: View {
     @State private var showMealScan = false
     @State private var showBarcodeScan = false
     @State private var showFoodLibrary = false
+    @State private var editingMealEntry: MealEntry?
     @State private var pendingPhotoFallback = false
     /// Pending sheet hand-off requested from inside the food library.
     /// One of these is non-nil while the library sheet is mid-dismiss;
@@ -93,9 +94,17 @@ struct LifestyleView: View {
                     }
                     .sectionAppear(index: 3)
 
-                    if dataStore.consumption().caloriesKcal > 0 {
+                    let todaysEntries = dataStore.mealEntries()
+                    if dataStore.consumption().caloriesKcal > 0 || !todaysEntries.isEmpty {
                         MealCategoriesCard(breakdown: dataStore.mealsByCategory())
                             .sectionAppear(index: 3)
+
+                        TodaysMealsCard(
+                            entries: todaysEntries,
+                            onEdit: { entry in editingMealEntry = entry },
+                            onDelete: { id in dataStore.unlogMealEntry(id: id) }
+                        )
+                        .sectionAppear(index: 3)
                     }
 
                     sectionHeader(eyebrow: "Movement", title: "Training")
@@ -196,6 +205,20 @@ struct LifestyleView: View {
                         showTargetsEditor = false
                     },
                     onCancel: { showTargetsEditor = false }
+                )
+            }
+            .sheet(item: $editingMealEntry) { entry in
+                MealEntryEditorSheet(
+                    initial: entry,
+                    onSave: { updated in
+                        dataStore.updateMealEntry(updated)
+                        editingMealEntry = nil
+                    },
+                    onDelete: { id in
+                        dataStore.unlogMealEntry(id: id)
+                        editingMealEntry = nil
+                    },
+                    onCancel: { editingMealEntry = nil }
                 )
             }
         }

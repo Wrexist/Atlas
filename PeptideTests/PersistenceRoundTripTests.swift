@@ -374,6 +374,36 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(MealCategory.auto(for: lateNight), .snack)
     }
 
+    func test_updateMealEntry_changesCategoryWithoutShiftingAggregate() throws {
+        var profile = UserProfile.fresh
+        let original = MealEntry(
+            date: Date(),
+            category: .lunch,
+            name: "Chicken",
+            calories: 400,
+            proteinG: 35,
+            carbsG: 10,
+            fatG: 15,
+            source: .openFoodFacts
+        )
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: original)
+        let before = LifestyleDataLogic.consumption(in: profile, for: Date())
+
+        // Recategorize same entry — aggregate must not move because
+        // only the category bucket changed.
+        var updated = original
+        updated.category = .dinner
+        if let index = profile.mealHistory.firstIndex(where: { $0.id == original.id }) {
+            profile.mealHistory[index] = updated
+        }
+        let after = LifestyleDataLogic.consumption(in: profile, for: Date())
+        XCTAssertEqual(before.caloriesKcal, after.caloriesKcal)
+
+        let breakdown = LifestyleDataLogic.mealsByCategory(in: profile, for: Date())
+        XCTAssertEqual(breakdown.lunch.calories, 0)
+        XCTAssertEqual(breakdown.dinner.calories, 400)
+    }
+
     func test_offRateLimiter_allowsUpToCapThenDenies() async {
         // 3 calls / 60-second window — easier to assert than the
         // production 8/60s config without changing the algorithm.

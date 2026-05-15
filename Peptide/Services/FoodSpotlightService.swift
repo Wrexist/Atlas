@@ -99,18 +99,22 @@ final class FoodSpotlightService: Sendable {
     // MARK: - Item builders
 
     private func searchableItem(forCustomFood food: CustomFood) -> CSSearchableItem {
-        let attributes = CSSearchableItemAttributeSet(contentType: UTType.text)
+        // `UTType.content` is the documented umbrella type for
+        // arbitrary in-app content; `UTType.text` mis-classified
+        // foods as text snippets and caused some Spotlight surfaces
+        // (e.g., the Lock-Screen suggestion strip) to render them
+        // alongside notes / mail rather than as standalone hits.
+        let attributes = CSSearchableItemAttributeSet(contentType: UTType.content)
         attributes.title = food.name
         attributes.contentDescription = Self.contentDescription(for: food.per100g)
+        // `kind` shows as the "Type" label in Spotlight's preview
+        // strip — set it to a stable string the user will recognise.
+        attributes.kind = String(localized: "Custom food", comment: "Spotlight `Type` label for user-defined foods.")
+        var keywords: [String] = [food.name]
         if let brand = food.brand, !brand.isEmpty {
-            // Brand goes into both the supplementary subtitle and the
-            // keyword set so a user searching "Mum" finds their
-            // homemade lasagna by either name or attribution.
-            attributes.supplementalContentType = brand
-            attributes.keywords = [brand, food.name]
-        } else {
-            attributes.keywords = [food.name]
+            keywords.append(brand)
         }
+        attributes.keywords = keywords
         return CSSearchableItem(
             uniqueIdentifier: Self.identifier(forCustomFoodID: food.id),
             domainIdentifier: Self.domainIdentifier,
@@ -119,18 +123,22 @@ final class FoodSpotlightService: Sendable {
     }
 
     private func searchableItem(forFavorite product: ScannedProduct) -> CSSearchableItem {
-        let attributes = CSSearchableItemAttributeSet(contentType: UTType.text)
+        let attributes = CSSearchableItemAttributeSet(contentType: UTType.content)
         attributes.title = product.name
         attributes.contentDescription = Self.contentDescription(for: product.per100g)
+        attributes.kind = String(localized: "Favorite food", comment: "Spotlight `Type` label for starred Open Food Facts products.")
+        var keywords: [String] = [product.name]
         if let brand = product.brand, !brand.isEmpty {
-            attributes.supplementalContentType = brand
-            attributes.keywords = [brand, product.name]
-        } else {
-            attributes.keywords = [product.name]
+            keywords.append(brand)
         }
-        if let url = product.imageURL {
-            attributes.thumbnailURL = url
-        }
+        attributes.keywords = keywords
+        // Deliberately don't set `thumbnailURL` from a remote OFF URL —
+        // CSSearchableItemAttributeSet fetches it synchronously
+        // server-side on index, which adds latency and depends on a
+        // network round-trip. The OFF cache holds the image data
+        // locally; a future enhancement could read the JPEG bytes
+        // off disk and set `thumbnailData` instead. For v1, the
+        // food-icon glyph the Spotlight default provides is fine.
         return CSSearchableItem(
             uniqueIdentifier: Self.identifier(forBarcode: product.barcode),
             domainIdentifier: Self.domainIdentifier,

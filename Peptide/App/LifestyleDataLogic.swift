@@ -11,11 +11,10 @@ import Foundation
 /// getter/setter pair — no special bridging needed. Read-only helpers
 /// take the profile by value.
 ///
-/// Threading: callsites in `DataStore` are all `@MainActor`-isolated,
-/// so the static `consumptionKeyFormatter` mutation is serialized
-/// without extra locking. If a future caller fires from a non-MainActor
-/// context, lift the formatter into a per-call allocation or add
-/// `@MainActor` here.
+/// Threading: pure functions on value types — every helper is safe
+/// to call from any isolation context. `consumptionKey(for:)`
+/// allocates a fresh `ISO8601DateFormatter` per call rather than
+/// share a mutable instance.
 enum LifestyleDataLogic {
 
     // MARK: - Weight history
@@ -295,8 +294,16 @@ enum LifestyleDataLogic {
     /// date and silently disappear from today's rings.
     fileprivate static func consumptionKey(for date: Date) -> String {
         let day = Calendar.current.startOfDay(for: date)
-        consumptionKeyFormatter.timeZone = Calendar.current.timeZone
-        return consumptionKeyFormatter.string(from: day)
+        // Per-call formatter allocation. The previous shared
+        // `nonisolated(unsafe)` instance was only safe while every
+        // caller stayed on `@MainActor`; a widget timeline provider
+        // or background Task picking this up would have raced on
+        // the `timeZone` setter. Construction is a handful of
+        // microseconds and dominates none of the calling paths.
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        formatter.timeZone = Calendar.current.timeZone
+        return formatter.string(from: day)
     }
 
     /// Per-category macro totals returned by `mealsByCategory(in:for:)`.
@@ -354,16 +361,4 @@ enum LifestyleDataLogic {
         }
     }
 
-    /// `static let` so we don't pay the ~0.5 ms allocation on every
-    /// `consumption(for:)` call — the macro rings call this on every
-    /// render. `nonisolated(unsafe)` because `ISO8601DateFormatter` is
-    /// not `Sendable`; the safety invariant ("only ever mutated from
-    /// DataStore's `@MainActor` callsites") is documented at the top
-    /// of this file. Move to per-call allocation or `@MainActor` if a
-    /// future caller fires from a non-MainActor context.
-    private nonisolated(unsafe) static let consumptionKeyFormatter: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withFullDate]
-        return f
-    }()
 }

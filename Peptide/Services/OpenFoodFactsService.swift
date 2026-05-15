@@ -184,8 +184,8 @@ final class OpenFoodFactsService: Sendable {
         // round-trip. A 429 from OFF itself still maps to
         // `.rateLimited` further down — these are distinct failure
         // modes so the UI copy can differ.
-        let now = Date()
-        switch await Self.searchRateLimiter.requestSlot(now: now) {
+        let requestedAt = Date()
+        switch await Self.searchRateLimiter.requestSlot(now: requestedAt) {
         case .allowed:
             break
         case .denied(let secondsToRetry):
@@ -252,12 +252,12 @@ final class OpenFoodFactsService: Sendable {
             throw LookupError.decodeFailure
         }
 
-        let now = Date()
+        let fetchedAt = Date()
         let products: [ScannedProduct] = envelope.products.compactMap { raw in
             guard let id = raw.code?.trimmingCharacters(in: .whitespaces).nonEmptyOrNil
                     ?? raw.id?.trimmingCharacters(in: .whitespaces).nonEmptyOrNil
             else { return nil }
-            return raw.toScannedProduct(barcode: id, fetchedAt: now)
+            return raw.toScannedProduct(barcode: id, fetchedAt: fetchedAt)
         }
 
         await Self.searchCache.write(query: trimmed, results: products)

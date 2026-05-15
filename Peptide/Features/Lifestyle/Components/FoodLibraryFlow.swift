@@ -51,8 +51,17 @@ struct FoodLibraryFlow: View {
     /// Food IDs that just got quick-logged from a row's "+" button.
     /// Drives the inline "Logged ✓" overlay + disables the button so
     /// a double-tap can't log the same food twice in the 1.5-second
-    /// confirmation window. Cleared after the timeout.
+    /// confirmation window. Cleared after the timeout, or on sheet
+    /// dismiss via the `clearQuickLogTimers()` task hook so a
+    /// re-opened library doesn't surface "Logged ✓" badges from a
+    /// previous session.
     @State private var recentlyQuickLogged: Set<String> = []
+    /// Outstanding "Logged ✓" timeout Tasks. Tracked so dismissal can
+    /// cancel them all in one shot — otherwise a Task scheduled at
+    /// T=0 still fires at T=1.5s and writes into a torn-down View's
+    /// @State (technically tolerated by SwiftUI, but the diagnostic
+    /// noise is real and clearing here avoids it).
+    @State private var quickLogClearTasks: [Task<Void, Never>] = []
     /// `true` once the most recent search hit a network-unavailable
     /// error. Toggles the offline pill at the top of the list and
     /// suppresses the rate-limit / "no match" copy so the user knows
@@ -128,12 +137,25 @@ struct FoodLibraryFlow: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onDisappear {
+            // Cancel outstanding "Logged ✓" timeouts so they can't
+            // fire into a re-presented sheet and surface stale
+            // confirmation badges.
+            for task in quickLogClearTasks { task.cancel() }
+            quickLogClearTasks.removeAll()
+            recentlyQuickLogged.removeAll()
+        }
         .task(id: query) { await runDebouncedSearch() }
         .task(id: debouncedQuery) { await runSearch() }
         .task(id: phase) {
             guard phase == .logged else { return }
             try? await Task.sleep(for: .seconds(4))
-            guard !Task.isCancelled else { return }
+            // Re-check phase after the sleep — a user tap on Undo or
+            // Done that lands in the final 50 ms before the timer
+            // fires would otherwise let both paths call `onClose()`,
+            // which is a no-op today but a foot-gun the moment
+            // `onClose` does anything non-idempotent.
+            guard !Task.isCancelled, phase == .logged else { return }
             onClose()
         }
         .task(id: tab) {
@@ -632,7 +654,7 @@ struct FoodLibraryFlow: View {
                             .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                     }
             }
-            .overlay { quickLoggedOverlay(foodID: product.barcode) }
+            .overlay { quickLoggedOverlay(foodID: product.barcode, category: MealCategory.auto(for: Date())) }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)
@@ -671,7 +693,7 @@ struct FoodLibraryFlow: View {
                             .strokeBorder(AppColor.accentPrimary.opacity(0.30), lineWidth: 0.5)
                     }
             }
-            .overlay { quickLoggedOverlay(foodID: food.foodID) }
+            .overlay { quickLoggedOverlay(foodID: food.foodID, category: MealCategory.auto(for: Date())) }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)
@@ -794,8 +816,16 @@ struct FoodLibraryFlow: View {
     /// background while it's in the confirmation window. Hugs the
     /// row's corners via the parent's background shape so the
     /// rounded edges align visually with the underlying card.
+    ///
+    /// `allowsHitTesting(true)` on the wash blocks the underlying
+    /// row's tap-to-review gesture during the confirmation window —
+    /// otherwise a quick-logger could tap the row by accident
+    /// immediately after the "+" and find themselves inside the
+    /// portion picker for the same food they just logged. The
+    /// overlay also includes the auto-picked category as feedback
+    /// so the user knows where it landed.
     @ViewBuilder
-    private func quickLoggedOverlay(foodID: String) -> some View {
+    private func quickLoggedOverlay(foodID: String, category: MealCategory) -> some View {
         if recentlyQuickLogged.contains(foodID) {
             ZStack {
                 RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
@@ -803,7 +833,7 @@ struct FoodLibraryFlow: View {
                 HStack(spacing: Spacing.xs) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(AppColor.accentLight)
-                    Text("Logged")
+                    Text("Logged as \(category.displayName)")
                         .font(.system(size: 13, weight: .heavy))
                         .foregroundStyle(AppColor.textPrimary)
                 }
@@ -813,6 +843,7 @@ struct FoodLibraryFlow: View {
                     Capsule().fill(AppColor.surfaceSecondary.opacity(0.9))
                 }
             }
+            .allowsHitTesting(true)
             .transition(.opacity.combined(with: .scale(scale: 0.96)))
         }
     }
@@ -844,21 +875,28 @@ struct FoodLibraryFlow: View {
         let barcode = product.barcode
         let chosen = product.defaultPortion
         if !barcode.hasPrefix("custom:") {
-            Task { await BarcodeScanHistory.shared.recordLog(barcode: barcode, portion: chosen, at: now) }
+            let productSnapshot = product
+            Task {
+                await BarcodeScanHistory.shared.recordLog(barcode: barcode, portion: chosen, at: now)
+                await BarcodeProductCache.shared.write(productSnapshot)
+            }
         }
         withAnimation(.easeOut(duration: 0.18)) {
             recentlyQuickLogged.insert(product.barcode)
         }
         // Clear the badge after 1.5 s so the row returns to its
         // tap-to-log idle state — but keep the in-flight set so a
-        // rapid second tap during the window is dropped.
+        // rapid second tap during the window is dropped. Cancellable
+        // via `quickLogClearTasks` on sheet dismiss.
         let foodID = product.barcode
-        Task { @MainActor in
+        let task = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(1500))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.18)) {
-                recentlyQuickLogged.remove(foodID)
+                _ = recentlyQuickLogged.remove(foodID)
             }
         }
+        quickLogClearTasks.append(task)
     }
 
     private func favoriteToggle(foodID: String, isFavorite: Bool) -> some View {
@@ -1314,7 +1352,16 @@ struct FoodLibraryFlow: View {
         let barcode = product.barcode
         let chosen = portion
         if !barcode.hasPrefix("custom:") {
-            Task { await BarcodeScanHistory.shared.recordLog(barcode: barcode, portion: chosen, at: now) }
+            // Write-through to the product cache too — OFF results
+            // discovered via search-by-name otherwise never land in
+            // `BarcodeProductCache` and don't show up in the
+            // "Recently logged" row that powers both this view's
+            // landing page and BarcodeScanFlow's recents strip.
+            let productSnapshot = product
+            Task {
+                await BarcodeScanHistory.shared.recordLog(barcode: barcode, portion: chosen, at: now)
+                await BarcodeProductCache.shared.write(productSnapshot)
+            }
         }
         phase = .logged
     }
@@ -1398,8 +1445,35 @@ struct FoodLibraryFlow: View {
         }
     }
 
+    /// Top-5 custom foods ranked by the most recent `MealEntry` that
+    /// references them. Falls back to `customFoods.prefix(5)` (sorted
+    /// by `updatedAt`) only if there's no log history yet, so a
+    /// freshly-created food still shows up on the landing page until
+    /// the user logs something. Reading mealHistory means "recents"
+    /// reflects actual logging behavior, not editor activity.
     private func recentCustomFoods() -> [CustomFood] {
-        Array(profile.customFoods.prefix(5))
+        let customByID: [String: CustomFood] = Dictionary(
+            uniqueKeysWithValues: profile.customFoods.map { ($0.foodID, $0) }
+        )
+        // Walk mealHistory newest-first and pluck distinct custom IDs.
+        // Capped at 5 entries early so a long history doesn't slow
+        // the landing-page render.
+        var seen: Set<String> = []
+        var ranked: [CustomFood] = []
+        for entry in profile.mealHistory.reversed() where entry.source == .custom {
+            guard let id = entry.sourceID,
+                  !seen.contains(id),
+                  let food = customByID[id]
+            else { continue }
+            seen.insert(id)
+            ranked.append(food)
+            if ranked.count >= 5 { break }
+        }
+        if !ranked.isEmpty { return ranked }
+        // No log history for any custom food — surface the most
+        // recently edited ones so the row isn't empty for users who
+        // just created their first custom food.
+        return Array(profile.customFoods.prefix(5))
     }
 
     /// Reconstructs `ScannedProduct`s for the favorites tab. Custom

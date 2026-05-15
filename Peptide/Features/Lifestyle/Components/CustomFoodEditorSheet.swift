@@ -183,10 +183,15 @@ struct CustomFoodEditorSheet: View {
     private func hydrate() {
         name = initial.name
         brand = initial.brand ?? ""
-        calories = formatOrEmpty(initial.per100g.calories)
-        protein = formatOrEmpty(initial.per100g.proteinG)
-        carbs = formatOrEmpty(initial.per100g.carbsG)
-        fat = formatOrEmpty(initial.per100g.fatG)
+        // For required macro fields, show "0" rather than "" so a
+        // legitimate zero-fat food (e.g. plain whey isolate) reads
+        // as "0g fat" instead of empty-with-placeholder. Optional
+        // fields (fiber, sugars, servingGrams) still collapse to ""
+        // so a "Optional" placeholder hint can guide the user.
+        calories = isEditing ? formatRequired(initial.per100g.calories) : formatOrEmpty(initial.per100g.calories)
+        protein = isEditing ? formatRequired(initial.per100g.proteinG) : formatOrEmpty(initial.per100g.proteinG)
+        carbs = isEditing ? formatRequired(initial.per100g.carbsG) : formatOrEmpty(initial.per100g.carbsG)
+        fat = isEditing ? formatRequired(initial.per100g.fatG) : formatOrEmpty(initial.per100g.fatG)
         fiber = formatOrEmptyOptional(initial.per100g.fiberG)
         sugars = formatOrEmptyOptional(initial.per100g.sugarsG)
         servingGrams = formatOrEmptyOptional(initial.servingGrams)
@@ -197,6 +202,16 @@ struct CustomFoodEditorSheet: View {
         if !isEditing && trimmedName.isEmpty {
             focused = .name
         }
+    }
+
+    /// Like `formatOrEmpty` but renders zero as `"0"` so a legitimate
+    /// zero-macro field on an existing food reads as the actual value
+    /// instead of a misleading empty placeholder.
+    private func formatRequired(_ value: Double) -> String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(Int(value))
+        }
+        return String(value)
     }
 
     private func commit() {

@@ -100,7 +100,10 @@ struct BarcodeScanFlow: View {
         .task(id: phase) {
             guard phase == .logged else { return }
             try? await Task.sleep(for: .seconds(5))
-            guard !Task.isCancelled else { return }
+            // Re-check phase after the sleep — a user tap on Undo or
+            // Done that lands in the final window before the timer
+            // fires would otherwise double-call `onClose()`.
+            guard !Task.isCancelled, phase == .logged else { return }
             onClose()
         }
         .sheet(isPresented: $showEditSheet) {

@@ -774,6 +774,18 @@ final class DataStore: DataServiceProtocol {
         }
     }
 
+    /// Updates a previously logged meal entry's category. Macro values
+    /// stay frozen at log time — the aggregate doesn't shift, only the
+    /// per-category breakdown does. Used by `MealEntryEditorSheet` so
+    /// a near-boundary auto-pick (10:55 → breakfast when the user
+    /// meant lunch) can be corrected without reaching for unlog +
+    /// re-log. No-op when the id isn't in history.
+    func updateMealEntry(_ updated: MealEntry) {
+        guard let index = profile.mealHistory.firstIndex(where: { $0.id == updated.id }) else { return }
+        profile.mealHistory[index] = updated
+        save()
+    }
+
     /// Removes a meal entry by id and rolls back its contribution to
     /// the day's aggregate. Used by every review screen's Undo button
     /// once it switches to the new logging path.
@@ -845,13 +857,17 @@ final class DataStore: DataServiceProtocol {
 
     /// Removes a custom food and its favorite-set membership in one
     /// pass so the favorites tab can't keep a dangling reference.
-    /// Pulls the matching Spotlight item synchronously so a search
-    /// the moment after delete can't surface a dangling result.
+    /// Reindexes Spotlight via the same full-rewrite path that
+    /// `saveCustomFood` and `toggleFavoriteFood` use — the targeted
+    /// `removeCustomFood(id:)` shortcut would race with a concurrent
+    /// `saveCustomFood` reindex that captured a pre-delete profile
+    /// snapshot, re-introducing the just-deleted item to the index.
+    /// Full reindex is idempotent and authoritative.
     func deleteCustomFood(id: UUID) {
         profile.customFoods.removeAll { $0.id == id }
         profile.favoriteFoodIDs.remove("custom:\(id.uuidString)")
         save()
-        Task { await FoodSpotlightService.shared.removeCustomFood(id: id) }
+        reindexFoodLibraryInBackground()
     }
 
     /// Flips the favorite flag for a food ID (OFF barcode or
@@ -869,20 +885,30 @@ final class DataStore: DataServiceProtocol {
     }
 
     /// Fire-and-forget Spotlight reindex. Pulls cached OFF favorites
-    /// off `BarcodeProductCache` so they index with their full name +
-    /// brand + thumbnail. Failures log but don't propagate — Spotlight
-    /// is a nice-to-have surface, never a critical-path dependency.
+    /// off `BarcodeProductCache` so they index with their full name
+    /// + brand. Failures log but don't propagate — Spotlight is a
+    /// nice-to-have surface, never a critical-path dependency.
+    ///
+    /// Cancels any in-flight reindex Task before scheduling a new
+    /// one. Without this, two rapid mutations (save + favorite
+    /// toggle in quick succession) would race: whichever Task
+    /// finished last would overwrite Spotlight with its captured
+    /// profile snapshot, regardless of which mutation actually
+    /// landed in the persisted profile first.
     private func reindexFoodLibraryInBackground() {
+        reindexTask?.cancel()
         let snapshot = profile
         let offIDs = profile.favoriteFoodIDs.filter { !$0.hasPrefix("custom:") }
-        Task {
+        reindexTask = Task {
             var cached: [ScannedProduct] = []
             cached.reserveCapacity(offIDs.count)
             for id in offIDs {
+                if Task.isCancelled { return }
                 if let product = await BarcodeProductCache.shared.read(barcode: id) {
                     cached.append(product)
                 }
             }
+            guard !Task.isCancelled else { return }
             await FoodSpotlightService.shared.reindex(
                 profile: snapshot,
                 cachedFavorites: cached
@@ -1033,6 +1059,10 @@ final class DataStore: DataServiceProtocol {
     private static let saveDebounceMs: UInt64 = 350
 
     @ObservationIgnored private var pendingSaveTask: Task<Void, Never>?
+    /// In-flight Spotlight reindex. Tracked so rapid mutations can
+    /// cancel the previous Task before scheduling a new one — prevents
+    /// out-of-order writes from overwriting the index with stale data.
+    @ObservationIgnored private var reindexTask: Task<Void, Never>?
 
     private func save() {
         // Achievements are computed off in-memory state, not what's on disk —

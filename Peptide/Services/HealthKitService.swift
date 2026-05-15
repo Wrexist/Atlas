@@ -57,13 +57,20 @@ final class HealthKitService {
     /// computed property (not a static let) because `HKQuantityType`
     /// is non-Sendable and a `static let` of a non-Sendable type on a
     /// MainActor-isolated class produces Swift 6 warnings.
+    ///
+    /// `MealEntry` doesn't carry fiber as a top-level field today —
+    /// the food library tracks it in `ScannedProduct.Nutriments`
+    /// only, not in the integer-macros log shape. Requesting fiber
+    /// write permission when we never write a fiber sample would
+    /// surface a permission prompt the app can't honor, so it's
+    /// deliberately omitted here. Bring fiber back once MealEntry
+    /// gains a `fiberG: Int` field.
     private var nutritionWriteTypes: Set<HKSampleType> {
         [
             HKQuantityType(.dietaryEnergyConsumed),
             HKQuantityType(.dietaryProtein),
             HKQuantityType(.dietaryCarbohydrates),
             HKQuantityType(.dietaryFatTotal),
-            HKQuantityType(.dietaryFiber),
         ]
     }
 
@@ -159,6 +166,9 @@ final class HealthKitService {
                 metadata: baseMetadata
             ))
         }
+        // Fiber intentionally omitted — `MealEntry` doesn't expose
+        // it separately. See `nutritionWriteTypes` doc comment for
+        // the full rationale.
         guard !samples.isEmpty else { return }
 
         do {
