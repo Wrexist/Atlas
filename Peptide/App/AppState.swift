@@ -23,6 +23,11 @@ final class AppState {
     /// Screen's Spotlight pull-down lands the user directly on the
     /// log-this-food sheet, not just on the app's launch view.
     var pendingFoodLogID: FoodLogDeepLink?
+    /// When true, the Profile tab opens the Labs view automatically on
+    /// next appear. Cleared the moment Profile consumes it. Used by the
+    /// Home overview card's "latest lab" insight tap so the user lands
+    /// one tap away from the trend chart instead of in the Profile root.
+    var pendingLabsOpen: Bool = false
 }
 
 /// Discriminated identifier for the Spotlight deep-link payload.

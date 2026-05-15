@@ -62,6 +62,7 @@ struct HomeView: View {
         )
         let completeness = dataStore.stackCompleteness
         let transitions = dataStore.cycleTransitions
+        let overview = TodayOverviewSnapshot.build(from: dataStore)
 
         NavigationStack {
             ScrollView {
@@ -88,6 +89,25 @@ struct HomeView: View {
                         NotificationIssueBanner(
                             report: report,
                             droppedProtocolNames: dataStore.droppedReminderProtocolNames
+                        )
+                        .sectionAppear(index: 0)
+                    }
+
+                    if overview.hasAnySignal {
+                        TodayOverviewCard(
+                            snapshot: overview,
+                            userName: dataStore.profile.name,
+                            hapticsEnabled: dataStore.profile.hapticFeedbackEnabled,
+                            onTapHero: { dose in
+                                guard let dose else { return }
+                                selectedEntry = dose
+                            },
+                            onTapInsight: { insight in
+                                if case .latestLab = insight {
+                                    appState.pendingLabsOpen = true
+                                    appState.selectedTab = .profile
+                                }
+                            }
                         )
                         .sectionAppear(index: 0)
                     }

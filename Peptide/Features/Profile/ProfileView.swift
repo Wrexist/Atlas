@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(AppState.self) private var appState
     @State private var storeService = StoreService.shared
     @State private var achievementService = AchievementService.shared
     @State private var authService = AuthService.shared
@@ -105,6 +106,16 @@ struct ProfileView: View {
             .sheet(isPresented: $showLabs) {
                 LabsView()
                     .environment(dataStore)
+            }
+            .onAppear {
+                // Honour a pending labs deep-link set elsewhere (e.g.
+                // the Home overview card's "latest lab" insight tap).
+                // Consume the flag here so navigating away and back
+                // doesn't re-fire the sheet.
+                if appState.pendingLabsOpen {
+                    appState.pendingLabsOpen = false
+                    showLabs = true
+                }
             }
         }
     }
