@@ -6,6 +6,15 @@ enum AppTab: String, CaseIterable {
     /// value is migrated below for users with a persisted
     /// state from a prior build).
     case today
+    /// Workout planning + logging. Added in the training pivot —
+    /// raw value is new so older builds that don't know about it
+    /// simply fall back to `.today` when their persisted state
+    /// reloads.
+    case train
+    /// Meal logging + macros + recipes. Promoted out of the Home
+    /// section in the training pivot so food gets its own
+    /// top-level surface alongside training.
+    case meals
     /// Peptide reference + AI research. Was `.database`.
     case library
     case protocols
@@ -13,6 +22,10 @@ enum AppTab: String, CaseIterable {
     /// body trends. Was `.analytics`; widened in Phase 32 to
     /// own everything answer-flavoured.
     case insights
+    /// Profile + settings. Demoted from the bottom tab bar to a
+    /// top-right avatar entry on the Today header during the
+    /// training pivot, but the case stays so deep-link / state-
+    /// restoration code paths keep compiling.
     case profile
 }
 
@@ -50,6 +63,14 @@ final class AppState {
     /// onOpenURL closure doesn't need a reference to HomeView's
     /// navigation path.
     var pendingWeeklyRecap: Bool = false
+    /// When true, the Library tab pushes `ProtocolListView` onto its
+    /// navigation stack on next appear and clears the flag.
+    /// Populated by call sites that historically switched directly to
+    /// the (now demoted) `.protocols` tab — Home cards, Insights
+    /// shortcuts, and the profile-stacks tap — so the user lands on
+    /// the protocol list in one navigation hop instead of being
+    /// dumped on the peptide reference root.
+    var pendingProtocolList: Bool = false
 }
 
 /// Discriminated identifier for the Spotlight deep-link payload.

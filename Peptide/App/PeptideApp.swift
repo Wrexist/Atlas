@@ -275,11 +275,11 @@ struct PeptideApp: App {
             Tab("Today", systemImage: "house.fill", value: .today) {
                 HomeContainerView()
             }
-            Tab("Library", systemImage: "pills.fill", value: .library) {
-                PeptideListView()
+            Tab("Train", systemImage: "figure.strengthtraining.traditional", value: .train) {
+                TrainContainerView()
             }
-            Tab("Protocols", systemImage: "square.stack.3d.up.fill", value: .protocols) {
-                ProtocolListView()
+            Tab("Library", systemImage: "books.vertical.fill", value: .library) {
+                PeptideListView()
             }
             Tab("Insights", systemImage: "chart.line.uptrend.xyaxis", value: .insights) {
                 InsightsView()

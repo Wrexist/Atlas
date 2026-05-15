@@ -479,7 +479,8 @@ struct HomeView: View {
             message: "Set up a peptide protocol to start tracking doses, streaks, and compliance.",
             action: .init(title: "Get started", icon: "plus") {
                 withAnimation(AppAnimation.springSnappy) {
-                    appState.selectedTab = .protocols
+                    appState.pendingProtocolList = true
+                    appState.selectedTab = .library
                 }
             },
             secondary: .init(title: "Browse the library", icon: "magnifyingglass") {

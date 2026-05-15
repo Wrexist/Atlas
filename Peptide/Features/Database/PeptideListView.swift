@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PeptideListView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(AppState.self) private var appState
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var viewModel = PeptideListViewModel(peptides: PeptideDatabase.shared)
     @State private var showCustomForm = false
@@ -10,6 +11,11 @@ struct PeptideListView: View {
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var storeService = StoreService.shared
     @State private var showPaywall = false
+    /// Presents `ProtocolListView` over the Library when set. Driven
+    /// by `AppState.pendingProtocolList` so call sites that
+    /// historically jumped to the (now demoted) Protocols tab land
+    /// the user on the protocols screen in one hop.
+    @State private var showProtocols = false
 
     private func refreshPeptides() {
         viewModel.updatePeptides(dataStore.peptideDatabase)
@@ -33,7 +39,32 @@ struct PeptideListView: View {
                 iPhoneStackLayout
             }
         }
-        .onAppear { refreshPeptides() }
+        .onAppear {
+            refreshPeptides()
+            consumePendingProtocolList()
+        }
+        .onChange(of: appState.pendingProtocolList) { _, newValue in
+            if newValue { consumePendingProtocolList() }
+        }
+        .fullScreenCover(isPresented: $showProtocols) {
+            NavigationStack {
+                ProtocolListView()
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("Close") { showProtocols = false }
+                        }
+                    }
+            }
+        }
+    }
+
+    /// One-shot: when the AppState flag is set, present the protocol
+    /// list and immediately clear the flag so a subsequent
+    /// `onAppear` doesn't re-trigger.
+    private func consumePendingProtocolList() {
+        guard appState.pendingProtocolList else { return }
+        showProtocols = true
+        appState.pendingProtocolList = false
     }
 
     // MARK: - iPad split layout
@@ -204,6 +235,17 @@ struct PeptideListView: View {
                     .foregroundStyle(AppColor.accentLight)
             }
             .accessibilityLabel("Open AI research assistant")
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                showProtocols = true
+            } label: {
+                Label("Protocols", systemImage: "square.stack.3d.up.fill")
+                    .labelStyle(.iconOnly)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(AppColor.accentPrimary)
+            }
+            .accessibilityLabel("Open protocols")
         }
         ToolbarItem(placement: .topBarTrailing) {
             Text("\(viewModel.allPeptides.count)")
