@@ -8,6 +8,8 @@ import SwiftUI
 /// its own stack.
 struct TrainContainerView: View {
     @State private var section: Section = .overview
+    @State private var sessionService = WorkoutSessionService.shared
+    @State private var showActiveWorkout = false
 
     enum Section: String, CaseIterable, Identifiable {
         case overview, exercises, history
@@ -37,7 +39,65 @@ struct TrainContainerView: View {
                     ExerciseDetailView(exerciseID: id)
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                if sessionService.activeSession != nil && !showActiveWorkout {
+                    activeWorkoutBanner
+                }
+            }
         }
+        .fullScreenCover(isPresented: $showActiveWorkout) {
+            ActiveWorkoutView()
+        }
+        .onAppear {
+            // If a workout was already in progress when this view
+            // mounted (process re-launch, app re-entry), surface it
+            // immediately so the user doesn't have to discover it
+            // through the banner.
+            if sessionService.activeSession != nil {
+                showActiveWorkout = true
+            }
+        }
+        .onChange(of: sessionService.activeSession?.id) { oldID, newID in
+            // Auto-present when a new session begins; auto-dismiss
+            // when one ends.
+            if oldID == nil && newID != nil { showActiveWorkout = true }
+        }
+    }
+
+    /// Sticky "Resume workout" pill shown when a session is in
+    /// progress and the cover has been dismissed (the user backed
+    /// out via Discard's "Keep going" cancel, etc.).
+    private var activeWorkoutBanner: some View {
+        Button {
+            showActiveWorkout = true
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "figure.run.circle.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Workout in progress")
+                        .font(AppFont.callout.weight(.semibold))
+                    if let active = sessionService.activeSession {
+                        Text("\(active.completedSetCount) sets logged")
+                            .font(AppFont.caption)
+                            .opacity(0.85)
+                    }
+                }
+                Spacer()
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundStyle(AppColor.background)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .fill(AppColor.accentPrimary)
+            )
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.bottom, Spacing.xs)
+        }
+        .buttonStyle(.plain)
     }
 
     private var sectionPicker: some View {

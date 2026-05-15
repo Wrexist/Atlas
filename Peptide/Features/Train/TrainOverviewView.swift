@@ -20,6 +20,7 @@ import SwiftUI
 struct TrainOverviewView: View {
     @State private var library = ExerciseLibrary.shared
     @State private var sessions: [WorkoutSession] = []
+    @State private var sessionService = WorkoutSessionService.shared
 
     private var frequencies: [AnatomicalMuscle: Double] {
         WeeklyMuscleHeatmap.frequencies(
@@ -35,6 +36,7 @@ struct TrainOverviewView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
+                startWorkoutButton
                 weeklyMuscleCard
                 if weekHasTraining {
                     topMusclesRow
@@ -49,6 +51,32 @@ struct TrainOverviewView: View {
         .task { @MainActor in
             library.load()
             refresh()
+        }
+    }
+
+    /// Primary CTA — kicks off an empty workout. Hidden when one's
+    /// already in progress (the container surfaces a "Resume" banner
+    /// in that case so we don't show two competing actions).
+    @ViewBuilder
+    private var startWorkoutButton: some View {
+        if sessionService.activeSession == nil {
+            Button {
+                sessionService.startWorkout()
+            } label: {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "play.fill")
+                    Text("Start workout")
+                }
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.background)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Spacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .fill(AppColor.accentPrimary)
+                )
+            }
+            .buttonStyle(.plain)
         }
     }
 
