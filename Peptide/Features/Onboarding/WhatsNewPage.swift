@@ -11,12 +11,14 @@ import SwiftUI
 /// uses. Three to five bullets per page is the sweet spot — fewer
 /// and the page feels thin, more and the body text wraps off-
 /// screen on the smaller iPhones.
-// `@unchecked Sendable` because `LocalizedStringKey` (used by
-// `eyebrow`, `title`, `body`, and `bullets`) isn't marked Sendable
-// by SwiftUI — Apple's annotation is missing. In practice the type
-// is an immutable value wrapping a string + interpolation segments,
-// safe to share across threads. The struct's other fields (String,
-// [Color], Color) are all already Sendable.
+///
+/// `@unchecked Sendable` because `LocalizedStringKey` (used by
+/// `eyebrow`, `title`, `body`, and `bullets`) isn't marked
+/// Sendable by SwiftUI — Apple's annotation is missing. In
+/// practice the type is an immutable value wrapping a string +
+/// interpolation segments, safe to share across threads. The
+/// struct's other fields (String, [Color], Color) are already
+/// Sendable.
 struct WhatsNewPage: Identifiable, Equatable, @unchecked Sendable {
     let id: String
     /// Eyebrow above the title. Short — "FOOD", "BIOMETRICS",
@@ -53,7 +55,7 @@ extension WhatsNewPage {
     /// after a bump to `WhatsNewService.currentTourVersion` so
     /// existing users see the new map before they have to discover
     /// it themselves.
-    static let v2_1: [WhatsNewPage] = [
+    static let v21: [WhatsNewPage] = [
         WhatsNewPage(
             id: "v2_1_welcome",
             eyebrow: "What's new",
