@@ -981,6 +981,36 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
+    // MARK: - Protocol notes
+
+    /// Saves a new protocol note or replaces an existing one
+    /// matched by id. Bumps `updatedAt` so the timeline re-sorts
+    /// to put the just-edited entry on top within its day bucket.
+    func saveProtocolNote(_ note: ProtocolNote) {
+        var updated = note
+        updated.updatedAt = Date()
+        if let index = profile.protocolNotes.firstIndex(where: { $0.id == note.id }) {
+            profile.protocolNotes[index] = updated
+        } else {
+            profile.protocolNotes.append(updated)
+        }
+        save()
+    }
+
+    /// Removes one note by id. Idempotent.
+    func deleteProtocolNote(id: UUID) {
+        profile.protocolNotes.removeAll { $0.id == id }
+        save()
+    }
+
+    /// All notes for one protocol, newest-first. Powers the
+    /// per-protocol timeline view.
+    func protocolNotes(for protocolID: UUID) -> [ProtocolNote] {
+        profile.protocolNotes
+            .filter { $0.protocolID == protocolID }
+            .sorted { $0.date > $1.date }
+    }
+
     /// Logs a recipe as a single `MealEntry` summing every
     /// component's macros. The entry's `name` is the recipe name
     /// so the meal-history list reads "Morning bowl" rather than

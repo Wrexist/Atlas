@@ -1030,6 +1030,44 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(parsed, .recipe(id: id))
     }
 
+    func test_protocolNotes_persistThroughCodableRoundTrip() throws {
+        let protocolID = UUID()
+        let note = ProtocolNote(
+            protocolID: protocolID,
+            date: Date(timeIntervalSince1970: 1_715_000_000),
+            body: "Felt great after morning dose",
+            mood: 5
+        )
+        var profile = UserProfile.fresh
+        profile.protocolNotes = [note]
+        let data = try encoder.encode(profile)
+        let decoded = try decoder.decode(UserProfile.self, from: data)
+        XCTAssertEqual(decoded.protocolNotes.count, 1)
+        XCTAssertEqual(decoded.protocolNotes.first?.body, "Felt great after morning dose")
+        XCTAssertEqual(decoded.protocolNotes.first?.mood, 5)
+        XCTAssertEqual(decoded.protocolNotes.first?.protocolID, protocolID)
+    }
+
+    func test_userProfile_legacyJSON_protocolNotesDefaultsEmpty() throws {
+        // Older profile JSON without the new key should decode
+        // cleanly with an empty array.
+        let legacy = """
+        {
+          "name": "Legacy",
+          "goals": [],
+          "memberSince": "2023-11-14T22:13:20Z",
+          "healthConnected": false,
+          "weightHistory": [],
+          "progressPhotoFilenames": [],
+          "dailyConsumption": {},
+          "workoutHistory": [],
+          "bio": ""
+        }
+        """.data(using: .utf8)!
+        let decoded = try decoder.decode(UserProfile.self, from: legacy)
+        XCTAssertTrue(decoded.protocolNotes.isEmpty)
+    }
+
     func test_offRateLimiter_allowsUpToCapThenDenies() async {
         // 3 calls / 60-second window — easier to assert than the
         // production 8/60s config without changing the algorithm.

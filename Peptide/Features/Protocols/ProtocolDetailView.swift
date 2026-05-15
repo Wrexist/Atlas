@@ -167,7 +167,8 @@ struct ProtocolDetailView: View {
                 }
                 .sectionAppear(index: 3)
 
-                // Notes
+                // Static protocol-creation notes (entered at
+                // builder time). Surfaces only when populated.
                 if !liveProtocol.notes.isEmpty {
                     GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -183,6 +184,19 @@ struct ProtocolDetailView: View {
                     }
                     .sectionAppear(index: 4)
                 }
+
+                // Per-day journal entries — qualitative companion
+                // to the dose / cycle data above.
+                GlassCard {
+                    ProtocolNotesTimeline(
+                        protocolID: liveProtocol.id,
+                        protocolName: liveProtocol.name,
+                        notes: dataStore.protocolNotes(for: liveProtocol.id),
+                        onSave: { dataStore.saveProtocolNote($0) },
+                        onDelete: { dataStore.deleteProtocolNote(id: $0) }
+                    )
+                }
+                .sectionAppear(index: 4)
 
                 // Recent logs
                 GlassCard {

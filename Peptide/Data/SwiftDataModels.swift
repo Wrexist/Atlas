@@ -353,7 +353,8 @@ final class StoredProfile {
             labHistory: ext.labHistory,
             lastKnownTimezoneIdentifier: ext.lastKnownTimezoneIdentifier,
             streakFreezeDays: Set(ext.streakFreezeDays),
-            recipes: ext.recipes
+            recipes: ext.recipes,
+            protocolNotes: ext.protocolNotes
         )
     }
 }
@@ -388,6 +389,7 @@ private struct ProfileExtension: Codable {
     /// deterministic shape; `toUserProfile` collapses back to Set.
     var streakFreezeDays: [String] = []
     var recipes: [Recipe] = []
+    var protocolNotes: [ProtocolNote] = []
 
     static let empty = ProfileExtension()
 
@@ -408,7 +410,8 @@ private struct ProfileExtension: Codable {
             labHistory: profile.labHistory,
             lastKnownTimezoneIdentifier: profile.lastKnownTimezoneIdentifier,
             streakFreezeDays: Array(profile.streakFreezeDays).sorted(),
-            recipes: profile.recipes
+            recipes: profile.recipes,
+            protocolNotes: profile.protocolNotes
         )
     }
 }

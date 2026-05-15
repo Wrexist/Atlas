@@ -317,6 +317,12 @@ struct UserProfile: Codable {
     /// food-library taps. Newest-first by updatedAt so the recipe
     /// list reads "what I just edited" on top.
     var recipes: [Recipe]
+    /// Free-form journal entries attached to specific protocols
+    /// on specific days. The qualitative companion to the
+    /// quantitative dose / meal / lab data — captures "felt
+    /// great after BPC today" or "side-effect: mild headache"
+    /// without the user reaching for a separate notes app.
+    var protocolNotes: [ProtocolNote]
 
     init(
         name: String,
@@ -345,7 +351,8 @@ struct UserProfile: Codable {
         labHistory: [LabValue] = [],
         lastKnownTimezoneIdentifier: String? = nil,
         streakFreezeDays: Set<String> = [],
-        recipes: [Recipe] = []
+        recipes: [Recipe] = [],
+        protocolNotes: [ProtocolNote] = []
     ) {
         self.name = name
         self.goals = goals
@@ -374,6 +381,7 @@ struct UserProfile: Codable {
         self.lastKnownTimezoneIdentifier = lastKnownTimezoneIdentifier
         self.streakFreezeDays = streakFreezeDays
         self.recipes = recipes
+        self.protocolNotes = protocolNotes
     }
 
     init(from decoder: Decoder) throws {
@@ -409,6 +417,7 @@ struct UserProfile: Codable {
             try container.decodeIfPresent([String].self, forKey: .streakFreezeDays) ?? []
         )
         recipes = try container.decodeIfPresent([Recipe].self, forKey: .recipes) ?? []
+        protocolNotes = try container.decodeIfPresent([ProtocolNote].self, forKey: .protocolNotes) ?? []
     }
 
     static var fresh: UserProfile {
