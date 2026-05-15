@@ -18,6 +18,7 @@ struct LifestyleView: View {
     @State private var showBarcodeScan = false
     @State private var showFoodLibrary = false
     @State private var editingMealEntry: MealEntry?
+    @State private var showOutcomeCheckIn = false
     @State private var pendingPhotoFallback = false
     /// Carried into the food library when opened via Spotlight deep-
     /// link — the library reads this once on appear and pre-selects
@@ -41,6 +42,17 @@ struct LifestyleView: View {
 
     private var targets: NutritionTargets {
         dataStore.profile.nutritionTargets ?? .placeholder
+    }
+
+    /// Most recent outcome entry from before today, used to pre-fill
+    /// the check-in sheet so the user nudges yesterday's values
+    /// instead of starting from a neutral 3 across the board.
+    private var yesterdayOutcome: OutcomeEntry? {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return dataStore.profile.outcomeHistory
+            .filter { !calendar.isDate($0.date, inSameDayAs: today) }
+            .max { $0.date < $1.date }
     }
 
     var body: some View {
@@ -108,6 +120,26 @@ struct LifestyleView: View {
                         bestStreak: dataStore.bestMealLoggingStreak
                     )
                     .sectionAppear(index: 3)
+
+                    sectionHeader(eyebrow: "Wellness", title: "How you're feeling")
+                        .sectionAppear(index: 4)
+
+                    DailyCheckInCard(
+                        todayEntry: dataStore.outcome(),
+                        onTap: { showOutcomeCheckIn = true }
+                    )
+                    .sectionAppear(index: 4)
+
+                    if let headline = OutcomeCorrelationEngine.headline(
+                        outcomes: dataStore.profile.outcomeHistory,
+                        entries: dataStore.entries
+                    ) {
+                        OutcomeCorrelationCard(
+                            headline: headline,
+                            sampleSize: dataStore.profile.outcomeHistory.count
+                        )
+                        .sectionAppear(index: 4)
+                    }
 
                     let todaysEntries = dataStore.mealEntries()
                     if dataStore.consumption().caloriesKcal > 0 || !todaysEntries.isEmpty {
@@ -248,6 +280,22 @@ struct LifestyleView: View {
                         editingMealEntry = nil
                     },
                     onCancel: { editingMealEntry = nil }
+                )
+            }
+            .sheet(isPresented: $showOutcomeCheckIn) {
+                // `previousEntry` pre-fills with yesterday's values
+                // when today is fresh — most days move only a point
+                // or two, so the user's first interaction is a
+                // confirmation, not five resets.
+                OutcomeCheckInSheet(
+                    date: Date(),
+                    initial: dataStore.outcome(),
+                    previousEntry: yesterdayOutcome,
+                    onSave: { entry in
+                        dataStore.logOutcome(entry)
+                        showOutcomeCheckIn = false
+                    },
+                    onCancel: { showOutcomeCheckIn = false }
                 )
             }
         }

@@ -496,6 +496,112 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertNil(FoodLogDeepLink(spotlightIdentifier: "peptidex-food/custom/not-a-uuid"))
     }
 
+    func test_logOutcome_oneEntryPerDayReplacesPrior() {
+        var profile = UserProfile.fresh
+        let today = Date()
+        let first = OutcomeEntry(
+            date: today, energy: 3, sleepQuality: 3, recovery: 3,
+            mood: 3, focus: 3, note: "first take"
+        )
+        LifestyleDataLogic.logOutcome(into: &profile, entry: first)
+        XCTAssertEqual(profile.outcomeHistory.count, 1)
+        XCTAssertEqual(profile.outcomeHistory.first?.note, "first take")
+
+        // Same day, different scores — should overwrite, not duplicate.
+        let revised = OutcomeEntry(
+            date: today, energy: 5, sleepQuality: 4, recovery: 4,
+            mood: 5, focus: 5, note: "second take"
+        )
+        LifestyleDataLogic.logOutcome(into: &profile, entry: revised)
+        XCTAssertEqual(profile.outcomeHistory.count, 1)
+        XCTAssertEqual(profile.outcomeHistory.first?.energy, 5)
+        XCTAssertEqual(profile.outcomeHistory.first?.note, "second take")
+    }
+
+    func test_correlationEngine_findsDoseDayDelta_whenSamplesSufficient() {
+        // 5 dosing days with high energy, 5 off days with low — engine
+        // should pick up a positive delta on .energy.
+        var profile = UserProfile.fresh
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var entries: [ProtocolEntry] = []
+
+        for daysAgo in 0...9 {
+            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
+            let isDosingDay = daysAgo.isMultiple(of: 2)
+            profile.outcomeHistory.append(
+                OutcomeEntry(
+                    date: date,
+                    energy: isDosingDay ? 5 : 2,
+                    sleepQuality: 3,
+                    recovery: 3,
+                    mood: 3,
+                    focus: 3
+                )
+            )
+            if isDosingDay {
+                entries.append(ProtocolEntry(
+                    id: UUID(),
+                    protocolId: UUID(),
+                    peptide: MockPeptides.bpc157,
+                    date: date,
+                    dose: "250 mcg",
+                    notes: "",
+                    completed: true,
+                    actualDose: nil,
+                    actualTime: nil,
+                    injectionSite: nil
+                ))
+            }
+        }
+
+        let headline = OutcomeCorrelationEngine.headline(
+            outcomes: profile.outcomeHistory,
+            entries: entries
+        )
+        let resolved = try? XCTUnwrap(headline)
+        XCTAssertEqual(resolved?.dimension, .energy)
+        XCTAssertGreaterThan(resolved?.delta ?? 0, 2.5)
+    }
+
+    func test_correlationEngine_returnsNil_whenSamplesInsufficient() {
+        // Only 2 dosing days — below the minimum sample threshold,
+        // so headline should be nil regardless of how strong the
+        // delta would have been.
+        var profile = UserProfile.fresh
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var entries: [ProtocolEntry] = []
+        for daysAgo in 0...2 {
+            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
+            profile.outcomeHistory.append(
+                OutcomeEntry(
+                    date: date,
+                    energy: daysAgo == 0 ? 5 : 1,
+                    sleepQuality: 3, recovery: 3, mood: 3, focus: 3
+                )
+            )
+            if daysAgo == 0 {
+                entries.append(ProtocolEntry(
+                    id: UUID(),
+                    protocolId: UUID(),
+                    peptide: MockPeptides.bpc157,
+                    date: date,
+                    dose: "250 mcg",
+                    notes: "",
+                    completed: true,
+                    actualDose: nil,
+                    actualTime: nil,
+                    injectionSite: nil
+                ))
+            }
+        }
+        XCTAssertNil(OutcomeCorrelationEngine.headline(
+            outcomes: profile.outcomeHistory,
+            entries: entries
+        ))
+    }
+
     func test_offRateLimiter_allowsUpToCapThenDenies() async {
         // 3 calls / 60-second window — easier to assert than the
         // production 8/60s config without changing the algorithm.

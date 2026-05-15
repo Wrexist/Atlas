@@ -335,7 +335,8 @@ final class StoredProfile {
             customFoods: ext.customFoods,
             favoriteFoodIDs: Set(ext.favoriteFoodIDs),
             mealHistory: ext.mealHistory,
-            healthKitNutritionEnabled: ext.healthKitNutritionEnabled
+            healthKitNutritionEnabled: ext.healthKitNutritionEnabled,
+            outcomeHistory: ext.outcomeHistory
         )
     }
 }
@@ -363,6 +364,7 @@ private struct ProfileExtension: Codable {
     var favoriteFoodIDs: [String] = []
     var mealHistory: [MealEntry] = []
     var healthKitNutritionEnabled: Bool = false
+    var outcomeHistory: [OutcomeEntry] = []
 
     static let empty = ProfileExtension()
 
@@ -378,7 +380,8 @@ private struct ProfileExtension: Codable {
             customFoods: profile.customFoods,
             favoriteFoodIDs: Array(profile.favoriteFoodIDs).sorted(),
             mealHistory: profile.mealHistory,
-            healthKitNutritionEnabled: profile.healthKitNutritionEnabled
+            healthKitNutritionEnabled: profile.healthKitNutritionEnabled,
+            outcomeHistory: profile.outcomeHistory
         )
     }
 }

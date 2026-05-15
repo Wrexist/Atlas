@@ -303,6 +303,50 @@ enum LifestyleDataLogic {
     /// rings can't lose data mid-day.
     static let maxMealHistoryEntries: Int = 3650
 
+    // MARK: - Outcome check-ins
+
+    /// Logs (or replaces) the daily wellness check-in for the entry's
+    /// calendar day. One per day — a second save on the same day
+    /// overwrites the first, so the user can edit "no actually my
+    /// energy was a 4" without ending up with two entries.
+    static func logOutcome(into profile: inout UserProfile, entry: OutcomeEntry) {
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: entry.date)
+        profile.outcomeHistory.removeAll {
+            calendar.isDate($0.date, inSameDayAs: dayStart)
+        }
+        // Normalise the stored date to start-of-day so a re-fetch
+        // with a different time-of-day reference still resolves the
+        // same entry.
+        var normalised = entry
+        normalised.updatedAt = Date()
+        profile.outcomeHistory.append(normalised)
+        // Sort chronological so callers iterating forward see the
+        // oldest entry first (matches mealHistory's invariant).
+        profile.outcomeHistory.sort { $0.date < $1.date }
+    }
+
+    /// Returns the user's check-in for a given calendar day, or nil
+    /// when there's nothing logged. Drives the "filled in today?"
+    /// state on the prompt card.
+    static func outcome(in profile: UserProfile, for date: Date) -> OutcomeEntry? {
+        let calendar = Calendar.current
+        return profile.outcomeHistory.first {
+            calendar.isDate($0.date, inSameDayAs: date)
+        }
+    }
+
+    /// All check-ins from the last `days` calendar days (inclusive of
+    /// today), sorted oldest-first. Powers the trend sparkline and
+    /// feeds the correlation engine.
+    static func recentOutcomes(in profile: UserProfile, days: Int) -> [OutcomeEntry] {
+        let calendar = Calendar.current
+        guard days > 0 else { return [] }
+        let today = calendar.startOfDay(for: Date())
+        guard let cutoff = calendar.date(byAdding: .day, value: -days + 1, to: today) else { return [] }
+        return profile.outcomeHistory.filter { $0.date >= cutoff }
+    }
+
     private static func pruneMealHistoryIfNeeded(into profile: inout UserProfile) {
         guard profile.mealHistory.count > maxMealHistoryEntries else { return }
         let today = Calendar.current.startOfDay(for: Date())

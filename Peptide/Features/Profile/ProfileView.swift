@@ -5,6 +5,7 @@ struct ProfileView: View {
     @State private var storeService = StoreService.shared
     @State private var achievementService = AchievementService.shared
     @State private var authService = AuthService.shared
+    @State private var showReconstitutionCalculator = false
 
     // Kept in sync with OnboardingView's `goals` array so a goal selected
     // during onboarding remains visible/editable here.
@@ -69,6 +70,9 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 6)
 
+                    ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
+                        .sectionAppear(index: 7)
+
                     ExportSection()
                         .sectionAppear(index: 7)
 
@@ -87,6 +91,9 @@ struct ProfileView: View {
             .background(AppColor.background)
             .navigationTitle("Profile")
             .task { await authService.validateCredential() }
+            .sheet(isPresented: $showReconstitutionCalculator) {
+                ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
+            }
         }
     }
 

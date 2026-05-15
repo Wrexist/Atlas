@@ -283,6 +283,11 @@ struct UserProfile: Codable {
     /// after the user flips this on in Profile. The corresponding HK
     /// authorization is requested at toggle-time, not at install.
     var healthKitNutritionEnabled: Bool
+    /// Daily wellness check-ins. One entry per calendar day; a
+    /// re-save on the same day replaces the previous entry through
+    /// `LifestyleDataLogic.logOutcome`. Newest-last so chronological
+    /// iteration matches visual timeline order.
+    var outcomeHistory: [OutcomeEntry]
 
     init(
         name: String,
@@ -306,7 +311,8 @@ struct UserProfile: Codable {
         customFoods: [CustomFood] = [],
         favoriteFoodIDs: Set<String> = [],
         mealHistory: [MealEntry] = [],
-        healthKitNutritionEnabled: Bool = false
+        healthKitNutritionEnabled: Bool = false,
+        outcomeHistory: [OutcomeEntry] = []
     ) {
         self.name = name
         self.goals = goals
@@ -330,6 +336,7 @@ struct UserProfile: Codable {
         self.favoriteFoodIDs = favoriteFoodIDs
         self.mealHistory = mealHistory
         self.healthKitNutritionEnabled = healthKitNutritionEnabled
+        self.outcomeHistory = outcomeHistory
     }
 
     init(from decoder: Decoder) throws {
@@ -358,6 +365,7 @@ struct UserProfile: Codable {
         )
         mealHistory = try container.decodeIfPresent([MealEntry].self, forKey: .mealHistory) ?? []
         healthKitNutritionEnabled = try container.decodeIfPresent(Bool.self, forKey: .healthKitNutritionEnabled) ?? false
+        outcomeHistory = try container.decodeIfPresent([OutcomeEntry].self, forKey: .outcomeHistory) ?? []
     }
 
     static var fresh: UserProfile {

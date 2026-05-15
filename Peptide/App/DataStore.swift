@@ -868,6 +868,26 @@ final class DataStore: DataServiceProtocol {
         LifestyleDataLogic.bestMealLoggingStreak(in: profile)
     }
 
+    // MARK: - Outcome check-ins
+
+    /// Logs (or replaces) a daily wellness check-in. One per day.
+    func logOutcome(_ entry: OutcomeEntry) {
+        LifestyleDataLogic.logOutcome(into: &profile, entry: entry)
+        save()
+    }
+
+    /// Today's check-in if the user has filled one in already, else
+    /// nil — drives the prompt-vs-summary state of the daily card.
+    func outcome(for date: Date = Date()) -> OutcomeEntry? {
+        LifestyleDataLogic.outcome(in: profile, for: date)
+    }
+
+    /// Last `days` days of check-ins, oldest first. Feeds the
+    /// sparkline and the correlation engine.
+    func recentOutcomes(days: Int = 30) -> [OutcomeEntry] {
+        LifestyleDataLogic.recentOutcomes(in: profile, days: days)
+    }
+
     // MARK: - Food library
 
     /// Adds (or replaces) a user-defined food in the library. Replace
