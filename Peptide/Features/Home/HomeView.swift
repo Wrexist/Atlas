@@ -4,8 +4,6 @@ struct HomeView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
     @State private var selectedEntry: ProtocolEntry?
-    @State private var selectedAlert: StackRecommendationEngine.Warning?
-    @State private var adjustingAlert: StackRecommendationEngine.Warning?
     @State private var showAchievementToast = false
     @State private var toastAchievement: Achievement?
     @State private var achievementService = AchievementService.shared
@@ -14,7 +12,6 @@ struct HomeView: View {
     /// but a computed read from a non-observed singleton wouldn't re-render
     /// the View on its own.
     @State private var notificationService = NotificationService.shared
-    @State private var showPaywall = false
     @State private var showProfileCustomization = false
     /// Cycle-milestone prompt state. Both are nil unless the
     /// CycleMilestoneService has surfaced a pending (protocol,
@@ -54,14 +51,6 @@ struct HomeView: View {
 
     var body: some View {
         let stats = todayStats
-        let warnings = dataStore.stackWarnings
-        let recommendations = dataStore.stackRecommendations
-        let plannerSuggestions = SmartCyclePlanner.suggestions(
-            protocols: dataStore.protocols,
-            entries: dataStore.entries
-        )
-        let completeness = dataStore.stackCompleteness
-        let transitions = dataStore.cycleTransitions
         let overview = TodayOverviewSnapshot.build(from: dataStore)
 
         NavigationStack {
@@ -166,76 +155,38 @@ struct HomeView: View {
                     HomeMovementSection()
                         .sectionAppear(index: 5)
 
-                    if !dataStore.protocols.isEmpty {
-                        // MARK: - Stack management
-                        //
-                        // Marked for migration to the Protocols tab
-                        // in Phase 34. Kept here for now so we ship
-                        // one structural change per phase.
+                    // Stack-management cards (vial shelf, warnings,
+                    // completeness, transitions, planner,
+                    // recommendations, health summary) migrated to
+                    // the Protocols tab in Phase 34. Today now ends
+                    // on a single daily-flavoured insight so the
+                    // scroll has a clean tail without doubling as a
+                    // stack-configuration surface.
 
-                        VialShelfCard(peptides: dataStore.stackPeptides)
-                            .sectionAppear(index: 5)
-
-                        if let completeness {
-                            StackCompletenessCard(completeness: completeness)
-                                .sectionAppear(index: 6)
-                        }
-
-                        if !transitions.isEmpty {
-                            CycleTransitionCard(transitions: transitions)
-                                .sectionAppear(index: 7)
-                        }
-
-                        if !warnings.isEmpty {
-                            StackWarningCard(
-                                warnings: warnings,
-                                hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
-                                onSelect: { selectedAlert = $0 }
-                            )
-                            .sectionAppear(index: 8)
-                        }
-
-                        SmartCyclePlannerCard(suggestions: plannerSuggestions)
-                            .sectionAppear(index: 9)
-
-                        if !recommendations.isEmpty {
-                            RecommendedPeptidesCard(
-                                recommendations: recommendations,
-                                activeProtocols: dataStore.activeProtocols,
-                                hapticEnabled: dataStore.profile.hapticFeedbackEnabled
-                            )
-                            .sectionAppear(index: 10)
-                        }
-
-                        if dataStore.profile.healthConnected {
-                            HealthSummaryCard()
-                                .sectionAppear(index: 11)
-                        }
-
-                        if let topInsight = dataStore.topInsight {
-                            GlassCard {
-                                HStack(spacing: Spacing.md) {
-                                    Image(systemName: topInsight.icon)
-                                        .font(.system(size: 16))
-                                        .foregroundStyle(AppColor.accentPrimary)
-                                        .frame(width: 28, height: 28)
-                                        .background {
-                                            Circle().fill(AppColor.accentPrimary.opacity(0.15))
-                                        }
-                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                        Text(topInsight.title)
-                                            .font(AppFont.subheadline)
-                                            .fontWeight(.medium)
-                                            .foregroundStyle(AppColor.textPrimary)
-                                        Text(topInsight.description)
-                                            .font(AppFont.caption)
-                                            .foregroundStyle(AppColor.textSecondary)
+                    if !dataStore.protocols.isEmpty,
+                       let topInsight = dataStore.topInsight {
+                        GlassCard {
+                            HStack(spacing: Spacing.md) {
+                                Image(systemName: topInsight.icon)
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(AppColor.accentPrimary)
+                                    .frame(width: 28, height: 28)
+                                    .background {
+                                        Circle().fill(AppColor.accentPrimary.opacity(0.15))
                                     }
-                                    Spacer()
+                                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                    Text(topInsight.title)
+                                        .font(AppFont.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(AppColor.textPrimary)
+                                    Text(topInsight.description)
+                                        .font(AppFont.caption)
+                                        .foregroundStyle(AppColor.textSecondary)
                                 }
+                                Spacer()
                             }
-                            .sectionAppear(index: 12)
                         }
+                        .sectionAppear(index: 6)
                     }
                 }
                 .padding(.horizontal, Spacing.screenPadding)
@@ -256,43 +207,11 @@ struct HomeView: View {
                 }
                 .liquidGlassPresentation()
             }
-            .sheet(item: $selectedAlert) { warning in
-                StackAlertDetailSheet(
-                    warning: warning,
-                    peptideDatabase: dataStore.peptideDatabase,
-                    hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
-                    onPrimaryAction: {
-                        if canAdjustStack(for: warning) {
-                            // Defer until the alert sheet has finished dismissing — SwiftUI can't
-                            // chain two sheets in the same runloop tick.
-                            Task { @MainActor in
-                                try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
-                                adjustingAlert = warning
-                            }
-                        } else {
-                            appState.selectedTab = .protocols
-                        }
-                    }
-                )
-            }
-            .sheet(item: $adjustingAlert) { warning in
-                let candidates = StackAdjustmentEngine.candidateProtocols(
-                    affectedAbbreviations: warning.peptides,
-                    in: dataStore.activeProtocols
-                )
-                StackAdjustmentSheet(
-                    warning: warning,
-                    candidateProtocols: candidates,
-                    allActiveProtocols: dataStore.activeProtocols,
-                    peptideDatabase: dataStore.peptideDatabase,
-                    hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
-                    onApply: applyStackAdjustment
-                )
-            }
-            .sheet(isPresented: $showPaywall) {
-                PaywallView()
-                    .liquidGlassPresentation()
-            }
+            // Stack-warning / stack-adjustment / paywall sheets
+            // moved to ProtocolsStackHealthSection in Phase 34 —
+            // their host cards live on the Protocols tab now, so
+            // chaining the sheets there avoids a cross-tab modal
+            // dance.
             .sheet(isPresented: $showProfileCustomization) {
                 ProfileCustomizationSheet()
                     .environment(dataStore)
@@ -383,7 +302,6 @@ struct HomeView: View {
     private func checkMilestonePrompt() {
         guard milestonePrompt == nil,
               milestoneShareProtocol == nil,
-              !showPaywall,
               !showProfileCustomization
         else { return }
 
@@ -444,54 +362,9 @@ struct HomeView: View {
         }
     }
 
-    private func canAdjustStack(for warning: StackRecommendationEngine.Warning) -> Bool {
-        let candidates = StackAdjustmentEngine.candidateProtocols(
-            affectedAbbreviations: warning.peptides,
-            in: dataStore.activeProtocols
-        )
-        return !candidates.isEmpty
-    }
-
-    private func applyStackAdjustment(_ result: StackAdjustmentResult) {
-        guard let source = dataStore.activeProtocols.first(where: { $0.id == result.sourceProtocolId }) else { return }
-
-        dataStore.updateProtocol(
-            id: source.id,
-            name: source.name,
-            peptides: result.updatedPeptides,
-            schedule: source.schedule,
-            peptideSchedules: source.peptideSchedules,
-            cycleLengthWeeks: source.cycleLengthWeeks,
-            notes: source.notes
-        )
-
-        var deferredPaywall = false
-        for move in result.moves {
-            switch move.destination {
-            case .discard:
-                continue
-            case .moveTo(let protocolId, _, _):
-                dataStore.addPeptide(move.peptide, toProtocolId: protocolId)
-            case .createStack:
-                if StoreService.shared.requiresPro(activeProtocolCount: dataStore.activeProtocols.count) {
-                    deferredPaywall = true
-                    continue
-                }
-                let newStack = PeptideProtocol(
-                    id: UUID(),
-                    name: "\(move.peptide.abbreviation) Solo",
-                    peptides: [move.peptide],
-                    schedule: source.schedule,
-                    cycleLengthWeeks: source.cycleLengthWeeks,
-                    startDate: Date(),
-                    status: .active,
-                    notes: "Spun off from \(source.name) to reduce compounding side effects."
-                )
-                dataStore.addProtocol(newStack)
-            }
-        }
-        if deferredPaywall { showPaywall = true }
-    }
+    // Stack-warning + stack-adjustment helpers moved to
+    // ProtocolsStackHealthSection in Phase 34 alongside the cards
+    // that called them.
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
