@@ -9,7 +9,24 @@ import SwiftUI
 struct MacroSummaryRow: View {
     let targets: NutritionTargets
     let consumed: DailyConsumption
+    /// Per-meal-category breakdown driving the outer calorie ring's
+    /// segmentation. Optional — when nil, the ring falls back to the
+    /// monochrome render so callers that haven't been upgraded
+    /// (older snapshots, previews, tests) keep working unchanged.
+    let breakdown: LifestyleDataLogic.CategoryBreakdown?
     let onAddWater: (Int) -> Void
+
+    init(
+        targets: NutritionTargets,
+        consumed: DailyConsumption,
+        breakdown: LifestyleDataLogic.CategoryBreakdown? = nil,
+        onAddWater: @escaping (Int) -> Void
+    ) {
+        self.targets = targets
+        self.consumed = consumed
+        self.breakdown = breakdown
+        self.onAddWater = onAddWater
+    }
 
     private static let waterTargetOz: Int = 100
 
@@ -72,13 +89,28 @@ struct MacroSummaryRow: View {
 
     private var ringStack: some View {
         ZStack {
-            ringTrack(diameter: 132, lineWidth: 12)
-            ringFill(
-                diameter: 132,
-                lineWidth: 12,
-                progress: caloriesProgress,
-                colors: [AppColor.accentLight, AppColor.accentPrimary]
-            )
+            // Outer ring: calories. When a breakdown is available,
+            // segment it by meal category so the user can read what
+            // they ate at a glance — breakfast slice, lunch slice,
+            // etc. Falls back to the monochrome accent ring when no
+            // breakdown is supplied so legacy callers (and previews)
+            // keep working unchanged.
+            if let breakdown {
+                SegmentedCalorieRing(
+                    breakdown: breakdown,
+                    target: targets.calories,
+                    lineWidth: 12
+                )
+                .frame(width: 132, height: 132)
+            } else {
+                ringTrack(diameter: 132, lineWidth: 12)
+                ringFill(
+                    diameter: 132,
+                    lineWidth: 12,
+                    progress: caloriesProgress,
+                    colors: [AppColor.accentLight, AppColor.accentPrimary]
+                )
+            }
 
             ringTrack(diameter: 96, lineWidth: 12)
             ringFill(

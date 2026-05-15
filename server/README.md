@@ -1,4 +1,4 @@
-# PeptideX Vercel proxy
+# Atlas Vercel proxy
 
 Vercel serverless function(s) that hold the Anthropic API key
 server-side so the iOS app's `MealScannerService` and `AIResearchService`

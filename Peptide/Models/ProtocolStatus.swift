@@ -1,6 +1,6 @@
 import Foundation
 
-enum ProtocolStatus: String, CaseIterable, Identifiable, Codable {
+enum ProtocolStatus: String, CaseIterable, Identifiable, Codable, Sendable {
     case active
     case paused
     case completed

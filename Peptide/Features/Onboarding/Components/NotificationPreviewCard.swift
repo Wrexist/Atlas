@@ -5,7 +5,7 @@ import SwiftUI
 /// grant permission. Pure presentation — does not interact with
 /// `UNUserNotificationCenter`.
 struct NotificationPreviewCard: View {
-    var appName: LocalizedStringKey = "PeptideX"
+    var appName: LocalizedStringKey = "Atlas"
     var title: LocalizedStringKey = "Time for your BPC-157 dose"
     var subtitle: LocalizedStringKey = "Day 14 of 84 — stay consistent"
     var timestamp: LocalizedStringKey = "now"

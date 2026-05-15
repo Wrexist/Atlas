@@ -33,12 +33,20 @@ struct ProtocolListView: View {
                             .padding(.top, Spacing.xxl)
                             .sectionAppear(index: 0)
                         } else {
+                            // Compact vial-shelf glance — "what
+                            // compounds am I currently on?" — sits
+                            // above the per-protocol detail list so
+                            // the user reads the shape of the stack
+                            // before drilling into individual rows.
+                            VialShelfCard(peptides: dataStore.stackPeptides)
+                                .sectionAppear(index: 0)
+
                             TrackCalendarSection(
                                 entries: dataStore.entries,
                                 protocols: dataStore.protocols,
                                 activePeptides: dataStore.stackPeptides
                             )
-                            .sectionAppear(index: 0)
+                            .sectionAppear(index: 1)
 
                             if !dataStore.activeProtocols.isEmpty {
                                 ProtocolSection(
@@ -46,7 +54,20 @@ struct ProtocolListView: View {
                                     protocols: dataStore.activeProtocols,
                                     onShare: { sharingProtocol = $0 }
                                 )
+                                .sectionAppear(index: 2)
                             }
+
+                            // Stack health + Discover sections moved
+                            // here from HomeView in Phase 34. They
+                            // live between Active and Paused so the
+                            // user's eye lands on their current
+                            // stack first, then the analytical
+                            // metadata, then the older protocols.
+                            ProtocolsStackHealthSection()
+                                .sectionAppear(index: 3)
+
+                            ProtocolsDiscoverSection()
+                                .sectionAppear(index: 4)
 
                             if !dataStore.pausedProtocols.isEmpty {
                                 ProtocolSection(
@@ -54,6 +75,7 @@ struct ProtocolListView: View {
                                     protocols: dataStore.pausedProtocols,
                                     onShare: { sharingProtocol = $0 }
                                 )
+                                .sectionAppear(index: 5)
                             }
 
                             if !dataStore.completedProtocols.isEmpty {
@@ -62,6 +84,7 @@ struct ProtocolListView: View {
                                     protocols: dataStore.completedProtocols,
                                     onShare: { sharingProtocol = $0 }
                                 )
+                                .sectionAppear(index: 6)
                             }
                         }
                     }

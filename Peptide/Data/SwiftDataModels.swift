@@ -90,12 +90,15 @@ final class StoredProtocol {
         // Try the new wrapped format first; fall back to bare ProtocolSchedule for legacy saves.
         let schedule: ProtocolSchedule
         let overrides: [UUID: ProtocolSchedule]
+        let washoutWeeks: Int
         if let wrapped = try? sdDecoder.decode(EncodedSchedule.self, from: scheduleData) {
             schedule = wrapped.defaultSchedule
             overrides = wrapped.decodedOverrides
+            washoutWeeks = wrapped.decodedWashoutWeeks
         } else {
             schedule = try sdDecoder.decode(ProtocolSchedule.self, from: scheduleData)
             overrides = [:]
+            washoutWeeks = 0
         }
 
         return PeptideProtocol(
@@ -105,6 +108,7 @@ final class StoredProtocol {
             schedule: schedule,
             peptideSchedules: overrides,
             cycleLengthWeeks: cycleLengthWeeks,
+            washoutWeeks: washoutWeeks,
             startDate: startDate,
             status: status,
             notes: notes,
@@ -122,6 +126,12 @@ final class StoredProtocol {
 private struct EncodedSchedule: Codable {
     let defaultSchedule: ProtocolSchedule
     let overrides: [String: ProtocolSchedule]?
+    /// Wash-out duration in weeks. Optional + decode-if-present so
+    /// legacy rows (written before cycle/wash-out shipped) still
+    /// decode cleanly — they default to `0`, which preserves the
+    /// single-cycle behaviour exactly. Encoded only when non-zero
+    /// so the blob stays compact for the typical non-cycling case.
+    let washoutWeeks: Int?
 
     init(from proto: PeptideProtocol) {
         self.defaultSchedule = proto.schedule
@@ -132,6 +142,7 @@ private struct EncodedSchedule: Codable {
                 proto.peptideSchedules.map { ($0.key.uuidString, $0.value) }
             )
         }
+        self.washoutWeeks = proto.washoutWeeks > 0 ? proto.washoutWeeks : nil
     }
 
     var decodedOverrides: [UUID: ProtocolSchedule] {
@@ -140,6 +151,8 @@ private struct EncodedSchedule: Codable {
             UUID(uuidString: key).map { ($0, value) }
         })
     }
+
+    var decodedWashoutWeeks: Int { washoutWeeks ?? 0 }
 }
 
 // MARK: - StoredEntry
@@ -331,7 +344,17 @@ final class StoredProfile {
             workoutHistory: ext.workoutHistory,
             avatarImageData: avatarImageData,
             bio: bio ?? "",
-            primaryGoal: primaryGoal
+            primaryGoal: primaryGoal,
+            customFoods: ext.customFoods,
+            favoriteFoodIDs: Set(ext.favoriteFoodIDs),
+            mealHistory: ext.mealHistory,
+            healthKitNutritionEnabled: ext.healthKitNutritionEnabled,
+            outcomeHistory: ext.outcomeHistory,
+            labHistory: ext.labHistory,
+            lastKnownTimezoneIdentifier: ext.lastKnownTimezoneIdentifier,
+            streakFreezeDays: Set(ext.streakFreezeDays),
+            recipes: ext.recipes,
+            protocolNotes: ext.protocolNotes
         )
     }
 }
@@ -352,6 +375,21 @@ private struct ProfileExtension: Codable {
     var progressPhotoFilenames: [String] = []
     var dailyConsumption: [String: DailyConsumption] = [:]
     var workoutHistory: [WorkoutEntry] = []
+    var customFoods: [CustomFood] = []
+    /// Encoded as `[String]` so the round-trip JSON has a deterministic
+    /// shape (Set has no ordering guarantee). The accessor on
+    /// `toUserProfile()` collapses back to `Set<String>`.
+    var favoriteFoodIDs: [String] = []
+    var mealHistory: [MealEntry] = []
+    var healthKitNutritionEnabled: Bool = false
+    var outcomeHistory: [OutcomeEntry] = []
+    var labHistory: [LabValue] = []
+    var lastKnownTimezoneIdentifier: String?
+    /// Encoded as `[String]` so the on-disk JSON has a
+    /// deterministic shape; `toUserProfile` collapses back to Set.
+    var streakFreezeDays: [String] = []
+    var recipes: [Recipe] = []
+    var protocolNotes: [ProtocolNote] = []
 
     static let empty = ProfileExtension()
 
@@ -363,7 +401,17 @@ private struct ProfileExtension: Codable {
             weightHistory: profile.weightHistory,
             progressPhotoFilenames: profile.progressPhotoFilenames,
             dailyConsumption: profile.dailyConsumption,
-            workoutHistory: profile.workoutHistory
+            workoutHistory: profile.workoutHistory,
+            customFoods: profile.customFoods,
+            favoriteFoodIDs: Array(profile.favoriteFoodIDs).sorted(),
+            mealHistory: profile.mealHistory,
+            healthKitNutritionEnabled: profile.healthKitNutritionEnabled,
+            outcomeHistory: profile.outcomeHistory,
+            labHistory: profile.labHistory,
+            lastKnownTimezoneIdentifier: profile.lastKnownTimezoneIdentifier,
+            streakFreezeDays: Array(profile.streakFreezeDays).sorted(),
+            recipes: profile.recipes,
+            protocolNotes: profile.protocolNotes
         )
     }
 }

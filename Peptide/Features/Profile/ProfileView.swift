@@ -2,9 +2,11 @@ import SwiftUI
 
 struct ProfileView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(AppState.self) private var appState
     @State private var storeService = StoreService.shared
     @State private var achievementService = AchievementService.shared
     @State private var authService = AuthService.shared
+    @State private var showReconstitutionCalculator = false
 
     // Kept in sync with OnboardingView's `goals` array so a goal selected
     // during onboarding remains visible/editable here.
@@ -61,9 +63,27 @@ struct ProfileView: View {
 
                     HealthConnectionCard(
                         isConnected: dataStore.profile.healthConnected,
+                        nutritionWriteEnabled: dataStore.profile.healthKitNutritionEnabled,
+                        onToggleNutritionWrite: { enabled in
+                            Task { await dataStore.setHealthKitNutritionEnabled(enabled) }
+                        },
                         onConnect: { connectHealthKit() }
                     )
                     .sectionAppear(index: 6)
+
+                    // Labs entry moved to the Insights tab in
+                    // Phase 32 — it's a high-engagement analytical
+                    // feature, not a settings-flavoured tool, and
+                    // it was hiding behind a settings tab here.
+
+                    ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
+                        .sectionAppear(index: 7)
+
+                    WeeklySummaryToggleRow()
+                        .sectionAppear(index: 7)
+
+                    ScreenshotModeRow()
+                        .sectionAppear(index: 7)
 
                     ExportSection()
                         .sectionAppear(index: 7)
@@ -83,6 +103,13 @@ struct ProfileView: View {
             .background(AppColor.background)
             .navigationTitle("Profile")
             .task { await authService.validateCredential() }
+            .sheet(isPresented: $showReconstitutionCalculator) {
+                ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
+            }
+            // Labs sheet + the `pendingLabsOpen` deep-link
+            // consumption moved to InsightsView in Phase 32 — labs
+            // now live under "Insights" alongside the correlation
+            // engines they share the analytical surface with.
         }
     }
 

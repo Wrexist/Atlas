@@ -22,16 +22,16 @@ final class PeptideUITests: XCTestCase {
     }
 
     func test_allTabsAreReachable() {
-        let tabs = ["Home", "Peptides", "Protocols", "Analytics", "Profile"]
+        let tabs = ["Today", "Library", "Protocols", "Insights", "Profile"]
         for tab in tabs {
             app.tabBars.buttons[tab].tap()
             XCTAssertTrue(app.tabBars.buttons[tab].isSelected, "\(tab) tab should be selected")
         }
     }
 
-    func test_peptidesTab_loads() {
-        app.tabBars.buttons["Peptides"].tap()
-        XCTAssertTrue(app.tabBars.buttons["Peptides"].isSelected)
+    func test_libraryTab_loads() {
+        app.tabBars.buttons["Library"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Library"].isSelected)
     }
 
     func test_protocolsTab_loads() {
@@ -39,9 +39,9 @@ final class PeptideUITests: XCTestCase {
         XCTAssertTrue(app.tabBars.buttons["Protocols"].isSelected)
     }
 
-    func test_analyticsTab_loads() {
-        app.tabBars.buttons["Analytics"].tap()
-        XCTAssertTrue(app.tabBars.buttons["Analytics"].isSelected)
+    func test_insightsTab_loads() {
+        app.tabBars.buttons["Insights"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Insights"].isSelected)
     }
 
     func test_profileTab_loads() {

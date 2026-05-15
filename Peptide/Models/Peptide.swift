@@ -1,6 +1,6 @@
 import Foundation
 
-struct ResearchLink: Identifiable, Hashable, Codable {
+struct ResearchLink: Identifiable, Hashable, Codable, Sendable {
     var id: UUID
     let title: String
     let source: String
@@ -36,7 +36,7 @@ struct ResearchLink: Identifiable, Hashable, Codable {
     }
 }
 
-struct MolecularData: Hashable, Codable {
+struct MolecularData: Hashable, Codable, Sendable {
     let cid: Int?
     let formula: String
     let weight: String
@@ -44,7 +44,7 @@ struct MolecularData: Hashable, Codable {
     let pubchemURL: String
 }
 
-struct Peptide: Identifiable, Hashable, Codable {
+struct Peptide: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
     let name: String
     let abbreviation: String

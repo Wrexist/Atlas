@@ -1,7 +1,7 @@
 import Foundation
 
 /// Chat-style research assistant. Sends RAG-augmented prompts to the
-/// PeptideX server proxy (which holds the Anthropic key); the iOS
+/// Atlas server proxy (which holds the Anthropic key); the iOS
 /// client never sees the API key. Endpoint + shared secret are
 /// configured via `AI_RESEARCH_ENDPOINT` and `AI_RESEARCH_SECRET` —
 /// same pattern as `MealScannerService`. The direct-Anthropic
@@ -204,7 +204,7 @@ final class AIResearchService: Sendable {
 
     private func systemPrompt(ragContext: String?) -> String {
         var lines: [String] = [
-            "You are PeptideX's research assistant — a careful, citation-friendly explainer of peptide science.",
+            "You are Atlas's research assistant — a careful, citation-friendly explainer of peptide science.",
             "",
             "Rules:",
             "• Never recommend, prescribe, or calculate doses. Refer the user to a qualified clinician for any dose decision.",

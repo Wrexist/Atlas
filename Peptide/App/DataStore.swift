@@ -19,6 +19,15 @@ final class DataStore: DataServiceProtocol {
     /// True when data is being synced to iCloud via CloudKit.
     var isCloudSyncEnabled: Bool { repo.isCloudSyncEnabled }
 
+    /// True while the store is in App Store screenshot mode. All
+    /// `performSaveNow()` calls short-circuit so demo data never
+    /// touches disk. Real protocols / entries / profile sit
+    /// untouched in the SwiftData store and on the JSON sidecars,
+    /// ready to be restored the moment the user flips the toggle
+    /// back off (see `ScreenshotMode.deactivate(in:)`).
+    @ObservationIgnored
+    var isEphemeral: Bool = false
+
     private let repo: SwiftDataRepository
     private let _peptideDatabase: [Peptide] = PeptideDatabase.shared
 
@@ -56,7 +65,7 @@ final class DataStore: DataServiceProtocol {
 
     /// Entries keyed by start-of-day. Cached against `cacheVersion`, so all
     /// the per-day stats (currentStreak, totalDaysLogged, weeklyCompletion,
-    /// AnalyticsView complianceData / weeklyDoseData) share one O(n) group
+    /// InsightsView complianceData / weeklyDoseData) share one O(n) group
     /// pass per mutation instead of re-filtering the entries array per day.
     var entriesByDay: [Date: [ProtocolEntry]] {
         if let cached = _entriesByDay, cached.version == cacheVersion { return cached.value }
@@ -117,7 +126,33 @@ final class DataStore: DataServiceProtocol {
             performSaveNow()
         }
         // else: clean slate — already set to [] and .fresh above
+
+        // If screenshot mode is currently enabled (set in
+        // UserDefaults from a previous session before this cold
+        // boot), swap in the demo seed before anyone reads state.
+        // Done last so the swap also overrides any data that
+        // hydrated from the repo branches above.
+        ScreenshotMode.shared.bootstrapIfActive(in: self)
+
+        // Self-register the current instance so App Intents and
+        // other extension-style entry points can reach the running
+        // store from outside the View hierarchy. Setting at the end
+        // of init means callers never see a half-initialised store.
+        Self.current = self
     }
+
+    /// The currently-active `DataStore`, set by `init` and consumed
+    /// by code that can't go through SwiftUI's `@Environment` —
+    /// notably App Intents (Siri / Shortcuts / Action Button), which
+    /// run in the app's process but outside the view tree.
+    ///
+    /// `Optional` rather than force-construct because intents can in
+    /// theory fire before the SwiftUI scene's init completes the
+    /// `_dataStore = State(...)` wrapping. Callers should fall
+    /// through to "create a fresh one" (`DataStore()` reads from
+    /// disk) on a nil read.
+    @ObservationIgnored
+    static var current: DataStore?
 
     // MARK: - Peptide Database
 
@@ -275,6 +310,7 @@ final class DataStore: DataServiceProtocol {
             schedule: existing.schedule,
             peptideSchedules: existing.peptideSchedules,
             cycleLengthWeeks: existing.cycleLengthWeeks,
+            washoutWeeks: existing.washoutWeeks,
             startDate: existing.startDate,
             status: existing.status,
             notes: existing.notes
@@ -305,6 +341,7 @@ final class DataStore: DataServiceProtocol {
         schedule: ProtocolSchedule,
         peptideSchedules: [UUID: ProtocolSchedule] = [:],
         cycleLengthWeeks: Int,
+        washoutWeeks: Int = 0,
         notes: String
     ) {
         guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
@@ -321,6 +358,7 @@ final class DataStore: DataServiceProtocol {
             schedule: schedule,
             peptideSchedules: cleanedOverrides,
             cycleLengthWeeks: cycleLengthWeeks,
+            washoutWeeks: washoutWeeks,
             startDate: existing.startDate,
             status: existing.status,
             notes: notes,
@@ -367,6 +405,7 @@ final class DataStore: DataServiceProtocol {
             schedule: existing.schedule,
             peptideSchedules: overrides,
             cycleLengthWeeks: existing.cycleLengthWeeks,
+            washoutWeeks: existing.washoutWeeks,
             startDate: existing.startDate,
             status: existing.status,
             notes: existing.notes,
@@ -753,6 +792,355 @@ final class DataStore: DataServiceProtocol {
         LifestyleDataLogic.consumption(in: profile, for: date)
     }
 
+    // MARK: - Meal entries
+
+    /// Logs a fully-formed `MealEntry` (with category + source) and
+    /// keeps the per-day aggregate in lockstep. Prefer over the
+    /// legacy `logMeal(...)` for new code — gives you per-meal
+    /// undo, category breakdowns, and a stable identifier you can
+    /// hold onto for HealthKit sample mapping.
+    ///
+    /// When `healthKitNutritionEnabled` is on, fires a background
+    /// HealthKit write tagged with the entry's UUID. The HK write is
+    /// fire-and-forget — failures log and disappear because they
+    /// shouldn't block the in-app log. Undo removes the matching
+    /// samples by metadata anchor.
+    func logMealEntry(_ entry: MealEntry) {
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: entry)
+        save()
+        if profile.healthKitNutritionEnabled {
+            Task { await HealthKitService.shared.writeMealEntry(entry) }
+        }
+    }
+
+    /// Updates a previously logged meal entry's category. Macro values
+    /// stay frozen at log time — the aggregate doesn't shift, only the
+    /// per-category breakdown does. Used by `MealEntryEditorSheet` so
+    /// a near-boundary auto-pick (10:55 → breakfast when the user
+    /// meant lunch) can be corrected without reaching for unlog +
+    /// re-log. No-op when the id isn't in history.
+    func updateMealEntry(_ updated: MealEntry) {
+        guard let index = profile.mealHistory.firstIndex(where: { $0.id == updated.id }) else { return }
+        profile.mealHistory[index] = updated
+        save()
+    }
+
+    /// Removes a meal entry by id and rolls back its contribution to
+    /// the day's aggregate. Used by every review screen's Undo button
+    /// once it switches to the new logging path.
+    func unlogMealEntry(id: UUID) {
+        let mirroredToHealthKit = profile.healthKitNutritionEnabled
+        LifestyleDataLogic.unlogMealEntry(from: &profile, id: id)
+        save()
+        if mirroredToHealthKit {
+            Task { await HealthKitService.shared.deleteSamples(forEntryID: id) }
+        }
+    }
+
+    /// Flips the Apple Health write toggle. When turning ON, requests
+    /// HK write permission first — if that fails (sim, denied, no
+    /// HealthKit on iPad), the toggle stays off and we surface the
+    /// failure via the returned Bool so the caller can show an
+    /// error pill or revert the switch.
+    ///
+    /// Apple's privacy model doesn't tell us whether the user
+    /// approved or denied; we treat "permission prompt completed
+    /// without throwing" as success. The user can revoke any time in
+    /// the Settings → Health pane, which is the right level of
+    /// indirection for a delete-everything action.
+    @discardableResult
+    func setHealthKitNutritionEnabled(_ enabled: Bool) async -> Bool {
+        if enabled {
+            let granted = await HealthKitService.shared.requestNutritionWriteAuthorization()
+            guard granted else {
+                profile.healthKitNutritionEnabled = false
+                save()
+                return false
+            }
+        }
+        profile.healthKitNutritionEnabled = enabled
+        save()
+        return true
+    }
+
+    /// Per-category breakdown for today (or any day). Used by the new
+    /// `MealCategoriesCard` on the Lifestyle tab.
+    func mealsByCategory(for date: Date = Date()) -> LifestyleDataLogic.CategoryBreakdown {
+        LifestyleDataLogic.mealsByCategory(in: profile, for: date)
+    }
+
+    /// Individual meal entries logged on a specific day, newest first.
+    /// Populates the meal-history list views.
+    func mealEntries(for date: Date = Date()) -> [MealEntry] {
+        LifestyleDataLogic.mealEntries(in: profile, for: date)
+    }
+
+    /// Active meal-logging streak in calendar days. Today is treated
+    /// as a grace day — the streak doesn't reset just because the
+    /// user hasn't logged yet this morning.
+    var mealLoggingStreak: Int {
+        LifestyleDataLogic.mealLoggingStreak(in: profile)
+    }
+
+    /// All-time best meal-logging streak. Surfaced on the Lifestyle
+    /// tab when the user is below their personal record.
+    var bestMealLoggingStreak: Int {
+        LifestyleDataLogic.bestMealLoggingStreak(in: profile)
+    }
+
+    // MARK: - Outcome check-ins
+
+    /// Logs (or replaces) a daily wellness check-in. One per day.
+    func logOutcome(_ entry: OutcomeEntry) {
+        LifestyleDataLogic.logOutcome(into: &profile, entry: entry)
+        save()
+    }
+
+    /// Today's check-in if the user has filled one in already, else
+    /// nil — drives the prompt-vs-summary state of the daily card.
+    func outcome(for date: Date = Date()) -> OutcomeEntry? {
+        LifestyleDataLogic.outcome(in: profile, for: date)
+    }
+
+    /// Last `days` days of check-ins, oldest first. Feeds the
+    /// sparkline and the correlation engine.
+    func recentOutcomes(days: Int = 30) -> [OutcomeEntry] {
+        LifestyleDataLogic.recentOutcomes(in: profile, days: days)
+    }
+
+    // MARK: - Lab values
+
+    /// Saves a new lab entry or replaces an existing one matched
+    /// by id. The list keeps a newest-first sort order so list
+    /// views read without an extra sort pass.
+    func saveLabValue(_ value: LabValue) {
+        LabDataLogic.saveLabValue(into: &profile, value: value)
+        save()
+    }
+
+    /// Removes a lab entry by id. Idempotent — calling twice on
+    /// the same id is a no-op the second time.
+    func deleteLabValue(id: UUID) {
+        LabDataLogic.deleteLabValue(from: &profile, id: id)
+        save()
+    }
+
+    /// All entries for one panel, oldest-first. Used by the per-
+    /// panel chart view.
+    func labEntries(for panel: LabPanel) -> [LabValue] {
+        LabDataLogic.entries(in: profile, for: panel)
+    }
+
+    /// Most-recent value + trend direction for every panel the
+    /// user has logged. Drives the headline grid on the labs view.
+    var latestLabSummaries: [LabDataLogic.LatestSummary] {
+        LabDataLogic.latestPerPanel(in: profile)
+    }
+
+    // MARK: - Travel mode
+
+    /// Shifts every active protocol's preferred dose times by the
+    /// timezone delta. Use when the user opts to translate their
+    /// schedule to local clock after a flight. Also acknowledges
+    /// the new timezone so the prompt won't re-fire on the next
+    /// launch in the same zone. Regenerates today's entries so
+    /// the new times reflect immediately on the Home + Lifestyle
+    /// tabs, and re-schedules notifications via the standard save
+    /// path.
+    func applyTravelShift(toTimezone identifier: String, hoursDelta: Int) {
+        TravelModeLogic.shiftProtocolTimes(in: &protocols, byHours: hoursDelta)
+        TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
+        regenerateTodayEntries()
+        save()
+    }
+
+    /// User declined the schedule shift but acknowledged the
+    /// detection. Records the new identifier so we don't keep
+    /// re-prompting at every launch.
+    func acknowledgeTimezone(_ identifier: String) {
+        TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
+        save()
+    }
+
+    // MARK: - Streak freeze
+
+    /// True when the user has a freeze available this calendar
+    /// month. Drives the at-risk prompt's "Use freeze" button.
+    var streakFreezeAvailable: Bool {
+        StreakFreezeService.hasFreezeAvailable(in: profile)
+    }
+
+    /// Spends one freeze on the given calendar day (defaults to
+    /// yesterday — the day the user is trying to shield). Returns
+    /// true on success; false when no freeze is available or the
+    /// day is already covered.
+    @discardableResult
+    func applyStreakFreeze(for date: Date = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()) -> Bool {
+        let applied = StreakFreezeService.applyFreeze(in: &profile, for: date)
+        if applied { save() }
+        return applied
+    }
+
+    // MARK: - Recipes
+
+    /// Saves a new recipe or replaces an existing one (matched by
+    /// id). Bumps `updatedAt` so the list re-sorts to put the
+    /// just-edited recipe on top.
+    func saveRecipe(_ recipe: Recipe) {
+        RecipeDataLogic.saveRecipe(into: &profile, recipe: recipe)
+        save()
+    }
+
+    /// Removes one recipe by id. Idempotent.
+    func deleteRecipe(id: UUID) {
+        RecipeDataLogic.deleteRecipe(from: &profile, id: id)
+        save()
+    }
+
+    // MARK: - Protocol notes
+
+    /// Saves a new protocol note or replaces an existing one
+    /// matched by id. Bumps `updatedAt` so the timeline re-sorts
+    /// to put the just-edited entry on top within its day bucket.
+    func saveProtocolNote(_ note: ProtocolNote) {
+        var updated = note
+        updated.updatedAt = Date()
+        if let index = profile.protocolNotes.firstIndex(where: { $0.id == note.id }) {
+            profile.protocolNotes[index] = updated
+        } else {
+            profile.protocolNotes.append(updated)
+        }
+        save()
+    }
+
+    /// Removes one note by id. Idempotent.
+    func deleteProtocolNote(id: UUID) {
+        profile.protocolNotes.removeAll { $0.id == id }
+        save()
+    }
+
+    /// All notes for one protocol, newest-first. Powers the
+    /// per-protocol timeline view.
+    func protocolNotes(for protocolID: UUID) -> [ProtocolNote] {
+        profile.protocolNotes
+            .filter { $0.protocolID == protocolID }
+            .sorted { $0.date > $1.date }
+    }
+
+    /// Logs a recipe as a single `MealEntry` summing every
+    /// component's macros. The entry's `name` is the recipe name
+    /// so the meal-history list reads "Morning bowl" rather than
+    /// the comma-joined ingredient list. Source tagged as
+    /// `.custom` since recipes are user-defined compositions.
+    func logRecipe(_ recipe: Recipe, category: MealCategory? = nil, at date: Date = Date()) {
+        let totals = RecipeDataLogic.totals(
+            for: recipe,
+            customFoods: profile.customFoods
+        )
+        let chosenCategory = category ?? MealCategory.auto(for: date)
+        let entry = MealEntry(
+            loggable: totals,
+            name: recipe.name,
+            category: chosenCategory,
+            source: .custom,
+            sourceID: nil,
+            date: date
+        )
+        logMealEntry(entry)
+    }
+
+    // MARK: - Food library
+
+    /// Adds (or replaces) a user-defined food in the library. Replace
+    /// matches on `id` so editing an existing food round-trips through
+    /// the same call. After saving, fires a background reindex so the
+    /// new food is searchable from device Spotlight on the next pull-
+    /// down.
+    func saveCustomFood(_ food: CustomFood) {
+        var updated = food
+        updated.updatedAt = Date()
+        if let index = profile.customFoods.firstIndex(where: { $0.id == food.id }) {
+            profile.customFoods[index] = updated
+        } else {
+            profile.customFoods.insert(updated, at: 0)
+        }
+        save()
+        reindexFoodLibraryInBackground()
+    }
+
+    /// Removes a custom food and its favorite-set membership in one
+    /// pass so the favorites tab can't keep a dangling reference.
+    /// Reindexes Spotlight via the same full-rewrite path that
+    /// `saveCustomFood` and `toggleFavoriteFood` use — the targeted
+    /// `removeCustomFood(id:)` shortcut would race with a concurrent
+    /// `saveCustomFood` reindex that captured a pre-delete profile
+    /// snapshot, re-introducing the just-deleted item to the index.
+    /// Full reindex is idempotent and authoritative.
+    func deleteCustomFood(id: UUID) {
+        profile.customFoods.removeAll { $0.id == id }
+        profile.favoriteFoodIDs.remove("custom:\(id.uuidString)")
+        save()
+        reindexFoodLibraryInBackground()
+    }
+
+    /// Flips the favorite flag for a food ID (OFF barcode or
+    /// `custom:<uuid>`). Idempotent — calling twice returns to the
+    /// original state. Reindexes Spotlight on the change so favorites
+    /// surface (or stop surfacing) in the device search.
+    func toggleFavoriteFood(id: String) {
+        if profile.favoriteFoodIDs.contains(id) {
+            profile.favoriteFoodIDs.remove(id)
+        } else {
+            profile.favoriteFoodIDs.insert(id)
+        }
+        save()
+        reindexFoodLibraryInBackground()
+    }
+
+    /// Fire-and-forget Spotlight reindex. Pulls cached OFF favorites
+    /// off `BarcodeProductCache` so they index with their full name
+    /// + brand. Failures log but don't propagate — Spotlight is a
+    /// nice-to-have surface, never a critical-path dependency.
+    ///
+    /// Cancels any in-flight reindex Task before scheduling a new
+    /// one. Without this, two rapid mutations (save + favorite
+    /// toggle in quick succession) would race: whichever Task
+    /// finished last would overwrite Spotlight with its captured
+    /// profile snapshot, regardless of which mutation actually
+    /// landed in the persisted profile first.
+    private func reindexFoodLibraryInBackground() {
+        reindexTask?.cancel()
+        let snapshot = profile
+        let offIDs = profile.favoriteFoodIDs.filter { !$0.hasPrefix("custom:") }
+        reindexTask = Task {
+            var cached: [ScannedProduct] = []
+            cached.reserveCapacity(offIDs.count)
+            for id in offIDs {
+                if Task.isCancelled { return }
+                if let product = await BarcodeProductCache.shared.read(barcode: id) {
+                    cached.append(product)
+                }
+            }
+            guard !Task.isCancelled else { return }
+            await FoodSpotlightService.shared.reindex(
+                profile: snapshot,
+                cachedFavorites: cached
+            )
+        }
+    }
+
+    /// Public entry point for the app-launch hydration in `PeptideApp`.
+    /// Kicks the same fire-and-forget reindex pipeline so a fresh
+    /// install or a CloudKit pull on a new device populates Spotlight
+    /// without forcing the user to edit any food.
+    func reindexFoodSpotlight() {
+        reindexFoodLibraryInBackground()
+    }
+
+    func isFavoriteFood(id: String) -> Bool {
+        profile.favoriteFoodIDs.contains(id)
+    }
+
     // MARK: - Vial inventory (derived)
 
     /// Default doses per vial when the user hasn't told us otherwise.
@@ -884,6 +1272,10 @@ final class DataStore: DataServiceProtocol {
     private static let saveDebounceMs: UInt64 = 350
 
     @ObservationIgnored private var pendingSaveTask: Task<Void, Never>?
+    /// In-flight Spotlight reindex. Tracked so rapid mutations can
+    /// cancel the previous Task before scheduling a new one — prevents
+    /// out-of-order writes from overwriting the index with stale data.
+    @ObservationIgnored private var reindexTask: Task<Void, Never>?
 
     private func save() {
         // Achievements are computed off in-memory state, not what's on disk —
@@ -907,6 +1299,11 @@ final class DataStore: DataServiceProtocol {
     }
 
     private func performSaveNow() {
+        // Ephemeral mode (screenshot capture) — never write to disk.
+        // The demo state lives entirely in memory and dies when the
+        // user flips the toggle off + reloadFromDisk restores the
+        // real data.
+        guard !isEphemeral else { return }
         repo.saveProtocols(protocols)
         repo.saveEntries(entries)
         repo.saveProfile(profile)
@@ -914,12 +1311,59 @@ final class DataStore: DataServiceProtocol {
         updateWatchData()
     }
 
+    // MARK: - Ephemeral / screenshot mode
+
+    /// Swaps the in-memory state for a demo seed and locks writes
+    /// so user data on disk stays untouched. Called by
+    /// `ScreenshotMode.activate(in:)` on a toggle flip and on
+    /// every cold launch where the flag is already on.
+    ///
+    /// Bumps `cacheVersion` so every derived metric (streak,
+    /// weeklyCompletion, topInsight) recomputes against the new
+    /// state on the next read — without the bump, cached values
+    /// from before the swap would survive and the screenshots
+    /// would render with stale stats.
+    func enterEphemeralMode(
+        profile newProfile: UserProfile,
+        protocols newProtocols: [PeptideProtocol],
+        entries newEntries: [ProtocolEntry]
+    ) {
+        isEphemeral = true
+        self.profile = newProfile
+        self.protocols = newProtocols
+        self.entries = newEntries
+        cacheVersion &+= 1
+        // Refresh widget + watch surfaces so the lock-screen
+        // accessory + Watch Today page render the demo numbers
+        // for the screenshots. Safe to call even though
+        // `performSaveNow` is gated — these accessory updaters
+        // are independent of the JSON sidecars.
+        updateWidgetData()
+        updateWatchData()
+    }
+
+    /// Drops the ephemeral lock and reloads real data from disk
+    /// so the user is back to where they left off before the
+    /// screenshot session.
+    func exitEphemeralMode() {
+        isEphemeral = false
+        reloadFromDisk()
+    }
+
     /// Builds a snapshot via `WidgetSnapshotBuilder` and pushes it through
     /// the persistence + WidgetCenter side effects. The pure transform
     /// lives in the builder so a snapshot regression is testable without
-    /// standing up `DataStore` + `PersistenceService`.
+    /// standing up `DataStore` + `PersistenceService`. Nutrition is
+    /// pulled live from the profile so the nutrition widget reflects
+    /// the same numbers the Lifestyle tab shows.
     private func updateWidgetData() {
-        let data = WidgetSnapshotBuilder.build(today: todayEntries, next: nextDose)
+        let data = WidgetSnapshotBuilder.build(
+            today: todayEntries,
+            next: nextDose,
+            consumption: LifestyleDataLogic.consumption(in: profile, for: Date()),
+            targets: profile.nutritionTargets,
+            breakdown: LifestyleDataLogic.mealsByCategory(in: profile, for: Date())
+        )
         PersistenceService.shared.updateWidgetData(data)
         WidgetCenter.shared.reloadAllTimelines()
     }
@@ -938,7 +1382,39 @@ final class DataStore: DataServiceProtocol {
             protocols: protocols,
             currentStreak: currentStreak,
             weeklyCompliance: EntryAnalytics.weeklyComplianceFraction(in: entries),
-            totalDosesLogged: EntryAnalytics.totalDosesLogged(in: entries)
+            totalDosesLogged: EntryAnalytics.totalDosesLogged(in: entries),
+            nutrition: nutritionSnapshotForWatch()
+        )
+    }
+
+    /// Build the compact nutrition snapshot the Watch app renders.
+    /// Returns nil when the user has no nutrition targets and no
+    /// meal-logging streak — there's nothing meaningful to show,
+    /// and a nil keeps the Watch UI from displaying empty rings.
+    private func nutritionSnapshotForWatch() -> WatchNutritionSnapshot? {
+        let consumption = LifestyleDataLogic.consumption(in: profile, for: Date())
+        let streak = LifestyleDataLogic.mealLoggingStreak(in: profile)
+        let entryCount = LifestyleDataLogic.mealEntries(in: profile, for: Date()).count
+        let targets = profile.nutritionTargets
+
+        // Suppress the page only when there's truly nothing to read.
+        // A user who logged a zero-calorie entry (rare, but possible
+        // — black coffee with manual macro override) still gets the
+        // page so the entry count signals "I logged something".
+        let nothingToShow =
+            targets == nil
+            && consumption.caloriesKcal == 0
+            && streak == 0
+            && entryCount == 0
+        guard !nothingToShow else { return nil }
+
+        return WatchNutritionSnapshot(
+            caloriesToday: consumption.caloriesKcal,
+            calorieTarget: targets?.calories ?? 0,
+            proteinToday: consumption.proteinG,
+            proteinTarget: targets?.proteinG ?? 0,
+            mealLoggingStreak: streak,
+            mealEntriesToday: entryCount
         )
     }
 
@@ -955,6 +1431,21 @@ final class DataStore: DataServiceProtocol {
                 bestStreak: self.bestStreak,
                 protocolCount: self.protocols.count,
                 daysLogged: self.totalDaysLogged
+            )
+            // Lifestyle milestones run on the same hook so the
+            // achievement toast pipeline doesn't fire twice for
+            // unrelated mutations. The two `checkAchievements`
+            // calls each manage their own `latestUnlock` — only
+            // the second one's value survives, but in practice
+            // the two domains rarely cross a threshold on the
+            // same mutation.
+            AchievementService.shared.checkLifestyleAchievements(
+                mealsLogged: self.profile.mealHistory.count,
+                mealStreak: self.mealLoggingStreak,
+                labsLogged: self.profile.labHistory.count,
+                labPanelCount: Set(self.profile.labHistory.map(\.panel)).count,
+                recipesCount: self.profile.recipes.count,
+                checkInsLogged: self.profile.outcomeHistory.count
             )
         }
     }
@@ -1018,7 +1509,7 @@ final class DataStore: DataServiceProtocol {
     /// `ProtocolSchedule.preferredTimes`. Hoisted to `static let` so we don't
     /// pay the ~1ms `DateFormatter` allocation on every dose generation —
     /// `todayEntries(for:in:)` runs once per peptide on every entry mutation.
-    private static let timeStringParser: DateFormatter = {
+    nonisolated(unsafe) private static let timeStringParser: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "h:mm a"
         f.locale = Locale(identifier: "en_US_POSIX")

@@ -65,7 +65,12 @@ extension ScannedProduct {
     /// How the user wants to log a portion of this product. The three
     /// modes are mutually exclusive — the UI shows whichever one is
     /// active and recalculates macros live as the user adjusts it.
-    enum Portion: Hashable, Sendable {
+    ///
+    /// Codable so `Recipe.Component` (which carries a `Portion`) can
+    /// auto-synthesise its Codable conformance — recipes round-trip
+    /// through the profile sidecar JSON without a hand-rolled
+    /// `init(from:)` per component.
+    enum Portion: Hashable, Sendable, Codable {
         /// A raw weight in grams. Anchored to the per-100g nutrients.
         case grams(Double)
         /// A count of label servings. Requires `servingGrams` upstream.
@@ -108,9 +113,27 @@ extension ScannedProduct {
         return .grams(100)
     }
 
+
     private func roundedNonNegative(_ value: Double) -> Int {
         guard value.isFinite, value > 0 else { return 0 }
         return Int(value.rounded())
+    }
+}
+
+extension ScannedProduct.Portion {
+    /// Canonical case-discriminator helpers. Previously BarcodeScanFlow
+    /// and FoodLibraryFlow each carried a private file-scoped
+    /// extension with the same logic under slightly different names
+    /// (`isServings` vs `isServingsCase`). Consolidated here so the
+    /// two scanners read from the same source.
+    var isServings: Bool {
+        if case .servings = self { return true }
+        return false
+    }
+
+    var isGrams: Bool {
+        if case .grams = self { return true }
+        return false
     }
 }
 

@@ -19,7 +19,7 @@ protocol DataServiceProtocol {
     func entriesFor(protocolId: UUID, days: Int) -> [ProtocolEntry]
 
     // Protocol editing
-    func updateProtocol(id: UUID, name: String, peptides: [Peptide], schedule: ProtocolSchedule, peptideSchedules: [UUID: ProtocolSchedule], cycleLengthWeeks: Int, notes: String)
+    func updateProtocol(id: UUID, name: String, peptides: [Peptide], schedule: ProtocolSchedule, peptideSchedules: [UUID: ProtocolSchedule], cycleLengthWeeks: Int, washoutWeeks: Int, notes: String)
     func setPeptideSchedule(protocolId: UUID, peptideId: UUID, schedule: ProtocolSchedule?)
 
     // Peptide database

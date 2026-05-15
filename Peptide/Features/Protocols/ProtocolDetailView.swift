@@ -64,6 +64,15 @@ struct ProtocolDetailView: View {
 
                         if liveProtocol.status == .active {
                             CycleProgressBar(protocol_: liveProtocol)
+
+                            // Surface the cycle-phase card only
+                            // when the protocol uses wash-out
+                            // cycles. Single-cycle protocols are
+                            // already covered by `CycleProgressBar`
+                            // above — duplicating would clutter.
+                            if liveProtocol.washoutWeeks > 0 {
+                                CyclePhaseCard(status: CyclePhaseEngine.status(for: liveProtocol))
+                            }
                         }
 
                         // Stats row
@@ -158,7 +167,8 @@ struct ProtocolDetailView: View {
                 }
                 .sectionAppear(index: 3)
 
-                // Notes
+                // Static protocol-creation notes (entered at
+                // builder time). Surfaces only when populated.
                 if !liveProtocol.notes.isEmpty {
                     GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -174,6 +184,19 @@ struct ProtocolDetailView: View {
                     }
                     .sectionAppear(index: 4)
                 }
+
+                // Per-day journal entries — qualitative companion
+                // to the dose / cycle data above.
+                GlassCard {
+                    ProtocolNotesTimeline(
+                        protocolID: liveProtocol.id,
+                        protocolName: liveProtocol.name,
+                        notes: dataStore.protocolNotes(for: liveProtocol.id),
+                        onSave: { dataStore.saveProtocolNote($0) },
+                        onDelete: { dataStore.deleteProtocolNote(id: $0) }
+                    )
+                }
+                .sectionAppear(index: 4)
 
                 // Recent logs
                 GlassCard {

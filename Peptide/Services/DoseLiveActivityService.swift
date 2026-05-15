@@ -79,9 +79,15 @@ final class DoseLiveActivityService {
             $0.attributes.entryId == entryId
         }) else { return }
 
+        let currentState = activity.content.state
+        // Preserve a loggedAt set by the widget intent if one is
+        // already on the state — that timestamp is closer to the
+        // user's actual tap than the app's wake time.
         let updated = DoseWindowAttributes.ContentState(
-            doseTime: activity.content.state.doseTime,
-            completed: true
+            doseTime: currentState.doseTime,
+            windowStart: currentState.windowStart,
+            completed: true,
+            loggedAt: currentState.loggedAt ?? Date()
         )
         // Cancel any prior dismiss-after-Logged task for this entry so
         // we don't double-end.
@@ -127,11 +133,18 @@ final class DoseLiveActivityService {
         let attributes = DoseWindowAttributes(
             entryId: entry.id,
             peptideAbbreviation: entry.peptide.abbreviation,
+            peptideName: entry.peptide.name,
             doseDisplay: entry.dose,
             tintHex: hex(of: palette.fill)
         )
+        let windowStart = Calendar.current.date(
+            byAdding: .minute,
+            value: -Self.startLeadMinutes,
+            to: entry.date
+        ) ?? entry.date
         let initialState = DoseWindowAttributes.ContentState(
             doseTime: entry.date,
+            windowStart: windowStart,
             completed: entry.completed
         )
         let stale = Calendar.current.date(byAdding: .minute, value: Self.stalenessMinutes, to: entry.date)

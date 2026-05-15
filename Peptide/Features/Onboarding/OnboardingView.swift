@@ -161,7 +161,7 @@ struct OnboardingView: View {
             hero: HeroIcon(symbol: "flask.fill", size: 110, bounceTrigger: bounceTrigger),
             content: {
                 VStack(spacing: Spacing.lg) {
-                    Text("Welcome to PeptideX")
+                    Text("Welcome to Atlas")
                         .font(AppFont.largeTitle)
                         .foregroundStyle(
                             LinearGradient(
@@ -557,7 +557,7 @@ struct OnboardingView: View {
         permissionPage(
             icon: "heart.text.square.fill",
             title: "Connect Apple Health",
-            subtitle: "Correlate protocol compliance with HRV, sleep, and activity. PeptideX never writes to your health data.",
+            subtitle: "Correlate protocol compliance with HRV, sleep, and activity. Atlas never writes to your health data.",
             bullets: [
                 ("waveform.path.ecg", "HRV & resting heart rate"),
                 ("bed.double.fill", "Sleep quality trends"),

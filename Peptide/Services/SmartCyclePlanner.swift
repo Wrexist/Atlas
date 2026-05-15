@@ -245,7 +245,10 @@ enum SmartCyclePlanner {
     /// `Date.formatted(...)`, which breaks naïve string equality.
     /// Both sides use `h:mm a` + `en_US_POSIX` so the AM/PM separator
     /// is a regular ASCII space and the bucket lookup keeps matching.
-    private static let timeKeyFormatter: DateFormatter = {
+    // Read-only after configuration; DateFormatter is documented
+    // thread-safe for reads. `nonisolated(unsafe)` is the right
+    // escape hatch since the type isn't marked Sendable.
+    nonisolated(unsafe) private static let timeKeyFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "h:mm a"
         f.locale = Locale(identifier: "en_US_POSIX")

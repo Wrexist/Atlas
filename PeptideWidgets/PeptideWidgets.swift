@@ -129,7 +129,7 @@ struct SmallWidgetView: View {
                 Image(systemName: "flask.fill")
                     .font(.system(size: 12))
                     .foregroundStyle(.green)
-                Text("PeptideX")
+                Text("Atlas")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -288,6 +288,329 @@ struct ComplianceWidget: Widget {
     }
 }
 
+// MARK: - Nutrition Widget (Phase 7)
+
+/// Timeline entry for the nutrition widget. Shape-matched to
+/// `WidgetData`'s nutrition fields so the timeline provider is a
+/// trivial pass-through.
+struct NutritionEntry: TimelineEntry {
+    let date: Date
+    let calories: Int
+    let target: Int
+    let protein: Int
+    let carbs: Int
+    let fat: Int
+    let meals: [WidgetMealSlot]
+
+    var progress: Double {
+        guard target > 0 else { return 0 }
+        return min(1.0, Double(calories) / Double(target))
+    }
+
+    static let placeholder = NutritionEntry(
+        date: .now,
+        calories: 1450,
+        target: 2200,
+        protein: 95,
+        carbs: 160,
+        fat: 48,
+        meals: [
+            WidgetMealSlot(category: "Breakfast", calories: 420, entryCount: 1),
+            WidgetMealSlot(category: "Lunch",     calories: 680, entryCount: 2),
+            WidgetMealSlot(category: "Dinner",    calories: 0,   entryCount: 0),
+            WidgetMealSlot(category: "Snack",     calories: 350, entryCount: 1),
+        ]
+    )
+}
+
+struct NutritionTimelineProvider: TimelineProvider {
+    private static let decoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }()
+
+    func placeholder(in context: Context) -> NutritionEntry {
+        .placeholder
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (NutritionEntry) -> Void) {
+        if context.isPreview {
+            completion(.placeholder)
+            return
+        }
+        completion(currentEntry())
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<NutritionEntry>) -> Void) {
+        let entry = currentEntry()
+        let calendar = Calendar.current
+        // Reset at midnight so tomorrow's empty rings paint correctly
+        // without waiting for the next in-app log to push fresh data.
+        let midnight = calendar.startOfDay(
+            for: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now
+        )
+        let fifteenMin = calendar.date(byAdding: .minute, value: 15, to: .now) ?? .now
+        let nextUpdate = min(fifteenMin, midnight)
+        completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
+    }
+
+    private func currentEntry() -> NutritionEntry {
+        guard let widgetData = loadWidgetData() else {
+            return NutritionEntry(
+                date: .now,
+                calories: 0,
+                target: 0,
+                protein: 0,
+                carbs: 0,
+                fat: 0,
+                meals: []
+            )
+        }
+        return NutritionEntry(
+            date: .now,
+            calories: widgetData.caloriesToday,
+            target: widgetData.calorieTarget,
+            protein: widgetData.proteinToday,
+            carbs: widgetData.carbsToday,
+            fat: widgetData.fatToday,
+            meals: widgetData.mealsByCategory
+        )
+    }
+
+    private func loadWidgetData() -> WidgetData? {
+        guard let url = FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)?
+            .appendingPathComponent("widget-data.json"),
+              let data = try? Data(contentsOf: url) else { return nil }
+        return try? Self.decoder.decode(WidgetData.self, from: data)
+    }
+}
+
+struct SmallNutritionView: View {
+    let entry: NutritionEntry
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 4) {
+                Image(systemName: "fork.knife")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.orange)
+                Text("Today")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+            }
+
+            Spacer(minLength: 0)
+
+            ZStack {
+                Circle()
+                    .stroke(Color.gray.opacity(0.25), lineWidth: 7)
+                Circle()
+                    .trim(from: 0, to: entry.progress)
+                    .stroke(
+                        LinearGradient(
+                            colors: [.orange, .pink],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(lineWidth: 7, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                VStack(spacing: 0) {
+                    Text("\(entry.calories)")
+                        .font(.system(size: 18, weight: .heavy))
+                        .monospacedDigit()
+                    if entry.target > 0 {
+                        Text("of \(entry.target)")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    } else {
+                        Text("kcal")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .containerBackground(.fill.tertiary, for: .widget)
+    }
+}
+
+struct MediumNutritionView: View {
+    let entry: NutritionEntry
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            // Ring + total on the left mirrors the in-app rings so the
+            // widget feels like a window into the same data.
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle()
+                        .stroke(Color.gray.opacity(0.25), lineWidth: 7)
+                    Circle()
+                        .trim(from: 0, to: entry.progress)
+                        .stroke(
+                            LinearGradient(
+                                colors: [.orange, .pink],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            style: StrokeStyle(lineWidth: 7, lineCap: .round)
+                        )
+                        .rotationEffect(.degrees(-90))
+                    VStack(spacing: 0) {
+                        Text("\(entry.calories)")
+                            .font(.system(size: 16, weight: .heavy))
+                            .monospacedDigit()
+                        Text("kcal")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(width: 70, height: 70)
+
+                if entry.target > 0 {
+                    Text("of \(entry.target)")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+            }
+
+            // Per-category breakdown on the right — same buckets as
+            // the Lifestyle tab's `MealCategoriesCard`.
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Meals")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if entry.meals.allSatisfy({ $0.calories == 0 }) {
+                    Text("No meals logged yet")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(entry.meals, id: \.category) { meal in
+                        nutritionMealRow(meal)
+                    }
+                }
+
+                Divider().padding(.top, 2)
+
+                HStack(spacing: 6) {
+                    macroPip(label: "P", value: entry.protein, color: .green)
+                    macroPip(label: "C", value: entry.carbs,   color: .blue)
+                    macroPip(label: "F", value: entry.fat,     color: .orange)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .containerBackground(.fill.tertiary, for: .widget)
+    }
+
+    private func nutritionMealRow(_ meal: WidgetMealSlot) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: iconFor(meal.category))
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(tintFor(meal.category))
+                .frame(width: 14)
+            Text(meal.category)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(meal.calories > 0 ? .primary : .secondary)
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            Text("\(meal.calories)")
+                .font(.system(size: 11, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func macroPip(label: String, value: Int, color: Color) -> some View {
+        HStack(spacing: 2) {
+            Text("\(value)")
+                .font(.system(size: 11, weight: .heavy))
+                .monospacedDigit()
+            Text(label)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(color)
+        }
+        .padding(.horizontal, 5)
+        .padding(.vertical, 2)
+        .background {
+            Capsule().fill(color.opacity(0.15))
+        }
+    }
+
+    private func iconFor(_ category: String) -> String {
+        WidgetMealStyle.icon(forCategoryName: category)
+    }
+
+    private func tintFor(_ category: String) -> Color {
+        WidgetMealStyle.tint(forCategoryName: category)
+    }
+}
+
+/// Widget-target mapping from the `category` string in the shared
+/// `WidgetData` blob to the SwiftUI icon + accent color. Lives here
+/// (not in the app target) because the widget extension can't import
+/// the app module — `MealCategory.tint` and `.icon` aren't
+/// reachable. RGB values mirror `MealCategory.tint` exactly so a
+/// user toggling between app and widget sees the same palette.
+private enum WidgetMealStyle {
+    static func icon(forCategoryName name: String) -> String {
+        switch name {
+        case "Breakfast": "sun.horizon.fill"
+        case "Lunch":     "sun.max.fill"
+        case "Dinner":    "moon.stars.fill"
+        case "Snack":     "leaf.fill"
+        default:          "fork.knife"
+        }
+    }
+
+    static func tint(forCategoryName name: String) -> Color {
+        switch name {
+        case "Breakfast": Color(red: 1.0,  green: 0.62, blue: 0.30)
+        case "Lunch":     Color(red: 0.98, green: 0.78, blue: 0.20)
+        case "Dinner":    Color(red: 0.48, green: 0.50, blue: 0.92)
+        case "Snack":     Color(red: 0.36, green: 0.78, blue: 0.55)
+        default:          .secondary
+        }
+    }
+}
+
+struct NutritionWidgetView: View {
+    @Environment(\.widgetFamily) var family
+    let entry: NutritionEntry
+
+    var body: some View {
+        switch family {
+        case .systemMedium:
+            MediumNutritionView(entry: entry)
+        default:
+            SmallNutritionView(entry: entry)
+        }
+    }
+}
+
+struct NutritionWidget: Widget {
+    let kind = "NutritionWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: NutritionTimelineProvider()) { entry in
+            NutritionWidgetView(entry: entry)
+        }
+        .configurationDisplayName("Today's Nutrition")
+        .description("Today's calorie ring and per-meal breakdown from Atlas.")
+        .supportedFamilies([.systemSmall, .systemMedium])
+    }
+}
+
 // MARK: - Widget Bundle
 
 @main
@@ -295,6 +618,7 @@ struct PeptideWidgetBundle: WidgetBundle {
     var body: some Widget {
         NextDoseWidget()
         ComplianceWidget()
+        NutritionWidget()
         if #available(iOS 16.1, *) {
             DoseWindowLiveActivity()
         }

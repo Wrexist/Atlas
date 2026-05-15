@@ -21,7 +21,7 @@ struct AddMedicationPreviewPage: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
 
-                Text("Add what you're running. PeptideX builds the schedule and tracks what's left in each vial.")
+                Text("Add what you're running. Atlas builds the schedule and tracks what's left in each vial.")
                     .font(AppFont.body)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)

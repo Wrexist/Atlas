@@ -21,7 +21,7 @@ struct LockScreenView: View {
                 .offset(x: shakeOffset)
 
             VStack(spacing: Spacing.sm) {
-                Text("PeptideX is Locked")
+                Text("Atlas is Locked")
                     .font(AppFont.title)
                     .foregroundStyle(AppColor.textPrimary)
 

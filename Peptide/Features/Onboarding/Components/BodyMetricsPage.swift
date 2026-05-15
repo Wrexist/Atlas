@@ -11,7 +11,7 @@ import SwiftUI
 /// converted value on each render.
 ///
 /// IMPORTANT: The numbers here power a *reference-only* calorie/macro
-/// estimate, not a dose calculator. PeptideX still does not recommend
+/// estimate, not a dose calculator. Atlas still does not recommend
 /// peptide doses. The disclaimer on screen 2 makes the reference-only
 /// nature explicit.
 struct BodyMetricsPage: View {

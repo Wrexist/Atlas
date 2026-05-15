@@ -27,6 +27,26 @@ enum AppAnimation {
     /// the hard way that 200ms is too short.
     static let sheetDismissDelay: Duration = .milliseconds(350)
 
+    // MARK: - Food library timings
+
+    /// "Logged ✓" overlay duration on the food library's quick-log
+    /// rows. 1.5 s is long enough to read the confirmation badge
+    /// without lingering past the user's next intent.
+    static let quickLogConfirmationDuration: Duration = .milliseconds(1500)
+
+    /// Debounce window between keystrokes in the food library search
+    /// bar. Trades responsiveness for OFF rate-limit headroom — at
+    /// 500 ms a typist of 240 wpm fires roughly one search per pause,
+    /// which sits comfortably under the limiter's 8-per-minute slot
+    /// budget.
+    static let searchDebounceDelay: Duration = .milliseconds(500)
+
+    /// Auto-close delay on the food library and barcode scanner's
+    /// `.logged` success screens. The 4-5 s window gives users
+    /// enough time to tap Undo without holding the sheet open
+    /// indefinitely. Single source of truth so both flows agree.
+    static let logSuccessAutoCloseDelay: Duration = .seconds(5)
+
     // Cap the visible delay so long lists (10+ cards) don't take 1.5s+ to settle.
     private static let maxStaggerIndex = 8
     private static let maxSectionIndex = 4

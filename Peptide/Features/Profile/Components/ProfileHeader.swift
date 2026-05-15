@@ -24,7 +24,7 @@ struct ProfileHeader: View {
                 avatar
 
                 VStack(spacing: Spacing.xs) {
-                    Text(displayName.isEmpty ? "PeptideX User" : displayName)
+                    Text(displayName.isEmpty ? "Atlas User" : displayName)
                         .font(AppFont.title)
                         .foregroundStyle(AppColor.textPrimary)
 

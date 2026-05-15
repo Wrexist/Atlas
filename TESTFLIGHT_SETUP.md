@@ -1,7 +1,7 @@
-# PeptideX — TestFlight Setup Guide
+# Atlas — TestFlight Setup Guide
 
 ## App Details
-- **App Name:** PeptideX
+- **App Name:** Atlas
 - **Bundle ID:** `com.peptidesai.app`
 - **Widget Bundle ID:** `com.peptidesai.app.widgets`
 - **Watch Bundle ID:** `com.peptidesai.app.watchkitapp`
@@ -43,21 +43,21 @@ Work through this top-to-bottom before running the workflow. Each item maps to a
 
 1. Open [Identifiers](https://developer.apple.com/account/resources/identifiers/list)
 2. Click **+** → select **App Groups** → **Continue**
-3. Description: `PeptideX Shared Group`
+3. Description: `Atlas Shared Group`
 4. Identifier: `group.com.peptidesai.app`
 5. Click **Continue** → **Register**
 
 ### 1b. Create the iCloud Container
 
 1. Identifiers → **+** → select **iCloud Containers** → **Continue**
-2. Description: `PeptideX`
+2. Description: `Atlas`
 3. Identifier: `iCloud.com.peptidesai.app`
 4. Click **Continue** → **Register**
 
 ### 1c. Register the main App ID (`com.peptidesai.app`)
 
 1. Identifiers → **+** → **App IDs** → **App** → **Continue**
-2. Description: `PeptideX`
+2. Description: `Atlas`
 3. Bundle ID: **Explicit** → `com.peptidesai.app`
 4. Under **Capabilities**, tick all four:
    - ☑ **App Groups**
@@ -71,7 +71,7 @@ Work through this top-to-bottom before running the workflow. Each item maps to a
 ### 1d. Register the widget App ID (`com.peptidesai.app.widgets`)
 
 1. Identifiers → **+** → **App IDs** → **App** → **Continue**
-2. Description: `PeptideX Widgets`
+2. Description: `Atlas Widgets`
 3. Bundle ID: **Explicit** → `com.peptidesai.app.widgets`
 4. Under **Capabilities**, tick:
    - ☑ **App Groups**
@@ -81,7 +81,7 @@ Work through this top-to-bottom before running the workflow. Each item maps to a
 ### 1e. Register the watch App ID (`com.peptidesai.app.watchkitapp`)
 
 1. Identifiers → **+** → **App IDs** → **App** → **Continue**
-2. Description: `PeptideX Watch`
+2. Description: `Atlas Watch`
 3. Bundle ID: **Explicit** → `com.peptidesai.app.watchkitapp`
 4. Under **Capabilities**, tick:
    - ☑ **App Groups**
@@ -93,7 +93,7 @@ Work through this top-to-bottom before running the workflow. Each item maps to a
 The watch widget is a separate extension target with its own bundle ID and its own entitlements. It reads the shared `watch_data.json` from the App Group container, so it needs `App Groups` enabled and linked just like the other targets. Skipping this step is the most common cause of `Provisioning profile "iOS Team Provisioning Profile: com.peptidesai.app.watchkitapp.widgets" doesn't match the entitlements file's value for the com.apple.security.application-groups entitlement` at archive time.
 
 1. Identifiers → **+** → **App IDs** → **App** → **Continue**
-2. Description: `PeptideX Watch Widgets`
+2. Description: `Atlas Watch Widgets`
 3. Bundle ID: **Explicit** → `com.peptidesai.app.watchkitapp.widgets`
 4. Under **Capabilities**, tick:
    - ☑ **App Groups**
@@ -109,7 +109,7 @@ The watch widget is a separate extension target with its own bundle ID and its o
 1. Go to [App Store Connect → My Apps](https://appstoreconnect.apple.com/apps)
 2. Click **+** → **New App**
 3. Platform: **iOS**
-4. Name: `PeptideX`
+4. Name: `Atlas`
 5. Bundle ID: select `com.peptidesai.app` (must appear after Step 1c)
 6. SKU: `peptidex` (any unique string works)
 7. Primary Language: your language of choice

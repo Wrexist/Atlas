@@ -152,7 +152,7 @@ struct WatchAccessoryInlineView: View {
         } else if entry.totalToday > 0 {
             Text("\(entry.completedToday)/\(entry.totalToday) doses today")
         } else {
-            Text("PeptideX")
+            Text("Atlas")
         }
     }
 }

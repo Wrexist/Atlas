@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import CoreSpotlight
 
 @main
 struct PeptideApp: App {
@@ -9,10 +10,32 @@ struct PeptideApp: App {
     @State private var themeManager = ThemeManager.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var notificationDelegate: NotificationDelegate?
+    /// Holds the Darwin-notification observer that listens for
+    /// widget-extension "Log dose" intent taps. Lifetime tied to
+    /// the app's WindowGroup — released only on app termination.
+    @State private var pendingDoseLogToken: PendingDoseLogProcessor.ObservationToken?
     @State private var isUnlocked = false
     @Environment(\.scenePhase) private var scenePhase
+    @State private var travelChange: TimezoneChangeDetector.Change?
+    /// Drives the "What's New" splash. Set on first launch after
+    /// an update, cleared once the user finishes the tour.
+    @State private var showWhatsNewTour: Bool = false
 
     init() {
+        // SwiftUI's `AsyncImage` reads through `URLCache.shared`. The
+        // default cap is ~5 MB memory / 20 MB disk, which gets evicted
+        // before the food library's 25-row search results finish
+        // scrolling. Bump it generously up-front so OFF product
+        // thumbnails (typically 5-20 KB each) survive across a
+        // search session and across sheet open/close cycles — saves
+        // bandwidth on a metered connection and makes the list
+        // perceptibly faster on a re-open.
+        URLCache.shared = URLCache(
+            memoryCapacity: 50 * 1024 * 1024,    // 50 MB resident
+            diskCapacity:   200 * 1024 * 1024,   // 200 MB on disk
+            diskPath:       "peptidex-imagecache"
+        )
+
         // App.init() may be nonisolated in strict Swift 6 mode; assumeIsolated
         // bridges to @MainActor safely since @main always runs on the main thread.
         _dataStore = State(wrappedValue: MainActor.assumeIsolated {
@@ -25,6 +48,9 @@ struct PeptideApp: App {
                 if store.entries.first(where: { $0.id == entryId })?.completed == true {
                     store.toggleEntry(entryId)
                 }
+            }
+            WatchSyncService.shared.onLogWater = { oz in
+                store.logWater(oz: oz)
             }
             return store
         })
@@ -58,6 +84,87 @@ struct PeptideApp: App {
                     HealthKitService.shared.stopBackgroundDelivery()
                 }
             }
+            .task {
+                // One-shot Spotlight reindex on app start. Custom foods
+                // and favorites stay in sync via DataStore mutation
+                // hooks, but a fresh install or a CloudKit pull on a
+                // second device needs this to seed the index — without
+                // it, the user wouldn't see their library in Spotlight
+                // until they next edited a food.
+                dataStore.reindexFoodSpotlight()
+            }
+            .onOpenURL { url in
+                // Live Activity tap → `peptidex://dose/<uuid>`. Park
+                // the UUID on AppState; HomeView consumes it on its
+                // next appear and presents the dose-logging sheet.
+                // Unknown schemes / paths fall through silently so a
+                // garbled custom-scheme tap from another app doesn't
+                // log an error or open an unrelated view.
+                guard url.scheme == "peptidex" else { return }
+                switch url.host {
+                case "dose":
+                    // Live Activity tap → `peptidex://dose/<uuid>`.
+                    guard let entryUUID = UUID(uuidString: url.lastPathComponent) else { return }
+                    appState.selectedTab = .today
+                    appState.pendingDoseLogEntryId = entryUUID
+                case "weekly":
+                    // Weekly recap notification → `peptidex://weekly/current`.
+                    appState.selectedTab = .today
+                    appState.pendingWeeklyRecap = true
+                default:
+                    return
+                }
+            }
+            .onContinueUserActivity(CSSearchableItemActionType) { activity in
+                // Spotlight tapped a food index entry. Parse the
+                // namespaced identifier (`peptidex-food/custom/<uuid>`
+                // for user-defined foods, `peptidex-food/off/<barcode>`
+                // for OFF favorites), stash the result on AppState,
+                // and switch to the Today tab so the meals section
+                // (HomeMealsSection) picks it up. Unknown formats
+                // are dropped silently — better to no-op than to
+                // surface a confusing error to a user who tapped a
+                // Spotlight tile expecting their food to open.
+                guard let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
+                      let deepLink = FoodLogDeepLink(spotlightIdentifier: identifier)
+                else { return }
+                appState.selectedTab = .today
+                appState.pendingFoodLogID = deepLink
+            }
+            .sheet(item: $travelChange) { change in
+                TravelModePromptSheet(
+                    change: change,
+                    exampleShift: travelExampleShift(for: change),
+                    onShift: {
+                        dataStore.applyTravelShift(
+                            toTimezone: change.currentIdentifier,
+                            hoursDelta: change.hoursDelta
+                        )
+                        travelChange = nil
+                    },
+                    onKeep: {
+                        dataStore.acknowledgeTimezone(change.currentIdentifier)
+                        travelChange = nil
+                    }
+                )
+            }
+            .sheet(isPresented: $showWhatsNewTour) {
+                // Full-screen, drag-to-dismiss disabled — the tour
+                // is a deliberate one-time read, not an
+                // afterthought sheet. Swipe-down would otherwise
+                // dismiss before the user reaches the "Get
+                // started" button on the last page, and the
+                // version stamp wouldn't land — they'd see it
+                // again on the next launch.
+                WhatsNewTourSheet(
+                    pages: WhatsNewPage.v21,
+                    onComplete: {
+                        WhatsNewService.shared.markCurrentTourSeen()
+                        showWhatsNewTour = false
+                    }
+                )
+                .interactiveDismissDisabled()
+            }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background {
@@ -72,30 +179,112 @@ struct PeptideApp: App {
             if phase == .active {
                 ReviewPromptService.shared.recordLaunch()
                 dataStore.handleAppActivation()
+                // Drain any "user tapped Log on the Live Activity"
+                // markers the widget extension queued while we were
+                // suspended. Runs before reconcile so the just-
+                // logged entries are flagged completed and the
+                // reconcile pass dismisses their live activities in
+                // the same scene-phase tick.
+                PendingDoseLogProcessor.drain(into: dataStore)
                 // Re-evaluate which scheduled doses are in their
                 // active window so the lock-screen Live Activities
                 // start / end without needing the user to open the
                 // app to a specific tab.
                 DoseLiveActivityService.shared.reconcile(entries: dataStore.entries)
+                // Re-reconcile the Sunday weekly-recap notification
+                // on every active transition — handles "user toggled
+                // opt-out elsewhere", "user upgraded to Pro", and
+                // "permission status changed in Settings".
+                Task { @MainActor in
+                    await WeeklySummaryNotificationScheduler.reconcile(
+                        profile: dataStore.profile,
+                        isPro: StoreService.shared.isProUser
+                    )
+                }
+                detectTimezoneChange()
+                maybePresentWhatsNewTour()
             }
         }
     }
 
+    /// Presents the "What's New" tour exactly once per version
+    /// bump for existing users. Fresh installs (i.e. users who
+    /// haven't finished onboarding yet) are excluded — the
+    /// regular onboarding flow already covers the basics, and
+    /// double-stacking sheets at first launch would feel
+    /// overwhelming. A small delay lets any other launch-time
+    /// sheet (Live Activity reconcile, biometric unlock) settle
+    /// first so the tour reads as the headline event, not a
+    /// jump-cut.
+    private func maybePresentWhatsNewTour() {
+        // First-launch bootstrap: stamp the current version on a
+        // brand-new install so the post-onboarding launch doesn't
+        // double up with a tour the regular onboarding already
+        // covered. Idempotent after the first stamp.
+        WhatsNewService.shared.bootstrapForFreshInstallIfNeeded(
+            hasCompletedOnboarding: hasCompletedOnboarding
+        )
+
+        guard !showWhatsNewTour,
+              WhatsNewService.shared.shouldShowTour(hasCompletedOnboarding: hasCompletedOnboarding)
+        else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(450))
+            // Re-check inside the Task — another launch in the
+            // same scene tick could have already presented the
+            // sheet, and we don't want a double-present race.
+            guard !showWhatsNewTour else { return }
+            showWhatsNewTour = true
+        }
+    }
+
+    /// One-shot travel detection on every transition to `.active`.
+    /// Reads the user's last-known zone from `dataStore.profile`,
+    /// hands it to `TimezoneChangeDetector`, and sets
+    /// `travelChange` (which drives the prompt sheet) only on a
+    /// real crossing. On a fresh install (no previous identifier)
+    /// we silently record the current zone so the next launch has
+    /// a baseline to compare against.
+    private func detectTimezoneChange() {
+        let stored = dataStore.profile.lastKnownTimezoneIdentifier
+        if stored == nil {
+            dataStore.acknowledgeTimezone(TimeZone.current.identifier)
+            return
+        }
+        if let change = TimezoneChangeDetector.detect(previousIdentifier: stored) {
+            travelChange = change
+        }
+    }
+
+    /// First active protocol's first preferred time, paired with
+    /// what it would shift to under the proposed delta. Returns
+    /// nil when the user has no active protocols (the prompt is
+    /// still useful — they can apply the shift before adding any).
+    private func travelExampleShift(
+        for change: TimezoneChangeDetector.Change
+    ) -> (original: String, shifted: String)? {
+        guard let firstActive = dataStore.activeProtocols.first,
+              let firstTime = firstActive.schedule.preferredTimes.first
+        else { return nil }
+        let shifted = TravelModeLogic.shiftTime(firstTime, byHours: change.hoursDelta)
+        return (firstTime, shifted)
+    }
+
     private var coreTabView: some View {
         TabView(selection: $appState.selectedTab) {
-            Tab("Home", systemImage: "house.fill", value: .home) {
+            Tab("Today", systemImage: "house.fill", value: .today) {
                 HomeContainerView()
             }
-            Tab("Peptides", systemImage: "flask.fill", value: .database) {
+            Tab("Library", systemImage: "pills.fill", value: .library) {
                 PeptideListView()
             }
-            Tab("Protocols", systemImage: "list.clipboard.fill", value: .protocols) {
+            Tab("Protocols", systemImage: "square.stack.3d.up.fill", value: .protocols) {
                 ProtocolListView()
             }
-            Tab("Analytics", systemImage: "chart.bar.fill", value: .analytics) {
-                AnalyticsView()
+            Tab("Insights", systemImage: "chart.line.uptrend.xyaxis", value: .insights) {
+                InsightsView()
             }
-            Tab("Profile", systemImage: "person.fill", value: .profile) {
+            Tab("Profile", systemImage: "person.crop.circle.fill", value: .profile) {
                 ProfileView()
             }
         }
@@ -117,6 +306,15 @@ struct PeptideApp: App {
 
     private var mainContent: some View {
         tabViewWithAccessory
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            // Floating "you're in screenshot mode" reminder sits
+            // above the tab bar while ScreenshotMode is on. Self-
+            // hides via internal `if` when the toggle is off, so
+            // this inset costs nothing in production.
+            ScreenshotModeBanner()
+                .animation(.spring(response: 0.4, dampingFraction: 0.85),
+                           value: ScreenshotMode.shared.isEnabled)
+        }
         .environment(appState)
         .environment(dataStore)
         .preferredColorScheme(themeManager.displayMode.preferredScheme)
@@ -126,6 +324,14 @@ struct PeptideApp: App {
             notificationDelegate = delegate
             UNUserNotificationCenter.current().delegate = delegate
             NotificationService.shared.registerCategories()
+
+            // Register the Darwin-notification observer once per
+            // scene. The token is stored on `pendingDoseLogToken`
+            // for lifetime ownership — releasing it removes the
+            // observer.
+            if pendingDoseLogToken == nil {
+                pendingDoseLogToken = PendingDoseLogProcessor.startObserving(dataStore)
+            }
 
             // Repopulate the in-memory ID tracker from iOS's actual pending
             // requests. Without this, force-quit leaves orphan reminders that

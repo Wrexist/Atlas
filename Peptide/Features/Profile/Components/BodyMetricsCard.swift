@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Compact summary of the user's optional body metrics on the Profile
 /// screen, with a sheet for editing. The values are stored locally for the
-/// user's own reference and HealthKit correlation; PeptideX does not use
+/// user's own reference and HealthKit correlation; Atlas does not use
 /// them to calculate or recommend any dose.
 struct BodyMetricsCard: View {
     let metrics: BodyMetrics
@@ -41,7 +41,7 @@ struct BodyMetricsCard: View {
                         infoChip(metrics.sex.localizedDisplay)
                     }
                 } else {
-                    Text("Optional. Add your weight, height, and age to display alongside your compliance trends. PeptideX never calculates doses for you.")
+                    Text("Optional. Add your weight, height, and age to display alongside your compliance trends. Atlas never calculates doses for you.")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

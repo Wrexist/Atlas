@@ -49,7 +49,7 @@ final class BiometricService {
         do {
             return try await context.evaluatePolicy(
                 .deviceOwnerAuthentication,
-                localizedReason: "Unlock PeptideX"
+                localizedReason: "Unlock Atlas"
             )
         } catch {
             // LAError.userCancel is expected and routine; log at debug.

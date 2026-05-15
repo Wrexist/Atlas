@@ -49,7 +49,7 @@ enum PeptideDatabase {
     }()
 
     private static let fallbackDisclaimer = """
-    This information is for educational purposes only. PeptideX does not \
+    This information is for educational purposes only. Atlas does not \
     provide medical advice, recommend doses, prescribe, or calculate dosages. \
     The values shown are summaries of figures reported in the published \
     research literature, with citations on every peptide page. Many peptides \

@@ -76,7 +76,7 @@ struct RecommendationsPage: View {
                 .foregroundStyle(AppColor.accentLight)
                 .padding(.top, 2)
 
-            Text("PeptideX does not recommend, prescribe, or calculate doses. Tap any match to read its educational detail page with research citations. Always consult a qualified clinician before starting any protocol.")
+            Text("Atlas does not recommend, prescribe, or calculate doses. Tap any match to read its educational detail page with research citations. Always consult a qualified clinician before starting any protocol.")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

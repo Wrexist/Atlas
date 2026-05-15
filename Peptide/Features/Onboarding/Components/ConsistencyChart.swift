@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Two-curve "consistency" chart used by the notifications onboarding step.
-/// Curve A ("With PeptideX") rises steeply; curve B ("Without tracking")
+/// Curve A ("With Atlas") rises steeply; curve B ("Without tracking")
 /// peaks early then drifts down. Both paths animate their `pathLength`
 /// (SwiftUI `trim(from:to:)`) on appear with a small stagger so the eye
 /// follows curve A first — same effect as Framer Motion's pathLength
@@ -49,7 +49,7 @@ struct ConsistencyChart: View {
                     endpointDot(at: pointA(at: 1, in: size))
                         .opacity(endpointsVisible ? 1 : 0)
 
-                    seriesLabel("With PeptideX", color: lineColorA)
+                    seriesLabel("With Atlas", color: lineColorA)
                         .position(x: size.width * 0.22, y: size.height * 0.18)
                         .opacity(drawA)
 
@@ -100,7 +100,7 @@ struct ConsistencyChart: View {
 
     // MARK: - Path geometry
 
-    /// "With PeptideX" — fast initial rise, slight easing toward the top
+    /// "With Atlas" — fast initial rise, slight easing toward the top
     /// right. Bezier control points keep it convex (always above its chord)
     /// so the trim animation looks like growth, not a spike.
     private func curveA(in size: CGSize) -> Path {

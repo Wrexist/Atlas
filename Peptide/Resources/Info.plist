@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>PeptideX</string>
+	<string>Atlas</string>
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>en</string>
@@ -22,13 +22,13 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSCameraUsageDescription</key>
-	<string>PeptideX uses the camera to scan food barcodes, take a profile photo (stored locally), and photograph meals for nutrition estimation. Meal photos are sent securely to our AI service for analysis and are not retained after the response. Barcode and profile photos stay on your device.</string>
+	<string>Atlas uses the camera to scan food barcodes, take a profile photo (stored locally), and photograph meals for nutrition estimation. Meal photos are sent securely to our AI service for analysis and are not retained after the response. Barcode and profile photos stay on your device.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>PeptideX uses Face ID to optionally lock the app, so your protocols and health data stay private if your device is unlocked. Face ID is optional — you can disable it in Settings.</string>
+	<string>Atlas uses Face ID to optionally lock the app, so your protocols and health data stay private if your device is unlocked. Face ID is optional — you can disable it in Settings.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>PeptideX reads heart rate, HRV, resting heart rate, body mass, steps, and active energy from Apple Health to correlate your peptide protocols with biometric trends. PeptideX never writes to Apple Health and all analysis happens on your device.</string>
+	<string>Atlas reads heart rate, HRV, resting heart rate, body mass, steps, and active energy from Apple Health to correlate your peptide protocols with biometric trends. All analysis happens on your device.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>PeptideX does not write to Apple Health and never modifies your health records.</string>
+	<string>Atlas can optionally write the meals you log (calories, protein, carbs, fat, fiber) to Apple Health, so your nutrition shows up alongside everything else Apple Health tracks. Writing is off by default and you can disable it any time in Profile → Apple Health.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UILaunchScreen</key>

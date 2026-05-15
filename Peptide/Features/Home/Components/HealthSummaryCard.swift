@@ -73,7 +73,7 @@ struct HealthSummaryCard: View {
                 .font(AppFont.subheadline)
                 .fontWeight(.medium)
                 .foregroundStyle(AppColor.textPrimary)
-            Text("Make sure PeptideX has access in Settings → Health → Data Access.")
+            Text("Make sure Atlas has access in Settings → Health → Data Access.")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)

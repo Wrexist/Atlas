@@ -1,5 +1,5 @@
 /**
- * Vercel proxy route for the PeptideX meal scanner. Thin wrapper over
+ * Vercel proxy route for the Atlas meal scanner. Thin wrapper over
  * `forwardToAnthropic`; see `_lib/anthropic-proxy.js` for the
  * server-side env vars and the rate-limit / sanitisation behavior.
  *

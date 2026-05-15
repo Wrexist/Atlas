@@ -99,7 +99,7 @@ struct ShareCardSheet: View {
                 if let renderedURL {
                     ShareSheet(activityItems: [
                         renderedURL,
-                        "Tracking my peptide protocol with PeptideX 🧬",
+                        "Tracking my peptide protocol with Atlas 🧬",
                     ])
                 }
             }

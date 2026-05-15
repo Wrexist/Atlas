@@ -8,18 +8,18 @@
       "internalID" : "5B183092-E9C0-41BD-8D55-670A03624EA6",
       "localizations" : [
         {
-          "description" : "One-time purchase that unlocks PeptideX Pro forever.",
-          "displayName" : "PeptideX Pro Lifetime",
+          "description" : "One-time purchase that unlocks Atlas Pro forever.",
+          "displayName" : "Atlas Pro Lifetime",
           "locale" : "en_US"
         },
         {
-          "description" : "Engångsköp som låser upp PeptideX Pro för alltid.",
-          "displayName" : "PeptideX Pro Livstid",
+          "description" : "Engångsköp som låser upp Atlas Pro för alltid.",
+          "displayName" : "Atlas Pro Livstid",
           "locale" : "sv_SE"
         }
       ],
       "productID" : "com.peptidesai.app.pro.lifetime",
-      "referenceName" : "PeptideX Pro Lifetime",
+      "referenceName" : "Atlas Pro Lifetime",
       "type" : "NonConsumable"
     }
   ],
@@ -82,17 +82,17 @@
       "id" : "73E561C3-3E5C-4246-BA5E-C40ABB32278D",
       "localizations" : [
         {
-          "description" : "PeptideX Pro subscription group.",
-          "displayName" : "PeptideX Pro",
+          "description" : "Atlas Pro subscription group.",
+          "displayName" : "Atlas Pro",
           "locale" : "en_US"
         },
         {
-          "description" : "PeptideX Pro prenumerationsgrupp.",
-          "displayName" : "PeptideX Pro",
+          "description" : "Atlas Pro prenumerationsgrupp.",
+          "displayName" : "Atlas Pro",
           "locale" : "sv_SE"
         }
       ],
-      "name" : "PeptideX Pro",
+      "name" : "Atlas Pro",
       "subscriptions" : [
         {
           "adHocOffers" : [],
@@ -109,19 +109,19 @@
           },
           "localizations" : [
             {
-              "description" : "Unlock all PeptideX Pro features, billed monthly.",
-              "displayName" : "PeptideX Pro Monthly",
+              "description" : "Unlock all Atlas Pro features, billed monthly.",
+              "displayName" : "Atlas Pro Monthly",
               "locale" : "en_US"
             },
             {
-              "description" : "Lås upp alla PeptideX Pro-funktioner, faktureras varje månad.",
-              "displayName" : "PeptideX Pro Månad",
+              "description" : "Lås upp alla Atlas Pro-funktioner, faktureras varje månad.",
+              "displayName" : "Atlas Pro Månad",
               "locale" : "sv_SE"
             }
           ],
           "productID" : "com.peptidesai.app.pro.monthly",
           "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "PeptideX Pro Monthly",
+          "referenceName" : "Atlas Pro Monthly",
           "subscriptionGroupID" : "73E561C3-3E5C-4246-BA5E-C40ABB32278D",
           "type" : "RecurringSubscription"
         },
@@ -140,19 +140,19 @@
           },
           "localizations" : [
             {
-              "description" : "Unlock all PeptideX Pro features, billed annually.",
-              "displayName" : "PeptideX Pro Annual",
+              "description" : "Unlock all Atlas Pro features, billed annually.",
+              "displayName" : "Atlas Pro Annual",
               "locale" : "en_US"
             },
             {
-              "description" : "Lås upp alla PeptideX Pro-funktioner, faktureras varje år.",
-              "displayName" : "PeptideX Pro Årsvis",
+              "description" : "Lås upp alla Atlas Pro-funktioner, faktureras varje år.",
+              "displayName" : "Atlas Pro Årsvis",
               "locale" : "sv_SE"
             }
           ],
           "productID" : "com.peptidesai.app.pro.annual",
           "recurringSubscriptionPeriod" : "P1Y",
-          "referenceName" : "PeptideX Pro Annual",
+          "referenceName" : "Atlas Pro Annual",
           "subscriptionGroupID" : "73E561C3-3E5C-4246-BA5E-C40ABB32278D",
           "type" : "RecurringSubscription"
         }

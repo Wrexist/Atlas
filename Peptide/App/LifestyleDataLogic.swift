@@ -11,11 +11,10 @@ import Foundation
 /// getter/setter pair — no special bridging needed. Read-only helpers
 /// take the profile by value.
 ///
-/// Threading: callsites in `DataStore` are all `@MainActor`-isolated,
-/// so the static `consumptionKeyFormatter` mutation is serialized
-/// without extra locking. If a future caller fires from a non-MainActor
-/// context, lift the formatter into a per-call allocation or add
-/// `@MainActor` here.
+/// Threading: pure functions on value types — every helper is safe
+/// to call from any isolation context. `consumptionKey(for:)`
+/// allocates a fresh `ISO8601DateFormatter` per call rather than
+/// share a mutable instance.
 enum LifestyleDataLogic {
 
     // MARK: - Weight history
@@ -119,6 +118,264 @@ enum LifestyleDataLogic {
             ?? DailyConsumption.empty(on: date)
     }
 
+    // MARK: - Meal entries (per-meal history)
+
+    /// Appends a `MealEntry` AND updates the per-day aggregate so the
+    /// macro rings keep working without rewriting them to recompute
+    /// from history on every render. The two stores stay in lockstep
+    /// via this method — callers should never write one without the
+    /// other.
+    ///
+    /// Trims `mealHistory` to the most recent `maxMealHistoryEntries`
+    /// so very heavy users don't bloat the profile blob without
+    /// bound. Today's entries are always kept regardless of cap.
+    static func logMealEntry(into profile: inout UserProfile, entry: MealEntry) {
+        profile.mealHistory.append(entry)
+        pruneMealHistoryIfNeeded(into: &profile)
+        logMeal(
+            into: &profile,
+            calories: entry.calories,
+            proteinG: entry.proteinG,
+            carbsG: entry.carbsG,
+            fatG: entry.fatG,
+            date: entry.date
+        )
+    }
+
+    /// Removes a `MealEntry` by id and reverses its contribution to
+    /// the aggregate. Idempotent — calling twice does nothing on the
+    /// second pass because the entry's already gone. Used by the
+    /// Undo affordance on every review screen's success state, and
+    /// (eventually) by a meal-history edit/delete UI.
+    static func unlogMealEntry(from profile: inout UserProfile, id: UUID) {
+        guard let entry = profile.mealHistory.first(where: { $0.id == id }) else { return }
+        profile.mealHistory.removeAll { $0.id == id }
+        unlogMeal(
+            from: &profile,
+            calories: entry.calories,
+            proteinG: entry.proteinG,
+            carbsG: entry.carbsG,
+            fatG: entry.fatG,
+            date: entry.date
+        )
+    }
+
+    /// Per-category macro totals for a single calendar day. Powers
+    /// the breakdown card under the macro rings.
+    ///
+    /// Returns all four categories with zero totals when nothing's
+    /// logged in them — the UI renders the empty buckets too so the
+    /// card layout stays stable as the user logs through the day.
+    /// The `other` bucket captures the gap between `mealHistory`'s
+    /// sum and the aggregate, which lets legacy logs (pre-MealEntry,
+    /// or logs from flows that haven't been upgraded yet) still
+    /// show up in the totals without being mis-attributed.
+    static func mealsByCategory(
+        in profile: UserProfile,
+        for date: Date
+    ) -> CategoryBreakdown {
+        let day = Calendar.current.startOfDay(for: date)
+        let entries = profile.mealHistory.filter {
+            Calendar.current.isDate($0.date, inSameDayAs: day)
+        }
+        var perCategory: [MealCategory: CategoryTotals] = [:]
+        for category in MealCategory.allCases {
+            perCategory[category] = .zero
+        }
+        for entry in entries {
+            perCategory[entry.category, default: .zero].add(entry)
+        }
+        let aggregate = consumption(in: profile, for: date)
+        let mealCalories = entries.reduce(0) { $0 + $1.calories }
+        let otherCalories = max(0, aggregate.caloriesKcal - mealCalories)
+        let mealProtein = entries.reduce(0) { $0 + $1.proteinG }
+        let mealCarbs   = entries.reduce(0) { $0 + $1.carbsG }
+        let mealFat     = entries.reduce(0) { $0 + $1.fatG }
+        let other = CategoryTotals(
+            calories: otherCalories,
+            proteinG: max(0, aggregate.proteinG - mealProtein),
+            carbsG:   max(0, aggregate.carbsG   - mealCarbs),
+            fatG:     max(0, aggregate.fatG     - mealFat),
+            entryCount: 0
+        )
+        return CategoryBreakdown(
+            breakfast: perCategory[.breakfast] ?? .zero,
+            lunch:     perCategory[.lunch]     ?? .zero,
+            dinner:    perCategory[.dinner]    ?? .zero,
+            snack:     perCategory[.snack]     ?? .zero,
+            other:     other
+        )
+    }
+
+    /// Returns `mealHistory` filtered to `date`'s calendar day, sorted
+    /// newest-first. Used by the (future) meal-history list.
+    static func mealEntries(in profile: UserProfile, for date: Date) -> [MealEntry] {
+        profile.mealHistory
+            .filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
+            .sorted { $0.date > $1.date }
+    }
+
+    // MARK: - Meal-logging streak
+
+    /// Consecutive calendar days ending today (or yesterday) where
+    /// the user logged at least one meal entry. Mirrors the peptide
+    /// dose-logging streak's behaviour: a user who hasn't logged
+    /// *yet* today doesn't see the streak break the moment they
+    /// open the app — it counts back from yesterday until they log
+    /// something for today, at which point it counts back from
+    /// today.
+    ///
+    /// The grace-day treatment makes the streak feel encouraging
+    /// rather than punishing — a user opening the app at 8 AM sees
+    /// "5 day streak, keep it up" instead of "streak broken, start
+    /// over". The streak only breaks if both today and yesterday
+    /// are empty.
+    static func mealLoggingStreak(in profile: UserProfile, asOf reference: Date = Date()) -> Int {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: reference)
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
+
+        // Walk every entry once into a set of days the user logged.
+        // O(n) up-front beats O(n × days) on the iteration below.
+        var loggedDays: Set<Date> = []
+        for entry in profile.mealHistory {
+            loggedDays.insert(calendar.startOfDay(for: entry.date))
+        }
+        guard !loggedDays.isEmpty || !profile.streakFreezeDays.isEmpty else { return 0 }
+
+        // Streak-shielding: a freeze day is treated identically to
+        // a logged day for the purpose of consecutive-day counting.
+        // Lets a user spend a freeze the morning after a missed
+        // day to keep their streak alive.
+        let isCovered: (Date) -> Bool = { day in
+            loggedDays.contains(day) || StreakFreezeService.isFrozen(day, in: profile)
+        }
+
+        // Anchor: start from today if today has a log/freeze, else
+        // from yesterday (today is the grace day). If yesterday is
+        // also empty, the streak is 0.
+        let anchor: Date
+        if isCovered(today) {
+            anchor = today
+        } else if isCovered(yesterday) {
+            anchor = yesterday
+        } else {
+            return 0
+        }
+
+        var streak = 0
+        var cursor = anchor
+        while isCovered(cursor) {
+            streak += 1
+            guard let previous = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
+            cursor = previous
+        }
+        return streak
+    }
+
+    /// All-time best meal-logging streak. Walks the full history
+    /// once, building a sorted list of distinct logged days, then
+    /// counts the longest run of consecutive days. O(n log n) for
+    /// the sort, fine on the cap of 3,650 entries we enforce.
+    /// Returns the current streak when nothing higher has happened
+    /// historically.
+    static func bestMealLoggingStreak(in profile: UserProfile, asOf reference: Date = Date()) -> Int {
+        guard !profile.mealHistory.isEmpty else { return 0 }
+        let calendar = Calendar.current
+        let days = Set(profile.mealHistory.map { calendar.startOfDay(for: $0.date) }).sorted()
+        guard let firstDay = days.first else { return 0 }
+
+        var best = 1
+        var currentRun = 1
+        var previous = firstDay
+        for day in days.dropFirst() {
+            if let expected = calendar.date(byAdding: .day, value: 1, to: previous),
+               calendar.isDate(day, inSameDayAs: expected) {
+                currentRun += 1
+                best = max(best, currentRun)
+            } else {
+                currentRun = 1
+            }
+            previous = day
+        }
+        // Compare against the live streak too — the ongoing run
+        // hasn't been counted as "completed" in the loop above.
+        return max(best, mealLoggingStreak(in: profile, asOf: reference))
+    }
+
+    /// Soft cap on `mealHistory` so the profile blob can't grow
+    /// without bound. 5 meals/day × 365 days × 2 years = 3,650
+    /// entries × ~150 B serialised ≈ 550 KB. Plenty of headroom for
+    /// the typical user without bloating the CloudKit record.
+    /// Today's entries are always preserved past the cap so the
+    /// rings can't lose data mid-day.
+    static let maxMealHistoryEntries: Int = 3650
+
+    // MARK: - Outcome check-ins
+
+    /// Logs (or replaces) the daily wellness check-in for the entry's
+    /// calendar day. One per day — a second save on the same day
+    /// overwrites the first, so the user can edit "no actually my
+    /// energy was a 4" without ending up with two entries.
+    static func logOutcome(into profile: inout UserProfile, entry: OutcomeEntry) {
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: entry.date)
+        profile.outcomeHistory.removeAll {
+            calendar.isDate($0.date, inSameDayAs: dayStart)
+        }
+        // Normalise the stored date to start-of-day so a re-fetch
+        // with a different time-of-day reference still resolves the
+        // same entry.
+        var normalised = entry
+        normalised.updatedAt = Date()
+        profile.outcomeHistory.append(normalised)
+        // Sort chronological so callers iterating forward see the
+        // oldest entry first (matches mealHistory's invariant).
+        profile.outcomeHistory.sort { $0.date < $1.date }
+    }
+
+    /// Returns the user's check-in for a given calendar day, or nil
+    /// when there's nothing logged. Drives the "filled in today?"
+    /// state on the prompt card.
+    static func outcome(in profile: UserProfile, for date: Date) -> OutcomeEntry? {
+        let calendar = Calendar.current
+        return profile.outcomeHistory.first {
+            calendar.isDate($0.date, inSameDayAs: date)
+        }
+    }
+
+    /// All check-ins from the last `days` calendar days (inclusive of
+    /// today), sorted oldest-first. Powers the trend sparkline and
+    /// feeds the correlation engine.
+    static func recentOutcomes(in profile: UserProfile, days: Int) -> [OutcomeEntry] {
+        let calendar = Calendar.current
+        guard days > 0 else { return [] }
+        let today = calendar.startOfDay(for: Date())
+        guard let cutoff = calendar.date(byAdding: .day, value: -days + 1, to: today) else { return [] }
+        return profile.outcomeHistory.filter { $0.date >= cutoff }
+    }
+
+    private static func pruneMealHistoryIfNeeded(into profile: inout UserProfile) {
+        guard profile.mealHistory.count > maxMealHistoryEntries else { return }
+        let today = Calendar.current.startOfDay(for: Date())
+        // Keep every entry from today regardless of cap so the rings
+        // are never wrong on the active day, then trim older entries
+        // to fit the remaining budget.
+        var todays: [MealEntry] = []
+        var older: [MealEntry] = []
+        todays.reserveCapacity(profile.mealHistory.count)
+        older.reserveCapacity(profile.mealHistory.count)
+        for entry in profile.mealHistory {
+            if Calendar.current.isDate(entry.date, inSameDayAs: today) {
+                todays.append(entry)
+            } else {
+                older.append(entry)
+            }
+        }
+        let trimmedOlder = older.suffix(max(0, maxMealHistoryEntries - todays.count))
+        profile.mealHistory = Array(trimmedOlder) + todays
+    }
+
     // MARK: - Workouts
 
     /// Appends a workout session and keeps the array sorted oldest-first
@@ -170,20 +427,71 @@ enum LifestyleDataLogic {
     /// date and silently disappear from today's rings.
     fileprivate static func consumptionKey(for date: Date) -> String {
         let day = Calendar.current.startOfDay(for: date)
-        consumptionKeyFormatter.timeZone = Calendar.current.timeZone
-        return consumptionKeyFormatter.string(from: day)
+        // Per-call formatter allocation. The previous shared
+        // `nonisolated(unsafe)` instance was only safe while every
+        // caller stayed on `@MainActor`; a widget timeline provider
+        // or background Task picking this up would have raced on
+        // the `timeZone` setter. Construction is a handful of
+        // microseconds and dominates none of the calling paths.
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        formatter.timeZone = Calendar.current.timeZone
+        return formatter.string(from: day)
     }
 
-    /// `static let` so we don't pay the ~0.5 ms allocation on every
-    /// `consumption(for:)` call — the macro rings call this on every
-    /// render. `nonisolated(unsafe)` because `ISO8601DateFormatter` is
-    /// not `Sendable`; the safety invariant ("only ever mutated from
-    /// DataStore's `@MainActor` callsites") is documented at the top
-    /// of this file. Move to per-call allocation or `@MainActor` if a
-    /// future caller fires from a non-MainActor context.
-    private nonisolated(unsafe) static let consumptionKeyFormatter: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withFullDate]
-        return f
-    }()
+    /// Per-category macro totals returned by `mealsByCategory(in:for:)`.
+    /// `other` captures anything in the aggregate that has no matching
+    /// `MealEntry` — typically legacy logs or logs from flows that
+    /// haven't been upgraded to write `MealEntry`s yet.
+    struct CategoryBreakdown: Equatable, Sendable {
+        var breakfast: CategoryTotals
+        var lunch: CategoryTotals
+        var dinner: CategoryTotals
+        var snack: CategoryTotals
+        var other: CategoryTotals
+
+        /// Sum of all five buckets — sanity-check that this matches
+        /// `DailyConsumption` for the same day.
+        var totalCalories: Int {
+            breakfast.calories + lunch.calories + dinner.calories + snack.calories + other.calories
+        }
+
+        /// Ordered list for stable rendering in the breakdown card.
+        /// `other` only included when it has content — most users
+        /// never see it once every flow writes `MealEntry`.
+        var orderedRows: [(MealCategory?, CategoryTotals)] {
+            var rows: [(MealCategory?, CategoryTotals)] = [
+                (.breakfast, breakfast),
+                (.lunch, lunch),
+                (.dinner, dinner),
+                (.snack, snack),
+            ]
+            if other.calories > 0 {
+                rows.append((nil, other))
+            }
+            return rows
+        }
+    }
+
+    struct CategoryTotals: Equatable, Sendable {
+        var calories: Int
+        var proteinG: Int
+        var carbsG: Int
+        var fatG: Int
+        var entryCount: Int
+
+        static let zero = CategoryTotals(
+            calories: 0, proteinG: 0, carbsG: 0, fatG: 0, entryCount: 0
+        )
+
+        /// In-place add for the per-category aggregation loop.
+        mutating func add(_ entry: MealEntry) {
+            calories += entry.calories
+            proteinG += entry.proteinG
+            carbsG   += entry.carbsG
+            fatG     += entry.fatG
+            entryCount += 1
+        }
+    }
+
 }

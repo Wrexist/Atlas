@@ -9,6 +9,11 @@ struct ProtocolBuilderView: View {
     @State private var name = ""
     @State private var selectedPeptides: Set<UUID> = []
     @State private var cycleLengthWeeks = 8
+    /// Optional wash-out duration. `0` keeps the legacy single-cycle
+    /// behaviour. The toggle in the form exposes the field once
+    /// the user opts into cycling so most users (one-and-done
+    /// protocols) never see the complexity.
+    @State private var washoutWeeks = 0
     @State private var timesPerDay = 1
     @State private var notes = ""
     @State private var selectedDays: Set<Int> = [1, 2, 3, 4, 5]
@@ -102,6 +107,7 @@ struct ProtocolBuilderView: View {
             schedule: defaultSchedule,
             peptideSchedules: peptideOverrides,
             cycleLengthWeeks: cycleLengthWeeks,
+            washoutWeeks: washoutWeeks,
             startDate: editingProtocol?.startDate ?? Date(),
             status: .active,
             notes: notes,
@@ -213,6 +219,7 @@ struct ProtocolBuilderView: View {
                     name = proto.name
                     selectedPeptides = Set(proto.peptides.map(\.id))
                     cycleLengthWeeks = proto.cycleLengthWeeks
+                    washoutWeeks = proto.washoutWeeks
                     timesPerDay = proto.schedule.timesPerDay
                     notes = proto.notes
                     selectedDays = Set(proto.schedule.daysOfWeek)
@@ -508,6 +515,8 @@ struct ProtocolBuilderView: View {
                             dayNames: dayNames,
                             hapticEnabled: dataStore.profile.hapticFeedbackEnabled
                         )
+
+                        WashoutPicker(washoutWeeks: $washoutWeeks)
                     }
                 }
                 .sectionAppear(index: 1)
@@ -664,6 +673,7 @@ struct ProtocolBuilderView: View {
             schedule: defaultSchedule,
             peptideSchedules: peptideOverrides,
             cycleLengthWeeks: cycleLengthWeeks,
+            washoutWeeks: washoutWeeks,
             startDate: Date(),
             status: .active,
             notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -695,6 +705,7 @@ struct ProtocolBuilderView: View {
             schedule: updatedSchedule,
             peptideSchedules: peptideOverrides,
             cycleLengthWeeks: cycleLengthWeeks,
+            washoutWeeks: washoutWeeks,
             notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)
         )
         dismiss()

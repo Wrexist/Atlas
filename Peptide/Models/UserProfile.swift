@@ -1,6 +1,6 @@
 import Foundation
 
-enum BiologicalSex: String, Codable, CaseIterable, Identifiable {
+enum BiologicalSex: String, Codable, CaseIterable, Identifiable, Sendable {
     case male, female, other, unspecified
     var id: String { rawValue }
 
@@ -30,7 +30,7 @@ enum BiologicalSex: String, Codable, CaseIterable, Identifiable {
     static let onboardingChoices: [BiologicalSex] = [.male, .female, .other]
 }
 
-enum ActivityLevel: String, Codable, CaseIterable, Identifiable {
+enum ActivityLevel: String, Codable, CaseIterable, Identifiable, Sendable {
     case sedentary, light, moderate, active, athlete
     var id: String { rawValue }
 
@@ -55,7 +55,7 @@ enum ActivityLevel: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-enum MeasurementUnit: String, Codable {
+enum MeasurementUnit: String, Codable, Sendable {
     case metric    // kg, cm
     case imperial  // lb, in
 }
@@ -63,9 +63,9 @@ enum MeasurementUnit: String, Codable {
 /// Optional body metrics displayed alongside the user's compliance trends
 /// on the Profile screen. All fields are optional — users can skip the
 /// metrics step. Stored canonically in metric units; the UI converts on
-/// read/write. PeptideX does NOT use these values to calculate, scale, or
+/// read/write. Atlas does NOT use these values to calculate, scale, or
 /// recommend any dose.
-struct BodyMetrics: Codable, Hashable {
+struct BodyMetrics: Codable, Hashable, Sendable {
     var weightKg: Double?
     var heightCm: Double?
     var age: Int?
@@ -105,7 +105,7 @@ struct BodyMetrics: Codable, Hashable {
 /// Daily macro targets derived from the user's body stats during onboarding
 /// and surfaced on the Lifestyle tab. Stored as integers because they're
 /// reference targets — the user doesn't need 0.1 g of protein resolution.
-struct NutritionTargets: Codable, Hashable {
+struct NutritionTargets: Codable, Hashable, Sendable {
     var calories: Int
     var proteinG: Int
     var carbsG: Int
@@ -121,7 +121,7 @@ struct NutritionTargets: Codable, Hashable {
 /// Matching today is local-only against `CreatorCodeService.seeded` —
 /// the spec'd Supabase pipeline (creator_codes table, RPC counters,
 /// dashboard) is tracked as a follow-up.
-struct CreatorAttribution: Codable, Hashable {
+struct CreatorAttribution: Codable, Hashable, Sendable {
     let code: String
     let creatorName: String
     let discountPercent: Int
@@ -133,7 +133,7 @@ struct CreatorAttribution: Codable, Hashable {
 /// pg_cron retargeting is a separate piece of work that needs the
 /// backend in place. The local record carries enough context that the
 /// eventual sync job can replay the row 1:1 from this struct.
-struct EmailSubscription: Codable, Hashable {
+struct EmailSubscription: Codable, Hashable, Sendable {
     let email: String
     let capturedAt: Date
 }
@@ -142,7 +142,7 @@ struct EmailSubscription: Codable, Hashable {
 /// The Lifestyle tab renders the trend over the most recent 14 days
 /// and exposes the deltas; everything else converts to/from imperial
 /// at the UI boundary based on `bodyMetrics.unit`.
-struct WeightEntry: Codable, Hashable, Identifiable {
+struct WeightEntry: Codable, Hashable, Identifiable, Sendable {
     let id: UUID
     let date: Date
     let kg: Double
@@ -159,7 +159,7 @@ struct WeightEntry: Codable, Hashable, Identifiable {
 /// fields — intentionally lightweight so this isn't a competing gym
 /// app, just enough structure to feed the daily card subtitle and a
 /// future Analytics-tab workout summary.
-struct WorkoutEntry: Codable, Hashable, Identifiable {
+struct WorkoutEntry: Codable, Hashable, Identifiable, Sendable {
     let id: UUID
     let date: Date
     let name: String
@@ -189,7 +189,7 @@ struct WorkoutEntry: Codable, Hashable, Identifiable {
 /// daily buckets, matching the dialing the user sees on the Lifestyle
 /// rings. Currently populated by the meal-scanner flow; manual logging
 /// is a follow-up.
-struct DailyConsumption: Codable, Hashable {
+struct DailyConsumption: Codable, Hashable, Sendable {
     var date: Date
     var caloriesKcal: Int
     var proteinG: Int
@@ -209,7 +209,7 @@ struct DailyConsumption: Codable, Hashable {
     }
 }
 
-struct UserProfile: Codable {
+struct UserProfile: Codable, Sendable {
     var name: String
     var goals: [String]
     var memberSince: Date
@@ -259,6 +259,80 @@ struct UserProfile: Codable {
     /// at the top of the goals card and used by the home tab to feature
     /// matching peptide recommendations. Empty/nil means no pin.
     var primaryGoal: String?
+    /// User-defined foods surfaced in the food library's "My Foods"
+    /// tab. Travels on the profile so CloudKit sync carries it across
+    /// the user's devices alongside everything else they care about
+    /// (targets, weight history). Newest-first so the tab lands on the
+    /// just-added food without re-sorting.
+    var customFoods: [CustomFood]
+    /// Set of food IDs the user has starred in the food library —
+    /// barcodes for OFF results, `custom:<uuid>` for `customFoods`.
+    /// Encoded as an array on disk because Set lacks a deterministic
+    /// JSON ordering; decoded back into a Set so membership checks are
+    /// O(1) in the result list.
+    var favoriteFoodIDs: Set<String>
+    /// Individual meal log entries — the building block for the per-
+    /// category breakdown card and (eventually) HealthKit dietary-
+    /// energy samples. The aggregate `dailyConsumption` still drives
+    /// the macro rings; this is the per-meal sidecar. Newest-last so
+    /// chronological iteration matches the visual log order.
+    var mealHistory: [MealEntry]
+    /// User opted in to having each logged meal mirrored as Apple
+    /// Health dietary-energy / protein / carbs / fat / fiber samples.
+    /// Disabled by default — we only prompt for HK write permission
+    /// after the user flips this on in Profile. The corresponding HK
+    /// authorization is requested at toggle-time, not at install.
+    var healthKitNutritionEnabled: Bool
+    /// Daily wellness check-ins. One entry per calendar day; a
+    /// re-save on the same day replaces the previous entry through
+    /// `LifestyleDataLogic.logOutcome`. Newest-last so chronological
+    /// iteration matches visual timeline order.
+    var outcomeHistory: [OutcomeEntry]
+    /// Blood-work entries — the optimisation cohort's signal for
+    /// "is this protocol moving real biomarkers?" Multiple entries
+    /// per panel allowed (one per draw date); ordering enforced on
+    /// the view side. CloudKit-synced so a user can see their full
+    /// labs history on any device.
+    var labHistory: [LabValue]
+    /// Identifier of the timezone the user was in on the last app
+    /// launch. Compared against `TimeZone.current` on every launch
+    /// so the travel-detection prompt can fire when the user has
+    /// crossed into a new zone — either to offer a schedule shift
+    /// to local clock, or to keep doses on the origin clock.
+    /// Stored as `String` (the IANA identifier) for stable diffs;
+    /// `nil` only on a fresh install before the first launch.
+    var lastKnownTimezoneIdentifier: String?
+    /// Calendar days the user has "frozen" their streak against —
+    /// either deliberately (tapped Use freeze before a missed
+    /// day) or earned from a milestone reward. Keyed by start-of-
+    /// day so the streak engine can treat them as
+    /// counted-as-completed. Stored as ISO yyyy-MM-dd strings
+    /// because Set<Date> would need a hashing strategy that
+    /// matched the engine's day key; strings are unambiguous and
+    /// human-readable in the JSON dump.
+    var streakFreezeDays: Set<String>
+    /// Saved recipes — named combinations of one or more foods.
+    /// Lets the user one-tap-log a composite meal ("breakfast
+    /// bowl") that would otherwise require several separate
+    /// food-library taps. Newest-first by updatedAt so the recipe
+    /// list reads "what I just edited" on top.
+    var recipes: [Recipe]
+    /// Free-form journal entries attached to specific protocols
+    /// on specific days. The qualitative companion to the
+    /// quantitative dose / meal / lab data — captures "felt
+    /// great after BPC today" or "side-effect: mild headache"
+    /// without the user reaching for a separate notes app.
+    var protocolNotes: [ProtocolNote]
+    /// User-controlled opt-out for the AI weekly summary feature
+    /// (Pro-only, defaults to on). Surfaces as a toggle on the
+    /// Profile → Settings row. Set to `false` to suppress both
+    /// the Sunday notification and the on-device Today card.
+    var weeklySummaryEnabled: Bool
+    /// Cached weekly summaries keyed by ISO week-start ("yyyy-MM-dd"
+    /// of the Monday). One entry per generated week — capped on
+    /// write to the most-recent 26 weeks so the JSON stays small
+    /// (~13 KB at full cap).
+    var weeklySummaries: [String: WeeklySummary]
 
     init(
         name: String,
@@ -278,7 +352,19 @@ struct UserProfile: Codable {
         workoutHistory: [WorkoutEntry] = [],
         avatarImageData: Data? = nil,
         bio: String = "",
-        primaryGoal: String? = nil
+        primaryGoal: String? = nil,
+        customFoods: [CustomFood] = [],
+        favoriteFoodIDs: Set<String> = [],
+        mealHistory: [MealEntry] = [],
+        healthKitNutritionEnabled: Bool = false,
+        outcomeHistory: [OutcomeEntry] = [],
+        labHistory: [LabValue] = [],
+        lastKnownTimezoneIdentifier: String? = nil,
+        streakFreezeDays: Set<String> = [],
+        recipes: [Recipe] = [],
+        protocolNotes: [ProtocolNote] = [],
+        weeklySummaryEnabled: Bool = true,
+        weeklySummaries: [String: WeeklySummary] = [:]
     ) {
         self.name = name
         self.goals = goals
@@ -298,6 +384,18 @@ struct UserProfile: Codable {
         self.avatarImageData = avatarImageData
         self.bio = bio
         self.primaryGoal = primaryGoal
+        self.customFoods = customFoods
+        self.favoriteFoodIDs = favoriteFoodIDs
+        self.mealHistory = mealHistory
+        self.healthKitNutritionEnabled = healthKitNutritionEnabled
+        self.outcomeHistory = outcomeHistory
+        self.labHistory = labHistory
+        self.lastKnownTimezoneIdentifier = lastKnownTimezoneIdentifier
+        self.streakFreezeDays = streakFreezeDays
+        self.recipes = recipes
+        self.protocolNotes = protocolNotes
+        self.weeklySummaryEnabled = weeklySummaryEnabled
+        self.weeklySummaries = weeklySummaries
     }
 
     init(from decoder: Decoder) throws {
@@ -320,6 +418,22 @@ struct UserProfile: Codable {
         avatarImageData = try container.decodeIfPresent(Data.self, forKey: .avatarImageData)
         bio = try container.decodeIfPresent(String.self, forKey: .bio) ?? ""
         primaryGoal = try container.decodeIfPresent(String.self, forKey: .primaryGoal)
+        customFoods = try container.decodeIfPresent([CustomFood].self, forKey: .customFoods) ?? []
+        favoriteFoodIDs = Set(
+            try container.decodeIfPresent([String].self, forKey: .favoriteFoodIDs) ?? []
+        )
+        mealHistory = try container.decodeIfPresent([MealEntry].self, forKey: .mealHistory) ?? []
+        healthKitNutritionEnabled = try container.decodeIfPresent(Bool.self, forKey: .healthKitNutritionEnabled) ?? false
+        outcomeHistory = try container.decodeIfPresent([OutcomeEntry].self, forKey: .outcomeHistory) ?? []
+        labHistory = try container.decodeIfPresent([LabValue].self, forKey: .labHistory) ?? []
+        lastKnownTimezoneIdentifier = try container.decodeIfPresent(String.self, forKey: .lastKnownTimezoneIdentifier)
+        streakFreezeDays = Set(
+            try container.decodeIfPresent([String].self, forKey: .streakFreezeDays) ?? []
+        )
+        recipes = try container.decodeIfPresent([Recipe].self, forKey: .recipes) ?? []
+        protocolNotes = try container.decodeIfPresent([ProtocolNote].self, forKey: .protocolNotes) ?? []
+        weeklySummaryEnabled = try container.decodeIfPresent(Bool.self, forKey: .weeklySummaryEnabled) ?? true
+        weeklySummaries = try container.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries) ?? [:]
     }
 
     static var fresh: UserProfile {

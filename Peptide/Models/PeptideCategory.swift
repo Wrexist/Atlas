@@ -1,6 +1,6 @@
 import Foundation
 
-enum PeptideCategory: String, CaseIterable, Identifiable, Codable {
+enum PeptideCategory: String, CaseIterable, Identifiable, Codable, Sendable {
     case growth
     case recovery
     case cognitive

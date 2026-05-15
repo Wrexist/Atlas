@@ -84,7 +84,7 @@ struct CycleCardView: View {
                         )
                     )
                     .accessibilityHidden(true)
-                Text("PeptideX")
+                Text("Atlas")
                     .font(.system(size: 38, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white)
                     .tracking(-0.5)
@@ -326,7 +326,7 @@ struct CycleCardView: View {
         return "\(model.subjectTitle) cycle card. Day \(model.cycleDay) of \(model.cycleTotalDays). " +
                "Peptides: \(names). " +
                "Doses logged: \(model.dosesLogged). Adherence: \(model.adherencePercent) percent. " +
-               "Streak: \(model.currentStreakDays) days. Watermark: PeptideX."
+               "Streak: \(model.currentStreakDays) days. Watermark: Atlas."
     }
 
     // MARK: - QR generation

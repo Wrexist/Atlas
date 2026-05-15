@@ -60,6 +60,20 @@ struct InsightEngine {
             insights.append(Insight(icon: "exclamationmark.triangle", title: "Many active protocols", description: "Running \(activeCount) protocols. Consider focusing on fewer for better compliance.", type: .neutral))
         }
 
+        // Adaptive reminders: detect a consistent drift between
+        // scheduled and actual log times. If the user's last 10
+        // completed entries skew > 30 minutes off in a consistent
+        // direction, surface a "shift the schedule by N minutes?"
+        // nudge so the reminder stops firing at a wrong time.
+        if let drift = detectDoseTimeDrift(entries: entries) {
+            insights.append(Insight(
+                icon: "clock.badge.exclamationmark",
+                title: "Your reminders may be off",
+                description: drift.copy,
+                type: .neutral
+            ))
+        }
+
         // Total doses milestone
         let totalCompleted = entries.filter(\.completed).count
         let milestones = [50, 100, 250, 500, 1000]
@@ -135,5 +149,70 @@ struct InsightEngine {
         let rangeEntries = entries.filter { $0.date >= outerCutoff && $0.date < innerCutoff }
         guard !rangeEntries.isEmpty else { return 0 }
         return Double(rangeEntries.filter(\.completed).count) / Double(rangeEntries.count)
+    }
+
+    /// Adaptive-reminder trigger. Looks at the most recent N
+    /// completed entries that have an `actualTime` recorded
+    /// (camera barcode scan + Live Activity completion both stamp
+    /// it), computes the median signed-minute delta against the
+    /// scheduled time, and returns a trigger when both:
+    ///
+    ///   1. The sample size is enough to be confident (≥ 10).
+    ///   2. The median drift is ≥ 30 minutes in a consistent
+    ///      direction (≥ 70% of entries on the same side).
+    ///
+    /// This catches the user who's been logging their 8:00 AM
+    /// dose at 8:35 AM for two weeks without surfacing noise on
+    /// a user whose timing is genuinely scattered.
+    private static func detectDoseTimeDrift(entries: [ProtocolEntry]) -> DoseDrift? {
+        let calendar = Calendar.current
+        let recentCompleted = entries
+            .filter { $0.completed && $0.actualTime != nil }
+            .sorted { $0.date > $1.date }
+            .prefix(20)
+
+        guard recentCompleted.count >= 10 else { return nil }
+
+        // Compute signed minute delta (actual − scheduled) for
+        // each entry, normalising same-day so a midnight rollover
+        // doesn't read as a 23-hour drift.
+        let deltas: [Int] = recentCompleted.compactMap { entry in
+            guard let actual = entry.actualTime else { return nil }
+            let scheduledHM = calendar.dateComponents([.hour, .minute], from: entry.date)
+            let actualHM = calendar.dateComponents([.hour, .minute], from: actual)
+            guard let sH = scheduledHM.hour, let sM = scheduledHM.minute,
+                  let aH = actualHM.hour, let aM = actualHM.minute
+            else { return nil }
+            let scheduledMin = sH * 60 + sM
+            let actualMin = aH * 60 + aM
+            var delta = actualMin - scheduledMin
+            // Wrap into [-720, 720] so a "23 hours late" is read
+            // as "1 hour early" for the same-day comparison.
+            if delta > 720 { delta -= 1440 }
+            if delta < -720 { delta += 1440 }
+            return delta
+        }
+        guard deltas.count >= 10 else { return nil }
+
+        let positiveCount = deltas.filter { $0 > 0 }.count
+        let negativeCount = deltas.filter { $0 < 0 }.count
+        let total = deltas.count
+        let directionFraction = Double(max(positiveCount, negativeCount)) / Double(total)
+        guard directionFraction >= 0.7 else { return nil }
+
+        let sortedDeltas = deltas.sorted()
+        let median = sortedDeltas[sortedDeltas.count / 2]
+        let absMedian = abs(median)
+        guard absMedian >= 30 else { return nil }
+
+        let copy = median > 0
+            ? "You log doses about \(absMedian) min later than scheduled. Consider shifting your reminder."
+            : "You log doses about \(absMedian) min earlier than scheduled. Consider shifting your reminder."
+        return DoseDrift(medianMinutes: median, copy: copy)
+    }
+
+    private struct DoseDrift {
+        let medianMinutes: Int
+        let copy: String
     }
 }
