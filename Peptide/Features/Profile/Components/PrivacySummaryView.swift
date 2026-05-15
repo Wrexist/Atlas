@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Slot 8 of the App Store screenshot deck: a single-glance privacy
-/// summary that turns PeptideX's "no analytics, no backend" posture into
+/// summary that turns Atlas's "no analytics, no backend" posture into
 /// a marketing-ready surface. Reachable from Profile → About →
 /// "Privacy at a glance."
 ///
@@ -88,12 +88,12 @@ struct PrivacySummaryView: View {
         .init(
             icon: "shield.checkered",
             title: "No analytics. No trackers.",
-            detail: "PeptideX does not embed Firebase, Mixpanel, or any third-party analytics or advertising SDK."
+            detail: "Atlas does not embed Firebase, Mixpanel, or any third-party analytics or advertising SDK."
         ),
         .init(
             icon: "network.slash",
             title: "No backend. No remote push.",
-            detail: "There's no PeptideX server. Your protocols, doses, and notes never leave your device."
+            detail: "There's no Atlas server. Your protocols, doses, and notes never leave your device."
         ),
         .init(
             icon: "key.fill",

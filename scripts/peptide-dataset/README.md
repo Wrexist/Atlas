@@ -1,6 +1,6 @@
-# PeptideX Dataset Builder
+# Atlas Dataset Builder
 
-Builds a comprehensive ~210-peptide dataset for the PeptideX iOS app.
+Builds a comprehensive ~210-peptide dataset for the Atlas iOS app.
 
 ## What it produces
 

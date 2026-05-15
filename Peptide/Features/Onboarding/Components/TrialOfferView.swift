@@ -110,7 +110,7 @@ struct TrialOfferView: View {
                 )
                 .contentTransition(.numericText())
 
-            Text("PeptideX Pro Monthly")
+            Text("Atlas Pro Monthly")
                 .font(AppFont.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
@@ -226,7 +226,7 @@ struct TrialOfferView: View {
             .buttonStyle(.plain)
             .disabled(isPurchasing)
 
-            Text("No charge for \(trialDays) days. Then \(monthlyPrice)/month for the PeptideX Pro Monthly subscription. Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → Apple ID → Subscriptions.")
+            Text("No charge for \(trialDays) days. Then \(monthlyPrice)/month for the Atlas Pro Monthly subscription. Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → Apple ID → Subscriptions.")
                 .font(.system(size: 10))
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)

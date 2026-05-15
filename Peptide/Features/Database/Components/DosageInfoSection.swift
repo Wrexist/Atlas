@@ -28,7 +28,7 @@ struct DosageInfoSection: View {
                     }
                 }
 
-                Text("Educational summary of values reported in published research literature. PeptideX does not recommend, prescribe, or calculate doses — always confirm anything you do with a qualified clinician.")
+                Text("Educational summary of values reported in published research literature. Atlas does not recommend, prescribe, or calculate doses — always confirm anything you do with a qualified clinician.")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

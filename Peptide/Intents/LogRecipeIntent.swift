@@ -65,7 +65,7 @@ struct LogRecipeIntent: AppIntent {
         case .empty:
             return .result(dialog: IntentDialog(
                 LocalizedStringResource(
-                    "That recipe doesn't add up to any calories — open PeptideX to fix the ingredient list.",
+                    "That recipe doesn't add up to any calories — open Atlas to fix the ingredient list.",
                     comment: "Siri response when a recipe sums to zero (every component food was deleted)."
                 )
             ))

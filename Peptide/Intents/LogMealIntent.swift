@@ -77,7 +77,7 @@ struct LogMealIntent: AppIntent {
         case .notFound:
             return .result(dialog: IntentDialog(
                 LocalizedStringResource(
-                    "I couldn't find that food in your library. Save it in PeptideX first.",
+                    "I couldn't find that food in your library. Save it in Atlas first.",
                     comment: "Siri response when the food entity can't be resolved (e.g. it was deleted)."
                 )
             ))

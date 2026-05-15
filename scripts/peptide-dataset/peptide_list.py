@@ -1,5 +1,5 @@
 """
-Master list of ~200 peptides for PeptideX v1.
+Master list of ~200 peptides for Atlas v1.
 Organized loosely by category — the LLM will auto-classify into your 6 app categories.
 Each entry: (common_name, abbreviation_hint, pubchem_search_term)
 pubchem_search_term is used to query PubChem; leave as common name if unsure.

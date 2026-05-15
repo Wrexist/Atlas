@@ -55,7 +55,7 @@ struct ReviewPromptPage: View {
             initials: "AR",
             name: "Alex R.",
             tint: AppColor.accentLight,
-            quote: "I've tried 4 apps. PeptideX is the only one that understands stacking. The half-life overlay is a game changer — I can finally see my active windows at a glance."
+            quote: "I've tried 4 apps. Atlas is the only one that understands stacking. The half-life overlay is a game changer — I can finally see my active windows at a glance."
         ),
     ]
 

@@ -63,7 +63,7 @@ enum MeasurementUnit: String, Codable {
 /// Optional body metrics displayed alongside the user's compliance trends
 /// on the Profile screen. All fields are optional — users can skip the
 /// metrics step. Stored canonically in metric units; the UI converts on
-/// read/write. PeptideX does NOT use these values to calculate, scale, or
+/// read/write. Atlas does NOT use these values to calculate, scale, or
 /// recommend any dose.
 struct BodyMetrics: Codable, Hashable {
     var weightKg: Double?

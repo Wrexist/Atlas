@@ -87,7 +87,7 @@ struct HealthConnectionCard: View {
 
     /// Inline toggle exposed once the user has connected. Lets logged
     /// meals (food library + barcode scan + photo scan) mirror into
-    /// Apple Health's nutrition timeline so PeptideX plays well with
+    /// Apple Health's nutrition timeline so Atlas plays well with
     /// the rest of the user's health stack. Off by default.
     private var nutritionWriteToggle: some View {
         Toggle(isOn: Binding(

@@ -5688,176 +5688,176 @@
         }
       }
     },
-    "PeptideX Pro": {
+    "Atlas Pro": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX Pro"
+            "value": "Atlas Pro"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX Pro"
+            "value": "Atlas Pro"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX Pro"
+            "value": "Atlas Pro"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX Pro"
+            "value": "Atlas Pro"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX Pro"
+            "value": "Atlas Pro"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX Pro"
+            "value": "Atlas Pro"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX Pro"
+            "value": "Atlas Pro"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX Pro"
+            "value": "Atlas Pro"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX Pro"
+            "value": "Atlas Pro"
           }
         }
       }
     },
-    "PeptideX is Locked": {
+    "Atlas is Locked": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX está bloqueado"
+            "value": "Atlas está bloqueado"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX已锁定"
+            "value": "Atlas已锁定"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideXはロックされています"
+            "value": "Atlasはロックされています"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX ist gesperrt"
+            "value": "Atlas ist gesperrt"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX est verrouillé"
+            "value": "Atlas est verrouillé"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX está bloqueado"
+            "value": "Atlas está bloqueado"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX가 잠금됨"
+            "value": "Atlas가 잠금됨"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX заблокирован"
+            "value": "Atlas заблокирован"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX مقفل"
+            "value": "Atlas مقفل"
           }
         }
       }
     },
-    "PeptideX is a tracking and educational tool. It is not a medical device, and it does not provide medical advice, diagnosis, or treatment.": {
+    "Atlas is a tracking and educational tool. It is not a medical device, and it does not provide medical advice, diagnosis, or treatment.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX es una herramienta de seguimiento y educativa. No es un dispositivo médico y no proporciona asesoramiento, diagnóstico o tratamiento médico."
+            "value": "Atlas es una herramienta de seguimiento y educativa. No es un dispositivo médico y no proporciona asesoramiento, diagnóstico o tratamiento médico."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX是一个跟踪和教育工具。它不是医疗设备，也不提供医疗建议、诊断或治疗。"
+            "value": "Atlas是一个跟踪和教育工具。它不是医疗设备，也不提供医疗建议、诊断或治疗。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideXはトラッキングおよび教育ツールです。医療機器ではなく、医学的なアドバイス、診断、または治療を提供しません。"
+            "value": "Atlasはトラッキングおよび教育ツールです。医療機器ではなく、医学的なアドバイス、診断、または治療を提供しません。"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX ist ein Tracking- und Bildungstool. Es ist kein medizinisches Gerät und bietet keine medizinische Beratung, Diagnose oder Behandlung."
+            "value": "Atlas ist ein Tracking- und Bildungstool. Es ist kein medizinisches Gerät und bietet keine medizinische Beratung, Diagnose oder Behandlung."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX est un outil de suivi et d'éducation. Ce n'est pas un dispositif médical et il ne fournit pas de conseil, diagnostic ou traitement médical."
+            "value": "Atlas est un outil de suivi et d'éducation. Ce n'est pas un dispositif médical et il ne fournit pas de conseil, diagnostic ou traitement médical."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX é uma ferramenta de rastreamento e educacional. Não é um dispositivo médico e não fornece aconselhamento, diagnóstico ou tratamento médico."
+            "value": "Atlas é uma ferramenta de rastreamento e educacional. Não é um dispositivo médico e não fornece aconselhamento, diagnóstico ou tratamento médico."
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX는 추적 및 교육 도구입니다. 의료 기기가 아니며 의료 조언, 진단 또는 치료를 제공하지 않습니다."
+            "value": "Atlas는 추적 및 교육 도구입니다. 의료 기기가 아니며 의료 조언, 진단 또는 치료를 제공하지 않습니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX — это инструмент отслеживания и образования. Это не медицинское устройство и не предоставляет медицинские советы, диагнозы или лечение."
+            "value": "Atlas — это инструмент отслеживания и образования. Это не медицинское устройство и не предоставляет медицинские советы, диагнозы или лечение."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX هي أداة تتبع وتعليمية. إنها ليست جهازاً طبياً ولا توفر نصائح أو تشخيص أو علاج طبي."
+            "value": "Atlas هي أداة تتبع وتعليمية. إنها ليست جهازاً طبياً ولا توفر نصائح أو تشخيص أو علاج طبي."
           }
         }
       }
@@ -8536,60 +8536,60 @@
         }
       }
     },
-    "Unlock PeptideX Pro instantly — no card, no auto-renew": {
+    "Unlock Atlas Pro instantly — no card, no auto-renew": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desbloquea PeptideX Pro al instante — sin tarjeta, sin renovación automática"
+            "value": "Desbloquea Atlas Pro al instante — sin tarjeta, sin renovación automática"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "立即解锁 PeptideX Pro — 无需卡，无自动续订"
+            "value": "立即解锁 Atlas Pro — 无需卡，无自动续订"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX Pro を即座にアンロック — カード不要、自動更新なし"
+            "value": "Atlas Pro を即座にアンロック — カード不要、自動更新なし"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Entsperren Sie PeptideX Pro sofort — keine Karte, keine automatische Verlängerung"
+            "value": "Entsperren Sie Atlas Pro sofort — keine Karte, keine automatische Verlängerung"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Déverrouillez PeptideX Pro instantanément — pas de carte, pas d'auto-renouvellement"
+            "value": "Déverrouillez Atlas Pro instantanément — pas de carte, pas d'auto-renouvellement"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desbloqueie PeptideX Pro instantaneamente — sem cartão, sem renovação automática"
+            "value": "Desbloqueie Atlas Pro instantaneamente — sem cartão, sem renovação automática"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX Pro 즉시 잠금 해제 — 카드 불필요, 자동 갱신 없음"
+            "value": "Atlas Pro 즉시 잠금 해제 — 카드 불필요, 자동 갱신 없음"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Разблокируйте PeptideX Pro мгновенно — без карты, без автообновления"
+            "value": "Разблокируйте Atlas Pro мгновенно — без карты, без автообновления"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "فتح PeptideX Pro فورًا — بدون بطاقة، بدون تجديد تلقائي"
+            "value": "فتح Atlas Pro فورًا — بدون بطاقة، بدون تجديد تلقائي"
           }
         }
       }
@@ -8826,60 +8826,60 @@
         }
       }
     },
-    "Welcome to PeptideX": {
+    "Welcome to Atlas": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bienvenido a PeptideX"
+            "value": "Bienvenido a Atlas"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "欢迎使用 PeptideX"
+            "value": "欢迎使用 Atlas"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX へようこそ"
+            "value": "Atlas へようこそ"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Willkommen bei PeptideX"
+            "value": "Willkommen bei Atlas"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bienvenue dans PeptideX"
+            "value": "Bienvenue dans Atlas"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bem-vindo ao PeptideX"
+            "value": "Bem-vindo ao Atlas"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "PeptideX에 오신 것을 환영합니다"
+            "value": "Atlas에 오신 것을 환영합니다"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Добро пожаловать в PeptideX"
+            "value": "Добро пожаловать в Atlas"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "أهلا بك في PeptideX"
+            "value": "أهلا بك في Atlas"
           }
         }
       }

@@ -191,7 +191,7 @@ struct WatchNutritionView: View {
             Text("No nutrition logged yet")
                 .font(.subheadline)
                 .multilineTextAlignment(.center)
-            Text("Log a meal in PeptideX to see it here.")
+            Text("Log a meal in Atlas to see it here.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

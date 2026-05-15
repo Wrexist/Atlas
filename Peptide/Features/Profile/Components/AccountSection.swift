@@ -79,7 +79,7 @@ struct AccountSection: View {
             + Text("Apple ID")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(AppColor.accentLight)
-            + Text(" to keep your PeptideX account associated with your device. All your protocols, entries, and settings stay on this device.")
+            + Text(" to keep your Atlas account associated with your device. All your protocols, entries, and settings stay on this device.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary))
                 .lineSpacing(3)

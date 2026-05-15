@@ -1,5 +1,5 @@
 /**
- * Vercel proxy route for PeptideX's AI weekly summary. Bypasses
+ * Vercel proxy route for Atlas's AI weekly summary. Bypasses
  * the shared `forwardToAnthropic` helper because this endpoint owns
  * the system prompt and applies Anthropic prompt caching to the
  * cacheable prefix — 90 %+ cost reduction once the cache warms.
@@ -22,7 +22,7 @@ const MAX_TOKENS = 360; // ~280 words; 150 ideal, 200 hard ceiling
 const PROXY_HEADER = 'x-peptide-proxy';
 
 const SYSTEM_PROMPT = [
-  "You are PeptideX's weekly coach. Summarize the user's last 7 days in 2-3 short paragraphs, ~150 words total.",
+  "You are Atlas's weekly coach. Summarize the user's last 7 days in 2-3 short paragraphs, ~150 words total.",
   "",
   "Tone: honest, encouraging, never alarmist. Personal but not familiar — like a thoughtful coach, not a friend.",
   "",

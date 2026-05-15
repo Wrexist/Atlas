@@ -1,5 +1,5 @@
 /**
- * Shared proxy logic for every PeptideX → Anthropic route. Holds the
+ * Shared proxy logic for every Atlas → Anthropic route. Holds the
  * server-side API key, authenticates clients via a shared secret,
  * sanitises the request body, throttles per IP, and forwards to
  * `api.anthropic.com/v1/messages`. The iOS client never sees the

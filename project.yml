@@ -49,7 +49,7 @@ targets:
     info:
       path: Peptide/Resources/Info.plist
       properties:
-        CFBundleDisplayName: PeptideX
+        CFBundleDisplayName: Atlas
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleLocalizations:
@@ -65,10 +65,10 @@ targets:
           - ar
         ITSAppUsesNonExemptEncryption: false
         NSSupportsLiveActivities: true
-        NSCameraUsageDescription: "PeptideX uses the camera to scan food barcodes, take a profile photo (stored locally), and photograph meals for nutrition estimation. Meal photos are sent securely to our AI service for analysis and are not retained after the response. Barcode and profile photos stay on your device."
-        NSFaceIDUsageDescription: "PeptideX uses Face ID to optionally lock the app, so your protocols and health data stay private if your device is unlocked. Face ID is optional — you can disable it in Settings."
-        NSHealthShareUsageDescription: "PeptideX reads heart rate, HRV, resting heart rate, body mass, steps, and active energy from Apple Health to correlate your peptide protocols with biometric trends. PeptideX never writes to Apple Health and all analysis happens on your device."
-        NSHealthUpdateUsageDescription: "PeptideX does not write to Apple Health and never modifies your health records."
+        NSCameraUsageDescription: "Atlas uses the camera to scan food barcodes, take a profile photo (stored locally), and photograph meals for nutrition estimation. Meal photos are sent securely to our AI service for analysis and are not retained after the response. Barcode and profile photos stay on your device."
+        NSFaceIDUsageDescription: "Atlas uses Face ID to optionally lock the app, so your protocols and health data stay private if your device is unlocked. Face ID is optional — you can disable it in Settings."
+        NSHealthShareUsageDescription: "Atlas reads heart rate, HRV, resting heart rate, body mass, steps, and active energy from Apple Health to correlate your peptide protocols with biometric trends. Atlas never writes to Apple Health and all analysis happens on your device."
+        NSHealthUpdateUsageDescription: "Atlas does not write to Apple Health and never modifies your health records."
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
@@ -109,7 +109,7 @@ targets:
     info:
       path: PeptideWidgets/Info.plist
       properties:
-        CFBundleDisplayName: PeptideX Widgets
+        CFBundleDisplayName: Atlas Widgets
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
@@ -147,7 +147,7 @@ targets:
         MARKETING_VERSION: "1.0.1"
         CURRENT_PROJECT_VERSION: "101"
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: PeptideX
+        INFOPLIST_KEY_CFBundleDisplayName: Atlas
         INFOPLIST_KEY_CFBundleIconName: AppIcon
         INFOPLIST_KEY_WKCompanionAppBundleIdentifier: com.peptidesai.app
         INFOPLIST_KEY_CFBundleShortVersionString: $(MARKETING_VERSION)
@@ -174,7 +174,7 @@ targets:
     info:
       path: PeptideWatchWidgets/Info.plist
       properties:
-        CFBundleDisplayName: PeptideX Watch Widgets
+        CFBundleDisplayName: Atlas Watch Widgets
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:

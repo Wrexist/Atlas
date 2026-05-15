@@ -72,7 +72,7 @@ struct OutcomeCheckInSheet: View {
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Takes 30 seconds. Builds the correlation data that lets PeptideX show you what's actually working.")
+            Text("Takes 30 seconds. Builds the correlation data that lets Atlas show you what's actually working.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

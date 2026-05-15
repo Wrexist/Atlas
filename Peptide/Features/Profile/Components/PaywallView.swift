@@ -103,7 +103,7 @@ struct PaywallView: View {
                             }
                     }
 
-                Text("PeptideX")
+                Text("Atlas")
                     .font(.system(size: 30, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
             }

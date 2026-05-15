@@ -225,7 +225,7 @@ struct ReconstitutionCalculator: View {
                 .font(.system(size: 12))
                 .foregroundStyle(AppColor.textSecondary)
                 .padding(.top, 1)
-            Text("Calculator only. Doses and protocols vary widely — consult a qualified medical professional. PeptideX doesn't recommend any specific compound or dose.")
+            Text("Calculator only. Doses and protocols vary widely — consult a qualified medical professional. Atlas doesn't recommend any specific compound or dose.")
                 .font(.system(size: 11))
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

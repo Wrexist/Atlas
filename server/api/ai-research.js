@@ -1,5 +1,5 @@
 /**
- * Vercel proxy route for the PeptideX AI research assistant. Thin
+ * Vercel proxy route for the Atlas AI research assistant. Thin
  * wrapper over `forwardToAnthropic`; see `_lib/anthropic-proxy.js`
  * for the server-side env vars and behavior.
  *

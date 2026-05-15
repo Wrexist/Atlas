@@ -50,7 +50,7 @@ enum WeeklySummaryNotificationScheduler {
         center.removePendingNotificationRequests(withIdentifiers: [identifier])
 
         let content = UNMutableNotificationContent()
-        content.title = String(localized: "Your week in PeptideX")
+        content.title = String(localized: "Your week in Atlas")
         content.body = String(localized: "Tap to see how the week went — compliance, streak, and the patterns that mattered.")
         content.sound = .default
         content.userInfo = ["deeplink": "peptidex://weekly/current"]

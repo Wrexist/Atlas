@@ -78,7 +78,7 @@ final class OpenFoodFactsService: Sendable {
         cache: BarcodeProductCache = .shared,
         baseURL: URL = OpenFoodFactsService.defaultBaseURL,
         searchURL: URL = OpenFoodFactsService.defaultSearchURL,
-        userAgent: String = "PeptideX/1.0 (https://peptidesai.com)"
+        userAgent: String = "Atlas/1.0 (https://peptidesai.com)"
     ) {
         self.session = session
         self.cache = cache

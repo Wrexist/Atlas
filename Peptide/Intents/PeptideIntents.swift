@@ -1,7 +1,7 @@
 import AppIntents
 import Foundation
 
-// PeptideX's App Intents surface. Each intent owns its own
+// Atlas's App Intents surface. Each intent owns its own
 // presentation logic; the entity types (`PeptideEntity`,
 // `FoodEntity`) and the data-access helper (`IntentDataStore`)
 // live in sibling files so multiple intents can share them.
@@ -93,7 +93,7 @@ struct ComplianceIntent: AppIntent {
         guard snapshot.hasData else {
             return .result(value: 0, dialog: IntentDialog(
                 LocalizedStringResource(
-                    "No recent data. Start logging doses in PeptideX.",
+                    "No recent data. Start logging doses in Atlas.",
                     comment: "Siri response when there are no entries yet."
                 )
             ))

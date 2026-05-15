@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-PeptideX Dataset Builder
+Atlas Dataset Builder
 ========================
-Builds a comprehensive peptide dataset for the PeptideX iOS app.
+Builds a comprehensive peptide dataset for the Atlas iOS app.
 
 Pipeline per peptide:
   1. Claude API (claude-opus-4-6) -> all structured data in one call:
@@ -68,7 +68,7 @@ log = logging.getLogger("peptidex")
 
 # ─── Claude extraction (all-in-one) ─────────────────────────────────────────
 
-EXTRACTION_SYSTEM = """You are a scientific research assistant building an educational peptide database for a mobile app called PeptideX.
+EXTRACTION_SYSTEM = """You are a scientific research assistant building an educational peptide database for a mobile app called Atlas.
 
 Rules:
 1. Output ONLY valid JSON, no markdown fences, no preamble, no commentary.
@@ -306,7 +306,7 @@ def save_final(records: list[dict[str, Any]]) -> None:
 # ─── Main ────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build PeptideX dataset")
+    parser = argparse.ArgumentParser(description="Build Atlas dataset")
     parser.add_argument("--limit", type=int, default=None,
                         help="Only process first N peptides (for testing)")
     parser.add_argument("--resume", action="store_true",
@@ -330,7 +330,7 @@ def main() -> None:
     failed = 0
 
     log.info("═" * 60)
-    log.info("PeptideX Dataset Builder")
+    log.info("Atlas Dataset Builder")
     log.info("Model: %s | Peptides: %d | Checkpoint: %d done",
              CLAUDE_MODEL, total, len(records))
     log.info("═" * 60)

@@ -68,7 +68,7 @@ struct AboutSection: View {
                             .foregroundStyle(AppColor.accentPrimary)
                             .pulse()
 
-                        Text("PeptideX")
+                        Text("Atlas")
                             .font(AppFont.footnote)
                             .fontWeight(.semibold)
                             .foregroundStyle(
@@ -119,7 +119,7 @@ struct MedicalDisclaimerSheet: View {
                         .foregroundStyle(AppColor.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("PeptideX is a tracking and educational tool. It is not a medical device, and it does not provide medical advice, diagnosis, or treatment.")
+                    Text("Atlas is a tracking and educational tool. It is not a medical device, and it does not provide medical advice, diagnosis, or treatment.")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

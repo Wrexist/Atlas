@@ -207,7 +207,7 @@ struct PeptideScheduleSheet: View {
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
-                Text("Enter the dose your clinician advised. The research range above is reference only — PeptideX does not recommend or calculate doses.")
+                Text("Enter the dose your clinician advised. The research range above is reference only — Atlas does not recommend or calculate doses.")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)

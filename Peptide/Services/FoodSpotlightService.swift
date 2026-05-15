@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 /// CoreSpotlight so they're searchable from device Spotlight, the
 /// Lock Screen "Type to Search" pull-down, and the Siri suggestions
 /// surface. A user searching "lasagna" in Spotlight gets their own
-/// recipe back as a hit — tapping it opens PeptideX. The route from
+/// recipe back as a hit — tapping it opens Atlas. The route from
 /// "tapped a Spotlight hit" to "logging that exact food" is a follow-
 /// up (it needs a deep-link scheme through `PeptideApp`); for now
 /// tapping just opens the app.

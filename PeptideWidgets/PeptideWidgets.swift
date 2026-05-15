@@ -129,7 +129,7 @@ struct SmallWidgetView: View {
                 Image(systemName: "flask.fill")
                     .font(.system(size: 12))
                     .foregroundStyle(.green)
-                Text("PeptideX")
+                Text("Atlas")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -606,7 +606,7 @@ struct NutritionWidget: Widget {
             NutritionWidgetView(entry: entry)
         }
         .configurationDisplayName("Today's Nutrition")
-        .description("Today's calorie ring and per-meal breakdown from PeptideX.")
+        .description("Today's calorie ring and per-meal breakdown from Atlas.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

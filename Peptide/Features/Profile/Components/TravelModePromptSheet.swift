@@ -80,7 +80,7 @@ struct TravelModePromptSheet: View {
                 .foregroundStyle(AppColor.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("Pick how PeptideX should handle your dose schedule. You can change it back any time by editing the protocol.")
+            Text("Pick how Atlas should handle your dose schedule. You can change it back any time by editing the protocol.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

@@ -1,4 +1,4 @@
-# PeptideX
+# Atlas
 
 Native iOS SwiftUI app for tracking peptide supplementation protocols
 with grounded AI assistance — barcode-scan packaged food, photograph

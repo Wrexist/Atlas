@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-/// Sends a meal photo to PeptideX's server proxy (which holds the
+/// Sends a meal photo to Atlas's server proxy (which holds the
 /// Anthropic API key) and parses the JSON-only response into a
 /// `MealEstimate`. The direct-Anthropic fallback was removed —
 /// shipping an API key inside the iOS binary is unsafe regardless of

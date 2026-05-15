@@ -52,7 +52,7 @@ extension WhatsNewPage {
             id: "v2_1_welcome",
             eyebrow: "What's new",
             title: "Rebuilt for everyday flow",
-            body: "PeptideX 2.1 reorganises the whole app around the question you actually open it to answer: \"What do I do today?\"",
+            body: "Atlas 2.1 reorganises the whole app around the question you actually open it to answer: \"What do I do today?\"",
             icon: "sparkles",
             gradient: [
                 Color(red: 0.55, green: 0.50, blue: 0.92),
@@ -161,7 +161,7 @@ extension WhatsNewPage {
         WhatsNewPage(
             id: "welcome",
             eyebrow: "What's new",
-            title: "PeptideX just got a lot bigger",
+            title: "Atlas just got a lot bigger",
             body: "We've shipped the most-requested premium features in one update. Here's a 30-second tour.",
             icon: "sparkles",
             gradient: [
