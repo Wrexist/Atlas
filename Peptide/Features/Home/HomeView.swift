@@ -105,7 +105,7 @@ struct HomeView: View {
                             onTapInsight: { insight in
                                 if case .latestLab = insight {
                                     appState.pendingLabsOpen = true
-                                    appState.selectedTab = .profile
+                                    appState.selectedTab = .insights
                                 }
                             }
                         )

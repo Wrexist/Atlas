@@ -1,16 +1,24 @@
 import SwiftUI
 
 enum AppTab: String, CaseIterable {
-    case home
-    case database
+    /// Daily action hub — doses, meals, check-in. Was `.home`
+    /// (renamed in Phase 32 to be verb-forward; the old raw
+    /// value is migrated below for users with a persisted
+    /// state from a prior build).
+    case today
+    /// Peptide reference + AI research. Was `.database`.
+    case library
     case protocols
-    case analytics
+    /// Analytical hub — compliance + correlation + labs +
+    /// body trends. Was `.analytics`; widened in Phase 32 to
+    /// own everything answer-flavoured.
+    case insights
     case profile
 }
 
 @MainActor @Observable
 final class AppState {
-    var selectedTab: AppTab = .home
+    var selectedTab: AppTab = .today
     /// When set, the Protocols tab pushes the matching protocol's detail view
     /// onto its navigation stack and then clears this value. Used by the
     /// profile customization sheet to deep-link from a stack row to that

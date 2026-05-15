@@ -56,7 +56,7 @@ final class DataStore: DataServiceProtocol {
 
     /// Entries keyed by start-of-day. Cached against `cacheVersion`, so all
     /// the per-day stats (currentStreak, totalDaysLogged, weeklyCompletion,
-    /// AnalyticsView complianceData / weeklyDoseData) share one O(n) group
+    /// InsightsView complianceData / weeklyDoseData) share one O(n) group
     /// pass per mutation instead of re-filtering the entries array per day.
     var entriesByDay: [Date: [ProtocolEntry]] {
         if let cached = _entriesByDay, cached.version == cacheVersion { return cached.value }

@@ -103,7 +103,7 @@ struct PeptideApp: App {
                 guard url.scheme == "peptidex", url.host == "dose",
                       let entryUUID = UUID(uuidString: url.lastPathComponent)
                 else { return }
-                appState.selectedTab = .home
+                appState.selectedTab = .today
                 appState.pendingDoseLogEntryId = entryUUID
             }
             .onContinueUserActivity(CSSearchableItemActionType) { activity in
@@ -119,7 +119,7 @@ struct PeptideApp: App {
                 guard let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
                       let deepLink = FoodLogDeepLink(spotlightIdentifier: identifier)
                 else { return }
-                appState.selectedTab = .home
+                appState.selectedTab = .today
                 appState.pendingFoodLogID = deepLink
             }
             .sheet(item: $travelChange) { change in
@@ -253,19 +253,19 @@ struct PeptideApp: App {
 
     private var coreTabView: some View {
         TabView(selection: $appState.selectedTab) {
-            Tab("Home", systemImage: "house.fill", value: .home) {
+            Tab("Today", systemImage: "house.fill", value: .today) {
                 HomeContainerView()
             }
-            Tab("Peptides", systemImage: "flask.fill", value: .database) {
+            Tab("Library", systemImage: "pills.fill", value: .library) {
                 PeptideListView()
             }
-            Tab("Protocols", systemImage: "list.clipboard.fill", value: .protocols) {
+            Tab("Protocols", systemImage: "square.stack.3d.up.fill", value: .protocols) {
                 ProtocolListView()
             }
-            Tab("Analytics", systemImage: "chart.bar.fill", value: .analytics) {
-                AnalyticsView()
+            Tab("Insights", systemImage: "chart.line.uptrend.xyaxis", value: .insights) {
+                InsightsView()
             }
-            Tab("Profile", systemImage: "person.fill", value: .profile) {
+            Tab("Profile", systemImage: "person.crop.circle.fill", value: .profile) {
                 ProfileView()
             }
         }

@@ -31,7 +31,6 @@ struct LifestyleView: View {
     /// `.onChange(of: showFoodLibrary)` consumes it after the dismiss
     /// completes, then opens the requested follow-up sheet.
     @State private var pendingFromLibrary: PendingLibraryHandoff?
-    @State private var showWeightLog = false
     @State private var showWorkoutDetail = false
     @State private var showTargetsEditor = false
 
@@ -130,22 +129,11 @@ struct LifestyleView: View {
                     )
                     .sectionAppear(index: 4)
 
-                    if let headline = OutcomeCorrelationEngine.headline(
-                        outcomes: dataStore.profile.outcomeHistory,
-                        entries: dataStore.entries
-                    ) {
-                        OutcomeCorrelationCard(
-                            headline: headline,
-                            sampleSize: dataStore.profile.outcomeHistory.count
-                        )
-                        .sectionAppear(index: 4)
-                    }
-
-                    BiometricCorrelationCard(
-                        entries: dataStore.entries,
-                        healthConnected: dataStore.profile.healthConnected
-                    )
-                    .sectionAppear(index: 4)
+                    // Outcome + biometric correlation cards moved
+                    // to the Insights tab in Phase 32 — that tab
+                    // is the home for "is the protocol working?".
+                    // The daily check-in stays here because the
+                    // logging action is daily, not analytical.
 
                     let todaysEntries = dataStore.mealEntries()
                     if dataStore.consumption().caloriesKcal > 0 || !todaysEntries.isEmpty {
@@ -170,18 +158,10 @@ struct LifestyleView: View {
                     )
                     .sectionAppear(index: 4)
 
-                    sectionHeader(eyebrow: "Body", title: "Trends")
-                        .sectionAppear(index: 4)
-
-                    WeightTrackingCard(
-                        history: dataStore.dedupedWeightHistory,
-                        unit: dataStore.profile.bodyMetrics.unit,
-                        onLog: { showWeightLog = true }
-                    )
-                    .sectionAppear(index: 4)
-
-                    ProgressPhotosCard()
-                        .sectionAppear(index: 4)
+                    // Weight trends + progress photos moved to the
+                    // Insights tab in Phase 32 alongside the
+                    // correlation engines — body trends are review,
+                    // not daily action.
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.top, Spacing.md)
@@ -250,15 +230,6 @@ struct LifestyleView: View {
                     try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
                     showMealScan = true
                 }
-            }
-            .sheet(isPresented: $showWeightLog) {
-                WeightLogSheet(
-                    history: dataStore.profile.weightHistory,
-                    unit: dataStore.profile.bodyMetrics.unit,
-                    onLog: { kg in dataStore.logWeight(kg: kg) },
-                    onDelete: { id in dataStore.deleteWeight(id: id) },
-                    onClose: { showWeightLog = false }
-                )
             }
             .navigationDestination(isPresented: $showWorkoutDetail) {
                 WorkoutDetailView()

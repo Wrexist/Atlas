@@ -7,7 +7,6 @@ struct ProfileView: View {
     @State private var achievementService = AchievementService.shared
     @State private var authService = AuthService.shared
     @State private var showReconstitutionCalculator = false
-    @State private var showLabs = false
 
     // Kept in sync with OnboardingView's `goals` array so a goal selected
     // during onboarding remains visible/editable here.
@@ -72,12 +71,10 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 6)
 
-                    LabsEntryCard(
-                        labCount: dataStore.profile.labHistory.count,
-                        panelCount: Set(dataStore.profile.labHistory.map(\.panel)).count,
-                        onTap: { showLabs = true }
-                    )
-                    .sectionAppear(index: 7)
+                    // Labs entry moved to the Insights tab in
+                    // Phase 32 — it's a high-engagement analytical
+                    // feature, not a settings-flavoured tool, and
+                    // it was hiding behind a settings tab here.
 
                     ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
                         .sectionAppear(index: 7)
@@ -103,20 +100,10 @@ struct ProfileView: View {
             .sheet(isPresented: $showReconstitutionCalculator) {
                 ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
             }
-            .sheet(isPresented: $showLabs) {
-                LabsView()
-                    .environment(dataStore)
-            }
-            .onAppear {
-                // Honour a pending labs deep-link set elsewhere (e.g.
-                // the Home overview card's "latest lab" insight tap).
-                // Consume the flag here so navigating away and back
-                // doesn't re-fire the sheet.
-                if appState.pendingLabsOpen {
-                    appState.pendingLabsOpen = false
-                    showLabs = true
-                }
-            }
+            // Labs sheet + the `pendingLabsOpen` deep-link
+            // consumption moved to InsightsView in Phase 32 — labs
+            // now live under "Insights" alongside the correlation
+            // engines they share the analytical surface with.
         }
     }
 

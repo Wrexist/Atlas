@@ -4,9 +4,9 @@ import XCTest
 @MainActor
 final class AppStateTests: XCTestCase {
 
-    func test_defaults_homeTab_andNoPendingDeepLink() {
+    func test_defaults_todayTab_andNoPendingDeepLink() {
         let state = AppState()
-        XCTAssertEqual(state.selectedTab, .home)
+        XCTAssertEqual(state.selectedTab, .today)
         XCTAssertNil(state.pendingProtocolDeepLink)
     }
 

@@ -26,12 +26,30 @@ enum TimeRange: String, CaseIterable, CustomStringConvertible {
     }
 }
 
-struct AnalyticsView: View {
+/// The "what's actually working" tab. Renamed from `AnalyticsView`
+/// in Phase 32 to reflect its widened scope: protocol compliance +
+/// HealthKit correlation (legacy) + per-dimension outcome correlation
+/// + lab trends + body trends. Labs, correlation cards, weight, and
+/// photos all migrated here from their old homes in Profile and
+/// Lifestyle — surfaces that buried high-signal analytical features
+/// behind settings-flavoured tabs.
+///
+/// Layout hierarchy mirrors the IA proposal: time-range pill → top
+/// finding → compliance → "what's working" (correlations) → labs →
+/// body trends → insights / heatmap → export. Section eyebrows keep
+/// the long scroll legible.
+struct InsightsView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
     @State private var selectedRange: TimeRange = .week
     @State private var showPaywall = false
     @State private var hrvSeries: [(date: Date, value: Double)] = []
+    /// Drives the labs deep-link sheet. Flipped on by either the
+    /// inline labs CTA or the cross-tab `pendingLabsOpen` flag set
+    /// by Home's overview card.
+    @State private var showLabs = false
+    /// Drives the weight-logging sheet pushed by `WeightTrackingCard`.
+    @State private var showWeightLog = false
     @Namespace private var segmentNamespace
     private var storeService: StoreService { StoreService.shared }
 
@@ -110,16 +128,88 @@ struct AnalyticsView: View {
 
                         InsightsCard(insights: allInsights)
                             .sectionAppear(index: 7)
+
+                        // MARK: - What's working — outcome + biometric
+                        // correlation cards (moved from Lifestyle in
+                        // Phase 32). These belong here because they
+                        // answer "is the protocol working?", which is
+                        // the user's question for this whole tab.
+                        sectionEyebrow(
+                            eyebrow: "What's working",
+                            title: "Patterns from your data"
+                        )
+                        .sectionAppear(index: 8)
+
+                        if let headline = OutcomeCorrelationEngine.headline(
+                            outcomes: dataStore.profile.outcomeHistory,
+                            entries: dataStore.entries
+                        ) {
+                            OutcomeCorrelationCard(
+                                headline: headline,
+                                sampleSize: dataStore.profile.outcomeHistory.count
+                            )
+                            .sectionAppear(index: 8)
+                        }
+
+                        BiometricCorrelationCard(
+                            entries: dataStore.entries,
+                            healthConnected: dataStore.profile.healthConnected
+                        )
+                        .sectionAppear(index: 8)
+
+                        // MARK: - Labs (moved from Profile sheet)
+                        sectionEyebrow(
+                            eyebrow: "Bloodwork",
+                            title: "Your numbers"
+                        )
+                        .sectionAppear(index: 9)
+
+                        LabsEntryCard(
+                            labCount: dataStore.profile.labHistory.count,
+                            panelCount: Set(dataStore.profile.labHistory.map(\.panel)).count,
+                            onTap: { showLabs = true }
+                        )
+                        .sectionAppear(index: 9)
+
+                        // MARK: - Body trends (moved from Lifestyle)
+                        sectionEyebrow(
+                            eyebrow: "Body",
+                            title: "Trends over time"
+                        )
+                        .sectionAppear(index: 10)
+
+                        WeightTrackingCard(
+                            history: dataStore.dedupedWeightHistory,
+                            unit: dataStore.profile.bodyMetrics.unit,
+                            onLog: { showWeightLog = true }
+                        )
+                        .sectionAppear(index: 10)
+
+                        ProgressPhotosCard()
+                            .sectionAppear(index: 10)
                     }
                     .padding(.horizontal, Spacing.screenPadding)
                     .padding(.bottom, Spacing.xxxxl)
                 }
             }
             .background(AppColor.background)
-            .navigationTitle("Analytics")
+            .navigationTitle("Insights")
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
                     .liquidGlassPresentation()
+            }
+            .sheet(isPresented: $showLabs) {
+                LabsView()
+                    .environment(dataStore)
+            }
+            .sheet(isPresented: $showWeightLog) {
+                WeightLogSheet(
+                    history: dataStore.profile.weightHistory,
+                    unit: dataStore.profile.bodyMetrics.unit,
+                    onLog: { kg in dataStore.logWeight(kg: kg) },
+                    onDelete: { id in dataStore.deleteWeight(id: id) },
+                    onClose: { showWeightLog = false }
+                )
             }
             .task(id: dataStore.profile.healthConnected) {
                 guard dataStore.profile.healthConnected else {
@@ -128,7 +218,43 @@ struct AnalyticsView: View {
                 }
                 hrvSeries = await HealthKitService.shared.dailyHRV(days: 35)
             }
+            .onAppear { consumePendingLabsDeepLink() }
+            .onChange(of: appState.pendingLabsOpen) { _, _ in
+                consumePendingLabsDeepLink()
+            }
         }
+    }
+
+    /// Consumes the cross-tab "open Labs" deep-link flag set by the
+    /// Home overview card's latest-lab insight tap. Cleared the
+    /// moment we present the sheet so re-appearing the tab doesn't
+    /// re-fire.
+    private func consumePendingLabsDeepLink() {
+        guard appState.pendingLabsOpen else { return }
+        appState.pendingLabsOpen = false
+        showLabs = true
+    }
+
+    /// Section eyebrow + title pair used to break the long Insights
+    /// scroll into legible chunks. Matches the styling used in
+    /// LifestyleView's `sectionHeader` so the visual language stays
+    /// consistent across the analytical surfaces.
+    private func sectionEyebrow(
+        eyebrow: LocalizedStringKey,
+        title: LocalizedStringKey
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(eyebrow)
+                .font(.system(size: 11, weight: .heavy))
+                .tracking(1.2)
+                .textCase(.uppercase)
+                .foregroundStyle(AppColor.textSecondary)
+            Text(title)
+                .font(AppFont.title3)
+                .foregroundStyle(AppColor.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, Spacing.sm)
     }
 
     /// 35-day per-day adherence series for the slot 3 HealthKit
@@ -245,14 +371,14 @@ struct AnalyticsView: View {
 }
 
 #Preview("With Data") {
-    AnalyticsView()
+    InsightsView()
         .environment(DataStore(seedSampleData: true))
         .environment(AppState())
         .preferredColorScheme(.dark)
 }
 
 #Preview("Empty") {
-    AnalyticsView()
+    InsightsView()
         .environment(DataStore())
         .environment(AppState())
         .preferredColorScheme(.dark)
