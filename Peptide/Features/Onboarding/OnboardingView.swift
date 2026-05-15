@@ -1024,9 +1024,14 @@ struct OnboardingView: View {
         haptic()
         requestingHealth = true
         Task {
-            _ = await HealthKitService.shared.requestAuthorization()
+            let granted = await HealthKitService.shared.requestAuthorization()
             requestingHealth = false
-            if !dataStore.profile.healthConnected {
+            // HealthKit deliberately doesn't tell apps when the user
+            // denies — `granted == true` only confirms the user saw
+            // the dialog. We only flip the local flag when the system
+            // actually returned success so the UI never claims
+            // "connected" against a denial.
+            if granted, !dataStore.profile.healthConnected {
                 dataStore.toggleHealthConnection()
             }
         }

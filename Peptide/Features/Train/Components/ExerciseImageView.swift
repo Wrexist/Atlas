@@ -28,6 +28,12 @@ enum ExerciseImageResolver {
 /// Symbol placeholder on failure, and clips to the requested corner
 /// radius. Standalone so the same treatment lives on the row, the
 /// detail header, the routine editor, and the active workout card.
+///
+/// Security: the underlying `AsyncImage` is wrapped in a bounded
+/// `URLSession` with a 10s timeout and a 2 MB payload cap so a
+/// hostile upstream can't OOM the device or stall the UI. The
+/// session also rejects non-`image/*` Content-Types so ImageIO never
+/// sees a payload that wasn't declared as an image.
 struct ExerciseImageView: View {
     let imagePath: String?
     let muscleGroup: MuscleGroup
@@ -40,18 +46,7 @@ struct ExerciseImageView: View {
         ZStack {
             placeholderTile
             if let url {
-                AsyncImage(url: url, transaction: Transaction(animation: .easeInOut(duration: 0.2))) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: contentMode)
-                    case .failure, .empty:
-                        EmptyView()
-                    @unknown default:
-                        EmptyView()
-                    }
-                }
+                BoundedRemoteImage(url: url, contentMode: contentMode)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
@@ -68,5 +63,72 @@ struct ExerciseImageView: View {
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary.opacity(0.7))
             }
+    }
+}
+
+// MARK: - Bounded URLSession wrapper
+
+/// `AsyncImage`-shaped view backed by a hand-rolled `URLSession` data
+/// task with strict bounds: 10s timeout, 2 MB max payload, image/*
+/// Content-Type only. Decodes the bytes via `UIImage`/`Image`. Failure
+/// modes fall through silently so the placeholder shows through.
+private struct BoundedRemoteImage: View {
+    let url: URL
+    let contentMode: ContentMode
+
+    @State private var image: UIImage?
+    @State private var didStart = false
+
+    private static let maxBytes = 2_000_000  // 2 MB cap per image
+    private static let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 10
+        config.timeoutIntervalForResource = 15
+        config.urlCache = URLCache(memoryCapacity: 8_000_000,
+                                   diskCapacity: 64_000_000,
+                                   directory: nil)
+        config.requestCachePolicy = .returnCacheDataElseLoad
+        return URLSession(configuration: config)
+    }()
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: contentMode)
+                    .transition(.opacity)
+            } else {
+                Color.clear
+            }
+        }
+        .task(id: url) {
+            await load()
+        }
+    }
+
+    private func load() async {
+        guard image == nil else { return }
+        do {
+            let (data, response) = try await Self.session.data(from: url)
+            guard let http = response as? HTTPURLResponse,
+                  http.statusCode == 200,
+                  let type = http.value(forHTTPHeaderField: "Content-Type"),
+                  type.lowercased().hasPrefix("image/"),
+                  data.count <= Self.maxBytes,
+                  let decoded = UIImage(data: data)
+            else {
+                AppLog.training.debug("Exercise image rejected: status / content-type / size mismatch")
+                return
+            }
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    self.image = decoded
+                }
+            }
+        } catch {
+            // Quietly swallow — placeholder stays visible.
+            AppLog.training.debug("Exercise image fetch failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 }

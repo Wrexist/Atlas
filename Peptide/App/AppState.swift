@@ -44,10 +44,11 @@ final class AppState {
     /// Screen's Spotlight pull-down lands the user directly on the
     /// log-this-food sheet, not just on the app's launch view.
     var pendingFoodLogID: FoodLogDeepLink?
-    /// When true, the Profile tab opens the Labs view automatically on
-    /// next appear. Cleared the moment Profile consumes it. Used by the
-    /// Home overview card's "latest lab" insight tap so the user lands
-    /// one tap away from the trend chart instead of in the Profile root.
+    /// When true, the Insights tab opens the Labs view automatically
+    /// on next appear and clears the flag. Used by Home's "latest lab"
+    /// insight tap so the user lands one tap away from the trend chart
+    /// (Phase D moved Profile out of the tab bar — labs now route
+    /// through Insights, which is still a top-level tab).
     var pendingLabsOpen: Bool = false
     /// When set, the Home tab presents the matching `ProtocolEntry`'s
     /// dose-logging sheet automatically on next appear. Cleared the
