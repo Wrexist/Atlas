@@ -144,9 +144,11 @@ struct ActiveWorkoutView: View {
     }
 
     private func elapsedFormatted(_ session: WorkoutSession) -> String {
-        // Tick the view by reading `tick` so the elapsed string
-        // refreshes every second the timer fires.
-        let _ = tick
+        // Read `tick` so SwiftUI takes an observation dependency on
+        // the 1Hz publisher — without this, the string only refreshes
+        // when some other state changes. Do NOT delete: looks like
+        // dead code, isn't.
+        _ = tick
         let seconds = session.elapsedSeconds()
         let hours = seconds / 3600
         let mins = (seconds % 3600) / 60

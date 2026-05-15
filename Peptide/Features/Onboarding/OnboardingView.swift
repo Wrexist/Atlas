@@ -240,7 +240,11 @@ struct OnboardingView: View {
             dataStore.setPrimaryGoal(primaryGoal.rawValue)
         case 5:
             dataStore.updateBodyMetrics(bodyMetrics)
-        case 6, 7:
+        case 7:
+            // Schedule (page 6) and equipment (page 7) both feed the
+            // same struct — persist once on the final advance off
+            // page 7 so a back-and-forth between the two doesn't
+            // lose the second screen's changes.
             dataStore.updateTrainingPreferences(currentTrainingPrefs)
         case 11:
             if let targets = NutritionMath.dailyTargets(for: bodyMetrics) {
@@ -902,6 +906,10 @@ struct OnboardingView: View {
         case (.athletic, _):           return "Athletic Conditioning"
         case (.recomp, _):             return "Hybrid Recomp"
         case (.stayConsistent, _):     return "Consistency Builder"
+        // Defensive default so a future `PrimaryGoal` case lands on
+        // a real string rather than relying on the tuple-pattern's
+        // implicit fallthrough behavior.
+        default:                       return "Atlas Starter"
         }
     }
 
@@ -1053,8 +1061,14 @@ struct OnboardingView: View {
 
     private var readyStep: some View {
         VStack(spacing: Spacing.lg) {
-            ReadyHero(name: name)
+            ReadyHero(bounceTrigger: bounceTrigger)
                 .padding(.top, Spacing.xl)
+            if !name.isEmpty {
+                Text("You're set, \(name).")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+            }
             VStack(spacing: Spacing.sm) {
                 summaryRow(label: "Goal", value: primaryGoal.displayName)
                 summaryRow(label: "Experience", value: experienceLevel.capitalized)

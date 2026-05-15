@@ -58,8 +58,11 @@ struct TrainContainerView: View {
             }
         }
         .onChange(of: sessionService.activeSession?.id) { oldID, newID in
-            // Auto-present when a new session begins; auto-dismiss
-            // when one ends.
+            // Auto-present when a new session begins. We do not act
+            // on the `newID == nil` (session ended) branch — the
+            // ActiveWorkoutView dismisses itself via `dismiss()`
+            // after transitioning through WorkoutFinishView, so the
+            // cover lifecycle is owned downstream.
             if oldID == nil && newID != nil { showActiveWorkout = true }
         }
     }
