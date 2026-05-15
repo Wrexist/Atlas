@@ -306,6 +306,15 @@ struct PeptideApp: App {
 
     private var mainContent: some View {
         tabViewWithAccessory
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            // Floating "you're in screenshot mode" reminder sits
+            // above the tab bar while ScreenshotMode is on. Self-
+            // hides via internal `if` when the toggle is off, so
+            // this inset costs nothing in production.
+            ScreenshotModeBanner()
+                .animation(.spring(response: 0.4, dampingFraction: 0.85),
+                           value: ScreenshotMode.shared.isEnabled)
+        }
         .environment(appState)
         .environment(dataStore)
         .preferredColorScheme(themeManager.displayMode.preferredScheme)

@@ -82,6 +82,9 @@ struct ProfileView: View {
                     WeeklySummaryToggleRow()
                         .sectionAppear(index: 7)
 
+                    ScreenshotModeRow()
+                        .sectionAppear(index: 7)
+
                     ExportSection()
                         .sectionAppear(index: 7)
 

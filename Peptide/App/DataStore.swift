@@ -19,6 +19,15 @@ final class DataStore: DataServiceProtocol {
     /// True when data is being synced to iCloud via CloudKit.
     var isCloudSyncEnabled: Bool { repo.isCloudSyncEnabled }
 
+    /// True while the store is in App Store screenshot mode. All
+    /// `performSaveNow()` calls short-circuit so demo data never
+    /// touches disk. Real protocols / entries / profile sit
+    /// untouched in the SwiftData store and on the JSON sidecars,
+    /// ready to be restored the moment the user flips the toggle
+    /// back off (see `ScreenshotMode.deactivate(in:)`).
+    @ObservationIgnored
+    var isEphemeral: Bool = false
+
     private let repo: SwiftDataRepository
     private let _peptideDatabase: [Peptide] = PeptideDatabase.shared
 
@@ -117,6 +126,13 @@ final class DataStore: DataServiceProtocol {
             performSaveNow()
         }
         // else: clean slate — already set to [] and .fresh above
+
+        // If screenshot mode is currently enabled (set in
+        // UserDefaults from a previous session before this cold
+        // boot), swap in the demo seed before anyone reads state.
+        // Done last so the swap also overrides any data that
+        // hydrated from the repo branches above.
+        ScreenshotMode.shared.bootstrapIfActive(in: self)
 
         // Self-register the current instance so App Intents and
         // other extension-style entry points can reach the running
@@ -1283,11 +1299,55 @@ final class DataStore: DataServiceProtocol {
     }
 
     private func performSaveNow() {
+        // Ephemeral mode (screenshot capture) — never write to disk.
+        // The demo state lives entirely in memory and dies when the
+        // user flips the toggle off + reloadFromDisk restores the
+        // real data.
+        guard !isEphemeral else { return }
         repo.saveProtocols(protocols)
         repo.saveEntries(entries)
         repo.saveProfile(profile)
         updateWidgetData()
         updateWatchData()
+    }
+
+    // MARK: - Ephemeral / screenshot mode
+
+    /// Swaps the in-memory state for a demo seed and locks writes
+    /// so user data on disk stays untouched. Called by
+    /// `ScreenshotMode.activate(in:)` on a toggle flip and on
+    /// every cold launch where the flag is already on.
+    ///
+    /// Bumps `cacheVersion` so every derived metric (streak,
+    /// weeklyCompletion, topInsight) recomputes against the new
+    /// state on the next read — without the bump, cached values
+    /// from before the swap would survive and the screenshots
+    /// would render with stale stats.
+    func enterEphemeralMode(
+        profile newProfile: UserProfile,
+        protocols newProtocols: [PeptideProtocol],
+        entries newEntries: [ProtocolEntry]
+    ) {
+        isEphemeral = true
+        self.profile = newProfile
+        self.protocols = newProtocols
+        self.entries = newEntries
+        cacheVersion &+= 1
+        // Refresh widget + watch surfaces so the lock-screen
+        // accessory + Watch Today page render the demo numbers
+        // for the screenshots. Safe to call even though
+        // `performSaveNow` is gated — these accessory updaters
+        // are independent of the JSON sidecars.
+        updateWidgetData()
+        updateWatchData()
+    }
+
+    /// Drops the ephemeral lock and reloads real data from disk
+    /// so the user is back to where they left off before the
+    /// screenshot session.
+    func exitEphemeralMode() {
+        isEphemeral = false
+        reloadFromDisk()
     }
 
     /// Builds a snapshot via `WidgetSnapshotBuilder` and pushes it through
