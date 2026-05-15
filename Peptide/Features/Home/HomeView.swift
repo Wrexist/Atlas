@@ -46,6 +46,10 @@ struct HomeView: View {
     /// appear + on each .active scene transition so the rings reflect
     /// the freshest HealthKit reads without blocking the view body.
     @State private var heroSnapshot: HeroMetricSnapshot = .empty
+    /// Health Monitor grid snapshot — HRV / RHR / Sleep with their
+    /// personal-range envelopes. Same refresh cadence as the hero
+    /// trio so a freshly-synced HealthKit write updates both at once.
+    @State private var healthRange: HealthRangeService.Snapshot = .init(hrv: nil, rhr: nil, sleep: nil)
     @Environment(\.requestReview) private var requestReview
 
     private enum QuickLogAction: Identifiable {
@@ -262,6 +266,14 @@ struct HomeView: View {
                         .id(TodayJumpBar.SectionAnchor.movement)
                         .sectionAppear(index: 5)
 
+                    // Bevel-style Health Monitor grid — HRV / RHR /
+                    // Sleep with personal-range indicators. Hides
+                    // individual cards (or the whole grid) when
+                    // there's not enough HealthKit history to render
+                    // a meaningful range.
+                    HealthMonitorGrid(snapshot: healthRange)
+                        .sectionAppear(index: 6)
+
                     // The standalone bottom insight card used to live
                     // here; removed in this pass because TodayOverviewCard
                     // already surfaces the same `dataStore.topInsight`
@@ -382,6 +394,7 @@ struct HomeView: View {
                 consumeWeeklyDeepLink()
                 Task { await loadWeeklySummary(forceRefresh: false) }
                 Task { await refreshHeroSnapshot() }
+                Task { await refreshHealthRange() }
             }
             .onChange(of: appState.pendingDoseLogEntryId) { _, _ in
                 consumePendingDoseDeepLink()
@@ -479,6 +492,18 @@ struct HomeView: View {
             healthConnected: dataStore.profile.healthConnected
         )
         heroSnapshot = snapshot
+    }
+
+    /// Builds the Health Monitor grid's personal-range snapshot.
+    /// Three HealthKit daily-series queries (HRV / RHR / Sleep) fire
+    /// in parallel via async-let. Skips entirely when HealthKit isn't
+    /// connected — the grid's empty-state branch hides it.
+    private func refreshHealthRange() async {
+        guard dataStore.profile.healthConnected else {
+            healthRange = .init(hrv: nil, rhr: nil, sleep: nil)
+            return
+        }
+        healthRange = await HealthRangeService.build()
     }
 
     @ViewBuilder
