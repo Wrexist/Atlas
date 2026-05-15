@@ -46,6 +46,14 @@ struct ExportSection: View {
                         isPro ? exportPDF() : (showPaywall = true)
                     }
                 }
+
+                // Per-domain CSVs surface as a secondary row of
+                // text buttons. The primary three above remain the
+                // canonical "everything" exports; these are for
+                // doctor-visit / nutritionist hand-offs that only
+                // need one slice. Hidden when the relevant data is
+                // empty so the row doesn't clutter a fresh install.
+                domainExportsRow
             }
         }
         .sheet(isPresented: $showShareSheet) {
@@ -74,6 +82,95 @@ struct ExportSection: View {
         )
         let dateStr = Date().formatted(.iso8601.year().month().day())
         if let url = ExportService.shared.writeCSV(csv, filename: "peptidex-export-\(dateStr).csv") {
+            exportURL = url
+            showShareSheet = true
+        }
+    }
+
+    /// Three text buttons stacked beneath the primary export row
+    /// for the per-domain slices (labs / meals / outcomes). Each
+    /// is gated on the user actually having data to share — no
+    /// point offering "Export labs" to someone with zero entries.
+    @ViewBuilder
+    private var domainExportsRow: some View {
+        let hasLabs = !dataStore.profile.labHistory.isEmpty
+        let hasMeals = !dataStore.profile.mealHistory.isEmpty
+        let hasOutcomes = !dataStore.profile.outcomeHistory.isEmpty
+        if hasLabs || hasMeals || hasOutcomes {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Divider().background(AppColor.glassBorder).padding(.vertical, 2)
+                Text("By section")
+                    .font(.system(size: 10, weight: .heavy))
+                    .tracking(0.6)
+                    .textCase(.uppercase)
+                    .foregroundStyle(AppColor.textTertiary)
+                    .padding(.horizontal, 2)
+                if hasLabs {
+                    sliceButton(title: "Labs CSV", icon: "testtube.2") {
+                        isPro ? exportLabsCSV() : (showPaywall = true)
+                    }
+                }
+                if hasMeals {
+                    sliceButton(title: "Meals CSV", icon: "fork.knife") {
+                        isPro ? exportMealsCSV() : (showPaywall = true)
+                    }
+                }
+                if hasOutcomes {
+                    sliceButton(title: "Check-ins CSV", icon: "heart.text.square") {
+                        isPro ? exportOutcomesCSV() : (showPaywall = true)
+                    }
+                }
+            }
+        }
+    }
+
+    private func sliceButton(title: LocalizedStringKey, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
+                    .frame(width: 18)
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+                Spacer(minLength: 0)
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, Spacing.sm)
+            .background {
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .fill(AppColor.surfaceSecondary.opacity(0.45))
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func exportLabsCSV() {
+        let csv = ExportService.shared.exportLabsCSV(labs: dataStore.profile.labHistory)
+        let dateStr = Date().formatted(.iso8601.year().month().day())
+        if let url = ExportService.shared.writeCSV(csv, filename: "peptidex-labs-\(dateStr).csv") {
+            exportURL = url
+            showShareSheet = true
+        }
+    }
+
+    private func exportMealsCSV() {
+        let csv = ExportService.shared.exportMealsCSV(meals: dataStore.profile.mealHistory)
+        let dateStr = Date().formatted(.iso8601.year().month().day())
+        if let url = ExportService.shared.writeCSV(csv, filename: "peptidex-meals-\(dateStr).csv") {
+            exportURL = url
+            showShareSheet = true
+        }
+    }
+
+    private func exportOutcomesCSV() {
+        let csv = ExportService.shared.exportOutcomesCSV(outcomes: dataStore.profile.outcomeHistory)
+        let dateStr = Date().formatted(.iso8601.year().month().day())
+        if let url = ExportService.shared.writeCSV(csv, filename: "peptidex-checkins-\(dateStr).csv") {
             exportURL = url
             showShareSheet = true
         }

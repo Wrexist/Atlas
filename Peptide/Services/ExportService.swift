@@ -37,6 +37,103 @@ final class ExportService {
         return csv
     }
 
+    // MARK: - Labs
+
+    /// CSV of every blood-work entry. Columns chosen to round-trip
+    /// cleanly to a doctor's spreadsheet workflow: ISO date first
+    /// (sortable in any tool), panel display name + canonical
+    /// unit pair, value, optional source + note. The full lab name
+    /// (not the short chip-label) is used so the export reads
+    /// without mental decoding ("Total testosterone" vs. "Total T").
+    func exportLabsCSV(labs: [LabValue]) -> String {
+        var csv = "Date,Panel,Value,Unit,Source,Notes\n"
+        let sorted = labs.sorted { $0.date > $1.date }
+        for entry in sorted {
+            let dateStr = entry.date.formatted(.iso8601.year().month().day())
+            let value = formatLabValue(entry.value)
+            let fields = [
+                dateStr,
+                csvQuote(entry.panel.displayName),
+                csvQuote(value),
+                csvQuote(entry.panel.canonicalUnit),
+                csvQuote(entry.source ?? ""),
+                csvQuote(entry.note ?? ""),
+            ]
+            csv += fields.joined(separator: ",") + "\n"
+        }
+        return csv
+    }
+
+    // MARK: - Meals
+
+    /// CSV of every meal log entry. Columns: ISO date + time,
+    /// meal category, food name, calories, macros in grams, source
+    /// (search / barcode / photo / custom). One row per logged
+    /// meal so a nutritionist can pivot the table by category +
+    /// week without splitting cells.
+    func exportMealsCSV(meals: [MealEntry]) -> String {
+        var csv = "Date,Time,Category,Name,Calories,Protein,Carbs,Fat,Source\n"
+        let sorted = meals.sorted { $0.date > $1.date }
+        for entry in sorted {
+            let dateStr = entry.date.formatted(.iso8601.year().month().day())
+            let timeStr = entry.date.formatted(.dateTime.hour().minute())
+            let fields = [
+                dateStr,
+                timeStr,
+                csvQuote(entry.category.displayName),
+                csvQuote(entry.name),
+                "\(entry.calories)",
+                "\(entry.proteinG)",
+                "\(entry.carbsG)",
+                "\(entry.fatG)",
+                csvQuote(entry.source.rawValue),
+            ]
+            csv += fields.joined(separator: ",") + "\n"
+        }
+        return csv
+    }
+
+    // MARK: - Outcome check-ins
+
+    /// CSV of every daily wellness check-in. Five 1-5 scores per
+    /// row plus the optional note. Lets the user paste their
+    /// history into a spreadsheet and overlay it against any
+    /// other column they're already tracking (training load,
+    /// supplement schedule, etc.).
+    func exportOutcomesCSV(outcomes: [OutcomeEntry]) -> String {
+        var csv = "Date,Energy,Sleep,Recovery,Mood,Focus,Note\n"
+        let sorted = outcomes.sorted { $0.date > $1.date }
+        for entry in sorted {
+            let dateStr = entry.date.formatted(.iso8601.year().month().day())
+            let fields = [
+                dateStr,
+                "\(entry.energy)",
+                "\(entry.sleepQuality)",
+                "\(entry.recovery)",
+                "\(entry.mood)",
+                "\(entry.focus)",
+                csvQuote(entry.note ?? ""),
+            ]
+            csv += fields.joined(separator: ",") + "\n"
+        }
+        return csv
+    }
+
+    /// Smart number formatter for lab CSV cells. Whole numbers
+    /// drop the decimal so "600" exports as "600" not "600.0";
+    /// fractional values keep two decimals so a 0.85 ng/mL TSH
+    /// reads honestly. Falls back through `String(value)` for
+    /// values smaller than 0.01 to avoid scientific notation.
+    private func formatLabValue(_ value: Double) -> String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(format: "%.0f", value)
+        }
+        if abs(value) < 0.01 {
+            return String(value)
+        }
+        return String(format: "%.2f", value)
+    }
+
     // MARK: - JSON Backup
 
     func exportFullBackup(protocols: [PeptideProtocol], entries: [ProtocolEntry], profile: UserProfile) -> Data? {
