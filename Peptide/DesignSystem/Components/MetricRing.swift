@@ -1,14 +1,21 @@
 import SwiftUI
 
-/// Configurable ring used across the Today hero trio, calorie panels,
-/// and protocol-score surfaces. One source of truth so the visual
-/// language stays consistent — a tweak to stroke width or animation
-/// curve takes effect everywhere a metric ring lives.
+/// Configurable ring used across the Today hero trio, the protocol
+/// score card, the stack-completeness tile, and (eventually) every
+/// other ring surface. One source of truth so the visual language
+/// stays consistent — a tweak to stroke width or animation curve
+/// takes effect everywhere a metric ring lives.
 ///
 /// Renders a track + gradient progress arc + an optional centred
-/// content view (usually a big percentage label). `progress` is
-/// clamped 0…1 so the arc never wraps and out-of-bounds inputs (e.g.
-/// `score > 1.0` from a stale value) degrade cleanly.
+/// content view. `progress` is clamped 0…1 so the arc never wraps
+/// and out-of-bounds inputs (e.g. `score > 1.0` from a stale
+/// value) degrade cleanly.
+///
+/// Three optional behaviours stay defaulted-off so callers like
+/// `HeroMetricTrio` opt into the simple ring, while branded
+/// surfaces like `ProtocolScoreCard` opt in to the appear sweep +
+/// celebration pulse + accent glow that used to live in the now-
+/// retired `GlassProgressRing`.
 struct MetricRing<Center: View>: View {
     let progress: Double
     let diameter: CGFloat
@@ -19,7 +26,25 @@ struct MetricRing<Center: View>: View {
     /// striped section indicates "already spent today". Pass `nil` to
     /// disable.
     let hatchedFraction: Double?
+    /// Sweeps the arc from 0 → `progress` once on appear via spring.
+    /// Defaults off — the hero trio mounts with its values ready and
+    /// doesn't want a flash. The protocol-score card uses it to draw
+    /// the eye to the day's adherence.
+    let appearAnimated: Bool
+    /// When `progress` crosses 1.0 from below, briefly scale-pulses
+    /// the centre content so a finished day reads as a moment, not
+    /// just a number flip. Suppressed under Reduce Motion.
+    let celebrateAtCompletion: Bool
+    /// Adds the app-wide accent glow under the progress arc. Branded
+    /// rings use it; the hero trio doesn't (the trio sits on a glass
+    /// card where a glow would muddy the gradient).
+    let glow: Bool
     @ViewBuilder let center: () -> Center
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var animatedProgress: Double = 0
+    @State private var hasAppeared = false
+    @State private var celebrationScale: CGFloat = 1.0
 
     init(
         progress: Double,
@@ -27,6 +52,9 @@ struct MetricRing<Center: View>: View {
         strokeWidth: CGFloat = 11,
         gradient: [Color],
         hatchedFraction: Double? = nil,
+        appearAnimated: Bool = false,
+        celebrateAtCompletion: Bool = false,
+        glow: Bool = false,
         @ViewBuilder center: @escaping () -> Center
     ) {
         self.progress = max(0, min(1, progress))
@@ -34,6 +62,9 @@ struct MetricRing<Center: View>: View {
         self.strokeWidth = strokeWidth
         self.gradient = gradient
         self.hatchedFraction = hatchedFraction.map { max(0, min(1, $0)) }
+        self.appearAnimated = appearAnimated
+        self.celebrateAtCompletion = celebrateAtCompletion
+        self.glow = glow
         self.center = center
     }
 
@@ -52,23 +83,40 @@ struct MetricRing<Center: View>: View {
             }
 
             // Progress arc.
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(
-                    AngularGradient(
-                        gradient: Gradient(colors: gradient),
-                        center: .center,
-                        startAngle: .degrees(-90),
-                        endAngle: .degrees(270)
-                    ),
-                    style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-                .animation(.easeOut(duration: 0.6), value: progress)
+            progressArc
 
             center()
+                .scaleEffect(celebrationScale)
         }
         .frame(width: diameter, height: diameter)
+        .onAppear { handleAppear() }
+        .onChange(of: progress) { oldValue, newValue in
+            handleProgressChange(from: oldValue, to: newValue)
+        }
+    }
+
+    @ViewBuilder
+    private var progressArc: some View {
+        let renderedProgress = appearAnimated ? animatedProgress : progress
+        let arc = Circle()
+            .trim(from: 0, to: renderedProgress)
+            .stroke(
+                AngularGradient(
+                    gradient: Gradient(colors: gradient),
+                    center: .center,
+                    startAngle: .degrees(-90),
+                    endAngle: .degrees(270)
+                ),
+                style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round)
+            )
+            .rotationEffect(.degrees(-90))
+            .animation(.easeOut(duration: 0.6), value: progress)
+
+        if glow {
+            arc.appShadow(AppShadow.accentGlow)
+        } else {
+            arc
+        }
     }
 
     /// Drawn as a striped pattern over the same trim arc so it reads
@@ -84,6 +132,53 @@ struct MetricRing<Center: View>: View {
             )
             .rotationEffect(.degrees(-90))
     }
+
+    // MARK: - Animation hooks
+    //
+    // Wired only when the caller opts in via `appearAnimated` /
+    // `celebrateAtCompletion`. For the simple ring path (the hero
+    // trio), `animatedProgress` is set once on appear and never
+    // touched again — the body reads from `progress` directly.
+
+    private func handleAppear() {
+        guard appearAnimated else {
+            animatedProgress = progress
+            hasAppeared = true
+            return
+        }
+        if hasAppeared {
+            animatedProgress = progress
+        } else {
+            hasAppeared = true
+            withAnimation(.spring(response: 0.7, dampingFraction: 0.85)) {
+                animatedProgress = progress
+            }
+        }
+    }
+
+    private func handleProgressChange(from old: Double, to new: Double) {
+        let clamped = max(0, min(1, new))
+        if appearAnimated {
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
+                animatedProgress = clamped
+            }
+        }
+        if celebrateAtCompletion, old < 1.0, clamped >= 1.0, !reduceMotion {
+            triggerCelebration()
+        }
+    }
+
+    private func triggerCelebration() {
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.55)) {
+            celebrationScale = 1.08
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(380))
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.78)) {
+                celebrationScale = 1.0
+            }
+        }
+    }
 }
 
 // MARK: - Empty-center convenience
@@ -94,7 +189,10 @@ extension MetricRing where Center == EmptyView {
         diameter: CGFloat = 100,
         strokeWidth: CGFloat = 11,
         gradient: [Color],
-        hatchedFraction: Double? = nil
+        hatchedFraction: Double? = nil,
+        appearAnimated: Bool = false,
+        celebrateAtCompletion: Bool = false,
+        glow: Bool = false
     ) {
         self.init(
             progress: progress,
@@ -102,6 +200,9 @@ extension MetricRing where Center == EmptyView {
             strokeWidth: strokeWidth,
             gradient: gradient,
             hatchedFraction: hatchedFraction,
+            appearAnimated: appearAnimated,
+            celebrateAtCompletion: celebrateAtCompletion,
+            glow: glow,
             center: { EmptyView() }
         )
     }
@@ -122,18 +223,13 @@ extension MetricRing where Center == EmptyView {
             }
             MetricRing(
                 progress: 0.85,
-                gradient: [Color.green, Color(red: 0.72, green: 0.96, blue: 0.34)]
+                gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
+                appearAnimated: true,
+                celebrateAtCompletion: true,
+                glow: true
             ) {
-                Text("85%")
-                    .font(.system(size: 22, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.white)
-            }
-            MetricRing(
-                progress: 0.82,
-                gradient: [Color.purple, Color(red: 0.66, green: 0.62, blue: 0.96)]
-            ) {
-                Text("82%")
-                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                Text("85")
+                    .font(.system(size: 30, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white)
             }
         }

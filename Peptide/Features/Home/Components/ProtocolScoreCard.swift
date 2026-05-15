@@ -30,11 +30,32 @@ struct ProtocolScoreCard: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
 
-                GlassProgressRing(progress: score, size: 180, lineWidth: 14)
-                    .frame(height: 180)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Today's compliance")
-                    .accessibilityValue(complianceVoiceOverValue)
+                MetricRing(
+                    progress: score,
+                    diameter: 180,
+                    strokeWidth: 14,
+                    gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
+                    appearAnimated: true,
+                    celebrateAtCompletion: true,
+                    glow: true
+                ) {
+                    VStack(spacing: Spacing.xxs) {
+                        Text("\(Int((score * 100).rounded()))")
+                            .font(AppFont.scoreLarge)
+                            .foregroundStyle(AppColor.textPrimary)
+                            .contentTransition(.numericText())
+                            .monospacedDigit()
+
+                        Text("SCORE")
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                            .tracking(2)
+                    }
+                }
+                .frame(height: 180)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Today's compliance")
+                .accessibilityValue(complianceVoiceOverValue)
 
                 StreakCounterView(currentStreak: streak, bestStreak: bestStreak)
 
