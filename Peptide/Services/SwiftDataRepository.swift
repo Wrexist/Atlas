@@ -381,8 +381,9 @@ final class SwiftDataRepository {
 
     func deleteCustomExercise(id: String) {
         guard let context else { return }
+        let exerciseID = id
         let descriptor = FetchDescriptor<StoredCustomExercise>(
-            predicate: #Predicate { $0.id == id }
+            predicate: #Predicate { $0.id == exerciseID }
         )
         do {
             for stored in try context.fetch(descriptor) {

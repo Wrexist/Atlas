@@ -31,14 +31,15 @@ final class ExerciseLibrary {
 
     // MARK: - Loading
 
-    /// Loads the bundled JSON. Idempotent — safe to call on every
-    /// `.task { }` modifier in the Train tab without re-decoding. On
-    /// decode failure the library stays empty and the UI shows an
-    /// empty-state with a retry button (the bundled JSON shipping
-    /// corrupted is unrecoverable here, but we don't want to crash).
+    /// Loads the bundled JSON. Idempotent on success — safe to call on
+    /// every `.task { }` modifier in the Train tab without re-decoding.
+    /// On decode failure `isLoaded` stays `false` so a follow-up call
+    /// (typically the empty-state retry button) re-attempts the parse.
+    /// Bundled-resource failures are rare but recoverable filesystem
+    /// hiccups (incomplete OTA, App Store CDN glitch) shouldn't lock
+    /// the user out of training permanently.
     func load() {
         guard !isLoaded else { return }
-        isLoaded = true
         let started = Date()
         guard let url = Bundle.main.url(forResource: "exercises", withExtension: "json") else {
             AppLog.training.error("ExerciseLibrary: exercises.json missing from bundle")
@@ -49,12 +50,22 @@ final class ExerciseLibrary {
             let decoded = try JSONDecoder().decode([Exercise].self, from: data)
             bundled = decoded
             byID = Dictionary(uniqueKeysWithValues: decoded.map { ($0.id, $0) })
+            isLoaded = true
             AppLog.training.info(
                 "ExerciseLibrary loaded \(decoded.count, privacy: .public) exercises in \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public)ms"
             )
         } catch {
             AppLog.training.error("ExerciseLibrary decode failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    /// Forces a re-load on the next `load()` call. Used by tests and by
+    /// the empty-state retry button to recover from a transient
+    /// bundled-resource failure.
+    func reset() {
+        isLoaded = false
+        bundled = []
+        byID = [:]
     }
 
     /// Replaces the custom-exercise overlay. Called by the Train tab

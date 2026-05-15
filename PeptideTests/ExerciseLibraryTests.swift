@@ -5,11 +5,21 @@ import XCTest
 final class ExerciseLibraryTests: XCTestCase {
 
     /// `ExerciseLibrary` is a singleton; load it once for the suite.
-    /// Idempotent — calling `load()` after the first time is a no-op.
+    /// Idempotent — calling `load()` after a successful parse is a
+    /// no-op.
     private var library: ExerciseLibrary {
         let lib = ExerciseLibrary.shared
         lib.load()
         return lib
+    }
+
+    /// The shared singleton's `custom` overlay survives across tests
+    /// because XCTest re-uses the same process. Wipe between cases
+    /// so an attach-and-don't-clean-up in one test can't leak into
+    /// the next.
+    override func tearDown() {
+        ExerciseLibrary.shared.attachCustomExercises([])
+        super.tearDown()
     }
 
     // MARK: - Bundled load
@@ -150,7 +160,8 @@ final class ExerciseLibraryTests: XCTestCase {
 
     func test_availableForEquipment_emptySetReturnsAll() {
         let all = library.availableForEquipment([])
-        XCTAssertEqual(all.count, library.bundled.count)
+        XCTAssertEqual(all.count, library.bundled.count + library.custom.count,
+                       "An empty access set should fall through to the full union of bundled + custom")
     }
 
     func test_availableForEquipment_filtersToSubset() {
