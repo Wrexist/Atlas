@@ -71,6 +71,11 @@ final class OpenFoodFactsService: Sendable {
         case invalidBarcode
         case notFound
         case rateLimited
+        /// Local sliding-window throttle blocked the call before it
+        /// hit the network. Distinct from `.rateLimited` (which is a
+        /// 429 from OFF itself) so the UI can show "catch your breath"
+        /// copy instead of "OFF is busy".
+        case throttledLocally(secondsToRetry: Int)
         case networkUnavailable
         case requestFailed(status: Int)
         case decodeFailure
@@ -88,6 +93,11 @@ final class OpenFoodFactsService: Sendable {
                 String(localized: "We couldn't find that product. Try a photo instead?")
             case .rateLimited:
                 String(localized: "Open Food Facts is busy right now. Try again in a minute.")
+            case .throttledLocally(let seconds):
+                String(
+                    localized: "Catch your breath — searching too fast. Try again in \(seconds)s.",
+                    comment: "Local rate-limiter hit. Seconds is the time until the next slot opens."
+                )
             case .networkUnavailable:
                 String(localized: "You're offline. We'll use cached results when available.")
             case .requestFailed(let status):
@@ -169,6 +179,19 @@ final class OpenFoodFactsService: Sendable {
             return hit
         }
 
+        // Local sliding-window throttle. Cache hits already returned
+        // above, so we only spend budget on calls that would actually
+        // round-trip. A 429 from OFF itself still maps to
+        // `.rateLimited` further down — these are distinct failure
+        // modes so the UI copy can differ.
+        let now = Date()
+        switch await Self.searchRateLimiter.requestSlot(now: now) {
+        case .allowed:
+            break
+        case .denied(let secondsToRetry):
+            throw LookupError.throttledLocally(secondsToRetry: secondsToRetry)
+        }
+
         let cappedPageSize = max(1, min(pageSize, Self.searchMaxPageSize))
         var components = URLComponents(url: searchURL, resolvingAgainstBaseURL: false)
         components?.queryItems = [
@@ -207,9 +230,19 @@ final class OpenFoodFactsService: Sendable {
             throw LookupError.requestFailed(status: -1)
         }
         switch http.statusCode {
-        case 200..<300:                  break
-        case 429:                        throw LookupError.rateLimited
-        default:                         throw LookupError.requestFailed(status: http.statusCode)
+        case 200..<300:
+            break
+        case 429:
+            // Telemetry: surface 429s to Console.app so we can spot
+            // abuse patterns. Includes the query so a problematic
+            // pattern (super-short queries, weird unicode) is
+            // diagnosable from the logs alone.
+            AppLog.persistence.error(
+                "OFF rate-limited (429) for query: \(trimmed, privacy: .public)"
+            )
+            throw LookupError.rateLimited
+        default:
+            throw LookupError.requestFailed(status: http.statusCode)
         }
 
         let envelope: SearchEnvelope
@@ -251,6 +284,18 @@ final class OpenFoodFactsService: Sendable {
     private static let searchCache = SearchQueryCache(
         ttl: 10 * 60,
         maxEntries: 64
+    )
+
+    /// Sliding-window throttle in front of `cgi/search.pl`. OFF
+    /// documents the search endpoint at 10 req/min/IP — debouncing
+    /// + the in-memory cache handle the typical typist, but a
+    /// determined power user (or a test harness, or a future
+    /// Shortcut intent firing in a loop) can still squeeze past
+    /// both. The limiter is consulted *after* the cache hit check,
+    /// so a cached repeat never spends budget.
+    static let searchRateLimiter = OFFRateLimiter(
+        maxRequests: 8,                // one below OFF's 10/min ceiling for safety
+        windowSeconds: 60
     )
 
     static func isStale(_ product: ScannedProduct) -> Bool {
@@ -570,5 +615,60 @@ actor SearchQueryCache {
 
     private static func normalize(_ query: String) -> String {
         query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+}
+
+/// Sliding-window rate limiter. Keeps the timestamps of every call
+/// that passed in the last `windowSeconds`; a request is allowed when
+/// fewer than `maxRequests` of those are still in-window. Sliding (not
+/// fixed) so a burst right before the window boundary doesn't get a
+/// "free" second burst the moment the boundary crosses — protects the
+/// downstream API from the worst pathological pattern.
+///
+/// The limiter pre-commits the slot on `.allowed` so two concurrent
+/// callers can't both pass when only one slot remains. `.denied`
+/// returns the wall-clock seconds until the oldest in-window
+/// timestamp expires — the UI surfaces that as "try again in Ns".
+actor OFFRateLimiter {
+
+    enum Verdict: Equatable, Sendable {
+        case allowed
+        case denied(secondsToRetry: Int)
+    }
+
+    private let maxRequests: Int
+    private let windowSeconds: TimeInterval
+    private var timestamps: [Date] = []
+
+    init(maxRequests: Int, windowSeconds: TimeInterval) {
+        self.maxRequests = max(1, maxRequests)
+        self.windowSeconds = max(0.001, windowSeconds)
+    }
+
+    func requestSlot(now: Date = Date()) -> Verdict {
+        // Prune anything outside the sliding window first so the
+        // count below is the live in-window total.
+        let cutoff = now.addingTimeInterval(-windowSeconds)
+        while let first = timestamps.first, first < cutoff {
+            timestamps.removeFirst()
+        }
+        if timestamps.count < maxRequests {
+            timestamps.append(now)
+            return .allowed
+        }
+        // Caller has to wait until the oldest in-window timestamp
+        // ages out. Ceil so the UI shows "try again in 1s" rather
+        // than "0s" right at the edge.
+        let secondsToRetry = max(1, Int(
+            (timestamps[0].addingTimeInterval(windowSeconds).timeIntervalSince(now))
+                .rounded(.up)
+        ))
+        return .denied(secondsToRetry: secondsToRetry)
+    }
+
+    /// Test-only: wipe state. Lets unit tests start each case with a
+    /// clean window without standing up a fresh instance every time.
+    func reset() {
+        timestamps.removeAll()
     }
 }

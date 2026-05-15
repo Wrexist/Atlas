@@ -53,6 +53,11 @@ struct FoodLibraryFlow: View {
     /// a double-tap can't log the same food twice in the 1.5-second
     /// confirmation window. Cleared after the timeout.
     @State private var recentlyQuickLogged: Set<String> = []
+    /// `true` once the most recent search hit a network-unavailable
+    /// error. Toggles the offline pill at the top of the list and
+    /// suppresses the rate-limit / "no match" copy so the user knows
+    /// they're seeing cached results only.
+    @State private var isOffline: Bool = false
     /// Top-N recently logged OFF products ranked by
     /// `BarcodeScanHistory`'s recency × frequency score, identical to
     /// the BarcodeScanFlow's "Recently scanned" row. Lets the landing
@@ -214,6 +219,9 @@ struct FoodLibraryFlow: View {
 
             ScrollView {
                 LazyVStack(spacing: Spacing.sm) {
+                    if isOffline {
+                        offlinePill
+                    }
                     listBody
                 }
                 .padding(.horizontal, Spacing.screenPadding)
@@ -222,6 +230,37 @@ struct FoodLibraryFlow: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .scrollIndicators(.hidden)
+        }
+    }
+
+    /// Compact pill shown at the top of the list while the user is
+    /// offline. Lets cached results + custom foods still render below
+    /// so the food library stays useful on a flight or in a deadzone,
+    /// just with the freshness expectation made explicit.
+    private var offlinePill: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "wifi.slash")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(AppColor.warning)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("You're offline")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("Showing cached results and your own foods. New search hits will resume when you're back online.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Spacing.sm)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.warning.opacity(0.12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.warning.opacity(0.3), lineWidth: 1)
+                }
         }
     }
 
@@ -339,11 +378,23 @@ struct FoodLibraryFlow: View {
             } else if let searchError, results.isEmpty {
                 inlineMessage(icon: "exclamationmark.triangle", text: searchError, tone: .warning)
             } else if results.isEmpty && customMatches.isEmpty && !isSearching {
-                emptyState(
-                    icon: "questionmark.app.dashed",
-                    title: "No results",
-                    body: "We couldn't find a match for \"\(debouncedQuery)\". Create a custom food, scan a barcode, or snap a photo."
-                )
+                if isOffline {
+                    // No OFF search available + nothing in custom
+                    // foods matched. Be explicit about the offline
+                    // gap so the user knows it's a connectivity issue
+                    // they can resolve, not a missing-food issue.
+                    emptyState(
+                        icon: "wifi.slash",
+                        title: "Offline — no cached match",
+                        body: "We can't reach Open Food Facts right now. Create a custom food or try again when you're back online."
+                    )
+                } else {
+                    emptyState(
+                        icon: "questionmark.app.dashed",
+                        title: "No results",
+                        body: "We couldn't find a match for \"\(debouncedQuery)\". Create a custom food, scan a barcode, or snap a photo."
+                    )
+                }
             } else {
                 if !results.isEmpty {
                     sectionHeader("Open Food Facts")
@@ -1322,13 +1373,19 @@ struct FoodLibraryFlow: View {
             let hits = try await OpenFoodFactsService.shared.search(query: trimmed)
             guard !Task.isCancelled, trimmed == debouncedQuery else { return }
             results = hits
+            isOffline = false
         } catch let lookupError as OpenFoodFactsService.LookupError {
             guard !Task.isCancelled, trimmed == debouncedQuery else { return }
             results = []
-            searchError = lookupError.errorDescription
+            // Network-down is a distinct UI state, not just an error
+            // banner — the list pivots to "showing only what we have
+            // cached" until the next successful search restores it.
+            isOffline = (lookupError == .networkUnavailable)
+            searchError = isOffline ? nil : lookupError.errorDescription
         } catch {
             guard !Task.isCancelled, trimmed == debouncedQuery else { return }
             results = []
+            isOffline = false
             searchError = error.localizedDescription
         }
     }

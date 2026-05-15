@@ -374,6 +374,42 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(MealCategory.auto(for: lateNight), .snack)
     }
 
+    func test_offRateLimiter_allowsUpToCapThenDenies() async {
+        // 3 calls / 60-second window — easier to assert than the
+        // production 8/60s config without changing the algorithm.
+        let limiter = OFFRateLimiter(maxRequests: 3, windowSeconds: 60)
+        let now = Date()
+        let a = await limiter.requestSlot(now: now)
+        let b = await limiter.requestSlot(now: now.addingTimeInterval(1))
+        let c = await limiter.requestSlot(now: now.addingTimeInterval(2))
+        let d = await limiter.requestSlot(now: now.addingTimeInterval(3))
+        XCTAssertEqual(a, .allowed)
+        XCTAssertEqual(b, .allowed)
+        XCTAssertEqual(c, .allowed)
+        if case .denied(let retry) = d {
+            XCTAssertGreaterThanOrEqual(retry, 1)
+            XCTAssertLessThanOrEqual(retry, 60)
+        } else {
+            XCTFail("Expected fourth call to be denied")
+        }
+    }
+
+    func test_offRateLimiter_releasesSlotAfterWindowExpires() async {
+        let limiter = OFFRateLimiter(maxRequests: 2, windowSeconds: 30)
+        let t0 = Date()
+        _ = await limiter.requestSlot(now: t0)
+        _ = await limiter.requestSlot(now: t0.addingTimeInterval(1))
+        // Inside the window — should still be denied.
+        let stillFull = await limiter.requestSlot(now: t0.addingTimeInterval(15))
+        guard case .denied = stillFull else {
+            XCTFail("Expected denied at t+15s inside the 30s window")
+            return
+        }
+        // Past the window — oldest slot has aged out, next call passes.
+        let past = await limiter.requestSlot(now: t0.addingTimeInterval(31))
+        XCTAssertEqual(past, .allowed)
+    }
+
     func test_userProfile_healthKitNutritionEnabled_defaultsOffAndRoundTrips() throws {
         // Default: opt-in flag is off so a fresh install never writes
         // to Apple Health silently.
