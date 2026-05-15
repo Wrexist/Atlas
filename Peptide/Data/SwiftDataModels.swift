@@ -352,7 +352,8 @@ final class StoredProfile {
             outcomeHistory: ext.outcomeHistory,
             labHistory: ext.labHistory,
             lastKnownTimezoneIdentifier: ext.lastKnownTimezoneIdentifier,
-            streakFreezeDays: Set(ext.streakFreezeDays)
+            streakFreezeDays: Set(ext.streakFreezeDays),
+            recipes: ext.recipes
         )
     }
 }
@@ -386,6 +387,7 @@ private struct ProfileExtension: Codable {
     /// Encoded as `[String]` so the on-disk JSON has a
     /// deterministic shape; `toUserProfile` collapses back to Set.
     var streakFreezeDays: [String] = []
+    var recipes: [Recipe] = []
 
     static let empty = ProfileExtension()
 
@@ -405,7 +407,8 @@ private struct ProfileExtension: Codable {
             outcomeHistory: profile.outcomeHistory,
             labHistory: profile.labHistory,
             lastKnownTimezoneIdentifier: profile.lastKnownTimezoneIdentifier,
-            streakFreezeDays: Array(profile.streakFreezeDays).sorted()
+            streakFreezeDays: Array(profile.streakFreezeDays).sorted(),
+            recipes: profile.recipes
         )
     }
 }

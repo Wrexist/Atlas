@@ -311,6 +311,12 @@ struct UserProfile: Codable {
     /// matched the engine's day key; strings are unambiguous and
     /// human-readable in the JSON dump.
     var streakFreezeDays: Set<String>
+    /// Saved recipes — named combinations of one or more foods.
+    /// Lets the user one-tap-log a composite meal ("breakfast
+    /// bowl") that would otherwise require several separate
+    /// food-library taps. Newest-first by updatedAt so the recipe
+    /// list reads "what I just edited" on top.
+    var recipes: [Recipe]
 
     init(
         name: String,
@@ -338,7 +344,8 @@ struct UserProfile: Codable {
         outcomeHistory: [OutcomeEntry] = [],
         labHistory: [LabValue] = [],
         lastKnownTimezoneIdentifier: String? = nil,
-        streakFreezeDays: Set<String> = []
+        streakFreezeDays: Set<String> = [],
+        recipes: [Recipe] = []
     ) {
         self.name = name
         self.goals = goals
@@ -366,6 +373,7 @@ struct UserProfile: Codable {
         self.labHistory = labHistory
         self.lastKnownTimezoneIdentifier = lastKnownTimezoneIdentifier
         self.streakFreezeDays = streakFreezeDays
+        self.recipes = recipes
     }
 
     init(from decoder: Decoder) throws {
@@ -400,6 +408,7 @@ struct UserProfile: Codable {
         streakFreezeDays = Set(
             try container.decodeIfPresent([String].self, forKey: .streakFreezeDays) ?? []
         )
+        recipes = try container.decodeIfPresent([Recipe].self, forKey: .recipes) ?? []
     }
 
     static var fresh: UserProfile {

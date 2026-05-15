@@ -48,6 +48,12 @@ struct FoodLibraryFlow: View {
     @State private var loggedSnapshot: LoggedSnapshot?
     @State private var editingCustomFood: CustomFood?
     @State private var pendingDelete: CustomFood?
+    @State private var editingRecipe: Recipe?
+    @State private var pendingRecipeDelete: Recipe?
+    /// Recipe waiting on a category-pick before logging. Drives a
+    /// quick MealCategoryPicker confirm step that defaults to the
+    /// time-of-day auto-category but lets the user re-route.
+    @State private var pendingRecipeLog: Recipe?
     /// Cached `ScannedProduct`s pulled from `BarcodeProductCache` for
     /// every favorited OFF barcode. Populated when the user lands on
     /// the Favorites tab so the list paints without a search round-
@@ -118,6 +124,7 @@ struct FoodLibraryFlow: View {
         case all = "All"
         case favorites = "Favorites"
         case myFoods = "My Foods"
+        case recipes = "Recipes"
         var id: String { rawValue }
 
         var icon: String {
@@ -125,6 +132,7 @@ struct FoodLibraryFlow: View {
             case .all:       "magnifyingglass"
             case .favorites: "star.fill"
             case .myFoods:   "person.crop.rectangle.stack"
+            case .recipes:   "list.bullet.rectangle.fill"
             }
         }
     }
@@ -249,6 +257,50 @@ struct FoodLibraryFlow: View {
             Button("Cancel", role: .cancel) { pendingDelete = nil }
         } message: { _ in
             Text("Past logs aren't affected — only the food itself disappears from your library.")
+        }
+        .sheet(item: $editingRecipe) { recipe in
+            RecipeEditorSheet(
+                initial: recipe,
+                availableCustomFoods: profile.customFoods,
+                onSave: { saved in
+                    dataStore.saveRecipe(saved)
+                    editingRecipe = nil
+                    tab = .recipes
+                },
+                onDelete: profile.recipes.contains(where: { $0.id == recipe.id }) ? { id in
+                    dataStore.deleteRecipe(id: id)
+                    editingRecipe = nil
+                } : nil,
+                onCancel: { editingRecipe = nil }
+            )
+        }
+        .confirmationDialog(
+            "Delete this recipe?",
+            isPresented: Binding(
+                get: { pendingRecipeDelete != nil },
+                set: { if !$0 { pendingRecipeDelete = nil } }
+            ),
+            presenting: pendingRecipeDelete
+        ) { recipe in
+            Button("Delete \(recipe.name)", role: .destructive) {
+                dataStore.deleteRecipe(id: recipe.id)
+                pendingRecipeDelete = nil
+            }
+            Button("Cancel", role: .cancel) { pendingRecipeDelete = nil }
+        } message: { _ in
+            Text("Past meal logs aren't affected — only the recipe disappears from your library.")
+        }
+        .sheet(item: $pendingRecipeLog) { recipe in
+            RecipeLogConfirmSheet(
+                recipe: recipe,
+                customFoods: profile.customFoods,
+                onLog: { category in
+                    dataStore.logRecipe(recipe, category: category, at: Date())
+                    pendingRecipeLog = nil
+                    onClose()
+                },
+                onCancel: { pendingRecipeLog = nil }
+            )
         }
     }
 
@@ -417,7 +469,109 @@ struct FoodLibraryFlow: View {
         case .all:        allTabBody
         case .favorites:  favoritesTabBody
         case .myFoods:    myFoodsTabBody
+        case .recipes:    recipesTabBody
         }
+    }
+
+    @ViewBuilder
+    private var recipesTabBody: some View {
+        if profile.recipes.isEmpty {
+            emptyState(
+                icon: "list.bullet.rectangle.fill",
+                title: "No recipes yet",
+                body: "Combine your custom foods into a named recipe — log a multi-ingredient meal in one tap."
+            )
+            Button {
+                editingRecipe = Recipe(name: "")
+            } label: {
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Build a recipe")
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppColor.accentPrimary)
+            .padding(.top, Spacing.sm)
+        } else {
+            sectionHeader("Your recipes (\(profile.recipes.count))")
+            ForEach(profile.recipes) { recipe in
+                recipeRow(recipe)
+            }
+            Button {
+                editingRecipe = Recipe(name: "")
+            } label: {
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "plus.circle")
+                    Text("Add a recipe")
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Spacing.sm)
+            }
+            .buttonStyle(.bordered)
+            .tint(AppColor.accentLight)
+            .padding(.top, Spacing.xs)
+        }
+    }
+
+    private func recipeRow(_ recipe: Recipe) -> some View {
+        let totals = RecipeDataLogic.totals(
+            for: recipe,
+            customFoods: profile.customFoods
+        )
+        return Button {
+            // Tap row → schedule the log (with auto-category).
+            // The category picker confirms.
+            pendingRecipeLog = recipe
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .fill(AppColor.accentLight.opacity(0.18))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "list.bullet.rectangle.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(AppColor.accentLight)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(recipe.name.isEmpty ? "(unnamed)" : recipe.name)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(AppColor.textPrimary)
+                        .lineLimit(1)
+                    Text("\(recipe.components.count) item\(recipe.components.count == 1 ? "" : "s") · \(totals.calories) kcal")
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppColor.textSecondary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
+            }
+            .padding(Spacing.md)
+            .background {
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .fill(AppColor.accentPrimary.opacity(0.10))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                            .strokeBorder(AppColor.accentPrimary.opacity(0.30), lineWidth: 0.5)
+                    }
+            }
+        }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        .contextMenu {
+            Button {
+                editingRecipe = recipe
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            Button(role: .destructive) {
+                pendingRecipeDelete = recipe
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(recipe.name), \(recipe.components.count) ingredients, \(totals.calories) calories. Tap to log.")
     }
 
     @ViewBuilder

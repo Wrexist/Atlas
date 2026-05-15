@@ -965,6 +965,44 @@ final class DataStore: DataServiceProtocol {
         return applied
     }
 
+    // MARK: - Recipes
+
+    /// Saves a new recipe or replaces an existing one (matched by
+    /// id). Bumps `updatedAt` so the list re-sorts to put the
+    /// just-edited recipe on top.
+    func saveRecipe(_ recipe: Recipe) {
+        RecipeDataLogic.saveRecipe(into: &profile, recipe: recipe)
+        save()
+    }
+
+    /// Removes one recipe by id. Idempotent.
+    func deleteRecipe(id: UUID) {
+        RecipeDataLogic.deleteRecipe(from: &profile, id: id)
+        save()
+    }
+
+    /// Logs a recipe as a single `MealEntry` summing every
+    /// component's macros. The entry's `name` is the recipe name
+    /// so the meal-history list reads "Morning bowl" rather than
+    /// the comma-joined ingredient list. Source tagged as
+    /// `.custom` since recipes are user-defined compositions.
+    func logRecipe(_ recipe: Recipe, category: MealCategory? = nil, at date: Date = Date()) {
+        let totals = RecipeDataLogic.totals(
+            for: recipe,
+            customFoods: profile.customFoods
+        )
+        let chosenCategory = category ?? MealCategory.auto(for: date)
+        let entry = MealEntry(
+            loggable: totals,
+            name: recipe.name,
+            category: chosenCategory,
+            source: .custom,
+            sourceID: nil,
+            date: date
+        )
+        logMealEntry(entry)
+    }
+
     // MARK: - Food library
 
     /// Adds (or replaces) a user-defined food in the library. Replace

@@ -956,6 +956,72 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertNotNil(BiometricCorrelationEngine.headline(from: [bad, good]))
     }
 
+    func test_recipeTotals_sumsResolvedComponents() {
+        let oats = CustomFood(
+            name: "Oats", per100g: ScannedProduct.Nutriments(
+                calories: 380, proteinG: 13, carbsG: 67, fatG: 7, fiberG: 10, sugarsG: 1
+            ),
+            servingGrams: nil
+        )
+        let banana = CustomFood(
+            name: "Banana", per100g: ScannedProduct.Nutriments(
+                calories: 89, proteinG: 1, carbsG: 23, fatG: 0, fiberG: 3, sugarsG: 12
+            ),
+            servingGrams: nil
+        )
+        // 80g oats + 100g banana
+        let recipe = Recipe(
+            name: "Morning bowl",
+            components: [
+                Recipe.Component(foodID: oats.foodID, cachedName: "Oats", portion: .grams(80)),
+                Recipe.Component(foodID: banana.foodID, cachedName: "Banana", portion: .grams(100)),
+            ]
+        )
+        let totals = RecipeDataLogic.totals(
+            for: recipe,
+            customFoods: [oats, banana]
+        )
+        // 380 * 0.8 = 304 + 89 = 393. Allow ±1 for rounding.
+        XCTAssertEqual(totals.calories, 393, accuracy: 1)
+        XCTAssertEqual(totals.proteinG, 11, accuracy: 1)
+    }
+
+    func test_recipeTotals_skipsMissingComponentsWithoutCrashing() {
+        let oats = CustomFood(
+            name: "Oats", per100g: ScannedProduct.Nutriments(
+                calories: 380, proteinG: 13, carbsG: 67, fatG: 7, fiberG: nil, sugarsG: nil
+            )
+        )
+        // Reference a foodID that isn't in the customFoods list —
+        // simulates a deleted custom food. Should drop to 0
+        // contribution, not crash.
+        let recipe = Recipe(
+            name: "Half-broken",
+            components: [
+                Recipe.Component(foodID: oats.foodID, cachedName: "Oats", portion: .grams(100)),
+                Recipe.Component(foodID: "custom:99999999-9999-9999-9999-999999999999", cachedName: "Ghost", portion: .grams(50)),
+            ]
+        )
+        let totals = RecipeDataLogic.totals(for: recipe, customFoods: [oats])
+        XCTAssertEqual(totals.calories, 380)   // only the oats contributed
+    }
+
+    func test_saveRecipe_replacesById_andSortsByUpdatedAt() {
+        var profile = UserProfile.fresh
+        let id = UUID()
+        let initial = Recipe(id: id, name: "First")
+        let other = Recipe(name: "Other")
+        RecipeDataLogic.saveRecipe(into: &profile, recipe: initial)
+        RecipeDataLogic.saveRecipe(into: &profile, recipe: other)
+        XCTAssertEqual(profile.recipes.count, 2)
+        XCTAssertEqual(profile.recipes.first?.id, other.id, "Newest by updatedAt sorts first")
+
+        let revised = Recipe(id: id, name: "First (renamed)")
+        RecipeDataLogic.saveRecipe(into: &profile, recipe: revised)
+        XCTAssertEqual(profile.recipes.count, 2, "Should replace by id, not duplicate")
+        XCTAssertEqual(profile.recipes.first?.id, id, "Just-edited recipe sorts back to top")
+    }
+
     func test_offRateLimiter_allowsUpToCapThenDenies() async {
         // 3 calls / 60-second window — easier to assert than the
         // production 8/60s config without changing the algorithm.
