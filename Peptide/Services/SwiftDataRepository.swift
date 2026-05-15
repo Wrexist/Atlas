@@ -47,6 +47,8 @@ final class SwiftDataRepository {
             let config = ModelConfiguration(cloudKitDatabase: .private("iCloud.com.peptidesai.app"))
             let container = try ModelContainer(
                 for: StoredProtocol.self, StoredEntry.self, StoredProfile.self,
+                StoredWorkoutSession.self, StoredCustomExercise.self,
+                StoredRoutine.self, StoredPersonalRecord.self,
                 configurations: config
             )
             AppLog.swiftData.info("Using CloudKit-backed store")
@@ -60,7 +62,9 @@ final class SwiftDataRepository {
     private static func makeLocalContainer() -> ModelContainer? {
         do {
             return try ModelContainer(
-                for: StoredProtocol.self, StoredEntry.self, StoredProfile.self
+                for: StoredProtocol.self, StoredEntry.self, StoredProfile.self,
+                StoredWorkoutSession.self, StoredCustomExercise.self,
+                StoredRoutine.self, StoredPersonalRecord.self
             )
         } catch {
             AppLog.swiftData.error("Failed to create persistent ModelContainer: \(error.localizedDescription, privacy: .public)")
@@ -73,6 +77,8 @@ final class SwiftDataRepository {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
             return try ModelContainer(
                 for: StoredProtocol.self, StoredEntry.self, StoredProfile.self,
+                StoredWorkoutSession.self, StoredCustomExercise.self,
+                StoredRoutine.self, StoredPersonalRecord.self,
                 configurations: config
             )
         } catch {
@@ -97,6 +103,10 @@ final class SwiftDataRepository {
             try context.delete(model: StoredProtocol.self)
             try context.delete(model: StoredEntry.self)
             try context.delete(model: StoredProfile.self)
+            try context.delete(model: StoredWorkoutSession.self)
+            try context.delete(model: StoredCustomExercise.self)
+            try context.delete(model: StoredRoutine.self)
+            try context.delete(model: StoredPersonalRecord.self)
             try context.save()
         } catch {
             AppLog.swiftData.error("deleteAll failed: \(error.localizedDescription, privacy: .public)")
@@ -267,6 +277,231 @@ final class SwiftDataRepository {
         }
     }
 
+    // MARK: - Workout sessions
+
+    /// Upserts a single workout session. Used by the live workout
+    /// screen as the user checks sets — one call per save event. The
+    /// `commit()` call inside flushes the SwiftData context so widgets
+    /// and the watch see the change without an extra round-trip.
+    func upsertWorkoutSession(_ session: WorkoutSession) {
+        guard let context else { return }
+        let sessionID = session.id
+        let descriptor = FetchDescriptor<StoredWorkoutSession>(
+            predicate: #Predicate { $0.id == sessionID }
+        )
+        do {
+            if let existing = try context.fetch(descriptor).first {
+                try existing.update(from: session)
+            } else {
+                let stored = try StoredWorkoutSession.make(from: session)
+                context.insert(stored)
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("upsert workout session failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func deleteWorkoutSession(id: UUID) {
+        guard let context else { return }
+        let targetID = id
+        let descriptor = FetchDescriptor<StoredWorkoutSession>(
+            predicate: #Predicate { $0.id == targetID }
+        )
+        do {
+            for stored in try context.fetch(descriptor) {
+                context.delete(stored)
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("delete workout session failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func loadWorkoutSessions() -> [WorkoutSession] {
+        guard let context else { return [] }
+        let descriptor = FetchDescriptor<StoredWorkoutSession>(
+            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
+        )
+        do {
+            let stored = try context.fetch(descriptor)
+            return stored.compactMap {
+                do {
+                    return try $0.toWorkoutSession()
+                } catch {
+                    AppLog.swiftData.error("Decode StoredWorkoutSession failed: \(error.localizedDescription, privacy: .public)")
+                    return nil
+                }
+            }
+        } catch {
+            AppLog.swiftData.error("Load workout sessions failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    /// Fetches the single in-progress session if one exists.
+    /// `WorkoutSessionService` invariant: at most one session has
+    /// `finishedAt == nil` at any time.
+    func loadActiveWorkoutSession() -> WorkoutSession? {
+        guard let context else { return nil }
+        let descriptor = FetchDescriptor<StoredWorkoutSession>(
+            predicate: #Predicate { $0.finishedAt == nil },
+            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
+        )
+        do {
+            return try context.fetch(descriptor).first.flatMap {
+                try? $0.toWorkoutSession()
+            }
+        } catch {
+            AppLog.swiftData.error("Load active workout failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    // MARK: - Custom exercises
+
+    func upsertCustomExercise(_ exercise: CustomExercise) {
+        guard let context else { return }
+        let id = exercise.id
+        let descriptor = FetchDescriptor<StoredCustomExercise>(
+            predicate: #Predicate { $0.id == id }
+        )
+        do {
+            if let existing = try context.fetch(descriptor).first {
+                try existing.update(from: exercise)
+            } else {
+                let stored = try StoredCustomExercise.make(from: exercise)
+                context.insert(stored)
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("upsert custom exercise failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func deleteCustomExercise(id: String) {
+        guard let context else { return }
+        let descriptor = FetchDescriptor<StoredCustomExercise>(
+            predicate: #Predicate { $0.id == id }
+        )
+        do {
+            for stored in try context.fetch(descriptor) {
+                context.delete(stored)
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("delete custom exercise failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func loadCustomExercises() -> [CustomExercise] {
+        guard let context else { return [] }
+        let descriptor = FetchDescriptor<StoredCustomExercise>(
+            sortBy: [SortDescriptor(\.name, order: .forward)]
+        )
+        do {
+            return try context.fetch(descriptor).compactMap {
+                do {
+                    return try $0.toCustomExercise()
+                } catch {
+                    AppLog.swiftData.error("Decode StoredCustomExercise failed: \(error.localizedDescription, privacy: .public)")
+                    return nil
+                }
+            }
+        } catch {
+            AppLog.swiftData.error("Load custom exercises failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    // MARK: - Routines
+
+    func upsertRoutine(_ routine: Routine) {
+        guard let context else { return }
+        let routineID = routine.id
+        let descriptor = FetchDescriptor<StoredRoutine>(
+            predicate: #Predicate { $0.id == routineID }
+        )
+        do {
+            if let existing = try context.fetch(descriptor).first {
+                try existing.update(from: routine)
+            } else {
+                let stored = try StoredRoutine.make(from: routine)
+                context.insert(stored)
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("upsert routine failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func deleteRoutine(id: UUID) {
+        guard let context else { return }
+        let targetID = id
+        let descriptor = FetchDescriptor<StoredRoutine>(
+            predicate: #Predicate { $0.id == targetID }
+        )
+        do {
+            for stored in try context.fetch(descriptor) {
+                context.delete(stored)
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("delete routine failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func loadRoutines() -> [Routine] {
+        guard let context else { return [] }
+        let descriptor = FetchDescriptor<StoredRoutine>(
+            sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
+        )
+        do {
+            return try context.fetch(descriptor).compactMap {
+                do {
+                    return try $0.toRoutine()
+                } catch {
+                    AppLog.swiftData.error("Decode StoredRoutine failed: \(error.localizedDescription, privacy: .public)")
+                    return nil
+                }
+            }
+        } catch {
+            AppLog.swiftData.error("Load routines failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    // MARK: - Personal records
+
+    func upsertPersonalRecord(_ record: PersonalRecord) {
+        guard let context else { return }
+        let id = record.exerciseID
+        let descriptor = FetchDescriptor<StoredPersonalRecord>(
+            predicate: #Predicate { $0.exerciseID == id }
+        )
+        do {
+            if let existing = try context.fetch(descriptor).first {
+                existing.update(from: record)
+            } else {
+                context.insert(StoredPersonalRecord.make(from: record))
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("upsert PR failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func loadPersonalRecords() -> [PersonalRecord] {
+        guard let context else { return [] }
+        do {
+            return try context.fetch(FetchDescriptor<StoredPersonalRecord>())
+                .map { $0.toPersonalRecord() }
+        } catch {
+            AppLog.swiftData.error("Load PRs failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
     // MARK: - State
 
     var hasAnyData: Bool {
@@ -275,6 +510,9 @@ final class SwiftDataRepository {
             { try context.fetchCount(FetchDescriptor<StoredProtocol>()) },
             { try context.fetchCount(FetchDescriptor<StoredEntry>()) },
             { try context.fetchCount(FetchDescriptor<StoredProfile>()) },
+            { try context.fetchCount(FetchDescriptor<StoredWorkoutSession>()) },
+            { try context.fetchCount(FetchDescriptor<StoredCustomExercise>()) },
+            { try context.fetchCount(FetchDescriptor<StoredRoutine>()) },
         ]
         for descriptor in descriptors {
             do {
