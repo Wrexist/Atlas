@@ -828,7 +828,9 @@ final class DataStore: DataServiceProtocol {
 
     /// Adds (or replaces) a user-defined food in the library. Replace
     /// matches on `id` so editing an existing food round-trips through
-    /// the same call.
+    /// the same call. After saving, fires a background reindex so the
+    /// new food is searchable from device Spotlight on the next pull-
+    /// down.
     func saveCustomFood(_ food: CustomFood) {
         var updated = food
         updated.updatedAt = Date()
@@ -838,19 +840,24 @@ final class DataStore: DataServiceProtocol {
             profile.customFoods.insert(updated, at: 0)
         }
         save()
+        reindexFoodLibraryInBackground()
     }
 
     /// Removes a custom food and its favorite-set membership in one
     /// pass so the favorites tab can't keep a dangling reference.
+    /// Pulls the matching Spotlight item synchronously so a search
+    /// the moment after delete can't surface a dangling result.
     func deleteCustomFood(id: UUID) {
         profile.customFoods.removeAll { $0.id == id }
         profile.favoriteFoodIDs.remove("custom:\(id.uuidString)")
         save()
+        Task { await FoodSpotlightService.shared.removeCustomFood(id: id) }
     }
 
     /// Flips the favorite flag for a food ID (OFF barcode or
     /// `custom:<uuid>`). Idempotent — calling twice returns to the
-    /// original state.
+    /// original state. Reindexes Spotlight on the change so favorites
+    /// surface (or stop surfacing) in the device search.
     func toggleFavoriteFood(id: String) {
         if profile.favoriteFoodIDs.contains(id) {
             profile.favoriteFoodIDs.remove(id)
@@ -858,6 +865,37 @@ final class DataStore: DataServiceProtocol {
             profile.favoriteFoodIDs.insert(id)
         }
         save()
+        reindexFoodLibraryInBackground()
+    }
+
+    /// Fire-and-forget Spotlight reindex. Pulls cached OFF favorites
+    /// off `BarcodeProductCache` so they index with their full name +
+    /// brand + thumbnail. Failures log but don't propagate — Spotlight
+    /// is a nice-to-have surface, never a critical-path dependency.
+    private func reindexFoodLibraryInBackground() {
+        let snapshot = profile
+        let offIDs = profile.favoriteFoodIDs.filter { !$0.hasPrefix("custom:") }
+        Task {
+            var cached: [ScannedProduct] = []
+            cached.reserveCapacity(offIDs.count)
+            for id in offIDs {
+                if let product = await BarcodeProductCache.shared.read(barcode: id) {
+                    cached.append(product)
+                }
+            }
+            await FoodSpotlightService.shared.reindex(
+                profile: snapshot,
+                cachedFavorites: cached
+            )
+        }
+    }
+
+    /// Public entry point for the app-launch hydration in `PeptideApp`.
+    /// Kicks the same fire-and-forget reindex pipeline so a fresh
+    /// install or a CloudKit pull on a new device populates Spotlight
+    /// without forcing the user to edit any food.
+    func reindexFoodSpotlight() {
+        reindexFoodLibraryInBackground()
     }
 
     func isFavoriteFood(id: String) -> Bool {
@@ -1028,9 +1066,17 @@ final class DataStore: DataServiceProtocol {
     /// Builds a snapshot via `WidgetSnapshotBuilder` and pushes it through
     /// the persistence + WidgetCenter side effects. The pure transform
     /// lives in the builder so a snapshot regression is testable without
-    /// standing up `DataStore` + `PersistenceService`.
+    /// standing up `DataStore` + `PersistenceService`. Nutrition is
+    /// pulled live from the profile so the nutrition widget reflects
+    /// the same numbers the Lifestyle tab shows.
     private func updateWidgetData() {
-        let data = WidgetSnapshotBuilder.build(today: todayEntries, next: nextDose)
+        let data = WidgetSnapshotBuilder.build(
+            today: todayEntries,
+            next: nextDose,
+            consumption: LifestyleDataLogic.consumption(in: profile, for: Date()),
+            targets: profile.nutritionTargets,
+            breakdown: LifestyleDataLogic.mealsByCategory(in: profile, for: Date())
+        )
         PersistenceService.shared.updateWidgetData(data)
         WidgetCenter.shared.reloadAllTimelines()
     }

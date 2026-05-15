@@ -72,6 +72,15 @@ struct PeptideApp: App {
                     HealthKitService.shared.stopBackgroundDelivery()
                 }
             }
+            .task {
+                // One-shot Spotlight reindex on app start. Custom foods
+                // and favorites stay in sync via DataStore mutation
+                // hooks, but a fresh install or a CloudKit pull on a
+                // second device needs this to seed the index — without
+                // it, the user wouldn't see their library in Spotlight
+                // until they next edited a food.
+                dataStore.reindexFoodSpotlight()
+            }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background {
