@@ -333,6 +333,12 @@ struct UserProfile: Codable, Sendable {
     /// write to the most-recent 26 weeks so the JSON stays small
     /// (~13 KB at full cap).
     var weeklySummaries: [String: WeeklySummary]
+    /// Training preferences (days/week, equipment access, plate
+    /// inventory, rest-timer default, auto-progression toggle).
+    /// Populated by the redesigned onboarding's "Activity & schedule"
+    /// + "Equipment access" steps; nil for profiles created before
+    /// the training pivot.
+    var trainingPreferences: TrainingPreferences?
 
     init(
         name: String,
@@ -364,7 +370,8 @@ struct UserProfile: Codable, Sendable {
         recipes: [Recipe] = [],
         protocolNotes: [ProtocolNote] = [],
         weeklySummaryEnabled: Bool = true,
-        weeklySummaries: [String: WeeklySummary] = [:]
+        weeklySummaries: [String: WeeklySummary] = [:],
+        trainingPreferences: TrainingPreferences? = nil
     ) {
         self.name = name
         self.goals = goals
@@ -396,6 +403,7 @@ struct UserProfile: Codable, Sendable {
         self.protocolNotes = protocolNotes
         self.weeklySummaryEnabled = weeklySummaryEnabled
         self.weeklySummaries = weeklySummaries
+        self.trainingPreferences = trainingPreferences
     }
 
     init(from decoder: Decoder) throws {
@@ -434,6 +442,7 @@ struct UserProfile: Codable, Sendable {
         protocolNotes = try container.decodeIfPresent([ProtocolNote].self, forKey: .protocolNotes) ?? []
         weeklySummaryEnabled = try container.decodeIfPresent(Bool.self, forKey: .weeklySummaryEnabled) ?? true
         weeklySummaries = try container.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries) ?? [:]
+        trainingPreferences = try container.decodeIfPresent(TrainingPreferences.self, forKey: .trainingPreferences)
     }
 
     static var fresh: UserProfile {

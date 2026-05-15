@@ -354,7 +354,8 @@ final class StoredProfile {
             lastKnownTimezoneIdentifier: ext.lastKnownTimezoneIdentifier,
             streakFreezeDays: Set(ext.streakFreezeDays),
             recipes: ext.recipes,
-            protocolNotes: ext.protocolNotes
+            protocolNotes: ext.protocolNotes,
+            trainingPreferences: ext.trainingPreferences
         )
     }
 }
@@ -390,6 +391,10 @@ private struct ProfileExtension: Codable {
     var streakFreezeDays: [String] = []
     var recipes: [Recipe] = []
     var protocolNotes: [ProtocolNote] = []
+    /// Training prefs from the redesigned onboarding. Optional so
+    /// pre-pivot blobs decode cleanly and `toUserProfile` leaves the
+    /// profile field nil for older accounts.
+    var trainingPreferences: TrainingPreferences? = nil
 
     static let empty = ProfileExtension()
 
@@ -411,7 +416,8 @@ private struct ProfileExtension: Codable {
             lastKnownTimezoneIdentifier: profile.lastKnownTimezoneIdentifier,
             streakFreezeDays: Array(profile.streakFreezeDays).sorted(),
             recipes: profile.recipes,
-            protocolNotes: profile.protocolNotes
+            protocolNotes: profile.protocolNotes,
+            trainingPreferences: profile.trainingPreferences
         )
     }
 }
