@@ -27,17 +27,19 @@ final class AppState {
 
 /// Discriminated identifier for the Spotlight deep-link payload.
 /// Mirrors the namespacing in `FoodSpotlightService` — OFF favorites
-/// carry a barcode, custom foods carry a UUID. The receiving view
-/// pattern-matches on the case to resolve which path to take.
+/// carry a barcode, custom foods carry a UUID, recipes carry a
+/// recipe UUID. The receiving view pattern-matches on the case to
+/// resolve which path to take.
 enum FoodLogDeepLink: Equatable, Sendable {
     case openFoodFacts(barcode: String)
     case custom(id: UUID)
+    case recipe(id: UUID)
 
-    /// Parse a `peptidex-food/...` identifier emitted by
-    /// `FoodSpotlightService.identifier(forCustomFoodID:)` /
-    /// `.identifier(forBarcode:)`. Returns nil for any string that
-    /// doesn't match either scheme — caller falls through and the
-    /// app opens to its default view.
+    /// Parse a `peptidex-food/...` identifier emitted by the
+    /// matching `FoodSpotlightService.identifier(...)` builder.
+    /// Returns nil for any string that doesn't match a known
+    /// scheme — caller falls through and the app opens to its
+    /// default view.
     init?(spotlightIdentifier: String) {
         let parts = spotlightIdentifier.split(separator: "/")
         guard parts.count == 3,
@@ -51,6 +53,9 @@ enum FoodLogDeepLink: Equatable, Sendable {
         case "off":
             guard !payload.isEmpty else { return nil }
             self = .openFoodFacts(barcode: payload)
+        case "recipe":
+            guard let uuid = UUID(uuidString: payload) else { return nil }
+            self = .recipe(id: uuid)
         default:
             return nil
         }

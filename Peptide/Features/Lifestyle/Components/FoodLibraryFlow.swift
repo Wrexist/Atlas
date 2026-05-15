@@ -1767,6 +1767,17 @@ struct FoodLibraryFlow: View {
                 guard !Task.isCancelled else { return }
                 searchError = error.localizedDescription
             }
+
+        case .recipe(let uuid):
+            // Recipe deep-link routes to the confirm sheet rather
+            // than the per-food review screen — recipes are
+            // composed lists, not single products.
+            guard let recipe = profile.recipes.first(where: { $0.id == uuid }) else {
+                searchError = String(localized: "That recipe is no longer in your library.")
+                return
+            }
+            tab = .recipes
+            pendingRecipeLog = recipe
         }
     }
 

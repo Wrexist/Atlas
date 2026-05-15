@@ -33,19 +33,22 @@ final class FoodSpotlightService: Sendable {
         self.isAvailable = CSSearchableIndex.isIndexingAvailable()
     }
 
-    /// Full reindex of every custom food + favorited OFF product the
-    /// user has. Called at app launch + on every food-library write
-    /// so the Spotlight surface stays consistent with in-app state.
+    /// Full reindex of every custom food + favorited OFF product +
+    /// recipe the user has. Called at app launch + on every food-
+    /// library / recipe write so the Spotlight surface stays
+    /// consistent with in-app state.
     ///
-    /// Cheaper than the name implies — CoreSpotlight de-duplicates by
-    /// uniqueIdentifier and the operation is async + transactional,
+    /// Cheaper than the name implies — CoreSpotlight de-duplicates
+    /// by uniqueIdentifier and the operation is async + transactional,
     /// so a re-index call during normal use is roughly a constant
     /// few hundred microseconds plus the kernel write.
     func reindex(profile: UserProfile, cachedFavorites: [ScannedProduct] = []) async {
         guard isAvailable else { return }
 
         var items: [CSSearchableItem] = []
-        items.reserveCapacity(profile.customFoods.count + cachedFavorites.count)
+        items.reserveCapacity(
+            profile.customFoods.count + cachedFavorites.count + profile.recipes.count
+        )
 
         for food in profile.customFoods {
             items.append(searchableItem(forCustomFood: food))
@@ -57,6 +60,10 @@ final class FoodSpotlightService: Sendable {
         // cross-actor hop from this service.
         for product in cachedFavorites where profile.favoriteFoodIDs.contains(product.barcode) {
             items.append(searchableItem(forFavorite: product))
+        }
+
+        for recipe in profile.recipes {
+            items.append(searchableItem(forRecipe: recipe, customFoods: profile.customFoods))
         }
 
         guard !items.isEmpty else {
@@ -122,6 +129,31 @@ final class FoodSpotlightService: Sendable {
         )
     }
 
+    private func searchableItem(forRecipe recipe: Recipe, customFoods: [CustomFood]) -> CSSearchableItem {
+        let attributes = CSSearchableItemAttributeSet(contentType: UTType.content)
+        attributes.title = recipe.name
+        let totals = RecipeDataLogic.totals(for: recipe, customFoods: customFoods)
+        // Subtitle reads "Recipe · 3 ingredients · 420 kcal" so a
+        // user searching "morning bowl" sees the macro shape
+        // before tapping in. Keeps the Spotlight cell informative.
+        attributes.contentDescription = String(
+            localized: "Recipe · \(recipe.components.count) ingredients · \(totals.calories) kcal",
+            comment: "Spotlight result subtitle for a recipe entry."
+        )
+        attributes.kind = String(localized: "Recipe", comment: "Spotlight `Type` label for a saved recipe.")
+        // Index ingredient names too so a search for "oats" surfaces
+        // every recipe that uses oats — useful when the user knows
+        // an ingredient but not which recipe they're thinking of.
+        var keywords: [String] = [recipe.name]
+        keywords.append(contentsOf: recipe.components.map(\.cachedName))
+        attributes.keywords = keywords
+        return CSSearchableItem(
+            uniqueIdentifier: Self.identifier(forRecipeID: recipe.id),
+            domainIdentifier: Self.domainIdentifier,
+            attributeSet: attributes
+        )
+    }
+
     private func searchableItem(forFavorite product: ScannedProduct) -> CSSearchableItem {
         let attributes = CSSearchableItemAttributeSet(contentType: UTType.content)
         attributes.title = product.name
@@ -160,6 +192,14 @@ final class FoodSpotlightService: Sendable {
     /// once deep-linking is wired.
     static func identifier(forBarcode barcode: String) -> String {
         "peptidex-food/off/\(barcode)"
+    }
+
+    /// Recipes get their own scheme so a future deep-link handler
+    /// routes "tapped a Spotlight recipe" to the recipe-log
+    /// confirm sheet rather than the food-review sheet — the two
+    /// flows are different even though they both end in a meal log.
+    static func identifier(forRecipeID id: UUID) -> String {
+        "peptidex-food/recipe/\(id.uuidString)"
     }
 
     private static func contentDescription(for n: ScannedProduct.Nutriments) -> String {

@@ -1022,6 +1022,14 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(profile.recipes.first?.id, id, "Just-edited recipe sorts back to top")
     }
 
+    func test_recipeSpotlightIdentifier_roundTripsThroughDeepLink() {
+        let id = UUID(uuidString: "44444444-4444-4444-4444-444444444444")!
+        let identifier = FoodSpotlightService.identifier(forRecipeID: id)
+        XCTAssertEqual(identifier, "peptidex-food/recipe/\(id.uuidString)")
+        let parsed = FoodLogDeepLink(spotlightIdentifier: identifier)
+        XCTAssertEqual(parsed, .recipe(id: id))
+    }
+
     func test_offRateLimiter_allowsUpToCapThenDenies() async {
         // 3 calls / 60-second window — easier to assert than the
         // production 8/60s config without changing the algorithm.

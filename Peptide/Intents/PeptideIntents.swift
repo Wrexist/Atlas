@@ -309,5 +309,14 @@ struct PeptideShortcuts: AppShortcutsProvider {
             shortTitle: "Log Meal",
             systemImageName: "fork.knife.circle.fill"
         )
+        AppShortcut(
+            intent: LogRecipeIntent(),
+            phrases: [
+                "Log a \(.applicationName) recipe",
+                "Log my recipe in \(.applicationName)",
+            ],
+            shortTitle: "Log Recipe",
+            systemImageName: "list.bullet.rectangle.fill"
+        )
     }
 }
