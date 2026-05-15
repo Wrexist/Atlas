@@ -94,7 +94,13 @@ extension DoseWindowAttributes.ContentState {
     /// the shared layer means the lock screen and the expanded
     /// Dynamic Island read the same enum without duplicating
     /// time-offset thresholds.
-    public enum Status: Equatable {
+    ///
+    /// Access level: internal. `/Shared` is compiled into both the
+    /// app and the widget-extension targets, so every member here
+    /// only needs to be reachable within each compiled module —
+    /// `public` would be vestigial and the compiler caps it at the
+    /// (internal) enclosing struct anyway.
+    enum Status: Equatable {
         /// More than 5 minutes before `doseTime`. Carries the
         /// rounded minute count so the widget can render "in 12 min"
         /// without re-doing the math.
@@ -120,7 +126,7 @@ extension DoseWindowAttributes.ContentState {
     /// Resolves the current status against `now`. Pure — same input
     /// always yields the same output so the widget renders are
     /// deterministic and unit-testable.
-    public func status(at now: Date = Date()) -> Status {
+    func status(at now: Date = Date()) -> Status {
         if completed { return .completed }
         let delta = doseTime.timeIntervalSince(now)
         let minutes = Int((abs(delta) / 60).rounded())
@@ -137,7 +143,7 @@ extension DoseWindowAttributes.ContentState {
     /// the ring fill on the lock screen and the expanded Dynamic
     /// Island. Clamped to [0,1] so the visual never overshoots once
     /// the user is past the scheduled time.
-    public func windowProgress(at now: Date = Date()) -> Double {
+    func windowProgress(at now: Date = Date()) -> Double {
         if completed { return 1.0 }
         let total = doseTime.timeIntervalSince(windowStart)
         guard total > 0 else { return 1.0 }
