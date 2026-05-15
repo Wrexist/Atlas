@@ -216,10 +216,11 @@ enum LifestyleDataLogic {
     }
 
     /// Soft cap on `mealHistory` so the profile blob can't grow
-    /// without bound. Picked generously — 5 meals/day × 730 days
-    /// ≈ 3650 entries × ~150 B serialized ≈ 550 KB. Plenty of
-    /// headroom for the typical user without bloating the CloudKit
-    /// record. Today's entries are always preserved.
+    /// without bound. 5 meals/day × 365 days × 2 years = 3,650
+    /// entries × ~150 B serialised ≈ 550 KB. Plenty of headroom for
+    /// the typical user without bloating the CloudKit record.
+    /// Today's entries are always preserved past the cap so the
+    /// rings can't lose data mid-day.
     static let maxMealHistoryEntries: Int = 3650
 
     private static func pruneMealHistoryIfNeeded(into profile: inout UserProfile) {

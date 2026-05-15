@@ -53,6 +53,26 @@ final class OpenFoodFactsService: Sendable {
     /// safety net.
     static let searchMaxPageSize: Int = 25
 
+    /// Minimum query length we'll hit OFF for. Shared with the UI
+    /// layer so both sides agree on what counts as "too short to
+    /// search".
+    static let minimumSearchQueryLength: Int = 2
+
+    /// In-memory search-cache TTL. 10 minutes absorbs a user typing
+    /// the same word twice in one session without inflating memory,
+    /// and short enough that re-opening the library after editing
+    /// favorites sees fresh ranking.
+    static let searchCacheTTL: TimeInterval = 10 * 60
+
+    /// Hard cap on cached queries. ~64 × ~5 KB each ≈ 320 KB upper
+    /// bound. Pathological tap-typing can't grow the cache past this.
+    static let searchCacheMaxEntries: Int = 64
+
+    /// Local sliding-window rate limit, one below OFF's documented
+    /// 10/min ceiling for safety. Cache hits bypass the limiter.
+    static let searchRateLimitMaxRequests: Int = 8
+    static let searchRateLimitWindowSeconds: TimeInterval = 60
+
     init(
         session: URLSession = .shared,
         cache: BarcodeProductCache = .shared,
@@ -173,7 +193,7 @@ final class OpenFoodFactsService: Sendable {
     /// branch the empty state the same way it does for a missed barcode.
     func search(query: String, pageSize: Int = 20) async throws -> [ScannedProduct] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count >= 2 else { return [] }
+        guard trimmed.count >= Self.minimumSearchQueryLength else { return [] }
 
         if let hit = await Self.searchCache.read(query: trimmed) {
             return hit
@@ -219,8 +239,7 @@ final class OpenFoodFactsService: Sendable {
         let response: URLResponse
         do {
             (data, response) = try await session.data(for: request)
-        } catch let urlError as URLError where urlError.code == .notConnectedToInternet
-                                            || urlError.code == .dataNotAllowed {
+        } catch let urlError as URLError where Self.isNetworkUnavailable(urlError) {
             throw LookupError.networkUnavailable
         } catch {
             throw LookupError.requestFailed(status: -1)
@@ -254,8 +273,8 @@ final class OpenFoodFactsService: Sendable {
 
         let fetchedAt = Date()
         let products: [ScannedProduct] = envelope.products.compactMap { raw in
-            guard let id = raw.code?.trimmingCharacters(in: .whitespaces).nonEmptyOrNil
-                    ?? raw.id?.trimmingCharacters(in: .whitespaces).nonEmptyOrNil
+            guard let id = raw.code?.trimmingCharacters(in: .whitespaces).nilIfEmpty
+                    ?? raw.id?.trimmingCharacters(in: .whitespaces).nilIfEmpty
             else { return nil }
             return raw.toScannedProduct(barcode: id, fetchedAt: fetchedAt)
         }
@@ -274,28 +293,21 @@ final class OpenFoodFactsService: Sendable {
     ] + requestedFields.split(separator: ",").map(String.init))
         .joined(separator: ",")
 
-    /// Process-lifetime query cache. 10-minute TTL is enough to absorb a
-    /// user typing the same word twice in one session without inflating
-    /// memory, and short enough that a re-open of the library after an
-    /// update sees fresh results. Capped to 64 distinct queries so
-    /// pathological tap-typing can't grow the cache without bound.
-    /// The actor type is `Sendable`, so the static let is safe in
-    /// Swift 6 without an explicit isolation annotation.
+    /// Process-lifetime query cache. Settings live as named constants
+    /// at the top of the type so a future tweak only requires
+    /// touching one place.
     private static let searchCache = SearchQueryCache(
-        ttl: 10 * 60,
-        maxEntries: 64
+        ttl: searchCacheTTL,
+        maxEntries: searchCacheMaxEntries
     )
 
-    /// Sliding-window throttle in front of `cgi/search.pl`. OFF
-    /// documents the search endpoint at 10 req/min/IP — debouncing
-    /// + the in-memory cache handle the typical typist, but a
-    /// determined power user (or a test harness, or a future
-    /// Shortcut intent firing in a loop) can still squeeze past
-    /// both. The limiter is consulted *after* the cache hit check,
-    /// so a cached repeat never spends budget.
+    /// Sliding-window throttle in front of `cgi/search.pl`. Consulted
+    /// *after* the cache hit check so cached repeats never spend
+    /// budget. See the top-of-type constants for the rationale on
+    /// the chosen window.
     static let searchRateLimiter = OFFRateLimiter(
-        maxRequests: 8,                // one below OFF's 10/min ceiling for safety
-        windowSeconds: 60
+        maxRequests: searchRateLimitMaxRequests,
+        windowSeconds: searchRateLimitWindowSeconds
     )
 
     static func isStale(_ product: ScannedProduct) -> Bool {
@@ -377,10 +389,35 @@ final class OpenFoodFactsService: Sendable {
         return trimmed
     }
 
-    private static let decoder: JSONDecoder = {
-        let d = JSONDecoder()
-        return d
-    }()
+    /// Shared decoder for the OFF response shapes. No date strategy
+    /// configured because OFF's product payloads carry no dates we
+    /// decode — `fetchedAt` is stamped client-side. Kept as a single
+    /// instance so we don't pay the (small) allocation cost on every
+    /// request.
+    private static let decoder = JSONDecoder()
+
+    /// Treat the standard "no path to the server" `URLError` codes as
+    /// offline rather than as generic request failures. Airplane
+    /// Mode, captive portals, mid-flight signal drop, and DNS-down
+    /// all surface through these codes; the UI pivots into "showing
+    /// cached results" mode rather than "lookup failed, try again".
+    private static func isNetworkUnavailable(_ error: URLError) -> Bool {
+        switch error.code {
+        case .notConnectedToInternet,
+             .dataNotAllowed,
+             .timedOut,
+             .networkConnectionLost,
+             .cannotConnectToHost,
+             .cannotFindHost,
+             .dnsLookupFailed,
+             .internationalRoamingOff,
+             .callIsActive,
+             .secureConnectionFailed:
+            return true
+        default:
+            return false
+        }
+    }
 }
 
 // MARK: - Wire types
@@ -458,10 +495,10 @@ private extension OpenFoodFactsService {
                 barcode: barcode,
                 name: resolvedName,
                 brand: brands?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    .nonEmptyOrNil,
+                    .nilIfEmpty,
                 imageURL: imageFrontSmallURL.flatMap { URL(string: $0) },
                 servingSizeText: servingSize?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    .nonEmptyOrNil,
+                    .nilIfEmpty,
                 // OFF occasionally serializes 0 for unknown weights —
                 // collapse to nil so `defaultPortion` correctly skips
                 // the .servings branch and the "Add" button stays live.
@@ -469,7 +506,7 @@ private extension OpenFoodFactsService {
                 packageGrams: productQuantity?.value.positiveOrNil,
                 per100g: per100,
                 nutriScore: nutriscoreGrade?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    .nonEmptyOrNil,
+                    .nilIfEmpty,
                 novaGroup: novaGroup?.value,
                 fetchedAt: fetchedAt
             )
@@ -543,10 +580,6 @@ private struct FlexibleInt: Decodable {
             )
         }
     }
-}
-
-private extension String {
-    var nonEmptyOrNil: String? { isEmpty ? nil : self }
 }
 
 private extension Double {

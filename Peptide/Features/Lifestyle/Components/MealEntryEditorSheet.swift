@@ -77,11 +77,11 @@ struct MealEntryEditorSheet: View {
             HStack(spacing: Spacing.md) {
                 ZStack {
                     Circle()
-                        .fill(MealEntryRow.tint(for: initial.category).opacity(0.20))
+                        .fill(initial.category.tint.opacity(0.20))
                         .frame(width: 44, height: 44)
                     Image(systemName: initial.category.icon)
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(MealEntryRow.tint(for: initial.category))
+                        .foregroundStyle(initial.category.tint)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(initial.name)

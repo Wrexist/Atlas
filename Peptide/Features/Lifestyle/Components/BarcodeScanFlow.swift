@@ -99,7 +99,7 @@ struct BarcodeScanFlow: View {
         // stops the timer without any manual cancel bookkeeping.
         .task(id: phase) {
             guard phase == .logged else { return }
-            try? await Task.sleep(for: .seconds(5))
+            try? await Task.sleep(for: AppAnimation.logSuccessAutoCloseDelay)
             // Re-check phase after the sleep — a user tap on Undo or
             // Done that lands in the final window before the timer
             // fires would otherwise double-call `onClose()`.
@@ -1040,15 +1040,7 @@ struct BarcodeScanFlow: View {
     }
 }
 
-// MARK: - Portion case helpers
-
-private extension ScannedProduct.Portion {
-    var isServings: Bool {
-        if case .servings = self { return true }
-        return false
-    }
-    var isGrams: Bool {
-        if case .grams = self { return true }
-        return false
-    }
-}
+// `Portion.isServings` and `.isGrams` are now defined as an
+// extension on `ScannedProduct.Portion` itself in
+// `Models/ScannedProduct.swift` — single source of truth for both
+// scanners.

@@ -68,7 +68,7 @@ struct MealCategoriesCard: View {
     ) -> some View {
         let label = category?.displayName ?? "Other"
         let icon  = category?.icon       ?? "ellipsis.circle.fill"
-        let tint  = category.flatMap(Self.tint(for:)) ?? AppColor.textSecondary
+        let tint  = category?.tint       ?? AppColor.textSecondary
 
         return HStack(spacing: Spacing.sm) {
             ZStack {
@@ -127,17 +127,6 @@ struct MealCategoriesCard: View {
     private func macroLine(for totals: LifestyleDataLogic.CategoryTotals) -> String {
         let entries = totals.entryCount == 1 ? "1 item" : "\(totals.entryCount) items"
         return "\(entries) · \(totals.proteinG)P · \(totals.carbsG)C · \(totals.fatG)F"
-    }
-
-    /// Per-category accent — picked to read as warm-to-cool through
-    /// the day. Breakfast = sunrise orange, dinner = dusk indigo.
-    private static func tint(for category: MealCategory) -> Color {
-        switch category {
-        case .breakfast: Color(red: 1.0,  green: 0.62, blue: 0.30)
-        case .lunch:     Color(red: 0.98, green: 0.78, blue: 0.20)
-        case .dinner:    Color(red: 0.48, green: 0.50, blue: 0.92)
-        case .snack:     Color(red: 0.36, green: 0.78, blue: 0.55)
-        }
     }
 
     private static func rowAccessibilityLabel(

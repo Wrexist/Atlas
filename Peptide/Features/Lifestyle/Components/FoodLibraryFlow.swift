@@ -48,20 +48,20 @@ struct FoodLibraryFlow: View {
     /// trip. Refreshed on tab change so a re-favorited item from the
     /// All tab shows up immediately.
     @State private var cachedFavoriteProducts: [ScannedProduct] = []
-    /// Food IDs that just got quick-logged from a row's "+" button.
-    /// Drives the inline "Logged ✓" overlay + disables the button so
-    /// a double-tap can't log the same food twice in the 1.5-second
-    /// confirmation window. Cleared after the timeout, or on sheet
-    /// dismiss via the `clearQuickLogTimers()` task hook so a
-    /// re-opened library doesn't surface "Logged ✓" badges from a
-    /// previous session.
-    @State private var recentlyQuickLogged: Set<String> = []
-    /// Outstanding "Logged ✓" timeout Tasks. Tracked so dismissal can
-    /// cancel them all in one shot — otherwise a Task scheduled at
-    /// T=0 still fires at T=1.5s and writes into a torn-down View's
-    /// @State (technically tolerated by SwiftUI, but the diagnostic
-    /// noise is real and clearing here avoids it).
-    @State private var quickLogClearTasks: [Task<Void, Never>] = []
+    /// Food IDs that just got quick-logged from a row's "+" button,
+    /// keyed to the exact category the entry was logged under. The
+    /// "Logged as Breakfast" overlay reads this map so a tap landing
+    /// on a meal-boundary (10:59:59 → 11:00:00) shows the category
+    /// the entry actually got rather than re-running `auto(for:)` at
+    /// render time and surfacing a different bucket. Cleared on the
+    /// row's 1.5-second timeout or on sheet dismiss.
+    @State private var recentlyQuickLogged: [String: MealCategory] = [:]
+    /// Outstanding "Logged ✓" timeout Tasks, keyed by food ID. One
+    /// task per food at a time — a second quick-log of the same
+    /// food inside the window cancels the in-flight clear and
+    /// reschedules, so the badge timing always reflects the latest
+    /// log. Cancelled in bulk on sheet dismiss.
+    @State private var quickLogClearTasks: [String: Task<Void, Never>] = [:]
     /// `true` once the most recent search hit a network-unavailable
     /// error. Toggles the offline pill at the top of the list and
     /// suppresses the rate-limit / "no match" copy so the user knows
@@ -81,6 +81,32 @@ struct FoodLibraryFlow: View {
         case review        // chose a food → portion picker → log
         case logged        // success screen with Undo + auto-close
     }
+
+    // MARK: - Portion picker tuning
+
+    /// Min/max grams the slider exposes. 10 g lower bound rules out
+    /// noise (the user probably means to log nothing rather than
+    /// half a gram of garlic powder); 2,000 g upper bound covers a
+    /// realistic single-sitting maximum without giving the slider
+    /// useless resolution at the top end.
+    static let gramsSliderRange: ClosedRange<Double> = 10...2000
+
+    /// 5 g granularity matches what people actually measure with —
+    /// kitchen scales typically display 1 g resolution but most
+    /// foods are accurate to ~5 g anyway given a label tolerance of
+    /// ±10–20%.
+    static let gramsSliderStep: Double = 5
+
+    /// One-tap shortcut weights. Picked to cover the four common
+    /// portion shapes: a snack (50 g), a single ingredient or
+    /// reference panel (100 g), a typical bowl/plate (200 g), and
+    /// a "whole serving for two" (500 g).
+    static let gramsQuickPicks: [Double] = [50, 100, 200, 500]
+
+    /// Minimum number of characters before the search bar fires a
+    /// network request. Matches `OpenFoodFactsService.search`'s own
+    /// guard so the two layers can't drift.
+    static let minimumSearchQueryLength: Int = 2
 
     enum LibraryTab: String, CaseIterable, Identifiable {
         case all = "All"
@@ -141,7 +167,7 @@ struct FoodLibraryFlow: View {
             // Cancel outstanding "Logged ✓" timeouts so they can't
             // fire into a re-presented sheet and surface stale
             // confirmation badges.
-            for task in quickLogClearTasks { task.cancel() }
+            for task in quickLogClearTasks.values { task.cancel() }
             quickLogClearTasks.removeAll()
             recentlyQuickLogged.removeAll()
         }
@@ -149,28 +175,25 @@ struct FoodLibraryFlow: View {
         .task(id: debouncedQuery) { await runSearch() }
         .task(id: phase) {
             guard phase == .logged else { return }
-            try? await Task.sleep(for: .seconds(4))
+            try? await Task.sleep(for: AppAnimation.logSuccessAutoCloseDelay)
             // Re-check phase after the sleep — a user tap on Undo or
-            // Done that lands in the final 50 ms before the timer
+            // Done that lands in the final window before the timer
             // fires would otherwise let both paths call `onClose()`,
             // which is a no-op today but a foot-gun the moment
             // `onClose` does anything non-idempotent.
             guard !Task.isCancelled, phase == .logged else { return }
             onClose()
         }
-        .task(id: tab) {
+        .task(id: favoritesTaskID) {
+            // Single task driving the Favorites tab's data refresh.
+            // Re-fires on either tab change or favorite-set change
+            // by virtue of the composite id, so two separate tasks
+            // (with the same body + guard) collapse into one — no
+            // redundant actor hops when both inputs move together.
+            //
             // Favorites lean on the on-disk barcode cache for OFF
             // products the user hasn't re-searched recently. Custom
-            // favorites resolve synchronously from `profile.customFoods`,
-            // so no cache lookup needed for those.
-            guard tab == .favorites else { return }
-            await refreshCachedFavorites()
-        }
-        .task(id: profile.favoriteFoodIDs) {
-            // Re-fetch the cached side when the favorites set changes
-            // (un-starring or starring inside any tab) so the
-            // Favorites tab stays in sync without forcing the user
-            // back to it.
+            // favorites resolve synchronously from `profile.customFoods`.
             guard tab == .favorites else { return }
             await refreshCachedFavorites()
         }
@@ -398,7 +421,7 @@ struct FoodLibraryFlow: View {
             if isSearching && results.isEmpty {
                 searchSkeleton
             } else if let searchError, results.isEmpty {
-                inlineMessage(icon: "exclamationmark.triangle", text: searchError, tone: .warning)
+                inlineMessage(icon: "exclamationmark.triangle", text: searchError)
             } else if results.isEmpty && customMatches.isEmpty && !isSearching {
                 if isOffline {
                     // No OFF search available + nothing in custom
@@ -654,7 +677,7 @@ struct FoodLibraryFlow: View {
                             .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                     }
             }
-            .overlay { quickLoggedOverlay(foodID: product.barcode, category: MealCategory.auto(for: Date())) }
+            .overlay { quickLoggedOverlay(foodID: product.barcode) }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)
@@ -693,7 +716,7 @@ struct FoodLibraryFlow: View {
                             .strokeBorder(AppColor.accentPrimary.opacity(0.30), lineWidth: 0.5)
                     }
             }
-            .overlay { quickLoggedOverlay(foodID: food.foodID, category: MealCategory.auto(for: Date())) }
+            .overlay { quickLoggedOverlay(foodID: food.foodID) }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)
@@ -782,7 +805,7 @@ struct FoodLibraryFlow: View {
     /// manual macro edit — the row itself still opens the full
     /// review sheet, so this is purely additive UX.
     private func quickLogButton(product: ScannedProduct) -> some View {
-        let inFlight = recentlyQuickLogged.contains(product.barcode)
+        let inFlight = recentlyQuickLogged[product.barcode] != nil
         return Button {
             performQuickLog(product)
         } label: {
@@ -821,12 +844,16 @@ struct FoodLibraryFlow: View {
     /// row's tap-to-review gesture during the confirmation window —
     /// otherwise a quick-logger could tap the row by accident
     /// immediately after the "+" and find themselves inside the
-    /// portion picker for the same food they just logged. The
-    /// overlay also includes the auto-picked category as feedback
-    /// so the user knows where it landed.
+    /// portion picker for the same food they just logged.
+    ///
+    /// Category text is read from `recentlyQuickLogged` (set at
+    /// log-commit time), NOT re-computed via `auto(for: Date())` at
+    /// render time. The two `Date()` values could otherwise diverge
+    /// at a meal-boundary tap — surfacing "Logged as Breakfast"
+    /// while the entry actually landed in lunch.
     @ViewBuilder
-    private func quickLoggedOverlay(foodID: String, category: MealCategory) -> some View {
-        if recentlyQuickLogged.contains(foodID) {
+    private func quickLoggedOverlay(foodID: String) -> some View {
+        if let category = recentlyQuickLogged[foodID] {
             ZStack {
                 RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                     .fill(AppColor.accentPrimary.opacity(0.18))
@@ -856,14 +883,19 @@ struct FoodLibraryFlow: View {
     /// timed dismissal of the "Logged ✓" overlay live here so the
     /// row knows when to come back to its idle look.
     private func performQuickLog(_ product: ScannedProduct) {
-        guard !recentlyQuickLogged.contains(product.barcode),
+        guard recentlyQuickLogged[product.barcode] == nil,
               let meal = product.loggable(for: product.defaultPortion) else { return }
         let now = Date()
+        // Auto-category captured once at log time and reused for
+        // both the persisted entry and the overlay readout — see
+        // `quickLoggedOverlay` for the meal-boundary bug this
+        // prevents.
+        let loggedCategory = MealCategory.auto(for: now)
         let source: MealSource = product.barcode.hasPrefix("custom:") ? .custom : .openFoodFacts
         let entry = MealEntry(
             loggable: meal,
             name: product.name,
-            category: MealCategory.auto(for: now),
+            category: loggedCategory,
             source: source,
             sourceID: product.barcode,
             date: now
@@ -882,21 +914,26 @@ struct FoodLibraryFlow: View {
             }
         }
         withAnimation(.easeOut(duration: 0.18)) {
-            recentlyQuickLogged.insert(product.barcode)
+            recentlyQuickLogged[product.barcode] = loggedCategory
         }
-        // Clear the badge after 1.5 s so the row returns to its
-        // tap-to-log idle state — but keep the in-flight set so a
-        // rapid second tap during the window is dropped. Cancellable
-        // via `quickLogClearTasks` on sheet dismiss.
+        // Clear the badge after the confirmation window so the row
+        // returns to its tap-to-log idle state. Keying tasks by
+        // food ID means each food has at most one in-flight clear
+        // (memory bounded by distinct logged foods, not log count)
+        // and a rapid second log of the same food cancels the old
+        // timer before scheduling the new one — so the badge
+        // duration always reflects the most recent log.
         let foodID = product.barcode
+        quickLogClearTasks[foodID]?.cancel()
         let task = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(1500))
+            try? await Task.sleep(for: AppAnimation.quickLogConfirmationDuration)
             guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.18)) {
-                _ = recentlyQuickLogged.remove(foodID)
+                recentlyQuickLogged.removeValue(forKey: foodID)
             }
+            quickLogClearTasks.removeValue(forKey: foodID)
         }
-        quickLogClearTasks.append(task)
+        quickLogClearTasks[foodID] = task
     }
 
     private func favoriteToggle(foodID: String, isFavorite: Bool) -> some View {
@@ -954,10 +991,8 @@ struct FoodLibraryFlow: View {
         .padding(.vertical, Spacing.lg)
     }
 
-    private enum InlineTone { case warning, info }
-
-    private func inlineMessage(icon: String, text: String, tone: InlineTone) -> some View {
-        let color: Color = (tone == .warning) ? AppColor.warning : AppColor.accentLight
+    private func inlineMessage(icon: String, text: String) -> some View {
+        let color: Color = AppColor.warning
         return HStack(alignment: .top, spacing: Spacing.sm) {
             Image(systemName: icon)
                 .foregroundStyle(color)
@@ -1065,7 +1100,7 @@ struct FoodLibraryFlow: View {
 
                 HStack(spacing: Spacing.sm) {
                     if product.servingGrams != nil {
-                        portionChip(title: "Serving", isActive: portion.isServingsCase) {
+                        portionChip(title: "Serving", isActive: portion.isServings) {
                             portion = .servings(1)
                         }
                     }
@@ -1074,7 +1109,7 @@ struct FoodLibraryFlow: View {
                             portion = .wholePackage
                         }
                     }
-                    portionChip(title: "Grams", isActive: portion.isGramsCase) {
+                    portionChip(title: "Grams", isActive: portion.isGrams) {
                         portion = .grams(100)
                     }
                 }
@@ -1148,12 +1183,12 @@ struct FoodLibraryFlow: View {
                         get: { g },
                         set: { portion = .grams($0) }
                     ),
-                    in: 10...2000,
-                    step: 5
+                    in: Self.gramsSliderRange,
+                    step: Self.gramsSliderStep
                 )
                 .tint(AppColor.accentPrimary)
                 HStack(spacing: Spacing.xs) {
-                    ForEach([50.0, 100.0, 200.0, 500.0], id: \.self) { quick in
+                    ForEach(Self.gramsQuickPicks, id: \.self) { quick in
                         Button("\(Int(quick))g") { portion = .grams(quick) }
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.accentLight)
@@ -1216,8 +1251,7 @@ struct FoodLibraryFlow: View {
             if zeroCaloriesPer100g {
                 inlineMessage(
                     icon: "exclamationmark.triangle.fill",
-                    text: "This product has no calorie data in Open Food Facts. Snap the nutrition label or save it as a custom food.",
-                    tone: .warning
+                    text: "This product has no calorie data in Open Food Facts. Snap the nutrition label or save it as a custom food."
                 )
             }
         }
@@ -1297,6 +1331,20 @@ struct FoodLibraryFlow: View {
     // MARK: - Actions / helpers
 
     private var profile: UserProfile { dataStore.profile }
+
+    /// Composite identity for the Favorites-tab refresh task. Changes
+    /// when either the active tab moves to/from `.favorites` or the
+    /// favorites set itself is mutated. Hashing the tab + sorted
+    /// favorites snapshot lets a single `.task(id:)` modifier
+    /// observe both inputs.
+    private var favoritesTaskID: Int {
+        var hasher = Hasher()
+        hasher.combine(tab)
+        // Sort to make the hash order-stable — Sets have no
+        // deterministic iteration order.
+        hasher.combine(profile.favoriteFoodIDs.sorted())
+        return hasher.finalize()
+    }
 
     private func select(_ product: ScannedProduct) {
         selectedProduct = product
@@ -1394,7 +1442,7 @@ struct FoodLibraryFlow: View {
     /// only the pause-after-last-keystroke survives.
     private func runDebouncedSearch() async {
         let snapshot = query
-        try? await Task.sleep(for: .milliseconds(500))
+        try? await Task.sleep(for: AppAnimation.searchDebounceDelay)
         guard !Task.isCancelled, snapshot == query else { return }
         debouncedQuery = snapshot.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -1408,7 +1456,7 @@ struct FoodLibraryFlow: View {
         defer { isSearching = false }
 
         let trimmed = debouncedQuery
-        guard trimmed.count >= 2 else {
+        guard trimmed.count >= Self.minimumSearchQueryLength else {
             results = []
             searchError = nil
             return
@@ -1606,17 +1654,6 @@ struct FoodLibraryFlow: View {
     }
 }
 
-// MARK: - Portion case helpers (kept private to avoid colliding with the
-// equivalent file-private extension in BarcodeScanFlow.swift)
-
-private extension ScannedProduct.Portion {
-    var isServingsCase: Bool {
-        if case .servings = self { return true }
-        return false
-    }
-    var isGramsCase: Bool {
-        if case .grams = self { return true }
-        return false
-    }
-}
+// `Portion.isServings` and `.isGrams` are defined on
+// `ScannedProduct.Portion` itself in `Models/ScannedProduct.swift`.
 

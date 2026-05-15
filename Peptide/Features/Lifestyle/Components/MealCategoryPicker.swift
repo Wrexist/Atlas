@@ -28,6 +28,7 @@ struct MealCategoryPicker: View {
 
     private func pill(_ category: MealCategory) -> some View {
         let active = (selection == category)
+        let tint = category.tint
         return Button {
             withAnimation(.easeOut(duration: 0.18)) {
                 selection = category
@@ -36,7 +37,7 @@ struct MealCategoryPicker: View {
             VStack(spacing: 4) {
                 Image(systemName: category.icon)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(active ? Color.white : AppColor.textSecondary)
+                    .foregroundStyle(active ? tint : AppColor.textSecondary)
                 Text(category.displayName)
                     .font(.system(size: 11, weight: active ? .semibold : .medium))
                     .foregroundStyle(active ? AppColor.textPrimary : AppColor.textSecondary)
@@ -45,11 +46,11 @@ struct MealCategoryPicker: View {
             .frame(minHeight: 56)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(active ? AppColor.accentPrimary.opacity(0.28) : AppColor.surfaceSecondary.opacity(0.5))
+                    .fill(active ? tint.opacity(0.22) : AppColor.surfaceSecondary.opacity(0.5))
                     .overlay {
                         RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                             .strokeBorder(
-                                active ? AppColor.accentPrimary.opacity(0.65) : AppColor.glassBorder,
+                                active ? tint.opacity(0.6) : AppColor.glassBorder,
                                 lineWidth: 1
                             )
                     }

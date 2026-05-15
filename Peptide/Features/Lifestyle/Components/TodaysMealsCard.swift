@@ -166,22 +166,11 @@ struct MealEntryRow: View {
     private var categoryBadge: some View {
         ZStack {
             Circle()
-                .fill(Self.tint(for: entry.category).opacity(0.20))
+                .fill(entry.category.tint.opacity(0.20))
                 .frame(width: 30, height: 30)
             Image(systemName: entry.category.icon)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Self.tint(for: entry.category))
-        }
-    }
-
-    /// Same warm-to-cool palette `MealCategoriesCard` uses so the two
-    /// surfaces read as a single design language.
-    static func tint(for category: MealCategory) -> Color {
-        switch category {
-        case .breakfast: Color(red: 1.0,  green: 0.62, blue: 0.30)
-        case .lunch:     Color(red: 0.98, green: 0.78, blue: 0.20)
-        case .dinner:    Color(red: 0.48, green: 0.50, blue: 0.92)
-        case .snack:     Color(red: 0.36, green: 0.78, blue: 0.55)
+                .foregroundStyle(entry.category.tint)
         }
     }
 

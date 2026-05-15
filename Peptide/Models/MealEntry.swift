@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// Which meal of the day a `MealEntry` belongs to. Drives the per-
 /// category breakdown card on the Lifestyle tab and the (eventual)
@@ -46,6 +47,22 @@ enum MealCategory: String, Codable, CaseIterable, Identifiable, Sendable {
         case 11...15:  return .lunch
         case 16...21:  return .dinner
         default:       return .snack
+        }
+    }
+
+    /// Single source of truth for the category accent color, picked to
+    /// read as warm-to-cool through the day (sunrise orange →
+    /// midday yellow → dusk indigo → leafy snack green). Previously
+    /// each surface (Lifestyle's breakdown card, the per-entry list,
+    /// the editor sheet's summary) carried its own copy of these RGB
+    /// values; consolidating here keeps them in lockstep when the
+    /// palette gets refreshed.
+    var tint: Color {
+        switch self {
+        case .breakfast: Color(red: 1.0,  green: 0.62, blue: 0.30)
+        case .lunch:     Color(red: 0.98, green: 0.78, blue: 0.20)
+        case .dinner:    Color(red: 0.48, green: 0.50, blue: 0.92)
+        case .snack:     Color(red: 0.36, green: 0.78, blue: 0.55)
         }
     }
 }

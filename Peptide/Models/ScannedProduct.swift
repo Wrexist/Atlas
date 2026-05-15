@@ -108,9 +108,27 @@ extension ScannedProduct {
         return .grams(100)
     }
 
+
     private func roundedNonNegative(_ value: Double) -> Int {
         guard value.isFinite, value > 0 else { return 0 }
         return Int(value.rounded())
+    }
+}
+
+extension ScannedProduct.Portion {
+    /// Canonical case-discriminator helpers. Previously BarcodeScanFlow
+    /// and FoodLibraryFlow each carried a private file-scoped
+    /// extension with the same logic under slightly different names
+    /// (`isServings` vs `isServingsCase`). Consolidated here so the
+    /// two scanners read from the same source.
+    var isServings: Bool {
+        if case .servings = self { return true }
+        return false
+    }
+
+    var isGrams: Bool {
+        if case .grams = self { return true }
+        return false
     }
 }
 

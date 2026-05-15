@@ -251,6 +251,3 @@ struct CustomFoodEditorSheet: View {
     }
 }
 
-private extension String {
-    var nilIfEmpty: String? { isEmpty ? nil : self }
-}

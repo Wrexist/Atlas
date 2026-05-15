@@ -43,11 +43,15 @@ enum WidgetSnapshotBuilder {
 
         let meals: [WidgetMealSlot]
         if let b = breakdown {
+            // Names come from `MealCategory.displayName` so the widget
+            // matches the in-app labels (and follows localization
+            // through Xcode's string catalog) — previously the four
+            // strings were duplicated as literals.
             meals = [
-                WidgetMealSlot(category: "Breakfast", calories: b.breakfast.calories, entryCount: b.breakfast.entryCount),
-                WidgetMealSlot(category: "Lunch",     calories: b.lunch.calories,     entryCount: b.lunch.entryCount),
-                WidgetMealSlot(category: "Dinner",    calories: b.dinner.calories,    entryCount: b.dinner.entryCount),
-                WidgetMealSlot(category: "Snack",     calories: b.snack.calories,     entryCount: b.snack.entryCount),
+                WidgetMealSlot(category: MealCategory.breakfast.displayName, calories: b.breakfast.calories, entryCount: b.breakfast.entryCount),
+                WidgetMealSlot(category: MealCategory.lunch.displayName,     calories: b.lunch.calories,     entryCount: b.lunch.entryCount),
+                WidgetMealSlot(category: MealCategory.dinner.displayName,    calories: b.dinner.calories,    entryCount: b.dinner.entryCount),
+                WidgetMealSlot(category: MealCategory.snack.displayName,     calories: b.snack.calories,     entryCount: b.snack.entryCount),
             ]
         } else {
             meals = []
