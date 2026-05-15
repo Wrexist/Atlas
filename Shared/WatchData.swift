@@ -16,6 +16,34 @@ struct WatchEntry: Codable, Identifiable {
     var completed: Bool
 }
 
+/// Compact nutrition snapshot for the Watch app. Mirrors the
+/// macro-ring data shown on the iOS Lifestyle tab so the Watch
+/// surface can render a coherent "where am I against my target
+/// today" glance without depending on shared types from the
+/// iOS-only target. Optional throughout so the Watch app can
+/// hide nutrition gracefully on installs where the user hasn't
+/// logged anything yet.
+struct WatchNutritionSnapshot: Codable, Hashable {
+    let caloriesToday: Int
+    let calorieTarget: Int
+    let proteinToday: Int
+    let proteinTarget: Int
+    let mealLoggingStreak: Int
+    /// Number of meal entries logged today — drives the
+    /// "3 meals logged" subtitle on the Watch view.
+    let mealEntriesToday: Int
+
+    var calorieProgress: Double {
+        guard calorieTarget > 0 else { return 0 }
+        return min(1.0, Double(caloriesToday) / Double(calorieTarget))
+    }
+
+    var proteinProgress: Double {
+        guard proteinTarget > 0 else { return 0 }
+        return min(1.0, Double(proteinToday) / Double(proteinTarget))
+    }
+}
+
 struct WatchData: Codable {
     let todayEntries: [WatchEntry]
     let completedToday: Int
@@ -29,6 +57,10 @@ struct WatchData: Codable {
     let weeklyCompliance: Double?
     /// Total completed doses ever. Surfaced on the Watch Stats view.
     let totalDosesLogged: Int?
+    /// Today's nutrition snapshot. Optional so an older build that
+    /// doesn't write this field still decodes on the watch — the
+    /// nutrition surface hides itself gracefully when absent.
+    let nutrition: WatchNutritionSnapshot?
 
     var compliance: Double {
         totalToday > 0 ? Double(completedToday) / Double(totalToday) : 0
@@ -41,7 +73,8 @@ struct WatchData: Codable {
         lastUpdated: Date,
         currentStreak: Int? = nil,
         weeklyCompliance: Double? = nil,
-        totalDosesLogged: Int? = nil
+        totalDosesLogged: Int? = nil,
+        nutrition: WatchNutritionSnapshot? = nil
     ) {
         self.todayEntries = todayEntries
         self.completedToday = completedToday
@@ -50,6 +83,7 @@ struct WatchData: Codable {
         self.currentStreak = currentStreak
         self.weeklyCompliance = weeklyCompliance
         self.totalDosesLogged = totalDosesLogged
+        self.nutrition = nutrition
     }
 
     init(from decoder: Decoder) throws {
@@ -61,11 +95,13 @@ struct WatchData: Codable {
         currentStreak = try c.decodeIfPresent(Int.self, forKey: .currentStreak)
         weeklyCompliance = try c.decodeIfPresent(Double.self, forKey: .weeklyCompliance)
         totalDosesLogged = try c.decodeIfPresent(Int.self, forKey: .totalDosesLogged)
+        nutrition = try c.decodeIfPresent(WatchNutritionSnapshot.self, forKey: .nutrition)
     }
 
     private enum CodingKeys: String, CodingKey {
         case todayEntries, completedToday, totalToday, lastUpdated
         case currentStreak, weeklyCompliance, totalDosesLogged
+        case nutrition
     }
 
     static let empty = WatchData(

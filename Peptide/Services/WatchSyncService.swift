@@ -35,7 +35,8 @@ final class WatchSyncService: NSObject {
         protocols: [PeptideProtocol],
         currentStreak: Int? = nil,
         weeklyCompliance: Double? = nil,
-        totalDosesLogged: Int? = nil
+        totalDosesLogged: Int? = nil,
+        nutrition: WatchNutritionSnapshot? = nil
     ) {
         guard let url = watchDataURL else { return }
 
@@ -66,7 +67,8 @@ final class WatchSyncService: NSObject {
             lastUpdated: Date(),
             currentStreak: currentStreak,
             weeklyCompliance: weeklyCompliance,
-            totalDosesLogged: totalDosesLogged
+            totalDosesLogged: totalDosesLogged,
+            nutrition: nutrition
         )
 
         do {

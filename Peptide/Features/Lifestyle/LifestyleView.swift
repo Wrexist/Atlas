@@ -12,12 +12,19 @@ import SwiftUI
 /// "Lifestyle" — a system nav title would duplicate that.
 struct LifestyleView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(AppState.self) private var appState
 
     @State private var showMealScan = false
     @State private var showBarcodeScan = false
     @State private var showFoodLibrary = false
     @State private var editingMealEntry: MealEntry?
     @State private var pendingPhotoFallback = false
+    /// Carried into the food library when opened via Spotlight deep-
+    /// link — the library reads this once on appear and pre-selects
+    /// the food on the review screen. Cleared as soon as the sheet
+    /// presents so a re-open without a fresh deep-link doesn't
+    /// re-trigger.
+    @State private var pendingFoodLogID: FoodLogDeepLink?
     /// Pending sheet hand-off requested from inside the food library.
     /// One of these is non-nil while the library sheet is mid-dismiss;
     /// `.onChange(of: showFoodLibrary)` consumes it after the dismiss
@@ -80,9 +87,11 @@ struct LifestyleView: View {
                     )
                     .sectionAppear(index: 2)
 
+                    let dailyBreakdown = dataStore.mealsByCategory()
                     MacroSummaryRow(
                         targets: targets,
                         consumed: dataStore.consumption(),
+                        breakdown: dailyBreakdown,
                         onAddWater: { oz in
                             dataStore.logWater(oz: oz)
                         }
@@ -94,9 +103,15 @@ struct LifestyleView: View {
                     }
                     .sectionAppear(index: 3)
 
+                    MealStreakBadge(
+                        currentStreak: dataStore.mealLoggingStreak,
+                        bestStreak: dataStore.bestMealLoggingStreak
+                    )
+                    .sectionAppear(index: 3)
+
                     let todaysEntries = dataStore.mealEntries()
                     if dataStore.consumption().caloriesKcal > 0 || !todaysEntries.isEmpty {
-                        MealCategoriesCard(breakdown: dataStore.mealsByCategory())
+                        MealCategoriesCard(breakdown: dailyBreakdown)
                             .sectionAppear(index: 3)
 
                         TodaysMealsCard(
@@ -151,9 +166,23 @@ struct LifestyleView: View {
                 FoodLibraryFlow(
                     onClose: { showFoodLibrary = false },
                     onRequestBarcodeScan: { handleLibraryHandoff(.barcode) },
-                    onRequestPhotoScan: { handleLibraryHandoff(.photo) }
+                    onRequestPhotoScan: { handleLibraryHandoff(.photo) },
+                    initialDeepLink: pendingFoodLogID
                 )
                 .environment(dataStore)
+                .onDisappear {
+                    // Single-use — clear after the sheet consumed it
+                    // (or after the user dismissed without using it).
+                    pendingFoodLogID = nil
+                }
+            }
+            .onChange(of: appState.pendingFoodLogID) { _, deepLink in
+                guard let deepLink else { return }
+                // Stash locally + clear the app-state slot so a
+                // second tap on the same Spotlight result re-triggers.
+                pendingFoodLogID = deepLink
+                appState.pendingFoodLogID = nil
+                showFoodLibrary = true
             }
             .onChange(of: showFoodLibrary) { _, isPresented in
                 // Sheet handoff: when the library dismisses with a

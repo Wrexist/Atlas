@@ -28,6 +28,12 @@ struct FoodLibraryFlow: View {
     /// Fired for the "Snap a photo instead" affordance. Same sheet-
     /// handoff dance.
     let onRequestPhotoScan: () -> Void
+    /// Optional Spotlight deep-link payload — when set on present,
+    /// the sheet resolves the referenced food and jumps directly to
+    /// the review phase without forcing the user to retype their
+    /// search. Single-use: parent clears it after the sheet
+    /// dismisses.
+    var initialDeepLink: FoodLogDeepLink? = nil
 
     @State private var phase: Phase = .browse
     @State private var query: String = ""
@@ -203,6 +209,15 @@ struct FoodLibraryFlow: View {
             // `BarcodeScanHistory`. Cheap (cache reads, no network)
             // and doesn't need re-running on every render.
             await refreshRecentOFFProducts()
+        }
+        .task {
+            // Spotlight deep-link path. Resolves the namespaced
+            // identifier into a `ScannedProduct` and transitions
+            // straight to the review phase so a tap on a Spotlight
+            // tile lands the user one tap away from logging.
+            if let deepLink = initialDeepLink {
+                await resolveDeepLink(deepLink)
+            }
         }
         .sheet(item: $editingCustomFood) { food in
             CustomFoodEditorSheet(
@@ -1554,6 +1569,51 @@ struct FoodLibraryFlow: View {
             }
         }
         return out.sorted { $0.name.lowercased() < $1.name.lowercased() }
+    }
+
+    /// Resolves a Spotlight deep-link to a `ScannedProduct` and
+    /// jumps the sheet to the review phase. Three resolution paths,
+    /// in order:
+    ///
+    ///   1. Custom foods: synchronous lookup on `profile.customFoods`.
+    ///   2. OFF cached: read from `BarcodeProductCache` — fast,
+    ///      offline-safe.
+    ///   3. OFF network: hit the API as a last resort, gated by the
+    ///      same rate limiter the search flow uses.
+    ///
+    /// Failures surface inline on the browse landing rather than
+    /// kicking the user into an error screen — the deep-link was
+    /// from external state (a Spotlight tile cached when the food
+    /// existed); the user can still search for the food manually.
+    private func resolveDeepLink(_ link: FoodLogDeepLink) async {
+        switch link {
+        case .custom(let uuid):
+            guard let food = profile.customFoods.first(where: { $0.id == uuid }) else {
+                searchError = String(localized: "That food is no longer in your library.")
+                return
+            }
+            select(food.toScannedProduct())
+
+        case .openFoodFacts(let barcode):
+            if let cached = await BarcodeProductCache.shared.read(barcode: barcode) {
+                select(cached)
+                return
+            }
+            // Cache miss — fetch from OFF. The fetch path writes
+            // through to the cache so future deep-links to the same
+            // food are instant.
+            do {
+                let product = try await OpenFoodFactsService.shared.fetch(barcode: barcode)
+                guard !Task.isCancelled else { return }
+                select(product)
+            } catch let lookupError as OpenFoodFactsService.LookupError {
+                guard !Task.isCancelled else { return }
+                searchError = lookupError.errorDescription
+            } catch {
+                guard !Task.isCancelled else { return }
+                searchError = error.localizedDescription
+            }
+        }
     }
 
     /// Loads the top-N recently logged OFF products into the landing

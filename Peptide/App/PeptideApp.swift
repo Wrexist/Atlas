@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import CoreSpotlight
 
 @main
 struct PeptideApp: App {
@@ -80,6 +81,22 @@ struct PeptideApp: App {
                 // it, the user wouldn't see their library in Spotlight
                 // until they next edited a food.
                 dataStore.reindexFoodSpotlight()
+            }
+            .onContinueUserActivity(CSSearchableItemActionType) { activity in
+                // Spotlight tapped a food index entry. Parse the
+                // namespaced identifier (`peptidex-food/custom/<uuid>`
+                // for user-defined foods, `peptidex-food/off/<barcode>`
+                // for OFF favorites), stash the result on AppState,
+                // and switch to the Home tab so `HomeContainerView`'s
+                // child `LifestyleView` picks it up. Unknown formats
+                // are dropped silently — better to no-op than to
+                // surface a confusing error to a user who tapped a
+                // Spotlight tile expecting their food to open.
+                guard let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
+                      let deepLink = FoodLogDeepLink(spotlightIdentifier: identifier)
+                else { return }
+                appState.selectedTab = .home
+                appState.pendingFoodLogID = deepLink
             }
         }
         .onChange(of: scenePhase) { _, phase in

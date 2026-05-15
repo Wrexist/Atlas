@@ -215,6 +215,86 @@ enum LifestyleDataLogic {
             .sorted { $0.date > $1.date }
     }
 
+    // MARK: - Meal-logging streak
+
+    /// Consecutive calendar days ending today (or yesterday) where
+    /// the user logged at least one meal entry. Mirrors the peptide
+    /// dose-logging streak's behaviour: a user who hasn't logged
+    /// *yet* today doesn't see the streak break the moment they
+    /// open the app — it counts back from yesterday until they log
+    /// something for today, at which point it counts back from
+    /// today.
+    ///
+    /// The grace-day treatment makes the streak feel encouraging
+    /// rather than punishing — a user opening the app at 8 AM sees
+    /// "5 day streak, keep it up" instead of "streak broken, start
+    /// over". The streak only breaks if both today and yesterday
+    /// are empty.
+    static func mealLoggingStreak(in profile: UserProfile, asOf reference: Date = Date()) -> Int {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: reference)
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
+
+        // Walk every entry once into a set of days the user logged.
+        // O(n) up-front beats O(n × days) on the iteration below.
+        var loggedDays: Set<Date> = []
+        for entry in profile.mealHistory {
+            loggedDays.insert(calendar.startOfDay(for: entry.date))
+        }
+        guard !loggedDays.isEmpty else { return 0 }
+
+        // Anchor: start from today if today has a log, else from
+        // yesterday (today is the grace day). If yesterday is also
+        // empty, the streak is 0.
+        let anchor: Date
+        if loggedDays.contains(today) {
+            anchor = today
+        } else if loggedDays.contains(yesterday) {
+            anchor = yesterday
+        } else {
+            return 0
+        }
+
+        var streak = 0
+        var cursor = anchor
+        while loggedDays.contains(cursor) {
+            streak += 1
+            guard let previous = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
+            cursor = previous
+        }
+        return streak
+    }
+
+    /// All-time best meal-logging streak. Walks the full history
+    /// once, building a sorted list of distinct logged days, then
+    /// counts the longest run of consecutive days. O(n log n) for
+    /// the sort, fine on the cap of 3,650 entries we enforce.
+    /// Returns the current streak when nothing higher has happened
+    /// historically.
+    static func bestMealLoggingStreak(in profile: UserProfile, asOf reference: Date = Date()) -> Int {
+        guard !profile.mealHistory.isEmpty else { return 0 }
+        let calendar = Calendar.current
+        let days = Set(profile.mealHistory.map { calendar.startOfDay(for: $0.date) }).sorted()
+        guard let firstDay = days.first else { return 0 }
+
+        var best = 1
+        var currentRun = 1
+        var previous = firstDay
+        for day in days.dropFirst() {
+            if let expected = calendar.date(byAdding: .day, value: 1, to: previous),
+               calendar.isDate(day, inSameDayAs: expected) {
+                currentRun += 1
+                best = max(best, currentRun)
+            } else {
+                currentRun = 1
+            }
+            previous = day
+        }
+        // Compare against the live streak too — the ongoing run
+        // hasn't been counted as "completed" in the loop above.
+        return max(best, mealLoggingStreak(in: profile, asOf: reference))
+    }
+
     /// Soft cap on `mealHistory` so the profile blob can't grow
     /// without bound. 5 meals/day × 365 days × 2 years = 3,650
     /// entries × ~150 B serialised ≈ 550 KB. Plenty of headroom for

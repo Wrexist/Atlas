@@ -836,6 +836,19 @@ final class DataStore: DataServiceProtocol {
         LifestyleDataLogic.mealEntries(in: profile, for: date)
     }
 
+    /// Active meal-logging streak in calendar days. Today is treated
+    /// as a grace day — the streak doesn't reset just because the
+    /// user hasn't logged yet this morning.
+    var mealLoggingStreak: Int {
+        LifestyleDataLogic.mealLoggingStreak(in: profile)
+    }
+
+    /// All-time best meal-logging streak. Surfaced on the Lifestyle
+    /// tab when the user is below their personal record.
+    var bestMealLoggingStreak: Int {
+        LifestyleDataLogic.bestMealLoggingStreak(in: profile)
+    }
+
     // MARK: - Food library
 
     /// Adds (or replaces) a user-defined food in the library. Replace
@@ -1125,7 +1138,34 @@ final class DataStore: DataServiceProtocol {
             protocols: protocols,
             currentStreak: currentStreak,
             weeklyCompliance: EntryAnalytics.weeklyComplianceFraction(in: entries),
-            totalDosesLogged: EntryAnalytics.totalDosesLogged(in: entries)
+            totalDosesLogged: EntryAnalytics.totalDosesLogged(in: entries),
+            nutrition: nutritionSnapshotForWatch()
+        )
+    }
+
+    /// Build the compact nutrition snapshot the Watch app renders.
+    /// Returns nil when the user has no nutrition targets and no
+    /// meal-logging streak — there's nothing meaningful to show,
+    /// and a nil keeps the Watch UI from displaying empty rings.
+    private func nutritionSnapshotForWatch() -> WatchNutritionSnapshot? {
+        let consumption = LifestyleDataLogic.consumption(in: profile, for: Date())
+        let streak = LifestyleDataLogic.mealLoggingStreak(in: profile)
+        let entryCount = LifestyleDataLogic.mealEntries(in: profile, for: Date()).count
+        let targets = profile.nutritionTargets
+
+        let nothingToShow =
+            targets == nil
+            && consumption.caloriesKcal == 0
+            && streak == 0
+        guard !nothingToShow else { return nil }
+
+        return WatchNutritionSnapshot(
+            caloriesToday: consumption.caloriesKcal,
+            calorieTarget: targets?.calories ?? 0,
+            proteinToday: consumption.proteinG,
+            proteinTarget: targets?.proteinG ?? 0,
+            mealLoggingStreak: streak,
+            mealEntriesToday: entryCount
         )
     }
 

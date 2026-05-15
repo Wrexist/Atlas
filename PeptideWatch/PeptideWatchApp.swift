@@ -6,15 +6,20 @@ struct PeptideWatchApp: App {
 
     var body: some Scene {
         WindowGroup {
-            // Two-page TabView: swipe left from Today's dose list to the
-            // Stats page (weekly ring + streak + lifetime doses). The
-            // page-indicator dots make the additional surface
-            // discoverable without taking persistent screen real estate.
+            // Page TabView: Today's dose list → Stats → Nutrition
+            // (when the phone has nutrition to surface). The
+            // nutrition slot is hidden when `WatchData.nutrition` is
+            // nil so an older phone build (pre-food-library) or a
+            // fresh install doesn't show an empty third page.
             TabView {
                 DoseListView()
                     .environmentObject(watchStore)
                 WatchStatsView()
                     .environmentObject(watchStore)
+                if watchStore.watchData.nutrition != nil {
+                    WatchNutritionView()
+                        .environmentObject(watchStore)
+                }
             }
             .tabViewStyle(.page)
         }

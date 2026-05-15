@@ -404,6 +404,98 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(breakdown.dinner.calories, 400)
     }
 
+    func test_mealLoggingStreak_countsConsecutiveDaysEndingToday() {
+        var profile = UserProfile.fresh
+        let today = Calendar.current.startOfDay(for: Date())
+        for daysAgo in 0...4 {
+            let date = Calendar.current.date(byAdding: .day, value: -daysAgo, to: today)!
+            profile.mealHistory.append(
+                MealEntry(date: date, category: .lunch, name: "Lunch",
+                          calories: 400, proteinG: 30, carbsG: 40, fatG: 10,
+                          source: .openFoodFacts)
+            )
+        }
+        XCTAssertEqual(LifestyleDataLogic.mealLoggingStreak(in: profile, asOf: today), 5)
+    }
+
+    func test_mealLoggingStreak_breaksOnTwoConsecutiveEmptyDays() {
+        var profile = UserProfile.fresh
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        // Logged 4 days ago and 5 days ago — both today and yesterday
+        // are empty, so the streak should read 0.
+        for daysAgo in [4, 5] {
+            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
+            profile.mealHistory.append(
+                MealEntry(date: date, category: .dinner, name: "Dinner",
+                          calories: 500, proteinG: 40, carbsG: 0, fatG: 20,
+                          source: .photo)
+            )
+        }
+        XCTAssertEqual(LifestyleDataLogic.mealLoggingStreak(in: profile, asOf: today), 0)
+    }
+
+    func test_mealLoggingStreak_graceDayWhenTodayIsEmpty() {
+        // Today empty, yesterday logged, two days ago logged. Streak
+        // should be 2 — today gets a grace pass until the user logs
+        // something or the day ends.
+        var profile = UserProfile.fresh
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        for daysAgo in [1, 2] {
+            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
+            profile.mealHistory.append(
+                MealEntry(date: date, category: .breakfast, name: "Oats",
+                          calories: 300, proteinG: 12, carbsG: 50, fatG: 5,
+                          source: .custom)
+            )
+        }
+        XCTAssertEqual(LifestyleDataLogic.mealLoggingStreak(in: profile, asOf: today), 2)
+    }
+
+    func test_bestMealLoggingStreak_findsLongestRunHistorically() {
+        var profile = UserProfile.fresh
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        // Three distinct runs of consecutive logged days:
+        //   • 60-50 days ago = 11 consecutive days (longest run)
+        //   • 35-30 days ago = 6 consecutive days
+        //   • today only = active 1-day streak
+        let runs: [[Int]] = [
+            Array(50...60),  // 11 days
+            Array(30...35),  //  6 days
+            [0],             //  1 day (today)
+        ]
+        for run in runs {
+            for daysAgo in run {
+                let date = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
+                profile.mealHistory.append(
+                    MealEntry(date: date, category: .snack, name: "Snack",
+                              calories: 100, proteinG: 5, carbsG: 15, fatG: 3,
+                              source: .openFoodFacts)
+                )
+            }
+        }
+        XCTAssertEqual(LifestyleDataLogic.bestMealLoggingStreak(in: profile, asOf: today), 11)
+    }
+
+    func test_spotlightIdentifier_roundTrips_throughDeepLink() throws {
+        let customID = UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
+        let customIdentifier = FoodSpotlightService.identifier(forCustomFoodID: customID)
+        let parsedCustom = FoodLogDeepLink(spotlightIdentifier: customIdentifier)
+        XCTAssertEqual(parsedCustom, .custom(id: customID))
+
+        let barcode = "5449000000996"
+        let offIdentifier = FoodSpotlightService.identifier(forBarcode: barcode)
+        let parsedOFF = FoodLogDeepLink(spotlightIdentifier: offIdentifier)
+        XCTAssertEqual(parsedOFF, .openFoodFacts(barcode: barcode))
+
+        // Garbage strings return nil, not a crash.
+        XCTAssertNil(FoodLogDeepLink(spotlightIdentifier: "not-a-peptidex-identifier"))
+        XCTAssertNil(FoodLogDeepLink(spotlightIdentifier: "peptidex-food/wrong/123"))
+        XCTAssertNil(FoodLogDeepLink(spotlightIdentifier: "peptidex-food/custom/not-a-uuid"))
+    }
+
     func test_offRateLimiter_allowsUpToCapThenDenies() async {
         // 3 calls / 60-second window — easier to assert than the
         // production 8/60s config without changing the algorithm.
