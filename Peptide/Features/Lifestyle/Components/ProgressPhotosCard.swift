@@ -16,6 +16,19 @@ struct ProgressPhotosCard: View {
     @State private var revealedFilename: String?
     @State private var pendingDelete: String?
     @State private var errorText: String?
+    /// Photo currently presented in the full-screen viewer. Non-nil
+    /// while the sheet is up; nil otherwise. Drives `.sheet(item:)`.
+    @State private var viewerSelection: PhotoSelection?
+    /// Photo currently anchored in the side-by-side compare sheet.
+    @State private var compareSelection: PhotoSelection?
+
+    /// Identifiable wrapper for the sheet bindings. Plain String
+    /// would need `String: Identifiable`, which we avoid module-
+    /// wide because the same trick would unify two unrelated uses.
+    private struct PhotoSelection: Identifiable, Equatable {
+        let filename: String
+        var id: String { filename }
+    }
 
     private static let slotCount = 4
 
@@ -72,6 +85,33 @@ struct ProgressPhotosCard: View {
         } message: {
             Text(errorText ?? "")
         }
+        .fullScreenCover(item: $viewerSelection) { selection in
+            ProgressPhotoViewer(
+                filenames: dataStore.profile.progressPhotoFilenames,
+                initialFilename: selection.filename,
+                onCompare: { picked in
+                    viewerSelection = nil
+                    // Brief delay so the dismiss animation settles
+                    // before the compare sheet presents.
+                    Task { @MainActor in
+                        try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
+                        compareSelection = PhotoSelection(filename: picked)
+                    }
+                },
+                onDelete: { filename in
+                    pendingDelete = filename
+                    viewerSelection = nil
+                },
+                onClose: { viewerSelection = nil }
+            )
+        }
+        .fullScreenCover(item: $compareSelection) { selection in
+            ProgressPhotoCompareView(
+                allFilenames: dataStore.profile.progressPhotoFilenames,
+                primary: selection.filename,
+                onClose: { compareSelection = nil }
+            )
+        }
     }
 
     private var header: some View {
@@ -86,6 +126,37 @@ struct ProgressPhotosCard: View {
             }
 
             Spacer(minLength: 0)
+
+            if dataStore.profile.progressPhotoFilenames.count >= 2 {
+                Button {
+                    // Default to comparing the newest photo first —
+                    // most users open compare to "see my progress
+                    // against the earliest photo".
+                    if let newest = dataStore.profile.progressPhotoFilenames.last {
+                        compareSelection = PhotoSelection(filename: newest)
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "rectangle.split.2x1")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("Compare")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundStyle(AppColor.accentLight)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, 6)
+                    .background {
+                        Capsule(style: .continuous)
+                            .fill(AppColor.accentPrimary.opacity(0.18))
+                            .overlay {
+                                Capsule(style: .continuous)
+                                    .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                            }
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Compare progress photos")
+            }
 
             PhotosPicker(
                 selection: $pickerItem,
@@ -151,12 +222,32 @@ struct ProgressPhotosCard: View {
             }
             .contentShape(Rectangle())
             .onTapGesture {
-                withAnimation(AppAnimation.springSnappy) {
-                    revealedFilename = isRevealed ? nil : filename
+                // Two-phase tap: first tap unblurs (privacy-by-
+                // default), second tap on an unblurred photo opens
+                // the full-screen viewer. Long-press still surfaces
+                // delete + "open in viewer" via the context menu.
+                if isRevealed {
+                    viewerSelection = PhotoSelection(filename: filename)
+                } else {
+                    withAnimation(AppAnimation.springSnappy) {
+                        revealedFilename = filename
+                    }
                 }
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
             .contextMenu {
+                Button {
+                    viewerSelection = PhotoSelection(filename: filename)
+                } label: {
+                    Label("Open viewer", systemImage: "rectangle.expand.vertical")
+                }
+                if dataStore.profile.progressPhotoFilenames.count >= 2 {
+                    Button {
+                        compareSelection = PhotoSelection(filename: filename)
+                    } label: {
+                        Label("Compare", systemImage: "rectangle.split.2x1")
+                    }
+                }
                 Button(role: .destructive) {
                     pendingDelete = filename
                 } label: {

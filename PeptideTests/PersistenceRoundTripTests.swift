@@ -769,6 +769,30 @@ final class PersistenceRoundTripTests: XCTestCase {
         } else { XCTFail("Expected upcoming") }
     }
 
+    func test_progressPhotoMetadata_parsesUnixTimestampFromFilename() {
+        // Filename format: progress-<unix>-<uuid6>.jpg
+        let stamp: TimeInterval = 1_715_000_000   // May 2024
+        let filename = "progress-\(Int(stamp))-abc123.jpg"
+        let parsed = ProgressPhotoMetadata.date(forFilename: filename)
+        XCTAssertNotNil(parsed)
+        XCTAssertEqual(parsed?.timeIntervalSince1970, stamp, accuracy: 0.001)
+    }
+
+    func test_progressPhotoMetadata_returnsNilForUnknownScheme() {
+        XCTAssertNil(ProgressPhotoMetadata.date(forFilename: "IMG_1234.jpg"))
+        XCTAssertNil(ProgressPhotoMetadata.date(forFilename: "progress-not-a-number-abc.jpg"))
+    }
+
+    func test_progressPhotoMetadata_daysBetween_isAbsoluteAndDayResolution() {
+        let cal = Calendar.current
+        let now = cal.startOfDay(for: Date())
+        let earlier = cal.date(byAdding: .day, value: -10, to: now)!
+        let fnA = "progress-\(Int(now.timeIntervalSince1970))-aaa111.jpg"
+        let fnB = "progress-\(Int(earlier.timeIntervalSince1970))-bbb222.jpg"
+        XCTAssertEqual(ProgressPhotoMetadata.daysBetween(fnA, fnB), 10)
+        XCTAssertEqual(ProgressPhotoMetadata.daysBetween(fnB, fnA), 10, "Should be absolute")
+    }
+
     func test_offRateLimiter_allowsUpToCapThenDenies() async {
         // 3 calls / 60-second window — easier to assert than the
         // production 8/60s config without changing the algorithm.
