@@ -259,7 +259,13 @@ final class NotificationService {
     /// action identifier, or nil when the identifier isn't a
     /// snooze. Lets `NotificationDelegate` share one
     /// reschedule code path across the three durations.
-    static func snoozeDuration(forActionIdentifier identifier: String) -> TimeInterval? {
+    ///
+    /// `nonisolated` because this is a pure switch over the
+    /// identifier string — no actor state is touched. The default
+    /// MainActor isolation from the enclosing class would make
+    /// `NotificationDelegate`'s synchronous call site illegal
+    /// under Swift 6.
+    nonisolated static func snoozeDuration(forActionIdentifier identifier: String) -> TimeInterval? {
         switch identifier {
         case "SNOOZE", "SNOOZE_15":  return 15 * 60
         case "SNOOZE_30":            return 30 * 60
