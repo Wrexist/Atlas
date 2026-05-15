@@ -111,8 +111,8 @@ struct PeptideApp: App {
                 // namespaced identifier (`peptidex-food/custom/<uuid>`
                 // for user-defined foods, `peptidex-food/off/<barcode>`
                 // for OFF favorites), stash the result on AppState,
-                // and switch to the Home tab so `HomeContainerView`'s
-                // child `LifestyleView` picks it up. Unknown formats
+                // and switch to the Today tab so the meals section
+                // (HomeMealsSection) picks it up. Unknown formats
                 // are dropped silently — better to no-op than to
                 // surface a confusing error to a user who tapped a
                 // Spotlight tile expecting their food to open.

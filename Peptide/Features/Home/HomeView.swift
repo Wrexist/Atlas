@@ -146,6 +146,32 @@ struct HomeView: View {
                             nextDose: dataStore.nextDose
                         )
                         .sectionAppear(index: 4)
+                    }
+
+                    // MARK: - Meals / Wellness / Movement
+                    //
+                    // Merged into Today in Phase 33 — these used to
+                    // live on a separate Lifestyle pill that the
+                    // user had to discover. They render unconditionally
+                    // (regardless of `dataStore.protocols.isEmpty`)
+                    // because the user can log meals or check-ins
+                    // before ever creating their first protocol.
+
+                    HomeMealsSection()
+                        .sectionAppear(index: 5)
+
+                    HomeWellnessSection()
+                        .sectionAppear(index: 5)
+
+                    HomeMovementSection()
+                        .sectionAppear(index: 5)
+
+                    if !dataStore.protocols.isEmpty {
+                        // MARK: - Stack management
+                        //
+                        // Marked for migration to the Protocols tab
+                        // in Phase 34. Kept here for now so we ship
+                        // one structural change per phase.
 
                         VialShelfCard(peptides: dataStore.stackPeptides)
                             .sectionAppear(index: 5)
