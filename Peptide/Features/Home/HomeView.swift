@@ -13,6 +13,10 @@ struct HomeView: View {
     /// the View on its own.
     @State private var notificationService = NotificationService.shared
     @State private var showProfileCustomization = false
+    /// 0…1 fade progress for the sticky compressing header. Driven
+    /// by `.onScrollGeometryChange` so the bar materialises in lock-
+    /// step with the user's finger.
+    @State private var stickyProgress: Double = 0
     /// Cycle-milestone prompt state. Both are nil unless the
     /// CycleMilestoneService has surfaced a pending (protocol,
     /// milestone) pair on appear; the prompt sheet routes into the
@@ -192,9 +196,32 @@ struct HomeView: View {
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
             }
+            // Scroll-driven sticky header progress: fade begins
+            // once the welcome card scrolls ~80pt out of view and
+            // completes after another ~60pt — about a single finger
+            // pan. Clamped 0…1 so the math behaves at the extremes.
+            .onScrollGeometryChange(for: Double.self) { proxy in
+                let raw = max(0, proxy.contentOffset.y - 80)
+                return min(raw / 60, 1.0)
+            } action: { _, newValue in
+                stickyProgress = newValue
+            }
             .background(AppColor.background)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                HomeStickyHeader(
+                    firstName: firstNameForSticky,
+                    avatarImageData: dataStore.profile.avatarImageData,
+                    onAvatarTap: {
+                        if dataStore.profile.hapticFeedbackEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        showProfileCustomization = true
+                    },
+                    progress: stickyProgress
+                )
+            }
             .sheet(item: $selectedEntry) { entry in
                 DoseLoggingSheet(entry: entry) { actualDose, actualTime, site, notes in
                     dataStore.logDose(
@@ -365,6 +392,18 @@ struct HomeView: View {
     // Stack-warning + stack-adjustment helpers moved to
     // ProtocolsStackHealthSection in Phase 34 alongside the cards
     // that called them.
+
+    /// First-name token for the sticky header. Trimmed +
+    /// space-split so "Alex Chen" reads as "Hi, Alex". Empty
+    /// string is handled by the sticky header's own fallback so
+    /// this helper stays a pure transform.
+    private var firstNameForSticky: String {
+        dataStore.profile.name
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(separator: " ")
+            .first
+            .map(String.init) ?? ""
+    }
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
