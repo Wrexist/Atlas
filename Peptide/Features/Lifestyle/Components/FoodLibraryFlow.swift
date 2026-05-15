@@ -47,6 +47,12 @@ struct FoodLibraryFlow: View {
     /// trip. Refreshed on tab change so a re-favorited item from the
     /// All tab shows up immediately.
     @State private var cachedFavoriteProducts: [ScannedProduct] = []
+    /// Top-N recently logged OFF products ranked by
+    /// `BarcodeScanHistory`'s recency × frequency score, identical to
+    /// the BarcodeScanFlow's "Recently scanned" row. Lets the landing
+    /// page show real "what did I log lately" content instead of just
+    /// custom-food creations.
+    @State private var recentOFFProducts: [ScannedProduct] = []
 
     @FocusState private var searchFieldFocused: Bool
 
@@ -134,6 +140,13 @@ struct FoodLibraryFlow: View {
             guard tab == .favorites else { return }
             await refreshCachedFavorites()
         }
+        .task {
+            // Single-shot on first appear: hydrate the landing page's
+            // "Recently logged" row from `BarcodeProductCache` +
+            // `BarcodeScanHistory`. Cheap (cache reads, no network)
+            // and doesn't need re-running on every render.
+            await refreshRecentOFFProducts()
+        }
         .sheet(item: $editingCustomFood) { food in
             CustomFoodEditorSheet(
                 initial: food,
@@ -148,6 +161,22 @@ struct FoodLibraryFlow: View {
                     editingCustomFood = nil
                 } : nil
             )
+        }
+        .confirmationDialog(
+            "Delete this food?",
+            isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } }
+            ),
+            presenting: pendingDelete
+        ) { food in
+            Button("Delete \(food.name)", role: .destructive) {
+                dataStore.deleteCustomFood(id: food.id)
+                pendingDelete = nil
+            }
+            Button("Cancel", role: .cancel) { pendingDelete = nil }
+        } message: { _ in
+            Text("Past logs aren't affected — only the food itself disappears from your library.")
         }
     }
 
@@ -266,6 +295,11 @@ struct FoodLibraryFlow: View {
                         )
                     }
             }
+            // Extend the hit region to the 44pt HIG minimum without
+            // resizing the visible pill — invisible padding around
+            // the chip catches fat-finger taps.
+            .contentShape(Rectangle())
+            .frame(minHeight: 44)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(active ? [.isButton, .isSelected] : .isButton)
@@ -322,10 +356,17 @@ struct FoodLibraryFlow: View {
         VStack(spacing: Spacing.md) {
             quickActionsCard
 
-            let recents = recentCustomFoods()
-            if !recents.isEmpty {
-                sectionHeader("Recently added")
-                ForEach(recents) { custom in
+            if !recentOFFProducts.isEmpty {
+                sectionHeader("Recently logged")
+                ForEach(recentOFFProducts, id: \.barcode) { product in
+                    productRow(product)
+                }
+            }
+
+            let customRecents = recentCustomFoods()
+            if !customRecents.isEmpty {
+                sectionHeader(recentOFFProducts.isEmpty ? "Recently added" : "Your foods")
+                ForEach(customRecents) { custom in
                     customFoodRow(custom)
                 }
             }
@@ -534,8 +575,8 @@ struct FoodLibraryFlow: View {
             }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(product.name), \(Int(product.per100g.calories)) kilocalories per 100 grams")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Self.rowAccessibilityLabel(name: product.name, brand: product.brand, n: product.per100g))
         .accessibilityHint("Opens the portion picker to log this food.")
     }
 
@@ -571,21 +612,25 @@ struct FoodLibraryFlow: View {
             }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Self.rowAccessibilityLabel(name: food.name, brand: food.brand ?? "Custom food", n: food.per100g))
+        .accessibilityHint("Opens the portion picker to log this food.")
         .contextMenu {
             Button {
                 editingCustomFood = food
             } label: {
                 Label("Edit", systemImage: "pencil")
             }
+            // Stage the delete instead of firing it directly — the
+            // editor sheet's trash button shows a confirmation, and
+            // an accidental long-press here shouldn't have looser
+            // rules than the explicit edit path.
             Button(role: .destructive) {
-                dataStore.deleteCustomFood(id: food.id)
+                pendingDelete = food
             } label: {
                 Label("Delete", systemImage: "trash")
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(food.name), custom food")
-        .accessibilityHint("Opens the portion picker to log this food.")
     }
 
     private var customFoodIcon: some View {
@@ -937,16 +982,32 @@ struct FoodLibraryFlow: View {
 
     private func reviewMacros(_ product: ScannedProduct) -> some View {
         let meal = product.loggable(for: portion)
-        return GlassCard(tinted: true, padding: Spacing.md) {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Nutrition")
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-                Divider().background(AppColor.glassBorder)
-                macroRow(label: "Calories", value: "\(meal?.calories ?? 0) kcal")
-                macroRow(label: "Protein",  value: "\(meal?.proteinG ?? 0) g")
-                macroRow(label: "Carbs",    value: "\(meal?.carbsG ?? 0) g")
-                macroRow(label: "Fat",      value: "\(meal?.fatG ?? 0) g")
+        // OFF entries with incomplete data report 0 kcal/100g for the
+        // whole product — distinct from a legitimate zero-calorie
+        // item like black coffee. Surface the ambiguity instead of
+        // silently logging zeros: a user expecting macros to land
+        // would otherwise wonder why their rings didn't move.
+        let zeroCaloriesPer100g = product.per100g.calories <= 0
+            && !product.barcode.hasPrefix("custom:")
+        return VStack(spacing: Spacing.sm) {
+            GlassCard(tinted: true, padding: Spacing.md) {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    Text("Nutrition")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                    Divider().background(AppColor.glassBorder)
+                    macroRow(label: "Calories", value: "\(meal?.calories ?? 0) kcal")
+                    macroRow(label: "Protein",  value: "\(meal?.proteinG ?? 0) g")
+                    macroRow(label: "Carbs",    value: "\(meal?.carbsG ?? 0) g")
+                    macroRow(label: "Fat",      value: "\(meal?.fatG ?? 0) g")
+                }
+            }
+            if zeroCaloriesPer100g {
+                inlineMessage(
+                    icon: "exclamationmark.triangle.fill",
+                    text: "This product has no calorie data in Open Food Facts. Snap the nutrition label or save it as a custom food.",
+                    tone: .warning
+                )
             }
         }
     }
@@ -1063,9 +1124,16 @@ struct FoodLibraryFlow: View {
         // Record the choice in scan history so this food shows up in
         // the barcode recents row too — keeps the two scanners' notion
         // of "recently logged" consistent. Fire-and-forget.
+        //
+        // Custom foods carry a synthetic `custom:<uuid>` barcode that
+        // `BarcodeScanHistory.normalize` would throw on (it expects
+        // 8-14 digits). Skip them — their own recents path lives on
+        // `profile.customFoods.updatedAt`, not the scan-history actor.
         let barcode = product.barcode
         let chosen = portion
-        Task { await BarcodeScanHistory.shared.recordLog(barcode: barcode, portion: chosen, at: now) }
+        if !barcode.hasPrefix("custom:") {
+            Task { await BarcodeScanHistory.shared.recordLog(barcode: barcode, portion: chosen, at: now) }
+        }
         phase = .logged
     }
 
@@ -1074,6 +1142,12 @@ struct FoodLibraryFlow: View {
             onClose()
             return
         }
+        // Transition out of `.logged` *first* so the auto-close task
+        // (`.task(id: phase)`) is cancelled by SwiftUI before its
+        // sleep resolves. Otherwise the 4-second timer fires regardless
+        // and calls `onClose()` a second time — harmless today, but a
+        // foot-gun the moment `onClose` does anything non-idempotent.
+        phase = .browse
         dataStore.unlogMeal(
             calories: snapshot.meal.calories,
             proteinG: snapshot.meal.proteinG,
@@ -1102,11 +1176,15 @@ struct FoodLibraryFlow: View {
 
     /// Fires when `debouncedQuery` actually changes — the network call.
     /// Cleared queries short-circuit so empty searches don't hit OFF.
+    /// `defer` reliably clears the spinner even when the task is
+    /// cancelled mid-await — without it, fast typists would see the
+    /// skeleton loader hang until the next non-cancelled search.
     private func runSearch() async {
+        defer { isSearching = false }
+
         let trimmed = debouncedQuery
         guard trimmed.count >= 2 else {
             results = []
-            isSearching = false
             searchError = nil
             return
         }
@@ -1126,7 +1204,6 @@ struct FoodLibraryFlow: View {
             results = []
             searchError = error.localizedDescription
         }
-        isSearching = false
     }
 
     private func matchingCustomFoods(for query: String) -> [CustomFood] {
@@ -1173,10 +1250,33 @@ struct FoodLibraryFlow: View {
         return out.sorted { $0.name.lowercased() < $1.name.lowercased() }
     }
 
+    /// Loads the top-N recently logged OFF products into the landing
+    /// page's "Recently logged" row. Mirrors `BarcodeScanFlow.loadRecentlyScanned`
+    /// — pulls candidates from the on-disk product cache and re-ranks
+    /// by the scan-history actor's recency × frequency score so a
+    /// daily product outranks a one-off scan from yesterday.
+    private func refreshRecentOFFProducts() async {
+        let candidates = await OpenFoodFactsService.shared.recent(limit: 20)
+        guard !candidates.isEmpty else {
+            recentOFFProducts = []
+            return
+        }
+        let scores = await BarcodeScanHistory.shared.scores(for: candidates.map(\.barcode))
+        guard !Task.isCancelled else { return }
+        recentOFFProducts = candidates
+            .sorted { (scores[$0.barcode] ?? 0) > (scores[$1.barcode] ?? 0) }
+            .prefix(5)
+            .map { $0 }
+    }
+
     /// Pulls cached `ScannedProduct`s for every favorited OFF barcode
     /// off the `BarcodeProductCache` actor. Skips `custom:` IDs (those
     /// resolve from `profile.customFoods` instead). Runs on the
     /// favorites-tab task hook so the list paints without a search.
+    /// Per-iteration cancellation check matters because a user
+    /// flipping tabs mid-loop shouldn't keep hammering the cache —
+    /// each actor hop is cheap but pointless once the work has been
+    /// invalidated.
     private func refreshCachedFavorites() async {
         let offIDs = profile.favoriteFoodIDs.filter { !$0.hasPrefix("custom:") }
         guard !offIDs.isEmpty else {
@@ -1186,6 +1286,7 @@ struct FoodLibraryFlow: View {
         var pulled: [ScannedProduct] = []
         pulled.reserveCapacity(offIDs.count)
         for id in offIDs {
+            if Task.isCancelled { return }
             if let product = await BarcodeProductCache.shared.read(barcode: id) {
                 pulled.append(product)
             }
@@ -1198,6 +1299,24 @@ struct FoodLibraryFlow: View {
         count.truncatingRemainder(dividingBy: 1) == 0
             ? String(format: "%.0f", count)
             : String(format: "%.1f", count)
+    }
+
+    /// Single canonical VoiceOver label for both OFF and custom-food
+    /// rows. Spells the macro letters out ("grams protein" instead of
+    /// "P") so the screen-reader voice reads naturally instead of
+    /// stuttering "pee see eff" through the abbreviations the visible
+    /// chips use.
+    private static func rowAccessibilityLabel(
+        name: String,
+        brand: String?,
+        n: ScannedProduct.Nutriments
+    ) -> String {
+        let brandPart = (brand?.isEmpty == false) ? ", \(brand!)" : ""
+        return "\(name)\(brandPart), per 100 grams: " +
+            "\(Int(n.calories.rounded())) kilocalories, " +
+            "\(Int(n.proteinG.rounded())) grams protein, " +
+            "\(Int(n.carbsG.rounded())) grams carbs, " +
+            "\(Int(n.fatG.rounded())) grams fat."
     }
 }
 

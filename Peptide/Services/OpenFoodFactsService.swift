@@ -166,7 +166,11 @@ final class OpenFoodFactsService: Sendable {
             URLQueryItem(name: "fields", value: Self.searchRequestedFields),
             URLQueryItem(name: "sort_by", value: "unique_scans_n"),
         ]
-        guard let url = components?.url else { throw LookupError.invalidBarcode }
+        // Search has no barcode, so `.invalidBarcode` would be a
+        // misleading user-visible message. `.requestFailed` reads as
+        // "something went wrong on our side, try again" — the right
+        // shape for a URL-assembly failure on a text search.
+        guard let url = components?.url else { throw LookupError.requestFailed(status: -1) }
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -527,6 +531,10 @@ actor SearchQueryCache {
         let key = Self.normalize(query)
         guard let entry = entries[key] else { return nil }
         if Date().timeIntervalSince(entry.writtenAt) > ttl {
+            // Drop from both stores in lockstep — leaving the key in
+            // `insertionOrder` would let a subsequent `write` produce
+            // a duplicate entry there (the `entries[key] == nil` check
+            // would pass and the key would be appended again).
             entries.removeValue(forKey: key)
             insertionOrder.removeAll { $0 == key }
             return nil

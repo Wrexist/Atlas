@@ -379,6 +379,60 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(roundTripped.primaryGoal, profile.primaryGoal)
     }
 
+    func test_storedProfile_make_preservesCustomFoodsAndFavorites() throws {
+        // Mirrors the `customization` round-trip but for the food-library
+        // fields. The SwiftData sidecar uses `.iso8601` date encoding —
+        // we pin `updatedAt` to a deterministic value so a drift between
+        // the Codable path and the SwiftData path would surface as a
+        // failing equality check on the round-tripped date.
+        let updatedAt = Date(timeIntervalSince1970: 1_715_000_000)
+        let nutrients = ScannedProduct.Nutriments(
+            calories: 250,
+            proteinG: 18,
+            carbsG: 30,
+            fatG: 6,
+            fiberG: 4,
+            sugarsG: 5
+        )
+        let custom = CustomFood(
+            id: UUID(uuidString: "22222222-2222-2222-2222-222222222222")!,
+            name: "Overnight oats",
+            brand: "Meal prep",
+            per100g: nutrients,
+            servingGrams: 250,
+            servingLabel: "1 jar",
+            updatedAt: updatedAt
+        )
+        let profile = UserProfile(
+            name: "Casey",
+            goals: ["Recovery"],
+            memberSince: Date(),
+            healthConnected: false,
+            customFoods: [custom],
+            favoriteFoodIDs: ["5449000000996", custom.foodID]
+        )
+
+        let stored = try StoredProfile.make(from: profile)
+        let roundTripped = try stored.toUserProfile()
+
+        XCTAssertEqual(roundTripped.customFoods.count, 1)
+        let restored = try XCTUnwrap(roundTripped.customFoods.first)
+        XCTAssertEqual(restored.id, custom.id)
+        XCTAssertEqual(restored.name, custom.name)
+        XCTAssertEqual(restored.brand, custom.brand)
+        XCTAssertEqual(restored.per100g.calories, custom.per100g.calories)
+        XCTAssertEqual(restored.servingGrams, custom.servingGrams)
+        XCTAssertEqual(restored.servingLabel, custom.servingLabel)
+        // ISO 8601 has second precision; the pinned fixture date sits
+        // on a whole second so this comparison is stable.
+        XCTAssertEqual(
+            restored.updatedAt.timeIntervalSince1970.rounded(),
+            updatedAt.timeIntervalSince1970.rounded()
+        )
+        XCTAssertTrue(roundTripped.favoriteFoodIDs.contains("5449000000996"))
+        XCTAssertTrue(roundTripped.favoriteFoodIDs.contains(custom.foodID))
+    }
+
     func test_storedProfile_make_collapsesEmptyBioToNil() throws {
         // Empty bio should serialize as nil in the SwiftData column to avoid
         // bloating the row with empty strings on every save.

@@ -41,9 +41,30 @@ struct CustomFoodEditorSheet: View {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var caloriesValue: Double { Double(calories) ?? 0 }
+    private var caloriesValue: Double { Self.parseDecimal(calories) ?? 0 }
     private var canSave: Bool { !trimmedName.isEmpty && caloriesValue > 0 }
     private var isEditing: Bool { onDelete != nil }
+
+    /// Locale-aware decimal parser. `Double("1,5")` returns nil on
+    /// devices set to a comma-decimal locale (fr_FR, de_DE, es_ES,
+    /// etc.), so the editor would silently log 0 calories for a user
+    /// who typed "1,5". Try the locale formatter first, fall back to
+    /// the C parse so a pasted "1.5" still works regardless of locale.
+    private static func parseDecimal(_ input: String) -> Double? {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if let n = decimalFormatter.number(from: trimmed) {
+            return n.doubleValue
+        }
+        return Double(trimmed)
+    }
+
+    private static let decimalFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.locale = .current
+        return f
+    }()
 
     var body: some View {
         NavigationStack {
@@ -124,7 +145,10 @@ struct CustomFoodEditorSheet: View {
             }
         }
         .preferredColorScheme(.dark)
-        .task { hydrate() }
+        // `.onAppear` fires once per presentation, where `.task` would
+        // re-run on every observation cycle and clobber the user's
+        // in-progress edits when DataStore publishes a change.
+        .onAppear { hydrate() }
     }
 
     private func macroField(
@@ -178,18 +202,18 @@ struct CustomFoodEditorSheet: View {
     private func commit() {
         let nutrients = ScannedProduct.Nutriments(
             calories: caloriesValue,
-            proteinG: Double(protein) ?? 0,
-            carbsG: Double(carbs) ?? 0,
-            fatG: Double(fat) ?? 0,
-            fiberG: Double(fiber),
-            sugarsG: Double(sugars)
+            proteinG: Self.parseDecimal(protein) ?? 0,
+            carbsG: Self.parseDecimal(carbs) ?? 0,
+            fatG: Self.parseDecimal(fat) ?? 0,
+            fiberG: Self.parseDecimal(fiber),
+            sugarsG: Self.parseDecimal(sugars)
         )
         let saved = CustomFood(
             id: initial.id,
             name: trimmedName,
             brand: brand.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
             per100g: nutrients,
-            servingGrams: Double(servingGrams).flatMap { $0 > 0 ? $0 : nil },
+            servingGrams: Self.parseDecimal(servingGrams).flatMap { $0 > 0 ? $0 : nil },
             servingLabel: servingLabel.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
             updatedAt: Date()
         )
