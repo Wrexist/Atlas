@@ -152,12 +152,20 @@ struct HomeView: View {
                     // user's mental model from Whoop / Oura / Bevel.
                     HeroMetricTrio(snapshot: heroSnapshot) { kind in
                         // Tap-to-detail is intentional dead-end for now —
-                        // Phase 1.2 attaches an expanded detail sheet
-                        // per ring. The button affordance stays so the
-                        // gesture is discoverable.
+                        // a future commit attaches an expanded detail
+                        // sheet per ring. The button affordance stays
+                        // so the gesture is discoverable.
                         _ = kind
                     }
                     .sectionAppear(index: 0)
+
+                    // Coaching line — turns the trio's three numbers
+                    // into a single recommendation. Same priority
+                    // cascade Bevel uses ("Excellent recovery, push
+                    // today" / "Short sleep, cap intensity"), tuned
+                    // for Atlas's peptide-protocol context.
+                    CoachingCard(message: coachingMessage)
+                        .sectionAppear(index: 0)
 
                     if overview.hasAnySignal {
                         TodayOverviewCard(
@@ -420,6 +428,30 @@ struct HomeView: View {
 
     private func showQuickLogMenu() {
         showQuickLogDialog = true
+    }
+
+    /// Builds the coaching context from the current store + hero
+    /// snapshot. Pure read — synchronous so the view body can
+    /// consume it without an async hop.
+    private var coachingMessage: CoachingMessageEngine.CoachingMessage {
+        let next = dataStore.nextDose
+        let nextTimeDisplay: String? = next.map {
+            DateFormatter.localizedString(from: $0.date, dateStyle: .none, timeStyle: .short)
+        }
+        let context = CoachingMessageEngine.Context(
+            hasProtocols: !dataStore.protocols.isEmpty,
+            healthConnected: dataStore.profile.healthConnected,
+            recoveryScore: heroSnapshot.recovery.isAvailable ? heroSnapshot.recovery.displayPercent : nil,
+            sleepHours: heroSnapshot.sleep.isAvailable
+                ? Double(heroSnapshot.sleep.displayPercent) / 100 * 8.0    // approx; 8h target
+                : nil,
+            adherenceRatio: todayStats.score,
+            pendingDoseCount: todayStats.total - todayStats.completed,
+            nextDoseAbbreviation: next?.peptide.abbreviation,
+            nextDoseTimeDisplay: nextTimeDisplay,
+            hourOfDay: Calendar.current.component(.hour, from: Date())
+        )
+        return CoachingMessageEngine.pick(context: context)
     }
 
     /// Rebuilds the hero metric trio snapshot. Adherence is read
