@@ -287,6 +287,93 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertTrue(decoded.favoriteFoodIDs.contains(custom.foodID))
     }
 
+    func test_logMealEntry_appendsHistoryAndUpdatesAggregateInLockstep() throws {
+        var profile = UserProfile.fresh
+        let entry = MealEntry(
+            date: Date(),
+            category: .lunch,
+            name: "Chicken bowl",
+            calories: 500,
+            proteinG: 40,
+            carbsG: 50,
+            fatG: 15,
+            sourceID: "5449000000996",
+            source: .openFoodFacts
+        )
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: entry)
+
+        XCTAssertEqual(profile.mealHistory.count, 1)
+        let today = LifestyleDataLogic.consumption(in: profile, for: Date())
+        XCTAssertEqual(today.caloriesKcal, 500)
+        XCTAssertEqual(today.proteinG, 40)
+        XCTAssertEqual(today.carbsG, 50)
+        XCTAssertEqual(today.fatG, 15)
+    }
+
+    func test_unlogMealEntry_rollsBackAggregateAndRemovesEntry() throws {
+        var profile = UserProfile.fresh
+        let entry = MealEntry(
+            date: Date(),
+            category: .dinner,
+            name: "Salmon",
+            calories: 400,
+            proteinG: 35,
+            carbsG: 0,
+            fatG: 25,
+            source: .photo
+        )
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: entry)
+        LifestyleDataLogic.unlogMealEntry(from: &profile, id: entry.id)
+
+        XCTAssertTrue(profile.mealHistory.isEmpty)
+        let today = LifestyleDataLogic.consumption(in: profile, for: Date())
+        XCTAssertEqual(today.caloriesKcal, 0)
+        XCTAssertEqual(today.proteinG, 0)
+    }
+
+    func test_mealsByCategory_bucketsEntriesAndCapturesLegacyAggregateAsOther() throws {
+        var profile = UserProfile.fresh
+        let breakfast = MealEntry(
+            date: Date(), category: .breakfast, name: "Oats",
+            calories: 300, proteinG: 12, carbsG: 50, fatG: 5, source: .custom
+        )
+        let dinner = MealEntry(
+            date: Date(), category: .dinner, name: "Steak",
+            calories: 600, proteinG: 45, carbsG: 0, fatG: 35, source: .openFoodFacts
+        )
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: breakfast)
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: dinner)
+        // Simulate a legacy aggregate-only log (no MealEntry) — e.g.
+        // a meal logged before this branch shipped.
+        LifestyleDataLogic.logMeal(
+            into: &profile,
+            calories: 200, proteinG: 5, carbsG: 30, fatG: 4,
+            date: Date()
+        )
+
+        let breakdown = LifestyleDataLogic.mealsByCategory(in: profile, for: Date())
+        XCTAssertEqual(breakdown.breakfast.calories, 300)
+        XCTAssertEqual(breakdown.breakfast.entryCount, 1)
+        XCTAssertEqual(breakdown.dinner.calories, 600)
+        XCTAssertEqual(breakdown.lunch.calories, 0)
+        XCTAssertEqual(breakdown.snack.calories, 0)
+        XCTAssertEqual(breakdown.other.calories, 200)
+        XCTAssertEqual(breakdown.totalCalories, 1100)
+    }
+
+    func test_mealCategory_autoForDate_picksByHour() {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let morning = cal.date(byAdding: .hour, value: 8, to: today)!
+        let noon    = cal.date(byAdding: .hour, value: 12, to: today)!
+        let evening = cal.date(byAdding: .hour, value: 18, to: today)!
+        let lateNight = cal.date(byAdding: .hour, value: 23, to: today)!
+        XCTAssertEqual(MealCategory.auto(for: morning), .breakfast)
+        XCTAssertEqual(MealCategory.auto(for: noon),    .lunch)
+        XCTAssertEqual(MealCategory.auto(for: evening), .dinner)
+        XCTAssertEqual(MealCategory.auto(for: lateNight), .snack)
+    }
+
     func test_userProfile_legacyJSON_decodesWithEmptyFoodLibraryDefaults() throws {
         // Older builds had no customFoods / favoriteFoodIDs columns —
         // their on-disk JSON omits both keys. The decode path must
@@ -309,6 +396,7 @@ final class PersistenceRoundTripTests: XCTestCase {
         let decoded = try decoder.decode(UserProfile.self, from: legacyJSON)
         XCTAssertTrue(decoded.customFoods.isEmpty)
         XCTAssertTrue(decoded.favoriteFoodIDs.isEmpty)
+        XCTAssertTrue(decoded.mealHistory.isEmpty)
     }
 
     func test_userProfile_emptyBio_roundTripsAsEmptyString() throws {

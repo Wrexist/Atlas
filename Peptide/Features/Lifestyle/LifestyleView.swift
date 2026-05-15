@@ -93,6 +93,11 @@ struct LifestyleView: View {
                     }
                     .sectionAppear(index: 3)
 
+                    if dataStore.consumption().caloriesKcal > 0 {
+                        MealCategoriesCard(breakdown: dataStore.mealsByCategory())
+                            .sectionAppear(index: 3)
+                    }
+
                     sectionHeader(eyebrow: "Movement", title: "Training")
                         .sectionAppear(index: 4)
 

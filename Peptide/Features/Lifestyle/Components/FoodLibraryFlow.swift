@@ -38,6 +38,7 @@ struct FoodLibraryFlow: View {
     @State private var tab: LibraryTab = .all
     @State private var selectedProduct: ScannedProduct?
     @State private var portion: ScannedProduct.Portion = .grams(100)
+    @State private var category: MealCategory = MealCategory.auto(for: Date())
     @State private var loggedSnapshot: LoggedSnapshot?
     @State private var editingCustomFood: CustomFood?
     @State private var pendingDelete: CustomFood?
@@ -79,7 +80,8 @@ struct FoodLibraryFlow: View {
 
     private struct LoggedSnapshot: Equatable {
         let foodName: String
-        let meal: LoggableMeal
+        let entryID: UUID
+        let calories: Int
         let date: Date
     }
 
@@ -778,6 +780,7 @@ struct FoodLibraryFlow: View {
                     reviewHeader(product)
                     reviewSourceBadge(product)
                     reviewPortionPicker(product)
+                    MealCategoryPicker(selection: $category)
                     reviewMacros(product)
                     reviewActions(product)
                 }
@@ -1056,7 +1059,7 @@ struct FoodLibraryFlow: View {
             if let snapshot = loggedSnapshot {
                 LoggedCaloriePanel(
                     productName: snapshot.foodName,
-                    deltaCalories: snapshot.meal.calories,
+                    deltaCalories: snapshot.calories,
                     totalCalories: dataStore.consumption().caloriesKcal,
                     targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories
                 )
@@ -1090,6 +1093,11 @@ struct FoodLibraryFlow: View {
     private func select(_ product: ScannedProduct) {
         selectedProduct = product
         portion = product.defaultPortion
+        // Re-evaluate the auto-category against the wall clock each
+        // time we open a review — fixes the case where a user opens
+        // the library at 10:55 (defaults to breakfast), browses for a
+        // few minutes, then logs at 11:05 expecting lunch.
+        category = MealCategory.auto(for: Date())
         phase = .review
         searchFieldFocused = false
         if dataStore.profile.hapticFeedbackEnabled {
@@ -1106,19 +1114,23 @@ struct FoodLibraryFlow: View {
     private func confirmLog(for product: ScannedProduct) {
         guard let meal = product.loggable(for: portion) else { return }
         let now = Date()
-        dataStore.logMeal(
-            calories: meal.calories,
-            proteinG: meal.proteinG,
-            carbsG: meal.carbsG,
-            fatG: meal.fatG,
+        let source: MealSource = product.barcode.hasPrefix("custom:") ? .custom : .openFoodFacts
+        let entry = MealEntry(
+            loggable: meal,
+            name: product.name,
+            category: category,
+            source: source,
+            sourceID: product.barcode,
             date: now
         )
+        dataStore.logMealEntry(entry)
         if dataStore.profile.hapticFeedbackEnabled {
             BarcodeHaptics.logCommitted()
         }
         loggedSnapshot = LoggedSnapshot(
             foodName: product.name,
-            meal: meal,
+            entryID: entry.id,
+            calories: meal.calories,
             date: now
         )
         // Record the choice in scan history so this food shows up in
@@ -1144,17 +1156,13 @@ struct FoodLibraryFlow: View {
         }
         // Transition out of `.logged` *first* so the auto-close task
         // (`.task(id: phase)`) is cancelled by SwiftUI before its
-        // sleep resolves. Otherwise the 4-second timer fires regardless
-        // and calls `onClose()` a second time — harmless today, but a
-        // foot-gun the moment `onClose` does anything non-idempotent.
+        // sleep resolves — otherwise the timer fires `onClose()`
+        // again after the undo path already called it.
         phase = .browse
-        dataStore.unlogMeal(
-            calories: snapshot.meal.calories,
-            proteinG: snapshot.meal.proteinG,
-            carbsG: snapshot.meal.carbsG,
-            fatG: snapshot.meal.fatG,
-            date: snapshot.date
-        )
+        // Removing the entry rolls back the aggregate in one step,
+        // so we don't need to keep the macro values around for an
+        // explicit `unlogMeal` call.
+        dataStore.unlogMealEntry(id: snapshot.entryID)
         if dataStore.profile.hapticFeedbackEnabled {
             BarcodeHaptics.logUndone()
         }

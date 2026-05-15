@@ -119,6 +119,131 @@ enum LifestyleDataLogic {
             ?? DailyConsumption.empty(on: date)
     }
 
+    // MARK: - Meal entries (per-meal history)
+
+    /// Appends a `MealEntry` AND updates the per-day aggregate so the
+    /// macro rings keep working without rewriting them to recompute
+    /// from history on every render. The two stores stay in lockstep
+    /// via this method — callers should never write one without the
+    /// other.
+    ///
+    /// Trims `mealHistory` to the most recent `maxMealHistoryEntries`
+    /// so very heavy users don't bloat the profile blob without
+    /// bound. Today's entries are always kept regardless of cap.
+    static func logMealEntry(into profile: inout UserProfile, entry: MealEntry) {
+        profile.mealHistory.append(entry)
+        pruneMealHistoryIfNeeded(into: &profile)
+        logMeal(
+            into: &profile,
+            calories: entry.calories,
+            proteinG: entry.proteinG,
+            carbsG: entry.carbsG,
+            fatG: entry.fatG,
+            date: entry.date
+        )
+    }
+
+    /// Removes a `MealEntry` by id and reverses its contribution to
+    /// the aggregate. Idempotent — calling twice does nothing on the
+    /// second pass because the entry's already gone. Used by the
+    /// Undo affordance on every review screen's success state, and
+    /// (eventually) by a meal-history edit/delete UI.
+    static func unlogMealEntry(from profile: inout UserProfile, id: UUID) {
+        guard let entry = profile.mealHistory.first(where: { $0.id == id }) else { return }
+        profile.mealHistory.removeAll { $0.id == id }
+        unlogMeal(
+            from: &profile,
+            calories: entry.calories,
+            proteinG: entry.proteinG,
+            carbsG: entry.carbsG,
+            fatG: entry.fatG,
+            date: entry.date
+        )
+    }
+
+    /// Per-category macro totals for a single calendar day. Powers
+    /// the breakdown card under the macro rings.
+    ///
+    /// Returns all four categories with zero totals when nothing's
+    /// logged in them — the UI renders the empty buckets too so the
+    /// card layout stays stable as the user logs through the day.
+    /// The `other` bucket captures the gap between `mealHistory`'s
+    /// sum and the aggregate, which lets legacy logs (pre-MealEntry,
+    /// or logs from flows that haven't been upgraded yet) still
+    /// show up in the totals without being mis-attributed.
+    static func mealsByCategory(
+        in profile: UserProfile,
+        for date: Date
+    ) -> CategoryBreakdown {
+        let day = Calendar.current.startOfDay(for: date)
+        let entries = profile.mealHistory.filter {
+            Calendar.current.isDate($0.date, inSameDayAs: day)
+        }
+        var perCategory: [MealCategory: CategoryTotals] = [:]
+        for category in MealCategory.allCases {
+            perCategory[category] = .zero
+        }
+        for entry in entries {
+            perCategory[entry.category, default: .zero].add(entry)
+        }
+        let aggregate = consumption(in: profile, for: date)
+        let mealCalories = entries.reduce(0) { $0 + $1.calories }
+        let otherCalories = max(0, aggregate.caloriesKcal - mealCalories)
+        let mealProtein = entries.reduce(0) { $0 + $1.proteinG }
+        let mealCarbs   = entries.reduce(0) { $0 + $1.carbsG }
+        let mealFat     = entries.reduce(0) { $0 + $1.fatG }
+        let other = CategoryTotals(
+            calories: otherCalories,
+            proteinG: max(0, aggregate.proteinG - mealProtein),
+            carbsG:   max(0, aggregate.carbsG   - mealCarbs),
+            fatG:     max(0, aggregate.fatG     - mealFat),
+            entryCount: 0
+        )
+        return CategoryBreakdown(
+            breakfast: perCategory[.breakfast] ?? .zero,
+            lunch:     perCategory[.lunch]     ?? .zero,
+            dinner:    perCategory[.dinner]    ?? .zero,
+            snack:     perCategory[.snack]     ?? .zero,
+            other:     other
+        )
+    }
+
+    /// Returns `mealHistory` filtered to `date`'s calendar day, sorted
+    /// newest-first. Used by the (future) meal-history list.
+    static func mealEntries(in profile: UserProfile, for date: Date) -> [MealEntry] {
+        profile.mealHistory
+            .filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
+            .sorted { $0.date > $1.date }
+    }
+
+    /// Soft cap on `mealHistory` so the profile blob can't grow
+    /// without bound. Picked generously — 5 meals/day × 730 days
+    /// ≈ 3650 entries × ~150 B serialized ≈ 550 KB. Plenty of
+    /// headroom for the typical user without bloating the CloudKit
+    /// record. Today's entries are always preserved.
+    static let maxMealHistoryEntries: Int = 3650
+
+    private static func pruneMealHistoryIfNeeded(into profile: inout UserProfile) {
+        guard profile.mealHistory.count > maxMealHistoryEntries else { return }
+        let today = Calendar.current.startOfDay(for: Date())
+        // Keep every entry from today regardless of cap so the rings
+        // are never wrong on the active day, then trim older entries
+        // to fit the remaining budget.
+        var todays: [MealEntry] = []
+        var older: [MealEntry] = []
+        todays.reserveCapacity(profile.mealHistory.count)
+        older.reserveCapacity(profile.mealHistory.count)
+        for entry in profile.mealHistory {
+            if Calendar.current.isDate(entry.date, inSameDayAs: today) {
+                todays.append(entry)
+            } else {
+                older.append(entry)
+            }
+        }
+        let trimmedOlder = older.suffix(max(0, maxMealHistoryEntries - todays.count))
+        profile.mealHistory = Array(trimmedOlder) + todays
+    }
+
     // MARK: - Workouts
 
     /// Appends a workout session and keeps the array sorted oldest-first
@@ -172,6 +297,61 @@ enum LifestyleDataLogic {
         let day = Calendar.current.startOfDay(for: date)
         consumptionKeyFormatter.timeZone = Calendar.current.timeZone
         return consumptionKeyFormatter.string(from: day)
+    }
+
+    /// Per-category macro totals returned by `mealsByCategory(in:for:)`.
+    /// `other` captures anything in the aggregate that has no matching
+    /// `MealEntry` — typically legacy logs or logs from flows that
+    /// haven't been upgraded to write `MealEntry`s yet.
+    struct CategoryBreakdown: Equatable, Sendable {
+        var breakfast: CategoryTotals
+        var lunch: CategoryTotals
+        var dinner: CategoryTotals
+        var snack: CategoryTotals
+        var other: CategoryTotals
+
+        /// Sum of all five buckets — sanity-check that this matches
+        /// `DailyConsumption` for the same day.
+        var totalCalories: Int {
+            breakfast.calories + lunch.calories + dinner.calories + snack.calories + other.calories
+        }
+
+        /// Ordered list for stable rendering in the breakdown card.
+        /// `other` only included when it has content — most users
+        /// never see it once every flow writes `MealEntry`.
+        var orderedRows: [(MealCategory?, CategoryTotals)] {
+            var rows: [(MealCategory?, CategoryTotals)] = [
+                (.breakfast, breakfast),
+                (.lunch, lunch),
+                (.dinner, dinner),
+                (.snack, snack),
+            ]
+            if other.calories > 0 {
+                rows.append((nil, other))
+            }
+            return rows
+        }
+    }
+
+    struct CategoryTotals: Equatable, Sendable {
+        var calories: Int
+        var proteinG: Int
+        var carbsG: Int
+        var fatG: Int
+        var entryCount: Int
+
+        static let zero = CategoryTotals(
+            calories: 0, proteinG: 0, carbsG: 0, fatG: 0, entryCount: 0
+        )
+
+        /// In-place add for the per-category aggregation loop.
+        mutating func add(_ entry: MealEntry) {
+            calories += entry.calories
+            proteinG += entry.proteinG
+            carbsG   += entry.carbsG
+            fatG     += entry.fatG
+            entryCount += 1
+        }
     }
 
     /// `static let` so we don't pay the ~0.5 ms allocation on every

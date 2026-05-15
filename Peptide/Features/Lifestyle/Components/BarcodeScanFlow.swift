@@ -4,8 +4,9 @@ import PhotosUI
 
 /// End-to-end barcode-scan sheet: opens the camera, resolves the
 /// detected code against Open Food Facts, lets the user dial in a
-/// portion, and rolls the result into today's consumption via
-/// `dataStore.logMeal(...)`.
+/// portion + meal category, and writes a `MealEntry` through
+/// `dataStore.logMealEntry(_:)` — keeping the per-meal history and
+/// the day's aggregate in lockstep.
 ///
 /// Mirrors the phase-state-machine pattern of `MealScanFlow` so the
 /// two scanners feel like siblings to the user. The portion picker is
@@ -24,6 +25,7 @@ struct BarcodeScanFlow: View {
     @State private var phase: Phase = .preflight
     @State private var product: ScannedProduct?
     @State private var portion: ScannedProduct.Portion = .grams(100)
+    @State private var category: MealCategory = MealCategory.auto(for: Date())
     @State private var errorText: String?
     @State private var manualBarcode: String = ""
     @State private var recentlyScanned: [ScannedProduct] = []
@@ -54,7 +56,8 @@ struct BarcodeScanFlow: View {
     /// time).
     private struct LoggedSnapshot: Equatable {
         let productName: String
-        let meal: LoggableMeal
+        let entryID: UUID
+        let calories: Int
         let date: Date
         let barcode: String
         let portion: ScannedProduct.Portion
@@ -308,6 +311,7 @@ struct BarcodeScanFlow: View {
                     } else {
                         overrideNotice
                     }
+                    MealCategoryPicker(selection: $category)
                     macroPanel(for: product)
                     actionButtons
                 }
@@ -587,7 +591,7 @@ struct BarcodeScanFlow: View {
                 // placeholder when no profile target is set.
                 LoggedCaloriePanel(
                     productName: snapshot.productName,
-                    deltaCalories: snapshot.meal.calories,
+                    deltaCalories: snapshot.calories,
                     totalCalories: dataStore.consumption().caloriesKcal,
                     targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories
                 )
@@ -839,6 +843,7 @@ struct BarcodeScanFlow: View {
             await MainActor.run {
                 product = recognised
                 portion = recognised.defaultPortion
+                category = MealCategory.auto(for: Date())
                 phase = .review
                 ocrPickerItem = nil
                 if dataStore.profile.hapticFeedbackEnabled {
@@ -878,6 +883,7 @@ struct BarcodeScanFlow: View {
             await MainActor.run {
                 product = result
                 portion = remembered ?? result.defaultPortion
+                category = MealCategory.auto(for: Date())
                 phase = .review
                 if dataStore.profile.hapticFeedbackEnabled {
                     BarcodeHaptics.lookupSuccess()
@@ -911,20 +917,34 @@ struct BarcodeScanFlow: View {
               let product,
               let meal = currentMacros(for: product) else { return }
         let now = Date()
-        dataStore.logMeal(
-            calories: meal.calories,
-            proteinG: meal.proteinG,
-            carbsG: meal.carbsG,
-            fatG: meal.fatG,
+        // OCR-synthesised products and manual-override edits share the
+        // OFF flow but aren't strictly Open Food Facts data; tag them
+        // as `manual` so the meal-history list reflects what the user
+        // actually did.
+        let source: MealSource = (manualOverride != nil) ? .manual : .openFoodFacts
+        let entry = MealEntry(
+            loggable: meal,
+            name: product.name,
+            category: category,
+            source: source,
+            sourceID: product.barcode,
             date: now
         )
+        dataStore.logMealEntry(entry)
         if dataStore.profile.hapticFeedbackEnabled {
             // .logCommitted carries a heavier impact than the lookup
             // success — the user feels "I just logged a meal" as a
             // distinct beat from "I just scanned a barcode".
             BarcodeHaptics.logCommitted()
         }
-        loggedSnapshot = LoggedSnapshot(productName: product.name, meal: meal, date: now, barcode: product.barcode, portion: portion)
+        loggedSnapshot = LoggedSnapshot(
+            productName: product.name,
+            entryID: entry.id,
+            calories: meal.calories,
+            date: now,
+            barcode: product.barcode,
+            portion: portion
+        )
         // Record the scan + portion choice in history so the recents
         // row re-ranks and the next re-scan of this product preselects
         // the same portion. Fire-and-forget — UI doesn't need to wait.
@@ -945,13 +965,11 @@ struct BarcodeScanFlow: View {
             onClose()
             return
         }
-        dataStore.unlogMeal(
-            calories: snapshot.meal.calories,
-            proteinG: snapshot.meal.proteinG,
-            carbsG: snapshot.meal.carbsG,
-            fatG: snapshot.meal.fatG,
-            date: snapshot.date
-        )
+        // Cancel the auto-close timer before it fires onClose a second
+        // time — moving phase out of `.logged` triggers the
+        // `.task(id: phase)` modifier to drop the in-flight sleep.
+        phase = .review
+        dataStore.unlogMealEntry(id: snapshot.entryID)
         // Roll back the scan-history record too so an undone scan
         // doesn't inflate the recents ranking or preselect the wrong
         // portion next time. Fire-and-forget — UI is closing anyway.

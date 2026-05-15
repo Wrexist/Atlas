@@ -271,6 +271,12 @@ struct UserProfile: Codable {
     /// JSON ordering; decoded back into a Set so membership checks are
     /// O(1) in the result list.
     var favoriteFoodIDs: Set<String>
+    /// Individual meal log entries — the building block for the per-
+    /// category breakdown card and (eventually) HealthKit dietary-
+    /// energy samples. The aggregate `dailyConsumption` still drives
+    /// the macro rings; this is the per-meal sidecar. Newest-last so
+    /// chronological iteration matches the visual log order.
+    var mealHistory: [MealEntry]
 
     init(
         name: String,
@@ -292,7 +298,8 @@ struct UserProfile: Codable {
         bio: String = "",
         primaryGoal: String? = nil,
         customFoods: [CustomFood] = [],
-        favoriteFoodIDs: Set<String> = []
+        favoriteFoodIDs: Set<String> = [],
+        mealHistory: [MealEntry] = []
     ) {
         self.name = name
         self.goals = goals
@@ -314,6 +321,7 @@ struct UserProfile: Codable {
         self.primaryGoal = primaryGoal
         self.customFoods = customFoods
         self.favoriteFoodIDs = favoriteFoodIDs
+        self.mealHistory = mealHistory
     }
 
     init(from decoder: Decoder) throws {
@@ -340,6 +348,7 @@ struct UserProfile: Codable {
         favoriteFoodIDs = Set(
             try container.decodeIfPresent([String].self, forKey: .favoriteFoodIDs) ?? []
         )
+        mealHistory = try container.decodeIfPresent([MealEntry].self, forKey: .mealHistory) ?? []
     }
 
     static var fresh: UserProfile {

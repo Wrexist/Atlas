@@ -753,6 +753,38 @@ final class DataStore: DataServiceProtocol {
         LifestyleDataLogic.consumption(in: profile, for: date)
     }
 
+    // MARK: - Meal entries
+
+    /// Logs a fully-formed `MealEntry` (with category + source) and
+    /// keeps the per-day aggregate in lockstep. Prefer over the
+    /// legacy `logMeal(...)` for new code — gives you per-meal
+    /// undo, category breakdowns, and a stable identifier you can
+    /// hold onto for HealthKit sample mapping later.
+    func logMealEntry(_ entry: MealEntry) {
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: entry)
+        save()
+    }
+
+    /// Removes a meal entry by id and rolls back its contribution to
+    /// the day's aggregate. Used by every review screen's Undo button
+    /// once it switches to the new logging path.
+    func unlogMealEntry(id: UUID) {
+        LifestyleDataLogic.unlogMealEntry(from: &profile, id: id)
+        save()
+    }
+
+    /// Per-category breakdown for today (or any day). Used by the new
+    /// `MealCategoriesCard` on the Lifestyle tab.
+    func mealsByCategory(for date: Date = Date()) -> LifestyleDataLogic.CategoryBreakdown {
+        LifestyleDataLogic.mealsByCategory(in: profile, for: date)
+    }
+
+    /// Individual meal entries logged on a specific day, newest first.
+    /// Populates the meal-history list views.
+    func mealEntries(for date: Date = Date()) -> [MealEntry] {
+        LifestyleDataLogic.mealEntries(in: profile, for: date)
+    }
+
     // MARK: - Food library
 
     /// Adds (or replaces) a user-defined food in the library. Replace

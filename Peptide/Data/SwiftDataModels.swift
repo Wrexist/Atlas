@@ -333,7 +333,8 @@ final class StoredProfile {
             bio: bio ?? "",
             primaryGoal: primaryGoal,
             customFoods: ext.customFoods,
-            favoriteFoodIDs: Set(ext.favoriteFoodIDs)
+            favoriteFoodIDs: Set(ext.favoriteFoodIDs),
+            mealHistory: ext.mealHistory
         )
     }
 }
@@ -359,6 +360,7 @@ private struct ProfileExtension: Codable {
     /// shape (Set has no ordering guarantee). The accessor on
     /// `toUserProfile()` collapses back to `Set<String>`.
     var favoriteFoodIDs: [String] = []
+    var mealHistory: [MealEntry] = []
 
     static let empty = ProfileExtension()
 
@@ -372,7 +374,8 @@ private struct ProfileExtension: Codable {
             dailyConsumption: profile.dailyConsumption,
             workoutHistory: profile.workoutHistory,
             customFoods: profile.customFoods,
-            favoriteFoodIDs: Array(profile.favoriteFoodIDs).sorted()
+            favoriteFoodIDs: Array(profile.favoriteFoodIDs).sorted(),
+            mealHistory: profile.mealHistory
         )
     }
 }

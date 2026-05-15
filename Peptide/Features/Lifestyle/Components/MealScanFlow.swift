@@ -3,8 +3,8 @@ import PhotosUI
 
 /// End-to-end meal-scanner sheet: picks an image (camera or library),
 /// posts it to `MealScannerService`, surfaces a confirmation card with
-/// the macro breakdown, and rolls a confirmed meal into today's
-/// consumption bucket via `dataStore.logMeal(...)`.
+/// the macro breakdown, and writes a `.photo`-sourced `MealEntry`
+/// through `dataStore.logMealEntry(_:)`.
 ///
 /// Uses `PhotosPicker` rather than `UIImagePickerController` so iOS 16+
 /// device sandboxing works without the photo-library usage description
@@ -19,6 +19,7 @@ struct MealScanFlow: View {
     @State private var phase: Phase = .pickImage
     @State private var estimate: MealScannerService.MealEstimate?
     @State private var errorText: String?
+    @State private var category: MealCategory = MealCategory.auto(for: Date())
 
     private enum Phase: Equatable {
         case pickImage
@@ -168,6 +169,8 @@ struct MealScanFlow: View {
                                 .strokeBorder(AppColor.accentPrimary.opacity(0.35), lineWidth: 1)
                         }
                 }
+
+                MealCategoryPicker(selection: $category)
             }
 
             HStack(spacing: Spacing.sm) {
@@ -273,6 +276,7 @@ struct MealScanFlow: View {
             let result = try await MealScannerService.shared.analyze(image: image)
             await MainActor.run {
                 estimate = result
+                category = MealCategory.auto(for: Date())
                 phase = .review
                 if dataStore.profile.hapticFeedbackEnabled {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -291,12 +295,18 @@ struct MealScanFlow: View {
 
     private func confirm() {
         guard let estimate else { return }
-        dataStore.logMeal(
+        let entry = MealEntry(
+            date: Date(),
+            category: category,
+            name: estimate.mealName.capitalized,
             calories: estimate.calories,
             proteinG: estimate.proteinG,
             carbsG: estimate.carbsG,
-            fatG: estimate.fatG
+            fatG: estimate.fatG,
+            sourceID: nil,
+            source: .photo
         )
+        dataStore.logMealEntry(entry)
         if dataStore.profile.hapticFeedbackEnabled {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
