@@ -193,7 +193,6 @@ struct HomeView: View {
                     if overview.hasAnySignal {
                         TodayOverviewCard(
                             snapshot: overview,
-                            userName: dataStore.profile.name,
                             hapticsEnabled: dataStore.profile.hapticFeedbackEnabled,
                             onTapHero: { dose in
                                 guard let dose else { return }

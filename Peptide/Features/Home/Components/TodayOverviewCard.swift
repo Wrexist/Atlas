@@ -1,21 +1,20 @@
 import SwiftUI
 
-/// Premium "Today at a glance" overview that sits at the top of
-/// Home. One ring + two stat tiles + one rotating insight row —
-/// every visible number reads from the same `TodayOverviewSnapshot`
-/// so a fresh build is one struct rebuild, not a six-service
-/// scrape per render.
+/// "Today at a glance" supporting card. Originally hosted the
+/// compliance ring + next-dose strip + stat tiles + insight, but
+/// the ring + eyebrow + compliance pill moved up into
+/// `HeroMetricTrio` + `TodayContextRow` in the Bevel-style redesign.
+/// This card now focuses on what's still uniquely its: the
+/// tappable next-dose strip plus the 2×2 lifestyle stat grid
+/// (Calories / Meal streak / Check-in / Water) and the rotating
+/// daily insight.
 ///
-/// Design intent: feel like the App Store's "Today" hero — a
-/// soft accent-coloured tinted card with a single hero focal
-/// point, then a minimal grid of supporting numbers, then a
-/// rotating insight strip at the bottom. No tap-to-dive on the
-/// stat tiles themselves (they're glanceable summaries); the
-/// hero tile taps the next-pending dose so the user is one tap
-/// away from logging it from the top of the scroll.
+/// The hero strip taps the next-pending dose so the user is one
+/// tap away from logging from the top of the scroll. Stat tiles
+/// stay glanceable (no tap-to-dive); the insight row routes to
+/// labs or dismisses the nudge via `onTapInsight`.
 struct TodayOverviewCard: View {
     let snapshot: TodayOverviewSnapshot
-    let userName: String
     let hapticsEnabled: Bool
     /// Called when the user taps the hero. Receives the next
     /// pending dose if there is one, else nil — the host decides
@@ -40,8 +39,7 @@ struct TodayOverviewCard: View {
     var body: some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                header
-                hero
+                nextDoseStrip
                 statsGrid
                 if let insight = snapshot.bottomInsight {
                     bottomInsight(insight)
@@ -55,69 +53,36 @@ struct TodayOverviewCard: View {
         .accessibilityElement(children: .contain)
     }
 
-    // MARK: - Header
+    // MARK: - Next-dose strip
+    //
+    // Slim replacement for the old hero section. The compliance
+    // ring + eyebrow + title that lived here previously moved up
+    // into HeroMetricTrio + TodayContextRow; what's still
+    // genuinely useful is a one-tap entry into the next pending
+    // dose's logging sheet from anywhere on the scroll.
 
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text("TODAY")
-                    .font(AppFont.caption)
-                    .tracking(1.5)
-                    .foregroundStyle(AppColor.textSecondary)
-                Text(headerTitle)
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-            }
-            Spacer()
-            if let fraction = snapshot.complianceFraction {
-                CompactCompliancePill(
-                    completed: snapshot.dosesCompletedToday,
-                    total: snapshot.dosesTotalToday,
-                    fraction: fraction
-                )
-            }
-        }
-    }
-
-    private var headerTitle: String {
-        let trimmed = userName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return String(localized: "Your day at a glance") }
-        let first = trimmed.split(separator: " ").first.map(String.init) ?? trimmed
-        return String(format: String(localized: "%@'s day at a glance"), first)
-    }
-
-    // MARK: - Hero
-
-    private var hero: some View {
+    private var nextDoseStrip: some View {
         Button {
             if hapticsEnabled {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
             onTapHero(snapshot.nextDose)
         } label: {
-            HStack(alignment: .center, spacing: Spacing.lg) {
-                HeroRing(
-                    fraction: snapshot.complianceFraction,
-                    completed: snapshot.dosesCompletedToday,
-                    total: snapshot.dosesTotalToday
-                )
-                .frame(width: 96, height: 96)
+            HStack(spacing: Spacing.md) {
+                iconBadge
 
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text(heroEyebrow)
-                        .font(AppFont.caption)
-                        .tracking(1.2)
-                        .foregroundStyle(AppColor.textSecondary)
-                    Text(heroTitle)
-                        .font(AppFont.title2)
-                        .fontWeight(.bold)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(stripEyebrow)
+                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                        .tracking(1.0)
+                        .foregroundStyle(AppColor.accentLight)
+                    Text(stripTitle)
+                        .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if let subtitle = heroSubtitle {
+                        .lineLimit(1)
+                    if let subtitle = stripSubtitle {
                         Text(subtitle)
-                            .font(AppFont.subheadline)
+                            .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                             .lineLimit(1)
                     }
@@ -134,6 +99,50 @@ struct TodayOverviewCard: View {
         .buttonStyle(ScalePressStyle(pressedScale: 0.985))
         .disabled(snapshot.nextDose == nil)
         .accessibilityLabel(heroAccessibilityLabel)
+    }
+
+    private var iconBadge: some View {
+        ZStack {
+            Circle()
+                .fill(AppColor.accentPrimary.opacity(0.18))
+            Image(systemName: stripIcon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(AppColor.accentPrimary)
+        }
+        .frame(width: 40, height: 40)
+    }
+
+    private var stripIcon: String {
+        if snapshot.nextDose != nil { return "syringe.fill" }
+        if snapshot.dosesTotalToday > 0 { return "checkmark.circle.fill" }
+        return "plus.circle.fill"
+    }
+
+    private var stripEyebrow: String {
+        if snapshot.nextDose != nil { return String(localized: "NEXT DOSE") }
+        if snapshot.dosesTotalToday > 0 { return String(localized: "ALL DONE") }
+        return String(localized: "PROTOCOL")
+    }
+
+    private var stripTitle: String {
+        if let dose = snapshot.nextDose {
+            return dose.peptide.name
+        }
+        if snapshot.dosesTotalToday > 0 {
+            return String(localized: "You're set for today")
+        }
+        return String(localized: "Add a protocol to get started")
+    }
+
+    private var stripSubtitle: String? {
+        if let dose = snapshot.nextDose {
+            let time = Self.timeFormatter.string(from: dose.date)
+            return "\(dose.dose) · \(time)"
+        }
+        if snapshot.dosesTotalToday > 0, snapshot.doseStreak > 1 {
+            return String(format: String(localized: "%d-day streak"), snapshot.doseStreak)
+        }
+        return nil
     }
 
     private var heroEyebrow: String {
@@ -307,58 +316,11 @@ struct TodayOverviewCard: View {
     }()
 }
 
-// MARK: - Hero ring
-
-/// Mini compliance ring sized for the hero. Renders a soft empty
-/// ring when there are no scheduled doses today so the layout
-/// doesn't collapse on a brand-new install.
-private struct HeroRing: View {
-    let fraction: Double?
-    let completed: Int
-    let total: Int
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(
-                    AppColor.glassBorder,
-                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                )
-            if let fraction {
-                Circle()
-                    .trim(from: 0, to: max(0.001, fraction))
-                    .stroke(
-                        AngularGradient(
-                            colors: [
-                                AppColor.accentLight,
-                                AppColor.accentPrimary,
-                                AppColor.accentDark,
-                                AppColor.accentLight,
-                            ],
-                            center: .center
-                        ),
-                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .animation(.spring(response: 0.55, dampingFraction: 0.85), value: fraction)
-            }
-            VStack(spacing: 1) {
-                if fraction != nil {
-                    Text("\(completed)")
-                        .font(.system(size: 26, weight: .heavy, design: .rounded))
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text(String(format: String(localized: "of %d"), total))
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(AppColor.textSecondary)
-                } else {
-                    Image(systemName: "syringe.fill")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(AppColor.textTertiary)
-                }
-            }
-        }
-    }
-}
+// `HeroRing` (the compliance ring that lived in this card's hero
+// slot) was deleted in the Phase 1.5 polish — its role moved up
+// into `HeroMetricTrio.adherence`, so the duplicate ring was both
+// redundant data and ~80pt of wasted vertical space. Stat tiles +
+// next-dose strip + insight are the remaining responsibilities.
 
 // MARK: - Tile
 
@@ -430,40 +392,9 @@ private struct OverviewTile: View {
     }
 }
 
-// MARK: - Compliance pill
-
-private struct CompactCompliancePill: View {
-    let completed: Int
-    let total: Int
-    let fraction: Double
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(tint)
-                .frame(width: 6, height: 6)
-            Text("\(completed)/\(total)")
-                .font(.system(size: 12, weight: .heavy, design: .rounded))
-                .foregroundStyle(AppColor.textPrimary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background {
-            Capsule()
-                .fill(tint.opacity(0.15))
-                .overlay {
-                    Capsule().strokeBorder(tint.opacity(0.35), lineWidth: 0.5)
-                }
-        }
-        .accessibilityHidden(true)
-    }
-
-    private var tint: Color {
-        if fraction >= 1.0 { return AppColor.success }
-        if fraction >= 0.5 { return AppColor.accentPrimary }
-        return AppColor.warning
-    }
-}
+// `CompactCompliancePill` lived in the card's deleted header and
+// went away with it — same role now covered by HeroMetricTrio +
+// TodayContextRow.
 
 #Preview("Mid-day, partial compliance") {
     ScrollView {
@@ -486,7 +417,6 @@ private struct CompactCompliancePill: View {
                     icon: "target"
                 )
             ),
-            userName: "Alex",
             hapticsEnabled: false,
             onTapHero: { _ in },
             onTapInsight: { _ in }
@@ -514,7 +444,6 @@ private struct CompactCompliancePill: View {
                 latestLab: nil,
                 bottomInsight: nil
             ),
-            userName: "",
             hapticsEnabled: false,
             onTapHero: { _ in },
             onTapInsight: { _ in }
