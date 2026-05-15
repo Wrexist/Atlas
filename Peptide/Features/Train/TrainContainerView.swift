@@ -67,26 +67,12 @@ struct TrainContainerView: View {
     private var content: some View {
         switch section {
         case .overview:
-            // Placeholder — the full overview surface (weekly muscle
-            // heatmap, recent workouts, monthly calendar) lands in
-            // the next commit. Keeping a friendly empty-state here
-            // so the picker is wired end-to-end before the data
-            // services exist.
-            placeholderOverview
+            TrainOverviewView()
         case .exercises:
             ExerciseLibraryView()
         case .history:
             placeholderHistory
         }
-    }
-
-    private var placeholderOverview: some View {
-        EmptyStateView(
-            icon: "figure.strengthtraining.traditional",
-            title: "Overview is coming",
-            message: "Your weekly muscle heatmap and trained calendar will live here. Browse the Exercises tab to start."
-        )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var placeholderHistory: some View {

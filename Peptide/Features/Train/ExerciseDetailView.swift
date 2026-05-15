@@ -140,52 +140,58 @@ struct ExerciseDetailView: View {
 
     private func muscleSection(for exercise: Exercise) -> some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
+            VStack(alignment: .leading, spacing: Spacing.md) {
                 Text("Muscles worked")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
-                if !exercise.primaryMuscles.isEmpty {
-                    musclePillCluster(
-                        title: "Primary",
-                        muscles: exercise.primaryMuscles,
-                        accent: AppColor.accentPrimary
+                MuscleMapView(
+                    highlights: MuscleMapView.highlights(
+                        primaryRawMuscles: exercise.primaryMuscles,
+                        secondaryRawMuscles: exercise.secondaryMuscles
                     )
-                }
+                )
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 280)
 
-                if !exercise.secondaryMuscles.isEmpty {
-                    musclePillCluster(
-                        title: "Secondary",
-                        muscles: exercise.secondaryMuscles,
-                        accent: AppColor.textSecondary
-                    )
-                }
+                muscleLegend(for: exercise)
             }
         }
     }
 
-    private func musclePillCluster(title: String, muscles: [String], accent: Color) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text(title)
-                .font(AppFont.footnote)
-                .foregroundStyle(AppColor.textSecondary)
-                .textCase(.uppercase)
-
-            FlowChipLayout(spacing: Spacing.xs, lineSpacing: Spacing.xs) {
-                ForEach(muscles, id: \.self) { muscle in
-                    Text(muscle.capitalized)
-                        .font(AppFont.chipText)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .padding(.horizontal, Spacing.sm)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule().fill(accent.opacity(0.18))
-                        )
-                        .overlay(
-                            Capsule().stroke(accent.opacity(0.3), lineWidth: 0.5)
-                        )
-                }
+    private func muscleLegend(for exercise: Exercise) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            if !exercise.primaryMuscles.isEmpty {
+                muscleLegendCluster(
+                    title: "Primary",
+                    muscles: exercise.primaryMuscles,
+                    swatch: Color(red: 0.93, green: 0.27, blue: 0.30)
+                )
             }
+            if !exercise.secondaryMuscles.isEmpty {
+                muscleLegendCluster(
+                    title: "Secondary",
+                    muscles: exercise.secondaryMuscles,
+                    swatch: Color(red: 0.42, green: 0.58, blue: 0.95)
+                )
+            }
+        }
+    }
+
+    private func muscleLegendCluster(title: String, muscles: [String], swatch: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(swatch)
+                    .frame(width: 8, height: 8)
+                Text(title)
+                    .font(AppFont.footnote.weight(.semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+            }
+            Text(muscles.map { $0.capitalized }.joined(separator: ", "))
+                .font(AppFont.callout)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -231,69 +237,6 @@ struct ExerciseDetailView: View {
             message: "We couldn't find this exercise in your library. It may have been removed."
         )
         .padding(.top, Spacing.xxxxl)
-    }
-}
-
-// MARK: - FlowChipLayout
-
-/// Lightweight flow layout for chip clusters — wraps to the next
-/// line when an element doesn't fit horizontally. Used here instead
-/// of HStack so muscle pills with long labels (e.g. "middle back")
-/// don't push the row off-screen on small devices.
-struct FlowChipLayout: Layout {
-    var spacing: CGFloat
-    var lineSpacing: CGFloat
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        let rows = layoutRows(subviews: subviews, maxWidth: maxWidth)
-        let height = rows.reduce(0) { acc, row in acc + row.height + lineSpacing } - lineSpacing
-        return CGSize(
-            width: maxWidth.isFinite ? maxWidth : rows.map(\.width).max() ?? 0,
-            height: max(0, height)
-        )
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let rows = layoutRows(subviews: subviews, maxWidth: bounds.width)
-        var y = bounds.minY
-        for row in rows {
-            var x = bounds.minX
-            for index in row.indices {
-                let size = subviews[index].sizeThatFits(.unspecified)
-                subviews[index].place(
-                    at: CGPoint(x: x, y: y),
-                    proposal: ProposedViewSize(size)
-                )
-                x += size.width + spacing
-            }
-            y += row.height + lineSpacing
-        }
-    }
-
-    private struct Row {
-        var indices: [Int]
-        var width: CGFloat
-        var height: CGFloat
-    }
-
-    private func layoutRows(subviews: Subviews, maxWidth: CGFloat) -> [Row] {
-        var rows: [Row] = []
-        var current = Row(indices: [], width: 0, height: 0)
-
-        for index in subviews.indices {
-            let size = subviews[index].sizeThatFits(.unspecified)
-            let projected = current.width + (current.indices.isEmpty ? 0 : spacing) + size.width
-            if projected > maxWidth, !current.indices.isEmpty {
-                rows.append(current)
-                current = Row(indices: [], width: 0, height: 0)
-            }
-            current.indices.append(index)
-            current.width += (current.indices.count == 1 ? 0 : spacing) + size.width
-            current.height = max(current.height, size.height)
-        }
-        if !current.indices.isEmpty { rows.append(current) }
-        return rows
     }
 }
 
