@@ -548,7 +548,23 @@ struct MediumNutritionView: View {
     }
 
     private func iconFor(_ category: String) -> String {
-        switch category {
+        WidgetMealStyle.icon(forCategoryName: category)
+    }
+
+    private func tintFor(_ category: String) -> Color {
+        WidgetMealStyle.tint(forCategoryName: category)
+    }
+}
+
+/// Widget-target mapping from the `category` string in the shared
+/// `WidgetData` blob to the SwiftUI icon + accent color. Lives here
+/// (not in the app target) because the widget extension can't import
+/// the app module — `MealCategory.tint` and `.icon` aren't
+/// reachable. RGB values mirror `MealCategory.tint` exactly so a
+/// user toggling between app and widget sees the same palette.
+private enum WidgetMealStyle {
+    static func icon(forCategoryName name: String) -> String {
+        switch name {
         case "Breakfast": "sun.horizon.fill"
         case "Lunch":     "sun.max.fill"
         case "Dinner":    "moon.stars.fill"
@@ -557,12 +573,12 @@ struct MediumNutritionView: View {
         }
     }
 
-    private func tintFor(_ category: String) -> Color {
-        switch category {
-        case "Breakfast": .orange
-        case "Lunch":     .yellow
-        case "Dinner":    .indigo
-        case "Snack":     .green
+    static func tint(forCategoryName name: String) -> Color {
+        switch name {
+        case "Breakfast": Color(red: 1.0,  green: 0.62, blue: 0.30)
+        case "Lunch":     Color(red: 0.98, green: 0.78, blue: 0.20)
+        case "Dinner":    Color(red: 0.48, green: 0.50, blue: 0.92)
+        case "Snack":     Color(red: 0.36, green: 0.78, blue: 0.55)
         default:          .secondary
         }
     }
