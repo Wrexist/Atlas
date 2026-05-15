@@ -28,6 +28,13 @@ final class AppState {
     /// Home overview card's "latest lab" insight tap so the user lands
     /// one tap away from the trend chart instead of in the Profile root.
     var pendingLabsOpen: Bool = false
+    /// When set, the Home tab presents the matching `ProtocolEntry`'s
+    /// dose-logging sheet automatically on next appear. Cleared the
+    /// moment HomeView consumes it. Populated by the `peptidex://dose/<uuid>`
+    /// deep-link handler so a tap on the Live Activity lands on the
+    /// logging sheet in one bounce instead of dumping the user on the
+    /// Home tab root and asking them to find the row.
+    var pendingDoseLogEntryId: UUID?
 }
 
 /// Discriminated identifier for the Spotlight deep-link payload.

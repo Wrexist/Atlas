@@ -10,6 +10,10 @@ struct PeptideApp: App {
     @State private var themeManager = ThemeManager.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var notificationDelegate: NotificationDelegate?
+    /// Holds the Darwin-notification observer that listens for
+    /// widget-extension "Log dose" intent taps. Lifetime tied to
+    /// the app's WindowGroup — released only on app termination.
+    @State private var pendingDoseLogToken: PendingDoseLogProcessor.ObservationToken?
     @State private var isUnlocked = false
     @Environment(\.scenePhase) private var scenePhase
     @State private var travelChange: TimezoneChangeDetector.Change?
@@ -89,6 +93,19 @@ struct PeptideApp: App {
                 // until they next edited a food.
                 dataStore.reindexFoodSpotlight()
             }
+            .onOpenURL { url in
+                // Live Activity tap → `peptidex://dose/<uuid>`. Park
+                // the UUID on AppState; HomeView consumes it on its
+                // next appear and presents the dose-logging sheet.
+                // Unknown schemes / paths fall through silently so a
+                // garbled custom-scheme tap from another app doesn't
+                // log an error or open an unrelated view.
+                guard url.scheme == "peptidex", url.host == "dose",
+                      let entryUUID = UUID(uuidString: url.lastPathComponent)
+                else { return }
+                appState.selectedTab = .home
+                appState.pendingDoseLogEntryId = entryUUID
+            }
             .onContinueUserActivity(CSSearchableItemActionType) { activity in
                 // Spotlight tapped a food index entry. Parse the
                 // namespaced identifier (`peptidex-food/custom/<uuid>`
@@ -153,6 +170,13 @@ struct PeptideApp: App {
             if phase == .active {
                 ReviewPromptService.shared.recordLaunch()
                 dataStore.handleAppActivation()
+                // Drain any "user tapped Log on the Live Activity"
+                // markers the widget extension queued while we were
+                // suspended. Runs before reconcile so the just-
+                // logged entries are flagged completed and the
+                // reconcile pass dismisses their live activities in
+                // the same scene-phase tick.
+                PendingDoseLogProcessor.drain(into: dataStore)
                 // Re-evaluate which scheduled doses are in their
                 // active window so the lock-screen Live Activities
                 // start / end without needing the user to open the
@@ -272,6 +296,14 @@ struct PeptideApp: App {
             notificationDelegate = delegate
             UNUserNotificationCenter.current().delegate = delegate
             NotificationService.shared.registerCategories()
+
+            // Register the Darwin-notification observer once per
+            // scene. The token is stored on `pendingDoseLogToken`
+            // for lifetime ownership — releasing it removes the
+            // observer.
+            if pendingDoseLogToken == nil {
+                pendingDoseLogToken = PendingDoseLogProcessor.startObserving(dataStore)
+            }
 
             // Repopulate the in-memory ID tracker from iOS's actual pending
             // requests. Without this, force-quit leaves orphan reminders that

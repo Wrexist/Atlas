@@ -328,8 +328,27 @@ struct HomeView: View {
                     }
                 }
             }
-            .onAppear { checkMilestonePrompt() }
+            .onAppear {
+                checkMilestonePrompt()
+                consumePendingDoseDeepLink()
+            }
+            .onChange(of: appState.pendingDoseLogEntryId) { _, _ in
+                consumePendingDoseDeepLink()
+            }
         }
+    }
+
+    /// Honours the deep-link UUID parked by the Live Activity tap
+    /// handler in `PeptideApp.onOpenURL`. Resolves the matching
+    /// entry and presents the same `DoseLoggingSheet` the user
+    /// would see from a row tap. Cleared after consumption so a
+    /// re-appear (e.g. switching tabs back) doesn't re-present.
+    private func consumePendingDoseDeepLink() {
+        guard let pendingId = appState.pendingDoseLogEntryId else { return }
+        appState.pendingDoseLogEntryId = nil
+        guard let entry = dataStore.entries.first(where: { $0.id == pendingId })
+        else { return }
+        selectedEntry = entry
     }
 
     /// Surfaces the next pending Day-7 / Day-30 / cycle-complete prompt
