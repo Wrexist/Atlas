@@ -154,9 +154,19 @@ final class WeeklySummaryEngineTests: XCTestCase {
         var profile = UserProfile.fresh
         let entries = (0..<3).map { entry(daysFromMonday: $0, completed: true) }
 
+        // ISO yyyy-MM-dd string keys, matching the production
+        // `dailyConsumption` shape — DailyConsumption is keyed by
+        // local-day ISO date string, not raw Date.
+        let keyFormatter = ISO8601DateFormatter()
+        keyFormatter.formatOptions = [.withFullDate]
+        keyFormatter.timeZone = calendar.timeZone
+        func consumptionKey(for day: Date) -> String {
+            keyFormatter.string(from: calendar.startOfDay(for: day))
+        }
+
         // No targets → nutrition nil even with logged days.
         profile.dailyConsumption = [
-            calendar.startOfDay(for: weekMonday): DailyConsumption(
+            consumptionKey(for: weekMonday): DailyConsumption(
                 date: calendar.startOfDay(for: weekMonday),
                 caloriesKcal: 2000, proteinG: 150, carbsG: 200, fatG: 70, waterOz: 48
             )
@@ -171,7 +181,7 @@ final class WeeklySummaryEngineTests: XCTestCase {
             calories: 2400, proteinG: 180, carbsG: 240, fatG: 80, fiberG: 30
         )
         let day1 = calendar.date(byAdding: .day, value: 1, to: weekMonday)!
-        profile.dailyConsumption[calendar.startOfDay(for: day1)] = DailyConsumption(
+        profile.dailyConsumption[consumptionKey(for: day1)] = DailyConsumption(
             date: calendar.startOfDay(for: day1),
             caloriesKcal: 2200, proteinG: 160, carbsG: 220, fatG: 75, waterOz: 32
         )

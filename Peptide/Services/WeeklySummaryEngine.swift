@@ -250,7 +250,11 @@ enum WeeklySummaryEngine {
         var loggingDays = 0
         var day = range.lowerBound
         while day < range.upperBound {
-            let key = calendar.startOfDay(for: day)
+            // dailyConsumption is keyed by ISO yyyy-MM-dd string
+            // (matches LifestyleDataLogic.consumptionKey) so the
+            // local-day boundaries line up with where the meal-
+            // logging flow wrote the buckets.
+            let key = consumptionKey(for: day, calendar: calendar)
             if let bucket = profile.dailyConsumption[key], bucket.caloriesKcal > 0 {
                 totalCal += bucket.caloriesKcal
                 totalProt += bucket.proteinG
@@ -346,6 +350,20 @@ enum WeeklySummaryEngine {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]
         return formatter.string(from: date)
+    }
+
+    /// Mirrors `LifestyleDataLogic.consumptionKey(for:)` (which is
+    /// fileprivate, so we can't call it directly). The yyyy-MM-dd
+    /// string is anchored to the user's local day — a meal logged
+    /// at 11:00 PM in Auckland stays in tonight's bucket, not
+    /// tomorrow's. Per-call formatter allocation to avoid sharing a
+    /// `nonisolated(unsafe)` instance across actors.
+    private static func consumptionKey(for date: Date, calendar: Calendar) -> String {
+        let day = calendar.startOfDay(for: date)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        formatter.timeZone = calendar.timeZone
+        return formatter.string(from: day)
     }
 
     private static func average(_ values: [Double]) -> Double? {
