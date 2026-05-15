@@ -31,7 +31,11 @@ struct FoodEntity: AppEntity, Identifiable {
         return DisplayRepresentation(title: "\(displayName)")
     }
 
-    static var defaultQuery = FoodEntityQuery()
+    // Swift 6 strict-concurrency: the AppIntents framework reads this
+    // off the main thread when answering a Siri / Shortcuts entity
+    // resolution. The query itself is stateless; `let` makes the
+    // shared instance immutable so the compiler can prove it's safe.
+    static let defaultQuery = FoodEntityQuery()
 }
 
 struct FoodEntityQuery: EntityQuery {

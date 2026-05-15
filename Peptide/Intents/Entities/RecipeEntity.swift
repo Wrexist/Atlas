@@ -25,7 +25,9 @@ struct RecipeEntity: AppEntity, Identifiable {
         )
     }
 
-    static var defaultQuery = RecipeEntityQuery()
+    // Stateless query — `let` so Swift 6 strict concurrency
+    // accepts it as immutable Sendable shared state.
+    static let defaultQuery = RecipeEntityQuery()
 }
 
 struct RecipeEntityQuery: EntityQuery {

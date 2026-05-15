@@ -238,7 +238,7 @@ struct TodayMacrosIntent: AppIntent {
 /// pleasant invocation phrases.
 struct PeptideShortcuts: AppShortcutsProvider {
 
-    static var shortcutTileColor: ShortcutTileColor = .lightBlue
+    static let shortcutTileColor: ShortcutTileColor = .lightBlue
 
     static var appShortcuts: [AppShortcut] {
         AppShortcut(

@@ -1,5 +1,5 @@
 import Foundation
-import CoreSpotlight
+@preconcurrency import CoreSpotlight
 import UniformTypeIdentifiers
 
 /// Indexes the user's custom foods + favorites into Apple's

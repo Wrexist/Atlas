@@ -29,7 +29,10 @@ struct PeptideEntity: AppEntity, Identifiable {
         )
     }
 
-    static var defaultQuery = PeptideEntityQuery()
+    // Stateless query — `let` so the shared instance is immutable
+    // and Swift 6 strict concurrency accepts it as Sendable shared
+    // state.
+    static let defaultQuery = PeptideEntityQuery()
 }
 
 /// Powers the parameter picker in Shortcuts ("which peptide?"),

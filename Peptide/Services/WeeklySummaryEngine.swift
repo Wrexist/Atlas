@@ -354,8 +354,5 @@ enum WeeklySummaryEngine {
     }
 }
 
-// MARK: - Small extensions
-
-private extension String {
-    var nilIfEmpty: String? { isEmpty ? nil : self }
-}
+// `String.nilIfEmpty` lives in DesignSystem/Utilities/StringExtensions.swift;
+// reuse it rather than redeclaring locally.

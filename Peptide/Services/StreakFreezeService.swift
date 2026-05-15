@@ -68,7 +68,13 @@ enum StreakFreezeService {
         return true
     }
 
-    private static let isoFormatter: ISO8601DateFormatter = {
+    // ISO8601DateFormatter is documented as thread-safe by Apple but
+    // not marked Sendable, so Swift 6 strict concurrency rejects it
+    // as global shared state. `nonisolated(unsafe)` opts out of the
+    // check — the underlying type's documented thread safety holds,
+    // and the formatter is only ever read (never mutated) after the
+    // closure that builds it.
+    nonisolated(unsafe) private static let isoFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withFullDate]
         return f

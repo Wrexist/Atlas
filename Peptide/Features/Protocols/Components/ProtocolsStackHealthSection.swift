@@ -129,6 +129,7 @@ struct ProtocolsStackHealthSection: View {
             schedule: source.schedule,
             peptideSchedules: source.peptideSchedules,
             cycleLengthWeeks: source.cycleLengthWeeks,
+            washoutWeeks: source.washoutWeeks,
             notes: source.notes
         )
 

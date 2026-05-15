@@ -11,7 +11,7 @@ import SwiftUI
 /// uses. Three to five bullets per page is the sweet spot — fewer
 /// and the page feels thin, more and the body text wraps off-
 /// screen on the smaller iPhones.
-struct WhatsNewPage: Identifiable, Equatable {
+struct WhatsNewPage: Identifiable, Equatable, Sendable {
     let id: String
     /// Eyebrow above the title. Short — "FOOD", "BIOMETRICS",
     /// "SHORTCUTS". Reads as a category tag, not a sentence.
