@@ -13,6 +13,20 @@ struct PeptideApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        // SwiftUI's `AsyncImage` reads through `URLCache.shared`. The
+        // default cap is ~5 MB memory / 20 MB disk, which gets evicted
+        // before the food library's 25-row search results finish
+        // scrolling. Bump it generously up-front so OFF product
+        // thumbnails (typically 5-20 KB each) survive across a
+        // search session and across sheet open/close cycles — saves
+        // bandwidth on a metered connection and makes the list
+        // perceptibly faster on a re-open.
+        URLCache.shared = URLCache(
+            memoryCapacity: 50 * 1024 * 1024,    // 50 MB resident
+            diskCapacity:   200 * 1024 * 1024,   // 200 MB on disk
+            diskPath:       "peptidex-imagecache"
+        )
+
         // App.init() may be nonisolated in strict Swift 6 mode; assumeIsolated
         // bridges to @MainActor safely since @main always runs on the main thread.
         _dataStore = State(wrappedValue: MainActor.assumeIsolated {

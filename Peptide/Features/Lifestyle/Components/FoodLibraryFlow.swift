@@ -48,6 +48,11 @@ struct FoodLibraryFlow: View {
     /// trip. Refreshed on tab change so a re-favorited item from the
     /// All tab shows up immediately.
     @State private var cachedFavoriteProducts: [ScannedProduct] = []
+    /// Food IDs that just got quick-logged from a row's "+" button.
+    /// Drives the inline "Logged ✓" overlay + disables the button so
+    /// a double-tap can't log the same food twice in the 1.5-second
+    /// confirmation window. Cleared after the timeout.
+    @State private var recentlyQuickLogged: Set<String> = []
     /// Top-N recently logged OFF products ranked by
     /// `BarcodeScanHistory`'s recency × frequency score, identical to
     /// the BarcodeScanFlow's "Recently scanned" row. Lets the landing
@@ -564,6 +569,7 @@ struct FoodLibraryFlow: View {
                     macroPreview(product.per100g)
                 }
                 Spacer(minLength: 0)
+                quickLogButton(product: product)
                 favoriteToggle(foodID: product.barcode, isFavorite: isFavorite)
             }
             .padding(Spacing.md)
@@ -575,11 +581,12 @@ struct FoodLibraryFlow: View {
                             .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                     }
             }
+            .overlay { quickLoggedOverlay(foodID: product.barcode) }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.rowAccessibilityLabel(name: product.name, brand: product.brand, n: product.per100g))
-        .accessibilityHint("Opens the portion picker to log this food.")
+        .accessibilityHint("Opens the portion picker to log this food. Use the plus button to log instantly with the default portion.")
     }
 
     private func customFoodRow(_ food: CustomFood) -> some View {
@@ -601,6 +608,7 @@ struct FoodLibraryFlow: View {
                     macroPreview(food.per100g)
                 }
                 Spacer(minLength: 0)
+                quickLogButton(product: food.toScannedProduct())
                 favoriteToggle(foodID: food.foodID, isFavorite: isFavorite)
             }
             .padding(Spacing.md)
@@ -612,11 +620,12 @@ struct FoodLibraryFlow: View {
                             .strokeBorder(AppColor.accentPrimary.opacity(0.30), lineWidth: 0.5)
                     }
             }
+            .overlay { quickLoggedOverlay(foodID: food.foodID) }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.rowAccessibilityLabel(name: food.name, brand: food.brand ?? "Custom food", n: food.per100g))
-        .accessibilityHint("Opens the portion picker to log this food.")
+        .accessibilityHint("Opens the portion picker to log this food. Use the plus button to log instantly with the default portion.")
         .contextMenu {
             Button {
                 editingCustomFood = food
@@ -688,6 +697,116 @@ struct FoodLibraryFlow: View {
         .padding(.vertical, 2)
         .background {
             Capsule().fill(tint.opacity(0.18))
+        }
+    }
+
+    /// One-tap log shortcut on each row. Skips the portion picker and
+    /// logs the product's default portion (1 serving when available,
+    /// else 100 g) tagged with `MealCategory.auto(for: Date())`. The
+    /// 1.5-second "Logged ✓" overlay disables the button + gives
+    /// visual feedback so a fat-fingered double-tap can't log twice.
+    /// For everything else — multiple servings, a different category,
+    /// manual macro edit — the row itself still opens the full
+    /// review sheet, so this is purely additive UX.
+    private func quickLogButton(product: ScannedProduct) -> some View {
+        let inFlight = recentlyQuickLogged.contains(product.barcode)
+        return Button {
+            performQuickLog(product)
+        } label: {
+            Image(systemName: inFlight ? "checkmark" : "plus")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(inFlight ? AppColor.accentLight : Color.white)
+                .frame(width: 32, height: 32)
+                .background {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: inFlight
+                                    ? [AppColor.accentLight.opacity(0.35), AppColor.accentLight.opacity(0.20)]
+                                    : [AppColor.accentPrimary, AppColor.accentLight],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+                .shadow(color: AppColor.accentPrimary.opacity(inFlight ? 0 : 0.35), radius: 5, y: 2)
+                .contentShape(Rectangle())
+                .frame(width: 44, height: 44)
+        }
+        .buttonStyle(.plain)
+        .disabled(inFlight || product.loggable(for: product.defaultPortion) == nil)
+        .accessibilityLabel("Quick log \(product.name)")
+        .accessibilityHint("Logs the default portion immediately without opening the portion picker.")
+    }
+
+    /// Semi-transparent "Logged ✓" wash drawn on top of the row's
+    /// background while it's in the confirmation window. Hugs the
+    /// row's corners via the parent's background shape so the
+    /// rounded edges align visually with the underlying card.
+    @ViewBuilder
+    private func quickLoggedOverlay(foodID: String) -> some View {
+        if recentlyQuickLogged.contains(foodID) {
+            ZStack {
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .fill(AppColor.accentPrimary.opacity(0.18))
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(AppColor.accentLight)
+                    Text("Logged")
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(AppColor.textPrimary)
+                }
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, 6)
+                .background {
+                    Capsule().fill(AppColor.surfaceSecondary.opacity(0.9))
+                }
+            }
+            .transition(.opacity.combined(with: .scale(scale: 0.96)))
+        }
+    }
+
+    /// Builds a MealEntry from the product's default portion + the
+    /// current time-of-day category and hands it to the DataStore.
+    /// Mirrors `confirmLog(for:)`'s persistence and history wiring
+    /// without the review-sheet detour — the user gets identical
+    /// macro effects without the extra taps. Animation + haptic +
+    /// timed dismissal of the "Logged ✓" overlay live here so the
+    /// row knows when to come back to its idle look.
+    private func performQuickLog(_ product: ScannedProduct) {
+        guard !recentlyQuickLogged.contains(product.barcode),
+              let meal = product.loggable(for: product.defaultPortion) else { return }
+        let now = Date()
+        let source: MealSource = product.barcode.hasPrefix("custom:") ? .custom : .openFoodFacts
+        let entry = MealEntry(
+            loggable: meal,
+            name: product.name,
+            category: MealCategory.auto(for: now),
+            source: source,
+            sourceID: product.barcode,
+            date: now
+        )
+        dataStore.logMealEntry(entry)
+        if dataStore.profile.hapticFeedbackEnabled {
+            BarcodeHaptics.logCommitted()
+        }
+        let barcode = product.barcode
+        let chosen = product.defaultPortion
+        if !barcode.hasPrefix("custom:") {
+            Task { await BarcodeScanHistory.shared.recordLog(barcode: barcode, portion: chosen, at: now) }
+        }
+        withAnimation(.easeOut(duration: 0.18)) {
+            recentlyQuickLogged.insert(product.barcode)
+        }
+        // Clear the badge after 1.5 s so the row returns to its
+        // tap-to-log idle state — but keep the in-flight set so a
+        // rapid second tap during the window is dropped.
+        let foodID = product.barcode
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1500))
+            withAnimation(.easeIn(duration: 0.18)) {
+                recentlyQuickLogged.remove(foodID)
+            }
         }
     }
 
