@@ -1153,10 +1153,15 @@ final class DataStore: DataServiceProtocol {
         let entryCount = LifestyleDataLogic.mealEntries(in: profile, for: Date()).count
         let targets = profile.nutritionTargets
 
+        // Suppress the page only when there's truly nothing to read.
+        // A user who logged a zero-calorie entry (rare, but possible
+        // — black coffee with manual macro override) still gets the
+        // page so the entry count signals "I logged something".
         let nothingToShow =
             targets == nil
             && consumption.caloriesKcal == 0
             && streak == 0
+            && entryCount == 0
         guard !nothingToShow else { return nil }
 
         return WatchNutritionSnapshot(
