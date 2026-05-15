@@ -15,10 +15,21 @@ struct LifestyleView: View {
 
     @State private var showMealScan = false
     @State private var showBarcodeScan = false
+    @State private var showFoodLibrary = false
     @State private var pendingPhotoFallback = false
+    /// Pending sheet hand-off requested from inside the food library.
+    /// One of these is non-nil while the library sheet is mid-dismiss;
+    /// `.onChange(of: showFoodLibrary)` consumes it after the dismiss
+    /// completes, then opens the requested follow-up sheet.
+    @State private var pendingFromLibrary: PendingLibraryHandoff?
     @State private var showWeightLog = false
     @State private var showWorkoutDetail = false
     @State private var showTargetsEditor = false
+
+    private enum PendingLibraryHandoff {
+        case barcode
+        case photo
+    }
 
     private var targets: NutritionTargets {
         dataStore.profile.nutritionTargets ?? .placeholder
@@ -33,6 +44,9 @@ struct LifestyleView: View {
                         title: "Capture a meal"
                     )
                     .sectionAppear(index: 0)
+
+                    FoodLibraryEntryCard(onTap: { showFoodLibrary = true })
+                        .sectionAppear(index: 1)
 
                     LogMealEntryPicker(
                         onScanBarcode: { showBarcodeScan = true },
@@ -119,6 +133,29 @@ struct LifestyleView: View {
                 )
                 .environment(dataStore)
             }
+            .sheet(isPresented: $showFoodLibrary) {
+                FoodLibraryFlow(
+                    onClose: { showFoodLibrary = false },
+                    onRequestBarcodeScan: { handleLibraryHandoff(.barcode) },
+                    onRequestPhotoScan: { handleLibraryHandoff(.photo) }
+                )
+                .environment(dataStore)
+            }
+            .onChange(of: showFoodLibrary) { _, isPresented in
+                // Sheet handoff: when the library dismisses with a
+                // pending follow-up, open the requested sheet after
+                // the dismiss animation settles. Same pattern as the
+                // barcode → photo handoff below.
+                guard !isPresented, let handoff = pendingFromLibrary else { return }
+                pendingFromLibrary = nil
+                Task { @MainActor in
+                    try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
+                    switch handoff {
+                    case .barcode: showBarcodeScan = true
+                    case .photo:   showMealScan = true
+                    }
+                }
+            }
             .onChange(of: showBarcodeScan) { _, isPresented in
                 // Sheet handoff: when the barcode sheet dismisses with
                 // a pending fallback, present the photo sheet. The
@@ -167,6 +204,14 @@ struct LifestyleView: View {
     private func handlePhotoFallback() {
         pendingPhotoFallback = true
         showBarcodeScan = false
+    }
+
+    /// Records the library's requested follow-up and starts the
+    /// dismiss; `.onChange(of: showFoodLibrary)` opens the second
+    /// sheet once the first has actually gone away.
+    private func handleLibraryHandoff(_ next: PendingLibraryHandoff) {
+        pendingFromLibrary = next
+        showFoodLibrary = false
     }
 
     @ViewBuilder

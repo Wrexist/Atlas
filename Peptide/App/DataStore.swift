@@ -753,6 +753,46 @@ final class DataStore: DataServiceProtocol {
         LifestyleDataLogic.consumption(in: profile, for: date)
     }
 
+    // MARK: - Food library
+
+    /// Adds (or replaces) a user-defined food in the library. Replace
+    /// matches on `id` so editing an existing food round-trips through
+    /// the same call.
+    func saveCustomFood(_ food: CustomFood) {
+        var updated = food
+        updated.updatedAt = Date()
+        if let index = profile.customFoods.firstIndex(where: { $0.id == food.id }) {
+            profile.customFoods[index] = updated
+        } else {
+            profile.customFoods.insert(updated, at: 0)
+        }
+        save()
+    }
+
+    /// Removes a custom food and its favorite-set membership in one
+    /// pass so the favorites tab can't keep a dangling reference.
+    func deleteCustomFood(id: UUID) {
+        profile.customFoods.removeAll { $0.id == id }
+        profile.favoriteFoodIDs.remove("custom:\(id.uuidString)")
+        save()
+    }
+
+    /// Flips the favorite flag for a food ID (OFF barcode or
+    /// `custom:<uuid>`). Idempotent — calling twice returns to the
+    /// original state.
+    func toggleFavoriteFood(id: String) {
+        if profile.favoriteFoodIDs.contains(id) {
+            profile.favoriteFoodIDs.remove(id)
+        } else {
+            profile.favoriteFoodIDs.insert(id)
+        }
+        save()
+    }
+
+    func isFavoriteFood(id: String) -> Bool {
+        profile.favoriteFoodIDs.contains(id)
+    }
+
     // MARK: - Vial inventory (derived)
 
     /// Default doses per vial when the user hasn't told us otherwise.

@@ -331,7 +331,9 @@ final class StoredProfile {
             workoutHistory: ext.workoutHistory,
             avatarImageData: avatarImageData,
             bio: bio ?? "",
-            primaryGoal: primaryGoal
+            primaryGoal: primaryGoal,
+            customFoods: ext.customFoods,
+            favoriteFoodIDs: Set(ext.favoriteFoodIDs)
         )
     }
 }
@@ -352,6 +354,11 @@ private struct ProfileExtension: Codable {
     var progressPhotoFilenames: [String] = []
     var dailyConsumption: [String: DailyConsumption] = [:]
     var workoutHistory: [WorkoutEntry] = []
+    var customFoods: [CustomFood] = []
+    /// Encoded as `[String]` so the round-trip JSON has a deterministic
+    /// shape (Set has no ordering guarantee). The accessor on
+    /// `toUserProfile()` collapses back to `Set<String>`.
+    var favoriteFoodIDs: [String] = []
 
     static let empty = ProfileExtension()
 
@@ -363,7 +370,9 @@ private struct ProfileExtension: Codable {
             weightHistory: profile.weightHistory,
             progressPhotoFilenames: profile.progressPhotoFilenames,
             dailyConsumption: profile.dailyConsumption,
-            workoutHistory: profile.workoutHistory
+            workoutHistory: profile.workoutHistory,
+            customFoods: profile.customFoods,
+            favoriteFoodIDs: Array(profile.favoriteFoodIDs).sorted()
         )
     }
 }

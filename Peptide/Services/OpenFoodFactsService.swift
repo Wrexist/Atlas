@@ -42,16 +42,28 @@ final class OpenFoodFactsService: Sendable {
     ].joined(separator: ",")
 
     private static let defaultBaseURL = URL.staticHTTPS("https://world.openfoodfacts.org/api/v2/product/")
+    private static let defaultSearchURL = URL.staticHTTPS("https://world.openfoodfacts.org/cgi/search.pl")
+
+    private let searchURL: URL
+
+    /// OFF's documented ceiling for `/cgi/search.pl` is 10 requests per
+    /// minute per IP. The food-library UI debounces at 500 ms and only
+    /// fires once the user pauses, but a heavy typist can still squeeze
+    /// past that, so the in-memory query cache below is the real
+    /// safety net.
+    static let searchMaxPageSize: Int = 25
 
     init(
         session: URLSession = .shared,
         cache: BarcodeProductCache = .shared,
         baseURL: URL = OpenFoodFactsService.defaultBaseURL,
+        searchURL: URL = OpenFoodFactsService.defaultSearchURL,
         userAgent: String = "PeptideX/1.0 (https://peptidesai.com)"
     ) {
         self.session = session
         self.cache = cache
         self.baseURL = baseURL
+        self.searchURL = searchURL
         self.userAgent = userAgent
     }
 
@@ -120,6 +132,108 @@ final class OpenFoodFactsService: Sendable {
     func recent(limit: Int = 5) async -> [ScannedProduct] {
         await cache.recent(limit: limit)
     }
+
+    /// Free-text search against Open Food Facts. Returns the top
+    /// `pageSize` products (capped at `searchMaxPageSize`) matching the
+    /// query, normalised to the same `ScannedProduct` shape barcode
+    /// lookups produce.
+    ///
+    /// `/cgi/search.pl` is the only OFF endpoint that supports
+    /// full-text product-name search today — v2 search is barcode/
+    /// taxonomy-only and `search-a-licious` is still beta. The endpoint
+    /// is rate-limited to 10 req/min/IP, so callers should debounce
+    /// keystrokes (the food library uses 500 ms) and rely on the
+    /// in-memory query cache for repeats.
+    ///
+    /// Throws `LookupError.notFound` on empty results so the caller can
+    /// branch the empty state the same way it does for a missed barcode.
+    func search(query: String, pageSize: Int = 20) async throws -> [ScannedProduct] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 2 else { return [] }
+
+        if let hit = await Self.searchCache.read(query: trimmed) {
+            return hit
+        }
+
+        let cappedPageSize = max(1, min(pageSize, Self.searchMaxPageSize))
+        var components = URLComponents(url: searchURL, resolvingAgainstBaseURL: false)
+        components?.queryItems = [
+            URLQueryItem(name: "search_terms", value: trimmed),
+            URLQueryItem(name: "search_simple", value: "1"),
+            URLQueryItem(name: "action", value: "process"),
+            URLQueryItem(name: "json", value: "1"),
+            URLQueryItem(name: "page_size", value: String(cappedPageSize)),
+            URLQueryItem(name: "fields", value: Self.searchRequestedFields),
+            URLQueryItem(name: "sort_by", value: "unique_scans_n"),
+        ]
+        guard let url = components?.url else { throw LookupError.invalidBarcode }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 15
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch let urlError as URLError where urlError.code == .notConnectedToInternet
+                                            || urlError.code == .dataNotAllowed {
+            throw LookupError.networkUnavailable
+        } catch {
+            throw LookupError.requestFailed(status: -1)
+        }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw LookupError.requestFailed(status: -1)
+        }
+        switch http.statusCode {
+        case 200..<300:                  break
+        case 429:                        throw LookupError.rateLimited
+        default:                         throw LookupError.requestFailed(status: http.statusCode)
+        }
+
+        let envelope: SearchEnvelope
+        do {
+            envelope = try Self.decoder.decode(SearchEnvelope.self, from: data)
+        } catch {
+            throw LookupError.decodeFailure
+        }
+
+        let now = Date()
+        let products: [ScannedProduct] = envelope.products.compactMap { raw in
+            guard let id = raw.code?.trimmingCharacters(in: .whitespaces).nonEmptyOrNil
+                    ?? raw.id?.trimmingCharacters(in: .whitespaces).nonEmptyOrNil
+            else { return nil }
+            return raw.toScannedProduct(barcode: id, fetchedAt: now)
+        }
+
+        await Self.searchCache.write(query: trimmed, results: products)
+        return products
+    }
+
+    /// Trims the search response from ~80 KB to ~5 KB for a typical
+    /// 20-result page. Identical to the product-lookup field list with
+    /// `code` and `id` added so the mapper can resolve a stable
+    /// identifier for results that lack a scannable barcode.
+    private static let searchRequestedFields = ([
+        "code",
+        "_id",
+    ] + requestedFields.split(separator: ",").map(String.init))
+        .joined(separator: ",")
+
+    /// Process-lifetime query cache. 10-minute TTL is enough to absorb a
+    /// user typing the same word twice in one session without inflating
+    /// memory, and short enough that a re-open of the library after an
+    /// update sees fresh results. Capped to 64 distinct queries so
+    /// pathological tap-typing can't grow the cache without bound.
+    /// The actor type is `Sendable`, so the static let is safe in
+    /// Swift 6 without an explicit isolation annotation.
+    private static let searchCache = SearchQueryCache(
+        ttl: 10 * 60,
+        maxEntries: 64
+    )
 
     static func isStale(_ product: ScannedProduct) -> Bool {
         Date().timeIntervalSince(product.fetchedAt) > staleAfter
@@ -224,6 +338,12 @@ private extension OpenFoodFactsService {
     /// occasionally serializes them as strings or omits them entirely
     /// for incomplete records.
     struct RawProduct: Decodable {
+        /// Search-only — the barcode the product is indexed under.
+        /// Absent on barcode-lookup responses where it's redundant.
+        let code: String?
+        /// Search-only fallback identifier for products without a
+        /// scannable barcode. Decoded from OFF's `_id` field.
+        let id: String?
         let productName: String?
         let brands: String?
         let imageFrontSmallURL: String?
@@ -235,6 +355,8 @@ private extension OpenFoodFactsService {
         let novaGroup: FlexibleInt?
 
         enum CodingKeys: String, CodingKey {
+            case code               = "code"
+            case id                 = "_id"
             case productName        = "product_name"
             case brands             = "brands"
             case imageFrontSmallURL = "image_front_small_url"
@@ -289,6 +411,15 @@ private extension OpenFoodFactsService {
                 fetchedAt: fetchedAt
             )
         }
+    }
+
+    /// Search-endpoint response. `products` is the only field we need —
+    /// `count`, `page`, etc. are dropped on decode. Each entry uses the
+    /// same `RawProduct` shape as the product-lookup endpoint, with
+    /// `code` and `_id` added so we can pick a stable identifier even
+    /// when the result has no barcode.
+    struct SearchEnvelope: Decodable {
+        let products: [RawProduct]
     }
 
     struct RawNutriments: Decodable {
@@ -361,5 +492,61 @@ private extension Double {
     /// for unknown weights and energies.
     var positiveOrNil: Double? {
         (isFinite && self > 0) ? self : nil
+    }
+}
+
+/// In-memory LRU cache for `search(query:)` results. Keyed by the
+/// trimmed, lower-cased query so case-only repeats don't re-fetch. The
+/// 10-minute TTL is short enough that a user re-opening the food
+/// library after editing a custom food won't see stale rankings, and
+/// long enough to coalesce keystroke-driven repeats inside a single
+/// search session.
+///
+/// Bounded by `maxEntries` so a pathological typist (or a test harness
+/// hammering the service) can't grow the cache without limit. Eviction
+/// is by least-recently-written — search results don't track a last-
+/// read timestamp because the read pattern is "consult once then
+/// render".
+actor SearchQueryCache {
+    private struct CacheEntry {
+        let results: [ScannedProduct]
+        let writtenAt: Date
+    }
+
+    private let ttl: TimeInterval
+    private let maxEntries: Int
+    private var entries: [String: CacheEntry] = [:]
+    private var insertionOrder: [String] = []
+
+    init(ttl: TimeInterval, maxEntries: Int) {
+        self.ttl = ttl
+        self.maxEntries = max(1, maxEntries)
+    }
+
+    func read(query: String) -> [ScannedProduct]? {
+        let key = Self.normalize(query)
+        guard let entry = entries[key] else { return nil }
+        if Date().timeIntervalSince(entry.writtenAt) > ttl {
+            entries.removeValue(forKey: key)
+            insertionOrder.removeAll { $0 == key }
+            return nil
+        }
+        return entry.results
+    }
+
+    func write(query: String, results: [ScannedProduct]) {
+        let key = Self.normalize(query)
+        if entries[key] == nil {
+            insertionOrder.append(key)
+        }
+        entries[key] = CacheEntry(results: results, writtenAt: Date())
+        while insertionOrder.count > maxEntries {
+            let oldest = insertionOrder.removeFirst()
+            entries.removeValue(forKey: oldest)
+        }
+    }
+
+    private static func normalize(_ query: String) -> String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 }

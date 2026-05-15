@@ -259,6 +259,18 @@ struct UserProfile: Codable {
     /// at the top of the goals card and used by the home tab to feature
     /// matching peptide recommendations. Empty/nil means no pin.
     var primaryGoal: String?
+    /// User-defined foods surfaced in the food library's "My Foods"
+    /// tab. Travels on the profile so CloudKit sync carries it across
+    /// the user's devices alongside everything else they care about
+    /// (targets, weight history). Newest-first so the tab lands on the
+    /// just-added food without re-sorting.
+    var customFoods: [CustomFood]
+    /// Set of food IDs the user has starred in the food library —
+    /// barcodes for OFF results, `custom:<uuid>` for `customFoods`.
+    /// Encoded as an array on disk because Set lacks a deterministic
+    /// JSON ordering; decoded back into a Set so membership checks are
+    /// O(1) in the result list.
+    var favoriteFoodIDs: Set<String>
 
     init(
         name: String,
@@ -278,7 +290,9 @@ struct UserProfile: Codable {
         workoutHistory: [WorkoutEntry] = [],
         avatarImageData: Data? = nil,
         bio: String = "",
-        primaryGoal: String? = nil
+        primaryGoal: String? = nil,
+        customFoods: [CustomFood] = [],
+        favoriteFoodIDs: Set<String> = []
     ) {
         self.name = name
         self.goals = goals
@@ -298,6 +312,8 @@ struct UserProfile: Codable {
         self.avatarImageData = avatarImageData
         self.bio = bio
         self.primaryGoal = primaryGoal
+        self.customFoods = customFoods
+        self.favoriteFoodIDs = favoriteFoodIDs
     }
 
     init(from decoder: Decoder) throws {
@@ -320,6 +336,10 @@ struct UserProfile: Codable {
         avatarImageData = try container.decodeIfPresent(Data.self, forKey: .avatarImageData)
         bio = try container.decodeIfPresent(String.self, forKey: .bio) ?? ""
         primaryGoal = try container.decodeIfPresent(String.self, forKey: .primaryGoal)
+        customFoods = try container.decodeIfPresent([CustomFood].self, forKey: .customFoods) ?? []
+        favoriteFoodIDs = Set(
+            try container.decodeIfPresent([String].self, forKey: .favoriteFoodIDs) ?? []
+        )
     }
 
     static var fresh: UserProfile {

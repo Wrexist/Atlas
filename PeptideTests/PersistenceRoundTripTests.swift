@@ -250,6 +250,67 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(decoded.avatarImageData, original.avatarImageData)
     }
 
+    func test_userProfile_codableRoundTrip_preservesCustomFoodsAndFavorites() throws {
+        let nutrients = ScannedProduct.Nutriments(
+            calories: 250,
+            proteinG: 18,
+            carbsG: 30,
+            fatG: 6,
+            fiberG: 4,
+            sugarsG: 5
+        )
+        let custom = CustomFood(
+            id: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
+            name: "Mum's lasagna",
+            brand: "Home",
+            per100g: nutrients,
+            servingGrams: 250,
+            servingLabel: "1 portion"
+        )
+        let original = UserProfile(
+            name: "Casey",
+            goals: ["Sleep"],
+            memberSince: Date(timeIntervalSince1970: 1_700_000_000),
+            healthConnected: false,
+            customFoods: [custom],
+            favoriteFoodIDs: ["5449000000996", custom.foodID]
+        )
+
+        let data = try encoder.encode(original)
+        let decoded = try decoder.decode(UserProfile.self, from: data)
+
+        XCTAssertEqual(decoded.customFoods.count, 1)
+        XCTAssertEqual(decoded.customFoods.first?.name, "Mum's lasagna")
+        XCTAssertEqual(decoded.customFoods.first?.per100g.calories, 250)
+        XCTAssertEqual(decoded.customFoods.first?.servingGrams, 250)
+        XCTAssertTrue(decoded.favoriteFoodIDs.contains("5449000000996"))
+        XCTAssertTrue(decoded.favoriteFoodIDs.contains(custom.foodID))
+    }
+
+    func test_userProfile_legacyJSON_decodesWithEmptyFoodLibraryDefaults() throws {
+        // Older builds had no customFoods / favoriteFoodIDs columns —
+        // their on-disk JSON omits both keys. The decode path must
+        // produce empty collections (not crash) so the food library
+        // boots clean on upgrade.
+        let legacyJSON = """
+        {
+          "name": "Legacy",
+          "goals": [],
+          "memberSince": "2023-11-14T22:13:20Z",
+          "healthConnected": false,
+          "weightHistory": [],
+          "progressPhotoFilenames": [],
+          "dailyConsumption": {},
+          "workoutHistory": [],
+          "bio": ""
+        }
+        """.data(using: .utf8)!
+
+        let decoded = try decoder.decode(UserProfile.self, from: legacyJSON)
+        XCTAssertTrue(decoded.customFoods.isEmpty)
+        XCTAssertTrue(decoded.favoriteFoodIDs.isEmpty)
+    }
+
     func test_userProfile_emptyBio_roundTripsAsEmptyString() throws {
         // The DataStore trims bio on update; an empty bio shouldn't decode as
         // nil (the field is non-optional in the model).
