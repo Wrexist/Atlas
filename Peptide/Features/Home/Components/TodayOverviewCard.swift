@@ -299,7 +299,7 @@ struct TodayOverviewCard: View {
 
     // MARK: - Helpers
 
-    private static let timeFormatter: DateFormatter = {
+    nonisolated(unsafe) private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .none
         f.timeStyle = .short

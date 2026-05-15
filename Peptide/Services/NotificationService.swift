@@ -276,7 +276,7 @@ final class NotificationService {
         lastReport = .empty
     }
 
-    private static let timeFormatter: DateFormatter = {
+    nonisolated(unsafe) private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -403,7 +403,7 @@ final class NotificationService {
     /// DST flips and travel — letting the device timezone leak into the
     /// ID string used to fall out of sync with the set-diff on
     /// `pendingRequests`, leaving stale notifications scheduled.
-    private static let isoDayFormatter: ISO8601DateFormatter = {
+    nonisolated(unsafe) private static let isoDayFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withTimeZone]
         f.timeZone = TimeZone(identifier: "UTC")

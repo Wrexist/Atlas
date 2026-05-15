@@ -394,7 +394,10 @@ final class OpenFoodFactsService: Sendable {
     /// decode — `fetchedAt` is stamped client-side. Kept as a single
     /// instance so we don't pay the (small) allocation cost on every
     /// request.
-    private static let decoder = JSONDecoder()
+    // JSONDecoder isn't Sendable but is thread-safe for read-only
+    // decoding after configuration. nonisolated(unsafe) is the
+    // documented escape hatch for Swift 6.
+    nonisolated(unsafe) private static let decoder = JSONDecoder()
 
     /// Treat the standard "no path to the server" `URLError` codes as
     /// offline rather than as generic request failures. Airplane

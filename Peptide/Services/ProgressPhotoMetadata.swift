@@ -62,7 +62,11 @@ enum ProgressPhotoMetadata {
         return Self.mediumFormatter.string(from: date)
     }
 
-    private static let mediumFormatter: DateFormatter = {
+    // DateFormatter isn't Sendable but is documented thread-safe
+    // for read access after configuration. `nonisolated(unsafe)`
+    // opts the static let out of Swift 6's shared-mutable-state
+    // check; the formatter is only ever read via `.string(from:)`.
+    nonisolated(unsafe) private static let mediumFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .medium
         f.timeStyle = .none

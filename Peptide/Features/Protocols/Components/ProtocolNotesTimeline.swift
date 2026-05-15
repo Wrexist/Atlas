@@ -195,14 +195,14 @@ struct ProtocolNotesTimeline: View {
         }
     }
 
-    private static let dayFormatter: DateFormatter = {
+    nonisolated(unsafe) private static let dayFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .medium
         f.timeStyle = .none
         return f
     }()
 
-    private static let timeFormatter: DateFormatter = {
+    nonisolated(unsafe) private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .none
         f.timeStyle = .short

@@ -164,7 +164,7 @@ struct MealEntryEditorSheet: View {
         onSave(updated)
     }
 
-    private static let timeFormatter: DateFormatter = {
+    nonisolated(unsafe) private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .none
         f.timeStyle = .short

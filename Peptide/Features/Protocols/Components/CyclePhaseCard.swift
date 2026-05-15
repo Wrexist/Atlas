@@ -17,7 +17,10 @@ struct CyclePhaseCard: View {
     private var tint: Color { CyclePhaseEngine.tint(for: status.phase) }
     private var icon: String { CyclePhaseEngine.icon(for: status.phase) }
 
-    private static let relative: RelativeDateTimeFormatter = {
+    // Non-Sendable Foundation formatter; thread-safe for read-only
+    // use after configuration. nonisolated(unsafe) is the Swift 6
+    // escape hatch for this pattern.
+    nonisolated(unsafe) private static let relative: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .full
         return f

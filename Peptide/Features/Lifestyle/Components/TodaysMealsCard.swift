@@ -98,7 +98,7 @@ struct MealEntryRow: View {
     let onTap: () -> Void
     let onDelete: () -> Void
 
-    private static let timeFormatter: DateFormatter = {
+    nonisolated(unsafe) private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.timeStyle = .short
         return f

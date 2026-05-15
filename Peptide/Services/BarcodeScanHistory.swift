@@ -196,13 +196,17 @@ actor BarcodeScanHistory {
         return Dictionary(uniqueKeysWithValues: sorted.prefix(Self.maxEntries).map { ($0.key, $0.value) })
     }
 
-    private static let encoder: JSONEncoder = {
+    // JSONEncoder/JSONDecoder aren't Sendable but are thread-safe
+    // for typical read-only use (encoding/decoding doesn't mutate
+    // internal state after configuration). `nonisolated(unsafe)`
+    // is the right escape hatch for both statics.
+    nonisolated(unsafe) private static let encoder: JSONEncoder = {
         let e = JSONEncoder()
         e.dateEncodingStrategy = .iso8601
         return e
     }()
 
-    private static let decoder: JSONDecoder = {
+    nonisolated(unsafe) private static let decoder: JSONDecoder = {
         let d = JSONDecoder()
         d.dateDecodingStrategy = .iso8601
         return d
