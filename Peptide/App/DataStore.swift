@@ -1200,6 +1200,14 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
+    /// Persists the user's training preferences. Called by the
+    /// onboarding flow's Activity & schedule + Equipment access
+    /// steps and by Profile → Training settings.
+    func updateTrainingPreferences(_ prefs: TrainingPreferences) {
+        profile.trainingPreferences = prefs
+        save()
+    }
+
     func updateAvatarImageData(_ data: Data?) {
         profile.avatarImageData = data
         save()

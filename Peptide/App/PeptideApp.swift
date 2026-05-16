@@ -139,7 +139,11 @@ struct PeptideApp: App {
                 guard let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
                       let deepLink = FoodLogDeepLink(spotlightIdentifier: identifier)
                 else { return }
-                appState.selectedTab = .today
+                // Phase D: food handoff now lands on the dedicated
+                // Meals tab so the receiver of `pendingFoodLogID`
+                // (the meals section's `.onChange`) doesn't race the
+                // mirror mount still on Today.
+                appState.selectedTab = .meals
                 appState.pendingFoodLogID = deepLink
             }
             .sheet(item: $travelChange) { change in
@@ -168,7 +172,7 @@ struct PeptideApp: App {
                 // version stamp wouldn't land — they'd see it
                 // again on the next launch.
                 WhatsNewTourSheet(
-                    pages: WhatsNewPage.v21,
+                    pages: WhatsNewPage.v30Training,
                     onComplete: {
                         WhatsNewService.shared.markCurrentTourSeen()
                         showWhatsNewTour = false
@@ -286,17 +290,17 @@ struct PeptideApp: App {
             Tab("Today", systemImage: "house.fill", value: .today) {
                 HomeContainerView()
             }
-            Tab("Library", systemImage: "pills.fill", value: .library) {
-                PeptideListView()
+            Tab("Train", systemImage: "figure.strengthtraining.traditional", value: .train) {
+                TrainContainerView()
             }
-            Tab("Protocols", systemImage: "square.stack.3d.up.fill", value: .protocols) {
-                ProtocolListView()
+            Tab("Meals", systemImage: "fork.knife", value: .meals) {
+                MealsContainerView()
             }
             Tab("Biology", systemImage: "heart.fill", value: .biology) {
                 BiologyView()
             }
-            Tab("Profile", systemImage: "person.crop.circle.fill", value: .profile) {
-                ProfileView()
+            Tab("Library", systemImage: "books.vertical.fill", value: .library) {
+                PeptideListView()
             }
         }
         .onChange(of: appState.selectedTab) { _, _ in

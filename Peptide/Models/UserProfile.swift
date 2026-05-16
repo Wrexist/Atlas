@@ -338,6 +338,12 @@ struct UserProfile: Codable, Sendable {
     /// profiles decoded without this field land on
     /// `BiologyConfig.default` cleanly.
     var biologyConfig: BiologyConfig
+    /// Training preferences (days/week, equipment access, plate
+    /// inventory, rest-timer default, auto-progression toggle).
+    /// Populated by the redesigned onboarding's "Activity & schedule"
+    /// + "Equipment access" steps; nil for profiles created before
+    /// the training pivot.
+    var trainingPreferences: TrainingPreferences?
 
     init(
         name: String,
@@ -370,7 +376,8 @@ struct UserProfile: Codable, Sendable {
         protocolNotes: [ProtocolNote] = [],
         weeklySummaryEnabled: Bool = true,
         weeklySummaries: [String: WeeklySummary] = [:],
-        biologyConfig: BiologyConfig = .default
+        biologyConfig: BiologyConfig = .default,
+        trainingPreferences: TrainingPreferences? = nil
     ) {
         self.name = name
         self.goals = goals
@@ -403,6 +410,7 @@ struct UserProfile: Codable, Sendable {
         self.weeklySummaryEnabled = weeklySummaryEnabled
         self.weeklySummaries = weeklySummaries
         self.biologyConfig = biologyConfig
+        self.trainingPreferences = trainingPreferences
     }
 
     init(from decoder: Decoder) throws {
@@ -442,6 +450,7 @@ struct UserProfile: Codable, Sendable {
         weeklySummaryEnabled = try container.decodeIfPresent(Bool.self, forKey: .weeklySummaryEnabled) ?? true
         weeklySummaries = try container.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries) ?? [:]
         biologyConfig = try container.decodeIfPresent(BiologyConfig.self, forKey: .biologyConfig) ?? .default
+        trainingPreferences = try container.decodeIfPresent(TrainingPreferences.self, forKey: .trainingPreferences)
     }
 
     static var fresh: UserProfile {

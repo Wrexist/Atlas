@@ -6,16 +6,39 @@ enum AppTab: String, CaseIterable {
     /// value is migrated below for users with a persisted
     /// state from a prior build).
     case today
-    /// Peptide reference + AI research. Was `.database`.
+    /// Workout planning + logging. Added in the training pivot —
+    /// raw value is new so older builds that don't know about it
+    /// simply fall back to `.today` when their persisted state
+    /// reloads.
+    case train
+    /// Meal logging + macros + recipes. Promoted out of the Home
+    /// section in the training pivot so food gets its own
+    /// top-level surface alongside training.
+    case meals
+    /// Peptide reference + AI research. Was `.database`. Now also
+    /// hosts the Protocols list (folded in during the training
+    /// pivot — Protocols lost its dedicated tab slot to make
+    /// room for Train + Meals).
     case library
+    /// Stays in the enum for deep-link compatibility — the
+    /// case isn't bound to a tab slot any more (Library hosts
+    /// the protocol list now) but call sites that historically
+    /// switched to `.protocols` still compile, and the
+    /// `pendingProtocolList` flag below routes them into the
+    /// Library tab cleanly.
     case protocols
     /// Biology hub — biological-age estimate, HRV/RHR/Sleep
-    /// baselines, lab markers, body composition. Renamed from
-    /// `.insights` in the Bevel-style Biology-tab pass; the
-    /// analytical / correlation surface lives here under a
-    /// Bio-Age hero. AppState.selectedTab lives in memory only
-    /// (not persisted to disk) so the raw-value change is safe.
+    /// baselines, lab markers, body composition. Replaces the
+    /// prior `.insights` slot in the tab bar with a Bevel-style
+    /// premium surface. The analytical / correlation content
+    /// (compliance trends, HealthKit correlation, labs) still
+    /// lives on `InsightsView`; future commits fold its surfaces
+    /// into Biology's sections.
     case biology
+    /// Profile + settings. Demoted from the bottom tab bar to a
+    /// top-right avatar entry on the Today header during the
+    /// training pivot, but the case stays so deep-link / state-
+    /// restoration code paths keep compiling.
     case profile
 }
 
@@ -34,10 +57,10 @@ final class AppState {
     /// Screen's Spotlight pull-down lands the user directly on the
     /// log-this-food sheet, not just on the app's launch view.
     var pendingFoodLogID: FoodLogDeepLink?
-    /// When true, the Profile tab opens the Labs view automatically on
-    /// next appear. Cleared the moment Profile consumes it. Used by the
-    /// Home overview card's "latest lab" insight tap so the user lands
-    /// one tap away from the trend chart instead of in the Profile root.
+    /// When true, the Biology tab opens the Labs view automatically
+    /// on next appear and clears the flag. Used by Home's "latest lab"
+    /// insight tap so the user lands one tap away from the trend
+    /// chart inside the Biology surface.
     var pendingLabsOpen: Bool = false
     /// When set, the Home tab presents the matching `ProtocolEntry`'s
     /// dose-logging sheet automatically on next appear. Cleared the
@@ -53,6 +76,14 @@ final class AppState {
     /// onOpenURL closure doesn't need a reference to HomeView's
     /// navigation path.
     var pendingWeeklyRecap: Bool = false
+    /// When true, the Library tab pushes `ProtocolListView` onto its
+    /// navigation stack on next appear and clears the flag.
+    /// Populated by call sites that historically switched directly to
+    /// the (now demoted) `.protocols` tab — Home cards, Biology
+    /// shortcuts, and the profile-stacks tap — so the user lands on
+    /// the protocol list in one navigation hop instead of being
+    /// dumped on the peptide reference root.
+    var pendingProtocolList: Bool = false
 }
 
 /// Discriminated identifier for the Spotlight deep-link payload.

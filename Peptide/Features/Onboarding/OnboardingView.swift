@@ -3,78 +3,108 @@ import SwiftUI
 import UIKit
 #endif
 
+/// Redesigned onboarding for the training pivot — 14 premium steps that
+/// lead with the workout story, use very bold display typography, the
+/// anatomical figure from MuscleMapView for the body selection, an
+/// Atlas-vs-without comparison, and a real "log a set" demo before the
+/// paywall. Peptides are no longer pushed during onboarding; users
+/// discover them later from the Library tab.
+///
+/// State writes:
+///
+///   - `hasCompletedOnboarding` — final dismiss flag
+///   - `experienceLevel` — beginner / intermediate / advanced
+///   - `profile.{name,bodyMetrics,nutritionTargets,primaryGoal,
+///      trainingPreferences}` — persisted via DataStore
 struct OnboardingView: View {
     @Environment(DataStore.self) private var dataStore
-    @Environment(\.requestReview) private var requestReview
     @AppStorage("hasCompletedOnboarding") private var hasCompleted = false
-    @AppStorage("experienceLevel") private var experienceLevel = "beginner"
+    @AppStorage("experienceLevel") private var experienceLevel: String = "beginner"
 
-    @State private var currentPage = 0
+    @State private var page: Int = 0
     @State private var name: String = ""
-    @State private var selectedGoals: Set<String> = []
+    @State private var primaryGoal: PrimaryGoal = .buildMuscle
     @State private var bodyMetrics: BodyMetrics = .unspecified
-    @State private var selectedRecommendationIds: Set<UUID> = []
-    @State private var hasAutoSelectedRecommendations = false
+    @State private var daysPerWeek: Int = 3
+    @State private var preferredDays: Set<Weekday> = []
+    @State private var timeOfDay: PreferredTimeOfDay = .anytime
+    @State private var equipment: Set<EquipmentKind> = [.bodyweight]
+    @State private var bounceTrigger = 0
+    @State private var storeService = StoreService.shared
     @State private var requestingHealth = false
     @State private var requestingNotifications = false
-    @State private var bounceTrigger = 0
-    @State private var authService = AuthService.shared
-    /// Observed so the picker step re-renders the moment the user taps a
-    /// new theme — `AppColor.accent*` reads from this manager, so anything
-    /// touching `themeManager.theme` in body forces a full re-render.
-    @State private var themeManager = ThemeManager.shared
-
-    // Creator attribution step state. Lives on the parent so the footer
-    // (apply / skip / continue buttons) and the input field can share it
-    // and so the validated attribution survives a back-and-forward swipe.
-    @State private var creatorCodeInput: String = ""
-    @State private var creatorAttribution: CreatorAttribution?
-    @State private var creatorCodeError: String?
-
-    // Email-capture step state. Same pattern as the creator attribution —
-    // input lives on the parent so the field survives swipe navigation.
-    @State private var emailInput: String = ""
-    @State private var emailError: String?
+    // Live "try a set" demo state.
+    @State private var demoSet = SetEntry(index: 1, weightKg: 60, reps: 8, completed: false)
+    @State private var demoCelebrate = false
 
     @FocusState private var nameFocused: Bool
 
-    private let totalPages = 17
-    @State private var storeService = StoreService.shared
+    private let totalPages = 14
 
-    private struct OnboardingGoal: Identifiable {
-        var id: String { title }
-        /// Canonical English string used as the persistence key in
-        /// `profile.goals` and the keyword input to the recommendation
-        /// engine. Do NOT change without a migration.
-        let title: String
-        /// Localized display key — same English string at literal time, but
-        /// flows through Xcode's xcstrings extraction and the user's locale.
-        let localizedTitle: LocalizedStringKey
-        let icon: String
-        let tint: Color
+    enum PrimaryGoal: String, CaseIterable, Identifiable {
+        case buildMuscle, loseFat, getStronger, stayConsistent, athletic, recomp
+        var id: String { rawValue }
+        var displayName: String {
+            switch self {
+            case .buildMuscle:    return "Build muscle"
+            case .loseFat:        return "Lose fat"
+            case .getStronger:    return "Get stronger"
+            case .stayConsistent: return "Stay consistent"
+            case .athletic:       return "Athletic performance"
+            case .recomp:         return "Recomp"
+            }
+        }
+        var icon: String {
+            switch self {
+            case .buildMuscle:    return "figure.strengthtraining.traditional"
+            case .loseFat:        return "flame.fill"
+            case .getStronger:    return "bolt.fill"
+            case .stayConsistent: return "calendar.badge.clock"
+            case .athletic:       return "figure.run"
+            case .recomp:         return "arrow.triangle.2.circlepath"
+            }
+        }
+        var tint: Color {
+            switch self {
+            case .buildMuscle:    return Color(hex: 0xCF7272)
+            case .loseFat:        return OnboardingTint.fatLoss
+            case .getStronger:    return Color(hex: 0xD4A844)
+            case .stayConsistent: return AppColor.accentPrimary
+            case .athletic:       return Color(hex: 0x5B8FB9)
+            case .recomp:         return Color(hex: 0x9B72CF)
+            }
+        }
     }
 
-    private let goals: [OnboardingGoal] = [
-        .init(title: "Muscle Recovery",  localizedTitle: "Muscle Recovery",  icon: "figure.strengthtraining.traditional", tint: OnboardingTint.muscleRecovery),
-        .init(title: "Better Sleep",     localizedTitle: "Better Sleep",     icon: "moon.stars.fill",         tint: OnboardingTint.sleep),
-        .init(title: "Cognitive Edge",   localizedTitle: "Cognitive Edge",   icon: "brain.head.profile.fill", tint: OnboardingTint.cognitive),
-        .init(title: "Anti-Aging",       localizedTitle: "Anti-Aging",       icon: "sparkles",                tint: OnboardingTint.antiAging),
-        .init(title: "Fat Loss",         localizedTitle: "Fat Loss",         icon: "flame.fill",              tint: OnboardingTint.fatLoss),
-        .init(title: "Immune Support",   localizedTitle: "Immune Support",   icon: "shield.lefthalf.filled",  tint: OnboardingTint.immune),
-        .init(title: "Joint Health",     localizedTitle: "Joint Health",     icon: "figure.flexibility",      tint: AppColor.accentPrimary),
-        .init(title: "Stress Reduction", localizedTitle: "Stress Reduction", icon: "leaf.fill",               tint: AppColor.accentLight),
-    ]
+    enum Experience: String, CaseIterable, Identifiable {
+        case beginner, intermediate, advanced
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .beginner:     return "New to lifting"
+            case .intermediate: return "Comfortable in the gym"
+            case .advanced:     return "Years of training"
+            }
+        }
+        var subtitle: String {
+            switch self {
+            case .beginner:     return "Under a year of consistent training"
+            case .intermediate: return "1–3 years, solid technique"
+            case .advanced:     return "3+ years, dialed-in programming"
+            }
+        }
+        var icon: String {
+            switch self {
+            case .beginner:     return "leaf.fill"
+            case .intermediate: return "flame.fill"
+            case .advanced:     return "bolt.fill"
+            }
+        }
+    }
 
     var body: some View {
-        // Reading the @Observable properties registers this view as a
-        // dependency, so the entire onboarding tree (back button tint,
-        // progress bar gradient, page accents…) re-renders the moment the
-        // user picks a different theme on the "Make it yours" step.
-        let _ = themeManager.theme
-        let _ = themeManager.displayMode
-
-        return ZStack {
-            OnboardingBackground(step: currentPage)
+        ZStack {
+            OnboardingBackground(step: page)
 
             VStack(spacing: 0) {
                 topBar
@@ -82,1305 +112,994 @@ struct OnboardingView: View {
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.sm)
 
-                TabView(selection: $currentPage) {
-                    welcomePage.tag(0)
-                    namePage.tag(1)
-                    goalsPage.tag(2)
-                    bodyMetricsPage.tag(3)
-                    dailyTargetsPage.tag(4)
-                    recommendationsPage.tag(5)
-                    experiencePage.tag(6)
-                    healthKitPage.tag(7)
-                    notificationsPage.tag(8)
-                    signInPage.tag(9)
-                    reviewPromptPage.tag(10)
-                    creatorAttributionPage.tag(11)
-                    emailCapturePage.tag(12)
-                    offerPage.tag(13)
-                    themeChoicePage.tag(14)
-                    addMedicationPreviewPage.tag(15)
-                    readyPage.tag(16)
+                TabView(selection: $page) {
+                    welcome.tag(0)
+                    valueProof.tag(1)
+                    nameStep.tag(2)
+                    goalStep.tag(3)
+                    experienceStep.tag(4)
+                    bodyMetricsStep.tag(5)
+                    scheduleStep.tag(6)
+                    equipmentStep.tag(7)
+                    demoSetStep.tag(8)
+                    comparisonStep.tag(9)
+                    programPreviewStep.tag(10)
+                    nutritionStep.tag(11)
+                    permissionsStep.tag(12)
+                    readyStep.tag(13)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .animation(AppAnimation.springSmooth, value: currentPage)
+                .animation(AppAnimation.springSmooth, value: page)
+            }
+
+            VStack {
+                Spacer()
+                footer
             }
         }
-        .preferredColorScheme(themeManager.displayMode.preferredScheme)
-        .onChange(of: currentPage) { _, newValue in
-            dismissKeyboard()
-            if newValue == 5 && !hasAutoSelectedRecommendations {
-                let top = currentSuggestions.prefix(2).map(\.peptide.id)
-                selectedRecommendationIds = Set(top)
-                hasAutoSelectedRecommendations = true
-            }
-            // If the user lands on the sign-in page already authenticated
-            // (e.g. Keychain survived a re-onboard), still show the
-            // confirmation briefly and advance — never strand them here.
-            if newValue == 9 && authService.isSignedIn {
-                scheduleSignInAdvance()
-            }
-        }
-        .onChange(of: selectedGoals) { _, _ in
-            hasAutoSelectedRecommendations = false
-            selectedRecommendationIds.removeAll()
-        }
-        .onChange(of: authService.isSignedIn) { _, signedIn in
-            if signedIn, currentPage == 9 {
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                }
-                scheduleSignInAdvance()
-            }
-        }
-        .alert(
-            authService.lastError?.title ?? "",
-            isPresented: Binding(
-                get: { authService.lastError != nil && currentPage == 9 },
-                set: { if !$0 { authService.clearLastError() } }
-            ),
-            presenting: authService.lastError
-        ) { _ in
-            Button("Try Again") {
-                authService.clearLastError()
-                authService.signIn()
-            }
-            Button("Continue Without Signing In", role: .cancel) {
-                authService.clearLastError()
-                advance(to: nextAfterSignIn)
-            }
-        } message: { error in
-            Text(error.message)
-        }
-        .task { await storeService.loadProducts() }
+        .preferredColorScheme(.dark)
     }
 
-    // MARK: - Page 0: Welcome
+    // MARK: - Chrome
 
-    private var welcomePage: some View {
-        pageScaffold(
-            hero: HeroIcon(symbol: "flask.fill", size: 110, bounceTrigger: bounceTrigger),
-            content: {
-                VStack(spacing: Spacing.lg) {
-                    Text("Welcome to Atlas")
-                        .font(AppFont.largeTitle)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [AppColor.textPrimary, AppColor.accentLight],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .multilineTextAlignment(.center)
-
-                    (Text("Track your ")
-                        .font(AppFont.body)
-                        .foregroundStyle(AppColor.textSecondary)
-                    + Text("peptide protocols")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(AppColor.accentLight)
-                    + Text(" with precision.")
-                        .font(AppFont.body)
-                        .foregroundStyle(AppColor.textSecondary))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Spacing.xl)
-
-                    HStack(spacing: Spacing.md) {
-                        WelcomeFeatureBadge(
-                            icon: "calendar.badge.clock",
-                            label: "Smart\nScheduling",
-                            animationDelay: 0.20
-                        )
-                        WelcomeFeatureBadge(
-                            icon: "heart.text.square.fill",
-                            label: "Health\nInsights",
-                            animationDelay: 0.32
-                        )
-                        WelcomeFeatureBadge(
-                            icon: "lock.shield.fill",
-                            label: "Private &\nSecure",
-                            animationDelay: 0.44
-                        )
-                    }
-                    .padding(.top, Spacing.md)
-                }
-            },
-            footer: {
-                GlassButton(title: "Get Started", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                    advance(to: 1)
-                }
-            }
-        )
-    }
-
-    // MARK: - Page 1: Name
-
-    private var namePage: some View {
-        pageScaffold(
-            hero: HeroIcon(symbol: "person.crop.circle.fill", size: 96, bounceTrigger: bounceTrigger),
-            content: {
-                VStack(spacing: Spacing.md) {
-                    Text("What should we call you?")
-                        .font(AppFont.title)
+    private var topBar: some View {
+        HStack(spacing: Spacing.md) {
+            if page > 0 {
+                Button {
+                    haptic()
+                    withAnimation { page = max(0, page - 1) }
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
-                        .multilineTextAlignment(.center)
-
-                    Text("Optional — we'll use it to personalize your dashboard")
-                        .font(AppFont.body)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Spacing.xl)
-
-                    GlassTextField(placeholder: "Your name", text: $name, icon: "person.fill")
-                        .focused($nameFocused)
-                        .submitLabel(.next)
-                        .onSubmit { advance(to: 2) }
-                        .padding(.top, Spacing.lg)
+                        .padding(10)
+                        .background(Circle().fill(AppColor.surfaceSecondary.opacity(0.6)))
                 }
-            },
-            footer: {
-                GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                    advance(to: 2)
+            } else {
+                Color.clear.frame(width: 36, height: 36)
+            }
+            Spacer()
+            HStack(spacing: 6) {
+                ForEach(0..<totalPages, id: \.self) { idx in
+                    Capsule()
+                        .fill(idx == page
+                              ? AppColor.accentPrimary
+                              : AppColor.textTertiary.opacity(0.3))
+                        .frame(width: idx == page ? 16 : 6, height: 6)
+                        .animation(AppAnimation.springSmooth, value: page)
                 }
             }
-        )
-    }
-
-    // MARK: - Page 2: Goals
-
-    private var goalsPage: some View {
-        pageScaffold(
-            hero: HeroIcon(symbol: "target", size: 80, bounceTrigger: bounceTrigger),
-            content: {
-                VStack(spacing: Spacing.md) {
-                    Text("What are your goals?")
-                        .font(AppFont.title)
-                        .foregroundStyle(AppColor.textPrimary)
-
-                    Text(selectedGoals.isEmpty
-                         ? "Select all that apply"
-                         : "\(selectedGoals.count) selected — tap any tile")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(selectedGoals.isEmpty ? AppColor.textSecondary : AppColor.accentLight)
-                        .contentTransition(.numericText())
-                        .animation(AppAnimation.springSnappy, value: selectedGoals.count)
-
-                    goalGrid
-                        .padding(.top, Spacing.sm)
-                }
-            },
-            footer: {
-                GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                    advance(to: 3)
-                }
-                .opacity(selectedGoals.isEmpty ? 0.4 : 1)
-                .disabled(selectedGoals.isEmpty)
-                .animation(AppAnimation.springSnappy, value: selectedGoals.isEmpty)
-            }
-        )
-    }
-
-    // MARK: - Page 3: Body Metrics
-
-    private var bodyMetricsPage: some View {
-        pageScaffold(
-            hero: HeroIcon(symbol: "figure.arms.open", size: 88, bounceTrigger: bounceTrigger),
-            content: {
-                BodyMetricsPage(metrics: $bodyMetrics)
-            },
-            footer: {
-                VStack(spacing: Spacing.sm) {
-                    GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                        advance(to: 4)
-                    }
-                    GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
-                        // Skip past Daily Targets too — without body stats it
-                        // has nothing to compute and would render placeholders.
-                        advance(to: 5)
-                    }
-                }
-            }
-        )
-    }
-
-    // MARK: - Page 4: Daily Targets
-
-    private var dailyTargetsPage: some View {
-        pageScaffold(
-            hero: HeroIcon(symbol: "fork.knife.circle.fill", size: 88, bounceTrigger: bounceTrigger),
-            content: {
-                DailyTargetsPage(metrics: bodyMetrics)
-            },
-            footer: {
-                GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                    advance(to: 5)
-                }
-            }
-        )
-    }
-
-    // MARK: - Page 5: Recommended Stack
-
-    private var recommendationsPage: some View {
-        pageScaffold(
-            hero: HeroIcon(symbol: "sparkle.magnifyingglass", size: 88, bounceTrigger: bounceTrigger),
-            content: {
-                RecommendationsPage(
-                    suggestions: currentSuggestions,
-                    selectedIds: $selectedRecommendationIds
-                )
-            },
-            footer: {
-                VStack(spacing: Spacing.sm) {
-                    GlassButton(
-                        title: starterButtonTitle,
-                        icon: selectedRecommendationIds.isEmpty ? "arrow.right" : "checkmark.circle.fill",
-                        style: .primary,
-                        isFullWidth: true
-                    ) {
-                        advance(to: 6)
-                    }
-                    GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
-                        selectedRecommendationIds.removeAll()
-                        advance(to: 6)
-                    }
-                }
-            }
-        )
-    }
-
-    private var currentSuggestions: [OnboardingRecommendationEngine.Suggestion] {
-        OnboardingRecommendationEngine.recommend(
-            goals: Array(selectedGoals),
-            from: dataStore.peptideDatabase
-        )
-    }
-
-    private var starterButtonTitle: LocalizedStringKey {
-        if selectedRecommendationIds.isEmpty { return "Continue without a stack" }
-        let count = selectedRecommendationIds.count
-        if count == 1 { return "Add 1 peptide & continue" }
-        return "Add \(count) peptides & continue"
-    }
-
-    /// Builds a short, human-readable name from the user's primary goal —
-    /// e.g. "Muscle Recovery Stack". Falls back to "Starter Stack" when no
-    /// goal is selected so we never produce an empty name.
-    private var starterProtocolName: String {
-        guard let primary = selectedGoals.sorted().first else { return "Starter Stack" }
-        return "\(primary) Stack"
-    }
-
-    private var goalGrid: some View {
-        LazyVGrid(
-            columns: [GridItem(.flexible(), spacing: Spacing.sm), GridItem(.flexible(), spacing: Spacing.sm)],
-            spacing: Spacing.sm
-        ) {
-            ForEach(goals) { goal in
-                goalTile(goal)
-            }
+            Spacer()
+            Color.clear.frame(width: 36, height: 36)
         }
     }
 
-    private func goalTile(_ goal: OnboardingGoal) -> some View {
-        let isSelected = selectedGoals.contains(goal.title)
-        return Button {
-            withAnimation(AppAnimation.springSnappy) {
-                if isSelected {
-                    selectedGoals.remove(goal.title)
-                } else {
-                    selectedGoals.insert(goal.title)
+    private var footer: some View {
+        VStack(spacing: Spacing.xs) {
+            primaryButton
+            if page < totalPages - 1 && page > 1 {
+                Button("Skip") {
+                    haptic()
+                    advance()
+                }
+                .font(AppFont.footnote)
+                .foregroundStyle(AppColor.textSecondary)
+            }
+        }
+        .padding(.horizontal, Spacing.screenPadding)
+        .padding(.bottom, Spacing.xl)
+    }
+
+    private var primaryButton: some View {
+        Button(action: primaryAction) {
+            HStack {
+                Text(primaryTitle)
+                    .font(AppFont.headline)
+                if page < totalPages - 1 {
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 16, weight: .semibold))
                 }
             }
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-        } label: {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                HStack {
-                    Image(systemName: goal.icon)
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(isSelected ? goal.tint : AppColor.textSecondary)
-                        .frame(width: 36, height: 36)
-                        .background {
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(isSelected ? goal.tint.opacity(0.18) : AppColor.surfaceElevated)
-                        }
-                        .symbolEffect(.bounce, value: isSelected)
-
-                    Spacer()
-
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 18))
-                        .foregroundStyle(isSelected ? goal.tint : AppColor.textTertiary)
-                        .contentTransition(.symbolEffect(.replace))
-                }
-
-                Text(goal.localizedTitle)
-                    .font(AppFont.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(Spacing.md)
-            .frame(maxWidth: .infinity, minHeight: 110, alignment: .topLeading)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(isSelected ? goal.tint.opacity(0.10) : AppColor.surfaceSecondary.opacity(0.6))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .strokeBorder(
-                                isSelected ? goal.tint.opacity(0.45) : AppColor.glassBorder,
-                                lineWidth: isSelected ? 1.0 : 0.5
-                            )
-                    }
-            }
-            .liquidGlass(
-                .rect(cornerRadius: Spacing.smallCornerRadius),
-                tint: isSelected ? goal.tint.opacity(0.45) : nil,
-                interactive: true
+            .foregroundStyle(AppColor.background)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(primaryEnabled ? Color.white : AppColor.textTertiary.opacity(0.4))
             )
-            .scaleEffect(isSelected ? 1.0 : 0.985)
+        }
+        .buttonStyle(.plain)
+        .disabled(!primaryEnabled)
+    }
+
+    private var primaryTitle: String {
+        switch page {
+        case 0:                  return "Let's go"
+        case totalPages - 1:     return "Open Atlas"
+        default:                 return "Continue"
+        }
+    }
+
+    private var primaryEnabled: Bool {
+        switch page {
+        case 2: return !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        default: return true
+        }
+    }
+
+    private func primaryAction() {
+        haptic()
+        bounceTrigger += 1
+        switch page {
+        case 2:
+            dataStore.updateProfileIdentity(
+                name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                bio: dataStore.profile.bio
+            )
+        case 3:
+            dataStore.setPrimaryGoal(primaryGoal.rawValue)
+        case 5:
+            dataStore.updateBodyMetrics(bodyMetrics)
+        case 7:
+            // Schedule (page 6) and equipment (page 7) both feed the
+            // same struct — persist once on the final advance off
+            // page 7 so a back-and-forth between the two doesn't
+            // lose the second screen's changes.
+            dataStore.updateTrainingPreferences(currentTrainingPrefs)
+        case 11:
+            if let targets = NutritionMath.dailyTargets(for: bodyMetrics) {
+                dataStore.updateNutritionTargets(targets)
+            }
+        case totalPages - 1:
+            hasCompleted = true
+            return
+        default:
+            break
+        }
+        advance()
+    }
+
+    private var currentTrainingPrefs: TrainingPreferences {
+        TrainingPreferences(
+            daysPerWeek: daysPerWeek,
+            preferredDays: preferredDays,
+            timeOfDay: timeOfDay,
+            equipmentAccess: equipment
+        )
+    }
+
+    private func advance() {
+        withAnimation { page = min(totalPages - 1, page + 1) }
+    }
+
+    private func haptic() {
+        if dataStore.profile.hapticFeedbackEnabled {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+    }
+
+    // MARK: - Step 0: Welcome
+
+    private var welcome: some View {
+        VStack(spacing: Spacing.xl) {
+            Spacer()
+            HeroIcon(
+                symbol: "figure.strengthtraining.traditional",
+                color: AppColor.accentPrimary,
+                accent: AppColor.accentLight,
+                size: 140,
+                bounceTrigger: bounceTrigger
+            )
+            VStack(spacing: Spacing.md) {
+                Text("Welcome to\nAtlas.")
+                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(-4)
+                Text("Train. Eat. Recover.\nIn one place.")
+                    .font(AppFont.title3)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            Spacer()
+            Spacer()
+        }
+        .padding(.horizontal, Spacing.lg)
+    }
+
+    // MARK: - Step 1: Value proof
+
+    private var valueProof: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.lg) {
+                Text("Know exactly when to\n")
+                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                + Text("push harder.")
+                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.accentPrimary)
+
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    valueBullet(icon: "list.bullet.rectangle.fill",
+                                text: "Plan your workouts and stay on track.")
+                    valueBullet(icon: "scalemass.fill",
+                                text: "See your last weight so you know when to add more.")
+                    valueBullet(icon: "chart.line.uptrend.xyaxis",
+                                text: "Track progress and balance hard training with recovery.")
+                    valueBullet(icon: "trophy.fill",
+                                text: "Celebrate every PR with confetti and haptic feedback.")
+                }
+                Spacer(minLength: 120)
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.top, Spacing.lg)
+        }
+    }
+
+    private func valueBullet(icon: String, text: String) -> some View {
+        HStack(alignment: .top, spacing: Spacing.md) {
+            ZStack {
+                Circle()
+                    .fill(AppColor.accentPrimary.opacity(0.18))
+                    .frame(width: 32, height: 32)
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(AppColor.accentPrimary)
+            }
+            Text(text)
+                .font(AppFont.callout)
+                .foregroundStyle(AppColor.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+    }
+
+    // MARK: - Step 2: Name
+
+    private var nameStep: some View {
+        VStack(spacing: Spacing.xl) {
+            HeroIcon(symbol: "person.fill", bounceTrigger: bounceTrigger)
+                .padding(.top, Spacing.xl)
+            VStack(spacing: Spacing.sm) {
+                Text("What should we call you?")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                Text("We'll keep things personal.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            TextField("First name", text: $name)
+                .focused($nameFocused)
+                .textInputAutocapitalization(.words)
+                .submitLabel(.continue)
+                .font(AppFont.title2)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.xl)
+                .padding(.vertical, Spacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .fill(AppColor.surfaceSecondary.opacity(0.6))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .stroke(nameFocused ? AppColor.accentPrimary : AppColor.glassBorder,
+                                lineWidth: nameFocused ? 1 : 0.5)
+                )
+                .padding(.horizontal, Spacing.xl)
+                .onSubmit { if primaryEnabled { primaryAction() } }
+            Spacer()
+        }
+        .onAppear { nameFocused = true }
+    }
+
+    // MARK: - Step 3: Primary goal
+
+    private var goalStep: some View {
+        VStack(spacing: Spacing.lg) {
+            VStack(spacing: Spacing.sm) {
+                Text("What's your goal?")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                Text("You can change this later.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            .padding(.top, Spacing.xl)
+
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
+                          spacing: Spacing.sm) {
+                    ForEach(PrimaryGoal.allCases) { goalCard($0) }
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.bottom, Spacing.xxxxl)
+            }
+        }
+    }
+
+    private func goalCard(_ goal: PrimaryGoal) -> some View {
+        let selected = primaryGoal == goal
+        return Button {
+            haptic()
+            primaryGoal = goal
+        } label: {
+            VStack(spacing: Spacing.sm) {
+                Image(systemName: goal.icon)
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(goal.tint)
+                Text(goal.displayName)
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.lg)
+            .background(
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .fill(selected ? goal.tint.opacity(0.18) : AppColor.surfaceSecondary.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .stroke(selected ? goal.tint : AppColor.glassBorder, lineWidth: selected ? 1.5 : 0.5)
+            )
         }
         .buttonStyle(.plain)
     }
 
-    // MARK: - Page 6: Experience Level
+    // MARK: - Step 4: Experience
 
-    private var experiencePage: some View {
-        pageScaffold(
-            hero: HeroIcon(symbol: "graduationcap.fill", size: 84, bounceTrigger: bounceTrigger),
-            content: {
-                VStack(spacing: Spacing.md) {
-                    Text("How experienced are you?")
-                        .font(AppFont.title)
+    private var experienceStep: some View {
+        VStack(spacing: Spacing.lg) {
+            VStack(spacing: Spacing.sm) {
+                Text("How much experience?")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                Text("This shapes your starter program.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            .padding(.top, Spacing.xl)
+
+            VStack(spacing: Spacing.sm) {
+                ForEach(Experience.allCases) { experienceRow($0) }
+            }
+            .padding(.horizontal, Spacing.lg)
+            Spacer()
+        }
+    }
+
+    private func experienceRow(_ level: Experience) -> some View {
+        let selected = experienceLevel == level.rawValue
+        return Button {
+            haptic()
+            experienceLevel = level.rawValue
+        } label: {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: level.icon)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(AppColor.accentPrimary)
+                    .frame(width: 40)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(level.title)
+                        .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
-                        .multilineTextAlignment(.center)
-
-                    Text("This adjusts the level of detail shown")
-                        .font(AppFont.body)
+                    Text(level.subtitle)
+                        .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
-                        .multilineTextAlignment(.center)
-
-                    VStack(spacing: Spacing.md) {
-                        experienceOption(level: "beginner", icon: "leaf.fill",
-                                          title: "Beginner", subtitle: "New to peptides")
-                        experienceOption(level: "intermediate", icon: "flame.fill",
-                                          title: "Intermediate", subtitle: "Some protocol experience")
-                        experienceOption(level: "advanced", icon: "bolt.fill",
-                                          title: "Advanced", subtitle: "Experienced researcher")
-                    }
-                    .padding(.top, Spacing.sm)
                 }
-            },
-            footer: {
-                GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                    advance(to: 7)
+                Spacer()
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(AppColor.accentPrimary)
                 }
             }
+            .padding(Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .fill(selected ? AppColor.accentPrimary.opacity(0.12) : AppColor.surfaceSecondary.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .stroke(selected ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: selected ? 1 : 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Step 5: Body metrics
+
+    private var bodyMetricsStep: some View {
+        ScrollView {
+            BodyMetricsPage(metrics: $bodyMetrics)
+                .padding(.top, Spacing.lg)
+                .padding(.bottom, Spacing.xxxxl)
+        }
+    }
+
+    // MARK: - Step 6: Schedule
+
+    private var scheduleStep: some View {
+        VStack(spacing: Spacing.lg) {
+            VStack(spacing: Spacing.sm) {
+                Text("When do you train?")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                Text("Days per week + preferred slot.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            .padding(.top, Spacing.xl)
+
+            ScrollView {
+                VStack(spacing: Spacing.lg) {
+                    daysStepper
+                    weekdayPicker
+                    timeOfDayPicker
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.bottom, Spacing.xxxxl)
+            }
+        }
+    }
+
+    private var daysStepper: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text("Days per week")
+                .font(AppFont.footnote)
+                .foregroundStyle(AppColor.textSecondary)
+                .textCase(.uppercase)
+            HStack(spacing: Spacing.xs) {
+                ForEach(2...6, id: \.self) { count in
+                    Button {
+                        haptic()
+                        daysPerWeek = count
+                    } label: {
+                        Text("\(count)")
+                            .font(AppFont.headline.weight(.bold))
+                            .foregroundStyle(daysPerWeek == count ? AppColor.background : AppColor.textPrimary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Spacing.md)
+                            .background(
+                                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                                    .fill(daysPerWeek == count ? AppColor.accentPrimary : AppColor.surfaceSecondary.opacity(0.6))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                                    .stroke(daysPerWeek == count ? Color.clear : AppColor.glassBorder, lineWidth: 0.5)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var weekdayPicker: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text("Preferred days (optional)")
+                .font(AppFont.footnote)
+                .foregroundStyle(AppColor.textSecondary)
+                .textCase(.uppercase)
+            HStack(spacing: 6) {
+                ForEach(Weekday.allCases) { day in
+                    Button {
+                        haptic()
+                        if preferredDays.contains(day) {
+                            preferredDays.remove(day)
+                        } else {
+                            preferredDays.insert(day)
+                        }
+                    } label: {
+                        Text(day.shortName.prefix(1).uppercased())
+                            .font(AppFont.footnote.weight(.bold))
+                            .foregroundStyle(preferredDays.contains(day) ? AppColor.background : AppColor.textPrimary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 40)
+                            .background(
+                                Circle()
+                                    .fill(preferredDays.contains(day) ? AppColor.accentPrimary : AppColor.surfaceSecondary.opacity(0.6))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var timeOfDayPicker: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text("Preferred time")
+                .font(AppFont.footnote)
+                .foregroundStyle(AppColor.textSecondary)
+                .textCase(.uppercase)
+            HStack(spacing: Spacing.xs) {
+                ForEach(PreferredTimeOfDay.allCases) { slot in
+                    Button {
+                        haptic()
+                        timeOfDay = slot
+                    } label: {
+                        Text(slot.displayName)
+                            .font(AppFont.footnote.weight(.semibold))
+                            .foregroundStyle(timeOfDay == slot ? AppColor.background : AppColor.textPrimary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Spacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                                    .fill(timeOfDay == slot ? AppColor.accentPrimary : AppColor.surfaceSecondary.opacity(0.6))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    // MARK: - Step 7: Equipment
+
+    private var equipmentStep: some View {
+        VStack(spacing: Spacing.lg) {
+            VStack(spacing: Spacing.sm) {
+                Text("What gear do you have?")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                Text("We'll filter exercises and programs to match.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.lg)
+            }
+            .padding(.top, Spacing.xl)
+
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
+                          spacing: Spacing.sm) {
+                    ForEach(EquipmentKind.allCases.filter { $0 != .other }) { equipmentCard($0) }
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.bottom, Spacing.xxxxl)
+            }
+        }
+    }
+
+    private func equipmentCard(_ kind: EquipmentKind) -> some View {
+        let selected = equipment.contains(kind)
+        return Button {
+            haptic()
+            if selected { equipment.remove(kind) } else { equipment.insert(kind) }
+        } label: {
+            VStack(spacing: Spacing.xs) {
+                Image(systemName: kind.symbolName)
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(selected ? AppColor.accentPrimary : AppColor.textSecondary)
+                Text(kind.displayName)
+                    .font(AppFont.footnote.weight(.semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .fill(selected ? AppColor.accentPrimary.opacity(0.12) : AppColor.surfaceSecondary.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .stroke(selected ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: selected ? 1 : 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Step 8: Try a set (interactive workout demo)
+
+    private var demoSetStep: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.lg) {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    Text("Try logging a set.")
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text("Two taps. That's the whole loop.")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                .padding(.top, Spacing.xl)
+
+                demoCard
+                    .padding(.top, Spacing.sm)
+
+                if demoCelebrate {
+                    successBanner
+                }
+
+                Spacer(minLength: 100)
+            }
+            .padding(.horizontal, Spacing.lg)
+        }
+    }
+
+    private var demoCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                HStack(spacing: Spacing.md) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                            .fill(AppColor.surfaceSecondary.opacity(0.6))
+                        Image(systemName: "figure.strengthtraining.traditional")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(AppColor.accentPrimary)
+                    }
+                    .frame(width: 56, height: 56)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Bench Press")
+                            .font(AppFont.headline)
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text("Chest · Barbell")
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                    Spacer()
+                }
+                Divider().background(AppColor.glassBorder)
+                SetEditorRow(
+                    set: $demoSet,
+                    previousSet: SetEntry(index: 0, weightKg: 55, reps: 8, completed: true),
+                    onDelete: {}
+                )
+                .onChange(of: demoSet.completed) { _, completed in
+                    if completed && !demoCelebrate {
+                        withAnimation(.spring(response: 0.4)) { demoCelebrate = true }
+                        if !UIAccessibility.isReduceMotionEnabled {
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                        }
+                    }
+                }
+                Text(demoCelebrate
+                     ? "Nice. That's it — your workouts are this fast."
+                     : "Tap the circle to log this set.")
+                    .font(AppFont.footnote)
+                    .foregroundStyle(demoCelebrate ? Color(red: 0.30, green: 0.80, blue: 0.50) : AppColor.textTertiary)
+                    .animation(.easeInOut, value: demoCelebrate)
+            }
+        }
+    }
+
+    private var successBanner: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Color(red: 0.30, green: 0.80, blue: 0.50))
+            Text("Set logged. Atlas tracks weight, reps, RPE — and lights up the muscles you trained.")
+                .font(AppFont.callout)
+                .foregroundStyle(AppColor.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(Color(red: 0.30, green: 0.80, blue: 0.50).opacity(0.12))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .stroke(Color(red: 0.30, green: 0.80, blue: 0.50).opacity(0.4), lineWidth: 0.5)
         )
     }
 
-    private func experienceOption(level: String, icon: String, title: LocalizedStringKey, subtitle: LocalizedStringKey) -> some View {
-        let isSelected = experienceLevel == level
-        return Button {
-            withAnimation(AppAnimation.springSnappy) { experienceLevel = level }
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-        } label: {
+    // MARK: - Step 9: With / Without Atlas comparison
+
+    private var comparisonStep: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.lg) {
+                Text("Ready for a ")
+                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                + Text("better training life?")
+                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.accentPrimary)
+
+                HStack(alignment: .top, spacing: Spacing.sm) {
+                    comparisonColumn(
+                        title: "Without Atlas",
+                        items: [
+                            "Unsure if form is right",
+                            "Guessing today's workout",
+                            "Skipping muscle groups",
+                            "No history to compare",
+                        ],
+                        isPositive: false
+                    )
+                    comparisonColumn(
+                        title: "With Atlas",
+                        items: [
+                            "Form cues per exercise",
+                            "Smart program scheduling",
+                            "Weekly muscle heatmap",
+                            "PRs detected & celebrated",
+                        ],
+                        isPositive: true
+                    )
+                }
+                Spacer(minLength: 120)
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.top, Spacing.lg)
+        }
+    }
+
+    private func comparisonColumn(title: String, items: [String], isPositive: Bool) -> some View {
+        let tint = isPositive
+            ? AppColor.accentPrimary
+            : AppColor.textTertiary
+        let bg = isPositive
+            ? AppColor.accentPrimary.opacity(0.12)
+            : AppColor.surfaceSecondary.opacity(0.6)
+        return VStack(alignment: .leading, spacing: Spacing.md) {
+            Text(title)
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
+            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: isPositive ? "checkmark.circle.fill" : "minus.circle.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(tint)
+                    Text(item)
+                        .font(AppFont.footnote)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(bg)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .stroke(tint.opacity(0.4), lineWidth: 0.5)
+        )
+    }
+
+    // MARK: - Step 10: Program preview
+
+    private var programPreviewStep: some View {
+        VStack(spacing: Spacing.lg) {
+            HeroIcon(symbol: "list.bullet.rectangle.fill", bounceTrigger: bounceTrigger)
+                .padding(.top, Spacing.xl)
+            VStack(spacing: Spacing.sm) {
+                Text("Your starter plan")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                Text(recommendedProgramName)
+                    .font(AppFont.title3)
+                    .foregroundStyle(AppColor.accentPrimary)
+                Text("Built for \(primaryGoal.displayName.lowercased()), \(daysPerWeek)× per week.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.xl)
+            }
+            VStack(spacing: Spacing.xs) {
+                programPreviewRow("1", "Day 1 · Upper push")
+                programPreviewRow("2", "Day 2 · Lower")
+                programPreviewRow("3", "Day 3 · Upper pull")
+                if daysPerWeek >= 4 {
+                    programPreviewRow("4", "Day 4 · Accessories")
+                }
+            }
+            .padding(.horizontal, Spacing.lg)
+            Spacer()
+        }
+    }
+
+    private var recommendedProgramName: String {
+        // Switch on the goal first, then refine by days inside each
+        // arm where the choice depends on volume. Avoids the
+        // partial-range-inside-tuple-pattern Swift 6 parser ambiguity
+        // (the older `case (.buildMuscle, 5...)` form looked like it
+        // worked but the audit flagged it as unreliable across
+        // compiler versions).
+        switch primaryGoal {
+        case .getStronger:    return "5/3/1 Strength"
+        case .buildMuscle:    return daysPerWeek >= 5 ? "Push Pull Legs" : "Upper / Lower"
+        case .loseFat:        return "Full Body Hypertrophy"
+        case .athletic:       return "Athletic Conditioning"
+        case .recomp:         return "Hybrid Recomp"
+        case .stayConsistent: return "Consistency Builder"
+        }
+    }
+
+    private func programPreviewRow(_ index: String, _ name: String) -> some View {
+        HStack(spacing: Spacing.md) {
+            Text(index)
+                .font(AppFont.headline.weight(.bold))
+                .foregroundStyle(AppColor.accentPrimary)
+                .frame(width: 30)
+            Text(name)
+                .font(AppFont.callout)
+                .foregroundStyle(AppColor.textPrimary)
+            Spacer()
+        }
+        .padding(.vertical, Spacing.sm)
+        .padding(.horizontal, Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .stroke(AppColor.glassBorder, lineWidth: 0.5)
+        )
+    }
+
+    // MARK: - Step 11: Nutrition
+
+    private var nutritionStep: some View {
+        ScrollView {
+            DailyTargetsPage(metrics: bodyMetrics)
+                .padding(.top, Spacing.lg)
+                .padding(.bottom, Spacing.xxxxl)
+        }
+    }
+
+    // MARK: - Step 12: Permissions
+
+    private var permissionsStep: some View {
+        VStack(spacing: Spacing.lg) {
+            HeroIcon(symbol: "checkmark.shield.fill", bounceTrigger: bounceTrigger)
+                .padding(.top, Spacing.xl)
+            VStack(spacing: Spacing.sm) {
+                Text("A couple of permissions.")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                Text("Both optional. Change them anytime.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.lg)
+            }
+            VStack(spacing: Spacing.sm) {
+                permissionRow(
+                    icon: "heart.fill",
+                    title: "Apple Health",
+                    subtitle: "Read sleep, heart rate, and weight to enrich your insights.",
+                    isLoading: requestingHealth,
+                    isOn: dataStore.profile.healthConnected,
+                    action: requestHealth
+                )
+                permissionRow(
+                    icon: "bell.fill",
+                    title: "Notifications",
+                    subtitle: "Workout reminders and rest-timer alerts.",
+                    isLoading: requestingNotifications,
+                    isOn: dataStore.profile.doseRemindersEnabled,
+                    action: requestNotifications
+                )
+            }
+            .padding(.horizontal, Spacing.lg)
+            Spacer()
+        }
+    }
+
+    private func permissionRow(icon: String, title: String, subtitle: String,
+                               isLoading: Bool, isOn: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
             HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
-                    .frame(width: 42, height: 42)
-                    .background {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(isSelected ? AppColor.accentPrimary.opacity(0.18) : AppColor.surfaceElevated)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .strokeBorder(
-                                        isSelected ? AppColor.accentPrimary.opacity(0.35) : AppColor.glassBorder,
-                                        lineWidth: 0.5
-                                    )
-                            }
-                    }
-                    .symbolEffect(.bounce, value: isSelected)
-
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(AppColor.accentPrimary)
+                    .frame(width: 36)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(subtitle)
-                        .font(AppFont.caption)
+                        .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-
-                Spacer(minLength: Spacing.sm)
-
-                // Single trailing indicator only when selected — keeps the
-                // unselected row visually quiet so the user reads the title
-                // hierarchy first instead of the trailing circle.
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 13, weight: .heavy))
-                        .foregroundStyle(.white)
-                        .frame(width: 22, height: 22)
-                        .background {
-                            Circle().fill(AppColor.accentPrimary)
-                        }
-                        .transition(.scale.combined(with: .opacity))
+                Spacer()
+                if isLoading {
+                    ProgressView()
+                } else if isOn {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color(red: 0.30, green: 0.80, blue: 0.50))
+                } else {
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(AppColor.textTertiary)
                 }
             }
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.md)
-            .background {
+            .padding(Spacing.md)
+            .background(
                 RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(isSelected ? AppColor.accentPrimary.opacity(0.10) : AppColor.surfaceSecondary.opacity(0.6))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .strokeBorder(
-                                isSelected ? AppColor.accentPrimary.opacity(0.45) : AppColor.glassBorder,
-                                lineWidth: isSelected ? 1.0 : 0.5
-                            )
-                    }
-            }
-            .liquidGlass(
-                .rect(cornerRadius: Spacing.cardCornerRadius),
-                tint: isSelected ? AppColor.accentPrimary.opacity(0.35) : nil,
-                interactive: true
+                    .fill(AppColor.surfaceSecondary.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .stroke(AppColor.glassBorder, lineWidth: 0.5)
             )
         }
         .buttonStyle(.plain)
+        .disabled(isLoading || isOn)
     }
 
-    // MARK: - Page 7: HealthKit
-
-    private var healthKitPage: some View {
-        permissionPage(
-            icon: "heart.text.square.fill",
-            title: "Connect Apple Health",
-            subtitle: "Correlate protocol compliance with HRV, sleep, and activity. Atlas never writes to your health data.",
-            bullets: [
-                ("waveform.path.ecg", "HRV & resting heart rate"),
-                ("bed.double.fill", "Sleep quality trends"),
-                ("figure.walk", "Activity & recovery load"),
-            ],
-            primaryTitle: "Connect Health",
-            primaryIcon: "heart.fill",
-            requesting: requestingHealth
-        ) {
-            requestingHealth = true
-            Task { @MainActor in
-                let granted = await HealthKitService.shared.requestAuthorization()
-                requestingHealth = false
-                if dataStore.profile.healthConnected != granted {
-                    dataStore.profile.healthConnected = granted
-                    dataStore.persistProfile()
-                }
-                // Guard against the user swiping past page 7 mid-request —
-                // we don't want to override their navigation when the
-                // permission sheet finally resolves.
-                if currentPage == 7 { advance(to: 8) }
+    private func requestHealth() {
+        haptic()
+        requestingHealth = true
+        Task {
+            let granted = await HealthKitService.shared.requestAuthorization()
+            requestingHealth = false
+            // HealthKit deliberately doesn't tell apps when the user
+            // denies — `granted == true` only confirms the user saw
+            // the dialog. We only flip the local flag when the system
+            // actually returned success so the UI never claims
+            // "connected" against a denial.
+            if granted, !dataStore.profile.healthConnected {
+                dataStore.toggleHealthConnection()
             }
-        } onSkip: {
-            advance(to: 8)
         }
     }
 
-    // MARK: - Page 8: Notifications
-
-    private var notificationsPage: some View {
-        pageScaffold(
-            hero: EmptyView(),
-            content: {
-                VStack(spacing: Spacing.lg) {
-                    VStack(spacing: Spacing.sm) {
-                        Text("Consistency is everything.")
-                            .font(AppFont.largeTitle)
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [AppColor.textPrimary, AppColor.accentLight],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                            .multilineTextAlignment(.center)
-
-                        Text("People who track their protocols achieve significantly better results over time.")
-                            .font(AppFont.body)
-                            .foregroundStyle(AppColor.textSecondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, Spacing.md)
-                    }
-
-                    ConsistencyChart()
-                        .padding(.top, Spacing.sm)
-
-                    NotificationPreviewCard()
-                        .padding(.top, Spacing.xs)
-                }
-            },
-            footer: {
-                VStack(spacing: Spacing.sm) {
-                    GlassButton(
-                        title: requestingNotifications ? "Requesting…" : "Enable reminders",
-                        icon: "bell.fill",
-                        style: .primary,
-                        isFullWidth: true,
-                        action: requestNotificationPermission
-                    )
-                    .disabled(requestingNotifications)
-
-                    GlassButton(
-                        title: "Skip for now",
-                        style: .ghost,
-                        isFullWidth: true
-                    ) {
-                        advance(to: 9)
-                    }
-                    .disabled(requestingNotifications)
-                }
-            }
-        )
-    }
-
-    private func requestNotificationPermission() {
+    private func requestNotifications() {
+        haptic()
         requestingNotifications = true
         Task {
             let granted = await NotificationService.shared.requestAuthorization()
             requestingNotifications = false
-            if dataStore.profile.doseRemindersEnabled != granted {
-                dataStore.profile.doseRemindersEnabled = granted
-                dataStore.persistProfile()
+            if granted, !dataStore.profile.doseRemindersEnabled {
+                dataStore.profile.doseRemindersEnabled = true
             }
-            // Advance regardless of permission outcome — the spec says the
-            // user shouldn't be stranded if they decline.
-            if currentPage == 8 { advance(to: 9) }
         }
     }
 
-    private func permissionPage(
-        icon: String,
-        title: LocalizedStringKey,
-        subtitle: LocalizedStringKey,
-        bullets: [(String, LocalizedStringKey)],
-        primaryTitle: LocalizedStringKey,
-        primaryIcon: String,
-        requesting: Bool,
-        onConnect: @escaping () -> Void,
-        onSkip: @escaping () -> Void
-    ) -> some View {
-        pageScaffold(
-            hero: HeroIcon(symbol: icon, size: 92, bounceTrigger: bounceTrigger),
-            content: {
-                VStack(spacing: Spacing.lg) {
-                    VStack(spacing: Spacing.md) {
-                        Text(title)
-                            .font(AppFont.title)
-                            .foregroundStyle(AppColor.textPrimary)
-                            .multilineTextAlignment(.center)
+    // MARK: - Step 13: Ready
 
-                        Text(subtitle)
-                            .font(AppFont.body)
-                            .foregroundStyle(AppColor.textSecondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, Spacing.lg)
-                    }
-
-                    VStack(spacing: Spacing.sm) {
-                        ForEach(Array(bullets.enumerated()), id: \.offset) { _, bullet in
-                            permissionBullet(icon: bullet.0, label: bullet.1)
-                        }
-                    }
-                    .padding(.top, Spacing.sm)
-                }
-            },
-            footer: {
-                VStack(spacing: Spacing.sm) {
-                    GlassButton(
-                        title: requesting ? "Requesting..." : primaryTitle,
-                        icon: primaryIcon,
-                        style: .primary,
-                        isFullWidth: true,
-                        action: onConnect
-                    )
-                    .disabled(requesting)
-
-                    GlassButton(title: "Skip", style: .ghost, isFullWidth: true, action: onSkip)
-                        .disabled(requesting)
-                }
-            }
-        )
-    }
-
-    private func permissionBullet(icon: String, label: LocalizedStringKey) -> some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(AppColor.accentPrimary)
-                .frame(width: 30, height: 30)
-                .background {
-                    RoundedRectangle(cornerRadius: 9, style: .continuous)
-                        .fill(AppColor.accentPrimary.opacity(0.14))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                .strokeBorder(AppColor.accentPrimary.opacity(0.28), lineWidth: 0.5)
-                        }
-                }
-
-            Text(label)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textPrimary)
-
-            Spacer()
-        }
-        .padding(.horizontal, Spacing.md)
-        .padding(.vertical, Spacing.sm)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.5))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-    }
-
-    // MARK: - Page 9: Sign in with Apple
-
-    private var signInPage: some View {
-        pageScaffold(
-            hero: HeroIcon(symbol: "icloud.fill", size: 92, bounceTrigger: bounceTrigger),
-            content: {
-                VStack(spacing: Spacing.md) {
-                    Text("Sync across devices")
-                        .font(AppFont.title)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .multilineTextAlignment(.center)
-
-                    Text("Sign in with your Apple ID to back up and sync your protocols. All features work without signing in.")
-                        .font(AppFont.body)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Spacing.lg)
-                }
-            },
-            footer: {
-                if authService.isSignedIn {
-                    signedInConfirmation
-                        .transition(.opacity.combined(with: .scale(scale: 0.92)))
-                } else {
-                    VStack(spacing: Spacing.sm) {
-                        ZStack {
-                            AppleSignInButton(cornerRadius: 26) {
-                                authService.signIn()
-                            }
-                            .frame(height: 52)
-                            .opacity(authService.isSigningIn ? 0.5 : 1)
-                            .allowsHitTesting(!authService.isSigningIn)
-
-                            if authService.isSigningIn {
-                                HStack(spacing: Spacing.sm) {
-                                    ProgressView().tint(.black)
-                                    Text("Signing in…")
-                                        .font(AppFont.subheadline)
-                                        .foregroundStyle(.black)
-                                }
-                                .allowsHitTesting(false)
-                            }
-                        }
-
-                        GlassButton(title: "Continue without signing in", style: .ghost, isFullWidth: true) {
-                            advance(to: nextAfterSignIn)
-                        }
-                    }
-                    .transition(.opacity)
-                }
-            }
-        )
-        .animation(AppAnimation.springSnappy, value: authService.isSignedIn)
-    }
-
-    private var signedInConfirmation: some View {
-        HStack(spacing: Spacing.md) {
-            PulsatingDot(color: AppColor.accentPrimary, size: 12)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Signed In")
-                    .font(AppFont.headline)
+    private var readyStep: some View {
+        VStack(spacing: Spacing.lg) {
+            ReadyHero(bounceTrigger: bounceTrigger)
+                .padding(.top, Spacing.xl)
+            if !name.isEmpty {
+                Text("You're set, \(name).")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
-                Text(authService.userDisplayName ?? authService.userEmail ?? "Apple ID connected")
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                    .multilineTextAlignment(.center)
             }
+            VStack(spacing: Spacing.sm) {
+                summaryRow(label: "Goal", value: primaryGoal.displayName)
+                summaryRow(label: "Experience", value: experienceLevel.capitalized)
+                summaryRow(label: "Schedule", value: "\(daysPerWeek)× per week, \(timeOfDay.displayName.lowercased())")
+                summaryRow(label: "Program", value: recommendedProgramName)
+            }
+            .padding(.horizontal, Spacing.lg)
             Spacer()
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(AppColor.accentPrimary)
-                .symbolEffect(.bounce, value: authService.isSignedIn)
+        }
+    }
+
+    private func summaryRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(AppFont.footnote)
+                .foregroundStyle(AppColor.textSecondary)
+                .frame(width: 100, alignment: .leading)
+            Text(value)
+                .font(AppFont.callout.weight(.semibold))
+                .foregroundStyle(AppColor.textPrimary)
+            Spacer()
         }
         .padding(Spacing.md)
-        .frame(maxWidth: .infinity)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.accentPrimary.opacity(0.12))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.accentPrimary.opacity(0.45), lineWidth: 1)
-                }
-        }
-    }
-
-    // MARK: - Page 10: Review Prompt (social proof before paywall)
-
-    /// Always advance to the review prompt after sign-in. The review page is
-    /// shown to everyone — Pro users may still want to leave a review — and
-    /// the offer page (11) self-skips for ineligible / already-Pro users.
-    private var nextAfterSignIn: Int { 10 }
-
-    private var reviewPromptPage: some View {
-        pageScaffold(
-            hero: EmptyView(),
-            content: { ReviewPromptPage() },
-            footer: {
-                // Single CTA. Tapping "Continue" both fires the App Store
-                // review request and advances to the creator-attribution step.
-                // The cooldown gate inside ReviewPromptService still applies,
-                // so re-onboarding never burns a second prompt within 90 days.
-                GlassButton(
-                    title: "Continue",
-                    icon: "arrow.right",
-                    style: .primary,
-                    isFullWidth: true
-                ) {
-                    ReviewPromptService.shared.requestReviewOnUserAction(using: requestReview)
-                    if dataStore.profile.hapticFeedbackEnabled {
-                        UINotificationFeedbackGenerator().notificationOccurred(.success)
-                    }
-                    advance(to: 11)
-                }
-            }
+        .background(
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .stroke(AppColor.glassBorder, lineWidth: 0.5)
         )
     }
-
-    // MARK: - Page 11: Creator Attribution (referral code)
-
-    private var creatorAttributionPage: some View {
-        pageScaffold(
-            hero: EmptyView(),
-            content: {
-                CreatorAttributionPage(
-                    input: $creatorCodeInput,
-                    attribution: creatorAttribution,
-                    error: creatorCodeError
-                )
-            },
-            footer: {
-                VStack(spacing: Spacing.sm) {
-                    if creatorAttribution != nil {
-                        GlassButton(
-                            title: "Continue",
-                            icon: "arrow.right",
-                            style: .primary,
-                            isFullWidth: true
-                        ) {
-                            advance(to: 12)
-                        }
-                    } else {
-                        GlassButton(
-                            title: "Apply",
-                            icon: "checkmark.circle.fill",
-                            style: .primary,
-                            isFullWidth: true,
-                            action: applyCreatorCode
-                        )
-                        .disabled(creatorCodeInput.trimmingCharacters(in: .whitespaces).isEmpty)
-                    }
-                    GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
-                        advance(to: 12)
-                    }
-                }
-            }
-        )
-    }
-
-    /// Validates the typed code against the local seeded list and updates
-    /// the success / error state. The validated attribution is persisted
-    /// to the profile in `finishOnboarding` rather than here so swiping
-    /// back and re-applying a different code doesn't strand stale data.
-    private func applyCreatorCode() {
-        if let match = CreatorCodeService.lookup(creatorCodeInput) {
-            withAnimation(AppAnimation.springSnappy) {
-                creatorAttribution = match
-                creatorCodeError = nil
-            }
-            if dataStore.profile.hapticFeedbackEnabled {
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-            }
-        } else {
-            withAnimation(AppAnimation.springSnappy) {
-                creatorCodeError = "Code not found — double-check and try again"
-            }
-            if dataStore.profile.hapticFeedbackEnabled {
-                UINotificationFeedbackGenerator().notificationOccurred(.error)
-            }
-        }
-    }
-
-    // MARK: - Page 12: Email Capture (mailing-list opt-in)
-
-    private var emailCapturePage: some View {
-        pageScaffold(
-            hero: EmptyView(),
-            content: {
-                EmailCapturePage(input: $emailInput, error: emailError)
-            },
-            footer: {
-                VStack(spacing: Spacing.sm) {
-                    GlassButton(
-                        title: "Send me updates",
-                        icon: "paperplane.fill",
-                        style: .primary,
-                        isFullWidth: true,
-                        action: submitEmail
-                    )
-                    .disabled(emailInput.trimmingCharacters(in: .whitespaces).isEmpty)
-
-                    GlassButton(title: "Skip for now", style: .ghost, isFullWidth: true) {
-                        advance(to: 13)
-                    }
-                }
-            }
-        )
-    }
-
-    /// Validates the typed email and, on success, persists it to the
-    /// profile and advances to the paywall. The spec'd Supabase insert /
-    /// Resend welcome email / 7-day pg_cron retargeting all need a
-    /// backend that doesn't exist in this repo today — once it ships, the
-    /// stored EmailSubscription is the source of truth a sync job can
-    /// drain into the email_subscribers table.
-    private func submitEmail() {
-        let trimmed = emailInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.looksLikeEmail else {
-            withAnimation(AppAnimation.springSnappy) {
-                emailError = "That doesn't look like an email address."
-            }
-            if dataStore.profile.hapticFeedbackEnabled {
-                UINotificationFeedbackGenerator().notificationOccurred(.error)
-            }
-            return
-        }
-
-        emailError = nil
-        dataStore.profile.emailSubscription = EmailSubscription(
-            email: trimmed,
-            capturedAt: Date()
-        )
-        dataStore.persistProfile()
-
-        if dataStore.profile.hapticFeedbackEnabled {
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-        }
-        advance(to: 13)
-    }
-
-    // MARK: - Page 13: Free-Trial Funnel
-
-    @ViewBuilder
-    private var offerPage: some View {
-        if storeService.isProUser || !storeService.isEligibleForMonthlyTrial {
-            Color.clear.onAppear {
-                if currentPage == 13 { advance(to: 14) }
-            }
-        } else {
-            TrialOfferView(
-                onAccept: { advance(to: 14) },
-                onDecline: { advance(to: 14) }
-            )
-        }
-    }
-
-    // MARK: - Page 14: Theme Choice ("Make it yours")
-
-    private var themeChoicePage: some View {
-        pageScaffold(
-            hero: EmptyView(),
-            content: { ThemeChoicePage(theme: themeManager) },
-            footer: {
-                GlassButton(title: "Continue", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                    advance(to: 15)
-                }
-            }
-        )
-    }
-
-    // MARK: - Page 15: Add Medication Preview
-
-    private var addMedicationPreviewPage: some View {
-        pageScaffold(
-            hero: EmptyView(),
-            content: { AddMedicationPreviewPage() },
-            footer: {
-                GlassButton(title: "Add Medication", icon: "plus", style: .primary, isFullWidth: true) {
-                    advance(to: 16)
-                }
-            }
-        )
-    }
-
-    // MARK: - Page 16: Ready
-
-    private var readyPage: some View {
-        pageScaffold(
-            hero: ReadyHero(bounceTrigger: bounceTrigger),
-            content: {
-                VStack(spacing: Spacing.md) {
-                    if storeService.isProUser {
-                        proCelebrationBadge
-                    }
-
-                    Text(readyHeadline)
-                        .font(AppFont.largeTitle)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [AppColor.textPrimary, AppColor.accentLight],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .multilineTextAlignment(.center)
-
-                    (Text("Your dashboard is ready. Start tracking your ")
-                        .font(AppFont.body)
-                        .foregroundStyle(AppColor.textSecondary)
-                    + Text("peptide protocols")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(AppColor.accentLight))
-                        .multilineTextAlignment(.center)
-
-                    setupSummaryCard
-                        .padding(.top, Spacing.md)
-
-                    disclaimerCard
-                }
-            },
-            footer: {
-                GlassButton(title: "I Understand — Let's Go", icon: "arrow.right", style: .primary, isFullWidth: true) {
-                    finishOnboarding()
-                }
-            }
-        )
-    }
-
-    private var readyHeadline: String {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty { return "You're all set!" }
-        return "You're all set, \(trimmed)!"
-    }
-
-    /// Recap card showing the choices the user just made so the moment of
-    /// completion feels like real progress, not just a "Done" tap. Hidden
-    /// rows fall through silently when the corresponding step was skipped.
-    private var setupSummaryCard: some View {
-        let goalCount = selectedGoals.count
-        let recCount = selectedRecommendationIds.count
-
-        return GlassCard(tinted: true) {
-            VStack(alignment: .leading, spacing: Spacing.md) {
-                HStack(spacing: Spacing.xs) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(AppColor.accentLight)
-                    Text("WHAT WE SET UP")
-                        .font(.system(size: 11, weight: .heavy))
-                        .tracking(1.5)
-                        .foregroundStyle(AppColor.accentLight)
-                }
-
-                VStack(spacing: Spacing.sm) {
-                    if goalCount > 0 {
-                        summaryRow(
-                            icon: "target",
-                            text: goalCount == 1
-                                ? "1 goal selected"
-                                : "\(goalCount) goals selected"
-                        )
-                    }
-                    if bodyMetrics.isComplete {
-                        summaryRow(
-                            icon: "figure.arms.open",
-                            text: "Body metrics saved"
-                        )
-                    }
-                    if recCount > 0 {
-                        summaryRow(
-                            icon: "flask.fill",
-                            text: recCount == 1
-                                ? "1 peptide added to your starter stack"
-                                : "\(recCount) peptides added to your starter stack"
-                        )
-                    }
-                    if dataStore.profile.healthConnected {
-                        summaryRow(icon: "heart.fill", text: "Apple Health connected")
-                    }
-                    if dataStore.profile.doseRemindersEnabled {
-                        summaryRow(icon: "bell.fill", text: "Dose reminders enabled")
-                    }
-                    if authService.isSignedIn {
-                        summaryRow(icon: "person.crop.circle.fill", text: "Signed in with Apple")
-                    }
-                }
-            }
-        }
-    }
-
-    private func summaryRow(icon: String, text: String) -> some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
-                .frame(width: 22, height: 22)
-                .background {
-                    Circle().fill(AppColor.accentPrimary.opacity(0.2))
-                }
-            Text(text)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textPrimary)
-            Spacer()
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 14))
-                .foregroundStyle(AppColor.accentPrimary)
-        }
-    }
-
-    private var proCelebrationBadge: some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(AppColor.accentLight)
-            Text("Pro Trial Active — Welcome aboard!")
-                .font(AppFont.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.textPrimary)
-        }
-        .padding(.horizontal, Spacing.md)
-        .padding(.vertical, Spacing.xs)
-        .background {
-            Capsule()
-                .fill(AppColor.accentPrimary.opacity(0.18))
-                .overlay(Capsule().strokeBorder(AppColor.accentPrimary.opacity(0.4), lineWidth: 0.5))
-        }
-        .transition(.scale.combined(with: .opacity))
-    }
-
-    private var disclaimerCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "stethoscope")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(AppColor.accentPrimary)
-                    Text("Before you continue")
-                        .font(AppFont.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.textPrimary)
-                }
-
-                Text(PeptideDatabase.disclaimer)
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    // MARK: - Helpers
-
-    private func pageScaffold<Hero: View, Content: View, Footer: View>(
-        hero: Hero,
-        @ViewBuilder content: @escaping () -> Content,
-        @ViewBuilder footer: @escaping () -> Footer
-    ) -> some View {
-        // EmptyView reports zero size but `.padding(.bottom, xl)` still
-        // reserves 20 pt of layout space, which left a phantom gap above
-        // the title on every step that opts out of a hero icon (review
-        // prompt, theme choice, add-medication preview, …). Detect the
-        // EmptyView case at the generic boundary and skip the padding.
-        let heroIsEmpty = Hero.self == EmptyView.self
-        return GeometryReader { proxy in
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    Spacer(minLength: Spacing.lg)
-
-                    if !heroIsEmpty {
-                        hero
-                            .padding(.bottom, Spacing.xl)
-                    }
-
-                    content()
-                        .padding(.horizontal, Spacing.screenPadding)
-
-                    Spacer(minLength: Spacing.lg)
-                }
-                .frame(minHeight: proxy.size.height)
-            }
-            .scrollBounceBehavior(.basedOnSize)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                footer()
-                    .padding(.horizontal, Spacing.screenPadding)
-                    .padding(.top, Spacing.md)
-                    .padding(.bottom, Spacing.md)
-            }
-        }
-    }
-
-    private func advance(to page: Int) {
-        dismissKeyboard()
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        withAnimation(AppAnimation.springSmooth) {
-            currentPage = page
-            bounceTrigger &+= 1
-        }
-    }
-
-    /// Top strip combining a back chevron + the progress bar. Wrapped in a
-    /// LiquidGlassContainer so on iOS 26 the chevron and the progress capsules
-    /// share one rendering pass — same trick the system tab bar uses to make
-    /// its glass shapes feel like one continuous material.
-    private var topBar: some View {
-        LiquidGlassContainer(spacing: Spacing.md) {
-            HStack(spacing: Spacing.md) {
-                backButton
-                    .opacity(canGoBack ? 1 : 0)
-                    .frame(width: canGoBack ? 36 : 0)
-                    .animation(AppAnimation.springSnappy, value: canGoBack)
-
-                OnboardingProgressBar(current: currentPage, total: totalPages)
-            }
-        }
-    }
-
-    private var canGoBack: Bool {
-        // Welcome (0) has nothing behind it. Pages 10–13 (review prompt,
-        // creator attribution, email capture, offer) are intentionally
-        // one-way — going back from any of them would either re-fire the
-        // review request, re-trigger the sign-in flow, or land the user
-        // on the auto-skipping offer page in a loop.
-        currentPage > 0 && !(10...13).contains(currentPage)
-    }
-
-    private var backButton: some View {
-        Button(action: goBack) {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(AppColor.textSecondary)
-                .frame(width: 36, height: 36)
-                .background {
-                    Circle()
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                        .overlay {
-                            Circle().fill(AppColor.cardOverlay)
-                        }
-                        .overlay {
-                            Circle().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                        }
-                }
-                .liquidGlass(.circle, interactive: true)
-        }
-        .buttonStyle(ScalePressStyle())
-        .accessibilityLabel("Go back")
-    }
-
-    private func goBack() {
-        guard canGoBack else { return }
-        // The trial-offer page (13) is in the back-disabled range, so a
-        // user navigating back from theme (14) would otherwise land on
-        // a screen that hides the back button — a dead end. Always skip
-        // past the offer page on the way back, regardless of trial
-        // eligibility. From Ready (16) and add-medication preview (15)
-        // the back walk proceeds normally to the theme step first.
-        let target: Int
-        if currentPage == 14 {
-            target = 12
-        } else {
-            target = currentPage - 1
-        }
-        advance(to: max(0, target))
-    }
-
-    /// Holds the sign-in page for ~1.4 s so the "Signed In" confirmation
-    /// animation is actually visible, then advances. Used by both the
-    /// fresh-sign-in path and the already-authenticated re-onboard path.
-    private func scheduleSignInAdvance() {
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(1400))
-            if currentPage == 9 {
-                advance(to: nextAfterSignIn)
-            }
-        }
-    }
-
-    private func dismissKeyboard() {
-        nameFocused = false
-        #if canImport(UIKit)
-        UIApplication.shared.sendAction(
-            #selector(UIResponder.resignFirstResponder),
-            to: nil, from: nil, for: nil
-        )
-        #endif
-    }
-
-    private func finishOnboarding() {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let resolved = trimmed.isEmpty ? (AuthService.shared.userDisplayName ?? "") : trimmed
-        if dataStore.profile.name != resolved || dataStore.profile.bio.isEmpty == false {
-            dataStore.updateProfileIdentity(name: resolved, bio: dataStore.profile.bio)
-        }
-        if !selectedGoals.isEmpty {
-            dataStore.profile.goals = Array(selectedGoals).sorted()
-        }
-        dataStore.profile.bodyMetrics = bodyMetrics
-        // Pre-fill the Lifestyle tab from the daily-targets calculation
-        // so the user lands on a populated screen on first run. Skipped
-        // when body stats are incomplete — `dailyTargets` returns nil and
-        // the Lifestyle tab can re-prompt later.
-        if let targets = NutritionMath.dailyTargets(for: bodyMetrics) {
-            dataStore.profile.nutritionTargets = targets
-        }
-        // Persist creator attribution if a code was applied — survives
-        // re-launches via the profile JSON. The Supabase install / conversion
-        // counters spec'd alongside this will read from the same field once
-        // the backend pipeline lands.
-        if let attribution = creatorAttribution {
-            dataStore.profile.creatorAttribution = attribution
-        }
-        dataStore.persistProfile()
-
-        if !selectedRecommendationIds.isEmpty {
-            let chosen = currentSuggestions
-                .filter { selectedRecommendationIds.contains($0.peptide.id) }
-                .map(\.peptide)
-            if !chosen.isEmpty {
-                dataStore.adoptStarterProtocol(
-                    peptides: chosen,
-                    name: starterProtocolName
-                )
-            }
-        }
-
-        if dataStore.profile.hapticFeedbackEnabled {
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-        }
-        withAnimation(AppAnimation.springSnappy) {
-            hasCompleted = true
-        }
-    }
-}
-
-// WelcomeFeatureBadge and ReadyHero live in Onboarding/Components/.
-
-#Preview {
-    OnboardingView()
-        .environment(DataStore(seedSampleData: true))
-        .preferredColorScheme(.dark)
 }

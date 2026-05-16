@@ -355,7 +355,10 @@ final class StoredProfile {
             streakFreezeDays: Set(ext.streakFreezeDays),
             recipes: ext.recipes,
             protocolNotes: ext.protocolNotes,
-            biologyConfig: ext.biologyConfig
+            weeklySummaryEnabled: ext.weeklySummaryEnabled ?? true,
+            weeklySummaries: ext.weeklySummaries ?? [:],
+            biologyConfig: ext.biologyConfig,
+            trainingPreferences: ext.trainingPreferences
         )
     }
 }
@@ -396,6 +399,16 @@ private struct ProfileExtension: Codable {
     /// decodes against this struct's synthesized init(from:)
     /// without losing other fields.
     var biologyConfig: BiologyConfig = .default
+    /// Training prefs from the redesigned onboarding. Optional so
+    /// pre-pivot blobs decode cleanly and `toUserProfile` leaves the
+    /// profile field nil for older accounts.
+    var trainingPreferences: TrainingPreferences? = nil
+    /// Pre-existing UserProfile fields that were missing from the
+    /// sidecar — every prior save/load dropped these silently. Both
+    /// optional so older blobs decode (default-true for the toggle,
+    /// empty dict for the cache) without a migration.
+    var weeklySummaryEnabled: Bool? = nil
+    var weeklySummaries: [String: WeeklySummary]? = nil
 
     static let empty = ProfileExtension()
 
@@ -418,7 +431,10 @@ private struct ProfileExtension: Codable {
             streakFreezeDays: Array(profile.streakFreezeDays).sorted(),
             recipes: profile.recipes,
             protocolNotes: profile.protocolNotes,
-            biologyConfig: profile.biologyConfig
+            biologyConfig: profile.biologyConfig,
+            trainingPreferences: profile.trainingPreferences,
+            weeklySummaryEnabled: profile.weeklySummaryEnabled,
+            weeklySummaries: profile.weeklySummaries
         )
     }
 }

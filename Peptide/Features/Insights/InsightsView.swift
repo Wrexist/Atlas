@@ -295,7 +295,8 @@ struct InsightsView: View {
             accent: Color(red: 0.40, green: 0.74, blue: 0.92),
             action: .init(title: "Create a protocol", icon: "plus") {
                 withAnimation(AppAnimation.springSnappy) {
-                    appState.selectedTab = .protocols
+                    appState.pendingProtocolList = true
+                    appState.selectedTab = .library
                 }
             },
             secondary: .init(title: "Or log a check-in on Today", icon: "heart.text.square.fill") {
