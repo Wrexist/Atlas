@@ -15,13 +15,26 @@ enum AppTab: String, CaseIterable {
     /// section in the training pivot so food gets its own
     /// top-level surface alongside training.
     case meals
-    /// Peptide reference + AI research. Was `.database`.
+    /// Peptide reference + AI research. Was `.database`. Now also
+    /// hosts the Protocols list (folded in during the training
+    /// pivot — Protocols lost its dedicated tab slot to make
+    /// room for Train + Meals).
     case library
+    /// Stays in the enum for deep-link compatibility — the
+    /// case isn't bound to a tab slot any more (Library hosts
+    /// the protocol list now) but call sites that historically
+    /// switched to `.protocols` still compile, and the
+    /// `pendingProtocolList` flag below routes them into the
+    /// Library tab cleanly.
     case protocols
-    /// Analytical hub — compliance + correlation + labs +
-    /// body trends. Was `.analytics`; widened in Phase 32 to
-    /// own everything answer-flavoured.
-    case insights
+    /// Biology hub — biological-age estimate, HRV/RHR/Sleep
+    /// baselines, lab markers, body composition. Replaces the
+    /// prior `.insights` slot in the tab bar with a Bevel-style
+    /// premium surface. The analytical / correlation content
+    /// (compliance trends, HealthKit correlation, labs) still
+    /// lives on `InsightsView`; future commits fold its surfaces
+    /// into Biology's sections.
+    case biology
     /// Profile + settings. Demoted from the bottom tab bar to a
     /// top-right avatar entry on the Today header during the
     /// training pivot, but the case stays so deep-link / state-
@@ -44,11 +57,10 @@ final class AppState {
     /// Screen's Spotlight pull-down lands the user directly on the
     /// log-this-food sheet, not just on the app's launch view.
     var pendingFoodLogID: FoodLogDeepLink?
-    /// When true, the Insights tab opens the Labs view automatically
+    /// When true, the Biology tab opens the Labs view automatically
     /// on next appear and clears the flag. Used by Home's "latest lab"
-    /// insight tap so the user lands one tap away from the trend chart
-    /// (Phase D moved Profile out of the tab bar — labs now route
-    /// through Insights, which is still a top-level tab).
+    /// insight tap so the user lands one tap away from the trend
+    /// chart inside the Biology surface.
     var pendingLabsOpen: Bool = false
     /// When set, the Home tab presents the matching `ProtocolEntry`'s
     /// dose-logging sheet automatically on next appear. Cleared the
@@ -67,7 +79,7 @@ final class AppState {
     /// When true, the Library tab pushes `ProtocolListView` onto its
     /// navigation stack on next appear and clears the flag.
     /// Populated by call sites that historically switched directly to
-    /// the (now demoted) `.protocols` tab — Home cards, Insights
+    /// the (now demoted) `.protocols` tab — Home cards, Biology
     /// shortcuts, and the profile-stacks tap — so the user lands on
     /// the protocol list in one navigation hop instead of being
     /// dumped on the peptide reference root.

@@ -12,11 +12,11 @@ import SwiftUI
 /// pages.
 struct TodayJumpBar: View {
     /// Section anchor identifiers used by the parent's
-    /// `ScrollViewReader` to scroll to a tagged section. `insights`
-    /// is special-cased — it jumps to the Insights tab rather than
+    /// `ScrollViewReader` to scroll to a tagged section. `biology`
+    /// is special-cased — it jumps to the Biology tab rather than
     /// scrolling within Today.
     enum SectionAnchor: Hashable, CaseIterable {
-        case doses, meals, wellness, movement, insights
+        case doses, meals, wellness, movement, biology
 
         var label: LocalizedStringKey {
             switch self {
@@ -24,7 +24,7 @@ struct TodayJumpBar: View {
             case .meals:    "Meals"
             case .wellness: "Wellness"
             case .movement: "Movement"
-            case .insights: "Insights"
+            case .biology:  "Biology"
             }
         }
 
@@ -34,7 +34,7 @@ struct TodayJumpBar: View {
             case .meals:    "fork.knife"
             case .wellness: "heart.text.square.fill"
             case .movement: "figure.run"
-            case .insights: "chart.line.uptrend.xyaxis"
+            case .biology:  "heart.fill"
             }
         }
 
@@ -44,7 +44,7 @@ struct TodayJumpBar: View {
             case .meals:    AppColor.macroProtein
             case .wellness: AppColor.metricHRV
             case .movement: AppColor.metricActivity
-            case .insights: AppColor.accentLight
+            case .biology:  AppColor.accentLight
             }
         }
     }

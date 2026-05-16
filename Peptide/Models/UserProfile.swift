@@ -333,6 +333,11 @@ struct UserProfile: Codable, Sendable {
     /// write to the most-recent 26 weeks so the JSON stays small
     /// (~13 KB at full cap).
     var weeklySummaries: [String: WeeklySummary]
+    /// Biology tab preferences — visible / hidden / ordered
+    /// biomarkers + intro-seen flag. Defaults so existing
+    /// profiles decoded without this field land on
+    /// `BiologyConfig.default` cleanly.
+    var biologyConfig: BiologyConfig
     /// Training preferences (days/week, equipment access, plate
     /// inventory, rest-timer default, auto-progression toggle).
     /// Populated by the redesigned onboarding's "Activity & schedule"
@@ -371,6 +376,7 @@ struct UserProfile: Codable, Sendable {
         protocolNotes: [ProtocolNote] = [],
         weeklySummaryEnabled: Bool = true,
         weeklySummaries: [String: WeeklySummary] = [:],
+        biologyConfig: BiologyConfig = .default,
         trainingPreferences: TrainingPreferences? = nil
     ) {
         self.name = name
@@ -403,6 +409,7 @@ struct UserProfile: Codable, Sendable {
         self.protocolNotes = protocolNotes
         self.weeklySummaryEnabled = weeklySummaryEnabled
         self.weeklySummaries = weeklySummaries
+        self.biologyConfig = biologyConfig
         self.trainingPreferences = trainingPreferences
     }
 
@@ -442,6 +449,7 @@ struct UserProfile: Codable, Sendable {
         protocolNotes = try container.decodeIfPresent([ProtocolNote].self, forKey: .protocolNotes) ?? []
         weeklySummaryEnabled = try container.decodeIfPresent(Bool.self, forKey: .weeklySummaryEnabled) ?? true
         weeklySummaries = try container.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries) ?? [:]
+        biologyConfig = try container.decodeIfPresent(BiologyConfig.self, forKey: .biologyConfig) ?? .default
         trainingPreferences = try container.decodeIfPresent(TrainingPreferences.self, forKey: .trainingPreferences)
     }
 

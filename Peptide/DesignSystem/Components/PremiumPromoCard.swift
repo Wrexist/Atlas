@@ -15,6 +15,10 @@ struct PremiumPromoCard<Trailing: View>: View {
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey?
     let ctaLabel: LocalizedStringKey?
+    /// Optional qualifier pill rendered between subtitle and CTA.
+    /// Used by the Biology tab's "Available for users 18+" gate;
+    /// other surfaces leave it nil and the pill doesn't render.
+    let qualifier: LocalizedStringKey?
     let onTap: () -> Void
     let trailing: () -> Trailing
 
@@ -23,6 +27,7 @@ struct PremiumPromoCard<Trailing: View>: View {
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey? = nil,
         ctaLabel: LocalizedStringKey? = "View",
+        qualifier: LocalizedStringKey? = nil,
         onTap: @escaping () -> Void,
         @ViewBuilder trailing: @escaping () -> Trailing
     ) {
@@ -30,6 +35,7 @@ struct PremiumPromoCard<Trailing: View>: View {
         self.title = title
         self.subtitle = subtitle
         self.ctaLabel = ctaLabel
+        self.qualifier = qualifier
         self.onTap = onTap
         self.trailing = trailing
     }
@@ -56,9 +62,14 @@ struct PremiumPromoCard<Trailing: View>: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
+                    if let qualifier {
+                        qualifierPill(label: qualifier)
+                            .padding(.top, Spacing.xs)
+                    }
+
                     if let ctaLabel {
                         ctaPill(label: ctaLabel)
-                            .padding(.top, Spacing.xs)
+                            .padding(.top, qualifier == nil ? Spacing.xs : 2)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -68,10 +79,11 @@ struct PremiumPromoCard<Trailing: View>: View {
             }
             .padding(Spacing.lg)
             .background {
-                ZStack {
-                    cosmicGradient
-                    starfield
-                }
+                // Backdrop lifted to its own component so the
+                // Biology tab and future premium surfaces can sit
+                // on the same starfield without duplicating the
+                // gradient + Canvas dance.
+                CosmicBackdrop()
             }
             .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
             .overlay {
@@ -96,35 +108,27 @@ struct PremiumPromoCard<Trailing: View>: View {
             }
     }
 
-    private var cosmicGradient: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0.10, green: 0.08, blue: 0.22),
-                Color(red: 0.18, green: 0.13, blue: 0.36),
-                Color(red: 0.32, green: 0.20, blue: 0.48),
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-
-    /// Subtle scattered-dot pattern that reads as a starfield without
-    /// shipping an asset. Deterministic positions so the same card
-    /// always looks the same — no shimmer across re-renders.
-    private var starfield: some View {
-        Canvas { ctx, size in
-            // Seeded PRNG-equivalent — same positions every render.
-            var generator = SplitMix64(seed: 0xA770_C175_DA75)
-            for _ in 0..<26 {
-                let x = Double.random(in: 0...1, using: &generator) * size.width
-                let y = Double.random(in: 0...1, using: &generator) * size.height
-                let r = Double.random(in: 0.5...1.6, using: &generator)
-                let opacity = Double.random(in: 0.25...0.7, using: &generator)
-                let rect = CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)
-                ctx.fill(Path(ellipseIn: rect), with: .color(.white.opacity(opacity)))
-            }
+    /// "Available for users 18+" style qualifier — quieter than
+    /// the CTA pill so it reads as a regulatory / eligibility
+    /// note, not a tappable action. Uses a lock glyph to suggest
+    /// "this is gated".
+    private func qualifierPill(label: LocalizedStringKey) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 9, weight: .heavy))
+            Text(label)
+                .font(.system(size: 10, weight: .heavy, design: .rounded))
+                .tracking(0.3)
         }
-        .allowsHitTesting(false)
+        .foregroundStyle(Color.white.opacity(0.85))
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, 4)
+        .background {
+            Capsule().fill(Color.white.opacity(0.08))
+                .overlay {
+                    Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+                }
+        }
     }
 }
 
@@ -136,6 +140,7 @@ extension PremiumPromoCard where Trailing == BrandGlyphMark {
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey? = nil,
         ctaLabel: LocalizedStringKey? = "View",
+        qualifier: LocalizedStringKey? = nil,
         onTap: @escaping () -> Void
     ) {
         self.init(
@@ -143,6 +148,7 @@ extension PremiumPromoCard where Trailing == BrandGlyphMark {
             title: title,
             subtitle: subtitle,
             ctaLabel: ctaLabel,
+            qualifier: qualifier,
             onTap: onTap,
             trailing: { BrandGlyphMark() }
         )
@@ -168,23 +174,9 @@ struct BrandGlyphMark: View {
     }
 }
 
-// MARK: - Deterministic RNG
-
-/// Tiny SplitMix64 implementation so the starfield reproduces
-/// across launches without shipping an asset. Foundation's
-/// `SystemRandomNumberGenerator` would shuffle on every render and
-/// the dots would shimmer.
-private struct SplitMix64: RandomNumberGenerator {
-    private var state: UInt64
-    init(seed: UInt64) { self.state = seed }
-    mutating func next() -> UInt64 {
-        state &+= 0x9E37_79B9_7F4A_7C15
-        var z = state
-        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
-        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
-        return z ^ (z >> 31)
-    }
-}
+// SplitMix64 + starfield Canvas moved to CosmicBackdrop.swift so
+// the Biology tab can sit on the same backdrop without each
+// premium surface re-implementing the math.
 
 #Preview {
     ZStack {

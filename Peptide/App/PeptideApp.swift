@@ -296,8 +296,8 @@ struct PeptideApp: App {
             Tab("Meals", systemImage: "fork.knife", value: .meals) {
                 MealsContainerView()
             }
-            Tab("Insights", systemImage: "chart.line.uptrend.xyaxis", value: .insights) {
-                InsightsView()
+            Tab("Biology", systemImage: "heart.fill", value: .biology) {
+                BiologyView()
             }
             Tab("Library", systemImage: "books.vertical.fill", value: .library) {
                 PeptideListView()

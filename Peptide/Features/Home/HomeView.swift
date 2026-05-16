@@ -228,7 +228,7 @@ struct HomeView: View {
                             onTapInsight: { insight in
                                 if case .latestLab = insight {
                                     appState.pendingLabsOpen = true
-                                    appState.selectedTab = .insights
+                                    appState.selectedTab = .biology
                                 }
                             }
                         )
@@ -518,13 +518,13 @@ struct HomeView: View {
     // MARK: - Quick-log routing
 
     /// Routes a jump-bar chip tap to a scroll target or a tab switch.
-    /// `.insights` jumps to the Insights tab via `AppState`; every
+    /// `.biology` jumps to the Biology tab via `AppState`; every
     /// other anchor scrolls within Today's existing `ScrollViewReader`.
     private func handleJump(to anchor: TodayJumpBar.SectionAnchor, proxy: ScrollViewProxy) {
         switch anchor {
-        case .insights:
+        case .biology:
             withAnimation(AppAnimation.springSnappy) {
-                appState.selectedTab = .insights
+                appState.selectedTab = .biology
             }
         case .doses, .meals, .wellness, .movement:
             withAnimation(.smooth(duration: 0.35)) {

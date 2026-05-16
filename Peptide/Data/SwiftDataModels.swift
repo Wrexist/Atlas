@@ -357,6 +357,7 @@ final class StoredProfile {
             protocolNotes: ext.protocolNotes,
             weeklySummaryEnabled: ext.weeklySummaryEnabled ?? true,
             weeklySummaries: ext.weeklySummaries ?? [:],
+            biologyConfig: ext.biologyConfig,
             trainingPreferences: ext.trainingPreferences
         )
     }
@@ -393,6 +394,11 @@ private struct ProfileExtension: Codable {
     var streakFreezeDays: [String] = []
     var recipes: [Recipe] = []
     var protocolNotes: [ProtocolNote] = []
+    /// Biology tab preferences — defaults to `.default` so a
+    /// profile encoded by an older build (no biologyConfig field)
+    /// decodes against this struct's synthesized init(from:)
+    /// without losing other fields.
+    var biologyConfig: BiologyConfig = .default
     /// Training prefs from the redesigned onboarding. Optional so
     /// pre-pivot blobs decode cleanly and `toUserProfile` leaves the
     /// profile field nil for older accounts.
@@ -425,6 +431,7 @@ private struct ProfileExtension: Codable {
             streakFreezeDays: Array(profile.streakFreezeDays).sorted(),
             recipes: profile.recipes,
             protocolNotes: profile.protocolNotes,
+            biologyConfig: profile.biologyConfig,
             trainingPreferences: profile.trainingPreferences,
             weeklySummaryEnabled: profile.weeklySummaryEnabled,
             weeklySummaries: profile.weeklySummaries
