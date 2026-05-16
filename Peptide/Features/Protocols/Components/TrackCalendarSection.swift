@@ -11,6 +11,13 @@ struct TrackCalendarSection: View {
     let protocols: [PeptideProtocol]
     let activePeptides: [Peptide]
 
+    /// Single calendar reference shared across the grid build, the
+    /// mark build, the day-of-month math, and the per-day selection.
+    /// If `Calendar.current.firstWeekday` ever changes mid-session
+    /// (locale flip, user-region change), capturing once into @State
+    /// keeps the grid and the marks in lockstep. Re-init on the
+    /// view's `.task` so a relaunch picks up the new locale.
+    @State private var calendar: Calendar = .current
     @State private var monthDate: Date = Calendar.current.startOfMonth(for: Date())
     @State private var selectedDay: Date = Calendar.current.startOfDay(for: Date())
     @State private var filterPeptideID: UUID?
@@ -24,7 +31,8 @@ struct TrackCalendarSection: View {
         let raw = DoseDayMap.build(
             for: monthDate,
             entries: entries,
-            protocols: protocols
+            protocols: protocols,
+            calendar: calendar
         )
         guard let id = filterPeptideID else { return raw }
         return raw.mapValues { marks in
@@ -35,7 +43,8 @@ struct TrackCalendarSection: View {
     private var bandsPerRow: [[CycleBand]] {
         let grid = CalendarMonth.grid(
             for: monthDate,
-            firstWeekday: Calendar.current.firstWeekday
+            firstWeekday: calendar.firstWeekday,
+            calendar: calendar
         )
         let scoped = filterPeptideID
             .map { id in protocols.filter { $0.peptides.contains(where: { $0.id == id }) } }
@@ -44,7 +53,7 @@ struct TrackCalendarSection: View {
     }
 
     private var selectedDayMarks: [CalendarDoseMark] {
-        filteredMap[Calendar.current.startOfDay(for: selectedDay)] ?? []
+        filteredMap[calendar.startOfDay(for: selectedDay)] ?? []
     }
 
     var body: some View {

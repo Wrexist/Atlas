@@ -191,6 +191,11 @@ struct DoseDayDetailPanel: View {
                         .foregroundStyle(AppColor.textPrimary)
                     if mark.kind == .scheduled {
                         scheduledBadge
+                    } else if mark.protocolStatus != .active {
+                        // Historical dose from a paused / completed
+                        // protocol — surface the status so the user
+                        // can distinguish at-a-glance from active log.
+                        statusBadge(for: mark.protocolStatus)
                     }
                 }
 
@@ -248,5 +253,34 @@ struct DoseDayDetailPanel: View {
             .overlay {
                 Capsule().strokeBorder(AppColor.accentPrimary.opacity(0.35), lineWidth: 0.5)
             }
+    }
+
+    /// Badge for logged marks whose owning protocol is no longer
+    /// active. Distinct color from the "Scheduled" badge so the user
+    /// can read at a glance "this dose was real, but the protocol it
+    /// belongs to is paused / done."
+    @ViewBuilder
+    private func statusBadge(for status: ProtocolStatus) -> some View {
+        let label: String? = {
+            switch status {
+            case .paused:    return "Paused"
+            case .completed: return "Completed"
+            case .active:    return nil
+            }
+        }()
+        if let label {
+            Text(label)
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(0.6)
+                .foregroundStyle(AppColor.textSecondary)
+                .padding(.horizontal, Spacing.xs)
+                .padding(.vertical, 2)
+                .background {
+                    Capsule().fill(AppColor.surfaceSecondary.opacity(0.8))
+                }
+                .overlay {
+                    Capsule().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                }
+        }
     }
 }

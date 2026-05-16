@@ -161,7 +161,15 @@ enum SmartCyclePlanner {
         let mid = calendar.date(byAdding: .day, value: (weeks * 7) / 2, to: cycleStart) ?? cycleStart
         let firstHalf = entries.filter { $0.date < mid && $0.date >= cycleStart }
         let secondHalf = entries.filter { $0.date >= mid && $0.date <= today }
-        guard firstHalf.count >= 5, secondHalf.count >= 5 else { return nil }
+        // Require enough samples in each half to draw a real signal —
+        // 5 was low enough that 5 entries spanning a few days in the
+        // second half could outweigh 30 over weeks in the first and
+        // produce a spurious 'compliance decaying' high-confidence
+        // card. 10 per half is a defensible minimum for a 4-week
+        // cycle (~7 entries/half if 1×/day, so this also blocks
+        // 1×/day protocols from the heuristic — those are too sparse
+        // to support a half-vs-half claim).
+        guard firstHalf.count >= 10, secondHalf.count >= 10 else { return nil }
 
         let firstRate = Double(firstHalf.filter(\.completed).count) / Double(firstHalf.count)
         let secondRate = Double(secondHalf.filter(\.completed).count) / Double(secondHalf.count)
