@@ -61,13 +61,13 @@ struct MacroSummaryRow: View {
                         title: "Protein",
                         value: "\(consumed.proteinG)",
                         target: "/\(targets.proteinG) g",
-                        color: Color(hex: 0xEF9F27)
+                        color: AppColor.macroProtein
                     )
                     legend(
                         title: "Water",
                         value: "\(consumed.waterOz)",
                         target: "/\(Self.waterTargetOz) oz",
-                        color: Color(hex: 0x4FB3FF)
+                        color: AppColor.macroWaterLight
                     )
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -117,7 +117,7 @@ struct MacroSummaryRow: View {
                 diameter: 96,
                 lineWidth: 12,
                 progress: proteinProgress,
-                colors: [Color(hex: 0xF5C56C), Color(hex: 0xEF9F27)]
+                colors: [AppColor.macroProteinLight, AppColor.macroProtein]
             )
 
             ringTrack(diameter: 60, lineWidth: 12)
@@ -125,7 +125,7 @@ struct MacroSummaryRow: View {
                 diameter: 60,
                 lineWidth: 12,
                 progress: waterProgress,
-                colors: [Color(hex: 0x7CC5FF), Color(hex: 0x378ADD)]
+                colors: [AppColor.macroWaterLight, AppColor.macroWater]
             )
         }
         .accessibilityElement()
@@ -194,16 +194,16 @@ struct MacroSummaryRow: View {
                 Text(label)
                     .font(.system(size: 12, weight: .semibold))
             }
-            .foregroundStyle(Color(hex: 0xB8DCFF))
+            .foregroundStyle(AppColor.macroWaterLight)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity)
             .background {
                 Capsule(style: .continuous)
-                    .fill(Color(hex: 0x378ADD).opacity(0.18))
+                    .fill(AppColor.macroWater.opacity(0.18))
                     .overlay {
                         Capsule(style: .continuous)
-                            .strokeBorder(Color(hex: 0x378ADD).opacity(0.32), lineWidth: 0.5)
+                            .strokeBorder(AppColor.macroWater.opacity(0.32), lineWidth: 0.5)
                     }
             }
             .liquidGlass(.capsule)

@@ -8,9 +8,9 @@ struct AddMedicationPreviewPage: View {
     @State private var animateIn = false
 
     private let demos: [Demo] = [
-        Demo(compound: "Retatrutide", labelText: "Retatrutide\n5 mg",  level: 0.85),
-        Demo(compound: "Ipamorelin",  labelText: "KLOW\n10 mg",        level: 0.65),
-        Demo(compound: "BPC-157",     labelText: "BPC-157\n5 mg",      level: 0.78),
+        Demo(compound: "Retatrutide", category: .metabolic, labelText: "RETA\n5 mg",   level: 0.85),
+        Demo(compound: "Ipamorelin",  category: .growth,    labelText: "KLOW\n10 mg",  level: 0.65),
+        Demo(compound: "BPC-157",     category: .growth,    labelText: "BPC-157\n5 mg", level: 0.78),
     ]
 
     var body: some View {
@@ -47,8 +47,9 @@ struct AddMedicationPreviewPage: View {
         VStack(spacing: 0) {
             HStack(alignment: .bottom, spacing: Spacing.md) {
                 ForEach(Array(demos.enumerated()), id: \.offset) { index, demo in
-                    VialIllustration(
+                    CompoundVial(
                         compoundName: demo.compound,
+                        category: demo.category,
                         liquidLevel: demo.level,
                         labelText: demo.labelText,
                         size: .md
@@ -100,6 +101,7 @@ struct AddMedicationPreviewPage: View {
 
     private struct Demo {
         let compound: String
+        let category: PeptideCategory
         let labelText: String
         let level: Double
     }

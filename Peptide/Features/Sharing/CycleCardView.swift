@@ -127,8 +127,9 @@ struct CycleCardView: View {
         HStack(spacing: -28) {
             let visible = Array(model.peptides.prefix(Self.maxVisibleVials))
             ForEach(Array(visible.enumerated()), id: \.offset) { index, peptide in
-                VialIllustration(
+                CompoundVial(
                     compoundName: peptide.name,
+                    category: peptide.category,
                     liquidLevel: 1.0,
                     labelText: peptide.abbreviation,
                     size: .lg

@@ -94,8 +94,11 @@ struct ProfileView: View {
                     AppearanceSettings()
                         .sectionAppear(index: 9)
 
-                    AboutSection()
+                    DiagnosticsSection()
                         .sectionAppear(index: 10)
+
+                    AboutSection()
+                        .sectionAppear(index: 11)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)

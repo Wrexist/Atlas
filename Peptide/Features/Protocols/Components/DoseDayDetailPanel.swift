@@ -177,7 +177,7 @@ struct DoseDayDetailPanel: View {
             // dose was pulled (.kind == .logged drops slightly below full
             // so the meniscus is visible); scheduled marks render full so
             // the user reads "this is what's queued, not what was taken".
-            VialIllustration(
+            CompoundVial(
                 compoundName: mark.peptideName,
                 liquidLevel: mark.kind == .scheduled ? 1.0 : 0.65,
                 labelText: nil,

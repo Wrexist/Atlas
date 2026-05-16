@@ -7,6 +7,23 @@ struct DailyPlanCard: View {
     let plan: DailyScheduleEngine.DailyPlan
     var onTapDose: ((ProtocolEntry) -> Void)?
 
+    /// Collapsed by default so the card stays scannable even when the
+    /// user has 4+ time-of-day slots. The first slot shows in full
+    /// (the next thing they need to do) and the rest reveal via the
+    /// "Show all" button.
+    @State private var isExpanded = false
+
+    /// Slots rendered now. When collapsed we keep just the first
+    /// time-of-day window so the user sees the most-imminent doses
+    /// without scrolling past everything below.
+    private var visibleSlots: [DailyScheduleEngine.ScheduledSlot] {
+        isExpanded ? plan.slots : Array(plan.slots.prefix(1))
+    }
+
+    private var hiddenSlotCount: Int {
+        max(0, plan.slots.count - visibleSlots.count)
+    }
+
     var body: some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -15,13 +32,39 @@ struct DailyPlanCard: View {
                 if !plan.hasAny {
                     emptyState
                 } else {
-                    ForEach(plan.slots) { scheduledSlot in
+                    ForEach(visibleSlots) { scheduledSlot in
                         slotSection(scheduledSlot)
+                    }
+
+                    if hiddenSlotCount > 0 || (plan.slots.count > 1 && isExpanded) {
+                        expandToggle
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    private var expandToggle: some View {
+        Button {
+            withAnimation(.smooth(duration: 0.28)) {
+                isExpanded.toggle()
+            }
+        } label: {
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 11, weight: .bold))
+                Text(isExpanded
+                     ? "Show less"
+                     : "Show \(hiddenSlotCount) more time slot\(hiddenSlotCount == 1 ? "" : "s")")
+                    .font(AppFont.caption)
+                    .fontWeight(.semibold)
+            }
+            .foregroundStyle(AppColor.accentLight)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, Spacing.xs)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Header

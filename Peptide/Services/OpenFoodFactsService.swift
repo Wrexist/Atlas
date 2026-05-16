@@ -98,6 +98,12 @@ final class OpenFoodFactsService: Sendable {
         case throttledLocally(secondsToRetry: Int)
         case networkUnavailable
         case requestFailed(status: Int)
+        /// Retries against OFF's gateway have been exhausted on
+        /// transient 5xx errors (502/503/504) or repeated transport
+        /// failures. Surfaced as its own case so the error UI can
+        /// nudge the user toward the photo fallback instead of just
+        /// repeating "try again".
+        case serviceUnavailable
         case decodeFailure
 
         // Wrapped in `String(localized:)` so each case's copy gets
@@ -125,11 +131,32 @@ final class OpenFoodFactsService: Sendable {
                     localized: "Lookup failed (status \(status)). Please try again.",
                     comment: "Status code is an HTTP code or -1 for transport errors."
                 )
+            case .serviceUnavailable:
+                String(localized: "Open Food Facts is briefly unavailable. Try again in a moment, or snap a photo of the label instead.")
             case .decodeFailure:
                 String(localized: "We got an unexpected response from the food database.")
             }
         }
     }
+
+    /// HTTP statuses we treat as transient OFF-gateway/availability
+    /// failures and retry with backoff. 500 is excluded because it
+    /// usually indicates a request-side problem (malformed query,
+    /// missing field) where retrying won't change the outcome — the
+    /// existing `.requestFailed` path lets the user surface that to
+    /// support. 502/503/504 are the codes OFF emits when its edge or
+    /// upstream is briefly overloaded; observed in the wild around
+    /// peak hours and self-resolving within seconds.
+    private static let retryableStatuses: Set<Int> = [502, 503, 504]
+
+    /// Backoff schedule between retry attempts. Three attempts total
+    /// (initial + two retries) with a worst-case added wait of ~1.2s,
+    /// which keeps the perceived latency in "slow scan" territory
+    /// rather than "stuck".
+    private static let retryBackoffs: [Duration] = [
+        .milliseconds(300),
+        .milliseconds(900),
+    ]
 
     /// Resolves a barcode to a `ScannedProduct`. Checks the cache first;
     /// on miss, hits the network and writes through. Stale-but-valid
@@ -335,6 +362,38 @@ final class OpenFoodFactsService: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 15
 
+        // Retry transient OFF-gateway errors (502/503/504) before
+        // surfacing failure. Anything non-retryable (404, 429, decode,
+        // genuine offline) propagates on the first attempt.
+        let maxAttempts = Self.retryBackoffs.count + 1
+        for attempt in 0..<maxAttempts {
+            if attempt > 0 {
+                try await Task.sleep(for: Self.retryBackoffs[attempt - 1])
+            }
+            do {
+                return try await performLookup(request: request, barcode: barcode)
+            } catch let error as LookupError {
+                if case .requestFailed(let status) = error,
+                   Self.retryableStatuses.contains(status) {
+                    if attempt == maxAttempts - 1 {
+                        AppLog.persistence.error(
+                            "OFF \(status, privacy: .public) for \(barcode, privacy: .public): retries exhausted"
+                        )
+                        throw LookupError.serviceUnavailable
+                    }
+                    continue
+                }
+                throw error
+            }
+        }
+        // Compiler can't see that the loop always returns or throws.
+        throw LookupError.serviceUnavailable
+    }
+
+    /// Single round-trip against OFF. Extracted so the retry loop in
+    /// `fetchFromNetwork(barcode:)` can call it once per attempt
+    /// without duplicating decode / status-mapping logic.
+    private func performLookup(request: URLRequest, barcode: String) async throws -> ScannedProduct {
         let data: Data
         let response: URLResponse
         do {

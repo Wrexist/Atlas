@@ -44,12 +44,12 @@ final class BiometricService {
 
     func authenticate() async -> Bool {
         let context = LAContext()
-        context.localizedFallbackTitle = "Use Passcode"
+        context.localizedFallbackTitle = String(localized: "Use Passcode")
 
         do {
             return try await context.evaluatePolicy(
                 .deviceOwnerAuthentication,
-                localizedReason: "Unlock Atlas"
+                localizedReason: String(localized: "Unlock Atlas")
             )
         } catch {
             // LAError.userCancel is expected and routine; log at debug.

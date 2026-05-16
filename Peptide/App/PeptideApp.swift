@@ -93,6 +93,17 @@ struct PeptideApp: App {
                 // until they next edited a food.
                 dataStore.reindexFoodSpotlight()
             }
+            .task {
+                // Subscribe to MetricKit so crash + hang + disk-write
+                // payloads delivered the day after a problem occurs
+                // are captured locally. Apple's TestFlight dashboard
+                // already gets these on the server side; the local
+                // copy is the foundation for a future
+                // Diagnostics-in-Profile screen and eventual backend
+                // upload. Idempotent — subscribing on every launch
+                // is the documented usage.
+                DiagnosticsService.shared.startCollecting()
+            }
             .onOpenURL { url in
                 // Live Activity tap → `peptidex://dose/<uuid>`. Park
                 // the UUID on AppState; HomeView consumes it on its
