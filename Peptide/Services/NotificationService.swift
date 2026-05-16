@@ -320,6 +320,11 @@ final class NotificationService {
         }
         content.sound = .default
         content.categoryIdentifier = "DOSE_REMINDER"
+        // Group all reminders for a single protocol into one thread
+        // so iOS stacks them in Notification Center instead of
+        // showing N flat entries. Cuts visual fatigue for users on
+        // a multi-dose-per-day schedule.
+        content.threadIdentifier = proto.id.uuidString
         content.userInfo = [
             "protocolId": proto.id.uuidString,
             "hour": hour,

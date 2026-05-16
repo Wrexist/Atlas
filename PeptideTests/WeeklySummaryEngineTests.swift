@@ -239,7 +239,7 @@ final class WeeklySummaryEngineTests: XCTestCase {
         let agg = WeeklySummaryEngine.build(
             profile: profile, protocols: [], entries: entries,
             referenceDate: weekMonday,
-            topInsight: "Worth noting"  // arbitrary opaque string is allowed
+            topInsightCategory: "neutral"  // category code, not free text
         )
         let encoded = try JSONEncoder().encode(agg)
         let json = String(data: encoded, encoding: .utf8) ?? ""

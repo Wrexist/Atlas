@@ -329,9 +329,24 @@ final class StoredProfile {
             metrics = .unspecified
         }
         let ext: ProfileExtension
-        if let data = extensionData,
-           let decoded = try? sdDecoder.decode(ProfileExtension.self, from: data) {
-            ext = decoded
+        if let data = extensionData {
+            do {
+                ext = try sdDecoder.decode(ProfileExtension.self, from: data)
+            } catch {
+                // ProfileExtension is the catch-all blob for everything
+                // not in the @Model columns (biology config, meal
+                // history, lab values, training prefs, …). A silent
+                // fallback to `.empty` was disproportionately
+                // destructive: any future schema addition that the
+                // decoder couldn't tolerate would wipe the user's
+                // visible Meals/Biology/Labs data for the session.
+                // Log so the issue is diagnosable; the empty fallback
+                // still preserves the rest of the profile load.
+                AppLog.swiftData.error(
+                    "ProfileExtension decode failed; falling back to empty: \(error.localizedDescription, privacy: .public)"
+                )
+                ext = .empty
+            }
         } else {
             ext = .empty
         }

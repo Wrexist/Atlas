@@ -398,7 +398,7 @@ struct HomeView: View {
                     proto: item.proto,
                     milestone: item.milestone,
                     onShare: {
-                        CycleMilestoneService.shared.markShown(item.milestone, for: item.proto.id)
+                        CycleMilestoneService.shared.markShown(item.milestone, for: item.proto)
                         let proto = item.proto
                         milestonePrompt = nil
                         // Defer one runloop tick so the prompt sheet has
@@ -410,7 +410,7 @@ struct HomeView: View {
                         }
                     },
                     onDismiss: {
-                        CycleMilestoneService.shared.markShown(item.milestone, for: item.proto.id)
+                        CycleMilestoneService.shared.markShown(item.milestone, for: item.proto)
                         milestonePrompt = nil
                     }
                 )
@@ -697,7 +697,18 @@ struct HomeView: View {
                 protocols: dataStore.protocols,
                 entries: dataStore.entries,
                 hrvSeries: hrv,
-                topInsight: dataStore.topInsight?.title,
+                // Pass a stable category code rather than the
+                // free-text title — the title can embed details about
+                // dose timing / protocol count that the aggregate's
+                // privacy contract says we never send. The proxy
+                // model has the numeric fields to infer the situation.
+                topInsightCategory: dataStore.topInsight.map { insight in
+                    switch insight.type {
+                    case .positive: return "positive"
+                    case .warning:  return "warning"
+                    case .neutral:  return "neutral"
+                    }
+                },
                 forceRefresh: forceRefresh
             )
             WeeklySummaryService.shared.record(summary, in: &dataStore.profile)

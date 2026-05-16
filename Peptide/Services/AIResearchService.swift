@@ -177,12 +177,24 @@ final class AIResearchService: Sendable {
         return snippets.joined(separator: "\n\n---\n\n")
     }
 
+    /// Server-side cap (`MAX_MESSAGES` in anthropic-proxy.js). The
+    /// proxy hard-rejects requests above this, so we trim the oldest
+    /// turns to keep the conversation alive past long research
+    /// sessions. Set one below the server ceiling to leave headroom
+    /// for the new user turn we always append below.
+    private static let maxHistoryTurns: Int = 39
+
     private func payload(
         history: [Turn],
         newPrompt: String,
         ragContext: String?
     ) -> [String: Any] {
-        var messages: [[String: Any]] = history.map { turn in
+        // Drop the oldest turns once the conversation grows past the
+        // server's per-request message cap. Without this trim, sessions
+        // longer than ~20 user/assistant exchanges silently fail with
+        // an opaque "Malformed request body" from the proxy.
+        let trimmed = history.suffix(Self.maxHistoryTurns)
+        var messages: [[String: Any]] = trimmed.map { turn in
             [
                 "role": turn.role.rawValue,
                 "content": turn.content,

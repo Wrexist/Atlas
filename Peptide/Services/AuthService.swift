@@ -66,6 +66,28 @@ final class AuthService {
 
     private init() {
         restoreFromKeychain()
+        // Observe credential revocation so a user who pulls the app
+        // off their Apple ID via appleid.apple.com gets signed out
+        // immediately. Previously the session lingered as
+        // `isSignedIn = true` until the user happened to open
+        // Profile (the only call site for `validateCredential`).
+        NotificationCenter.default.addObserver(
+            forName: ASAuthorizationAppleIDProvider.credentialRevokedNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.signOut()
+            }
+        }
+        // Defensive re-check on init: a credential that was revoked
+        // while the app was killed never produced a notification, so
+        // restoreFromKeychain just trusted the stored ID. Kick a
+        // background validation so the UI corrects itself shortly
+        // after launch.
+        Task { @MainActor [weak self] in
+            await self?.validateCredential()
+        }
     }
 
     // MARK: - Sign In

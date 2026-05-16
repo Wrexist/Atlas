@@ -92,7 +92,11 @@ function checkRateLimit(req) {
  */
 function validateAggregate(agg) {
   if (!agg || typeof agg !== 'object') return false;
-  if (typeof agg.weekStart !== 'string' || agg.weekStart.length > 16) return false;
+  // Strict ISO-date (no time component). The iOS encoder emits
+  // `YYYY-MM-DD` (10 chars); a looser cap let a truncated datetime
+  // through which could narrow down the user's timezone if correlated
+  // externally.
+  if (typeof agg.weekStart !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(agg.weekStart)) return false;
   const c = agg.compliance;
   if (!c || typeof c !== 'object') return false;
   if (typeof c.completed !== 'number' || typeof c.total !== 'number') return false;
