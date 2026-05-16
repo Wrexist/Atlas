@@ -105,7 +105,7 @@ enum SmartCyclePlanner {
         today: Date,
         calendar: Calendar
     ) -> Suggestion? {
-        let weeks = max(1, proto.cycleLengthWeeks)
+        let weeks = proto.safeCycleLengthWeeks
         guard let end = calendar.date(byAdding: .day, value: weeks * 7, to: proto.startDate) else { return nil }
         let remaining = calendar.dateComponents([.day], from: today, to: end).day ?? -1
         guard remaining >= 0, remaining <= 5 else { return nil }
@@ -154,7 +154,7 @@ enum SmartCyclePlanner {
         today: Date,
         calendar: Calendar
     ) -> Suggestion? {
-        let weeks = max(1, proto.cycleLengthWeeks)
+        let weeks = proto.safeCycleLengthWeeks
         guard weeks >= 4 else { return nil } // too short to split
 
         let cycleStart = calendar.startOfDay(for: proto.startDate)
@@ -197,6 +197,10 @@ enum SmartCyclePlanner {
         guard perTime.count >= 2,
               let worst = perTime.min(by: { $0.rate < $1.rate }),
               let best = perTime.max(by: { $0.rate < $1.rate }),
+              // When two slots tie on adherence, min/max may select
+              // the same element. Suggesting "Shift 8:00 AM → 8:00 AM"
+              // is nonsense; guard against the self-shift here.
+              best.time != worst.time,
               best.rate - worst.rate >= 0.25
         else { return nil }
 
@@ -217,7 +221,7 @@ enum SmartCyclePlanner {
         today: Date,
         calendar: Calendar
     ) -> Suggestion? {
-        let weeks = max(1, proto.cycleLengthWeeks)
+        let weeks = proto.safeCycleLengthWeeks
         guard let end = calendar.date(byAdding: .day, value: weeks * 7, to: proto.startDate) else { return nil }
         let offWindowDays = max(7, weeks * 7 / 2)
         guard let resumeDate = calendar.date(byAdding: .day, value: offWindowDays, to: end) else { return nil }

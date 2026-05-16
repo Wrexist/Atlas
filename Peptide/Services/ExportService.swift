@@ -407,35 +407,48 @@ final class ExportService {
 
     // MARK: - File URLs
 
+    /// Strips path separators from a caller-supplied filename so a
+    /// future code path can't pass `"../../Library/Preferences/..."`
+    /// and write outside the temp directory. All current callers use
+    /// safe literals, but the API was wide enough to be a latent
+    /// path-traversal surface.
+    private static func safeFilename(_ filename: String) -> String {
+        let cleaned = (filename as NSString).lastPathComponent
+        return cleaned.isEmpty ? "atlas-export" : cleaned
+    }
+
     func writeCSV(_ content: String, filename: String) -> URL? {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        let safe = Self.safeFilename(filename)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(safe)
         do {
             try content.write(to: url, atomically: true, encoding: .utf8)
             return url
         } catch {
-            AppLog.export.error("writeCSV \(filename, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.export.error("writeCSV \(safe, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
 
     func writeJSON(_ data: Data, filename: String) -> URL? {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        let safe = Self.safeFilename(filename)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(safe)
         do {
             try data.write(to: url, options: .atomic)
             return url
         } catch {
-            AppLog.export.error("writeJSON \(filename, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.export.error("writeJSON \(safe, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
 
     func writePDF(_ data: Data, filename: String) -> URL? {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        let safe = Self.safeFilename(filename)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(safe)
         do {
             try data.write(to: url, options: .atomic)
             return url
         } catch {
-            AppLog.export.error("writePDF \(filename, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.export.error("writePDF \(safe, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }

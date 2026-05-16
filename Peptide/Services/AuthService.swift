@@ -289,13 +289,55 @@ final class AuthService {
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
         ]
         let updateStatus = SecItemUpdate(query as CFDictionary, updateAttrs as CFDictionary)
-        if updateStatus == errSecSuccess { return errSecSuccess }
+        if updateStatus == errSecSuccess {
+            // SecItemUpdate does NOT change `kSecAttrAccessible` on an
+            // existing item — the accessibility class is fixed at
+            // creation time. An item written by an older build (with
+            // the default `WhenUnlocked` class) would silently keep
+            // that class after the update and remain unreadable from
+            // background observers. Verify and re-create if the class
+            // doesn't match.
+            if !hasExpectedAccessibility(account: account) {
+                AppLog.auth.error("Keychain item for \(account, privacy: .public) had wrong accessibility; recreating")
+                let deleteStatus = SecItemDelete(query as CFDictionary)
+                guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
+                    return deleteStatus
+                }
+                var addQuery = query
+                addQuery[kSecValueData as String]      = data
+                addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+                return SecItemAdd(addQuery as CFDictionary, nil)
+            }
+            return errSecSuccess
+        }
         if updateStatus != errSecItemNotFound { return updateStatus }
 
         var addQuery = query
         addQuery[kSecValueData as String]      = data
         addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         return SecItemAdd(addQuery as CFDictionary, nil)
+    }
+
+    /// Reads the item's `kSecAttrAccessible` value and compares to the
+    /// expected class. Used to detect items written by older builds
+    /// that didn't specify accessibility (default = `WhenUnlocked`)
+    /// — those need to be deleted + re-added to actually change the
+    /// class, since `SecItemUpdate` won't.
+    private static func hasExpectedAccessibility(account: String) -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: account,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess,
+              let attrs = result as? [String: Any],
+              let cls = attrs[kSecAttrAccessible as String]
+        else { return true }  // Unknown — don't churn unnecessarily.
+        return (cls as? String) == (kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly as String)
     }
 
     private static func readKeychain(account: String) -> String? {

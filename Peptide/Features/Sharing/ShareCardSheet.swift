@@ -188,7 +188,13 @@ struct ShareCardSheet: View {
                         Text("Include health signals")
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
-                        Text("Adds weight delta, sleep, and HRV to the card.")
+                        // When HealthKit isn't connected only the weight
+                        // delta lands on the card; sleep + HRV require
+                        // HealthKit. Call that out inline so the toggle
+                        // copy doesn't promise data we can't render.
+                        Text(dataStore.profile.healthConnected
+                             ? "Adds weight delta, sleep, and HRV to the card."
+                             : "Adds weight delta only. Connect Apple Health to include sleep + HRV.")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                     }

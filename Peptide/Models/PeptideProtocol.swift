@@ -212,6 +212,17 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         return max(1, min(weeks + 1, cycleLengthWeeks))
     }
 
+    /// Floor for `cycleLengthWeeks`. The raw value can be 0 on
+    /// malformed import / migration; clamping to 1 here gives the
+    /// engines (`CyclePhaseEngine`, `SmartCyclePlanner`,
+    /// `DoseDayMap`, `CycleBands`, `CycleCardModel`) a single
+    /// source of truth so they can't silently disagree if one site
+    /// is later changed to a different floor. Use everywhere the
+    /// raw `cycleLengthWeeks` is multiplied or divided.
+    var safeCycleLengthWeeks: Int {
+        max(1, cycleLengthWeeks)
+    }
+
     static func == (lhs: PeptideProtocol, rhs: PeptideProtocol) -> Bool {
         lhs.id == rhs.id
     }

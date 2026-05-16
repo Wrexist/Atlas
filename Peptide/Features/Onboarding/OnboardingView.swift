@@ -697,7 +697,19 @@ struct OnboardingView: View {
         let selected = equipment.contains(kind)
         return Button {
             haptic()
-            if selected { equipment.remove(kind) } else { equipment.insert(kind) }
+            if selected {
+                // Always keep at least one option selected — an empty
+                // set makes ExerciseLibrary filters return zero hits
+                // and the program preview renders a blank list. The
+                // last-deselect is silently ignored so the user
+                // notices a non-response rather than getting trapped
+                // in a broken-state next step.
+                if equipment.count > 1 {
+                    equipment.remove(kind)
+                }
+            } else {
+                equipment.insert(kind)
+            }
         } label: {
             VStack(spacing: Spacing.xs) {
                 Image(systemName: kind.symbolName)

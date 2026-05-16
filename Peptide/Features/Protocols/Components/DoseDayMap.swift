@@ -110,7 +110,7 @@ enum DoseDayMap {
     ) -> Bool {
         let start = calendar.startOfDay(for: proto.startDate)
         guard day >= start else { return false }
-        let weeks = max(1, proto.cycleLengthWeeks)
+        let weeks = proto.safeCycleLengthWeeks
         guard let end = calendar.date(byAdding: .day, value: weeks * 7, to: start) else { return true }
         return day < end
     }
