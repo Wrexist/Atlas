@@ -68,10 +68,11 @@ struct PremiumPromoCard<Trailing: View>: View {
             }
             .padding(Spacing.lg)
             .background {
-                ZStack {
-                    cosmicGradient
-                    starfield
-                }
+                // Backdrop lifted to its own component so the
+                // Biology tab and future premium surfaces can sit
+                // on the same starfield without duplicating the
+                // gradient + Canvas dance.
+                CosmicBackdrop()
             }
             .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
             .overlay {
@@ -94,37 +95,6 @@ struct PremiumPromoCard<Trailing: View>: View {
                         Capsule().strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
                     }
             }
-    }
-
-    private var cosmicGradient: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0.10, green: 0.08, blue: 0.22),
-                Color(red: 0.18, green: 0.13, blue: 0.36),
-                Color(red: 0.32, green: 0.20, blue: 0.48),
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-
-    /// Subtle scattered-dot pattern that reads as a starfield without
-    /// shipping an asset. Deterministic positions so the same card
-    /// always looks the same — no shimmer across re-renders.
-    private var starfield: some View {
-        Canvas { ctx, size in
-            // Seeded PRNG-equivalent — same positions every render.
-            var generator = SplitMix64(seed: 0xA770_C175_DA75)
-            for _ in 0..<26 {
-                let x = Double.random(in: 0...1, using: &generator) * size.width
-                let y = Double.random(in: 0...1, using: &generator) * size.height
-                let r = Double.random(in: 0.5...1.6, using: &generator)
-                let opacity = Double.random(in: 0.25...0.7, using: &generator)
-                let rect = CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)
-                ctx.fill(Path(ellipseIn: rect), with: .color(.white.opacity(opacity)))
-            }
-        }
-        .allowsHitTesting(false)
     }
 }
 
@@ -168,23 +138,9 @@ struct BrandGlyphMark: View {
     }
 }
 
-// MARK: - Deterministic RNG
-
-/// Tiny SplitMix64 implementation so the starfield reproduces
-/// across launches without shipping an asset. Foundation's
-/// `SystemRandomNumberGenerator` would shuffle on every render and
-/// the dots would shimmer.
-private struct SplitMix64: RandomNumberGenerator {
-    private var state: UInt64
-    init(seed: UInt64) { self.state = seed }
-    mutating func next() -> UInt64 {
-        state &+= 0x9E37_79B9_7F4A_7C15
-        var z = state
-        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
-        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
-        return z ^ (z >> 31)
-    }
-}
+// SplitMix64 + starfield Canvas moved to CosmicBackdrop.swift so
+// the Biology tab can sit on the same backdrop without each
+// premium surface re-implementing the math.
 
 #Preview {
     ZStack {
