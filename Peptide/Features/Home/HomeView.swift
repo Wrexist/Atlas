@@ -247,6 +247,7 @@ struct HomeView: View {
 
                     HomeMealsSection()
                         .id(TodayJumpBar.SectionAnchor.meals)
+                        .trackSectionAnchor(.meals)
                         .sectionAppear(index: 2)
 
                     if !dataStore.protocols.isEmpty {
@@ -255,6 +256,7 @@ struct HomeView: View {
                             onTapDose: { entry in selectedEntry = entry }
                         )
                         .id(TodayJumpBar.SectionAnchor.doses)
+                        .trackSectionAnchor(.doses)
                         .sectionAppear(index: 3)
 
                         TodayScheduleCard(
@@ -275,10 +277,12 @@ struct HomeView: View {
 
                     HomeWellnessSection()
                         .id(TodayJumpBar.SectionAnchor.wellness)
+                        .trackSectionAnchor(.wellness)
                         .sectionAppear(index: 5)
 
                     HomeMovementSection()
                         .id(TodayJumpBar.SectionAnchor.movement)
+                        .trackSectionAnchor(.movement)
                         .sectionAppear(index: 5)
 
                     // Bevel-style chronological feed — doses + meals
@@ -315,6 +319,20 @@ struct HomeView: View {
                 return min(raw / 60, 1.0)
             } action: { _, newValue in
                 stickyProgress = newValue
+            }
+            // Scroll-tracked jump-bar active anchor. Each tagged
+            // section publishes its frame via SectionAnchorFrameKey;
+            // ActiveSectionPicker reduces the dictionary to the
+            // anchor whose top edge is closest to (but not past)
+            // the header inset. Only writes when the picked anchor
+            // actually changes — keeps the chip-bar from re-
+            // rendering on every scroll tick.
+            .coordinateSpace(name: "HomeScroll")
+            .onPreferenceChange(SectionAnchorFrameKey.self) { frames in
+                let picked = ActiveSectionPicker.pick(from: frames)
+                if picked != activeJumpAnchor {
+                    activeJumpAnchor = picked
+                }
             }
             .background(AppColor.background)
             .navigationBarTitleDisplayMode(.inline)
