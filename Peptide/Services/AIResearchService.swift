@@ -46,6 +46,8 @@ final class AIResearchService: Sendable {
     enum ChatError: Error, LocalizedError {
         case proxyNotConfigured
         case unauthorised
+        case rateLimited
+        case serviceUnavailable
         case requestFailed(String)
         case invalidResponse
 
@@ -53,6 +55,8 @@ final class AIResearchService: Sendable {
             switch self {
             case .proxyNotConfigured:   "AI research isn't configured for this build. Set AI_RESEARCH_ENDPOINT and AI_RESEARCH_SECRET in Secrets.xcconfig and rebuild."
             case .unauthorised:         "Couldn't sign in to the research assistant. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
+            case .rateLimited:          "You're sending questions faster than the assistant can answer. Wait a minute and try again."
+            case .serviceUnavailable:   "The research assistant is temporarily offline. Try again in a few minutes."
             case .requestFailed(let m): m
             case .invalidResponse:      "The assistant returned an unexpected response."
             }
@@ -120,10 +124,12 @@ final class AIResearchService: Sendable {
             // 401 is broken out from the generic requestFailed envelope so
             // the user sees an actionable message rather than a bare HTTP
             // status code.
-            if http.statusCode == 401 {
-                throw ChatError.unauthorised
+            switch http.statusCode {
+            case 401:                throw ChatError.unauthorised
+            case 429:                throw ChatError.rateLimited
+            case 502, 503, 504:      throw ChatError.serviceUnavailable
+            default:                 throw ChatError.requestFailed("AI research returned HTTP \(http.statusCode).")
             }
-            throw ChatError.requestFailed("AI research returned HTTP \(http.statusCode).")
         }
 
         return try parseAssistantText(from: data)
@@ -147,8 +153,24 @@ final class AIResearchService: Sendable {
         var picks: [Peptide] = []
         for peptide in database {
             if picks.count >= 4 { break }
-            let needles = [peptide.name.lowercased(), peptide.abbreviation.lowercased()]
-            if needles.contains(where: { !$0.isEmpty && recentText.contains($0) }) {
+            // Skip 1-2 character needles ("T3", "GH") that would
+            // collide with common English substrings ("with", "the").
+            // The short-abbreviation false positives polluted the
+            // system prompt with irrelevant peptide data and burned
+            // token budget. Names are usually long enough; abbreviations
+            // shorter than 3 chars require an exact word-boundary match
+            // via the recentText words.
+            let name = peptide.name.lowercased()
+            let abbr = peptide.abbreviation.lowercased()
+            let matchesName = name.count >= 3 && recentText.contains(name)
+            let matchesAbbr: Bool = {
+                guard !abbr.isEmpty else { return false }
+                if abbr.count >= 3 { return recentText.contains(abbr) }
+                // Short abbreviation: require it to appear as a whole token.
+                let tokens = recentText.split { !$0.isLetter && !$0.isNumber }
+                return tokens.contains { $0.lowercased() == abbr }
+            }()
+            if matchesName || matchesAbbr {
                 picks.append(peptide)
             }
         }

@@ -15,6 +15,14 @@ final class AchievementService {
     static let shared = AchievementService()
 
     private(set) var achievements: [Achievement] = []
+    /// Most-recently unlocked achievement, surfaced to the
+    /// celebration toast. Consumers should call
+    /// `acknowledgeLatestUnlock()` after presenting so the next
+    /// check-pass can write a fresh value. The previous design reset
+    /// this to nil at the top of each check method, which meant two
+    /// back-to-back checks (e.g. dose-based + lifestyle-based on the
+    /// same save) could clobber the first method's unlock before any
+    /// observer reacted.
     private(set) var latestUnlock: Achievement?
 
     private let persistenceKey = "achievements"
@@ -25,8 +33,9 @@ final class AchievementService {
     }
 
     func checkAchievements(totalDoses: Int, currentStreak: Int, bestStreak: Int, protocolCount: Int, daysLogged: Int) {
-        latestUnlock = nil
-
+        // Don't reset latestUnlock here — see `acknowledgeLatestUnlock`.
+        // Resetting clobbers any unlock another check method just wrote
+        // when the two methods run back-to-back on the same save.
         unlock("first_dose", if: totalDoses >= 1)
         unlock("ten_doses", if: totalDoses >= 10)
         unlock("fifty_doses", if: totalDoses >= 50)
@@ -62,8 +71,7 @@ final class AchievementService {
         recipesCount: Int,
         checkInsLogged: Int
     ) {
-        latestUnlock = nil
-
+        // No reset — the consumer drains via `acknowledgeLatestUnlock`.
         unlock("first_meal", if: mealsLogged >= 1)
         unlock("fifty_meals", if: mealsLogged >= 50)
         unlock("five_hundred_meals", if: mealsLogged >= 500)
@@ -84,6 +92,13 @@ final class AchievementService {
         unlock("checkin_streak_60", if: checkInsLogged >= 60)
 
         saveAchievements()
+    }
+
+    /// Clears the celebration slot. Call after the toast has been
+    /// presented so the next check can write a fresh unlock without
+    /// the observer seeing a redundant change.
+    func acknowledgeLatestUnlock() {
+        latestUnlock = nil
     }
 
     var unlockedCount: Int {
