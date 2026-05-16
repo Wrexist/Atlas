@@ -16,6 +16,21 @@ struct BiologyView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
+                    BioAgeHeroSection(
+                        state: .locked,                     // commit 7 wires real state
+                        chronologicalAge: 30,               // commit 7 sources from profile
+                        asOfDate: Date(),
+                        onUnlockTapped: { /* commit 7: present paywall */ }
+                    )
+
+                    PremiumPromoCard(
+                        eyebrow: "ATLAS PRO",
+                        title: "View Your Biological Age",
+                        subtitle: "Track how you're aging and discover which habits move your Bio Age.",
+                        ctaLabel: "View",
+                        onTap: { /* commit 7: present paywall */ }
+                    )
+
                     BiomarkerListSection(
                         visibleBiomarkers: Biomarker.defaultVisible,
                         onEditTapped: { /* commit 8 */ },
