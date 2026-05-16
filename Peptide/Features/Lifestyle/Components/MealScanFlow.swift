@@ -1,15 +1,16 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 /// End-to-end meal-scanner sheet: picks an image (camera or library),
 /// posts it to `MealScannerService`, surfaces a confirmation card with
 /// the macro breakdown, and writes a `.photo`-sourced `MealEntry`
 /// through `dataStore.logMealEntry(_:)`.
 ///
-/// Uses `PhotosPicker` rather than `UIImagePickerController` so iOS 16+
-/// device sandboxing works without the photo-library usage description
-/// extra paperwork. Camera capture flows through the same SwiftUI path
-/// when the user taps "Camera" on the picker source-of-image sheet.
+/// "Take photo" launches a live rear-camera capture via `CameraPicker`
+/// (UIImagePickerController), and "Choose from library" uses PhotosPicker.
+/// The camera option hides on simulators and devices without a usable
+/// camera so the user only sees actions that work.
 struct MealScanFlow: View {
     @Environment(DataStore.self) private var dataStore
     let onClose: () -> Void
@@ -20,6 +21,7 @@ struct MealScanFlow: View {
     @State private var estimate: MealScannerService.MealEstimate?
     @State private var errorText: String?
     @State private var category: MealCategory = MealCategory.auto(for: Date())
+    @State private var isShowingCamera = false
 
     private enum Phase: Equatable {
         case pickImage
@@ -54,6 +56,20 @@ struct MealScanFlow: View {
         .onChange(of: selectedItem) { _, newValue in
             Task { await loadImage(from: newValue) }
         }
+        .fullScreenCover(isPresented: $isShowingCamera) {
+            CameraPicker(
+                onPicked: { captured in
+                    isShowingCamera = false
+                    image = captured
+                    phase = .analyzing
+                    Task { await runAnalysis(on: captured) }
+                },
+                onCancel: { isShowingCamera = false },
+                cameraDevice: .rear,
+                allowsEditing: false
+            )
+            .ignoresSafeArea()
+        }
     }
 
     // MARK: - Phases
@@ -67,36 +83,78 @@ struct MealScanFlow: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
 
-            PhotosPicker(
-                selection: $selectedItem,
-                matching: .images,
-                photoLibrary: .shared()
-            ) {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "camera.fill")
-                        .font(.system(size: 14, weight: .bold))
-                    Text("Choose photo")
-                        .font(.system(size: 16, weight: .bold))
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, Spacing.xl)
-                .padding(.vertical, Spacing.md)
-                .background {
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color(red: 0.310, green: 0.275, blue: 0.898),
-                                    Color(red: 0.486, green: 0.227, blue: 0.929),
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
+            VStack(spacing: Spacing.sm) {
+                if UIImagePickerController.SourceType.cameraIsAvailable {
+                    Button {
+                        isShowingCamera = true
+                    } label: {
+                        pickerButtonLabel(
+                            icon: "camera.fill",
+                            title: "Take photo",
+                            style: .primary
                         )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Opens the camera to capture a meal photo.")
                 }
+
+                PhotosPicker(
+                    selection: $selectedItem,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
+                    pickerButtonLabel(
+                        icon: "photo.on.rectangle",
+                        title: "Choose from library",
+                        style: .secondary
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Picks an existing photo from your library.")
             }
-            .buttonStyle(.plain)
         }
+    }
+
+    private enum PickerButtonStyle { case primary, secondary }
+
+    @ViewBuilder
+    private func pickerButtonLabel(icon: String, title: LocalizedStringKey, style: PickerButtonStyle) -> some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .bold))
+            Text(title)
+                .font(.system(size: 16, weight: .bold))
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.md)
+        .background {
+            Capsule()
+                .fill(
+                    LinearGradient(
+                        colors: style == .primary
+                            ? [
+                                Color(red: 0.310, green: 0.275, blue: 0.898),
+                                Color(red: 0.486, green: 0.227, blue: 0.929),
+                            ]
+                            : [
+                                AppColor.surfaceSecondary.opacity(0.85),
+                                AppColor.surfaceSecondary.opacity(0.55),
+                            ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .overlay {
+                    Capsule().strokeBorder(
+                        style == .primary
+                            ? Color.clear
+                            : AppColor.glassBorder,
+                        lineWidth: 0.5
+                    )
+                }
+        }
+        .padding(.horizontal, Spacing.lg)
     }
 
     private var previewBox: some View {

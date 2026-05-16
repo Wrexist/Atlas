@@ -7,12 +7,18 @@ import UIKit
 struct CameraPicker: UIViewControllerRepresentable {
     let onPicked: (UIImage) -> Void
     let onCancel: () -> Void
+    /// Front by default for the profile-photo flow. Meal scanning passes
+    /// `.rear` so the camera opens facing the plate.
+    var cameraDevice: UIImagePickerController.CameraDevice = .front
+    /// `true` lets the user crop before confirming — fits the profile
+    /// avatar flow. Meal scan opts out so capture is a single tap.
+    var allowsEditing: Bool = true
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let controller = UIImagePickerController()
         controller.sourceType = .camera
-        controller.cameraDevice = .front
-        controller.allowsEditing = true
+        controller.cameraDevice = cameraDevice
+        controller.allowsEditing = allowsEditing
         controller.delegate = context.coordinator
         return controller
     }

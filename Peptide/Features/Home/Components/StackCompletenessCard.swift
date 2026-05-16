@@ -6,17 +6,19 @@ struct StackCompletenessCard: View {
     var body: some View {
         GlassCard {
             HStack(spacing: Spacing.lg) {
-                GlassProgressRing(
+                MetricRing(
                     progress: completeness.score,
-                    size: 64,
-                    lineWidth: 6,
-                    showLabel: false
-                )
-                .overlay {
+                    diameter: 64,
+                    strokeWidth: 6,
+                    gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
+                    appearAnimated: true,
+                    glow: true
+                ) {
                     Text("\(Int(completeness.score * 100))%")
                         .font(AppFont.subheadline)
                         .fontWeight(.bold)
                         .foregroundStyle(AppColor.textPrimary)
+                        .monospacedDigit()
                 }
 
                 VStack(alignment: .leading, spacing: Spacing.xs) {

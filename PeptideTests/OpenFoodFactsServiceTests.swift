@@ -204,6 +204,39 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         }
     }
 
+    /// Repeated 502s must surface `.serviceUnavailable` rather than the
+    /// raw `requestFailed(502)` — the UI uses the distinct case to
+    /// steer the user toward the photo fallback. The fact that the
+    /// case changes from `.requestFailed(502)` to `.serviceUnavailable`
+    /// implicitly proves the retry loop ran (a single-attempt path
+    /// would surface `.requestFailed(502)` on the first failure).
+    func test_fetch_throwsServiceUnavailable_afterRepeated502() async {
+        let counter = AttemptCounter()
+        MockURLProtocol.handler = { request in
+            counter.bump()
+            return (Self.response(for: request, status: 502), Data())
+        }
+        await XCTAssertThrowsErrorAsync(try await service.fetch(barcode: "5449000000996")) { error in
+            XCTAssertEqual(error as? OpenFoodFactsService.LookupError, .serviceUnavailable)
+        }
+        XCTAssertGreaterThanOrEqual(counter.value, 2, "Expected at least one retry after the first 502")
+    }
+
+    /// A 502 followed by a 200 must succeed — proves the retry loop
+    /// keeps the user out of the error path when OFF self-recovers.
+    func test_fetch_recoversFromTransient502() async throws {
+        let counter = AttemptCounter()
+        MockURLProtocol.handler = { request in
+            let attemptIndex = counter.bump()
+            if attemptIndex == 0 {
+                return (Self.response(for: request, status: 502), Data())
+            }
+            return (Self.ok(for: request), Data(Fixtures.cocaCola.utf8))
+        }
+        let product = try await service.fetch(barcode: "5449000000996")
+        XCTAssertEqual(product.name, "Coca-Cola")
+    }
+
     func test_fetch_throwsInvalidBarcode_whenBarcodeIsGarbage() async {
         await XCTAssertThrowsErrorAsync(try await service.fetch(barcode: "not-a-barcode")) { error in
             XCTAssertEqual(error as? OpenFoodFactsService.LookupError, .invalidBarcode)
@@ -492,6 +525,26 @@ final class MockURLProtocol: URLProtocol {
     }
 
     override func stopLoading() {}
+}
+
+/// Thread-safe attempt counter used by retry tests. MockURLProtocol's
+/// handler is `@Sendable` and called synchronously from a background
+/// loader queue, so plain Int captures aren't safe.
+private final class AttemptCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    /// Returns the 0-indexed attempt number before incrementing.
+    @discardableResult
+    func bump() -> Int {
+        lock.lock(); defer { lock.unlock() }
+        let n = count
+        count += 1
+        return n
+    }
+    var value: Int {
+        lock.lock(); defer { lock.unlock() }
+        return count
+    }
 }
 
 // MARK: - Async-throwing assertion helper

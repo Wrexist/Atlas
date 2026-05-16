@@ -184,8 +184,9 @@ struct TrackCalendarSection: View {
             UISelectionFeedbackGenerator().selectionChanged()
         } label: {
             VStack(spacing: 2) {
-                VialIllustration(
+                CompoundVial(
                     compoundName: peptide.name,
+                    category: peptide.category,
                     liquidLevel: 0.85,
                     labelText: nil,
                     size: .sm

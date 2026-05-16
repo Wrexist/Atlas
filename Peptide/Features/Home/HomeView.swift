@@ -32,7 +32,45 @@ struct HomeView: View {
     /// modals across runloop ticks.
     @State private var milestonePrompt: MilestonePromptItem?
     @State private var milestoneShareProtocol: PeptideProtocol?
+    /// Tracks which jump-bar section is currently nearest the top of
+    /// the viewport so the corresponding chip highlights. Driven by
+    /// per-section preference reads in `.onScrollGeometryChange` —
+    /// effectively free since the scroll geometry callback is already
+    /// firing for the sticky-header progress.
+    @State private var activeJumpAnchor: TodayJumpBar.SectionAnchor? = .doses
+    /// Routes the chip-bar "+ Log" button. The dialog flag controls
+    /// the picker; the action enum drives which sheet actually mounts.
+    @State private var showQuickLogDialog = false
+    @State private var quickLogAction: QuickLogAction?
+    /// Bevel-style hero metric trio snapshot. Loaded async on first
+    /// appear + on each .active scene transition so the rings reflect
+    /// the freshest HealthKit reads without blocking the view body.
+    @State private var heroSnapshot: HeroMetricSnapshot = .empty
+    /// Health Monitor grid snapshot — HRV / RHR / Sleep with their
+    /// personal-range envelopes. Same refresh cadence as the hero
+    /// trio so a freshly-synced HealthKit write updates both at once.
+    @State private var healthRange: HealthRangeService.Snapshot = .init(hrv: nil, rhr: nil, sleep: nil)
+    /// Drives the Bevel-style "Sync Complete" toast. Set true after
+    /// each successful refresh of the hero + health-range snapshots
+    /// so the user gets visible confirmation the dashboard is fresh.
+    @State private var showSyncToast = false
+    /// Identifies which hero-trio ring the user tapped so the
+    /// detail sheet can route. Non-optional Identifiable wrapper so
+    /// `.sheet(item:)` does the right thing.
+    @State private var heroDetailKind: HeroDetailItem?
     @Environment(\.requestReview) private var requestReview
+
+    private struct HeroDetailItem: Identifiable {
+        let kind: HeroMetricKind
+        var id: HeroMetricKind { kind }
+    }
+
+    private enum QuickLogAction: Identifiable {
+        case meal, dose
+        var id: Int {
+            switch self { case .meal: 0; case .dose: 1 }
+        }
+    }
 
     private static let reviewWorthyAchievements: Set<String> = [
         "streak_7", "streak_14", "streak_30", "streak_90",
@@ -65,6 +103,7 @@ struct HomeView: View {
         let overview = TodayOverviewSnapshot.build(from: dataStore)
 
         NavigationStack {
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: Spacing.xl) {
                     WelcomeHeader(
@@ -78,6 +117,37 @@ struct HomeView: View {
                             }
                             showProfileCustomization = true
                         }
+                    )
+                    .sectionAppear(index: 0)
+
+                    // Bevel-style twin context pills — current cycle
+                    // status on the left (tap → Protocols tab), date
+                    // on the right. Glanceable context without
+                    // claiming a full section.
+                    TodayContextRow(
+                        activeProtocol: dataStore.activeProtocols.first,
+                        date: Date(),
+                        onTapCycle: {
+                            withAnimation(AppAnimation.springSnappy) {
+                                appState.selectedTab = .protocols
+                            }
+                        }
+                    )
+                    .sectionAppear(index: 0)
+
+                    // Quick-jump chips — sits below the greeting so the
+                    // user reaches Meals / Wellness / Movement / the
+                    // Insights tab in one tap instead of scrolling past
+                    // the day-at-a-glance, score, plan, and schedule
+                    // cards. Also hosts the "+ Log" quick-log Menu so
+                    // primary log actions are reachable from above the
+                    // fold.
+                    TodayJumpBar(
+                        activeAnchor: activeJumpAnchor,
+                        showsDoses: !dataStore.protocols.isEmpty,
+                        onSelect: { anchor in handleJump(to: anchor, proxy: proxy) },
+                        onQuickLog: { showQuickLogMenu() },
+                        hapticsEnabled: dataStore.profile.hapticFeedbackEnabled
                     )
                     .sectionAppear(index: 0)
 
@@ -108,10 +178,33 @@ struct HomeView: View {
                         .sectionAppear(index: 0)
                     }
 
+                    // Bevel-style hero trio — Adherence / Recovery /
+                    // Sleep. Replaces the single-ring "score" model
+                    // with three at-a-glance numbers that map to the
+                    // user's mental model from Whoop / Oura / Bevel.
+                    HeroMetricTrio(
+                        snapshot: heroSnapshot,
+                        onTapRing: { kind in
+                            if dataStore.profile.hapticFeedbackEnabled {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            }
+                            heroDetailKind = HeroDetailItem(kind: kind)
+                        },
+                        hapticsEnabled: dataStore.profile.hapticFeedbackEnabled
+                    )
+                    .sectionAppear(index: 0)
+
+                    // Coaching line — turns the trio's three numbers
+                    // into a single recommendation. Same priority
+                    // cascade Bevel uses ("Excellent recovery, push
+                    // today" / "Short sleep, cap intensity"), tuned
+                    // for Atlas's peptide-protocol context.
+                    CoachingCard(message: coachingMessage)
+                        .sectionAppear(index: 0)
+
                     if overview.hasAnySignal {
                         TodayOverviewCard(
                             snapshot: overview,
-                            userName: dataStore.profile.name,
                             hapticsEnabled: dataStore.profile.hapticFeedbackEnabled,
                             onTapHero: { dose in
                                 guard let dose else { return }
@@ -140,12 +233,31 @@ struct HomeView: View {
                             weeklyCompletion: dataStore.weeklyCompletion
                         )
                         .sectionAppear(index: 1)
+                    }
 
+                    // MARK: - Meals / Wellness / Movement
+                    //
+                    // Meals is the most-used surface on Today, so it
+                    // sits ABOVE the dose plan/schedule cards now —
+                    // users reached for it most and were scrolling
+                    // past four cards to get there. Doses are still
+                    // surfaced in TodayOverviewCard's hero, and the
+                    // jump chips above reach the full schedule in
+                    // one tap.
+
+                    HomeMealsSection()
+                        .id(TodayJumpBar.SectionAnchor.meals)
+                        .trackSectionAnchor(.meals)
+                        .sectionAppear(index: 2)
+
+                    if !dataStore.protocols.isEmpty {
                         DailyPlanCard(
                             plan: dailyPlan,
                             onTapDose: { entry in selectedEntry = entry }
                         )
-                        .sectionAppear(index: 2)
+                        .id(TodayJumpBar.SectionAnchor.doses)
+                        .trackSectionAnchor(.doses)
+                        .sectionAppear(index: 3)
 
                         TodayScheduleCard(
                             entries: stats.entries,
@@ -163,57 +275,37 @@ struct HomeView: View {
                         .sectionAppear(index: 4)
                     }
 
-                    // MARK: - Meals / Wellness / Movement
-                    //
-                    // Merged into Today in Phase 33 — these used to
-                    // live on a separate Lifestyle pill that the
-                    // user had to discover. They render unconditionally
-                    // (regardless of `dataStore.protocols.isEmpty`)
-                    // because the user can log meals or check-ins
-                    // before ever creating their first protocol.
-
-                    HomeMealsSection()
-                        .sectionAppear(index: 5)
-
                     HomeWellnessSection()
+                        .id(TodayJumpBar.SectionAnchor.wellness)
+                        .trackSectionAnchor(.wellness)
                         .sectionAppear(index: 5)
 
                     HomeMovementSection()
+                        .id(TodayJumpBar.SectionAnchor.movement)
+                        .trackSectionAnchor(.movement)
                         .sectionAppear(index: 5)
 
-                    // Stack-management cards (vial shelf, warnings,
-                    // completeness, transitions, planner,
-                    // recommendations, health summary) migrated to
-                    // the Protocols tab in Phase 34. Today now ends
-                    // on a single daily-flavoured insight so the
-                    // scroll has a clean tail without doubling as a
-                    // stack-configuration surface.
-
-                    if !dataStore.protocols.isEmpty,
-                       let topInsight = dataStore.topInsight {
-                        GlassCard {
-                            HStack(spacing: Spacing.md) {
-                                Image(systemName: topInsight.icon)
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(AppColor.accentPrimary)
-                                    .frame(width: 28, height: 28)
-                                    .background {
-                                        Circle().fill(AppColor.accentPrimary.opacity(0.15))
-                                    }
-                                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                    Text(topInsight.title)
-                                        .font(AppFont.subheadline)
-                                        .fontWeight(.medium)
-                                        .foregroundStyle(AppColor.textPrimary)
-                                    Text(topInsight.description)
-                                        .font(AppFont.caption)
-                                        .foregroundStyle(AppColor.textSecondary)
-                                }
-                                Spacer()
-                            }
-                        }
+                    // Bevel-style chronological feed — doses + meals
+                    // + check-in + workouts merged into one sorted
+                    // list. Hides itself when the day has no events
+                    // (a brand-new install before the first log).
+                    TodayTimelineCard(events: timelineEvents)
                         .sectionAppear(index: 6)
-                    }
+
+                    // Bevel-style Health Monitor grid — HRV / RHR /
+                    // Sleep with personal-range indicators. Hides
+                    // individual cards (or the whole grid) when
+                    // there's not enough HealthKit history to render
+                    // a meaningful range.
+                    HealthMonitorGrid(snapshot: healthRange)
+                        .sectionAppear(index: 7)
+
+                    // The standalone bottom insight card used to live
+                    // here; removed in this pass because TodayOverviewCard
+                    // already surfaces the same `dataStore.topInsight`
+                    // (via TodayOverviewSnapshot.pickBottomInsight) at the
+                    // top of the scroll. Showing it twice was duplication,
+                    // not depth.
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
@@ -227,6 +319,20 @@ struct HomeView: View {
                 return min(raw / 60, 1.0)
             } action: { _, newValue in
                 stickyProgress = newValue
+            }
+            // Scroll-tracked jump-bar active anchor. Each tagged
+            // section publishes its frame via SectionAnchorFrameKey;
+            // ActiveSectionPicker reduces the dictionary to the
+            // anchor whose top edge is closest to (but not past)
+            // the header inset. Only writes when the picked anchor
+            // actually changes — keeps the chip-bar from re-
+            // rendering on every scroll tick.
+            .coordinateSpace(name: "HomeScroll")
+            .onPreferenceChange(SectionAnchorFrameKey.self) { frames in
+                let picked = ActiveSectionPicker.pick(from: frames)
+                if picked != activeJumpAnchor {
+                    activeJumpAnchor = picked
+                }
             }
             .background(AppColor.background)
             .navigationBarTitleDisplayMode(.inline)
@@ -302,6 +408,13 @@ struct HomeView: View {
                     AchievementToastView(achievement: achievement, isShowing: $showAchievementToast)
                 }
             }
+            .overlay(alignment: .top) {
+                // Bevel-style sync-complete pill. The toast manages
+                // its own auto-dismiss timer (2.4s) so we just bind
+                // the visibility flag and forget about it.
+                SyncToast(isShowing: $showSyncToast)
+                    .padding(.top, Spacing.sm)
+            }
             .onChange(of: achievementService.latestUnlock?.id) { _, newId in
                 if let newId, let achievement = achievementService.achievements.first(where: { $0.id == newId }) {
                     toastAchievement = achievement
@@ -327,9 +440,18 @@ struct HomeView: View {
                 consumePendingDoseDeepLink()
                 consumeWeeklyDeepLink()
                 Task { await loadWeeklySummary(forceRefresh: false) }
+                Task { await refreshHeroSnapshot() }
+                Task { await refreshHealthRange() }
             }
             .onChange(of: appState.pendingDoseLogEntryId) { _, _ in
                 consumePendingDoseDeepLink()
+            }
+            // Re-fetch the hero trio whenever today's adherence ratio
+            // shifts (a dose was logged/unlogged) so the Adherence
+            // ring reflects the action without waiting for a scene-
+            // phase round-trip.
+            .onChange(of: stats.score) { _, _ in
+                Task { await refreshHeroSnapshot() }
             }
             .onChange(of: appState.pendingWeeklyRecap) { _, _ in
                 consumeWeeklyDeepLink()
@@ -341,6 +463,158 @@ struct HomeView: View {
                         onRefresh: { await loadWeeklySummary(forceRefresh: true) }
                     )
                 }
+            }
+            .sheet(item: $quickLogAction, content: quickLogSheet)
+            .sheet(item: $heroDetailKind) { item in
+                HeroMetricDetailSheet(
+                    kind: item.kind,
+                    snapshot: heroSnapshot,
+                    context: .init(
+                        todayEntries: stats.entries,
+                        recoveryComponents: heroSnapshot.recoveryComponents,
+                        lastSleepHours: heroSnapshot.lastSleepHours,
+                        sleepTargetHours: 8.0
+                    )
+                )
+                .liquidGlassPresentation()
+            }
+            .confirmationDialog(
+                "Quick log",
+                isPresented: $showQuickLogDialog,
+                titleVisibility: .visible
+            ) {
+                Button("Snap a meal photo") { quickLogAction = .meal }
+                if dataStore.nextDose != nil {
+                    Button("Log next dose") { quickLogAction = .dose }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Capture something without scrolling.")
+            }
+            }   // closes ScrollViewReader
+        }
+    }
+
+    // MARK: - Quick-log routing
+
+    /// Routes a jump-bar chip tap to a scroll target or a tab switch.
+    /// `.insights` jumps to the Insights tab via `AppState`; every
+    /// other anchor scrolls within Today's existing `ScrollViewReader`.
+    private func handleJump(to anchor: TodayJumpBar.SectionAnchor, proxy: ScrollViewProxy) {
+        switch anchor {
+        case .insights:
+            withAnimation(AppAnimation.springSnappy) {
+                appState.selectedTab = .insights
+            }
+        case .doses, .meals, .wellness, .movement:
+            withAnimation(.smooth(duration: 0.35)) {
+                proxy.scrollTo(anchor, anchor: .top)
+            }
+            activeJumpAnchor = anchor
+        }
+    }
+
+    private func showQuickLogMenu() {
+        showQuickLogDialog = true
+    }
+
+    /// Today's chronological event feed for `TodayTimelineCard`.
+    /// Pulls doses + meals + check-in + workouts and hands them
+    /// to the pure `TodayTimelineEvent.build` for sorting + row
+    /// construction. Recomputes cheaply on every body re-eval
+    /// (small lists, all in-memory).
+    private var timelineEvents: [TodayTimelineEvent] {
+        let now = Date()
+        let cal = Calendar.current
+        let workoutsToday = dataStore.profile.workoutHistory.filter { entry in
+            cal.isDate(entry.date, inSameDayAs: now)
+        }
+        return TodayTimelineEvent.build(
+            doses: dataStore.todayEntries,
+            meals: dataStore.mealEntries(),
+            checkIn: dataStore.outcome(),
+            workouts: workoutsToday,
+            now: now
+        )
+    }
+
+    /// Builds the coaching context from the current store + hero
+    /// snapshot. Pure read — synchronous so the view body can
+    /// consume it without an async hop.
+    private var coachingMessage: CoachingMessageEngine.CoachingMessage {
+        let next = dataStore.nextDose
+        let nextTimeDisplay: String? = next.map {
+            DateFormatter.localizedString(from: $0.date, dateStyle: .none, timeStyle: .short)
+        }
+        let context = CoachingMessageEngine.Context(
+            hasProtocols: !dataStore.protocols.isEmpty,
+            healthConnected: dataStore.profile.healthConnected,
+            recoveryScore: heroSnapshot.recovery.isAvailable ? heroSnapshot.recovery.displayPercent : nil,
+            sleepHours: heroSnapshot.sleep.isAvailable
+                ? Double(heroSnapshot.sleep.displayPercent) / 100 * 8.0    // approx; 8h target
+                : nil,
+            adherenceRatio: todayStats.score,
+            pendingDoseCount: todayStats.total - todayStats.completed,
+            nextDoseAbbreviation: next?.peptide.abbreviation,
+            nextDoseTimeDisplay: nextTimeDisplay,
+            hourOfDay: Calendar.current.component(.hour, from: Date())
+        )
+        return CoachingMessageEngine.pick(context: context)
+    }
+
+    /// Rebuilds the hero metric trio snapshot. Adherence is read
+    /// synchronously from `todayStats`; Recovery + Sleep round-trip
+    /// to HealthKit. Cheap to call — the underlying queries are
+    /// cached for short windows by HealthKit itself.
+    private func refreshHeroSnapshot() async {
+        let snapshot = await HeroMetricSnapshot.build(
+            adherenceRatio: todayStats.score,
+            healthConnected: dataStore.profile.healthConnected
+        )
+        heroSnapshot = snapshot
+    }
+
+    /// Builds the Health Monitor grid's personal-range snapshot.
+    /// Three HealthKit daily-series queries (HRV / RHR / Sleep) fire
+    /// in parallel via async-let. Skips entirely when HealthKit isn't
+    /// connected — the grid's empty-state branch hides it.
+    private func refreshHealthRange() async {
+        guard dataStore.profile.healthConnected else {
+            healthRange = .init(hrv: nil, rhr: nil, sleep: nil)
+            return
+        }
+        healthRange = await HealthRangeService.build()
+        // Surface the Bevel-style "Sync Complete" toast only when the
+        // refresh actually produced at least one card — avoids the
+        // false-positive of "synced!" on a brand-new install that
+        // has no HealthKit data yet.
+        if healthRange.hrv != nil || healthRange.rhr != nil || healthRange.sleep != nil {
+            showSyncToast = true
+        }
+    }
+
+    @ViewBuilder
+    private func quickLogSheet(for action: QuickLogAction) -> some View {
+        switch action {
+        case .meal:
+            MealScanFlow(onClose: { quickLogAction = nil })
+                .environment(dataStore)
+                .liquidGlassPresentation()
+        case .dose:
+            if let next = dataStore.nextDose {
+                DoseLoggingSheet(entry: next) { actualDose, actualTime, site, notes in
+                    dataStore.logDose(
+                        entryId: next.id,
+                        actualDose: actualDose,
+                        actualTime: actualTime,
+                        injectionSite: site,
+                        notes: notes
+                    )
+                    quickLogAction = nil
+                }
+                .liquidGlassPresentation()
+            } else {
+                EmptyView()
             }
         }
     }
