@@ -35,7 +35,7 @@ struct DailyTargetsPage: View {
 }
 
 /// Reusable presentation: large calorie value on top, 2×2 macro grid
-/// below. Used by the onboarding step and the Lifestyle tab.
+/// below. Used by the onboarding step and the Meals tab's targets editor.
 struct DailyTargetsCard: View {
     let targets: NutritionTargets?
 

@@ -21,13 +21,13 @@ struct TrainOverviewView: View {
     @State private var library = ExerciseLibrary.shared
     @State private var sessions: [WorkoutSession] = []
     @State private var sessionService = WorkoutSessionService.shared
-
-    private var frequencies: [AnatomicalMuscle: Double] {
-        WeeklyMuscleHeatmap.frequencies(
-            from: sessions,
-            library: library
-        )
-    }
+    /// Memoised result of `WeeklyMuscleHeatmap.frequencies` — the
+    /// underlying scan is O(sessions × exercises × muscles) and was
+    /// previously recomputed on every body re-evaluation because the
+    /// `weekHasTraining` and `weeklyMuscleCard`/`topMusclesRow` paths
+    /// both touched the computed property. Recomputed only when
+    /// `refresh()` runs (i.e. when sessions actually change).
+    @State private var frequencies: [AnatomicalMuscle: Double] = [:]
 
     private var weekHasTraining: Bool {
         !frequencies.isEmpty
@@ -86,6 +86,10 @@ struct TrainOverviewView: View {
     /// for live updates after a finish event.
     private func refresh() {
         sessions = SwiftDataRepository.shared.loadWorkoutSessions()
+        frequencies = WeeklyMuscleHeatmap.frequencies(
+            from: sessions,
+            library: library
+        )
     }
 
     // MARK: - Weekly muscle map

@@ -2,9 +2,9 @@ import SwiftUI
 
 enum AppTab: String, CaseIterable {
     /// Daily action hub — doses, meals, check-in. Was `.home`
-    /// (renamed in Phase 32 to be verb-forward; the old raw
-    /// value is migrated below for users with a persisted
-    /// state from a prior build).
+    /// (renamed in Phase 32 to be verb-forward). `selectedTab`
+    /// isn't currently persisted across launches, so no
+    /// migration of the prior raw value is required.
     case today
     /// Workout planning + logging. Added in the training pivot —
     /// raw value is new so older builds that don't know about it

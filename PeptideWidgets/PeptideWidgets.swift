@@ -483,7 +483,7 @@ struct MediumNutritionView: View {
             }
 
             // Per-category breakdown on the right — same buckets as
-            // the Lifestyle tab's `MealCategoriesCard`.
+            // `HomeMealsSection`'s `MealCategoriesCard`.
             VStack(alignment: .leading, spacing: 4) {
                 Text("Meals")
                     .font(.caption)

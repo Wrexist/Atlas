@@ -48,13 +48,12 @@ struct WhatsNewPage: Identifiable, Equatable, @unchecked Sendable {
 
 extension WhatsNewPage {
 
-    /// Tour content for the v3.0 training-pivot release. Walks
-    /// returning users through the new tab structure (Today / Train
-    /// / Meals / Insights / Library), the muscle map, the active
-    /// workout flow, and the demoted-but-still-reachable peptide
+    /// Tour content for the v3.0 / v3.1 training + biology releases.
+    /// Walks returning users through the new tab structure (Today /
+    /// Train / Meals / Biology / Library), the muscle map, the
+    /// Bio Age surface, and the demoted-but-still-reachable peptide
     /// surfaces. Mounted automatically on first launch after the
-    /// `WhatsNewService.currentTourVersion` bumps to
-    /// "v3.0-training".
+    /// `WhatsNewService.currentTourVersion` bumps to "v3.1-biology".
     static let v30Training: [WhatsNewPage] = [
         WhatsNewPage(
             id: "v3_welcome",
@@ -70,6 +69,7 @@ extension WhatsNewPage {
             bullets: [
                 "New Train tab with 870+ exercises",
                 "New Meals tab — promoted from Today",
+                "New Biology tab with your Bio Age + biomarkers",
                 "Library now hosts peptides + protocols + research",
             ]
         ),
@@ -105,6 +105,23 @@ extension WhatsNewPage {
                 "Macro rings stay front-and-center",
                 "Streak badge tracks consecutive logged days",
                 "Recipes + custom foods carry over from before",
+            ]
+        ),
+        WhatsNewPage(
+            id: "v31_biology",
+            eyebrow: "Biology",
+            title: "How you're actually aging",
+            body: "Atlas estimates your Bio Age from HRV, resting heart rate, sleep, and weight trend. Track which habits move the needle — and which biomarkers matter most for you.",
+            icon: "waveform.path.ecg.rectangle",
+            gradient: [
+                Color(red: 0.45, green: 0.85, blue: 0.78),
+                Color(red: 0.40, green: 0.55, blue: 0.92),
+            ],
+            accent: Color(red: 0.45, green: 0.85, blue: 0.78),
+            bullets: [
+                "Bio Age dial + driver pills (Pro)",
+                "Curated biomarker list — pick what you care about",
+                "Latest lab card with normal-range banding",
             ]
         ),
         WhatsNewPage(
