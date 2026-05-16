@@ -71,10 +71,11 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 6)
 
-                    // Labs entry moved to the Insights tab in
-                    // Phase 32 — it's a high-engagement analytical
-                    // feature, not a settings-flavoured tool, and
-                    // it was hiding behind a settings tab here.
+                    // Labs entry lives on the Biology tab (renamed
+                    // from Insights in Phase 33). It's a high-
+                    // engagement analytical feature, not a settings-
+                    // flavoured tool, and it was hiding behind a
+                    // settings tab here.
 
                     ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
                         .sectionAppear(index: 7)

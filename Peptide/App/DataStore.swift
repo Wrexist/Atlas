@@ -724,7 +724,7 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
-    /// Updates the calorie + macro targets surfaced on the Lifestyle tab.
+    /// Updates the calorie + macro targets surfaced on the Meals tab.
     /// Pass `nil` to clear them and re-show the empty-state CTA.
     func updateNutritionTargets(_ targets: NutritionTargets?) {
         profile.nutritionTargets = targets
@@ -864,8 +864,8 @@ final class DataStore: DataServiceProtocol {
         return true
     }
 
-    /// Per-category breakdown for today (or any day). Used by the new
-    /// `MealCategoriesCard` on the Lifestyle tab.
+    /// Per-category breakdown for today (or any day). Used by the
+    /// `MealCategoriesCard` on the Meals tab.
     func mealsByCategory(for date: Date = Date()) -> LifestyleDataLogic.CategoryBreakdown {
         LifestyleDataLogic.mealsByCategory(in: profile, for: date)
     }
@@ -1374,7 +1374,7 @@ final class DataStore: DataServiceProtocol {
     /// lives in the builder so a snapshot regression is testable without
     /// standing up `DataStore` + `PersistenceService`. Nutrition is
     /// pulled live from the profile so the nutrition widget reflects
-    /// the same numbers the Lifestyle tab shows.
+    /// the same numbers the Meals tab shows.
     private func updateWidgetData() {
         let data = WidgetSnapshotBuilder.build(
             today: todayEntries,

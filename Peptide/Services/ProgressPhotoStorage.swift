@@ -8,7 +8,8 @@ import UIKit
 /// per photo.
 ///
 /// Nothing here writes to iCloud or any backend; images stay strictly
-/// on-device, matching the privacy line on the Lifestyle tab card.
+/// on-device, matching the privacy line on the Today scroll's
+/// progress-photos card.
 enum ProgressPhotoStorage {
 
     enum Failure: LocalizedError {
