@@ -318,11 +318,19 @@ final class SwiftDataRepository {
         }
     }
 
-    func loadWorkoutSessions() -> [WorkoutSession] {
+    /// Default fetch ceiling for workout history reads. TrainOverviewView
+    /// only renders the last 3 sessions plus the current-month heatmap,
+    /// so even a 200-cap reads more than any single surface uses while
+    /// keeping the allocation bounded for power users with years of
+    /// daily sessions.
+    static let workoutHistoryFetchLimit: Int = 200
+
+    func loadWorkoutSessions(limit: Int = SwiftDataRepository.workoutHistoryFetchLimit) -> [WorkoutSession] {
         guard let context else { return [] }
-        let descriptor = FetchDescriptor<StoredWorkoutSession>(
+        var descriptor = FetchDescriptor<StoredWorkoutSession>(
             sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
         )
+        descriptor.fetchLimit = max(1, limit)
         do {
             let stored = try context.fetch(descriptor)
             return stored.compactMap {

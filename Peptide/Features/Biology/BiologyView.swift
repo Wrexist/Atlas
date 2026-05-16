@@ -131,9 +131,17 @@ struct BiologyView: View {
 
     private func computeWeightDelta30d() -> Double? {
         let history = dataStore.profile.weightHistory.sorted { $0.date < $1.date }
-        guard history.count >= 2, let latest = history.last else { return nil }
+        guard let earliest = history.first, let latest = history.last, earliest.id != latest.id else {
+            return nil
+        }
         let cutoff = Date().addingTimeInterval(-30 * 24 * 60 * 60)
-        let baseline = history.first { $0.date >= cutoff } ?? history.first!
+        // Prefer the first entry on/after the 30-day cutoff so the delta
+        // reflects "the last 30 days"; fall back to the earliest entry
+        // when the user has older but no recent history (still better
+        // than nothing). The optional binding above keeps this safe
+        // without any force-unwrap — a future refactor that drops the
+        // length guard can't accidentally crash on a single-entry log.
+        let baseline = history.first { $0.date >= cutoff } ?? earliest
         guard baseline.id != latest.id else { return nil }
         return latest.kg - baseline.kg
     }

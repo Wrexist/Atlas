@@ -1161,11 +1161,21 @@ final class DataStore: DataServiceProtocol {
         )
     }
 
+    /// Legacy free-form workout log stored on `profile.workoutHistory`.
+    /// The structured Train tab (PR #127) writes through
+    /// `WorkoutSessionService` to `StoredWorkoutSession` instead.
+    /// These two stores are not currently reconciled — the Train tab
+    /// surfaces `WorkoutSession` and only this entry-point's callers
+    /// see the legacy `WorkoutEntry` list. Track for deprecation:
+    /// once the Train tab's history surface is the canonical view,
+    /// migrate any remaining callers and remove this method.
     func logWorkout(_ entry: WorkoutEntry) {
         LifestyleDataLogic.logWorkout(into: &profile, entry: entry)
         save()
     }
 
+    /// See `logWorkout(_:)` — also part of the legacy free-form
+    /// workout log.
     func deleteWorkout(id: UUID) {
         LifestyleDataLogic.deleteWorkout(from: &profile, id: id)
         save()
