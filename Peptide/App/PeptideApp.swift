@@ -292,8 +292,8 @@ struct PeptideApp: App {
             Tab("Protocols", systemImage: "square.stack.3d.up.fill", value: .protocols) {
                 ProtocolListView()
             }
-            Tab("Insights", systemImage: "chart.line.uptrend.xyaxis", value: .insights) {
-                InsightsView()
+            Tab("Biology", systemImage: "heart.fill", value: .biology) {
+                BiologyView()
             }
             Tab("Profile", systemImage: "person.crop.circle.fill", value: .profile) {
                 ProfileView()

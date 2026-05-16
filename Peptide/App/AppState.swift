@@ -9,10 +9,13 @@ enum AppTab: String, CaseIterable {
     /// Peptide reference + AI research. Was `.database`.
     case library
     case protocols
-    /// Analytical hub — compliance + correlation + labs +
-    /// body trends. Was `.analytics`; widened in Phase 32 to
-    /// own everything answer-flavoured.
-    case insights
+    /// Biology hub — biological-age estimate, HRV/RHR/Sleep
+    /// baselines, lab markers, body composition. Renamed from
+    /// `.insights` in the Bevel-style Biology-tab pass; the
+    /// analytical / correlation surface lives here under a
+    /// Bio-Age hero. AppState.selectedTab lives in memory only
+    /// (not persisted to disk) so the raw-value change is safe.
+    case biology
     case profile
 }
 
