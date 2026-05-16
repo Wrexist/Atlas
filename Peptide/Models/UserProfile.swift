@@ -333,6 +333,11 @@ struct UserProfile: Codable, Sendable {
     /// write to the most-recent 26 weeks so the JSON stays small
     /// (~13 KB at full cap).
     var weeklySummaries: [String: WeeklySummary]
+    /// Biology tab preferences — visible / hidden / ordered
+    /// biomarkers + intro-seen flag. Defaults so existing
+    /// profiles decoded without this field land on
+    /// `BiologyConfig.default` cleanly.
+    var biologyConfig: BiologyConfig
 
     init(
         name: String,
@@ -364,7 +369,8 @@ struct UserProfile: Codable, Sendable {
         recipes: [Recipe] = [],
         protocolNotes: [ProtocolNote] = [],
         weeklySummaryEnabled: Bool = true,
-        weeklySummaries: [String: WeeklySummary] = [:]
+        weeklySummaries: [String: WeeklySummary] = [:],
+        biologyConfig: BiologyConfig = .default
     ) {
         self.name = name
         self.goals = goals
@@ -396,6 +402,7 @@ struct UserProfile: Codable, Sendable {
         self.protocolNotes = protocolNotes
         self.weeklySummaryEnabled = weeklySummaryEnabled
         self.weeklySummaries = weeklySummaries
+        self.biologyConfig = biologyConfig
     }
 
     init(from decoder: Decoder) throws {
@@ -434,6 +441,7 @@ struct UserProfile: Codable, Sendable {
         protocolNotes = try container.decodeIfPresent([ProtocolNote].self, forKey: .protocolNotes) ?? []
         weeklySummaryEnabled = try container.decodeIfPresent(Bool.self, forKey: .weeklySummaryEnabled) ?? true
         weeklySummaries = try container.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries) ?? [:]
+        biologyConfig = try container.decodeIfPresent(BiologyConfig.self, forKey: .biologyConfig) ?? .default
     }
 
     static var fresh: UserProfile {

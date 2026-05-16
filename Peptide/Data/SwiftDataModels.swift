@@ -354,7 +354,8 @@ final class StoredProfile {
             lastKnownTimezoneIdentifier: ext.lastKnownTimezoneIdentifier,
             streakFreezeDays: Set(ext.streakFreezeDays),
             recipes: ext.recipes,
-            protocolNotes: ext.protocolNotes
+            protocolNotes: ext.protocolNotes,
+            biologyConfig: ext.biologyConfig
         )
     }
 }
@@ -390,6 +391,11 @@ private struct ProfileExtension: Codable {
     var streakFreezeDays: [String] = []
     var recipes: [Recipe] = []
     var protocolNotes: [ProtocolNote] = []
+    /// Biology tab preferences — defaults to `.default` so a
+    /// profile encoded by an older build (no biologyConfig field)
+    /// decodes against this struct's synthesized init(from:)
+    /// without losing other fields.
+    var biologyConfig: BiologyConfig = .default
 
     static let empty = ProfileExtension()
 
@@ -411,7 +417,8 @@ private struct ProfileExtension: Codable {
             lastKnownTimezoneIdentifier: profile.lastKnownTimezoneIdentifier,
             streakFreezeDays: Array(profile.streakFreezeDays).sorted(),
             recipes: profile.recipes,
-            protocolNotes: profile.protocolNotes
+            protocolNotes: profile.protocolNotes,
+            biologyConfig: profile.biologyConfig
         )
     }
 }

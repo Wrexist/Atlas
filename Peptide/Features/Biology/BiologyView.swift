@@ -3,8 +3,8 @@ import SwiftUI
 /// Root of the Biology tab. Resolves the Bio Age state — locked /
 /// building baseline / unlocked — against the user's Pro
 /// entitlement + HealthKit history. Hosts the cosmic backdrop,
-/// the hero, the upsell card (only when locked), and the
-/// biomarker list. Edit + detail sheets land in commit 8.
+/// the hero, the upsell card (only when locked), the biomarker
+/// list, the edit sheet, and the per-biomarker detail sheet.
 struct BiologyView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
@@ -15,6 +15,16 @@ struct BiologyView: View {
         chronologicalAge: BioAgeStateResolver.chronologicalAgeFallback
     )
     @State private var showPaywall = false
+    @State private var showEditSheet = false
+    /// Drives the per-biomarker detail sheet. Identifiable wrapper
+    /// so `.sheet(item:)` lifecycle is clean across taps.
+    @State private var detailItem: BiomarkerDetailItem?
+
+    private struct BiomarkerDetailItem: Identifiable {
+        let biomarker: Biomarker
+        let snapshot: BiomarkerSnapshot
+        var id: Biomarker { biomarker }
+    }
 
     var body: some View {
         NavigationStack {
@@ -27,11 +37,6 @@ struct BiologyView: View {
                         onUnlockTapped: { presentPaywall() }
                     )
 
-                    // The cosmic upsell card sits below the dial
-                    // only when Bio Age is locked. Once the user
-                    // is Pro (building or unlocked), the slot
-                    // disappears — no point upselling a feature
-                    // the user already has.
                     if case .locked = resolved.state {
                         PremiumPromoCard(
                             eyebrow: "ATLAS PRO",
@@ -43,21 +48,12 @@ struct BiologyView: View {
                     }
 
                     BiomarkerListSection(
-                        visibleBiomarkers: Biomarker.defaultVisible,
-                        onEditTapped: { /* commit 8 */ },
-                        onSelectBiomarker: { _ in /* commit 8 */ }
+                        visibleBiomarkers: dataStore.profile.biologyConfig.visibleBiomarkers,
+                        onEditTapped: { showEditSheet = true },
+                        onSelectBiomarker: { biomarker in openDetail(for: biomarker) }
                     )
 
                     disclaimerFootnote
-
-                    // Legacy Insights content stays reachable until
-                    // commit 8 folds compliance trends + HealthKit
-                    // correlations + labs into Biology's sections.
-                    // Visually demoted so the new top half is the
-                    // hero; the old surface is still here so users
-                    // don't lose access mid-migration.
-                    InsightsView()
-                        .padding(.top, Spacing.lg)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
@@ -73,11 +69,23 @@ struct BiologyView: View {
                 PaywallView()
                     .liquidGlassPresentation()
             }
+            .sheet(isPresented: $showEditSheet, onDismiss: persistConfigChanges) {
+                EditBiomarkersSheet(
+                    config: editConfigBinding,
+                    isPro: storeService.isProUser,
+                    onDismiss: persistConfigChanges
+                )
+                .liquidGlassPresentation()
+            }
+            .sheet(item: $detailItem) { item in
+                BiomarkerDetailSheet(
+                    biomarker: item.biomarker,
+                    snapshot: item.snapshot
+                )
+                .liquidGlassPresentation()
+            }
         }
         .task { await refreshState() }
-        // Re-resolve when Pro entitlement flips (e.g. a fresh
-        // purchase completes inside the paywall sheet) or when
-        // the user updates their age in Profile.
         .onChange(of: storeService.isProUser) { _, _ in
             Task { await refreshState() }
         }
@@ -97,25 +105,54 @@ struct BiologyView: View {
         )
     }
 
-    /// 30-day weight delta in kilograms, derived from the
-    /// nearest log to "30 days ago" vs the most recent log.
-    /// Returns nil when there's fewer than 2 entries or the
-    /// span doesn't cover ~30 days — the engine treats a missing
-    /// signal as a dropped weight component rather than zero.
     private func computeWeightDelta30d() -> Double? {
         let history = dataStore.profile.weightHistory.sorted { $0.date < $1.date }
         guard history.count >= 2, let latest = history.last else { return nil }
         let cutoff = Date().addingTimeInterval(-30 * 24 * 60 * 60)
-        // First entry on-or-after the cutoff is the 30-day-ago
-        // sample. If everything is newer than 30 days, fall back
-        // to the oldest available — better than nothing for a
-        // user with only 2 weeks of data.
         let baseline = history.first { $0.date >= cutoff } ?? history.first!
-        // Sanity check: don't compute a "delta" when latest is
-        // the same entry as baseline (single sample collected
-        // exactly once).
         guard baseline.id != latest.id else { return nil }
         return latest.kg - baseline.kg
+    }
+
+    // MARK: - BiologyConfig persistence
+
+    /// Binding into the editable sheet. Reads from
+    /// `dataStore.profile.biologyConfig` and writes back through
+    /// the same path. The `onDismiss` save batches mutations so
+    /// a reorder + show + hide session lands as one persist call.
+    private var editConfigBinding: Binding<BiologyConfig> {
+        Binding(
+            get: { dataStore.profile.biologyConfig },
+            set: { dataStore.profile.biologyConfig = $0 }
+        )
+    }
+
+    private func persistConfigChanges() {
+        dataStore.persistProfile()
+    }
+
+    // MARK: - Detail sheet routing
+
+    private func openDetail(for biomarker: Biomarker) {
+        if dataStore.profile.hapticFeedbackEnabled {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+        // Fetch a fresh snapshot synchronously so the sheet has
+        // something to render the moment it mounts. The async
+        // refresh inside the sheet's hosting service runs again
+        // on appear if the data has moved since.
+        Task {
+            let latestLab = dataStore.latestLabSummaries
+                .max(by: { $0.latest.date < $1.latest.date })?
+                .latest
+            let snapshots = await BiomarkerSeriesService.snapshots(
+                for: [biomarker],
+                weightHistory: dataStore.profile.weightHistory,
+                latestLab: latestLab
+            )
+            let snapshot = snapshots.first ?? .empty(biomarker)
+            detailItem = BiomarkerDetailItem(biomarker: biomarker, snapshot: snapshot)
+        }
     }
 
     // MARK: - Paywall
