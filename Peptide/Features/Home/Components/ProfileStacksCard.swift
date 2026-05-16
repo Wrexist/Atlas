@@ -81,7 +81,7 @@ struct ProfileStacksCard: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textSecondary)
 
-            Text("Create your first protocol from the Protocols tab to start tracking doses, streaks, and compliance.")
+            Text("Create your first protocol from the Library tab to start tracking doses, streaks, and compliance.")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)

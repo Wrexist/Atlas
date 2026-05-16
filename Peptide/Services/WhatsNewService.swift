@@ -18,7 +18,7 @@ final class WhatsNewService {
     /// next launch presents the new tour to every user. The
     /// version is opaque to the storage layer; we just compare for
     /// equality, so any monotonic scheme works.
-    static let currentTourVersion = "v2.1"
+    static let currentTourVersion = "v3.0-training"
 
     private let storageKey = "com.peptidesai.app.whatsNew.lastSeenVersion"
     private let defaults: UserDefaults

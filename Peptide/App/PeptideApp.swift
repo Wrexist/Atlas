@@ -128,7 +128,11 @@ struct PeptideApp: App {
                 guard let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
                       let deepLink = FoodLogDeepLink(spotlightIdentifier: identifier)
                 else { return }
-                appState.selectedTab = .today
+                // Phase D: food handoff now lands on the dedicated
+                // Meals tab so the receiver of `pendingFoodLogID`
+                // (the meals section's `.onChange`) doesn't race the
+                // mirror mount still on Today.
+                appState.selectedTab = .meals
                 appState.pendingFoodLogID = deepLink
             }
             .sheet(item: $travelChange) { change in
@@ -157,7 +161,7 @@ struct PeptideApp: App {
                 // version stamp wouldn't land — they'd see it
                 // again on the next launch.
                 WhatsNewTourSheet(
-                    pages: WhatsNewPage.v21,
+                    pages: WhatsNewPage.v30Training,
                     onComplete: {
                         WhatsNewService.shared.markCurrentTourSeen()
                         showWhatsNewTour = false

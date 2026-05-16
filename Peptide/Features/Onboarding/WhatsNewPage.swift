@@ -48,13 +48,105 @@ struct WhatsNewPage: Identifiable, Equatable, @unchecked Sendable {
 
 extension WhatsNewPage {
 
-    /// Tour content for the v2.1 release — the IA spine pass.
-    /// Covers the merged Today scroll, the new Insights tab, the
-    /// enriched Protocols tab, the premium Live Activity, and the
-    /// Today overview card. Mounted automatically on first launch
-    /// after a bump to `WhatsNewService.currentTourVersion` so
-    /// existing users see the new map before they have to discover
-    /// it themselves.
+    /// Tour content for the v3.0 training-pivot release. Walks
+    /// returning users through the new tab structure (Today / Train
+    /// / Meals / Insights / Library), the muscle map, the active
+    /// workout flow, and the demoted-but-still-reachable peptide
+    /// surfaces. Mounted automatically on first launch after the
+    /// `WhatsNewService.currentTourVersion` bumps to
+    /// "v3.0-training".
+    static let v30Training: [WhatsNewPage] = [
+        WhatsNewPage(
+            id: "v3_welcome",
+            eyebrow: "What's new",
+            title: "Atlas is now a training app",
+            body: "Train, eat, and recover live at the top of the bottom bar. Your peptide protocols are still here — they're just one tab over.",
+            icon: "figure.strengthtraining.traditional",
+            gradient: [
+                Color(red: 0.55, green: 0.50, blue: 0.92),
+                Color(red: 0.95, green: 0.50, blue: 0.55),
+            ],
+            accent: Color(red: 0.55, green: 0.50, blue: 0.92),
+            bullets: [
+                "New Train tab with 870+ exercises",
+                "New Meals tab — promoted from Today",
+                "Library now hosts peptides + protocols + research",
+            ]
+        ),
+        WhatsNewPage(
+            id: "v3_train",
+            eyebrow: "Train",
+            title: "Your weekly muscle map",
+            body: "Every workout you log lights up the body. The Overview tab shows which muscles you trained this week and surfaces your top three regions with set counts.",
+            icon: "figure.strengthtraining.traditional",
+            gradient: [
+                Color(red: 0.92, green: 0.45, blue: 0.62),
+                Color(red: 0.55, green: 0.50, blue: 0.85),
+            ],
+            accent: Color(red: 0.92, green: 0.45, blue: 0.62),
+            bullets: [
+                "Two-tap set logging with auto-prefilled prev values",
+                "PR detection celebrates new e1RM / volume bests",
+                "Exercise detail shows primary + secondary muscles",
+            ]
+        ),
+        WhatsNewPage(
+            id: "v3_meals",
+            eyebrow: "Meals",
+            title: "Food gets its own tab",
+            body: "Macros, meal scan, food library, recipes, and barcode scan are all one tap away now instead of scrolling through Today.",
+            icon: "fork.knife",
+            gradient: [
+                Color(red: 1.00, green: 0.62, blue: 0.30),
+                Color(red: 0.95, green: 0.50, blue: 0.30),
+            ],
+            accent: Color(red: 1.00, green: 0.62, blue: 0.30),
+            bullets: [
+                "Macro rings stay front-and-center",
+                "Streak badge tracks consecutive logged days",
+                "Recipes + custom foods carry over from before",
+            ]
+        ),
+        WhatsNewPage(
+            id: "v3_library",
+            eyebrow: "Library",
+            title: "Peptides + protocols, one tab",
+            body: "Your peptide reference, your protocols, and the AI research assistant all live in Library now. Profile moves to a top-right avatar on Today.",
+            icon: "books.vertical.fill",
+            gradient: [
+                Color(red: 0.40, green: 0.74, blue: 0.92),
+                Color(red: 0.48, green: 0.50, blue: 0.92),
+            ],
+            accent: Color(red: 0.40, green: 0.74, blue: 0.92),
+            bullets: [
+                "Tap the stack icon to open your protocols",
+                "AI research assistant unchanged",
+                "Profile + settings via the Today avatar",
+            ]
+        ),
+        WhatsNewPage(
+            id: "v3_outro",
+            eyebrow: "And more",
+            title: "Everything you had still works",
+            body: "Live Activities, Siri, Action Button, Spotlight, Watch, dose logging, weekly summaries, lab tracking — all here, just better organised.",
+            icon: "checkmark.seal.fill",
+            gradient: [
+                Color(red: 0.48, green: 0.50, blue: 0.92),
+                Color(red: 0.36, green: 0.78, blue: 0.55),
+            ],
+            accent: Color(red: 0.36, green: 0.78, blue: 0.55),
+            bullets: [
+                "Live Activities for every dose",
+                "Apple Watch + widgets",
+                "Reconstitution calculator + travel mode",
+            ]
+        ),
+    ]
+
+    /// Previous v2.1 tour content. Kept in source so the test
+    /// suite's assertions against this fixture stay stable across
+    /// content evolutions and so a future locale-diff audit can
+    /// trace string churn.
     static let v21: [WhatsNewPage] = [
         WhatsNewPage(
             id: "v2_1_welcome",
