@@ -123,6 +123,11 @@ final class WatchStore: NSObject, ObservableObject {
             var updated = watchData.todayEntries
             updated[index].completed.toggle()
             let completed = updated.filter(\.completed).count
+            // Preserve the nutrition snapshot — without re-passing it the
+            // initializer's default nil hides the Nutrition page (which
+            // PeptideWatchApp gates on `nutrition != nil`) until the next
+            // phone-side sync arrives. Dose-toggle should never flicker
+            // the unrelated nutrition tab off and on.
             watchData = WatchData(
                 todayEntries: updated,
                 completedToday: completed,
@@ -130,7 +135,8 @@ final class WatchStore: NSObject, ObservableObject {
                 lastUpdated: Date(),
                 currentStreak: watchData.currentStreak,
                 weeklyCompliance: watchData.weeklyCompliance,
-                totalDosesLogged: watchData.totalDosesLogged
+                totalDosesLogged: watchData.totalDosesLogged,
+                nutrition: watchData.nutrition
             )
         }
 

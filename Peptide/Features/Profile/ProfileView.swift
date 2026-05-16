@@ -110,9 +110,9 @@ struct ProfileView: View {
                 ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
             }
             // Labs sheet + the `pendingLabsOpen` deep-link
-            // consumption moved to InsightsView in Phase 32 — labs
-            // now live under "Insights" alongside the correlation
-            // engines they share the analytical surface with.
+            // consumption live on `BiologyView` now — labs sit
+            // alongside the biomarker list on the Biology tab, and
+            // the Home overview-card insight tap routes there.
         }
     }
 

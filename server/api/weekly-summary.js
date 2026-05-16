@@ -131,7 +131,8 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    res.status(500).json({ error: { message: 'Proxy not configured' } });
+    console.error('[weekly-summary] ANTHROPIC_API_KEY missing on this deployment');
+    res.status(503).json({ error: { message: 'Service unavailable' } });
     return;
   }
 

@@ -11,7 +11,7 @@ struct StackAlertDetailSheet: View {
     private var severityColor: Color {
         switch warning.severity {
         case .danger: return AppColor.destructive
-        case .caution: return Color.orange
+        case .caution: return AppColor.warning
         case .info: return AppColor.accentPrimary
         }
     }

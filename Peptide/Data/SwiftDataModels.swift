@@ -19,7 +19,13 @@ private let sdDecoder: JSONDecoder = {
 
 @Model
 final class StoredProtocol {
-    @Attribute(.unique) var id: UUID
+    // CloudKit-backed stores reject `@Attribute(.unique)` — the
+    // container init throws and the fallback chain in
+    // `SwiftDataRepository.makeCloudContainer()` silently drops the
+    // user to a local-only store. Uniqueness is enforced by the
+    // fetch-then-update-or-insert pattern in
+    // `SwiftDataRepository.saveProtocols`.
+    var id: UUID
     var name: String
     var cycleLengthWeeks: Int
     var startDate: Date
@@ -159,7 +165,10 @@ private struct EncodedSchedule: Codable {
 
 @Model
 final class StoredEntry {
-    @Attribute(.unique) var id: UUID
+    // See StoredProtocol — `.unique` is CloudKit-incompatible.
+    // Uniqueness is enforced by the fetch-then-update-or-insert
+    // pattern in `SwiftDataRepository.saveEntries`.
+    var id: UUID
     var protocolId: UUID
     var date: Date
     var dose: String

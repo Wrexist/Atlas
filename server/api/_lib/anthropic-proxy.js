@@ -38,6 +38,9 @@ const MAX_TOKENS_HARDCAP = 800;
 // new turn). 4 was too small — the third user turn already produced 5
 // messages and the proxy rejected it.
 const MAX_MESSAGES = 40;
+// Absolute body-size ceiling. Each route can pass a tighter
+// `maxBodyBytes` to `forwardToAnthropic` — meal-scan needs ~5 MB for
+// a JPEG payload, ai-research is text-only and ~64 KB is plenty.
 const MAX_BODY_BYTES = 7 * 1024 * 1024;
 
 function getAllowedModels() {
@@ -159,7 +162,12 @@ function authorize(req) {
   return constantTimeEquals(provided, expected);
 }
 
-export async function forwardToAnthropic(req, res, { logLabel, systemPrefix, allowClientSystem }) {
+export async function forwardToAnthropic(req, res, {
+  logLabel,
+  systemPrefix,
+  allowClientSystem,
+  maxBodyBytes,
+}) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: { message: 'Use POST' } });
     return;
@@ -179,12 +187,20 @@ export async function forwardToAnthropic(req, res, { logLabel, systemPrefix, all
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    res.status(500).json({ error: { message: 'Proxy not configured' } });
+    // Log loudly server-side so the deployer notices, but tell the
+    // client a generic "service unavailable" — leaking "proxy not
+    // configured" advertises a half-deployed environment.
+    console.error(`[${logLabel}] ANTHROPIC_API_KEY missing on this deployment`);
+    res.status(503).json({ error: { message: 'Service unavailable' } });
     return;
   }
 
   const contentLength = parseInt(req.headers['content-length'] || '0', 10);
-  if (contentLength > MAX_BODY_BYTES) {
+  const bodyCap = Math.min(
+    typeof maxBodyBytes === 'number' && maxBodyBytes > 0 ? maxBodyBytes : MAX_BODY_BYTES,
+    MAX_BODY_BYTES
+  );
+  if (contentLength > bodyCap) {
     res.status(413).json({
       error: { message: 'Request too large; resize before retrying' }
     });

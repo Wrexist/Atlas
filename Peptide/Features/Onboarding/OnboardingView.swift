@@ -1054,6 +1054,11 @@ struct OnboardingView: View {
             requestingNotifications = false
             if granted, !dataStore.profile.doseRemindersEnabled {
                 dataStore.profile.doseRemindersEnabled = true
+                // Persist so a crash / quick backgrounding between here
+                // and the next onboarding-driven save doesn't lose the
+                // toggle. Settings-side `onChange` handlers do this same
+                // belt-and-braces persist.
+                dataStore.persistProfile()
             }
         }
     }

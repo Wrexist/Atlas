@@ -34,6 +34,12 @@ export default async function handler(req, res) {
     logLabel: 'ai-research',
     systemPrefix: AI_RESEARCH_SYSTEM_PREFIX,
     allowClientSystem: true,
+    // Text-only route. The longest legitimate payload is a 40-message
+    // chat history + ~4 KB RAG context — ~256 KB is generous. The
+    // shared 7 MB cap is a budget for meal-scan's JPEG; keeping that
+    // size on a text route just lets a tampered client burn upstream
+    // tokens.
+    maxBodyBytes: 256 * 1024,
   });
 }
 

@@ -57,7 +57,12 @@ struct BiomarkerListSection: View {
                 }
             }
         }
-        .task(id: visibleBiomarkers) { await refresh() }
+        // Re-key on a hashed identity rather than the full array. Without
+        // this, dismissing the Edit sheet re-fires the HealthKit fan-out
+        // even when the visible set didn't actually change — the parent
+        // re-evaluates `biologyConfig.visibleBiomarkers` and SwiftUI sees
+        // a structurally equal array with a fresh identity each time.
+        .task(id: visibleBiomarkers.hashValue) { await refresh() }
     }
 
     private var emptyState: some View {

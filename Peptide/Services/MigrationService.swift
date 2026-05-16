@@ -39,17 +39,23 @@ final class MigrationService {
         let entriesOK   = !hadEntriesFile   || entries   != nil
         let profileOK   = !hadProfileFile   || profile   != nil
 
-        // Import what we have. Empty arrays are fine; nil means decode failed.
-        if let protocols { repo.saveProtocols(protocols) }
-        if let entries   { repo.saveEntries(entries)     }
-        if let profile   { repo.saveProfile(profile)     }
-
+        // All-or-nothing: if any source file existed and failed to decode,
+        // bail BEFORE writing anything to SwiftData. The previous order
+        // (save protocols → bail on profile decode failure) left protocols
+        // in SwiftData while profile.json was still the canonical store,
+        // so the next launch saw `hasAnyData == true`, skipped migration,
+        // and the user's profile fields were permanently orphaned.
         guard protocolsOK, entriesOK, profileOK else {
             AppLog.persistence.error(
-                "Migration partial failure (protocols: \(protocolsOK, privacy: .public), entries: \(entriesOK, privacy: .public), profile: \(profileOK, privacy: .public)) — leaving JSON files in place for retry"
+                "Migration aborted before write (protocols: \(protocolsOK, privacy: .public), entries: \(entriesOK, privacy: .public), profile: \(profileOK, privacy: .public)) — leaving JSON files in place for retry"
             )
             return
         }
+
+        // Decode succeeded for everything we expected. Now import.
+        if let protocols { repo.saveProtocols(protocols) }
+        if let entries   { repo.saveEntries(entries)     }
+        if let profile   { repo.saveProfile(profile)     }
 
         // Sanity check: if we expected data but SwiftData ended up empty, something
         // went wrong silently. Don't archive in that case.

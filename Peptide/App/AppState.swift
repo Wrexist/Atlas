@@ -115,7 +115,14 @@ enum FoodLogDeepLink: Equatable, Sendable {
             guard let uuid = UUID(uuidString: payload) else { return nil }
             self = .custom(id: uuid)
         case "off":
-            guard !payload.isEmpty else { return nil }
+            // OFF barcodes are 8-14 ASCII digits. A malicious
+            // NSUserActivity (Handoff sync, a crafted Spotlight
+            // donation by another app) could push arbitrary strings
+            // through this path otherwise; the validated shape
+            // matches `OpenFoodFactsService.normalize(barcode:)`.
+            guard (8...14).contains(payload.count),
+                  payload.allSatisfy({ $0.isASCII && $0.isNumber })
+            else { return nil }
             self = .openFoodFacts(barcode: payload)
         case "recipe":
             guard let uuid = UUID(uuidString: payload) else { return nil }
