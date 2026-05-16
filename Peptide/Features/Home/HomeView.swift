@@ -13,6 +13,11 @@ struct HomeView: View {
     /// the View on its own.
     @State private var notificationService = NotificationService.shared
     @State private var showProfileCustomization = false
+    /// Phase D demoted Profile from the tab bar to a top-right
+    /// avatar entry on Today. Tap routes through this sheet so the
+    /// user reaches their full Profile screen in one hop without
+    /// nesting a NavigationStack.
+    @State private var showProfileSheet = false
     /// 0…1 fade progress for the sticky compressing header. Driven
     /// by `.onScrollGeometryChange` so the bar materialises in lock-
     /// step with the user's finger.
@@ -115,7 +120,11 @@ struct HomeView: View {
                             if dataStore.profile.hapticFeedbackEnabled {
                                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             }
-                            showProfileCustomization = true
+                            // Phase D: avatar opens the full Profile
+                            // screen now (Profile lost its tab slot).
+                            // ProfileCustomizationSheet stays
+                            // reachable from inside ProfileView.
+                            showProfileSheet = true
                         }
                     )
                     .sectionAppear(index: 0)
@@ -129,7 +138,13 @@ struct HomeView: View {
                         date: Date(),
                         onTapCycle: {
                             withAnimation(AppAnimation.springSnappy) {
-                                appState.selectedTab = .protocols
+                                // Phase D: Protocols is no longer a
+                                // top-level tab — route through the
+                                // pending-flag pattern so the user
+                                // lands on the protocol list inside
+                                // Library in one navigation hop.
+                                appState.pendingProtocolList = true
+                                appState.selectedTab = .library
                             }
                         }
                     )
@@ -345,7 +360,7 @@ struct HomeView: View {
                         if dataStore.profile.hapticFeedbackEnabled {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         }
-                        showProfileCustomization = true
+                        showProfileSheet = true
                     },
                     progress: stickyProgress
                 )
@@ -372,6 +387,11 @@ struct HomeView: View {
                     .environment(dataStore)
                     .environment(appState)
                     .liquidGlassPresentation()
+            }
+            .sheet(isPresented: $showProfileSheet) {
+                ProfileView()
+                    .environment(dataStore)
+                    .environment(appState)
             }
             .sheet(item: $milestonePrompt) { item in
                 CycleMilestonePromptSheet(
@@ -753,7 +773,8 @@ struct HomeView: View {
             message: "Set up a peptide protocol to start tracking doses, streaks, and compliance.",
             action: .init(title: "Get started", icon: "plus") {
                 withAnimation(AppAnimation.springSnappy) {
-                    appState.selectedTab = .protocols
+                    appState.pendingProtocolList = true
+                    appState.selectedTab = .library
                 }
             },
             secondary: .init(title: "Browse the library", icon: "magnifyingglass") {

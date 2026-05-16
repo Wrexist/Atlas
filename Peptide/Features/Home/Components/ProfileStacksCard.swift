@@ -49,7 +49,8 @@ struct ProfileStacksCard: View {
                         if dataStore.profile.hapticFeedbackEnabled {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         }
-                        appState.selectedTab = .protocols
+                        appState.pendingProtocolList = true
+                        appState.selectedTab = .library
                         dismiss()
                     } label: {
                         HStack(spacing: Spacing.xs) {
@@ -80,14 +81,15 @@ struct ProfileStacksCard: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textSecondary)
 
-            Text("Create your first protocol from the Protocols tab to start tracking doses, streaks, and compliance.")
+            Text("Create your first protocol from the Library tab to start tracking doses, streaks, and compliance.")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
             Button {
-                appState.selectedTab = .protocols
+                appState.pendingProtocolList = true
+                appState.selectedTab = .library
                 dismiss()
             } label: {
                 Label("Create Stack", systemImage: "plus")
@@ -127,7 +129,8 @@ struct ProfileStacksCard: View {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
             appState.pendingProtocolDeepLink = stack.id
-            appState.selectedTab = .protocols
+            appState.pendingProtocolList = true
+            appState.selectedTab = .library
             dismiss()
         } label: {
             VStack(alignment: .leading, spacing: Spacing.xs) {

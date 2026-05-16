@@ -1,0 +1,145 @@
+import SwiftUI
+
+/// Single-set row inside the active-workout exercise card. Renders
+/// the set index, an editable weight (kg), an editable reps count,
+/// optional RPE, the "previous session" hint when available, and a
+/// completion checkbox.
+///
+/// Set logging optimises for taps-to-completion: prev values are
+/// pre-filled by `WorkoutSessionService.addSet`, so the user often
+/// just taps the checkmark.
+struct SetEditorRow: View {
+    @Binding var set: SetEntry
+    let previousSet: SetEntry?
+    let onDelete: () -> Void
+
+    @FocusState private var weightFocused: Bool
+    @FocusState private var repsFocused: Bool
+
+    var body: some View {
+        HStack(spacing: Spacing.xs) {
+            indexBadge
+
+            previousReference
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            weightField
+            repsField
+
+            completionToggle
+        }
+        .padding(.vertical, Spacing.xs)
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive, action: onDelete) {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+
+    private var indexBadge: some View {
+        Text("\(set.index)")
+            .font(AppFont.caption.weight(.semibold))
+            .monospacedDigit()
+            .foregroundStyle(set.completed ? AppColor.background : AppColor.textPrimary)
+            .frame(width: 24, height: 24)
+            .background(
+                Circle()
+                    .fill(set.completed
+                          ? AppColor.accentPrimary
+                          : AppColor.surfaceSecondary.opacity(0.6))
+            )
+            .overlay(
+                Circle().stroke(AppColor.glassBorder, lineWidth: 0.5)
+            )
+    }
+
+    @ViewBuilder
+    private var previousReference: some View {
+        if set.isWarmup {
+            Text("Warmup")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.streak)
+        } else if let prev = previousSet {
+            Text("\(formatted(prev.weightKg)) × \(prev.reps)")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textTertiary)
+        } else {
+            Text("—")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textTertiary)
+        }
+    }
+
+    private var weightField: some View {
+        TextField("kg",
+                  value: Binding(
+                    get: { set.weightKg },
+                    set: { set.weightKg = $0 }
+                  ),
+                  format: .number.precision(.fractionLength(0...1)))
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.center)
+            .font(AppFont.callout.weight(.semibold))
+            .foregroundStyle(AppColor.textPrimary)
+            .monospacedDigit()
+            .focused($weightFocused)
+            .frame(width: 60, height: 32)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(AppColor.surfaceSecondary.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(weightFocused ? AppColor.accentPrimary : AppColor.glassBorder,
+                            lineWidth: weightFocused ? 1 : 0.5)
+            )
+    }
+
+    private var repsField: some View {
+        TextField("reps",
+                  value: Binding(
+                    get: { set.reps },
+                    set: { set.reps = $0 }
+                  ),
+                  format: .number)
+            .keyboardType(.numberPad)
+            .multilineTextAlignment(.center)
+            .font(AppFont.callout.weight(.semibold))
+            .foregroundStyle(AppColor.textPrimary)
+            .monospacedDigit()
+            .focused($repsFocused)
+            .frame(width: 48, height: 32)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(AppColor.surfaceSecondary.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(repsFocused ? AppColor.accentPrimary : AppColor.glassBorder,
+                            lineWidth: repsFocused ? 1 : 0.5)
+            )
+    }
+
+    private var completionToggle: some View {
+        Button {
+            set.completed.toggle()
+        } label: {
+            Image(systemName: set.completed ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(set.completed
+                                 ? Color(red: 0.30, green: 0.80, blue: 0.50)
+                                 : AppColor.textTertiary)
+                .frame(width: 32, height: 32)
+                .contentTransition(.symbolEffect(.replace))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(set.completed ? "Set complete" : "Mark set complete")
+    }
+
+    private func formatted(_ kg: Double) -> String {
+        if kg.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(Int(kg))
+        }
+        return String(format: "%.1f", kg)
+    }
+}

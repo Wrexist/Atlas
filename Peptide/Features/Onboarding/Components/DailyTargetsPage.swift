@@ -17,7 +17,7 @@ struct DailyTargetsPage: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
 
-                Text("Calculated from your stats. Tweak any time on the Lifestyle tab.")
+                Text("Calculated from your stats. Tweak any time on the Meals tab.")
                     .font(AppFont.body)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
