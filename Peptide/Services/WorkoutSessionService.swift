@@ -25,12 +25,23 @@ final class WorkoutSessionService {
     // MARK: - Lifecycle
 
     /// Begin a new session, optionally seeded from a routine.
-    /// Discards any pre-existing in-progress session — the user
-    /// should be prompted before this is called (the UI will show a
-    /// "Discard current workout?" alert).
+    ///
+    /// Idempotent under rapid double-tap and concurrent UI surfaces:
+    /// if a session was started within the last 2 seconds (typical
+    /// SwiftUI re-render window), the existing one is returned
+    /// instead of being replaced. The destructive "discard the old
+    /// workout to start a new one" path is reserved for the explicit
+    /// UI alert that confirms the action.
     @discardableResult
     func startWorkout(routine: Routine? = nil) -> WorkoutSession {
         if let existing = activeSession {
+            if existing.startedAt.timeIntervalSinceNow > -2 {
+                // Recently-started session — collapse the duplicate
+                // start (deep link + tab tap, two finger taps on the
+                // CTA, etc.) into the existing session instead of
+                // discarding the user's data.
+                return existing
+            }
             SwiftDataRepository.shared.deleteWorkoutSession(id: existing.id)
         }
         let exercises: [WorkoutExerciseEntry] = routine?.exercises.enumerated().map { idx, slot in

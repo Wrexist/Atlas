@@ -898,18 +898,19 @@ struct OnboardingView: View {
     }
 
     private var recommendedProgramName: String {
-        switch (primaryGoal, daysPerWeek) {
-        case (.getStronger, _):        return "5/3/1 Strength"
-        case (.buildMuscle, 5...):     return "Push Pull Legs"
-        case (.buildMuscle, _):        return "Upper / Lower"
-        case (.loseFat, _):            return "Full Body Hypertrophy"
-        case (.athletic, _):           return "Athletic Conditioning"
-        case (.recomp, _):             return "Hybrid Recomp"
-        case (.stayConsistent, _):     return "Consistency Builder"
-        // Defensive default so a future `PrimaryGoal` case lands on
-        // a real string rather than relying on the tuple-pattern's
-        // implicit fallthrough behavior.
-        default:                       return "Atlas Starter"
+        // Switch on the goal first, then refine by days inside each
+        // arm where the choice depends on volume. Avoids the
+        // partial-range-inside-tuple-pattern Swift 6 parser ambiguity
+        // (the older `case (.buildMuscle, 5...)` form looked like it
+        // worked but the audit flagged it as unreliable across
+        // compiler versions).
+        switch primaryGoal {
+        case .getStronger:    return "5/3/1 Strength"
+        case .buildMuscle:    return daysPerWeek >= 5 ? "Push Pull Legs" : "Upper / Lower"
+        case .loseFat:        return "Full Body Hypertrophy"
+        case .athletic:       return "Athletic Conditioning"
+        case .recomp:         return "Hybrid Recomp"
+        case .stayConsistent: return "Consistency Builder"
         }
     }
 

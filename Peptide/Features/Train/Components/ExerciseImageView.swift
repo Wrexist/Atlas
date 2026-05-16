@@ -87,7 +87,11 @@ private struct BoundedRemoteImage: View {
         config.urlCache = URLCache(memoryCapacity: 8_000_000,
                                    diskCapacity: 64_000_000,
                                    directory: nil)
-        config.requestCachePolicy = .returnCacheDataElseLoad
+        // Revalidate cached entries against the origin so a poisoned
+        // image that landed before the bounds check tightened can't
+        // be served forever — the conditional GET stays cheap (304
+        // Not Modified) when the upstream image is unchanged.
+        config.requestCachePolicy = .reloadRevalidatingCacheData
         return URLSession(configuration: config)
     }()
 

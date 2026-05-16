@@ -294,7 +294,12 @@ struct TrainingCalendarGrid: View {
               let firstDayWeekday = cal.dateComponents([.weekday], from: monthInterval.start).weekday
         else { return AnyView(EmptyView()) }
 
+        // Calendar.range returns nil for invalid components, and in
+        // pathological cases could theoretically return an empty
+        // range — guard before building `1...daysInMonth` so a
+        // ClosedRange trap can't fire under any locale / time zone.
         let daysInMonth = cal.range(of: .day, in: .month, for: now)?.count ?? 30
+        guard daysInMonth > 0 else { return AnyView(EmptyView()) }
         // Convert to Monday-first column index: Sunday=1 → 6, Monday=2 → 0, …
         let leadingBlanks = (firstDayWeekday + 5) % 7
 
