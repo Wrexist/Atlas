@@ -18,6 +18,11 @@ import Foundation
 enum BiomarkerSeriesService {
 
     static let windowDays: Int = 14
+    /// Long-form window for detail-sheet charts. 90 days reads as
+    /// "the last quarter" — long enough to see seasonal trends in
+    /// HRV / RHR / weight without becoming a wall-of-data the
+    /// user can't scan.
+    static let detailWindowDays: Int = 90
     /// Minimum daily values before we'll call a trend direction.
     /// Below this we surface `.insufficient` instead of flipping
     /// up/down on two noisy readings.
@@ -36,14 +41,16 @@ enum BiomarkerSeriesService {
     static func snapshots(
         for biomarkers: [Biomarker],
         weightHistory: [WeightEntry],
-        latestLab: LabValue?
+        latestLab: LabValue?,
+        days: Int = windowDays
     ) async -> [BiomarkerSnapshot] {
         var result: [BiomarkerSnapshot] = []
         for biomarker in biomarkers {
             let snapshot = await snapshot(
                 for: biomarker,
                 weightHistory: weightHistory,
-                latestLab: latestLab
+                latestLab: latestLab,
+                days: days
             )
             result.append(snapshot)
         }
@@ -53,19 +60,20 @@ enum BiomarkerSeriesService {
     private static func snapshot(
         for biomarker: Biomarker,
         weightHistory: [WeightEntry],
-        latestLab: LabValue?
+        latestLab: LabValue?,
+        days: Int
     ) async -> BiomarkerSnapshot {
         switch biomarker {
         case .weight:
-            return weightSnapshot(weightHistory: weightHistory)
+            return weightSnapshot(weightHistory: weightHistory, days: days)
         case .hrvBaseline:
-            let series = await HealthKitService.shared.dailyHRV(days: windowDays)
+            let series = await HealthKitService.shared.dailyHRV(days: days)
             return seriesSnapshot(.hrvBaseline, series: series.map(\.value))
         case .rhrBaseline:
-            let series = await HealthKitService.shared.dailyRestingHeartRate(days: windowDays)
+            let series = await HealthKitService.shared.dailyRestingHeartRate(days: days)
             return seriesSnapshot(.rhrBaseline, series: series.map(\.value))
         case .sleepBaseline:
-            let series = await HealthKitService.shared.dailySleepHours(days: windowDays)
+            let series = await HealthKitService.shared.dailySleepHours(days: days)
             return seriesSnapshot(.sleepBaseline, series: series.map(\.value))
         case .stepsBaseline:
             // No daily-steps helper today — surfaces as "no data"
@@ -85,14 +93,18 @@ enum BiomarkerSeriesService {
 
     // MARK: - Per-source builders
 
-    /// Pulls the 14 most recent WeightEntry samples (kilograms is
-    /// the canonical storage unit on UserProfile). Trend math
-    /// runs over the actual sequence, not just first vs last —
-    /// a single outlier shouldn't flip the direction.
-    static func weightSnapshot(weightHistory: [WeightEntry]) -> BiomarkerSnapshot {
+    /// Pulls the most recent WeightEntry samples within the
+    /// requested window (kilograms is the canonical storage unit
+    /// on UserProfile). Trend math runs over the actual sequence,
+    /// not just first vs last — a single outlier shouldn't flip
+    /// the direction.
+    static func weightSnapshot(
+        weightHistory: [WeightEntry],
+        days: Int = windowDays
+    ) -> BiomarkerSnapshot {
         let recent = weightHistory
             .sorted { $0.date < $1.date }
-            .suffix(windowDays)
+            .suffix(days)
             .map(\.kg)
         guard let latest = recent.last else { return .empty(.weight) }
         let trend = inferTrend(samples: recent)

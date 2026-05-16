@@ -43,6 +43,7 @@ struct BiologyView: View {
                             title: "View Your Biological Age",
                             subtitle: "Track how you're aging and discover which habits move your Bio Age.",
                             ctaLabel: "View",
+                            qualifier: "Available for users 18+",
                             onTap: { presentPaywall() }
                         )
                     }
@@ -80,7 +81,8 @@ struct BiologyView: View {
             .sheet(item: $detailItem) { item in
                 BiomarkerDetailSheet(
                     biomarker: item.biomarker,
-                    snapshot: item.snapshot
+                    initialSnapshot: item.snapshot,
+                    historicalFetcher: { await fetchHistorical(for: item.biomarker) }
                 )
                 .liquidGlassPresentation()
             }
@@ -137,22 +139,34 @@ struct BiologyView: View {
         if dataStore.profile.hapticFeedbackEnabled {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
-        // Fetch a fresh snapshot synchronously so the sheet has
-        // something to render the moment it mounts. The async
-        // refresh inside the sheet's hosting service runs again
-        // on appear if the data has moved since.
+        // Fetch the 14-day initial snapshot so the sheet has
+        // something to render the moment it mounts. The sheet
+        // upgrades to the 90-day chart on its own .task via the
+        // historicalFetcher closure below.
         Task {
-            let latestLab = dataStore.latestLabSummaries
-                .max(by: { $0.latest.date < $1.latest.date })?
-                .latest
-            let snapshots = await BiomarkerSeriesService.snapshots(
-                for: [biomarker],
-                weightHistory: dataStore.profile.weightHistory,
-                latestLab: latestLab
-            )
-            let snapshot = snapshots.first ?? .empty(biomarker)
+            let snapshot = await snapshot(for: biomarker, days: BiomarkerSeriesService.windowDays)
             detailItem = BiomarkerDetailItem(biomarker: biomarker, snapshot: snapshot)
         }
+    }
+
+    /// 90-day fetcher passed to the detail sheet. Same code path
+    /// as `openDetail`, just with the long-window day count so
+    /// the chart can show seasonal trends.
+    private func fetchHistorical(for biomarker: Biomarker) async -> BiomarkerSnapshot? {
+        await snapshot(for: biomarker, days: BiomarkerSeriesService.detailWindowDays)
+    }
+
+    private func snapshot(for biomarker: Biomarker, days: Int) async -> BiomarkerSnapshot {
+        let latestLab = dataStore.latestLabSummaries
+            .max(by: { $0.latest.date < $1.latest.date })?
+            .latest
+        let snapshots = await BiomarkerSeriesService.snapshots(
+            for: [biomarker],
+            weightHistory: dataStore.profile.weightHistory,
+            latestLab: latestLab,
+            days: days
+        )
+        return snapshots.first ?? .empty(biomarker)
     }
 
     // MARK: - Paywall

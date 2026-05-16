@@ -15,6 +15,10 @@ struct PremiumPromoCard<Trailing: View>: View {
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey?
     let ctaLabel: LocalizedStringKey?
+    /// Optional qualifier pill rendered between subtitle and CTA.
+    /// Used by the Biology tab's "Available for users 18+" gate;
+    /// other surfaces leave it nil and the pill doesn't render.
+    let qualifier: LocalizedStringKey?
     let onTap: () -> Void
     let trailing: () -> Trailing
 
@@ -23,6 +27,7 @@ struct PremiumPromoCard<Trailing: View>: View {
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey? = nil,
         ctaLabel: LocalizedStringKey? = "View",
+        qualifier: LocalizedStringKey? = nil,
         onTap: @escaping () -> Void,
         @ViewBuilder trailing: @escaping () -> Trailing
     ) {
@@ -30,6 +35,7 @@ struct PremiumPromoCard<Trailing: View>: View {
         self.title = title
         self.subtitle = subtitle
         self.ctaLabel = ctaLabel
+        self.qualifier = qualifier
         self.onTap = onTap
         self.trailing = trailing
     }
@@ -56,9 +62,14 @@ struct PremiumPromoCard<Trailing: View>: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
+                    if let qualifier {
+                        qualifierPill(label: qualifier)
+                            .padding(.top, Spacing.xs)
+                    }
+
                     if let ctaLabel {
                         ctaPill(label: ctaLabel)
-                            .padding(.top, Spacing.xs)
+                            .padding(.top, qualifier == nil ? Spacing.xs : 2)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -96,6 +107,29 @@ struct PremiumPromoCard<Trailing: View>: View {
                     }
             }
     }
+
+    /// "Available for users 18+" style qualifier — quieter than
+    /// the CTA pill so it reads as a regulatory / eligibility
+    /// note, not a tappable action. Uses a lock glyph to suggest
+    /// "this is gated".
+    private func qualifierPill(label: LocalizedStringKey) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 9, weight: .heavy))
+            Text(label)
+                .font(.system(size: 10, weight: .heavy, design: .rounded))
+                .tracking(0.3)
+        }
+        .foregroundStyle(Color.white.opacity(0.85))
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, 4)
+        .background {
+            Capsule().fill(Color.white.opacity(0.08))
+                .overlay {
+                    Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+                }
+        }
+    }
 }
 
 // MARK: - Default trailing convenience
@@ -106,6 +140,7 @@ extension PremiumPromoCard where Trailing == BrandGlyphMark {
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey? = nil,
         ctaLabel: LocalizedStringKey? = "View",
+        qualifier: LocalizedStringKey? = nil,
         onTap: @escaping () -> Void
     ) {
         self.init(
@@ -113,6 +148,7 @@ extension PremiumPromoCard where Trailing == BrandGlyphMark {
             title: title,
             subtitle: subtitle,
             ctaLabel: ctaLabel,
+            qualifier: qualifier,
             onTap: onTap,
             trailing: { BrandGlyphMark() }
         )

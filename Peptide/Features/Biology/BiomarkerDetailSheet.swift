@@ -12,8 +12,26 @@ import Charts
 /// more data" placeholder takes its slot.
 struct BiomarkerDetailSheet: View {
     let biomarker: Biomarker
-    let snapshot: BiomarkerSnapshot
+    /// Initial 14-day snapshot the host hands in for instant
+    /// render. The sheet upgrades to a 90-day snapshot via the
+    /// fetcher closure on appear so the chart fills out as soon
+    /// as HealthKit / store reads land.
+    let initialSnapshot: BiomarkerSnapshot
+    /// Async fetch closure the host wires to a service call.
+    /// Returns a wider-window snapshot (typically 90 days) so the
+    /// chart and "vs recent average" surfaces have more history.
+    /// Nil → the sheet renders from `initialSnapshot` only.
+    var historicalFetcher: (() async -> BiomarkerSnapshot?)?
+
+    @State private var historicalSnapshot: BiomarkerSnapshot?
     @Environment(\.dismiss) private var dismiss
+
+    /// What the rest of the view reads — the larger window if the
+    /// fetch succeeded, otherwise the instant initial snapshot
+    /// the host handed in.
+    private var snapshot: BiomarkerSnapshot {
+        historicalSnapshot ?? initialSnapshot
+    }
 
     var body: some View {
         NavigationStack {
@@ -33,6 +51,17 @@ struct BiomarkerDetailSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
+                }
+            }
+            .task {
+                // Upgrade from the host's 14-day snapshot to the
+                // 90-day series for the chart. If the fetcher is
+                // nil or returns nil (no data / HealthKit blocked),
+                // we keep rendering the initial snapshot.
+                guard historicalSnapshot == nil,
+                      let fetcher = historicalFetcher else { return }
+                if let larger = await fetcher() {
+                    historicalSnapshot = larger
                 }
             }
         }
@@ -164,7 +193,11 @@ struct BiomarkerDetailSheet: View {
                     }
                 }
                 .chartXAxis {
-                    AxisMarks(values: .stride(by: 7)) { value in
+                    // Stride scales with the window — daily ticks
+                    // would be unreadable at 90 days, weekly is
+                    // unreadable at 14, so we pick based on series
+                    // length.
+                    AxisMarks(values: .stride(by: axisStride)) { value in
                         AxisValueLabel {
                             if let day = value.as(Int.self) {
                                 Text(dayLabel(daysAgo: day))
@@ -203,7 +236,20 @@ struct BiomarkerDetailSheet: View {
         if daysAgo == -7 { return "1w" }
         if daysAgo == -14 { return "2w" }
         if daysAgo == -30 { return "1mo" }
+        if daysAgo == -60 { return "2mo" }
+        if daysAgo == -90 { return "3mo" }
         return "\(abs(daysAgo))d"
+    }
+
+    /// Picks an axis stride that produces readable tick labels
+    /// across the spectrum of window sizes the sheet might
+    /// render — 14 daily samples (initial snapshot) → 2-day
+    /// stride, 90 daily samples (historical) → 14-day stride.
+    private var axisStride: Int {
+        let count = snapshot.sparkline.count
+        if count >= 80 { return 14 }
+        if count >= 30 { return 7 }
+        return 2
     }
 
     private var insufficientChartPlaceholder: some View {
@@ -295,7 +341,7 @@ struct BiomarkerDetailSheet: View {
 #Preview("HRV — full series") {
     BiomarkerDetailSheet(
         biomarker: .hrvBaseline,
-        snapshot: BiomarkerSnapshot(
+        initialSnapshot: BiomarkerSnapshot(
             biomarker: .hrvBaseline,
             latest: 58,
             trend: .up,
@@ -308,6 +354,6 @@ struct BiomarkerDetailSheet: View {
 #Preview("Weight — empty") {
     BiomarkerDetailSheet(
         biomarker: .weight,
-        snapshot: .empty(.weight)
+        initialSnapshot: .empty(.weight)
     )
 }

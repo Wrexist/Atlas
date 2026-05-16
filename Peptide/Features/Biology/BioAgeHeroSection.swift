@@ -105,18 +105,21 @@ struct BioAgeHeroSection: View {
     }
 
     private func unlockedCentre(estimate: PerformanceAgeEngine.Estimate) -> some View {
-        // Detail rendering ships in commit 7 alongside the
-        // confidence-driven state determination. For now: a
-        // minimum-viable big-number so a tester forcing the
-        // .unlocked case via a debug builds doesn't see an
-        // empty centre. Final styling (cosmic glow underneath,
-        // delta-from-chronological badge, drivers preview) is
-        // commit 7's job.
-        Text(Self.bigNumberFormatter.string(from: NSNumber(value: estimate.biologicalAge)) ?? "—")
+        // Big number with cosmic glow + sign-tinted color so the
+        // "younger than chronological" / "older than chronological"
+        // story reads in the first 200ms of glance time. Glow uses
+        // the same accent tint as the number, dialled down so it
+        // suggests depth without competing with the cosmic
+        // backdrop.
+        let isYounger = estimate.biologicalAge < Double(chronologicalAge)
+        let tint = unlockedTint(isYounger: isYounger)
+        return Text(Self.bigNumberFormatter.string(from: NSNumber(value: estimate.biologicalAge)) ?? "—")
             .font(.system(size: 56, weight: .heavy, design: .rounded))
-            .foregroundStyle(.white)
+            .foregroundStyle(tint)
             .monospacedDigit()
             .contentTransition(.numericText())
+            .shadow(color: tint.opacity(0.6), radius: 24, y: 0)
+            .shadow(color: tint.opacity(0.25), radius: 6, y: 0)
     }
 
     // MARK: - State affordance (Pro pill / progress label / value below)
@@ -163,10 +166,118 @@ struct BioAgeHeroSection: View {
     }
 
     private func unlockedBigNumber(estimate: PerformanceAgeEngine.Estimate) -> some View {
-        Text(Self.bigNumberFormatter.string(from: NSNumber(value: estimate.biologicalAge)) ?? "—")
-            .font(.system(size: 44, weight: .heavy, design: .rounded))
-            .foregroundStyle(.white)
-            .monospacedDigit()
+        // Below the dial: delta-from-chronological badge + drivers
+        // preview. "4 years younger" is the headline; the drivers
+        // pills are the small print explaining what's moving it.
+        VStack(spacing: Spacing.sm) {
+            deltaBadge(for: estimate)
+            if !estimate.drivers.isEmpty {
+                driversPreview(estimate: estimate)
+            }
+        }
+    }
+
+    private func deltaBadge(for estimate: PerformanceAgeEngine.Estimate) -> some View {
+        let delta = estimate.biologicalAge - Double(chronologicalAge)
+        let absDelta = abs(delta)
+        let absRounded = absDelta < 0.05 ? 0 : absDelta
+        let isYounger = delta < 0
+        let tint = unlockedTint(isYounger: isYounger)
+        let label: String = {
+            if absRounded == 0 {
+                return String(localized: "Matching your age")
+            }
+            let formatted = String(format: "%.1f", absRounded)
+            return isYounger
+                ? String(format: String(localized: "%@ years younger"), formatted)
+                : String(format: String(localized: "%@ years older"), formatted)
+        }()
+        let icon = absRounded == 0
+            ? "equal.circle.fill"
+            : (isYounger ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
+        return HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .heavy))
+            Text(label)
+                .font(.system(size: 13, weight: .heavy, design: .rounded))
+        }
+        .foregroundStyle(tint)
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, 6)
+        .background {
+            Capsule().fill(tint.opacity(0.18))
+                .overlay {
+                    Capsule().strokeBorder(tint.opacity(0.35), lineWidth: 0.5)
+                }
+        }
+    }
+
+    private func driversPreview(estimate: PerformanceAgeEngine.Estimate) -> some View {
+        // Top three contributors by absolute impact. Drivers are
+        // already sorted by the engine; we just trim. Each pill
+        // shows the kind + signed delta in years so the user
+        // reads "HRV −2.5y / Sleep +1.5y / RHR −1.8y" at a
+        // glance.
+        HStack(spacing: Spacing.xs) {
+            ForEach(estimate.drivers.prefix(3)) { driver in
+                driverPill(driver)
+            }
+        }
+        .padding(.horizontal, Spacing.lg)
+    }
+
+    private func driverPill(_ driver: PerformanceAgeEngine.Driver) -> some View {
+        let isYounger = driver.deltaYears < 0
+        let signed = String(format: "%@%.1fy",
+                            driver.deltaYears > 0 ? "+" : "",
+                            driver.deltaYears)
+        return HStack(spacing: 3) {
+            Image(systemName: driverIcon(for: driver.kind))
+                .font(.system(size: 9, weight: .heavy))
+            Text(driverLabel(for: driver.kind))
+                .font(.system(size: 10, weight: .heavy, design: .rounded))
+                .tracking(0.3)
+            Text(signed)
+                .font(.system(size: 10, weight: .heavy))
+                .monospacedDigit()
+        }
+        .foregroundStyle(unlockedTint(isYounger: isYounger).opacity(0.95))
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, 4)
+        .background {
+            Capsule().fill(Color.white.opacity(0.08))
+                .overlay {
+                    Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 0.5)
+                }
+        }
+    }
+
+    private func driverIcon(for kind: PerformanceAgeEngine.Driver.Kind) -> String {
+        switch kind {
+        case .hrv:    return "waveform.path.ecg"
+        case .rhr:    return "heart.fill"
+        case .sleep:  return "bed.double.fill"
+        case .weight: return "scalemass.fill"
+        }
+    }
+
+    private func driverLabel(for kind: PerformanceAgeEngine.Driver.Kind) -> String {
+        switch kind {
+        case .hrv:    return "HRV"
+        case .rhr:    return "RHR"
+        case .sleep:  return "SLEEP"
+        case .weight: return "WEIGHT"
+        }
+    }
+
+    /// Tint applied to the big bio-age number, the delta badge,
+    /// and the driver pills. Green when younger / matching; warm
+    /// orange when older. Saturated enough that the cosmic
+    /// backdrop doesn't wash them out.
+    private func unlockedTint(isYounger: Bool) -> Color {
+        isYounger
+            ? Color(red: 0.55, green: 0.92, blue: 0.65)   // soft mint-green
+            : Color(red: 0.97, green: 0.62, blue: 0.42)   // warm orange
     }
 
     // MARK: - Formatters
