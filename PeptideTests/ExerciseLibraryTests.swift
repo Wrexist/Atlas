@@ -4,13 +4,14 @@ import XCTest
 @MainActor
 final class ExerciseLibraryTests: XCTestCase {
 
-    /// `ExerciseLibrary` is a singleton; load it once for the suite.
-    /// Idempotent — calling `load()` after a successful parse is a
-    /// no-op.
-    private var library: ExerciseLibrary {
-        let lib = ExerciseLibrary.shared
-        lib.load()
-        return lib
+    /// `ExerciseLibrary` is a singleton — `setUp` awaits the bundled
+    /// load once for the suite. Idempotent — calling `load()` after a
+    /// successful parse is a no-op.
+    private var library: ExerciseLibrary { ExerciseLibrary.shared }
+
+    override func setUp() async throws {
+        try await super.setUp()
+        await ExerciseLibrary.shared.load()
     }
 
     /// The shared singleton's `custom` overlay survives across tests
@@ -31,9 +32,9 @@ final class ExerciseLibraryTests: XCTestCase {
                              "Bundled dataset should contain the full yuhonas/free-exercise-db catalog (~870 entries)")
     }
 
-    func test_load_isIdempotent() {
+    func test_load_isIdempotent() async {
         let firstCount = library.bundled.count
-        library.load()
+        await library.load()
         XCTAssertEqual(library.bundled.count, firstCount,
                        "load() should be a no-op on the second call")
     }

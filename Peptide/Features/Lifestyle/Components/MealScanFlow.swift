@@ -23,6 +23,12 @@ struct MealScanFlow: View {
     @State private var category: MealCategory = MealCategory.auto(for: Date())
     @State private var isShowingCamera = false
     @State private var cameraDeniedAlert: CameraDeniedReason?
+    /// Tracks the in-flight image-load and Anthropic analysis tasks so
+    /// they get cancelled when the sheet is dismissed. Without this,
+    /// closing the sheet mid-scan leaves the 30-second Anthropic call
+    /// running to completion (burning proxy quota for a request the
+    /// user abandoned) and mutating @State on a now-detached view.
+    @State private var inFlightTask: Task<Void, Never>?
 
     private enum Phase: Equatable {
         case pickImage
@@ -64,8 +70,13 @@ struct MealScanFlow: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onDisappear {
+            inFlightTask?.cancel()
+            inFlightTask = nil
+        }
         .onChange(of: selectedItem) { _, newValue in
-            Task { await loadImage(from: newValue) }
+            inFlightTask?.cancel()
+            inFlightTask = Task { await loadImage(from: newValue) }
         }
         .fullScreenCover(isPresented: $isShowingCamera) {
             CameraPicker(
@@ -73,7 +84,8 @@ struct MealScanFlow: View {
                     isShowingCamera = false
                     image = captured
                     phase = .analyzing
-                    Task { await runAnalysis(on: captured) }
+                    inFlightTask?.cancel()
+                    inFlightTask = Task { await runAnalysis(on: captured) }
                 },
                 onCancel: { isShowingCamera = false },
                 cameraDevice: .rear,

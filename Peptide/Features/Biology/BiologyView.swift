@@ -161,14 +161,16 @@ struct BiologyView: View {
         if dataStore.profile.hapticFeedbackEnabled {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
-        // Fetch the 14-day initial snapshot so the sheet has
-        // something to render the moment it mounts. The sheet
-        // upgrades to the 90-day chart on its own .task via the
-        // historicalFetcher closure below.
-        Task {
-            let snapshot = await snapshot(for: biomarker, days: BiomarkerSeriesService.windowDays)
-            detailItem = BiomarkerDetailItem(biomarker: biomarker, snapshot: snapshot)
-        }
+        // Present the sheet immediately with an empty snapshot, then
+        // let it fill in via `historicalFetcher`. Fetching before
+        // setting `detailItem` raced on rapid taps: the second tap
+        // would overwrite the first `detailItem`, and SwiftUI's
+        // `.sheet(item:)` dismisses the first sheet mid-flight on
+        // an Identifiable change.
+        detailItem = BiomarkerDetailItem(
+            biomarker: biomarker,
+            snapshot: .empty(biomarker)
+        )
     }
 
     /// 90-day fetcher passed to the detail sheet. Same code path

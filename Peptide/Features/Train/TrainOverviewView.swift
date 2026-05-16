@@ -49,7 +49,7 @@ struct TrainOverviewView: View {
         }
         .refreshable { refresh() }
         .task { @MainActor in
-            library.load()
+            await library.load()
             refresh()
         }
     }

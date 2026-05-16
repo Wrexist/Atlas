@@ -52,16 +52,19 @@ enum BioAgeStateResolver {
         async let hrv   = kit.averageHRV(days: 30)
         async let rhr   = kit.averageRestingHeartRate(days: 30)
         async let sleep = kit.averageSleepHours(days: 30)
-        // Day count is approximated from the HealthKit
-        // averageHRV being non-nil; a proper "samples in window"
-        // count would need a dedicated query. For the
-        // PerformanceAgeEngine confidence curve, we pass 30
-        // (full window) when HRV came back, 0 otherwise — the
-        // engine treats < 7 days as zero confidence anyway.
+        // HealthKit averages don't carry a sample count, so we
+        // can't tell whether HRV came from 1 day or 30. To stay
+        // honest about confidence, we floor at `minBaselineDays`
+        // (7) when HRV is present — enough for the engine to
+        // attempt an estimate, but the confidence curve stays
+        // conservative until a real "samples-in-window" query
+        // gives us a true count. The previous behaviour passed
+        // 30 unconditionally and could surface an estimate
+        // backed by a single day of HRV.
         let hrvValue = await hrv
         let rhrValue = await rhr
         let sleepValue = await sleep
-        let dataDays = hrvValue != nil ? 30 : 0
+        let dataDays = hrvValue != nil ? minBaselineDays : 0
 
         let inputs = PerformanceAgeEngine.Inputs(
             chronologicalAge: age,

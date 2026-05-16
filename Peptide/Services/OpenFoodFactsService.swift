@@ -265,29 +265,58 @@ final class OpenFoodFactsService: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 15
 
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await session.data(for: request)
-        } catch let urlError as URLError where Self.isNetworkUnavailable(urlError) {
-            throw LookupError.networkUnavailable
-        } catch {
-            throw LookupError.requestFailed(status: -1)
+        // Same retry policy as the barcode path: transient OFF gateway
+        // errors (502/503/504) and URLSession transport hiccups (-1)
+        // self-resolve within a second or two; let the loop absorb them
+        // rather than surfacing as a hard failure on the first attempt.
+        let maxAttempts = Self.retryBackoffs.count + 1
+        var finalData: Data?
+        var finalResponse: HTTPURLResponse?
+        attempts: for attempt in 0..<maxAttempts {
+            if attempt > 0 {
+                try await Task.sleep(for: Self.retryBackoffs[attempt - 1])
+            }
+            let data: Data
+            let response: URLResponse
+            do {
+                (data, response) = try await session.data(for: request)
+            } catch let urlError as URLError where Self.isNetworkUnavailable(urlError) {
+                throw LookupError.networkUnavailable
+            } catch {
+                if attempt == maxAttempts - 1 { throw LookupError.serviceUnavailable }
+                continue
+            }
+            guard let http = response as? HTTPURLResponse else {
+                if attempt == maxAttempts - 1 { throw LookupError.serviceUnavailable }
+                continue
+            }
+            if Self.retryableStatuses.contains(http.statusCode) {
+                if attempt == maxAttempts - 1 {
+                    AppLog.persistence.error(
+                        "OFF search \(http.statusCode, privacy: .public): retries exhausted"
+                    )
+                    throw LookupError.serviceUnavailable
+                }
+                continue
+            }
+            // Terminal status — exit and let the switch below classify.
+            finalData = data
+            finalResponse = http
+            break attempts
         }
-
-        guard let http = response as? HTTPURLResponse else {
-            throw LookupError.requestFailed(status: -1)
+        guard let data = finalData, let http = finalResponse else {
+            throw LookupError.serviceUnavailable
         }
         switch http.statusCode {
         case 200..<300:
             break
         case 429:
             // Telemetry: surface 429s to Console.app so we can spot
-            // abuse patterns. Includes the query so a problematic
-            // pattern (super-short queries, weird unicode) is
-            // diagnosable from the logs alone.
+            // abuse patterns. Query is logged at `.private` so a
+            // user's search terms don't leak into the device-wide
+            // unified log.
             AppLog.persistence.error(
-                "OFF rate-limited (429) for query: \(trimmed, privacy: .public)"
+                "OFF rate-limited (429) for query: \(trimmed, privacy: .private)"
             )
             throw LookupError.rateLimited
         default:
@@ -380,7 +409,7 @@ final class OpenFoodFactsService: Sendable {
                    Self.retryableStatuses.contains(status) {
                     if attempt == maxAttempts - 1 {
                         AppLog.persistence.error(
-                            "OFF \(status, privacy: .public) for \(barcode, privacy: .public): retries exhausted"
+                            "OFF \(status, privacy: .public) for \(barcode, privacy: .private): retries exhausted"
                         )
                         throw LookupError.serviceUnavailable
                     }
@@ -466,6 +495,37 @@ final class OpenFoodFactsService: Sendable {
     /// Mode, captive portals, mid-flight signal drop, and DNS-down
     /// all surface through these codes; the UI pivots into "showing
     /// cached results" mode rather than "lookup failed, try again".
+    /// Allow-listed host suffixes for product image URLs. OFF data is
+    /// community-edited, so the `image_front_small_url` field is
+    /// effectively user-controlled — accepting arbitrary HTTPS hosts
+    /// would let a malicious record exfiltrate the user's IP and scan
+    /// signal to any third-party server the moment AsyncImage starts
+    /// loading. Scope to OFF's own image CDNs.
+    private static let trustedImageHostSuffixes: [String] = [
+        ".openfoodfacts.org",
+        ".openfoodfacts.net",
+    ]
+
+    /// Validates a community-supplied image URL string before letting
+    /// AsyncImage load it. Drops anything that isn't HTTPS, lacks a
+    /// host, or whose host doesn't end in one of
+    /// `trustedImageHostSuffixes`. Visible-for-tests via `static`.
+    static func safeImageURL(from raw: String) -> URL? {
+        guard let url = URL(string: raw),
+              url.scheme == "https",
+              let host = url.host?.lowercased()
+        else { return nil }
+        // Exact-host match against the trust list (e.g. "openfoodfacts.org")
+        // or a sub-domain (".openfoodfacts.org" suffix).
+        for suffix in trustedImageHostSuffixes {
+            let bareHost = String(suffix.dropFirst())
+            if host == bareHost || host.hasSuffix(suffix) {
+                return url
+            }
+        }
+        return nil
+    }
+
     private static func isNetworkUnavailable(_ error: URLError) -> Bool {
         switch error.code {
         case .notConnectedToInternet,
@@ -561,7 +621,7 @@ private extension OpenFoodFactsService {
                 name: resolvedName,
                 brand: brands?.trimmingCharacters(in: .whitespacesAndNewlines)
                     .nilIfEmpty,
-                imageURL: imageFrontSmallURL.flatMap { URL(string: $0) },
+                imageURL: imageFrontSmallURL.flatMap(OpenFoodFactsService.safeImageURL(from:)),
                 servingSizeText: servingSize?.trimmingCharacters(in: .whitespacesAndNewlines)
                     .nilIfEmpty,
                 // OFF occasionally serializes 0 for unknown weights —

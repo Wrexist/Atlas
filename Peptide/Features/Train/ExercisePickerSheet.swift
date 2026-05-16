@@ -33,7 +33,7 @@ struct ExercisePickerSheet: View {
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: Text("Search exercises")
             )
-            .task { library.load() }
+            .task { await library.load() }
         }
     }
 

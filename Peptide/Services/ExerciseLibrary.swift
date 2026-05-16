@@ -38,25 +38,32 @@ final class ExerciseLibrary {
     /// Bundled-resource failures are rare but recoverable filesystem
     /// hiccups (incomplete OTA, App Store CDN glitch) shouldn't lock
     /// the user out of training permanently.
-    func load() {
+    func load() async {
         guard !isLoaded else { return }
         let started = Date()
         guard let url = Bundle.main.url(forResource: "exercises", withExtension: "json") else {
             AppLog.training.error("ExerciseLibrary: exercises.json missing from bundle")
             return
         }
-        do {
-            let data = try Data(contentsOf: url)
-            let decoded = try JSONDecoder().decode([Exercise].self, from: data)
-            bundled = decoded
-            byID = Dictionary(uniqueKeysWithValues: decoded.map { ($0.id, $0) })
-            isLoaded = true
-            AppLog.training.info(
-                "ExerciseLibrary loaded \(decoded.count, privacy: .public) exercises in \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public)ms"
-            )
-        } catch {
-            AppLog.training.error("ExerciseLibrary decode failed: \(error.localizedDescription, privacy: .public)")
-        }
+        // Move the read + decode off the main actor. The bundled JSON is
+        // ~800 KB; on older devices the synchronous Data(contentsOf:) +
+        // JSONDecoder runs visibly stalled the first Train tab open.
+        let parsed: [Exercise]? = await Task.detached(priority: .userInitiated) {
+            do {
+                let data = try Data(contentsOf: url)
+                return try JSONDecoder().decode([Exercise].self, from: data)
+            } catch {
+                AppLog.training.error("ExerciseLibrary decode failed: \(error.localizedDescription, privacy: .public)")
+                return nil
+            }
+        }.value
+        guard let decoded = parsed else { return }
+        bundled = decoded
+        byID = Dictionary(uniqueKeysWithValues: decoded.map { ($0.id, $0) })
+        isLoaded = true
+        AppLog.training.info(
+            "ExerciseLibrary loaded \(decoded.count, privacy: .public) exercises in \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public)ms"
+        )
     }
 
     /// Forces a re-load on the next `load()` call. Used by tests and by
