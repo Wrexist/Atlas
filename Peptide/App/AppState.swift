@@ -50,9 +50,12 @@ final class AppState {
     /// profile customization sheet to deep-link from a stack row to that
     /// protocol's full detail screen.
     var pendingProtocolDeepLink: UUID?
-    /// When set, the Lifestyle tab opens the food library with the
-    /// matching food pre-selected on the review screen. Cleared the
-    /// moment Lifestyle consumes it. Populated by the CoreSpotlight
+    /// When set, the Meals tab opens the food library with the matching
+    /// food pre-selected on the review screen. Only the Meals-tab
+    /// instance of `HomeMealsSection` (the one with
+    /// `consumesDeepLink: true`) clears it — the Today-scroll
+    /// instance ignores the flag to avoid a same-runloop race
+    /// between the two live mounts. Populated by the CoreSpotlight
     /// `NSUserActivity` handler so tapping a food result on the Home
     /// Screen's Spotlight pull-down lands the user directly on the
     /// log-this-food sheet, not just on the app's launch view.

@@ -16,6 +16,7 @@ struct BiologyView: View {
     )
     @State private var showPaywall = false
     @State private var showEditSheet = false
+    @State private var showLabs = false
     /// Drives the per-biomarker detail sheet. Identifiable wrapper
     /// so `.sheet(item:)` lifecycle is clean across taps.
     @State private var detailItem: BiomarkerDetailItem?
@@ -86,6 +87,14 @@ struct BiologyView: View {
                 )
                 .liquidGlassPresentation()
             }
+            .sheet(isPresented: $showLabs) {
+                LabsView()
+                    .environment(dataStore)
+            }
+            .onAppear { consumePendingLabsDeepLink() }
+            .onChange(of: appState.pendingLabsOpen) { _, _ in
+                consumePendingLabsDeepLink()
+            }
         }
         .task { await refreshState() }
         .onChange(of: storeService.isProUser) { _, _ in
@@ -94,6 +103,19 @@ struct BiologyView: View {
         .onChange(of: dataStore.profile.age) { _, _ in
             Task { await refreshState() }
         }
+    }
+
+    /// Consumes the cross-tab "open Labs" deep-link flag set by the
+    /// Home overview card's latest-lab insight tap. Cleared the
+    /// moment we present the sheet so re-appearing the tab doesn't
+    /// re-fire. Mirrors the consumer that lived on the retired
+    /// `InsightsView` so the deep-link from `HomeView.onTapInsight`
+    /// still lands on the right surface after the Insights → Biology
+    /// rename.
+    private func consumePendingLabsDeepLink() {
+        guard appState.pendingLabsOpen else { return }
+        appState.pendingLabsOpen = false
+        showLabs = true
     }
 
     // MARK: - Bio Age resolution

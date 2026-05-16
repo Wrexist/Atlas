@@ -30,7 +30,12 @@ private let trainingDecoder: JSONDecoder = {
 /// SwiftData migration.
 @Model
 final class StoredWorkoutSession {
-    @Attribute(.unique) var id: UUID
+    // CloudKit-backed stores reject `@Attribute(.unique)` — uniqueness
+    // is enforced by the fetch-then-insert-or-update pattern in
+    // `SwiftDataRepository.saveWorkoutSession`, so the constraint
+    // added nothing here except a CloudKit init failure that
+    // silently dropped users to the local store.
+    var id: UUID
     var name: String?
     var routineID: UUID?
     var programID: UUID?
@@ -123,7 +128,8 @@ final class StoredWorkoutSession {
 
 @Model
 final class StoredCustomExercise {
-    @Attribute(.unique) var id: String
+    // See StoredWorkoutSession — `.unique` is CloudKit-incompatible.
+    var id: String
     var name: String
     var equipment: String?
     var createdAt: Date
@@ -191,7 +197,8 @@ final class StoredCustomExercise {
 
 @Model
 final class StoredRoutine {
-    @Attribute(.unique) var id: UUID
+    // See StoredWorkoutSession — `.unique` is CloudKit-incompatible.
+    var id: UUID
     var name: String
     var subtitle: String?
     var defaultRestSeconds: Int?
@@ -250,7 +257,11 @@ final class StoredRoutine {
 
 @Model
 final class StoredPersonalRecord {
-    @Attribute(.unique) var exerciseID: String
+    // See StoredWorkoutSession — `.unique` is CloudKit-incompatible.
+    // `SwiftDataRepository.savePersonalRecord` already does a
+    // fetch-by-exerciseID then update-or-insert, so the unique
+    // attribute only ever caused a CloudKit init failure.
+    var exerciseID: String
     var bestEstimatedOneRepMaxKg: Double?
     var bestEstimatedOneRepMaxAt: Date?
     var bestAbsoluteWeightKg: Double?
