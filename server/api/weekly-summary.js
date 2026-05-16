@@ -16,6 +16,7 @@
  * Returns: `{ text: string, generatedAt: ISOString }`.
  */
 import { timingSafeEqual } from 'node:crypto';
+import { clientKey } from './_lib/anthropic-proxy.js';
 
 const MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 360; // ~280 words; 150 ideal, 200 hard ceiling
@@ -68,10 +69,8 @@ const buckets = new Map();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_RPM = parseInt(process.env.WEEKLY_RPM || '6', 10);
 
-function clientKey(req) {
-  const forwarded = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || req.socket?.remoteAddress || 'unknown';
-}
+// `clientKey` lives in `_lib/anthropic-proxy.js` so all three routes share
+// the same Vercel-aware (un-spoofable) IP derivation.
 
 function checkRateLimit(req) {
   if (!Number.isFinite(RATE_LIMIT_RPM) || RATE_LIMIT_RPM <= 0) return true;

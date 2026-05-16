@@ -146,8 +146,11 @@ final class OpenFoodFactsService: Sendable {
     /// existing `.requestFailed` path lets the user surface that to
     /// support. 502/503/504 are the codes OFF emits when its edge or
     /// upstream is briefly overloaded; observed in the wild around
-    /// peak hours and self-resolving within seconds.
-    private static let retryableStatuses: Set<Int> = [502, 503, 504]
+    /// peak hours and self-resolving within seconds. `-1` is the
+    /// sentinel emitted by `performLookup` for URLSession transport
+    /// errors (timeout, dropped connection) — those are at least as
+    /// retryable as a 502.
+    private static let retryableStatuses: Set<Int> = [-1, 502, 503, 504]
 
     /// Backoff schedule between retry attempts. Three attempts total
     /// (initial + two retries) with a worst-case added wait of ~1.2s,

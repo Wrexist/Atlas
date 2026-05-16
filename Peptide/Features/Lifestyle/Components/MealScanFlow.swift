@@ -22,12 +22,23 @@ struct MealScanFlow: View {
     @State private var errorText: String?
     @State private var category: MealCategory = MealCategory.auto(for: Date())
     @State private var isShowingCamera = false
+    @State private var cameraDeniedAlert: CameraDeniedReason?
 
     private enum Phase: Equatable {
         case pickImage
         case analyzing
         case review
         case error
+    }
+
+    /// Drives the alert that explains why the camera couldn't open and
+    /// what the user can do next. `.denied` deep-links to Settings;
+    /// `.restricted` (parental controls) only tells the user to use
+    /// the photo library instead.
+    private enum CameraDeniedReason: Identifiable {
+        case denied
+        case restricted
+        var id: Self { self }
     }
 
     var body: some View {
@@ -70,6 +81,42 @@ struct MealScanFlow: View {
             )
             .ignoresSafeArea()
         }
+        .alert(item: $cameraDeniedAlert) { reason in
+            switch reason {
+            case .denied:
+                Alert(
+                    title: Text("Camera Access Off"),
+                    message: Text("Turn on Camera access for Atlas in Settings to scan meals with your camera. You can still pick a photo from your library."),
+                    primaryButton: .default(Text("Open Settings")) {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    },
+                    secondaryButton: .cancel(Text("Use Library"))
+                )
+            case .restricted:
+                Alert(
+                    title: Text("Camera Unavailable"),
+                    message: Text("The camera is restricted on this device — likely by Screen Time or a profile policy. Pick a photo from your library to continue."),
+                    dismissButton: .default(Text("Use Library"))
+                )
+            }
+        }
+    }
+
+    /// Resolves camera authorization before presenting `CameraPicker`.
+    /// Without this gate, `.denied` and `.restricted` users get a
+    /// black `fullScreenCover` with no system prompt and no clear
+    /// dismiss path.
+    private func tapTakePhoto() async {
+        switch await CameraAuthorization.resolve() {
+        case .granted:
+            isShowingCamera = true
+        case .denied:
+            cameraDeniedAlert = .denied
+        case .restricted:
+            cameraDeniedAlert = .restricted
+        }
     }
 
     // MARK: - Phases
@@ -86,7 +133,7 @@ struct MealScanFlow: View {
             VStack(spacing: Spacing.sm) {
                 if UIImagePickerController.SourceType.cameraIsAvailable {
                     Button {
-                        isShowingCamera = true
+                        Task { await tapTakePhoto() }
                     } label: {
                         pickerButtonLabel(
                             icon: "camera.fill",

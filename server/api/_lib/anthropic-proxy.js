@@ -46,11 +46,22 @@ function getAllowedModels() {
   return raw.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
-function clientKey(req) {
-  // x-forwarded-for can carry a comma-separated chain; the first entry
-  // is the original client.
-  const forwarded = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || req.socket?.remoteAddress || 'unknown';
+// Exported so the other proxy files (`weekly-summary.js`) can share the
+// Vercel-aware rate-limit key derivation.
+export function clientKey(req) {
+  // Vercel sets `x-vercel-forwarded-for` server-side from its own edge
+  // and strips any client-supplied copy of the same header, so it
+  // can't be spoofed by the caller — unlike `x-forwarded-for`, which
+  // a client can set freely (rotating a fresh value per request would
+  // bypass the per-IP limiter and drain the Anthropic key).
+  const vercel = (req.headers['x-vercel-forwarded-for'] || '').split(',')[0].trim();
+  if (vercel) return vercel;
+  // `x-real-ip` is also set by Vercel itself and is single-valued.
+  const real = (req.headers['x-real-ip'] || '').trim();
+  if (real) return real;
+  // Fall back to the socket remote — only happens on local `vercel dev`
+  // or self-hosted Node, where the proxy isn't behind Vercel's edge.
+  return req.socket?.remoteAddress || 'unknown';
 }
 
 function checkRateLimit(req) {
@@ -67,7 +78,25 @@ function checkRateLimit(req) {
   return bucket.count <= limit;
 }
 
-function sanitiseBody(raw) {
+// Anthropic accepts content parts of these typed shapes. Anything else
+// (tool_use, tool_result, document, ...) is rejected so a tampered
+// client can't reach features the app doesn't ship — and so the proxy
+// surface only exposes what the iOS code actually sends.
+const ALLOWED_CONTENT_TYPES = new Set(['text', 'image']);
+
+function sanitiseContent(content) {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return null;
+  const parts = [];
+  for (const part of content) {
+    if (!part || typeof part !== 'object') return null;
+    if (!ALLOWED_CONTENT_TYPES.has(part.type)) return null;
+    parts.push(part);
+  }
+  return parts;
+}
+
+function sanitiseBody(raw, options) {
   if (!raw || typeof raw !== 'object') return null;
   const allowedModels = getAllowedModels();
   const model = typeof raw.model === 'string' && allowedModels.includes(raw.model)
@@ -82,17 +111,30 @@ function sanitiseBody(raw) {
   if (!Array.isArray(raw.messages) || raw.messages.length === 0) return null;
   if (raw.messages.length > MAX_MESSAGES) return null;
 
-  // Pass messages through but strip unknown fields per item. Anthropic
-  // accepts { role, content } where content is a string or an array of
-  // typed parts ({ type: "text" | "image", ... }).
   const messages = raw.messages.map((m) => {
     if (!m || (m.role !== 'user' && m.role !== 'assistant')) return null;
-    return { role: m.role, content: m.content };
+    const content = sanitiseContent(m.content);
+    if (content === null) return null;
+    return { role: m.role, content };
   });
   if (messages.some((m) => m === null)) return null;
 
   const out = { model, max_tokens, messages };
-  if (typeof raw.system === 'string') out.system = raw.system.slice(0, 4000);
+
+  // System-prompt handling. Routes that don't expect a client system
+  // (`allowClientSystem: false`) drop any client-supplied value
+  // entirely. Routes that do still always get the pinned safety
+  // prefix prepended, so an injected client system can extend the
+  // grounding but never override it.
+  const allowClientSystem = options?.allowClientSystem !== false;
+  const pinnedPrefix = typeof options?.systemPrefix === 'string' ? options.systemPrefix : '';
+  const clientSystem = allowClientSystem && typeof raw.system === 'string'
+    ? raw.system.slice(0, 4000)
+    : '';
+  const composed = pinnedPrefix && clientSystem
+    ? `${pinnedPrefix}\n\n${clientSystem}`
+    : (pinnedPrefix || clientSystem);
+  if (composed) out.system = composed;
   return out;
 }
 
@@ -117,7 +159,7 @@ function authorize(req) {
   return constantTimeEquals(provided, expected);
 }
 
-export async function forwardToAnthropic(req, res, { logLabel }) {
+export async function forwardToAnthropic(req, res, { logLabel, systemPrefix, allowClientSystem }) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: { message: 'Use POST' } });
     return;
@@ -149,7 +191,7 @@ export async function forwardToAnthropic(req, res, { logLabel }) {
     return;
   }
 
-  const clean = sanitiseBody(req.body);
+  const clean = sanitiseBody(req.body, { systemPrefix, allowClientSystem });
   if (!clean) {
     res.status(400).json({ error: { message: 'Malformed request body' } });
     return;

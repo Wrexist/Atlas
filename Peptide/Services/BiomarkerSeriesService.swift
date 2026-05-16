@@ -35,26 +35,37 @@ enum BiomarkerSeriesService {
     static let trendFlatThreshold: Double = 0.015
 
     /// Build snapshots for the requested biomarkers in the
-    /// requested order. Each biomarker is fetched independently;
-    /// missing data degrades to `.empty(biomarker)` instead of
-    /// blocking the rest.
+    /// requested order. Each biomarker is fetched independently and
+    /// in parallel — a typical refresh fans out 4-5 HealthKit
+    /// queries, and the serial loop made the total latency the sum
+    /// rather than the max. Missing data degrades to `.empty(biomarker)`
+    /// instead of blocking the rest.
     static func snapshots(
         for biomarkers: [Biomarker],
         weightHistory: [WeightEntry],
         latestLab: LabValue?,
         days: Int = windowDays
     ) async -> [BiomarkerSnapshot] {
-        var result: [BiomarkerSnapshot] = []
-        for biomarker in biomarkers {
-            let snapshot = await snapshot(
-                for: biomarker,
-                weightHistory: weightHistory,
-                latestLab: latestLab,
-                days: days
-            )
-            result.append(snapshot)
+        await withTaskGroup(of: (Int, BiomarkerSnapshot).self) { group in
+            for (index, biomarker) in biomarkers.enumerated() {
+                group.addTask {
+                    let snap = await snapshot(
+                        for: biomarker,
+                        weightHistory: weightHistory,
+                        latestLab: latestLab,
+                        days: days
+                    )
+                    return (index, snap)
+                }
+            }
+            // Reassemble in the requested order — TaskGroup yields in
+            // completion order, but callers rely on a stable index.
+            var collected: [(Int, BiomarkerSnapshot)] = []
+            collected.reserveCapacity(biomarkers.count)
+            for await pair in group { collected.append(pair) }
+            collected.sort { $0.0 < $1.0 }
+            return collected.map(\.1)
         }
-        return result
     }
 
     private static func snapshot(
