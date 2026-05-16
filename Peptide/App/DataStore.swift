@@ -41,6 +41,14 @@ final class DataStore: DataServiceProtocol {
     @ObservationIgnored private var cacheVersion: Int = 0
     @ObservationIgnored private var versionedDay: Date = Calendar.current.startOfDay(for: Date())
 
+    /// IDs scheduled for delete on the next save. Replaces the
+    /// previous "bulk-replace and delete-missing" save path that
+    /// silently dropped CloudKit-added records the local in-memory
+    /// state hadn't picked up yet. Removal sites populate these;
+    /// `performSaveNow` drains them.
+    @ObservationIgnored private var pendingProtocolDeletions: Set<UUID> = []
+    @ObservationIgnored private var pendingEntryDeletions: Set<UUID> = []
+
     @ObservationIgnored private var _todayEntries: (version: Int, value: [ProtocolEntry])?
     @ObservationIgnored private var _currentStreak: (version: Int, value: Int)?
     @ObservationIgnored private var _totalDaysLogged: (version: Int, value: Int)?
@@ -140,6 +148,34 @@ final class DataStore: DataServiceProtocol {
         // store from outside the View hierarchy. Setting at the end
         // of init means callers never see a half-initialised store.
         Self.current = self
+
+        // Clear the in-memory cache + reload from disk if the user
+        // switches iCloud accounts mid-session. Without this the
+        // previous account's protocols + entries would remain visible
+        // to the new account until the next app launch.
+        NotificationCenter.default.addObserver(
+            forName: .peptideXiCloudIdentityChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleIdentityChange()
+            }
+        }
+    }
+
+    @MainActor
+    private func handleIdentityChange() {
+        AppLog.persistence.error("iCloud identity changed; clearing in-memory store and pending deletions")
+        // Drop pending writes — they belong to the previous identity.
+        pendingProtocolDeletions.removeAll()
+        pendingEntryDeletions.removeAll()
+        // didSet on protocols/entries auto-bumps cacheVersion so
+        // every derived metric (streak, weeklyCompletion, etc.)
+        // recomputes against the cleared state.
+        protocols = []
+        entries = []
+        profile = .fresh
     }
 
     /// The currently-active `DataStore`, set by `init` and consumed
@@ -192,6 +228,12 @@ final class DataStore: DataServiceProtocol {
     }
 
     func deleteProtocol(id: UUID) {
+        // Track the deletion explicitly so the save path can mirror
+        // it through to SwiftData / CloudKit; the removeAll on the
+        // arrays themselves is what the UI binds to.
+        pendingProtocolDeletions.insert(id)
+        let removedEntryIDs = entries.filter { $0.protocolId == id }.map(\.id)
+        pendingEntryDeletions.formUnion(removedEntryIDs)
         protocols.removeAll { $0.id == id }
         entries.removeAll { $0.protocolId == id }
         save()
@@ -319,6 +361,12 @@ final class DataStore: DataServiceProtocol {
         protocols[index] = updated
 
         if updated.status == .active {
+            let removed = entries.filter { entry in
+                entry.protocolId == updated.id &&
+                Calendar.current.isDateInToday(entry.date) &&
+                entry.peptide.id == peptide.id
+            }
+            pendingEntryDeletions.formUnion(removed.map(\.id))
             entries.removeAll { entry in
                 entry.protocolId == updated.id &&
                 Calendar.current.isDateInToday(entry.date) &&
@@ -376,6 +424,10 @@ final class DataStore: DataServiceProtocol {
         // the user already logged earlier today against that protocol,
         // which is real data loss.
         if updated.status == .active {
+            let removed = entries.filter { entry in
+                entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
+            }
+            pendingEntryDeletions.formUnion(removed.map(\.id))
             entries.removeAll { entry in
                 entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
             }
@@ -418,6 +470,10 @@ final class DataStore: DataServiceProtocol {
         protocols[index] = updated
 
         // Regenerate today's entries for this protocol so the change takes effect immediately.
+        let removedForRegen = entries.filter { entry in
+            entry.protocolId == protocolId && Calendar.current.isDateInToday(entry.date)
+        }
+        pendingEntryDeletions.formUnion(removedForRegen.map(\.id))
         entries.removeAll { entry in
             entry.protocolId == protocolId && Calendar.current.isDateInToday(entry.date)
         }
@@ -1323,8 +1379,28 @@ final class DataStore: DataServiceProtocol {
         // user flips the toggle off + reloadFromDisk restores the
         // real data.
         guard !isEphemeral else { return }
-        repo.saveProtocols(protocols)
-        repo.saveEntries(entries)
+
+        // Upsert + explicit-delete pattern. Previously this called
+        // saveProtocols(self.protocols) / saveEntries(self.entries)
+        // which used a "delete-everything-not-in-input" diff. When
+        // CloudKit delivered a remote insert between the last
+        // reloadFromDisk and now, that row was absent from the local
+        // arrays and would be silently deleted (and the deletion
+        // propagated back to CloudKit). Explicit deletion tracking
+        // closes that window: only IDs that DataStore actually
+        // intended to remove are deleted.
+        repo.upsertProtocols(protocols)
+        repo.upsertEntries(entries)
+        if !pendingProtocolDeletions.isEmpty {
+            for id in pendingProtocolDeletions {
+                repo.deleteProtocol(id: id)
+            }
+            pendingProtocolDeletions.removeAll()
+        }
+        if !pendingEntryDeletions.isEmpty {
+            repo.deleteEntries(ids: pendingEntryDeletions)
+            pendingEntryDeletions.removeAll()
+        }
         repo.saveProfile(profile)
         updateWidgetData()
         updateWatchData()
@@ -1501,6 +1577,11 @@ final class DataStore: DataServiceProtocol {
         entries = repo.loadEntries()
         if let saved = repo.loadProfile() { profile = saved }
         regenerateTodayEntries()
+        // CloudKit-driven pulls land here; without these the lock-
+        // screen widget and the Watch tab would stay stale until the
+        // next user mutation or the widget's 15-min auto-timer.
+        updateWidgetData()
+        updateWatchData()
     }
 
     // MARK: - Entry Generation

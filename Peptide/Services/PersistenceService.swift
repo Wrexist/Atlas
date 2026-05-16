@@ -85,6 +85,19 @@ final class PersistenceService: @unchecked Sendable {
     func updateWidgetData(_ data: WidgetData) {
         guard let url = widgetDataURL else { return }
         save(data, to: url)
+        Self.excludeFromBackup(url)
+    }
+
+    /// Marks regenerated-cache files (widget / watch payloads) so
+    /// they don't end up in iCloud Backup. These are reconstructed
+    /// from the canonical store on every launch; persisting them
+    /// across restore wastes quota and slows backups for power
+    /// users with multi-hundred-KB serialized state.
+    static func excludeFromBackup(_ url: URL) {
+        var url = url
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? url.setResourceValues(values)
     }
 
     // MARK: - State

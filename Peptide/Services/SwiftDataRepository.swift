@@ -23,8 +23,18 @@ final class SwiftDataRepository {
         container?.mainContext
     }
 
+    /// Snapshot of the iCloud identity token observed at container
+    /// creation. When the user signs out of iCloud or switches accounts
+    /// at the system level, this token changes and Apple's CloudKit
+    /// docs require us to react — otherwise writes go to a container
+    /// whose identity is stale and the next account's local view
+    /// silently inherits the previous account's local data.
+    private var lastObservedIdentityToken: (any NSCoding & NSCopying & NSObjectProtocol)?
+
     private init() {
-        let iCloudAvailable = FileManager.default.ubiquityIdentityToken != nil
+        let token = FileManager.default.ubiquityIdentityToken
+        lastObservedIdentityToken = token
+        let iCloudAvailable = token != nil
         if iCloudAvailable, let ck = Self.makeCloudContainer() {
             container = ck
             isCloudSyncEnabled = true
@@ -38,6 +48,51 @@ final class SwiftDataRepository {
             isInoperable = true
             assertionFailure("SwiftDataRepository: both on-disk and in-memory ModelContainer creation failed")
         }
+
+        // Observe iCloud identity changes. When the token swaps, pause
+        // writes and surface the change to DataStore so it can clear
+        // in-memory state — otherwise account A's local data
+        // becomes account B's local view on first launch under the
+        // new identity.
+        NotificationCenter.default.addObserver(
+            forName: .NSUbiquityIdentityDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleIdentityChange()
+            }
+        }
+    }
+
+    /// Compares the live identity token against the snapshot taken at
+    /// container creation. If the user signed out / switched accounts,
+    /// posts an internal notification so DataStore can clear its
+    /// in-memory state and re-init from the new container. The
+    /// container itself is reopened lazily on the next save attempt
+    /// rather than recreated synchronously, since SwiftData's
+    /// ModelContainer is expensive to re-establish.
+    @MainActor
+    private func handleIdentityChange() {
+        let current = FileManager.default.ubiquityIdentityToken
+        let prev = lastObservedIdentityToken
+        let isSame: Bool = {
+            switch (prev, current) {
+            case (nil, nil): return true
+            case let (a?, b?): return a.isEqual(b)
+            default: return false
+            }
+        }()
+        guard !isSame else { return }
+        lastObservedIdentityToken = current
+        AppLog.swiftData.error(
+            "iCloud identity changed; pausing repository writes until re-init"
+        )
+        isInoperable = true
+        // Post a notification so DataStore can clear its in-memory
+        // state. Defining the name inline rather than at module
+        // scope keeps the contract local to this file.
+        NotificationCenter.default.post(name: .peptideXiCloudIdentityChanged, object: nil)
     }
 
     private(set) var isCloudSyncEnabled = false
@@ -115,6 +170,15 @@ final class SwiftDataRepository {
 
     // MARK: - Protocols
 
+    /// Legacy bulk-replace path. Treats `protocols` as the full
+    /// canonical set: any stored row whose id is absent gets deleted.
+    /// **Do not use from save-path code that may run while CloudKit
+    /// is delivering remote inserts** — a remote-added row not yet
+    /// reflected in the caller's in-memory set will be silently
+    /// deleted (and the deletion propagates back to CloudKit).
+    /// Migration + tests rely on the truncate-and-replace behaviour;
+    /// the live save path should use `upsertProtocols` +
+    /// `deleteProtocol(id:)` instead.
     func saveProtocols(_ protocols: [PeptideProtocol]) {
         guard let context else { return }
         let existing: [StoredProtocol]
@@ -151,6 +215,53 @@ final class SwiftDataRepository {
         commit()
     }
 
+    /// Upsert-only protocol save — never deletes. Use this from the
+    /// live DataStore save path; pair with explicit
+    /// `deleteProtocol(id:)` calls at removal sites.
+    func upsertProtocols(_ protocols: [PeptideProtocol]) {
+        guard let context, !protocols.isEmpty else { return }
+        let inputIds = protocols.map(\.id)
+        let descriptor = FetchDescriptor<StoredProtocol>(
+            predicate: #Predicate { inputIds.contains($0.id) }
+        )
+        let existingById: [UUID: StoredProtocol]
+        do {
+            let existing = try context.fetch(descriptor)
+            existingById = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        } catch {
+            AppLog.swiftData.error("Fetch (upsert) protocols failed: \(error.localizedDescription, privacy: .public)")
+            existingById = [:]
+        }
+        for proto in protocols {
+            do {
+                if let stored = existingById[proto.id] {
+                    try stored.update(from: proto)
+                } else {
+                    context.insert(try StoredProtocol.make(from: proto))
+                }
+            } catch {
+                AppLog.swiftData.error("Upsert StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        commit()
+    }
+
+    func deleteProtocol(id: UUID) {
+        guard let context else { return }
+        let target = id
+        let descriptor = FetchDescriptor<StoredProtocol>(
+            predicate: #Predicate { $0.id == target }
+        )
+        do {
+            for stored in try context.fetch(descriptor) {
+                context.delete(stored)
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("Delete StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     func loadProtocols() -> [PeptideProtocol] {
         guard let context else { return [] }
         let descriptor = FetchDescriptor<StoredProtocol>(
@@ -175,6 +286,8 @@ final class SwiftDataRepository {
 
     // MARK: - Entries
 
+    /// Legacy bulk-replace path — see `saveProtocols` doc comment for
+    /// the CloudKit-data-loss warning. Tests + migration only.
     func saveEntries(_ entries: [ProtocolEntry]) {
         guard let context else { return }
         let existing: [StoredEntry]
@@ -209,6 +322,53 @@ final class SwiftDataRepository {
         }
 
         commit()
+    }
+
+    /// Upsert-only entry save — never deletes. Used by the live save
+    /// path; pair with explicit `deleteEntries(ids:)` calls at the
+    /// removal sites.
+    func upsertEntries(_ entries: [ProtocolEntry]) {
+        guard let context, !entries.isEmpty else { return }
+        let inputIds = entries.map(\.id)
+        let descriptor = FetchDescriptor<StoredEntry>(
+            predicate: #Predicate { inputIds.contains($0.id) }
+        )
+        let existingById: [UUID: StoredEntry]
+        do {
+            let existing = try context.fetch(descriptor)
+            existingById = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        } catch {
+            AppLog.swiftData.error("Fetch (upsert) entries failed: \(error.localizedDescription, privacy: .public)")
+            existingById = [:]
+        }
+        for entry in entries {
+            do {
+                if let stored = existingById[entry.id] {
+                    try stored.update(from: entry)
+                } else {
+                    context.insert(try StoredEntry.make(from: entry))
+                }
+            } catch {
+                AppLog.swiftData.error("Upsert StoredEntry failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        commit()
+    }
+
+    func deleteEntries(ids: Set<UUID>) {
+        guard let context, !ids.isEmpty else { return }
+        let targets = Array(ids)
+        let descriptor = FetchDescriptor<StoredEntry>(
+            predicate: #Predicate { targets.contains($0.id) }
+        )
+        do {
+            for stored in try context.fetch(descriptor) {
+                context.delete(stored)
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("Delete StoredEntries failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     func loadEntries() -> [ProtocolEntry] {
@@ -543,4 +703,12 @@ final class SwiftDataRepository {
             AppLog.swiftData.error("context.save failed: \(error.localizedDescription, privacy: .public)")
         }
     }
+}
+
+extension Notification.Name {
+    /// Posted when `FileManager.ubiquityIdentityToken` changes after
+    /// the app was already running. DataStore observes this to clear
+    /// in-memory state so account A's local data isn't visible to
+    /// account B after a system-level iCloud account switch.
+    static let peptideXiCloudIdentityChanged = Notification.Name("com.peptidesai.app.icloud.identity.changed")
 }

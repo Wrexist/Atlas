@@ -79,6 +79,9 @@ final class WatchSyncService: NSObject {
         do {
             let encoded = try encoder.encode(data)
             try encoded.write(to: url, options: .atomic)
+            // Regenerated-cache file — exclude from iCloud Backup
+            // so it doesn't waste user quota / inflate restore time.
+            PersistenceService.excludeFromBackup(url)
         } catch {
             AppLog.persistence.error("WatchSyncService: failed to write WatchData: \(error.localizedDescription, privacy: .public)")
         }
