@@ -204,7 +204,22 @@ enum BackupImportService {
         case .replace:
             resolvedProtocols = backup.protocols
             resolvedEntries = backup.entries
-            resolvedProfile = backup.profile
+            // A backup taken from a pre-Plan-C build has
+            // `workoutLegacyMigrationCompleted == false` (decoded
+            // via decodeIfPresent) AND a non-empty
+            // `profile.workoutHistory`. If we restore that wholesale,
+            // the next launch re-runs WorkoutLogMigrationService and
+            // creates duplicate StoredWorkoutSession rows for entries
+            // already migrated on the original device. Force the
+            // marker on so the migration stays skipped. Any genuine
+            // legacy entries the backup carries are already in the
+            // StoredWorkoutSession stream via the source device's
+            // earlier migration; the array on the profile is
+            // redundant residue.
+            var profile = backup.profile
+            profile.workoutLegacyMigrationCompleted = true
+            profile.workoutHistory = []
+            resolvedProfile = profile
         case .merge:
             // Merge logic: take the current state as the base, then
             // insert any ID not present from the backup. Existing IDs

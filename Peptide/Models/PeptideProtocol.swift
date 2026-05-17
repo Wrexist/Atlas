@@ -195,6 +195,17 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         Calendar.current.date(byAdding: .weekOfYear, value: cycleLengthWeeks, to: startDate) ?? startDate
     }
 
+    /// Canonical "cycle is over" boundary used by `CycleCompletionService`
+    /// and `daysRemaining`. Normalised to `startOfDay(of: startDate)`
+    /// so a protocol created at 11 PM doesn't drift its end-of-cycle
+    /// across midnight relative to `endDate`. Uses `safeCycleLengthWeeks`
+    /// to floor at 1 week.
+    var cycleEndDay: Date {
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: startDate)
+        return cal.date(byAdding: .day, value: safeCycleLengthWeeks * 7, to: dayStart) ?? dayStart
+    }
+
     var cycleProgress: Double {
         let total = endDate.timeIntervalSince(startDate)
         let elapsed = Date().timeIntervalSince(startDate)

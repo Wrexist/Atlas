@@ -26,10 +26,18 @@ final class ExportService {
     static func monthlyBuckets(for entries: [ProtocolEntry]) -> [PDFMonthlyBucket] {
         guard !entries.isEmpty else { return [] }
         let cal = Calendar.current
-        let grouped = Dictionary(grouping: entries) { entry -> Date in
+        // Drop entries whose month-start can't be derived (would only
+        // happen with a severely broken calendar). The previous
+        // fallback to the raw `entry.date` produced a bucket keyed on
+        // a full timestamp, which the LLLL-yyyy formatter rendered as
+        // a day-level label and sorted incoherently.
+        let bucketable: [(Date, ProtocolEntry)] = entries.compactMap { entry in
             let comps = cal.dateComponents([.year, .month], from: entry.date)
-            return cal.date(from: comps) ?? entry.date
+            guard let monthStart = cal.date(from: comps) else { return nil }
+            return (monthStart, entry)
         }
+        let grouped = Dictionary(grouping: bucketable, by: \.0)
+            .mapValues { $0.map(\.1) }
         let monthFormatter: DateFormatter = {
             let f = DateFormatter()
             f.dateFormat = "LLLL yyyy"
@@ -468,7 +476,7 @@ final class ExportService {
                 if protoEntries.count > entriesToRender.count {
                     let hidden = protoEntries.count - entriesToRender.count
                     let moreH = drawText(
-                        "… \(hidden) earlier entries · see CSV export for the complete log",
+                        "… \(hidden) earlier entries · use the CSV export in Profile → Export Data for the complete log",
                         font: captionFont, color: mutedColor
                     )
                     y += moreH + 3

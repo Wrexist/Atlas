@@ -216,23 +216,33 @@ struct RestoreBackupSheet: View {
     }
 
     private func validatePickedFile(_ url: URL) {
-        // Security-scoped resource for files from outside the app
-        // sandbox (iCloud Drive, Files-app providers, etc).
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-
-        do {
-            let data = try Data(contentsOf: url)
-            let (parsed, preview) = try BackupImportService.validate(data)
-            self.backup = parsed
-            self.preview = preview
-            self.phase = .preview
-        } catch let error as BackupImportService.ImportError {
-            errorMessage = error.errorDescription
-            phase = .failed
-        } catch {
-            errorMessage = error.localizedDescription
-            phase = .failed
+        // Move the read + decode off the main actor so a 50 MB backup
+        // doesn't freeze the UI while validation runs. The
+        // security-scoped resource lifetime must cover the entire
+        // read, so it's acquired inside the detached task and
+        // released right after Data(contentsOf:) returns. The
+        // decoded `Data` is sendable and crosses back to the main
+        // actor cheaply.
+        let target = url
+        Task { @MainActor in
+            do {
+                let data = try await Task.detached(priority: .userInitiated) {
+                    () throws -> Data in
+                    let scoped = target.startAccessingSecurityScopedResource()
+                    defer { if scoped { target.stopAccessingSecurityScopedResource() } }
+                    return try Data(contentsOf: target)
+                }.value
+                let (parsed, preview) = try BackupImportService.validate(data)
+                self.backup = parsed
+                self.preview = preview
+                self.phase = .preview
+            } catch let error as BackupImportService.ImportError {
+                errorMessage = error.errorDescription
+                phase = .failed
+            } catch {
+                errorMessage = error.localizedDescription
+                phase = .failed
+            }
         }
     }
 

@@ -539,6 +539,38 @@ final class SwiftDataRepository {
         }
     }
 
+    /// Fetches workout sessions whose `startedAt` falls in the given
+    /// half-open range. Used by `DataStore.workoutSummary` so the
+    /// Today scroll's "movement" card doesn't fault the whole
+    /// `StoredWorkoutSession` table on every render. The fetch uses a
+    /// `#Predicate` so SwiftData can push the date window into the
+    /// SQL backend instead of returning everything and filtering in
+    /// memory.
+    func loadWorkoutSessions(startedBetween range: Range<Date>) -> [WorkoutSession] {
+        guard let context else { return [] }
+        let lower = range.lowerBound
+        let upper = range.upperBound
+        var descriptor = FetchDescriptor<StoredWorkoutSession>(
+            predicate: #Predicate { $0.startedAt >= lower && $0.startedAt < upper },
+            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = SwiftDataRepository.workoutHistoryFetchLimit
+        do {
+            let stored = try context.fetch(descriptor)
+            return stored.compactMap {
+                do {
+                    return try $0.toWorkoutSession()
+                } catch {
+                    AppLog.swiftData.error("Decode StoredWorkoutSession (windowed) failed: \(error.localizedDescription, privacy: .public)")
+                    return nil
+                }
+            }
+        } catch {
+            AppLog.swiftData.error("Load windowed workout sessions failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
     /// Fetches the single in-progress session if one exists.
     /// `WorkoutSessionService` invariant: at most one session has
     /// `finishedAt == nil` at any time.

@@ -113,26 +113,20 @@ final class CycleCompletionService {
 
     // MARK: - Predicates
 
-    /// True when "now" is past `startDate + cycleLengthWeeks` weeks.
-    /// Uses the calendar-correct add (not 86_400 math) so DST nights
-    /// don't shift the threshold by an hour.
+    /// True when "now" is past the cycle's end. Reads the single
+    /// source of truth (`PeptideProtocol.cycleEndDay`) so the
+    /// completion service and `daysRemaining` never drift —
+    /// previously the local math here computed startOfDay+days, the
+    /// model's `endDate` did `weekOfYear`-add on the raw startDate,
+    /// and the two diverged for protocols created at non-midnight
+    /// timestamps.
     private func hasCycleEnded(_ proto: PeptideProtocol) -> Bool {
-        guard let end = calendar.date(
-            byAdding: .day,
-            value: proto.safeCycleLengthWeeks * 7,
-            to: calendar.startOfDay(for: proto.startDate)
-        ) else { return false }
-        return calendar.startOfDay(for: Date()) >= end
+        calendar.startOfDay(for: Date()) >= proto.cycleEndDay
     }
 
     private func daysPastCycleEnd(of proto: PeptideProtocol) -> Int {
-        guard let end = calendar.date(
-            byAdding: .day,
-            value: proto.safeCycleLengthWeeks * 7,
-            to: calendar.startOfDay(for: proto.startDate)
-        ) else { return 0 }
         let today = calendar.startOfDay(for: Date())
-        return calendar.dateComponents([.day], from: end, to: today).day ?? 0
+        return calendar.dateComponents([.day], from: proto.cycleEndDay, to: today).day ?? 0
     }
 
     private func dismissCount(for proto: PeptideProtocol) -> Int {

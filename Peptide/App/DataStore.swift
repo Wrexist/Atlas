@@ -126,12 +126,17 @@ final class DataStore: DataServiceProtocol {
             // into the structured `StoredWorkoutSession` store the
             // Train tab reads from. Idempotent; flips a marker on the
             // profile so the migration is a no-op on every subsequent
-            // launch. Profile is persisted via the standard save path
-            // below so the marker survives.
-            if WorkoutLogMigrationService.migrateIfNeeded(profile: &profile, repository: repo) > 0 {
-                // Persist immediately so a crash between init and the
-                // next save doesn't re-run the migration and risk
-                // duplicating entries on a second pass.
+            // launch.
+            //
+            // Persist whenever the marker transitions to true — that
+            // includes the "no legacy entries to migrate" path where
+            // we still need the marker stamped so the service doesn't
+            // re-evaluate the (always-empty) array on every launch
+            // forever. The save-after path is the only place the
+            // marker actually reaches disk.
+            let markerWasFalse = !profile.workoutLegacyMigrationCompleted
+            _ = WorkoutLogMigrationService.migrateIfNeeded(profile: &profile, repository: repo)
+            if markerWasFalse && profile.workoutLegacyMigrationCompleted {
                 repo.saveProfile(profile)
             }
         } else if seedSampleData {
@@ -1329,16 +1334,17 @@ final class DataStore: DataServiceProtocol {
     /// calendar day.
     func workoutSummary(for date: Date = Date()) -> (count: Int, minutes: Int) {
         // Reads from `StoredWorkoutSession` now (Plan C) — quick-log
-        // entries and Train-tab sessions both land there. Filters to
-        // the requested calendar day. `finishedAt` is canonical when
-        // present; in-progress sessions use `startedAt`.
+        // entries and Train-tab sessions both land there. Uses the
+        // windowed repo fetch so this method doesn't fault the whole
+        // session table on every Today-tab render — a long-term user
+        // could have years of sessions, and this is called from a
+        // SwiftUI body.
         let cal = Calendar.current
-        let target = cal.startOfDay(for: date)
-        let sessions = repo.loadWorkoutSessions()
-            .filter { session in
-                let anchor = session.finishedAt ?? session.startedAt
-                return cal.isDate(cal.startOfDay(for: anchor), inSameDayAs: target)
-            }
+        let dayStart = cal.startOfDay(for: date)
+        guard let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) else {
+            return (0, 0)
+        }
+        let sessions = repo.loadWorkoutSessions(startedBetween: dayStart..<dayEnd)
         let count = sessions.count
         let minutes = sessions.reduce(0) { acc, session in
             guard let finished = session.finishedAt else { return acc }

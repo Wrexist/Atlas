@@ -431,11 +431,19 @@ struct HomeView: View {
                         completionPrompt = nil
                     },
                     onExtend: {
+                        // Extending the cycle pushes `endDate` out,
+                        // so `pendingCompletion` naturally stops
+                        // returning this protocol until the new
+                        // window expires — no suppression marker
+                        // needed. Calling `markAutoCompleted` here
+                        // (the previous behaviour) shared a key with
+                        // the now-extended cycle (same id + same
+                        // startDate) and permanently silenced the
+                        // prompt for every future end-of-cycle on
+                        // this protocol. Clear the dismiss counter
+                        // instead so subsequent dismissals on the
+                        // extended cycle start from zero.
                         dataStore.extendProtocol(id: item.proto.id, byWeeks: 2)
-                        // Mark as resolved so the prompt doesn't re-fire
-                        // immediately — the extended cycle will trigger
-                        // again when ITS end date passes.
-                        CycleCompletionService.shared.markAutoCompleted(item.proto)
                         completionPrompt = nil
                     },
                     onStartNewCycle: {
@@ -595,9 +603,10 @@ struct HomeView: View {
         // `WorkoutDetailView.entryFromSession`. Empty-exercise quick-
         // log sessions still render — the timeline only needs name +
         // date + duration.
+        let dayStart = cal.startOfDay(for: now)
+        let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
         let workoutsToday: [WorkoutEntry] = SwiftDataRepository.shared
-            .loadWorkoutSessions()
-            .filter { cal.isDate($0.startedAt, inSameDayAs: now) }
+            .loadWorkoutSessions(startedBetween: dayStart..<dayEnd)
             .map { session in
                 let sets = session.exercises.flatMap(\.sets)
                 let reps = sets.reduce(0) { $0 + $1.reps }
@@ -832,6 +841,15 @@ struct HomeView: View {
               !showProfileCustomization
         else { return }
 
+        // Run the auto-completion sweep BEFORE deciding which prompt
+        // to fire. A user who never backgrounds the app (scene-phase
+        // .active never re-triggers) but switches between tabs would
+        // otherwise see a prompt for a protocol the next foreground
+        // would have silently auto-completed — three buttons that
+        // all apply to a soon-to-be-completed cycle. Running the
+        // sweep here too keeps the two surfaces consistent.
+        dataStore.performCycleAutoCompletion()
+
         // Completion prompt wins when present.
         if let pending = CycleCompletionService.shared.pendingCompletion(in: dataStore.protocols) {
             let days = max(0, daysPastCycleEnd(of: pending))
@@ -855,13 +873,11 @@ struct HomeView: View {
     }
 
     private func daysPastCycleEnd(of proto: PeptideProtocol) -> Int {
+        // Reads `cycleEndDay` (the model's single source of truth)
+        // so this surface stays in lockstep with CycleCompletionService.
         let cal = Calendar.current
-        guard let end = cal.date(
-            byAdding: .day,
-            value: proto.safeCycleLengthWeeks * 7,
-            to: cal.startOfDay(for: proto.startDate)
-        ) else { return 0 }
-        return cal.dateComponents([.day], from: end, to: cal.startOfDay(for: Date())).day ?? 0
+        let today = cal.startOfDay(for: Date())
+        return cal.dateComponents([.day], from: proto.cycleEndDay, to: today).day ?? 0
     }
 
     private struct CompletionPromptItem: Identifiable {
