@@ -20,77 +20,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ───────────────────────────────────────────────────────────── Path scope
-  #
-  # The iOS build runs on macOS-15 with a 5–15 min footprint. Skip it when
-  # the PR only touches documentation, marketing site, or the standalone
-  # Vercel proxy — the iOS sources, project.yml, workflows, entitlements,
-  # and resource files are unaffected by changes under those paths. The
-  # proxy has its own job below that validates server/** changes instead.
-  changes:
-    runs-on: ubuntu-latest
-    outputs:
-      ios: ${{ steps.filter.outputs.ios }}
-      server: ${{ steps.filter.outputs.server }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Compute changed-path scope
-        id: filter
-        # Native `git diff --name-only` against the PR base ref. The
-        # prior implementation used dorny/paths-filter@v3 which has
-        # been consistently failing in ~2 seconds on this repo with
-        # no recoverable error mode. Local git diff is both faster
-        # (~100 ms) and free of the third-party action's runtime
-        # quirks. The output contract is unchanged: `ios` and
-        # `server` are 'true' / 'false' so downstream jobs' `if:`
-        # conditions don't need updates.
-        run: |
-          set -euo pipefail
-          BASE_REF="${{ github.event.pull_request.base.ref }}"
-          git fetch --depth=50 origin "$BASE_REF" 2>/dev/null || git fetch origin "$BASE_REF"
-          # Find the merge base so we diff the actual PR-introduced
-          # changes, not unrelated upstream commits.
-          MERGE_BASE=$(git merge-base "origin/$BASE_REF" HEAD)
-          echo "Diffing HEAD against merge-base $MERGE_BASE (origin/$BASE_REF)"
-          CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD)
-          echo "Changed files:"
-          echo "$CHANGED" | sed 's/^/  /'
+  # Path-scope gating retired. The previous `changes` job (first
+  # dorny/paths-filter@v3, then a native git diff replacement) failed
+  # in 2-3 seconds on every run regardless of contents — the failure
+  # was at the runner / setup layer, not in the script. Until that's
+  # root-caused, both `build-check` and `proxy-checks` run
+  # unconditionally to keep CI green. The macOS-build draft gate is
+  # preserved on build-check so WIP PRs don't burn macOS time.
 
-          # iOS scope: any of these path prefixes flips the iOS output.
-          IOS=false
-          while IFS= read -r path; do
-            case "$path" in
-              Peptide/*|PeptideTests/*|PeptideUITests/*|\
-              PeptideWidgets/*|PeptideWatch/*|PeptideWatchWidgets/*|\
-              Shared/*|project.yml|Gemfile|Gemfile.lock|\
-              fastlane/*|.swiftlint.yml|\
-              .github/workflows/pr-checks.yml)
-                IOS=true
-                ;;
-            esac
-          done <<< "$CHANGED"
-
-          # Server scope: only the Vercel proxy under server/.
-          SERVER=false
-          while IFS= read -r path; do
-            case "$path" in
-              server/*) SERVER=true ;;
-            esac
-          done <<< "$CHANGED"
-
-          echo "ios=$IOS" >> "$GITHUB_OUTPUT"
-          echo "server=$SERVER" >> "$GITHUB_OUTPUT"
-          echo "Scope: ios=$IOS server=$SERVER"
 
   build-check:
-    needs: changes
-    # Cost gate: skip the macOS build entirely while the PR is in draft.
-    # Mark the PR "ready for review" to trigger a full build run.
-    # macOS minutes are 10× Linux on private repos — every skipped
-    # build is ~$1–2 saved.
-    if: needs.changes.outputs.ios == 'true' && github.event.pull_request.draft == false
+    # The `changes` job that used to gate this on touched-path scope
+    # has been retired — it consistently failed in 2-3 seconds on
+    # this repo regardless of action choice (dorny/paths-filter, then
+    # native git diff), which kept every PR red. The cost saving was
+    # ~$1-2 per skipped run on docs-only PRs; until the runner-level
+    # issue is identified, paying that to keep CI green is the right
+    # tradeoff. Draft gate is preserved so work-in-progress doesn't
+    # burn macOS time.
+    if: github.event.pull_request.draft == false
     runs-on: macos-15
     timeout-minutes: 25
 
@@ -354,8 +302,9 @@ jobs:
   # change to the proxy doesn't burn a 15-min macOS runner; the iOS
   # build is skipped via the paths filter above.
   proxy-checks:
-    needs: changes
-    if: needs.changes.outputs.server == 'true'
+    # Always run. See build-check comment on the retired `changes`
+    # gate. The proxy job is <30s on Ubuntu, so the unconditional
+    # run cost is negligible.
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
