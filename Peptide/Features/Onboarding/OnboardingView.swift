@@ -3,11 +3,12 @@ import SwiftUI
 import UIKit
 #endif
 
-/// Onboarding for Atlas — a health & fitness app. 24 premium steps
-/// covering training, nutrition, biology / recovery signals, AI-assisted
-/// research, and optional supplement tracking. Leads with social proof
-/// and a swipeable feature reel, then collects the personalization
-/// needed to project a 12-week outcome before the post-Ready paywall.
+/// Onboarding for Atlas — a health & fitness app. 20 steps covering
+/// training, nutrition, biology / recovery signals, AI-assisted
+/// research, and optional supplement tracking. Lean — every step
+/// earns its place: a moment, a data ask, a permission ask, or a
+/// reveal. The personalization captured here drives a date-anchored
+/// projection that lands right before the post-Ready paywall.
 ///
 /// Page indices live in the nested `Page` enum so reordering only
 /// requires renaming there.
@@ -137,29 +138,25 @@ struct OnboardingView: View {
     private enum Page {
         static let welcome          = 0
         static let signIn           = 1
-        static let socialProof      = 2
-        static let attribution      = 3
-        static let valueProof       = 4
-        static let name             = 5
-        static let goal             = 6
-        static let goalDate         = 7
-        static let experience       = 8
-        static let bodyMetrics      = 9
-        static let schedule         = 10
-        static let equipment        = 11
-        static let demoSet          = 12
-        static let comparison       = 13
-        static let programPreview   = 14
-        static let nutrition        = 15
-        static let projection       = 16
-        static let disclaimer       = 17
-        static let notifications    = 18
-        static let health           = 19
-        static let buildingPlan     = 20
-        static let creatorCode      = 21
-        static let email            = 22
-        static let ready            = 23
-        static let total            = 24
+        static let attribution      = 2
+        static let name             = 3
+        static let goal             = 4
+        static let goalDate         = 5
+        static let experience       = 6
+        static let bodyMetrics      = 7
+        static let schedule         = 8
+        static let equipment        = 9
+        static let demoSet          = 10
+        static let nutrition        = 11
+        static let projection       = 12
+        static let disclaimer       = 13
+        static let notifications    = 14
+        static let health           = 15
+        static let buildingPlan     = 16
+        static let creatorCode      = 17
+        static let email            = 18
+        static let ready            = 19
+        static let total            = 20
     }
 
     private var totalPages: Int { Page.total }
@@ -255,9 +252,7 @@ struct OnboardingView: View {
                 TabView(selection: $page) {
                     welcome.tag(Page.welcome)
                     signInStep.tag(Page.signIn)
-                    socialProofStep.tag(Page.socialProof)
                     attributionStep.tag(Page.attribution)
-                    valueProof.tag(Page.valueProof)
                     nameStep.tag(Page.name)
                     goalStep.tag(Page.goal)
                     goalDateStep.tag(Page.goalDate)
@@ -266,8 +261,6 @@ struct OnboardingView: View {
                     scheduleStep.tag(Page.schedule)
                     equipmentStep.tag(Page.equipment)
                     demoSetStep.tag(Page.demoSet)
-                    comparisonStep.tag(Page.comparison)
-                    programPreviewStep.tag(Page.programPreview)
                     nutritionStep.tag(Page.nutrition)
                     projectionStep.tag(Page.projection)
                     disclaimerStep.tag(Page.disclaimer)
@@ -361,9 +354,7 @@ struct OnboardingView: View {
         switch index {
         case Page.welcome:        return "welcome"
         case Page.signIn:         return "sign_in"
-        case Page.socialProof:    return "social_proof"
         case Page.attribution:    return "attribution"
-        case Page.valueProof:     return "value_proof"
         case Page.name:           return "name"
         case Page.goal:           return "goal"
         case Page.goalDate:       return "goal_date"
@@ -372,8 +363,6 @@ struct OnboardingView: View {
         case Page.schedule:       return "schedule"
         case Page.equipment:      return "equipment"
         case Page.demoSet:        return "demo_set"
-        case Page.comparison:     return "comparison"
-        case Page.programPreview: return "program_preview"
         case Page.nutrition:      return "nutrition"
         case Page.projection:     return "projection"
         case Page.disclaimer:     return "disclaimer"
@@ -482,8 +471,7 @@ struct OnboardingView: View {
     /// commitment that drives trial conversion.
     private var showSkipOnCurrentPage: Bool {
         switch page {
-        case Page.signIn, Page.socialProof, Page.attribution,
-             Page.demoSet, Page.comparison, Page.programPreview,
+        case Page.signIn, Page.attribution, Page.demoSet,
              Page.projection, Page.notifications, Page.health,
              Page.creatorCode, Page.email:
             return true
@@ -806,19 +794,6 @@ struct OnboardingView: View {
         .padding(.horizontal, Spacing.lg)
     }
 
-    // MARK: - Social proof (testimonials)
-
-    private var socialProofStep: some View {
-        ScrollView {
-            VStack(spacing: Spacing.lg) {
-                ReviewPromptPage()
-                    .padding(.top, Spacing.xl)
-                Spacer(minLength: 120)
-            }
-            .padding(.horizontal, Spacing.lg)
-        }
-    }
-
     // MARK: - Attribution survey
 
     /// Marketing-channel survey. Anonymous, captured into the funnel
@@ -894,60 +869,6 @@ struct OnboardingView: View {
                 .stroke(isSelected ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: isSelected ? 1 : 0.5)
         )
     }
-
-    // MARK: - Value proof (feature reel)
-
-    private var valueProof: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            Text("What Atlas\nactually does.")
-                .font(.system(size: 38, weight: .bold, design: .rounded))
-                .foregroundStyle(AppColor.textPrimary)
-                .lineSpacing(-2)
-                .padding(.horizontal, Spacing.lg)
-                .padding(.top, Spacing.lg)
-
-            FeatureReel(features: Self.featureReel)
-
-            Spacer(minLength: 100)
-        }
-    }
-
-    /// Hand-picked features that read as "this is the differentiated
-    /// product" without overwhelming a first-run user. Ordered to lead
-    /// with the visible training story and trail with the higher-end
-    /// AI / Biology surfaces that Pro unlocks.
-    fileprivate static let featureReel: [FeatureReel.Feature] = [
-        .init(
-            icon: "figure.strengthtraining.traditional",
-            tint: Color(hex: 0xCF7272),
-            title: "Train",
-            body: "Plan sessions, log sets in two taps, see your last weight inline so you know when to add more."
-        ),
-        .init(
-            icon: "fork.knife",
-            tint: Color(hex: 0xD4A844),
-            title: "Eat",
-            body: "Scan a barcode or snap a plate — Claude estimates the macros and logs the meal."
-        ),
-        .init(
-            icon: "heart.fill",
-            tint: Color(hex: 0xCF6C6C),
-            title: "Biology",
-            body: "HRV, RHR, sleep, and a Performance Age that explains what's moving the markers."
-        ),
-        .init(
-            icon: "brain.head.profile.fill",
-            tint: Color(hex: 0x9B72CF),
-            title: "Research",
-            body: "Ask the AI assistant — answers grounded in research with citations you can verify."
-        ),
-        .init(
-            icon: "calendar.badge.clock",
-            tint: Color(hex: 0x5B8FB9),
-            title: "Supplements",
-            body: "Plan supplements and cycles, get reminders, and see weekly recaps of what worked."
-        ),
-    ]
 
     // MARK: - Name
 
@@ -1482,113 +1403,9 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - With / Without Atlas comparison
-
-    private var comparisonStep: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.lg) {
-                Text("Ready for a ")
-                    .font(.system(size: 38, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppColor.textPrimary)
-                + Text("better training life?")
-                    .font(.system(size: 38, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppColor.accentPrimary)
-
-                HStack(alignment: .top, spacing: Spacing.sm) {
-                    comparisonColumn(
-                        title: "Without Atlas",
-                        items: [
-                            "Unsure if form is right",
-                            "Guessing today's workout",
-                            "Skipping muscle groups",
-                            "No history to compare",
-                        ],
-                        isPositive: false
-                    )
-                    comparisonColumn(
-                        title: "With Atlas",
-                        items: [
-                            "Form cues per exercise",
-                            "Smart program scheduling",
-                            "Weekly muscle heatmap",
-                            "PRs detected & celebrated",
-                        ],
-                        isPositive: true
-                    )
-                }
-                Spacer(minLength: 120)
-            }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.top, Spacing.lg)
-        }
-    }
-
-    private func comparisonColumn(title: String, items: [String], isPositive: Bool) -> some View {
-        let tint = isPositive
-            ? AppColor.accentPrimary
-            : AppColor.textTertiary
-        let bg = isPositive
-            ? AppColor.accentPrimary.opacity(0.12)
-            : AppColor.surfaceSecondary.opacity(0.6)
-        return VStack(alignment: .leading, spacing: Spacing.md) {
-            Text(title)
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.textPrimary)
-            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: isPositive ? "checkmark.circle.fill" : "minus.circle.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(tint)
-                    Text(item)
-                        .font(AppFont.footnote)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(bg)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .stroke(tint.opacity(0.4), lineWidth: 0.5)
-        )
-    }
-
-    // MARK: - Program preview
-
-    private var programPreviewStep: some View {
-        VStack(spacing: Spacing.lg) {
-            HeroIcon(symbol: "list.bullet.rectangle.fill", bounceTrigger: bounceTrigger)
-                .padding(.top, Spacing.xl)
-            VStack(spacing: Spacing.sm) {
-                Text("Your starter plan")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppColor.textPrimary)
-                Text(recommendedProgramName)
-                    .font(AppFont.title3)
-                    .foregroundStyle(AppColor.accentPrimary)
-                Text("Built for \(primaryGoal.displayName.lowercased()), \(daysPerWeek)× per week.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.xl)
-            }
-            VStack(spacing: Spacing.xs) {
-                programPreviewRow("1", "Day 1 · Upper push")
-                programPreviewRow("2", "Day 2 · Lower")
-                programPreviewRow("3", "Day 3 · Upper pull")
-                if daysPerWeek >= 4 {
-                    programPreviewRow("4", "Day 4 · Accessories")
-                }
-            }
-            .padding(.horizontal, Spacing.lg)
-            Spacer()
-        }
-    }
+    // MARK: - Program name (used only on the Ready summary now;
+    // the dedicated "Your starter plan" step was removed in the
+    // polish pass as redundant with the projection reveal).
 
     private var recommendedProgramName: String {
         // Switch on the goal first, then refine by days inside each
@@ -1613,29 +1430,6 @@ struct OnboardingView: View {
         case .skinHair:       return "Skin & Hair Protocol"
         case .energy:         return "Energy & Vitality Plan"
         }
-    }
-
-    private func programPreviewRow(_ index: String, _ name: String) -> some View {
-        HStack(spacing: Spacing.md) {
-            Text(index)
-                .font(AppFont.headline.weight(.bold))
-                .foregroundStyle(AppColor.accentPrimary)
-                .frame(width: 30)
-            Text(name)
-                .font(AppFont.callout)
-                .foregroundStyle(AppColor.textPrimary)
-            Spacer()
-        }
-        .padding(.vertical, Spacing.sm)
-        .padding(.horizontal, Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
     }
 
     // MARK: - Nutrition
@@ -2319,105 +2113,6 @@ struct OnboardingView: View {
             }
             .padding(.horizontal, Spacing.lg)
         }
-    }
-}
-
-/// Horizontal-paging feature carousel shown on the value-proof step.
-/// Each card surfaces one differentiated capability with a tinted icon,
-/// short headline, and one-sentence framing — answers "what does this
-/// app actually do" before any data is asked from the user.
-struct FeatureReel: View {
-    struct Feature: Identifiable, Hashable {
-        let id = UUID()
-        let icon: String
-        let tint: Color
-        let title: String
-        let body: String
-    }
-
-    let features: [Feature]
-    @State private var currentIndex: Int = 0
-
-    var body: some View {
-        VStack(spacing: Spacing.md) {
-            // Horizontal ScrollView with paging instead of a nested
-            // TabView — the outer onboarding flow already owns the
-            // page-swipe gesture, so a nested .page TabView fights it.
-            // scrollTargetBehavior(.viewAligned) + scrollTargetLayout()
-            // snap each card to the leading edge and keep paging clean.
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: Spacing.md) {
-                    ForEach(Array(features.enumerated()), id: \.offset) { offset, feature in
-                        FeatureReelCard(feature: feature)
-                            .containerRelativeFrame(.horizontal)
-                            .id(offset)
-                    }
-                }
-                .scrollTargetLayout()
-            }
-            .scrollTargetBehavior(.viewAligned)
-            .scrollPosition(id: scrollPositionBinding, anchor: .leading)
-            .frame(height: 280)
-            .contentMargins(.horizontal, Spacing.lg, for: .scrollContent)
-
-            HStack(spacing: 6) {
-                ForEach(0..<features.count, id: \.self) { idx in
-                    Capsule()
-                        .fill(idx == currentIndex
-                              ? AppColor.accentPrimary
-                              : AppColor.textTertiary.opacity(0.3))
-                        .frame(width: idx == currentIndex ? 18 : 6, height: 6)
-                        .animation(AppAnimation.springSnappy, value: currentIndex)
-                }
-            }
-        }
-    }
-
-    /// `.scrollPosition(id:)` expects a Binding<Int?> — wrap the plain
-    /// `currentIndex: Int` state so the dot row updates as the user
-    /// pages, and so taps on a dot can scroll-target a specific card.
-    private var scrollPositionBinding: Binding<Int?> {
-        Binding(
-            get: { currentIndex },
-            set: { newValue in
-                if let newValue { currentIndex = newValue }
-            }
-        )
-    }
-}
-
-private struct FeatureReelCard: View {
-    let feature: FeatureReel.Feature
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            ZStack {
-                Circle()
-                    .fill(feature.tint.opacity(0.18))
-                    .frame(width: 64, height: 64)
-                Image(systemName: feature.icon)
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(feature.tint)
-            }
-            Text(feature.title)
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundStyle(AppColor.textPrimary)
-            Text(feature.body)
-                .font(AppFont.callout)
-                .foregroundStyle(AppColor.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer()
-        }
-        .padding(Spacing.lg)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
     }
 }
 
