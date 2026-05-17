@@ -38,6 +38,11 @@ struct OnboardingView: View {
     @State private var storeService = StoreService.shared
     @State private var requestingHealth = false
     @State private var requestingNotifications = false
+    /// Reflects the live UNUserNotificationCenter authorization status —
+    /// the onboarding step needs to mirror the OS prompt outcome
+    /// independently of the user's `doseRemindersEnabled` peptide-
+    /// reminder preference (those are separate concerns).
+    @State private var notificationsAuthorized = false
     // Live "try a set" demo state.
     @State private var demoSet = SetEntry(index: 1, weightKg: 60, reps: 8, completed: false)
     @State private var demoCelebrate = false
@@ -1664,13 +1669,17 @@ struct OnboardingView: View {
                     title: "Enable notifications",
                     subtitle: "Tap to allow. You can change this anytime.",
                     isLoading: requestingNotifications,
-                    isOn: dataStore.profile.doseRemindersEnabled,
+                    isOn: notificationsAuthorized,
                     action: requestNotifications
                 )
                 .padding(.horizontal, Spacing.lg)
 
                 Spacer(minLength: 100)
             }
+        }
+        .task {
+            let status = await NotificationService.shared.checkAuthorization()
+            notificationsAuthorized = (status == .authorized || status == .provisional)
         }
     }
 
@@ -1930,6 +1939,12 @@ struct OnboardingView: View {
         Task {
             let granted = await NotificationService.shared.requestAuthorization()
             requestingNotifications = false
+            notificationsAuthorized = granted
+            // Surface the OS grant on the user's dose-reminders flag too
+            // so peptide-protocol reminders fire by default the first time
+            // the user adds a protocol. Independent of the OS auth state
+            // tracked above — the user can still toggle this flag off
+            // later from Profile without revoking notification permission.
             if granted, !dataStore.profile.doseRemindersEnabled {
                 dataStore.profile.doseRemindersEnabled = true
             }
