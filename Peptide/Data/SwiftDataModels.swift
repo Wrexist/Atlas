@@ -255,9 +255,10 @@ final class StoredProfile {
     var avatarImageData: Data?
     var bio: String?
     var primaryGoal: String?
-    /// JSON-encoded `ProfileExtension` carrying the long-tail Lifestyle/
-    /// onboarding fields that don't warrant their own columns (nutrition
-    /// targets, weight + workout history, daily consumption buckets, etc.).
+    /// JSON-encoded `ProfileExtension` carrying the long-tail Meals /
+    /// Biology / onboarding fields that don't warrant their own columns
+    /// (nutrition targets, weight + workout history, daily consumption
+    /// buckets, biology config, etc.).
     /// Optional so existing rows decode cleanly — `toUserProfile` falls
     /// back to empty collections on a missing/legacy blob.
     var extensionData: Data?

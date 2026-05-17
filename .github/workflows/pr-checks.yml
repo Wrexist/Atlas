@@ -34,9 +34,22 @@ jobs:
       server: ${{ steps.filter.outputs.server }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so `dorny/paths-filter@v3` can compute the
+          # diff against the PR base ref locally. The default shallow
+          # checkout forced the action onto the GitHub API path, which
+          # has been returning errors on this repo for PRs that touch
+          # many files (e.g. the 89-file audit PR). Local diff is
+          # both faster and avoids the API failure mode.
+          fetch-depth: 0
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          # Explicit base ref: paths-filter uses the local git diff
+          # against this ref rather than the GitHub API. The PR event
+          # already exposes the base; spelling it out keeps the
+          # behavior deterministic across action minor versions.
+          base: ${{ github.event.pull_request.base.ref }}
           filters: |
             ios:
               - 'Peptide/**'
