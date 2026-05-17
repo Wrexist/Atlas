@@ -43,6 +43,13 @@ struct OnboardingView: View {
     @State private var bounceTrigger = 0
     @State private var requestingHealth = false
     @State private var requestingNotifications = false
+    /// Pinned reference to the AuthService singleton so the
+    /// signInStep view re-renders when AuthService's @Observable
+    /// state (`isSignedIn`, `isSigningIn`, `lastError`) changes.
+    /// Without this @State, accessing `AuthService.shared.isSignedIn`
+    /// directly inside a computed view property may not register the
+    /// observation dependency on the outer view (audit code-review #11).
+    @State private var authService = AuthService.shared
     /// Reflects the live UNUserNotificationCenter authorization status —
     /// the onboarding step needs to mirror the OS prompt outcome
     /// independently of the user's `doseRemindersEnabled` peptide-
@@ -333,6 +340,19 @@ struct OnboardingView: View {
                 showThemePicker = false
                 hasCompleted = true
             })
+        }
+        .onChange(of: showTrialOffer) { _, presented in
+            // If the paywall cover dismissed without onAccept/onDecline
+            // firing (system interruption — Siri, call, multi-scene
+            // re-layout), advance into the theme picker anyway so the
+            // user isn't stuck on the Ready page tapping "Open Atlas"
+            // re-triggering the paywall every time (audit code-review
+            // #10). The funnel event "paywall_dismissed_externally"
+            // lets us distinguish this from user-initiated decline.
+            if !presented && !showThemePicker && !hasCompleted {
+                OnboardingFunnelTracker.recordEvent("paywall_dismissed_externally")
+                showThemePicker = true
+            }
         }
     }
 
@@ -716,9 +736,9 @@ struct OnboardingView: View {
                     .padding(.horizontal, Spacing.lg)
             }
             VStack(spacing: Spacing.md) {
-                if AuthService.shared.isSignedIn {
+                if authService.isSignedIn {
                     signedInBadge
-                } else if AuthService.shared.isSigningIn {
+                } else if authService.isSigningIn {
                     HStack(spacing: Spacing.sm) {
                         ProgressView()
                         Text("Signing in…")
@@ -730,7 +750,7 @@ struct OnboardingView: View {
                     AppleSignInButton {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         OnboardingFunnelTracker.recordEvent("sign_in_initiated")
-                        AuthService.shared.signIn()
+                        authService.signIn()
                     }
                     .frame(height: 50)
                     .padding(.horizontal, Spacing.lg)
@@ -743,11 +763,11 @@ struct OnboardingView: View {
         }
         .padding(.horizontal, Spacing.lg)
         .alert(
-            AuthService.shared.lastError?.title ?? "",
+            authService.lastError?.title ?? "",
             isPresented: signInErrorBinding,
-            presenting: AuthService.shared.lastError
+            presenting: authService.lastError
         ) { _ in
-            Button("OK") { AuthService.shared.clearLastError() }
+            Button("OK") { authService.clearLastError() }
         } message: { error in
             Text(error.message)
         }
@@ -755,9 +775,9 @@ struct OnboardingView: View {
 
     private var signInErrorBinding: Binding<Bool> {
         Binding(
-            get: { AuthService.shared.lastError != nil },
+            get: { authService.lastError != nil },
             set: { newValue in
-                if !newValue { AuthService.shared.clearLastError() }
+                if !newValue { authService.clearLastError() }
             }
         )
     }
@@ -766,7 +786,7 @@ struct OnboardingView: View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "checkmark.seal.fill")
                 .foregroundStyle(AppColor.accentPrimary)
-            Text(AuthService.shared.userDisplayName.map { "Signed in as \($0)" } ?? "Signed in with Apple")
+            Text(authService.userDisplayName.map { "Signed in as \($0)" } ?? "Signed in with Apple")
                 .font(AppFont.callout.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
         }
@@ -983,7 +1003,7 @@ struct OnboardingView: View {
             // name on the very first authorization — once we have it,
             // we shouldn't ask twice (audit H2). Trim to first name so
             // the placeholder semantic ("First name") still reads true.
-            if name.isEmpty, let display = AuthService.shared.userDisplayName {
+            if name.isEmpty, let display = authService.userDisplayName {
                 let first = display.split(separator: " ").first.map(String.init) ?? display
                 if !first.isEmpty { name = first }
             }
@@ -2458,7 +2478,7 @@ private struct SocialProofPill: View {
                 .foregroundStyle(AppColor.textPrimary)
             Text("·")
                 .foregroundStyle(AppColor.textTertiary)
-            Text("12k+ training")
+            Text("12k+ athletes")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
         }

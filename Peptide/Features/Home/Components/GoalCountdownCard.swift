@@ -10,10 +10,10 @@ struct GoalCountdownCard: View {
     let primaryGoal: String?
 
     private var weeksRemaining: Int? {
-        guard let goalDate else { return nil }
-        let seconds = goalDate.timeIntervalSince(Date())
-        guard seconds > 0 else { return 0 }
-        return max(0, Int(seconds / (60 * 60 * 24 * 7)))
+        // Calendar-based so DST transitions don't shift the math by an
+        // hour and produce off-by-one weeks (audit code-review #12).
+        guard let daysRemaining else { return nil }
+        return max(0, daysRemaining / 7)
     }
 
     private var daysRemaining: Int? {
@@ -47,16 +47,23 @@ struct GoalCountdownCard: View {
     }
 
     var body: some View {
-        if let goalDate, let weeks = weeksRemaining, let days = daysRemaining {
-            GlassCard(tinted: true) {
-                VStack(alignment: .leading, spacing: Spacing.md) {
-                    header
-                    countdown(weeks: weeks, days: days)
-                    footer(targetDate: goalDate)
+        // Re-evaluate at the start of every minute so a user who
+        // leaves the app foregrounded across midnight sees the
+        // countdown tick down without having to navigate away and
+        // back (audit code-review #17). .everyMinute is conservative
+        // enough that the cost is negligible.
+        TimelineView(.everyMinute) { _ in
+            if let goalDate, let weeks = weeksRemaining, let days = daysRemaining {
+                GlassCard(tinted: true) {
+                    VStack(alignment: .leading, spacing: Spacing.md) {
+                        header
+                        countdown(weeks: weeks, days: days)
+                        footer(targetDate: goalDate)
+                    }
                 }
+            } else {
+                EmptyView()
             }
-        } else {
-            EmptyView()
         }
     }
 
