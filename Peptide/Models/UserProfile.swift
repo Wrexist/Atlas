@@ -351,6 +351,14 @@ struct UserProfile: Codable, Sendable {
     /// decode cleanly and so the field can be edited later without
     /// re-running onboarding.
     var goalDate: Date?
+    /// User-defined habits surfaced on Home (Morning Workout, Read 20
+    /// pages, …). New-style data — older profiles decode to an empty
+    /// list. See `HabitsService` for the streak / heatmap math.
+    var habits: [Habit]
+    /// Per-day check-ins for each habit. Stored separately from
+    /// `habits` so a heavy log (years of daily entries) doesn't bloat
+    /// the habit array's diffing cost.
+    var habitEntries: [HabitEntry]
 
     init(
         name: String,
@@ -385,7 +393,9 @@ struct UserProfile: Codable, Sendable {
         weeklySummaries: [String: WeeklySummary] = [:],
         biologyConfig: BiologyConfig = .default,
         trainingPreferences: TrainingPreferences? = nil,
-        goalDate: Date? = nil
+        goalDate: Date? = nil,
+        habits: [Habit] = [],
+        habitEntries: [HabitEntry] = []
     ) {
         self.name = name
         self.goals = goals
@@ -420,6 +430,8 @@ struct UserProfile: Codable, Sendable {
         self.biologyConfig = biologyConfig
         self.trainingPreferences = trainingPreferences
         self.goalDate = goalDate
+        self.habits = habits
+        self.habitEntries = habitEntries
     }
 
     init(from decoder: Decoder) throws {
@@ -461,6 +473,8 @@ struct UserProfile: Codable, Sendable {
         biologyConfig = try container.decodeIfPresent(BiologyConfig.self, forKey: .biologyConfig) ?? .default
         trainingPreferences = try container.decodeIfPresent(TrainingPreferences.self, forKey: .trainingPreferences)
         goalDate = try container.decodeIfPresent(Date.self, forKey: .goalDate)
+        habits = try container.decodeIfPresent([Habit].self, forKey: .habits) ?? []
+        habitEntries = try container.decodeIfPresent([HabitEntry].self, forKey: .habitEntries) ?? []
     }
 
     static var fresh: UserProfile {

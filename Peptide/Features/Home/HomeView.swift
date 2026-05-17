@@ -229,6 +229,13 @@ struct HomeView: View {
                     )
                     .sectionAppear(index: 0)
 
+                    // Habits — compact / expandable / "View all" sheet.
+                    // Sits just under the goal countdown so the user's
+                    // daily-action surface (single check-tap per habit)
+                    // is right under the projection that motivates it.
+                    HabitsHomeCard()
+                        .sectionAppear(index: 0)
+
                     if overview.hasAnySignal {
                         TodayOverviewCard(
                             snapshot: overview,

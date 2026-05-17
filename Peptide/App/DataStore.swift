@@ -1220,6 +1220,98 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
+    // MARK: - Habits
+
+    /// All non-archived habits, ordered by their `sortIndex` so the
+    /// user's drag-to-reorder order survives a relaunch.
+    var activeHabits: [Habit] {
+        profile.habits
+            .filter { !$0.archived }
+            .sorted { $0.sortIndex < $1.sortIndex }
+    }
+
+    func addHabit(_ habit: Habit) {
+        var copy = habit
+        if copy.sortIndex == 0 {
+            // Append to the bottom by default — drag-reorder writes
+            // a fresh index later.
+            copy.sortIndex = (profile.habits.map(\.sortIndex).max() ?? 0) + 1
+        }
+        profile.habits.append(copy)
+        save()
+    }
+
+    func updateHabit(_ habit: Habit) {
+        guard let idx = profile.habits.firstIndex(where: { $0.id == habit.id }) else { return }
+        profile.habits[idx] = habit
+        save()
+    }
+
+    /// Soft-delete via the `archived` flag so the history isn't
+    /// thrown away the moment the user removes a habit. Hard delete
+    /// is `purgeArchivedHabits()` from settings if we ever expose it.
+    func archiveHabit(id: UUID) {
+        guard let idx = profile.habits.firstIndex(where: { $0.id == id }) else { return }
+        profile.habits[idx].archived = true
+        save()
+    }
+
+    func reorderHabits(_ ordered: [Habit]) {
+        for (index, habit) in ordered.enumerated() {
+            if let i = profile.habits.firstIndex(where: { $0.id == habit.id }) {
+                profile.habits[i].sortIndex = index
+            }
+        }
+        save()
+    }
+
+    /// Toggle today's completion for a boolean habit, or bump the
+    /// count by one for a countable habit (capped at target). For
+    /// custom set-the-exact-value flows (e.g. "I drank 6 glasses"),
+    /// use `setHabitEntry(habitId:date:value:)` directly.
+    func toggleHabitEntry(habitId: UUID, on date: Date = Date()) {
+        guard let habit = profile.habits.first(where: { $0.id == habitId }) else { return }
+        let day = Calendar.current.startOfDay(for: date)
+        let target = habit.targetValue ?? 1
+        let existingIdx = profile.habitEntries.firstIndex {
+            $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: day)
+        }
+        if habit.isCountable {
+            if let idx = existingIdx {
+                profile.habitEntries[idx].value = min(target, profile.habitEntries[idx].value + 1)
+            } else {
+                profile.habitEntries.append(HabitEntry(habitId: habitId, date: day, value: 1))
+            }
+        } else {
+            if let idx = existingIdx {
+                // Toggle: completed → reset to zero (un-check), zero → completed
+                profile.habitEntries[idx].value = profile.habitEntries[idx].value == 0 ? 1 : 0
+            } else {
+                profile.habitEntries.append(HabitEntry(habitId: habitId, date: day, value: 1))
+            }
+        }
+        save()
+    }
+
+    /// Set the exact value for a given day. Use for countable habits
+    /// where the user wants to type "6 glasses" rather than tap +1
+    /// six times. Value 0 = uncompleted (removes the entry to keep
+    /// the storage compact).
+    func setHabitEntry(habitId: UUID, date: Date, value: Int) {
+        let day = Calendar.current.startOfDay(for: date)
+        let existingIdx = profile.habitEntries.firstIndex {
+            $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: day)
+        }
+        if value <= 0 {
+            if let idx = existingIdx { profile.habitEntries.remove(at: idx) }
+        } else if let idx = existingIdx {
+            profile.habitEntries[idx].value = value
+        } else {
+            profile.habitEntries.append(HabitEntry(habitId: habitId, date: day, value: value))
+        }
+        save()
+    }
+
     /// One-tap adoption of an onboarding-recommended starter stack. Creates a
     /// gentle 8-week protocol on a 5-days-on / 2-days-off cadence, mornings
     /// only — the most forgiving default. The user can edit it immediately.
