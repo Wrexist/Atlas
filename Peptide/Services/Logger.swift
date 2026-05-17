@@ -19,4 +19,5 @@ enum AppLog {
     static let live          = Logger(subsystem: subsystem, category: "LiveActivity")
     static let training      = Logger(subsystem: subsystem, category: "Training")
     static let diagnostics   = Logger(subsystem: subsystem, category: "Diagnostics")
+    static let onboarding    = Logger(subsystem: subsystem, category: "Onboarding")
 }

@@ -223,6 +223,10 @@ struct OnboardingView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear { OnboardingFunnelTracker.recordStepEntered(stepName(for: page), index: page) }
+        .onChange(of: page) { _, newPage in
+            OnboardingFunnelTracker.recordStepEntered(stepName(for: newPage), index: newPage)
+        }
         .fullScreenCover(isPresented: $showTrialOffer) {
             // Post-Ready paywall. Both branches advance into the
             // theme picker — the trial is genuinely optional, but the
@@ -230,10 +234,12 @@ struct OnboardingView: View {
             // once.
             TrialOfferView(
                 onAccept: {
+                    OnboardingFunnelTracker.recordEvent("paywall_accepted")
                     showTrialOffer = false
                     showThemePicker = true
                 },
                 onDecline: {
+                    OnboardingFunnelTracker.recordEvent("paywall_declined")
                     showTrialOffer = false
                     showThemePicker = true
                 }
@@ -241,9 +247,40 @@ struct OnboardingView: View {
         }
         .fullScreenCover(isPresented: $showThemePicker) {
             ThemePickerCover(onContinue: {
+                OnboardingFunnelTracker.recordCompletion()
                 showThemePicker = false
                 hasCompleted = true
             })
+        }
+    }
+
+    /// Maps a page index to a stable string name so the funnel
+    /// snapshot is human-readable in Console / a future analytics
+    /// export. Anything past the known range falls back to "unknown_N".
+    private func stepName(for index: Int) -> String {
+        switch index {
+        case Page.welcome:        return "welcome"
+        case Page.socialProof:    return "social_proof"
+        case Page.valueProof:     return "value_proof"
+        case Page.name:           return "name"
+        case Page.goal:           return "goal"
+        case Page.experience:     return "experience"
+        case Page.bodyMetrics:    return "body_metrics"
+        case Page.schedule:       return "schedule"
+        case Page.equipment:      return "equipment"
+        case Page.demoSet:        return "demo_set"
+        case Page.comparison:     return "comparison"
+        case Page.programPreview: return "program_preview"
+        case Page.nutrition:      return "nutrition"
+        case Page.projection:     return "projection"
+        case Page.disclaimer:     return "disclaimer"
+        case Page.notifications:  return "notifications"
+        case Page.health:         return "health"
+        case Page.buildingPlan:   return "building_plan"
+        case Page.creatorCode:    return "creator_code"
+        case Page.email:          return "email"
+        case Page.ready:          return "ready"
+        default:                  return "unknown_\(index)"
         }
     }
 
@@ -392,6 +429,7 @@ struct OnboardingView: View {
                 withAnimation(AppAnimation.springSnappy) {
                     disclaimerAcknowledged = true
                 }
+                OnboardingFunnelTracker.recordEvent("disclaimer_acknowledged")
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
                 return
             }
@@ -433,6 +471,7 @@ struct OnboardingView: View {
             capturedAt: Date()
         )
         dataStore.persistProfile()
+        OnboardingFunnelTracker.recordEvent("email_captured")
         return true
     }
 
@@ -453,9 +492,11 @@ struct OnboardingView: View {
             }
             dataStore.profile.creatorAttribution = match
             dataStore.persistProfile()
+            OnboardingFunnelTracker.recordEvent("creator_code_applied")
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         } else {
             withAnimation { creatorError = "Code not found — double-check and try again." }
+            OnboardingFunnelTracker.recordEvent("creator_code_invalid")
             UINotificationFeedbackGenerator().notificationOccurred(.error)
         }
     }
@@ -1685,6 +1726,7 @@ struct OnboardingView: View {
             if granted, !dataStore.profile.healthConnected {
                 dataStore.toggleHealthConnection()
             }
+            OnboardingFunnelTracker.recordEvent(granted ? "health_granted" : "health_denied")
         }
     }
 
@@ -1697,6 +1739,7 @@ struct OnboardingView: View {
             if granted, !dataStore.profile.doseRemindersEnabled {
                 dataStore.profile.doseRemindersEnabled = true
             }
+            OnboardingFunnelTracker.recordEvent(granted ? "notifications_granted" : "notifications_denied")
         }
     }
 
