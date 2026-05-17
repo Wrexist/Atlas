@@ -1,11 +1,10 @@
 import SwiftUI
 
 /// Standalone NavigationStack-wrapped form for editing the user's
-/// daily calorie + macro targets. Lives in /Lifestyle/Components
-/// because it's still mounted from the meal-logging surface, but no
-/// longer co-located with the now-deleted `LifestyleView` so the
-/// Today recompose (Phase 33) could remove that file without
-/// orphaning the editor.
+/// daily calorie + macro targets. Mounted from the Meals tab's
+/// `HomeMealsSection`. Previously co-located with the now-deleted
+/// `LifestyleView` under `Features/Lifestyle/`; moved to
+/// `Features/Meals/Components/` once the tab restructure landed.
 ///
 /// Two preset extensions on `NutritionTargets` live alongside this
 /// view because they're its closest collaborators — `.placeholder`

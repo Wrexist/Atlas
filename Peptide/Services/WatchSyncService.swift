@@ -79,6 +79,9 @@ final class WatchSyncService: NSObject {
         do {
             let encoded = try encoder.encode(data)
             try encoded.write(to: url, options: .atomic)
+            // Regenerated-cache file — exclude from iCloud Backup
+            // so it doesn't waste user quota / inflate restore time.
+            PersistenceService.excludeFromBackup(url)
         } catch {
             AppLog.persistence.error("WatchSyncService: failed to write WatchData: \(error.localizedDescription, privacy: .public)")
         }
@@ -94,18 +97,18 @@ final class WatchSyncService: NSObject {
         do {
             let encoded = try encoder.encode(data)
             guard let dict = try JSONSerialization.jsonObject(with: encoded) as? [String: Any] else { return }
-            if WCSession.default.isReachable {
-                WCSession.default.sendMessage(
-                    ["watchData": dict],
-                    replyHandler: nil,
-                    errorHandler: { error in
-                        AppLog.persistence.error("WatchSyncService: sendMessage failed, falling back to applicationContext: \(error.localizedDescription, privacy: .public)")
-                        try? WCSession.default.updateApplicationContext(["watchData": dict])
-                    }
-                )
-            } else {
-                try? WCSession.default.updateApplicationContext(["watchData": dict])
-            }
+            // Always use `updateApplicationContext` for bulk-state push.
+            //
+            // `sendMessage` is for imperative commands that need an ack.
+            // Bursty mutations (three dose toggles in 350 ms) used to
+            // queue three independent messages with no ordering
+            // guarantee — the Watch could process them out of order
+            // and surface a stale completion count.
+            // `updateApplicationContext` is last-write-wins by design
+            // and the system coalesces redundant updates, which is
+            // exactly the right semantics for "here's the current
+            // snapshot."
+            try WCSession.default.updateApplicationContext(["watchData": dict])
         } catch {
             AppLog.persistence.error("WatchSyncService: WCSession send failed: \(error.localizedDescription, privacy: .public)")
         }

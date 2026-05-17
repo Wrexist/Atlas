@@ -16,6 +16,7 @@ struct BiologyView: View {
     )
     @State private var showPaywall = false
     @State private var showEditSheet = false
+    @State private var showLabs = false
     /// Drives the per-biomarker detail sheet. Identifiable wrapper
     /// so `.sheet(item:)` lifecycle is clean across taps.
     @State private var detailItem: BiomarkerDetailItem?
@@ -86,6 +87,14 @@ struct BiologyView: View {
                 )
                 .liquidGlassPresentation()
             }
+            .sheet(isPresented: $showLabs) {
+                LabsView()
+                    .environment(dataStore)
+            }
+            .onAppear { consumePendingLabsDeepLink() }
+            .onChange(of: appState.pendingLabsOpen) { _, _ in
+                consumePendingLabsDeepLink()
+            }
         }
         .task { await refreshState() }
         .onChange(of: storeService.isProUser) { _, _ in
@@ -94,6 +103,19 @@ struct BiologyView: View {
         .onChange(of: dataStore.profile.age) { _, _ in
             Task { await refreshState() }
         }
+    }
+
+    /// Consumes the cross-tab "open Labs" deep-link flag set by the
+    /// Home overview card's latest-lab insight tap. Cleared the
+    /// moment we present the sheet so re-appearing the tab doesn't
+    /// re-fire. Mirrors the consumer that lived on the retired
+    /// `InsightsView` so the deep-link from `HomeView.onTapInsight`
+    /// still lands on the right surface after the Insights → Biology
+    /// rename.
+    private func consumePendingLabsDeepLink() {
+        guard appState.pendingLabsOpen else { return }
+        appState.pendingLabsOpen = false
+        showLabs = true
     }
 
     // MARK: - Bio Age resolution
@@ -109,9 +131,17 @@ struct BiologyView: View {
 
     private func computeWeightDelta30d() -> Double? {
         let history = dataStore.profile.weightHistory.sorted { $0.date < $1.date }
-        guard history.count >= 2, let latest = history.last else { return nil }
+        guard let earliest = history.first, let latest = history.last, earliest.id != latest.id else {
+            return nil
+        }
         let cutoff = Date().addingTimeInterval(-30 * 24 * 60 * 60)
-        let baseline = history.first { $0.date >= cutoff } ?? history.first!
+        // Prefer the first entry on/after the 30-day cutoff so the delta
+        // reflects "the last 30 days"; fall back to the earliest entry
+        // when the user has older but no recent history (still better
+        // than nothing). The optional binding above keeps this safe
+        // without any force-unwrap — a future refactor that drops the
+        // length guard can't accidentally crash on a single-entry log.
+        let baseline = history.first { $0.date >= cutoff } ?? earliest
         guard baseline.id != latest.id else { return nil }
         return latest.kg - baseline.kg
     }
@@ -139,14 +169,16 @@ struct BiologyView: View {
         if dataStore.profile.hapticFeedbackEnabled {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
-        // Fetch the 14-day initial snapshot so the sheet has
-        // something to render the moment it mounts. The sheet
-        // upgrades to the 90-day chart on its own .task via the
-        // historicalFetcher closure below.
-        Task {
-            let snapshot = await snapshot(for: biomarker, days: BiomarkerSeriesService.windowDays)
-            detailItem = BiomarkerDetailItem(biomarker: biomarker, snapshot: snapshot)
-        }
+        // Present the sheet immediately with an empty snapshot, then
+        // let it fill in via `historicalFetcher`. Fetching before
+        // setting `detailItem` raced on rapid taps: the second tap
+        // would overwrite the first `detailItem`, and SwiftUI's
+        // `.sheet(item:)` dismisses the first sheet mid-flight on
+        // an Identifiable change.
+        detailItem = BiomarkerDetailItem(
+            biomarker: biomarker,
+            snapshot: .empty(biomarker)
+        )
     }
 
     /// 90-day fetcher passed to the detail sheet. Same code path

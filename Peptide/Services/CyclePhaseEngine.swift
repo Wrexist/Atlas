@@ -53,7 +53,7 @@ enum CyclePhaseEngine {
         let calendar = Calendar.current
         let now = calendar.startOfDay(for: referenceDate)
         let start = calendar.startOfDay(for: proto.startDate)
-        let onDays = max(1, proto.cycleLengthWeeks) * 7
+        let onDays = proto.safeCycleLengthWeeks * 7
         let washDays = max(0, proto.washoutWeeks) * 7
         let cyclePeriod = onDays + washDays
 

@@ -313,6 +313,20 @@ struct PaywallView: View {
                     isYearly: false
                 )
             }
+            if let lifetime = storeService.lifetimeProduct {
+                // Lifetime is configured in App Store Connect but was
+                // previously unreachable from the paywall, so revenue
+                // from this product was effectively zero.
+                pricingCard(
+                    product: lifetime,
+                    title: "Lifetime",
+                    primaryPrice: lifetime.displayPrice,
+                    primaryUnit: "",
+                    subtitle: "One-time purchase",
+                    badge: nil,
+                    isYearly: false
+                )
+            }
         }
     }
 

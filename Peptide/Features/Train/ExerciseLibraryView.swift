@@ -34,7 +34,7 @@ struct ExerciseLibraryView: View {
             prompt: Text("Search exercises, muscles, equipment")
         )
         .task {
-            library.load()
+            await library.load()
         }
     }
 
@@ -126,7 +126,7 @@ struct ExerciseLibraryView: View {
             message: "We couldn't load the exercise database. Pull down to refresh, or tap retry below.",
             action: .init(title: "Retry", icon: "arrow.clockwise") {
                 library.reset()
-                library.load()
+                Task { await library.load() }
             }
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)

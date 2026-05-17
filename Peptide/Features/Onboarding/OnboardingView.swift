@@ -20,6 +20,11 @@ struct OnboardingView: View {
     @Environment(DataStore.self) private var dataStore
     @AppStorage("hasCompletedOnboarding") private var hasCompleted = false
     @AppStorage("experienceLevel") private var experienceLevel: String = "beginner"
+    /// Persisted so a kill mid-flow resumes where the user left off
+    /// instead of restarting at the Welcome screen. Cleared on the
+    /// final "Ready" step (which also sets `hasCompletedOnboarding`)
+    /// so a future re-run of onboarding (testing path) starts at 0.
+    @AppStorage("onboarding.lastPage") private var lastPage: Int = 0
 
     @State private var page: Int = 0
     @State private var name: String = ""
@@ -113,6 +118,12 @@ struct OnboardingView: View {
                     .padding(.bottom, Spacing.sm)
 
                 TabView(selection: $page) {
+                    // Note: page-resume + bookmark wiring lives on the
+                    // ZStack below — `.onAppear` restores from
+                    // `lastPage`, `.onChange(of: page)` writes it
+                    // back. A kill mid-flow now resumes where the
+                    // user left off instead of restarting from page 0
+                    // with partially-saved body metrics.
                     welcome.tag(0)
                     valueProof.tag(1)
                     nameStep.tag(2)
@@ -136,6 +147,17 @@ struct OnboardingView: View {
                 Spacer()
                 footer
             }
+        }
+        .onAppear {
+            // Resume from the last saved page so a kill / re-launch
+            // mid-onboarding doesn't drop the user back at Welcome
+            // with partial body metrics already written.
+            if page == 0 && lastPage > 0 && lastPage < totalPages {
+                page = lastPage
+            }
+        }
+        .onChange(of: page) { _, newValue in
+            lastPage = newValue
         }
         .preferredColorScheme(.dark)
     }
@@ -177,7 +199,11 @@ struct OnboardingView: View {
     private var footer: some View {
         VStack(spacing: Spacing.xs) {
             primaryButton
-            if page < totalPages - 1 && page > 1 {
+            // Skipping body metrics (tag 5) silently breaks nutrition
+            // targets — DailyTargets renders "—" forever and the
+            // Meals tab has no inline path to fix it. Force the user
+            // through page 5 so a skip can't lose a primary feature.
+            if page < totalPages - 1 && page > 1 && page != 5 {
                 Button("Skip") {
                     haptic()
                     advance()
@@ -252,6 +278,7 @@ struct OnboardingView: View {
             }
         case totalPages - 1:
             hasCompleted = true
+            lastPage = 0  // reset the resume bookmark for any future re-onboarding
             return
         default:
             break
@@ -670,7 +697,19 @@ struct OnboardingView: View {
         let selected = equipment.contains(kind)
         return Button {
             haptic()
-            if selected { equipment.remove(kind) } else { equipment.insert(kind) }
+            if selected {
+                // Always keep at least one option selected — an empty
+                // set makes ExerciseLibrary filters return zero hits
+                // and the program preview renders a blank list. The
+                // last-deselect is silently ignored so the user
+                // notices a non-response rather than getting trapped
+                // in a broken-state next step.
+                if equipment.count > 1 {
+                    equipment.remove(kind)
+                }
+            } else {
+                equipment.insert(kind)
+            }
         } label: {
             VStack(spacing: Spacing.xs) {
                 Image(systemName: kind.symbolName)
@@ -1054,6 +1093,11 @@ struct OnboardingView: View {
             requestingNotifications = false
             if granted, !dataStore.profile.doseRemindersEnabled {
                 dataStore.profile.doseRemindersEnabled = true
+                // Persist so a crash / quick backgrounding between here
+                // and the next onboarding-driven save doesn't lose the
+                // toggle. Settings-side `onChange` handlers do this same
+                // belt-and-braces persist.
+                dataStore.persistProfile()
             }
         }
     }

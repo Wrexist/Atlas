@@ -41,6 +41,14 @@ final class DataStore: DataServiceProtocol {
     @ObservationIgnored private var cacheVersion: Int = 0
     @ObservationIgnored private var versionedDay: Date = Calendar.current.startOfDay(for: Date())
 
+    /// IDs scheduled for delete on the next save. Replaces the
+    /// previous "bulk-replace and delete-missing" save path that
+    /// silently dropped CloudKit-added records the local in-memory
+    /// state hadn't picked up yet. Removal sites populate these;
+    /// `performSaveNow` drains them.
+    @ObservationIgnored private var pendingProtocolDeletions: Set<UUID> = []
+    @ObservationIgnored private var pendingEntryDeletions: Set<UUID> = []
+
     @ObservationIgnored private var _todayEntries: (version: Int, value: [ProtocolEntry])?
     @ObservationIgnored private var _currentStreak: (version: Int, value: Int)?
     @ObservationIgnored private var _totalDaysLogged: (version: Int, value: Int)?
@@ -65,8 +73,9 @@ final class DataStore: DataServiceProtocol {
 
     /// Entries keyed by start-of-day. Cached against `cacheVersion`, so all
     /// the per-day stats (currentStreak, totalDaysLogged, weeklyCompletion,
-    /// InsightsView complianceData / weeklyDoseData) share one O(n) group
-    /// pass per mutation instead of re-filtering the entries array per day.
+    /// the retired-but-still-compiled `InsightsView` compliance helpers)
+    /// share one O(n) group pass per mutation instead of re-filtering the
+    /// entries array per day.
     var entriesByDay: [Date: [ProtocolEntry]] {
         if let cached = _entriesByDay, cached.version == cacheVersion { return cached.value }
         let grouped = entries.groupedByDay
@@ -113,6 +122,23 @@ final class DataStore: DataServiceProtocol {
             self.entries   = savedEntries
             self.profile   = savedProfile ?? .fresh
             regenerateTodayEntries()
+            // Plan C — drain the legacy `profile.workoutHistory` array
+            // into the structured `StoredWorkoutSession` store the
+            // Train tab reads from. Idempotent; flips a marker on the
+            // profile so the migration is a no-op on every subsequent
+            // launch.
+            //
+            // Persist whenever the marker transitions to true — that
+            // includes the "no legacy entries to migrate" path where
+            // we still need the marker stamped so the service doesn't
+            // re-evaluate the (always-empty) array on every launch
+            // forever. The save-after path is the only place the
+            // marker actually reaches disk.
+            let markerWasFalse = !profile.workoutLegacyMigrationCompleted
+            _ = WorkoutLogMigrationService.migrateIfNeeded(profile: &profile, repository: repo)
+            if markerWasFalse && profile.workoutLegacyMigrationCompleted {
+                repo.saveProfile(profile)
+            }
         } else if seedSampleData {
             // Tests/previews: seed mock data
             let sampleProtocols = MockProtocols.all
@@ -139,6 +165,45 @@ final class DataStore: DataServiceProtocol {
         // store from outside the View hierarchy. Setting at the end
         // of init means callers never see a half-initialised store.
         Self.current = self
+
+        // Clear the in-memory cache + reload from disk if the user
+        // switches iCloud accounts mid-session. Without this the
+        // previous account's protocols + entries would remain visible
+        // to the new account until the next app launch.
+        NotificationCenter.default.addObserver(
+            forName: .peptideXiCloudIdentityChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleIdentityChange()
+            }
+        }
+    }
+
+    @MainActor
+    private func handleIdentityChange() {
+        AppLog.persistence.error("iCloud identity changed; clearing + reloading from new store")
+        // Drop pending writes — they belong to the previous identity
+        // and the next save's diff would otherwise commit them against
+        // the new container.
+        pendingProtocolDeletions.removeAll()
+        pendingEntryDeletions.removeAll()
+        // Clear first so any UI binding that runs between the clear
+        // and the reload doesn't see a mix of the two identities'
+        // data. didSet on protocols/entries auto-bumps cacheVersion
+        // so every derived metric (streak, weeklyCompletion, etc.)
+        // recomputes against the cleared state.
+        protocols = []
+        entries = []
+        profile = .fresh
+        // SwiftDataRepository's identity handler swaps the container
+        // BEFORE posting the notification, so loadProtocols / etc.
+        // here read from the new identity's store. If the new
+        // account has synced data this surfaces it immediately
+        // instead of forcing the user through a relaunch to see
+        // their own records.
+        reloadFromDisk()
     }
 
     /// The currently-active `DataStore`, set by `init` and consumed
@@ -191,6 +256,12 @@ final class DataStore: DataServiceProtocol {
     }
 
     func deleteProtocol(id: UUID) {
+        // Track the deletion explicitly so the save path can mirror
+        // it through to SwiftData / CloudKit; the removeAll on the
+        // arrays themselves is what the UI binds to.
+        pendingProtocolDeletions.insert(id)
+        let removedEntryIDs = entries.filter { $0.protocolId == id }.map(\.id)
+        pendingEntryDeletions.formUnion(removedEntryIDs)
         protocols.removeAll { $0.id == id }
         entries.removeAll { $0.protocolId == id }
         save()
@@ -202,6 +273,53 @@ final class DataStore: DataServiceProtocol {
         protocols[index].status = status
         if status == .active {
             appendTodayEntries(for: protocols[index])
+        }
+        save()
+        rescheduleNotificationsIfEnabled()
+    }
+
+    /// Extends the cycle length of an active protocol by `weeks`. Used
+    /// by the cycle-completion prompt's "Extend" action so the
+    /// existing cycle's `startDate` stays put — the user just gets a
+    /// longer cycle window. The completion prompt will re-fire when
+    /// the extended window also ends.
+    func extendProtocol(id: UUID, byWeeks weeks: Int) {
+        guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
+        protocols[index].cycleLengthWeeks = max(1, protocols[index].cycleLengthWeeks + weeks)
+        save()
+        rescheduleNotificationsIfEnabled()
+    }
+
+    /// Starts a fresh cycle for an existing protocol — same compounds,
+    /// same schedule, `startDate` reset to today, status flipped back
+    /// to `.active`. Used by the cycle-completion prompt's "Start new
+    /// cycle" action. CycleMilestoneService keys on `startDate` so
+    /// Day-7 / Day-30 / Complete prompts fire fresh for the new
+    /// cycle without manual reset.
+    func restartProtocol(id: UUID) {
+        guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
+        protocols[index].startDate = Calendar.current.startOfDay(for: Date())
+        protocols[index].status = .active
+        appendTodayEntries(for: protocols[index])
+        save()
+        rescheduleNotificationsIfEnabled()
+    }
+
+    /// Sweep called from `handleAppActivation` so cycles past the
+    /// dismiss-or-grace threshold flip to `.completed` without user
+    /// interaction. Logged at error level so the auto-completion is
+    /// auditable in Console.app.
+    func performCycleAutoCompletion() {
+        let due = CycleCompletionService.shared.protocolsDueForAutoCompletion(in: protocols)
+        guard !due.isEmpty else { return }
+        for proto in due {
+            AppLog.persistence.error(
+                "Auto-completing protocol \(proto.id.uuidString, privacy: .public) — cycle ended"
+            )
+            if let index = protocols.firstIndex(where: { $0.id == proto.id }) {
+                protocols[index].status = .completed
+            }
+            CycleCompletionService.shared.markAutoCompleted(proto)
         }
         save()
         rescheduleNotificationsIfEnabled()
@@ -318,6 +436,12 @@ final class DataStore: DataServiceProtocol {
         protocols[index] = updated
 
         if updated.status == .active {
+            let removed = entries.filter { entry in
+                entry.protocolId == updated.id &&
+                Calendar.current.isDateInToday(entry.date) &&
+                entry.peptide.id == peptide.id
+            }
+            pendingEntryDeletions.formUnion(removed.map(\.id))
             entries.removeAll { entry in
                 entry.protocolId == updated.id &&
                 Calendar.current.isDateInToday(entry.date) &&
@@ -375,6 +499,10 @@ final class DataStore: DataServiceProtocol {
         // the user already logged earlier today against that protocol,
         // which is real data loss.
         if updated.status == .active {
+            let removed = entries.filter { entry in
+                entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
+            }
+            pendingEntryDeletions.formUnion(removed.map(\.id))
             entries.removeAll { entry in
                 entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
             }
@@ -417,6 +545,10 @@ final class DataStore: DataServiceProtocol {
         protocols[index] = updated
 
         // Regenerate today's entries for this protocol so the change takes effect immediately.
+        let removedForRegen = entries.filter { entry in
+            entry.protocolId == protocolId && Calendar.current.isDateInToday(entry.date)
+        }
+        pendingEntryDeletions.formUnion(removedForRegen.map(\.id))
         entries.removeAll { entry in
             entry.protocolId == protocolId && Calendar.current.isDateInToday(entry.date)
         }
@@ -723,7 +855,7 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
-    /// Updates the calorie + macro targets surfaced on the Lifestyle tab.
+    /// Updates the calorie + macro targets surfaced on the Meals tab.
     /// Pass `nil` to clear them and re-show the empty-state CTA.
     func updateNutritionTargets(_ targets: NutritionTargets?) {
         profile.nutritionTargets = targets
@@ -863,8 +995,8 @@ final class DataStore: DataServiceProtocol {
         return true
     }
 
-    /// Per-category breakdown for today (or any day). Used by the new
-    /// `MealCategoriesCard` on the Lifestyle tab.
+    /// Per-category breakdown for today (or any day). Used by the
+    /// `MealCategoriesCard` on the Meals tab.
     func mealsByCategory(for date: Date = Date()) -> LifestyleDataLogic.CategoryBreakdown {
         LifestyleDataLogic.mealsByCategory(in: profile, for: date)
     }
@@ -1160,20 +1292,66 @@ final class DataStore: DataServiceProtocol {
         )
     }
 
+    /// Quick-log workout entry — kept for the freeform "Movement"
+    /// surface on the Today scroll. Plan C reconciled the dual store
+    /// split: this method no longer writes to the legacy
+    /// `profile.workoutHistory` array; instead it constructs a
+    /// `WorkoutSession` (empty exercises, the legacy sets×reps in the
+    /// `note` field) and persists through the same SwiftData repo
+    /// the Train tab reads from. Both surfaces converge on
+    /// `StoredWorkoutSession` so a quick-log entry shows up in Train,
+    /// and a Train-tab session shows up in the Today summary.
     func logWorkout(_ entry: WorkoutEntry) {
-        LifestyleDataLogic.logWorkout(into: &profile, entry: entry)
-        save()
+        let finishedAt = entry.date.addingTimeInterval(
+            TimeInterval(max(0, entry.durationMinutes) * 60)
+        )
+        let session = WorkoutSession(
+            id: entry.id,
+            name: entry.name,
+            routineID: nil,
+            programID: nil,
+            startedAt: entry.date,
+            finishedAt: finishedAt,
+            exercises: [],
+            note: "Quick-log · \(entry.sets) sets × \(entry.reps) reps",
+            perceivedEffort: nil
+        )
+        repo.upsertWorkoutSession(session)
+        // Bump the day-version so workoutSummary's cache invalidates
+        // and the Today scroll refreshes its count.
+        bumpVersionIfDayChanged()
     }
 
+    /// Deletes a workout by ID from the structured store. Same plumbing
+    /// as `WorkoutSessionService.discardWorkout` for the active path —
+    /// here it targets the historical row directly.
     func deleteWorkout(id: UUID) {
-        LifestyleDataLogic.deleteWorkout(from: &profile, id: id)
-        save()
+        repo.deleteWorkoutSession(id: id)
+        bumpVersionIfDayChanged()
     }
 
     /// (count, totalMinutes) for workout sessions logged on `date`'s
     /// calendar day.
     func workoutSummary(for date: Date = Date()) -> (count: Int, minutes: Int) {
-        LifestyleDataLogic.workoutSummary(of: profile, for: date)
+        // Reads from `StoredWorkoutSession` now (Plan C) — quick-log
+        // entries and Train-tab sessions both land there. Uses the
+        // windowed repo fetch so this method doesn't fault the whole
+        // session table on every Today-tab render — a long-term user
+        // could have years of sessions, and this is called from a
+        // SwiftUI body.
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: date)
+        guard let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) else {
+            return (0, 0)
+        }
+        let sessions = repo.loadWorkoutSessions(startedBetween: dayStart..<dayEnd)
+        let count = sessions.count
+        let minutes = sessions.reduce(0) { acc, session in
+            guard let finished = session.finishedAt else { return acc }
+            let secs = finished.timeIntervalSince(session.startedAt)
+            return acc + max(0, Int(secs / 60))
+        }
+        return (count, minutes)
     }
 
     func addProgressPhotoFilename(_ filename: String) {
@@ -1312,8 +1490,28 @@ final class DataStore: DataServiceProtocol {
         // user flips the toggle off + reloadFromDisk restores the
         // real data.
         guard !isEphemeral else { return }
-        repo.saveProtocols(protocols)
-        repo.saveEntries(entries)
+
+        // Upsert + explicit-delete pattern. Previously this called
+        // saveProtocols(self.protocols) / saveEntries(self.entries)
+        // which used a "delete-everything-not-in-input" diff. When
+        // CloudKit delivered a remote insert between the last
+        // reloadFromDisk and now, that row was absent from the local
+        // arrays and would be silently deleted (and the deletion
+        // propagated back to CloudKit). Explicit deletion tracking
+        // closes that window: only IDs that DataStore actually
+        // intended to remove are deleted.
+        repo.upsertProtocols(protocols)
+        repo.upsertEntries(entries)
+        if !pendingProtocolDeletions.isEmpty {
+            for id in pendingProtocolDeletions {
+                repo.deleteProtocol(id: id)
+            }
+            pendingProtocolDeletions.removeAll()
+        }
+        if !pendingEntryDeletions.isEmpty {
+            repo.deleteEntries(ids: pendingEntryDeletions)
+            pendingEntryDeletions.removeAll()
+        }
         repo.saveProfile(profile)
         updateWidgetData()
         updateWatchData()
@@ -1363,7 +1561,7 @@ final class DataStore: DataServiceProtocol {
     /// lives in the builder so a snapshot regression is testable without
     /// standing up `DataStore` + `PersistenceService`. Nutrition is
     /// pulled live from the profile so the nutrition widget reflects
-    /// the same numbers the Lifestyle tab shows.
+    /// the same numbers the Meals tab shows.
     private func updateWidgetData() {
         let data = WidgetSnapshotBuilder.build(
             today: todayEntries,
@@ -1478,6 +1676,11 @@ final class DataStore: DataServiceProtocol {
     /// last check and regenerates today's entries when needed. Idempotent.
     func handleAppActivation() {
         bumpVersionIfDayChanged()
+        // Flip any `.active` protocols past the soft auto-complete
+        // threshold to `.completed`. Runs BEFORE regenerateTodayEntries
+        // so the just-completed cycles don't produce another day of
+        // scheduled entries before the status change lands.
+        performCycleAutoCompletion()
         regenerateTodayEntries()
     }
 
@@ -1490,6 +1693,79 @@ final class DataStore: DataServiceProtocol {
         entries = repo.loadEntries()
         if let saved = repo.loadProfile() { profile = saved }
         regenerateTodayEntries()
+        // CloudKit-driven pulls land here; without these the lock-
+        // screen widget and the Watch tab would stay stale until the
+        // next user mutation or the widget's 15-min auto-timer.
+        updateWidgetData()
+        updateWatchData()
+    }
+
+    /// Transactionally applies a backup import — the user has
+    /// already confirmed the Replace / Merge choice and seen a
+    /// validation preview. Plan E's commit phase.
+    ///
+    /// The mutation is atomic from the user's perspective: the
+    /// in-memory state is replaced in one assignment, the repo is
+    /// updated via the same upsert path the live save uses, and
+    /// pending deletion sets are cleared so the next save doesn't
+    /// inadvertently delete CloudKit-side data that came in via
+    /// the restore.
+    func applyImport(
+        protocols newProtocols: [PeptideProtocol],
+        entries newEntries: [ProtocolEntry],
+        profile newProfile: UserProfile
+    ) throws {
+        guard !isEphemeral else {
+            throw NSError(
+                domain: "Peptide.BackupImport",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey:
+                    "Backup import is disabled in screenshot/demo mode."]
+            )
+        }
+
+        // Drop any pending deletion bookkeeping — those IDs belong to
+        // the pre-import world and would otherwise propagate as
+        // CloudKit deletions against the just-restored rows.
+        pendingProtocolDeletions.removeAll()
+        pendingEntryDeletions.removeAll()
+
+        // Replace in-memory state first so any observers (Train tab,
+        // calendar, etc.) re-render against the new data while the
+        // disk write is in flight.
+        protocols = newProtocols
+        entries = newEntries
+        profile = newProfile
+
+        // Bulk write. For protocols + entries, use the upsert APIs +
+        // explicit deletes for any IDs that the import dropped.
+        // saveProfile is the simple replace.
+        let liveProtocolIDs = Set(repo.loadProtocols().map(\.id))
+        let importProtocolIDs = Set(newProtocols.map(\.id))
+        let liveEntryIDs = Set(repo.loadEntries().map(\.id))
+        let importEntryIDs = Set(newEntries.map(\.id))
+
+        repo.upsertProtocols(newProtocols)
+        repo.upsertEntries(newEntries)
+
+        // Anything in the live store that the import didn't carry =
+        // user intent to remove. Used by the Replace path; Merge
+        // never produces these because the merge logic kept current
+        // IDs intact upstream.
+        let droppedProtocolIDs = liveProtocolIDs.subtracting(importProtocolIDs)
+        for id in droppedProtocolIDs {
+            repo.deleteProtocol(id: id)
+        }
+        let droppedEntryIDs = liveEntryIDs.subtracting(importEntryIDs)
+        if !droppedEntryIDs.isEmpty {
+            repo.deleteEntries(ids: droppedEntryIDs)
+        }
+
+        repo.saveProfile(newProfile)
+        regenerateTodayEntries()
+        updateWidgetData()
+        updateWatchData()
+        rescheduleNotificationsIfEnabled()
     }
 
     // MARK: - Entry Generation

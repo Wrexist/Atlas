@@ -9,9 +9,49 @@ import SwiftUI
 struct WorkoutDetailView: View {
     @Environment(DataStore.self) private var dataStore
     @State private var showLogSheet = false
+    /// Cached workout-session list — re-fetched on appear and after
+    /// any mutation. Plan C moved the canonical store from
+    /// `profile.workoutHistory` (array on the profile blob) to
+    /// `StoredWorkoutSession` (SwiftData rows), so this view now
+    /// pulls through `SwiftDataRepository.loadWorkoutSessions` and
+    /// adapts each session to the legacy `WorkoutEntry` shape that
+    /// the existing chart + history list code already understands.
+    @State private var historyCache: [WorkoutEntry] = []
 
-    private var history: [WorkoutEntry] {
-        dataStore.profile.workoutHistory
+    private var history: [WorkoutEntry] { historyCache }
+
+    private func refresh() {
+        let sessions = SwiftDataRepository.shared.loadWorkoutSessions()
+        historyCache = sessions
+            .sorted { $0.startedAt > $1.startedAt }
+            .map { Self.entryFromSession($0) }
+    }
+
+    /// Lossy adapter: collapses a structured `WorkoutSession` into
+    /// the legacy `WorkoutEntry` shape the UI is wired against.
+    /// `sets` / `reps` come from the per-set tally when present;
+    /// quick-log sessions (empty `exercises`) fall back to parsing
+    /// the note string the migration left behind.
+    private static func entryFromSession(_ session: WorkoutSession) -> WorkoutEntry {
+        let totalSets = session.exercises
+            .flatMap(\.sets)
+            .count
+        let totalReps = session.exercises
+            .flatMap(\.sets)
+            .reduce(0) { $0 + $1.reps }
+        let avgReps = totalSets > 0 ? totalReps / totalSets : 0
+        let duration: Int = {
+            guard let finished = session.finishedAt else { return 0 }
+            return max(0, Int(finished.timeIntervalSince(session.startedAt) / 60))
+        }()
+        return WorkoutEntry(
+            id: session.id,
+            date: session.startedAt,
+            name: session.name ?? "Workout",
+            sets: totalSets,
+            reps: avgReps,
+            durationMinutes: duration
+        )
     }
 
     var body: some View {
@@ -41,10 +81,23 @@ struct WorkoutDetailView: View {
         .sheet(isPresented: $showLogSheet) {
             WorkoutLogSheet(
                 history: history,
-                onLog: { entry in dataStore.logWorkout(entry) },
-                onDelete: { id in dataStore.deleteWorkout(id: id) },
+                onLog: { entry in
+                    dataStore.logWorkout(entry)
+                    refresh()
+                },
+                onDelete: { id in
+                    dataStore.deleteWorkout(id: id)
+                    refresh()
+                },
                 onClose: { showLogSheet = false }
             )
+        }
+        .task { refresh() }
+        .onChange(of: showLogSheet) { _, isUp in
+            // Re-pull after the sheet closes so any add / delete in
+            // the modal lands on the list. External writes (Train-tab
+            // session finish) refresh on next push into this view.
+            if !isUp { refresh() }
         }
     }
 
@@ -261,6 +314,7 @@ struct WorkoutDetailView: View {
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
                 }
                 dataStore.deleteWorkout(id: entry.id)
+                refresh()
             } label: {
                 Label("Delete", systemImage: "trash")
             }

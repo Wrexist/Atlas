@@ -27,10 +27,14 @@ struct WeeklyAggregate: Codable, Hashable, Sendable {
     let nutrition: Nutrition?
     let biometrics: Biometrics?
     let labs: Labs
-    /// Highest-priority observation the on-device InsightEngine
-    /// surfaced for the week. Nil when the engine has nothing to
-    /// say — the model is instructed not to invent in that case.
-    let topInsight: String?
+    /// Stable category for the highest-priority observation the
+    /// on-device InsightEngine surfaced for the week. Used to be a
+    /// free-text title string (e.g. "Evening doses need attention")
+    /// which violated the aggregate's privacy contract by leaking
+    /// dose-timing patterns into a server-bound payload. The model
+    /// can re-phrase from the category code + the numeric fields
+    /// already present in the aggregate.
+    let topInsightCategory: String?
 
     struct Compliance: Codable, Hashable, Sendable {
         let completed: Int

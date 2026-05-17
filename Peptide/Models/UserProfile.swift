@@ -103,7 +103,7 @@ struct BodyMetrics: Codable, Hashable, Sendable {
 }
 
 /// Daily macro targets derived from the user's body stats during onboarding
-/// and surfaced on the Lifestyle tab. Stored as integers because they're
+/// and surfaced on the Meals tab. Stored as integers because they're
 /// reference targets — the user doesn't need 0.1 g of protein resolution.
 struct NutritionTargets: Codable, Hashable, Sendable {
     var calories: Int
@@ -139,9 +139,9 @@ struct EmailSubscription: Codable, Hashable, Sendable {
 }
 
 /// One bodyweight measurement, stored in canonical metric (kilograms).
-/// The Lifestyle tab renders the trend over the most recent 14 days
-/// and exposes the deltas; everything else converts to/from imperial
-/// at the UI boundary based on `bodyMetrics.unit`.
+/// The Today scroll's weight section renders the trend over the most
+/// recent 14 days and exposes the deltas; everything else converts
+/// to/from imperial at the UI boundary based on `bodyMetrics.unit`.
 struct WeightEntry: Codable, Hashable, Identifiable, Sendable {
     let id: UUID
     let date: Date
@@ -154,7 +154,10 @@ struct WeightEntry: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
-/// One workout session logged on the Lifestyle tab. Free-form name
+/// One workout session in the legacy free-form log
+/// (`profile.workoutHistory`). The Train tab's structured workout
+/// flow uses `WorkoutSession`/`StoredWorkoutSession` instead — see
+/// `DataStore.logWorkout` for the deprecation note. Free-form name
 /// (e.g. "Push day", "Hill sprints") plus the spec'd sets/reps/duration
 /// fields — intentionally lightweight so this isn't a competing gym
 /// app, just enough structure to feed the daily card subtitle and a
@@ -218,10 +221,10 @@ struct UserProfile: Codable, Sendable {
     var doseRemindersEnabled: Bool
     var biometricLockEnabled: Bool
     var bodyMetrics: BodyMetrics
-    /// Calorie + macro targets shown on the Lifestyle tab. Populated from
+    /// Calorie + macro targets shown on the Meals tab. Populated from
     /// the onboarding daily-targets screen on first run; the user can edit
     /// the numbers later. Optional so older profiles decode cleanly and so
-    /// the Lifestyle tab can detect "not yet computed" and re-prompt.
+    /// the Meals tab can detect "not yet computed" and re-prompt.
     var nutritionTargets: NutritionTargets?
     /// Set when the user enters a valid creator code on the onboarding
     /// attribution step. Used by the paywall copy to acknowledge the
@@ -232,9 +235,10 @@ struct UserProfile: Codable, Sendable {
     /// Local-only today; will be drained into Supabase + Resend when the
     /// backend ships.
     var emailSubscription: EmailSubscription?
-    /// Bodyweight history surfaced on the Lifestyle tab's 14-day
-    /// sparkline. Newest-last so the sparkline iteration order matches
-    /// the visual axis without re-sorting on every render.
+    /// Bodyweight history surfaced on the Today scroll's weight
+    /// sparkline (14-day window). Newest-last so the sparkline
+    /// iteration order matches the visual axis without re-sorting on
+    /// every render.
     var weightHistory: [WeightEntry]
     /// Filenames (relative to the app's Documents directory) of progress
     /// photos the user has captured. The actual JPEG data lives on disk —
@@ -244,10 +248,26 @@ struct UserProfile: Codable, Sendable {
     /// strings. Stored as a dictionary so the meal-scanner roll-up can
     /// upsert today's bucket without scanning the array.
     var dailyConsumption: [String: DailyConsumption]
-    /// Workout sessions logged on the Lifestyle tab. Newest-last so
-    /// callers iterating forward see chronological order without
-    /// re-sorting.
+    /// Legacy free-form workout log — see `WorkoutEntry`. The Train
+    /// tab's structured flow writes to `StoredWorkoutSession` via
+    /// `WorkoutSessionService` instead. Newest-last so callers
+    /// iterating forward see chronological order without re-sorting.
+    ///
+    /// **Deprecated**: `WorkoutLogMigrationService.migrateIfNeeded`
+    /// drains this on first launch after Plan C lands and flips the
+    /// `workoutLegacyMigrationCompleted` marker. New writes go via
+    /// `DataStore.logWorkout`'s now-shimmed implementation, which
+    /// constructs a `WorkoutSession` and persists through the
+    /// SwiftData repository. Field kept on the schema so older builds
+    /// can still read the profile blob — a CloudKit roll-back to a
+    /// pre-migration build wouldn't see "missing column" decode errors.
     var workoutHistory: [WorkoutEntry]
+    /// Marker set once `WorkoutLogMigrationService` has copied any
+    /// existing `workoutHistory` into `StoredWorkoutSession`. Once true
+    /// the migration is permanently skipped, so a user who created
+    /// post-migration sessions via the new path never has them
+    /// duplicated on a subsequent relaunch.
+    var workoutLegacyMigrationCompleted: Bool = false
     /// JPEG-encoded profile avatar uploaded from the photo library. Stored
     /// inline so the avatar travels with the profile across exports and
     /// iCloud sync. Compressed before save — see DataStore.updateAvatar.
@@ -361,6 +381,7 @@ struct UserProfile: Codable, Sendable {
         progressPhotoFilenames: [String] = [],
         dailyConsumption: [String: DailyConsumption] = [:],
         workoutHistory: [WorkoutEntry] = [],
+        workoutLegacyMigrationCompleted: Bool = false,
         avatarImageData: Data? = nil,
         bio: String = "",
         primaryGoal: String? = nil,
@@ -394,6 +415,7 @@ struct UserProfile: Codable, Sendable {
         self.progressPhotoFilenames = progressPhotoFilenames
         self.dailyConsumption = dailyConsumption
         self.workoutHistory = workoutHistory
+        self.workoutLegacyMigrationCompleted = workoutLegacyMigrationCompleted
         self.avatarImageData = avatarImageData
         self.bio = bio
         self.primaryGoal = primaryGoal
@@ -430,6 +452,7 @@ struct UserProfile: Codable, Sendable {
         progressPhotoFilenames = try container.decodeIfPresent([String].self, forKey: .progressPhotoFilenames) ?? []
         dailyConsumption = try container.decodeIfPresent([String: DailyConsumption].self, forKey: .dailyConsumption) ?? [:]
         workoutHistory = try container.decodeIfPresent([WorkoutEntry].self, forKey: .workoutHistory) ?? []
+        workoutLegacyMigrationCompleted = try container.decodeIfPresent(Bool.self, forKey: .workoutLegacyMigrationCompleted) ?? false
         avatarImageData = try container.decodeIfPresent(Data.self, forKey: .avatarImageData)
         bio = try container.decodeIfPresent(String.self, forKey: .bio) ?? ""
         primaryGoal = try container.decodeIfPresent(String.self, forKey: .primaryGoal)

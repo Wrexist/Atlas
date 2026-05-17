@@ -59,7 +59,7 @@ extension CycleCardModel {
             peptides: proto.peptides,
             activeSinceDate: proto.startDate,
             cycleDay: cycleDay(for: proto),
-            cycleTotalDays: max(1, proto.cycleLengthWeeks * 7),
+            cycleTotalDays: proto.safeCycleLengthWeeks * 7,
             dosesLogged: logged,
             adherencePercent: Int((dataStore.averageCompliance * 100).rounded()),
             currentStreakDays: dataStore.currentStreak,
@@ -78,7 +78,7 @@ extension CycleCardModel {
     ) -> CycleCardModel {
         let active = dataStore.activeProtocols
         let earliestStart = active.map(\.startDate).min() ?? Date()
-        let longestCycle = active.map { max(1, $0.cycleLengthWeeks * 7) }.max() ?? 1
+        let longestCycle = active.map { $0.safeCycleLengthWeeks * 7 }.max() ?? 1
         // A protocol with a future startDate (scheduled to begin tomorrow)
         // would otherwise show "Day 1 of N" — misleading. Render day 0
         // when the cycle hasn't started yet so the view can downgrade the

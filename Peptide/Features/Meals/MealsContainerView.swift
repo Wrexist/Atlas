@@ -8,9 +8,11 @@ import SwiftUI
 /// Composed from the existing `HomeMealsSection` — already a self-
 /// contained, sheet-owning view that bubbles its modals up the
 /// SwiftUI hierarchy — so mounting it here gives the user a
-/// single Meals destination without duplicating logic. The
-/// previous mount point on Today still works during the transition;
-/// removing it is a follow-up cleanup pass.
+/// single Meals destination without duplicating logic. The section
+/// is also mounted on the Today scroll, but only this instance
+/// passes `consumesDeepLink: true` so Spotlight food taps land
+/// here (the router switches to `.meals` first) and the Today
+/// instance stays silent for deep-links.
 ///
 /// Weight tracking and progress photos stay on the Today scroll
 /// for now (they're body-tracking, not nutrition) — a future
@@ -20,7 +22,7 @@ struct MealsContainerView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
-                    HomeMealsSection()
+                    HomeMealsSection(consumesDeepLink: true)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.top, Spacing.lg)

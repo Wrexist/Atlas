@@ -45,6 +45,13 @@ targets:
           - "**/.DS_Store"
           - "Resources/Info.plist"
           - "Resources/AppStoreCovers/**"
+          # Local StoreKit config — referenced by the scheme as
+          # `storeKitConfiguration` for `xcodebuild test` /
+          # SKTestSession only. EXCLUDING from the app bundle so a
+          # device build can't accidentally hit the sandboxed local
+          # products instead of App Store Connect — that would route
+          # every TestFlight / prod purchase through a fake catalog.
+          - "Resources/Products.storekit"
       - path: Shared
     info:
       path: Peptide/Resources/Info.plist

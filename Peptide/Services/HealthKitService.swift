@@ -307,14 +307,20 @@ final class HealthKitService {
         }
 
         let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { [weak self] _, completionHandler, error in
-            // Call immediately — our refresh runs in a separate Task per Apple's guidance
-            completionHandler()
             if let error {
                 AppLog.healthKit.error("Observer query error: \(error.localizedDescription, privacy: .private)")
+                completionHandler()
                 return
             }
+            // Call the completion handler AFTER the refresh resolves
+            // so the OS doesn't reclaim background time before our HK
+            // queries complete. The prior implementation called it
+            // immediately and ran refresh detached — on real devices
+            // that races the process suspending and silently drops
+            // the update.
             Task { @MainActor in
                 await self?.refreshSnapshot()
+                completionHandler()
             }
         }
         store.execute(query)

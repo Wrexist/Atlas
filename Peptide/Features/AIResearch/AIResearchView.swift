@@ -14,6 +14,11 @@ struct AIResearchView: View {
     @State private var input: String = ""
     @State private var isStreaming = false
     @State private var errorText: String?
+    /// In-flight Anthropic request. Cancelled on send (so a new
+    /// question doesn't double-bill) and on disappear (closing the
+    /// chat sheet shouldn't keep a 30s call alive against the
+    /// proxy quota).
+    @State private var inflight: Task<Void, Never>?
     /// The last prompt that hit an error, kept around so the Retry button on
     /// the alert can re-send it without making the user retype.
     @State private var lastFailedPrompt: String?
@@ -34,6 +39,14 @@ struct AIResearchView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .onDisappear {
+                // Stop any in-flight Anthropic call when the sheet
+                // closes — otherwise a 30-second response keeps
+                // billing the proxy for a question the user
+                // abandoned.
+                inflight?.cancel()
+                inflight = nil
             }
             .alert(
                 "Couldn't reach the assistant",
@@ -226,7 +239,8 @@ struct AIResearchView: View {
         let priorHistory = Array(transcript.dropLast()) // exclude the user turn we just appended
         let database = dataStore.peptideDatabase
 
-        Task { @MainActor in
+        inflight?.cancel()
+        inflight = Task { @MainActor in
             defer { isStreaming = false }
             do {
                 let reply = try await AIResearchService.shared.reply(
@@ -234,7 +248,11 @@ struct AIResearchView: View {
                     newUserPrompt: prompt,
                     in: database
                 )
+                guard !Task.isCancelled else { return }
                 transcript.append(AIResearchService.Turn(role: .assistant, content: reply))
+            } catch is CancellationError {
+                // Either the user sent a new question or closed the
+                // sheet — silent.
             } catch {
                 errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 lastFailedPrompt = prompt

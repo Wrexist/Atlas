@@ -1,6 +1,7 @@
 import Foundation
 import ActivityKit
 import SwiftUI
+import UIKit
 
 /// Roadmap v2.5.3 — Live Activity controller for in-progress dose
 /// windows. Starts an activity when a scheduled dose enters its
@@ -174,15 +175,25 @@ final class DoseLiveActivityService {
     /// only ever consumes the bytes — no further math — so this is a
     /// safe round-trip on the basic sRGB range we use.
     private func hex(of color: SwiftUI.Color) -> UInt {
-        // SwiftUI.Color → CGColor for component access. Falls back to
-        // the brand purple when an opaque colour can't be resolved
-        // (rare; happens only in odd dark/light dynamic colour cases).
-        let resolved = color.cgColor ?? CGColor(red: 0.31, green: 0.27, blue: 0.90, alpha: 1)
-        let components = resolved.components ?? [0.31, 0.27, 0.90, 1]
-        let r = UInt(max(0, min(1, components.first ?? 0)) * 255)
-        let g = UInt(max(0, min(1, components.dropFirst().first ?? 0)) * 255)
-        let b = UInt(max(0, min(1, components.dropFirst(2).first ?? 0)) * 255)
-        return (r << 16) | (g << 8) | b
+        // SwiftUI.Color.cgColor returns nil for asset-catalog colors
+        // and any color resolved through a dynamic trait — including
+        // most of the brand palette that `VialPalette` may return.
+        // Resolve through `UIColor` first so an asset-catalog color
+        // gets concretely sampled against the current trait
+        // collection. Falls back to the brand purple if even that
+        // path fails (e.g. an invalid color in a preview).
+        let uiColor = UIColor(color).resolvedColor(with: .current)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        let ok = uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+        if !ok {
+            // Non-RGB color space (extremely rare for asset entries) —
+            // fall back to brand purple rather than mis-sampling.
+            r = 0.31; g = 0.27; b = 0.90
+        }
+        let rByte = UInt(max(0, min(1, r)) * 255)
+        let gByte = UInt(max(0, min(1, g)) * 255)
+        let bByte = UInt(max(0, min(1, b)) * 255)
+        return (rByte << 16) | (gByte << 8) | bByte
     }
 }
 

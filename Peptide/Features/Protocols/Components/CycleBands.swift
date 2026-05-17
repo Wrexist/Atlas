@@ -68,7 +68,7 @@ enum CycleBands {
         calendar: Calendar
     ) -> Bool {
         let start = calendar.startOfDay(for: proto.startDate)
-        let weeks = max(1, proto.cycleLengthWeeks)
+        let weeks = proto.safeCycleLengthWeeks
         let end = calendar.date(byAdding: .day, value: weeks * 7, to: start) ?? start
         // The protocol is "active" in a week row if its [start, end)
         // window overlaps the row's [weekStart, weekEnd) window. The

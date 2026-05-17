@@ -35,7 +35,7 @@ enum WeeklySummaryEngine {
         hrvSeries: [(date: Date, value: Double)] = [],
         rhrSeries: [(date: Date, value: Double)] = [],
         sleepSeries: [(date: Date, value: Double)] = [],
-        topInsight: String? = nil
+        topInsightCategory: String? = nil
     ) -> WeeklyAggregate? {
         let calendar = Self.isoCalendar
         guard let weekRange = weekRange(containing: referenceDate, calendar: calendar)
@@ -94,7 +94,7 @@ enum WeeklySummaryEngine {
             nutrition: nutrition,
             biometrics: biometrics,
             labs: labs,
-            topInsight: topInsight?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+            topInsightCategory: topInsightCategory?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         )
     }
 

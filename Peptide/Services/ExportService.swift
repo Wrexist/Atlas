@@ -6,6 +6,67 @@ final class ExportService {
     static let shared = ExportService()
     private init() {}
 
+    /// Total-entry cutoff under which the PDF paginates every entry
+    /// for a protocol. Above this, the report shows only the recent
+    /// `pdfRecentEntryLimit` and references the CSV for the rest.
+    /// 90 fits ~3 months of daily dosing in a single PDF section
+    /// without the medical-report becoming unreadable.
+    static let pdfFullDetailLimit: Int = 90
+
+    /// How many recent entries to keep when total > pdfFullDetailLimit.
+    /// 30 ≈ one screen / one printed page; the monthly summary above
+    /// covers the missing window.
+    static let pdfRecentEntryLimit: Int = 30
+
+    /// Returns one row per month covered by `entries`, newest-first.
+    /// Months with zero activity are suppressed. Used by the PDF
+    /// monthly-summary block to give the reader a trend view that
+    /// stays complete regardless of how many entry rows the body
+    /// truncates.
+    static func monthlyBuckets(for entries: [ProtocolEntry]) -> [PDFMonthlyBucket] {
+        guard !entries.isEmpty else { return [] }
+        let cal = Calendar.current
+        // Drop entries whose month-start can't be derived (would only
+        // happen with a severely broken calendar). The previous
+        // fallback to the raw `entry.date` produced a bucket keyed on
+        // a full timestamp, which the LLLL-yyyy formatter rendered as
+        // a day-level label and sorted incoherently.
+        let bucketable: [(Date, ProtocolEntry)] = entries.compactMap { entry in
+            let comps = cal.dateComponents([.year, .month], from: entry.date)
+            guard let monthStart = cal.date(from: comps) else { return nil }
+            return (monthStart, entry)
+        }
+        let grouped = Dictionary(grouping: bucketable, by: \.0)
+            .mapValues { $0.map(\.1) }
+        let monthFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.dateFormat = "LLLL yyyy"
+            return f
+        }()
+        return grouped
+            .map { monthStart, group -> PDFMonthlyBucket in
+                let logged = group.filter(\.completed).count
+                let total = group.count
+                let pct = total > 0 ? Int(Double(logged) / Double(total) * 100) : 0
+                return PDFMonthlyBucket(
+                    monthStart: monthStart,
+                    label: monthFormatter.string(from: monthStart),
+                    logged: logged,
+                    missed: total - logged,
+                    compliancePct: pct
+                )
+            }
+            .sorted { $0.monthStart > $1.monthStart }
+    }
+
+    struct PDFMonthlyBucket: Equatable {
+        let monthStart: Date
+        let label: String
+        let logged: Int
+        let missed: Int
+        let compliancePct: Int
+    }
+
     // MARK: - CSV Export
 
     func exportProtocolsCSV(protocols: [PeptideProtocol], entries: [ProtocolEntry]) -> String {
@@ -319,6 +380,29 @@ final class ExportService {
                 let pepH = drawText(peptideStr, font: captionFont, color: mutedColor)
                 y += pepH + 8
 
+                // Monthly summary block — always present, lossless.
+                // Drawn before the per-entry table so users skimming
+                // the PDF for trends don't need to scroll through
+                // hundreds of rows. Months with zero activity are
+                // suppressed.
+                let monthlyBuckets = Self.monthlyBuckets(for: protoEntries)
+                if !monthlyBuckets.isEmpty {
+                    let summaryHeaderH = drawText("MONTHLY SUMMARY",
+                        font: labelFont, color: mutedColor)
+                    y += summaryHeaderH + 3
+                    drawRule()
+                    y += 5
+                    for bucket in monthlyBuckets {
+                        checkPageBreak(for: 18)
+                        let lineH = drawText(
+                            "\(bucket.label)  ·  \(bucket.logged) logged · \(bucket.missed) missed · \(bucket.compliancePct)% compliance",
+                            font: captionFont
+                        )
+                        y += lineH + 3
+                    }
+                    y += 6
+                }
+
                 guard !protoEntries.isEmpty else {
                     let emptyH = drawText("No entries recorded.", font: captionFont, color: mutedColor)
                     y += emptyH + 10
@@ -345,8 +429,20 @@ final class ExportService {
                 drawRule()
                 y += 5
 
-                // Entry rows — measure first, then paginate, then draw.
-                for entry in protoEntries.prefix(60) {
+                // Entry rows. Two modes based on volume:
+                //   - ≤ Self.pdfFullDetailLimit (90): paginate every
+                //     entry. Multi-page output but lossless.
+                //   - > limit: show only the 30 most-recent and
+                //     cross-reference the CSV export for the rest.
+                // The prior implementation hard-capped at 60 with no
+                // monthly summary and no CSV pointer, which silently
+                // dropped data for any daily-dosing user past two
+                // months of history.
+                let entriesToRender = protoEntries.count <= Self.pdfFullDetailLimit
+                    ? Array(protoEntries)
+                    : Array(protoEntries.prefix(Self.pdfRecentEntryLimit))
+
+                for entry in entriesToRender {
                     let dateVal = entry.date.formatted(date: .abbreviated, time: .omitted)
                     let timeVal = (entry.actualTime ?? entry.date).formatted(.dateTime.hour().minute())
                     let doseVal = entry.actualDose ?? entry.dose
@@ -377,9 +473,10 @@ final class ExportService {
                     y += rowH + 3
                 }
 
-                if protoEntries.count > 60 {
+                if protoEntries.count > entriesToRender.count {
+                    let hidden = protoEntries.count - entriesToRender.count
                     let moreH = drawText(
-                        "… \(protoEntries.count - 60) earlier entries not shown",
+                        "… \(hidden) earlier entries · use the CSV export in Profile → Export Data for the complete log",
                         font: captionFont, color: mutedColor
                     )
                     y += moreH + 3
@@ -407,35 +504,48 @@ final class ExportService {
 
     // MARK: - File URLs
 
+    /// Strips path separators from a caller-supplied filename so a
+    /// future code path can't pass `"../../Library/Preferences/..."`
+    /// and write outside the temp directory. All current callers use
+    /// safe literals, but the API was wide enough to be a latent
+    /// path-traversal surface.
+    private static func safeFilename(_ filename: String) -> String {
+        let cleaned = (filename as NSString).lastPathComponent
+        return cleaned.isEmpty ? "atlas-export" : cleaned
+    }
+
     func writeCSV(_ content: String, filename: String) -> URL? {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        let safe = Self.safeFilename(filename)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(safe)
         do {
             try content.write(to: url, atomically: true, encoding: .utf8)
             return url
         } catch {
-            AppLog.export.error("writeCSV \(filename, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.export.error("writeCSV \(safe, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
 
     func writeJSON(_ data: Data, filename: String) -> URL? {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        let safe = Self.safeFilename(filename)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(safe)
         do {
             try data.write(to: url, options: .atomic)
             return url
         } catch {
-            AppLog.export.error("writeJSON \(filename, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.export.error("writeJSON \(safe, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
 
     func writePDF(_ data: Data, filename: String) -> URL? {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        let safe = Self.safeFilename(filename)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(safe)
         do {
             try data.write(to: url, options: .atomic)
             return url
         } catch {
-            AppLog.export.error("writePDF \(filename, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.export.error("writePDF \(safe, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }

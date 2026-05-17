@@ -175,10 +175,22 @@ actor BarcodeScanHistory {
     // MARK: - Internals
 
     private func load() -> [String: Entry] {
-        guard let data = defaults.data(forKey: Self.storeKey),
-              let decoded = try? Self.decoder.decode([String: Entry].self, from: data)
-        else { return [:] }
-        return decoded
+        guard let data = defaults.data(forKey: Self.storeKey) else { return [:] }
+        do {
+            return try Self.decoder.decode([String: Entry].self, from: data)
+        } catch {
+            // Truncated / older-schema blob in UserDefaults. Log the
+            // specific error so future schema-change bugs are
+            // diagnosable, and drop the bad blob so it doesn't keep
+            // failing forever (the prior implementation silently
+            // returned [:] and the user's scan history was gone
+            // until they reinstalled).
+            AppLog.persistence.error(
+                "BarcodeScanHistory decode failed; clearing corrupted store: \(error.localizedDescription, privacy: .public)"
+            )
+            defaults.removeObject(forKey: Self.storeKey)
+            return [:]
+        }
     }
 
     private func save(_ store: [String: Entry]) {

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Third Watch page — nutrition glance. Mirrors the iOS Lifestyle
+/// Third Watch page — nutrition glance. Mirrors the iOS Meals
 /// tab's calorie + protein rings and the meal-logging streak so the
 /// wrist surface stays in lockstep with what the user sees on the
 /// phone. Renders nothing meaningful when `watchData.nutrition` is

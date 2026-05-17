@@ -58,14 +58,14 @@ final class CycleMilestoneServiceTests: XCTestCase {
 
     func test_pendingMilestone_day7AlreadyShown_skipsToDay30() {
         let proto = makeProtocol(daysAgo: 30)
-        service.markShown(.day7, for: proto.id)
+        service.markShown(.day7, for: proto)
         XCTAssertEqual(service.pendingMilestone(in: [proto])?.milestone, .day30)
     }
 
     func test_pendingMilestone_completedProtocol_surfacesCompleted() {
         let proto = makeProtocol(daysAgo: 56, status: .completed)
-        service.markShown(.day7, for: proto.id)
-        service.markShown(.day30, for: proto.id)
+        service.markShown(.day7, for: proto)
+        service.markShown(.day30, for: proto)
         XCTAssertEqual(service.pendingMilestone(in: [proto])?.milestone, .completed)
     }
 
@@ -79,17 +79,41 @@ final class CycleMilestoneServiceTests: XCTestCase {
     func test_markShown_preventsRePrompt() {
         let proto = makeProtocol(daysAgo: 7)
         XCTAssertNotNil(service.pendingMilestone(in: [proto]))
-        service.markShown(.day7, for: proto.id)
+        service.markShown(.day7, for: proto)
         XCTAssertNil(service.pendingMilestone(in: [proto]))
     }
 
     func test_markShown_isPerProtocol() {
         let a = makeProtocol(daysAgo: 7)
         let b = makeProtocol(daysAgo: 7)
-        service.markShown(.day7, for: a.id)
+        service.markShown(.day7, for: a)
         // a should be suppressed, b should still surface.
         let result = service.pendingMilestone(in: [a, b])
         XCTAssertEqual(result?.proto.id, b.id)
+    }
+
+    /// A stop + restart of the same protocol (same UUID, fresh
+    /// startDate) is a new cycle and the Day-7 milestone should fire
+    /// again. The previous suppression key was ID-only, which
+    /// permanently silenced milestones after the first cycle.
+    func test_markShown_doesNotSuppressNewCycleWithSameID() {
+        let originalStart = Calendar.current.date(byAdding: .day, value: -10, to: Date()) ?? Date()
+        let id = UUID()
+        let firstCycle = PeptideProtocol(
+            id: id, name: "Restart", peptides: [],
+            schedule: ProtocolSchedule(daysOfWeek: [1,2,3,4,5,6,7], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 8, startDate: originalStart, status: .active, notes: ""
+        )
+        service.markShown(.day7, for: firstCycle)
+        // User stops then restarts at a different startDate — a new cycle.
+        let restartedStart = Calendar.current.date(byAdding: .day, value: -8, to: Date()) ?? Date()
+        let secondCycle = PeptideProtocol(
+            id: id, name: "Restart", peptides: [],
+            schedule: firstCycle.schedule,
+            cycleLengthWeeks: 8, startDate: restartedStart, status: .active, notes: ""
+        )
+        XCTAssertEqual(service.pendingMilestone(in: [secondCycle])?.milestone, .day7,
+                       "Restarted cycle should produce a fresh Day-7 milestone")
     }
 
     // MARK: - Ordering

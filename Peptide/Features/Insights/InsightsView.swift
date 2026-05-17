@@ -225,22 +225,13 @@ struct InsightsView: View {
                 }
                 hrvSeries = await HealthKitService.shared.dailyHRV(days: 35)
             }
-            .onAppear { consumePendingLabsDeepLink() }
-            .onChange(of: appState.pendingLabsOpen) { _, _ in
-                consumePendingLabsDeepLink()
-            }
         }
     }
 
-    /// Consumes the cross-tab "open Labs" deep-link flag set by the
-    /// Home overview card's latest-lab insight tap. Cleared the
-    /// moment we present the sheet so re-appearing the tab doesn't
-    /// re-fire.
-    private func consumePendingLabsDeepLink() {
-        guard appState.pendingLabsOpen else { return }
-        appState.pendingLabsOpen = false
-        showLabs = true
-    }
+    // Note: the `pendingLabsOpen` deep-link consumer now lives on
+    // `BiologyView` — Phase 33 renamed the Insights tab to Biology
+    // and this view is no longer mounted. Keeping the trampoline
+    // here would race with Biology's consumer on tab switch.
 
     /// Section eyebrow + title pair used to break the long Insights
     /// scroll into legible chunks. Matches the styling used in

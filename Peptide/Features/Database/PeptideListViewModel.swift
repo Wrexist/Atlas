@@ -6,18 +6,22 @@ final class PeptideListViewModel {
     var selectedCategory: PeptideCategory?
     private(set) var allPeptides: [Peptide]
     private(set) var filteredPeptides: [Peptide] = []
-    private var hasLoadedFromStore = false
 
     init(peptides: [Peptide] = []) {
         self.allPeptides = peptides
-        self.hasLoadedFromStore = !peptides.isEmpty
         refilter()
     }
 
+    /// Replaces the in-memory peptide list. Idempotent — calling
+    /// with the same value is a no-op for SwiftUI's diff. The
+    /// previous implementation guarded on a "first load" flag and
+    /// silently dropped every subsequent call, which broke the
+    /// `refreshable` pull-to-refresh handler on the list view and
+    /// hid any custom peptides synced in from another device via
+    /// iCloud after the initial load.
     func updatePeptides(_ peptides: [Peptide]) {
-        guard !hasLoadedFromStore else { return }
+        guard allPeptides != peptides else { return }
         allPeptides = peptides
-        hasLoadedFromStore = true
         refilter()
     }
 

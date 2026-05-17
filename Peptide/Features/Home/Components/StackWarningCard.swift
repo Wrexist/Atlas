@@ -33,14 +33,14 @@ struct StackWarningCard: View {
 
     private var highestSeverityColor: Color {
         if warnings.contains(where: { $0.severity == .danger }) { return AppColor.destructive }
-        if warnings.contains(where: { $0.severity == .caution }) { return Color.orange }
+        if warnings.contains(where: { $0.severity == .caution }) { return AppColor.warning }
         return AppColor.accentPrimary
     }
 
     private func severityColor(_ severity: StackRecommendationEngine.Warning.Severity) -> Color {
         switch severity {
         case .danger: return AppColor.destructive
-        case .caution: return Color.orange
+        case .caution: return AppColor.warning
         case .info: return AppColor.accentPrimary
         }
     }

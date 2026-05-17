@@ -31,7 +31,12 @@ enum WeeklyMuscleHeatmap {
         days: Int = 7,
         now: Date = Date()
     ) -> [AnatomicalMuscle: Double] {
-        let cutoff = now.addingTimeInterval(-Double(days) * 86_400)
+        // Use a calendar-aware subtraction so DST transitions don't
+        // shift the cutoff by an hour. Fixed `days * 86_400` math
+        // could include or exclude a session trained right at the
+        // boundary on spring-forward / fall-back nights.
+        let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: now)
+            ?? now.addingTimeInterval(-Double(days) * 86_400)
         var counts: [AnatomicalMuscle: Double] = [:]
 
         for session in sessions where session.startedAt >= cutoff {

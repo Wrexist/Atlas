@@ -50,7 +50,7 @@ final class CycleMilestoneService {
         for proto in sorted {
             guard proto.status != .paused else { continue }
             for milestone in Milestone.allCases {
-                guard !hasShown(milestone, for: proto.id) else { continue }
+                guard !hasShown(milestone, for: proto) else { continue }
                 guard isDue(milestone, for: proto) else { continue }
                 return (proto, milestone)
             }
@@ -60,9 +60,12 @@ final class CycleMilestoneService {
 
     /// Records that a milestone prompt was surfaced — call this whether
     /// the user shared, dismissed, or skipped. Suppresses re-prompts.
-    func markShown(_ milestone: Milestone, for protocolID: UUID) {
+    /// Stops + restarts of the same protocol (same UUID but a new
+    /// `startDate`) re-fire the prompt because the suppression key
+    /// includes the cycle's start date.
+    func markShown(_ milestone: Milestone, for proto: PeptideProtocol) {
         var current = shownIdentifiers
-        current.insert(key(milestone, protocolID: protocolID))
+        current.insert(key(milestone, proto: proto))
         defaults.set(Array(current), forKey: Self.storageKey)
     }
 
@@ -88,15 +91,21 @@ final class CycleMilestoneService {
         return calendar.dateComponents([.day], from: start, to: today).day ?? 0
     }
 
-    private func hasShown(_ milestone: Milestone, for protocolID: UUID) -> Bool {
-        shownIdentifiers.contains(key(milestone, protocolID: protocolID))
+    private func hasShown(_ milestone: Milestone, for proto: PeptideProtocol) -> Bool {
+        shownIdentifiers.contains(key(milestone, proto: proto))
     }
 
     private var shownIdentifiers: Set<String> {
         Set(defaults.stringArray(forKey: Self.storageKey) ?? [])
     }
 
-    private func key(_ milestone: Milestone, protocolID: UUID) -> String {
-        "\(protocolID.uuidString):\(milestone.rawValue)"
+    /// Suppression key. Includes the cycle's startDate so a user who
+    /// stops and restarts the same protocol gets fresh milestone
+    /// prompts on the new cycle — without it, "Day-7" would
+    /// permanently disappear after the first cycle even though
+    /// subsequent cycles have their own valid milestones.
+    private func key(_ milestone: Milestone, proto: PeptideProtocol) -> String {
+        let stamp = Int(proto.startDate.timeIntervalSince1970)
+        return "\(proto.id.uuidString):\(stamp):\(milestone.rawValue)"
     }
 }

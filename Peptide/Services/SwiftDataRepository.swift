@@ -23,8 +23,18 @@ final class SwiftDataRepository {
         container?.mainContext
     }
 
+    /// Snapshot of the iCloud identity token observed at container
+    /// creation. When the user signs out of iCloud or switches accounts
+    /// at the system level, this token changes and Apple's CloudKit
+    /// docs require us to react — otherwise writes go to a container
+    /// whose identity is stale and the next account's local view
+    /// silently inherits the previous account's local data.
+    private var lastObservedIdentityToken: (any NSCoding & NSCopying & NSObjectProtocol)?
+
     private init() {
-        let iCloudAvailable = FileManager.default.ubiquityIdentityToken != nil
+        let token = FileManager.default.ubiquityIdentityToken
+        lastObservedIdentityToken = token
+        let iCloudAvailable = token != nil
         if iCloudAvailable, let ck = Self.makeCloudContainer() {
             container = ck
             isCloudSyncEnabled = true
@@ -38,17 +48,96 @@ final class SwiftDataRepository {
             isInoperable = true
             assertionFailure("SwiftDataRepository: both on-disk and in-memory ModelContainer creation failed")
         }
+
+        // Observe iCloud identity changes. When the token swaps, pause
+        // writes and surface the change to DataStore so it can clear
+        // in-memory state — otherwise account A's local data
+        // becomes account B's local view on first launch under the
+        // new identity.
+        NotificationCenter.default.addObserver(
+            forName: .NSUbiquityIdentityDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleIdentityChange()
+            }
+        }
+    }
+
+    /// Compares the live identity token against the snapshot taken at
+    /// container creation. If the user signed out / switched accounts,
+    /// tears down the old container and rebuilds for the new identity
+    /// before posting a notification — DataStore listens and reloads
+    /// from the new container. The previous implementation only set
+    /// `isInoperable = true` and never recreated the container, which
+    /// left persistence permanently degraded for the rest of the
+    /// process lifetime.
+    @MainActor
+    private func handleIdentityChange() {
+        let current = FileManager.default.ubiquityIdentityToken
+        let prev = lastObservedIdentityToken
+        let isSame: Bool = {
+            switch (prev, current) {
+            case (nil, nil): return true
+            case let (a?, b?): return a.isEqual(b)
+            default: return false
+            }
+        }()
+        guard !isSame else { return }
+        lastObservedIdentityToken = current
+        AppLog.swiftData.error(
+            "iCloud identity changed; tearing down container and re-initializing"
+        )
+
+        // Pause writes during the swap so any in-flight save attempt
+        // doesn't see a half-initialised container.
+        isInoperable = true
+        container = nil
+        isCloudSyncEnabled = false
+        isUsingFallbackStore = false
+
+        // Rebuild — same fallback chain as `init`.
+        if current != nil, let ck = Self.makeCloudContainer() {
+            container = ck
+            isCloudSyncEnabled = true
+            isInoperable = false
+        } else if let local = Self.makeLocalContainer() {
+            container = local
+            isInoperable = false
+        } else if let inMemory = Self.makeInMemoryContainer() {
+            container = inMemory
+            isUsingFallbackStore = true
+            isInoperable = false
+        } else {
+            // Genuinely couldn't open anything — leave isInoperable=true.
+            // DataStore will see empty loads + writes will no-op, which
+            // is the safest available state until the user relaunches.
+            AppLog.swiftData.error("Container re-init failed after identity change; reads will be empty")
+        }
+
+        // Notify DataStore — by the time this fires, the container has
+        // already swapped, so `reloadFromDisk` in the observer reads
+        // from the new identity's store.
+        NotificationCenter.default.post(name: .peptideXiCloudIdentityChanged, object: nil)
     }
 
     private(set) var isCloudSyncEnabled = false
+
+    /// Versioned schema declaration used by every container path
+    /// below. Plan D scaffold — see `PeptideAtlasSchema.swift` for
+    /// the V2 declaration and the migration plan template that a
+    /// future V3 will extend.
+    private static var versionedSchema: Schema {
+        Schema(versionedSchema: PeptideAtlasSchemaV2.self)
+    }
 
     private static func makeCloudContainer() -> ModelContainer? {
         do {
             let config = ModelConfiguration(cloudKitDatabase: .private("iCloud.com.peptidesai.app"))
             let container = try ModelContainer(
-                for: StoredProtocol.self, StoredEntry.self, StoredProfile.self,
-                StoredWorkoutSession.self, StoredCustomExercise.self,
-                StoredRoutine.self, StoredPersonalRecord.self,
+                for: versionedSchema,
+                migrationPlan: PeptideAtlasMigrationPlan.self,
                 configurations: config
             )
             AppLog.swiftData.info("Using CloudKit-backed store")
@@ -62,9 +151,8 @@ final class SwiftDataRepository {
     private static func makeLocalContainer() -> ModelContainer? {
         do {
             return try ModelContainer(
-                for: StoredProtocol.self, StoredEntry.self, StoredProfile.self,
-                StoredWorkoutSession.self, StoredCustomExercise.self,
-                StoredRoutine.self, StoredPersonalRecord.self
+                for: versionedSchema,
+                migrationPlan: PeptideAtlasMigrationPlan.self
             )
         } catch {
             AppLog.swiftData.error("Failed to create persistent ModelContainer: \(error.localizedDescription, privacy: .public)")
@@ -76,9 +164,8 @@ final class SwiftDataRepository {
         do {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
             return try ModelContainer(
-                for: StoredProtocol.self, StoredEntry.self, StoredProfile.self,
-                StoredWorkoutSession.self, StoredCustomExercise.self,
-                StoredRoutine.self, StoredPersonalRecord.self,
+                for: versionedSchema,
+                migrationPlan: PeptideAtlasMigrationPlan.self,
                 configurations: config
             )
         } catch {
@@ -115,6 +202,15 @@ final class SwiftDataRepository {
 
     // MARK: - Protocols
 
+    /// Legacy bulk-replace path. Treats `protocols` as the full
+    /// canonical set: any stored row whose id is absent gets deleted.
+    /// **Do not use from save-path code that may run while CloudKit
+    /// is delivering remote inserts** — a remote-added row not yet
+    /// reflected in the caller's in-memory set will be silently
+    /// deleted (and the deletion propagates back to CloudKit).
+    /// Migration + tests rely on the truncate-and-replace behaviour;
+    /// the live save path should use `upsertProtocols` +
+    /// `deleteProtocol(id:)` instead.
     func saveProtocols(_ protocols: [PeptideProtocol]) {
         guard let context else { return }
         let existing: [StoredProtocol]
@@ -151,6 +247,53 @@ final class SwiftDataRepository {
         commit()
     }
 
+    /// Upsert-only protocol save — never deletes. Use this from the
+    /// live DataStore save path; pair with explicit
+    /// `deleteProtocol(id:)` calls at removal sites.
+    func upsertProtocols(_ protocols: [PeptideProtocol]) {
+        guard let context, !protocols.isEmpty else { return }
+        let inputIds = protocols.map(\.id)
+        let descriptor = FetchDescriptor<StoredProtocol>(
+            predicate: #Predicate { inputIds.contains($0.id) }
+        )
+        let existingById: [UUID: StoredProtocol]
+        do {
+            let existing = try context.fetch(descriptor)
+            existingById = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        } catch {
+            AppLog.swiftData.error("Fetch (upsert) protocols failed: \(error.localizedDescription, privacy: .public)")
+            existingById = [:]
+        }
+        for proto in protocols {
+            do {
+                if let stored = existingById[proto.id] {
+                    try stored.update(from: proto)
+                } else {
+                    context.insert(try StoredProtocol.make(from: proto))
+                }
+            } catch {
+                AppLog.swiftData.error("Upsert StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        commit()
+    }
+
+    func deleteProtocol(id: UUID) {
+        guard let context else { return }
+        let target = id
+        let descriptor = FetchDescriptor<StoredProtocol>(
+            predicate: #Predicate { $0.id == target }
+        )
+        do {
+            for stored in try context.fetch(descriptor) {
+                context.delete(stored)
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("Delete StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     func loadProtocols() -> [PeptideProtocol] {
         guard let context else { return [] }
         let descriptor = FetchDescriptor<StoredProtocol>(
@@ -175,6 +318,8 @@ final class SwiftDataRepository {
 
     // MARK: - Entries
 
+    /// Legacy bulk-replace path — see `saveProtocols` doc comment for
+    /// the CloudKit-data-loss warning. Tests + migration only.
     func saveEntries(_ entries: [ProtocolEntry]) {
         guard let context else { return }
         let existing: [StoredEntry]
@@ -209,6 +354,53 @@ final class SwiftDataRepository {
         }
 
         commit()
+    }
+
+    /// Upsert-only entry save — never deletes. Used by the live save
+    /// path; pair with explicit `deleteEntries(ids:)` calls at the
+    /// removal sites.
+    func upsertEntries(_ entries: [ProtocolEntry]) {
+        guard let context, !entries.isEmpty else { return }
+        let inputIds = entries.map(\.id)
+        let descriptor = FetchDescriptor<StoredEntry>(
+            predicate: #Predicate { inputIds.contains($0.id) }
+        )
+        let existingById: [UUID: StoredEntry]
+        do {
+            let existing = try context.fetch(descriptor)
+            existingById = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        } catch {
+            AppLog.swiftData.error("Fetch (upsert) entries failed: \(error.localizedDescription, privacy: .public)")
+            existingById = [:]
+        }
+        for entry in entries {
+            do {
+                if let stored = existingById[entry.id] {
+                    try stored.update(from: entry)
+                } else {
+                    context.insert(try StoredEntry.make(from: entry))
+                }
+            } catch {
+                AppLog.swiftData.error("Upsert StoredEntry failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        commit()
+    }
+
+    func deleteEntries(ids: Set<UUID>) {
+        guard let context, !ids.isEmpty else { return }
+        let targets = Array(ids)
+        let descriptor = FetchDescriptor<StoredEntry>(
+            predicate: #Predicate { targets.contains($0.id) }
+        )
+        do {
+            for stored in try context.fetch(descriptor) {
+                context.delete(stored)
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("Delete StoredEntries failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     func loadEntries() -> [ProtocolEntry] {
@@ -318,11 +510,19 @@ final class SwiftDataRepository {
         }
     }
 
-    func loadWorkoutSessions() -> [WorkoutSession] {
+    /// Default fetch ceiling for workout history reads. TrainOverviewView
+    /// only renders the last 3 sessions plus the current-month heatmap,
+    /// so even a 200-cap reads more than any single surface uses while
+    /// keeping the allocation bounded for power users with years of
+    /// daily sessions.
+    static let workoutHistoryFetchLimit: Int = 200
+
+    func loadWorkoutSessions(limit: Int = SwiftDataRepository.workoutHistoryFetchLimit) -> [WorkoutSession] {
         guard let context else { return [] }
-        let descriptor = FetchDescriptor<StoredWorkoutSession>(
+        var descriptor = FetchDescriptor<StoredWorkoutSession>(
             sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
         )
+        descriptor.fetchLimit = max(1, limit)
         do {
             let stored = try context.fetch(descriptor)
             return stored.compactMap {
@@ -335,6 +535,38 @@ final class SwiftDataRepository {
             }
         } catch {
             AppLog.swiftData.error("Load workout sessions failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    /// Fetches workout sessions whose `startedAt` falls in the given
+    /// half-open range. Used by `DataStore.workoutSummary` so the
+    /// Today scroll's "movement" card doesn't fault the whole
+    /// `StoredWorkoutSession` table on every render. The fetch uses a
+    /// `#Predicate` so SwiftData can push the date window into the
+    /// SQL backend instead of returning everything and filtering in
+    /// memory.
+    func loadWorkoutSessions(startedBetween range: Range<Date>) -> [WorkoutSession] {
+        guard let context else { return [] }
+        let lower = range.lowerBound
+        let upper = range.upperBound
+        var descriptor = FetchDescriptor<StoredWorkoutSession>(
+            predicate: #Predicate { $0.startedAt >= lower && $0.startedAt < upper },
+            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = SwiftDataRepository.workoutHistoryFetchLimit
+        do {
+            let stored = try context.fetch(descriptor)
+            return stored.compactMap {
+                do {
+                    return try $0.toWorkoutSession()
+                } catch {
+                    AppLog.swiftData.error("Decode StoredWorkoutSession (windowed) failed: \(error.localizedDescription, privacy: .public)")
+                    return nil
+                }
+            }
+        } catch {
+            AppLog.swiftData.error("Load windowed workout sessions failed: \(error.localizedDescription, privacy: .public)")
             return []
         }
     }
@@ -535,4 +767,12 @@ final class SwiftDataRepository {
             AppLog.swiftData.error("context.save failed: \(error.localizedDescription, privacy: .public)")
         }
     }
+}
+
+extension Notification.Name {
+    /// Posted when `FileManager.ubiquityIdentityToken` changes after
+    /// the app was already running. DataStore observes this to clear
+    /// in-memory state so account A's local data isn't visible to
+    /// account B after a system-level iCloud account switch.
+    static let peptideXiCloudIdentityChanged = Notification.Name("com.peptidesai.app.icloud.identity.changed")
 }

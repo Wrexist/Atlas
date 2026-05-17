@@ -85,6 +85,19 @@ final class PersistenceService: @unchecked Sendable {
     func updateWidgetData(_ data: WidgetData) {
         guard let url = widgetDataURL else { return }
         save(data, to: url)
+        Self.excludeFromBackup(url)
+    }
+
+    /// Marks regenerated-cache files (widget / watch payloads) so
+    /// they don't end up in iCloud Backup. These are reconstructed
+    /// from the canonical store on every launch; persisting them
+    /// across restore wastes quota and slows backups for power
+    /// users with multi-hundred-KB serialized state.
+    static func excludeFromBackup(_ url: URL) {
+        var url = url
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? url.setResourceValues(values)
     }
 
     // MARK: - State
@@ -126,12 +139,19 @@ final class PersistenceService: @unchecked Sendable {
 
     // MARK: - Private
 
-    private func save<T: Encodable>(_ value: T, to url: URL) {
+    /// Returns true on a successful write. Callers can use the result
+    /// to surface a "couldn't save your changes" toast / reload from
+    /// disk to keep the in-memory state coherent with the on-disk
+    /// truth. The error is also logged for diagnostics.
+    @discardableResult
+    private func save<T: Encodable>(_ value: T, to url: URL) -> Bool {
         do {
             let data = try encoder.encode(value)
             try data.write(to: url, options: .atomic)
+            return true
         } catch {
             AppLog.persistence.error("Failed to save \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 
