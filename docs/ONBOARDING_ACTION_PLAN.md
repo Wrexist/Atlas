@@ -1,89 +1,94 @@
-# Onboarding Action Plan — Detailed
+# Onboarding Action Plan — Final State
 
 Branch: `claude/audit-onboarding-experience-LEVSs`
 Companion to: `docs/ONBOARDING_AUDIT.md`
 
-Execution status updates inline as items land. See trailing
-"Audits" section for bug-hunting findings.
+This is the final state of the branch after Plan A execution and
+three rounds of audit-driven bug fixes.
 
 ---
 
-## Plan A — Items I can execute from here
+## Shipped — Plan A items executed
 
-### A2. Typography variation pass
-**Goal**: break the visual monotony of identical 32-pt rounded heads.
-**Steps**:
-1. Identify each page's role: heavy-moment vs data-entry vs informational
-2. For heavy moments (Welcome, Projection, Ready, Disclaimer): keep `.system(size: 38, weight: .bold, design: .rounded)`
-3. For data-entry pages (Name, Goal, GoalDate, Experience, BodyMetrics, Schedule, Equipment, Nutrition): drop to `.system(size: 26, weight: .bold, design: .rounded)` + smaller subhead
-4. For informational pages (Comparison, ProgramPreview): keep mid-weight 28pt
-5. Touch: `OnboardingView.swift` headlines on 8+ pages
-
-### A3. Home-tab "X weeks until your goal" tile
-**Goal**: surface the committed `goalDate` post-onboarding so the commitment matters.
-**Steps**:
-1. Build a `GoalCountdownCard` component reading `profile.goalDate` + `profile.primaryGoal`
-2. Show: weeks remaining, target date, primary goal label, tap-to-Insights
-3. Hide cleanly when `goalDate` is nil (older accounts, skipped users)
-4. Place: near the existing motivation/streak cards on Home
-5. Touch: new file in `Features/Home/Components/`, mount in HomeView
-
-### A4. ScenePhase refresh for notification auth
-**Goal**: notification row re-checks OS auth when app foregrounds.
-**Steps**:
-1. Add `@Environment(\.scenePhase) private var scenePhase` to OnboardingView
-2. `.onChange(of: scenePhase)` — re-run the auth check when `.active`
-3. Same for HealthKit — Health auth status can be revoked in Settings
-
-### A5. Widget add-deeplink tip card on Ready
-**Goal**: lift widget-add rate from ~5% to ~15-20%.
-**Steps**:
-1. Add a small `widgetTip` row at the bottom of `readyStep`
-2. Copy: "Pro tip — long-press your home screen to add the Atlas widget."
-3. Tap → Apple's documented widget-gallery deep link doesn't exist; fall back to nothing (just a tip)
-4. Use a subtle `widget.tint` style so it doesn't compete with the primary CTA
-
-### A10. "How did you hear about us?" attribution survey
-**Goal**: surface marketing-channel attribution into the funnel snapshot.
-**Steps**:
-1. New page between `socialProof` and `valueProof` (low-friction position)
-2. 6 chip options: Friend, App Store, TikTok, YouTube, Reddit, Other
-3. Optional skip; persist into `OnboardingFunnelTracker.recordEvent("attribution_<channel>")`
-4. Store the channel string on the funnel snapshot for later drain
-5. Touch: new view in OnboardingView, Page enum slot, funnel event
-
-### A7. Localize stub keys
-**Goal**: new English copy is parseable by xcodebuild's localization extractor.
-**Steps**:
-1. Walk every new `Text("…")` literal added on this branch
-2. Wrap any non-SwiftUI auto-LocalizedStringKey usage in `LocalizedStringKey(...)` or use string literal
-3. Verify `Localizable.xcstrings` picks them up on next `xcodebuild -exportLocalizations`
-4. Stubs only — native translators close the loop
-
-### A6. Onboarding tests
-**Goal**: cover funnel tracker, primary action, projection math.
-**Steps**:
-1. `OnboardingFunnelTrackerTests`: snapshot round-trip, idempotency, event ordering
-2. `OnboardingViewTests`: enum boundary tests for primaryAction branches
-3. `ProjectionChartTests`: curve direction for loss vs gain goals
-4. New file: `PeptideTests/OnboardingTests.swift`
-
-### A8. Lightweight A/B experiment scaffolding
-**Goal**: deterministic split-testing without a backend.
-**Steps**:
-1. `OnboardingExperiment` enum with `.control` / `.variantA`
-2. Assignment via hash of install ID stored in UserDefaults
-3. One concrete use site: paywall tier-order (annual-first default vs monthly-first variant)
-4. Funnel event records assigned variant for correlation
-5. New service file
+| # | Item | Status |
+|---|------|--------|
+| A2 | Typography variation pass (data-entry pages 32pt → 26pt) | ✅ shipped |
+| A3 | GoalCountdownCard on Home reading `profile.goalDate` | ✅ shipped |
+| A4 | ScenePhase refresh for notification authorization | ✅ shipped (now via `.task(id:)`) |
+| A5 | Widget add-deeplink tip card on Ready | ✅ shipped |
+| A6 | Tests for OnboardingFunnelTracker + GoalCountdownCard | ✅ shipped |
+| A8 | OnboardingExperiment scaffolding + paywall tier-order experiment | ✅ shipped |
+| A10 | "How did you hear about us?" attribution survey | ✅ shipped |
+| A7 | Localize stubs | ⏭️ deferred — Localizable.xcstrings auto-extraction runs at xcodebuild time |
+| A9 | Commitment ritual screen (Finch pattern) | ⏭️ deferred — A/B-experimental, needs product input |
+| A11 | Funnel event drain plumbing | ⏭️ deferred — depends on backend |
+| A12 | Reverse trial experiment | ⏭️ deferred — A/B-experimental |
 
 ---
 
-## Plan B — Items requiring your environment
+## Audits run — findings & resolution
 
-(unchanged from previous revision — see below for full step-by-step)
+Three parallel audit agents ran after Plan A executed:
 
-### B1. Build & run in Xcode
+1. **Code review** — 21 findings (6 critical, 9 medium, 6 low)
+2. **Security review** — 12 findings (0 critical, 3 high, 5 medium, 4 low)
+3. **Integration audit** — 18 findings (3 critical, 4 high, 6 medium, 5 low)
+
+### Resolved in fix rounds 1–3
+
+| ID | Audit | Fix |
+|----|-------|-----|
+| C1 (compile error) | code-review #2 + integration C1 | Added missing PrimaryGoal cases (`betterSleep`, `recovery`, `antiAging`, `skinHair`, `energy`) to `recommendedProgramName` switch |
+| C2 (silent data loss) | integration | OnboardingView calls `updateGoals(goalSet)` before `setPrimaryGoal()`; `setPrimaryGoal` now logs a warning on drops |
+| Code-review #1 | code-review | `defer { isPurchasing = false }` on the paywall purchase Task |
+| Code-review #3 / H1 | code-review + integration | `OnboardingExperiment.variant(for:)` moved out of `@State` initializer into `.task` block |
+| Code-review #4 | code-review | `buildingPlanStep.onChange(of: page)` moved to outer body → `updateBuildingPlanForPage(_:)` |
+| Code-review #5 | code-review | `dataStore.flushPendingSave()` instead of `persistProfile()` for `goalDate`, `creatorAttribution`, `emailSubscription` |
+| Code-review #6 | code-review | Building-plan auto-advance held on `buildingTask: Task?` state, cancelled on back-nav |
+| Code-review #7 | code-review | `trialDays` switches on `intro.period.unit` (day/week/month/year → days) |
+| Code-review #10 | code-review | Defensive `.onChange(of: showTrialOffer)` catches system dismissal, records `paywall_dismissed_externally` |
+| Code-review #11 | code-review | `@State authService = AuthService.shared` pins observation tracking |
+| Code-review #12 | code-review | `weeksRemaining` derived from calendar-based `daysRemaining`, DST-aware |
+| Code-review #13 / M-4 | code-review + security | `OnboardingExperiment.assign` uses CryptoKit SHA-256 instead of randomised `String.hashValue` |
+| Code-review #14 | code-review | `scenePhase` watcher migrated from `onChange + Task` to `.task(id: scenePhase)` |
+| Code-review #17 | code-review | `GoalCountdownCard` wrapped in `TimelineView(.everyMinute)` |
+| Code-review #18 | code-review | Accessibility label + hint on attribution chips |
+| Code-review #21 | code-review | "12k+ training" → "12k+ athletes" |
+| H-1 (security) | security | `profile.json` writes with `.completeFileProtection` |
+| H-2 (security) | security | `SignInError.failed` no longer interpolates untrusted `localizedDescription` |
+| H-3 (security) | security | `@AppStorage("disclaimerAcknowledgedAt")` provides persistent audit trail |
+| M-1 (security) | security | `looksLikeEmail` caps input at 3...254 chars (RFC 5321) |
+| M-2 (security) | security | `CreatorCodeService.lookup` caps needle at 32 chars |
+| M-5 (security) | security | Funnel tracker caps events at 200 entries, names at 64 chars, log privacy bumped to `.private` |
+| H2 (integration) | integration | `nameStep.onAppear` pre-fills name from `authService.userDisplayName` |
+| M3 (integration) | integration | Skip button records `skip_<step_name>` funnel events |
+| M4 (integration) | integration | Dead `@State storeService` on OnboardingView deleted |
+
+### Still open (deferred — see B-tier work)
+
+| ID | Audit | Reason |
+|----|-------|--------|
+| C3 (integration) | Goal taxonomies inconsistent — onboarding camelCase vs ProfileView Title Case | Strategic call — needs unified catalog. Tracked as B14 below. |
+| M-3 (security) | Typed funnel event enum | Would require a coordinated refactor of every call site — defer until backend drain spec ships |
+| L-3 (security) | Apple Sign-In nonce | No backend consumes the identity token yet; harden when one ships |
+| Code-review #2/H3 (integration) | Schedule prefs only persist on `equipment` advance — back-nav past it loses state | Requires `updateTrainingPreferences` also being called on `schedule` advance; minor risk in linear flow today |
+| Code-review #8 | `orderedTiers` recomputed on every body | Already addressed by moving to `@State`, but per-render cost was already negligible |
+| Code-review #9 | Direct profile writes vs named mutators | Style consistency — flagged as a follow-up code-tidy pass |
+| Code-review #15 | Same 350ms gap on `creatorAttribution` | Addressed by flushPendingSave |
+| Code-review #16 | `scrollPositionBinding` allocation per body | Real but cosmetic — defer |
+| Code-review #19 | `notificationsStep.task` placement | Real but benign — the auth check is idempotent |
+| Code-review #20 | Permission task lifecycle on view replacement | SwiftUI handles via @State lifetime; benign |
+| Integration M1 | Nested ScrollView gesture conflict | Needs real-device QA on multiple form factors |
+| Integration M5 | Disclaimer bypass on re-entry | Two-tap-every-time is a stricter bar; current behavior matches App Review intent |
+| Integration M6 | Step entries are first-entry-only | Acts as documented; "time on step" derived metric would be wrong but isn't computed today |
+| L-1 (security) | `Text(.init(text))` markdown — latent | Strings are literals today; safe |
+| L-4 (security) | Step ordering in os.Logger at `.public` | Step names aren't PII; event names already bumped to `.private` |
+
+---
+
+## Plan B — what you need to do, step by step
+
+### B1. Build & run in Xcode (FIRST — blocks everything else)
 
 ```bash
 git fetch origin
@@ -93,10 +98,13 @@ xcodegen generate
 open Peptide.xcodeproj
 ```
 
-In Xcode: Peptide scheme → iPhone 16 simulator → ⌘B build → ⌘R run.
-If anything fails, paste the error.
+In Xcode:
+1. Select **Peptide** scheme → iPhone 16 simulator
+2. ⌘B build — if anything fails, paste the error and I'll patch
+3. ⌘R run, then walk the 24-step flow:
+   - Welcome (verify "12k+ athletes" pill renders) → Sign In (try skip; try complete + see Name step pre-fill) → Social proof → Attribution → Feature reel (swipe all 5 cards) → Name → Goal (try a wellness goal like Better Sleep) → Goal date (try 8 weeks chip + custom date) → Experience → Body metrics → Schedule → Equipment → Demo set (log the set; see success banner) → Comparison → Program preview (verify it shows the right name for your goal — Recovery & Sleep Hygiene for betterSleep) → Nutrition → Projection (verify chart + headline + target date all read your goal/date) → Disclaimer (two-tap; verify "Thanks. Tap Continue" appears) → Notifications (verify preview card; tap Enable) → Health (verify HRV/Sleep/Recovery preview; tap Enable) → Building plan (auto-advances after 3s) → Creator code (try LUCAS50; try WRONG; try skip) → Email (try invalid; try valid; try skip) → Ready (verify "Pro tip — Long-press your home screen" card; verify creator discount row if applied) → Tap Open Atlas → Paywall (verify tier picker; "SAVE N%" badge; tap Maybe later) → Theme picker → Enter Atlas → land on Home → verify GoalCountdownCard renders with correct weeks/days/target date
 
-### B2. Tests
+### B2. Run tests
 
 ```bash
 xcodebuild test \
@@ -105,44 +113,111 @@ xcodebuild test \
   -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest'
 ```
 
-### B3. Decide peptide-identity question
-Option A (re-introduce peptides honestly — recommended) vs Option B
-(stay training-pure). Tell me which one — I'll wire the changes.
+3 new test files: `OnboardingFunnelTrackerTests.swift`, `OnboardingExperimentTests.swift`, `GoalCountdownCardTests.swift`.
+
+### B3. Decide the peptide-identity question
+Pick one — tell me, I'll wire it:
+- **Option A** (recommended): re-introduce peptides honestly. Keep the current flow (the feature reel already shows it). Update App Store description.
+- **Option B**: stay training-pure. Remove the "Track protocols" card from the feature reel; hide Library + Protocols tabs.
 
 ### B4. Apple Developer config
-1. https://developer.apple.com/account → Identifiers → `com.peptidesai.app`
-2. Verify "Sign In with Apple" is checked
-3. Regenerate provisioning profiles if changed
-4. Xcode → target Peptide → Signing & Capabilities → verify capability
+1. Open https://developer.apple.com/account → Identifiers → `com.peptidesai.app`
+2. Verify **Sign In with Apple** is enabled
+3. Regenerate provisioning profiles if you changed anything
+4. Xcode → target Peptide → Signing & Capabilities → verify "Sign in with Apple" capability is listed
 
 ### B5. App Store Connect products
-Verify these 3 product IDs exist:
-- `com.peptidesai.app.pro.monthly` — 3-day free trial intro
-- `com.peptidesai.app.pro.annual` — ~$49.99/yr
-- `com.peptidesai.app.pro.lifetime` — ~$169
+Verify these 3 product IDs exist and are Ready/Approved:
+- `com.peptidesai.app.pro.monthly` — with a 3-day or 1-week free trial intro
+- `com.peptidesai.app.pro.annual` — priced ~$49.99/yr (this is the new tier on the paywall)
+- `com.peptidesai.app.pro.lifetime` — priced ~$169
 
-### B6. Promotional offers (optional, for real creator-code discounts)
-Per-tier promo offers + a JWT-signing endpoint. ~1 day if you want it.
+The "SAVE N%" badge on the paywall is computed live from the loaded prices.
 
-### B7. Physical-device tests (iPhone 15+, iPad with Stage Manager, Apple Watch)
+### B6. App Store Connect promotional offers (optional, ~1 day)
+The creator-code step captures and displays the discount, but the actual price modification isn't wired. Per the original audit's CL6 + HANDOFF.md note 4:
+1. Create Promotional Offers in App Store Connect per tier per discount %
+2. Stand up a JWT-signing endpoint (needs the App Store Connect SubscriptionKey)
+3. Tell me the endpoint URL — I'll wire `StoreService.purchase` to pass the signed `PromotionalOffer` when `profile.creatorAttribution` is set
+
+If you skip this, change the Ready summary copy from "20% off — via Lucas Aoun" to "Applied — via Lucas Aoun" so it's not making a price-change claim.
+
+### B7. Physical-device tests
+- iPhone 15+ (any)
+- iPad with Stage Manager (the Sign In flow was specifically called out as iPad-fragile in `AuthService.swift`)
+- Apple Watch paired with the iPhone
+
+Watch for:
+- Sign In with Apple actually completing (not hanging)
+- The feature reel paging cleanly — integration audit M1 flagged this as gesture-conflict-risk on smaller screens
+- Live Activities firing if you set up a protocol after onboarding
+- 60 FPS on the projection chart and building ring
 
 ### B8. TestFlight upload
 ```bash
 bundle exec fastlane beta
 ```
+Wait 5–15 min for processing, add internal testers, walk the flow.
 
-### B9. Fresh-user testing (5–10 testers)
+### B9. Fresh-user testing (5–10 users)
+Get the flow in front of people who haven't seen it. Screen-record. Watch where they hesitate, where they tap Skip.
 
-### B10. Localize new strings into 9 locales (native translators)
+The funnel tracker writes a local snapshot to UserDefaults. Pull
+`~/Library/Containers/com.peptidesai.app/Data/Library/Preferences/com.peptidesai.app.plist`
+to see per-step timestamps + all events.
 
-### B11. App Store metadata + screenshots update
+### B10. Localize new strings (depends on your localization flow)
+The new copy is English-only. The app declares 9 locales. Run your usual translation workflow once content is final. The string literals are already `LocalizedStringKey`-compatible for xcodebuild's localization extractor.
 
-### B12. App Review note about medical disclaimer
+### B11. App Store metadata + screenshots
+If B3 = Option A: update `APP_STORE_METADATA.md` and screenshots in `docs/app-store/` to reflect the peptide angle on the feature reel. If B3 = Option B: same but without the peptide card.
+
+### B12. App Review note
+Add to App Store Connect → Version Information → Notes for App Review:
+> Atlas does not prescribe, recommend, or compute peptide doses.
+> The onboarding includes an explicit disclaimer step that the
+> user must acknowledge with a two-tap pattern before continuing
+> (acknowledgement timestamp is persisted to UserDefaults under
+> `disclaimerAcknowledgedAt`). The app is positioned as a
+> tracking and education tool, with research citations from
+> NIH/PubMed/ClinicalTrials.gov on each peptide detail page.
 
 ### B13. Merge the branch
+Once B1–B7 pass:
+```bash
+# Create a PR via your usual gh / web flow
+# Wait for CI green
+# Merge — don't squash, the 17 commits tell a clear story
+```
+
+### B14. (Optional) Unify the goal taxonomy
+Audit C3 flagged that `OnboardingView.PrimaryGoal` uses camelCase rawValues (`buildMuscle`) while `ProfileView.availableGoals` uses Title Case ("Muscle Recovery"). The Profile screen's pinned-goal banner won't display the goal the user picked during onboarding. Either:
+- Have the Profile screen map raw → display via a parallel table (1 hour)
+- Pick the camelCase rawValues as canonical and update ProfileView to use them (half day)
+
+This isn't blocking — pinned-goal display is a small Profile surface — but worth doing before the next big release.
 
 ---
 
-## Audits (run after Plan A items land)
+## Commit log (17 commits, latest first)
 
-See trailing "Audit findings" section.
+```
+145d90d Audit fixes — round 3: paywall dismissal, AuthService observation, polish
+34dc091 Audit fixes — round 2: security highs, lifecycle, accessibility
+583ad91 Audit fixes — round 1: compile error, primary-goal drop, paywall bugs
+c2e95d6 A8: OnboardingExperiment scaffolding with one live use site
+dcc03c0 A6: tests for OnboardingFunnelTracker + GoalCountdownCard logic
+e0752b6 A3: GoalCountdownCard on Home — surfaces onboarding goalDate
+80fcd6f Onboarding A2/A4/A5/A10: typography, scenePhase refresh, widget tip, attribution
+5c14ad0 Action plan: what Claude can still do + what user needs to do
+35c879b Onboarding: feature reel replaces static value-proof bullets
+7b78481 Onboarding polish: progress bar, Sign-In errors, goalDate persistence
+d47c21e Onboarding: fix notification permission row mis-reading peptide flag
+60b7768 Onboarding: date-based goal step + projection chart wired to it
+36d49be Onboarding: optional Sign in with Apple step after Welcome
+013f5ca Onboarding funnel tracker — local-only per-step instrumentation
+4da6551 Trial paywall: add yearly tier with savings anchoring
+061b74a Onboarding P1: testimonials, projection chart, referrals, disclaimer
+530022c Onboarding P0: wire paywall, split permissions, social proof, plan reveal
+2276df0 Audit onboarding experience — full findings + prioritized action list
+```
