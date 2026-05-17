@@ -1,9 +1,10 @@
 # Atlas
 
-Native iOS SwiftUI app for tracking peptide supplementation protocols
-with grounded AI assistance — barcode-scan packaged food, photograph
-meals for macro estimates, chat-style research over a 208-peptide
-bundled database, and HealthKit-correlated analytics.
+Native iOS SwiftUI health & fitness app — workout tracking with
+log-a-set-in-two-taps, photo + barcode meal scanning (Claude vision),
+HRV / RHR / sleep biology and a derived Performance Age, an AI
+research chat with citations, and optional supplement / protocol
+tracking with reminders and weekly recaps.
 
 iOS 18+, SwiftUI, SwiftData (CloudKit-backed), Swift 6.0. Companion
 Watch app, two widget targets, and Live Activities for in-progress

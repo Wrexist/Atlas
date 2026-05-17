@@ -3,24 +3,26 @@ import SwiftUI
 import UIKit
 #endif
 
-/// Redesigned onboarding for the training pivot — 16 premium steps that
-/// lead with the workout story, use very bold display typography, the
-/// anatomical figure from MuscleMapView for the body selection, an
-/// Atlas-vs-without comparison, a real "log a set" demo, and a 3-second
-/// "Building your plan…" reveal that sets up the post-Ready paywall.
-/// Peptides are no longer pushed during onboarding; users discover them
-/// later from the Library tab.
+/// Onboarding for Atlas — a health & fitness app. 24 premium steps
+/// covering training, nutrition, biology / recovery signals, AI-assisted
+/// research, and optional supplement tracking. Leads with social proof
+/// and a swipeable feature reel, then collects the personalization
+/// needed to project a 12-week outcome before the post-Ready paywall.
 ///
 /// Page indices live in the nested `Page` enum so reordering only
 /// requires renaming there.
 ///
 /// State writes:
 ///
-///   - `hasCompletedOnboarding` — final dismiss flag (set by the paywall
-///     handlers, not by the Ready button itself)
+///   - `hasCompletedOnboarding` — final dismiss flag (set by the
+///     paywall handlers via the theme picker, not by the Ready button
+///     itself)
 ///   - `experienceLevel` — beginner / intermediate / advanced
+///   - `disclaimerAcknowledgedAt` — Unix timestamp of the two-tap
+///     medical-disclaimer acknowledgement; persistent legal record
 ///   - `profile.{name,bodyMetrics,nutritionTargets,primaryGoal,
-///      trainingPreferences}` — persisted via DataStore
+///      goals,goalDate,trainingPreferences,creatorAttribution,
+///      emailSubscription}` — persisted via DataStore
 struct OnboardingView: View {
     @Environment(DataStore.self) private var dataStore
     @AppStorage("hasCompletedOnboarding") private var hasCompleted = false
@@ -567,11 +569,13 @@ struct OnboardingView: View {
             dataStore.flushPendingSave()
         case Page.bodyMetrics:
             dataStore.updateBodyMetrics(bodyMetrics)
-        case Page.equipment:
-            // Schedule and equipment both feed the same struct —
-            // persist once on the final advance off equipment so a
-            // back-and-forth between the two doesn't lose the second
-            // screen's changes.
+        case Page.schedule, Page.equipment:
+            // Schedule and equipment both feed the same struct.
+            // Persist on advance off either step (writes are idempotent
+            // — currentTrainingPrefs builds from the live @State) so a
+            // user who edits schedule, advances to equipment, then
+            // back-navs past schedule to bodyMetrics doesn't lose the
+            // schedule changes (audit code-review #H3).
             dataStore.updateTrainingPreferences(currentTrainingPrefs)
         case Page.nutrition:
             if let targets = NutritionMath.dailyTargets(for: bodyMetrics) {
@@ -950,13 +954,13 @@ struct OnboardingView: View {
             icon: "brain.head.profile.fill",
             tint: Color(hex: 0x9B72CF),
             title: "Research",
-            body: "Ask the AI assistant — grounded in a 208-compound database with citations."
+            body: "Ask the AI assistant — answers grounded in research with citations you can verify."
         ),
         .init(
-            icon: "flask.fill",
+            icon: "calendar.badge.clock",
             tint: Color(hex: 0x5B8FB9),
-            title: "Track protocols",
-            body: "Cycle plans, vials, dose windows, and weekly recaps — for anyone running serious protocols."
+            title: "Supplements",
+            body: "Plan supplements and cycles, get reminders, and see weekly recaps of what worked."
         ),
     ]
 
@@ -1855,11 +1859,11 @@ struct OnboardingView: View {
                 VStack(alignment: .leading, spacing: Spacing.md) {
                     disclaimerBullet(
                         icon: "checkmark.shield.fill",
-                        text: "Atlas does **not** prescribe, recommend, or calculate medication or peptide doses."
+                        text: "Atlas does **not** prescribe, recommend, or calculate doses for any supplement, medication, or training protocol."
                     )
                     disclaimerBullet(
                         icon: "person.crop.circle.badge.questionmark.fill",
-                        text: "Always consult a qualified clinician before starting, changing, or stopping any protocol."
+                        text: "Always consult a qualified clinician before starting, changing, or stopping anything you track here."
                     )
                     disclaimerBullet(
                         icon: "lock.fill",

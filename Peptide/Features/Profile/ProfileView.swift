@@ -8,18 +8,19 @@ struct ProfileView: View {
     @State private var authService = AuthService.shared
     @State private var showReconstitutionCalculator = false
 
-    // Kept in sync with OnboardingView's `goals` array so a goal selected
-    // during onboarding remains visible/editable here.
-    private let availableGoals = [
-        "Muscle Recovery",
-        "Better Sleep",
-        "Cognitive Edge",
-        "Anti-Aging",
-        "Fat Loss",
-        "Immune Support",
-        "Joint Health",
-        "Stress Reduction",
-    ]
+    /// Single source of truth for the goal catalog. Reads from
+    /// OnboardingView.PrimaryGoal so a goal selected during the new
+    /// onboarding flow renders as pre-selected here — previously the
+    /// Profile picker used Title Case display strings while onboarding
+    /// wrote camelCase rawValues, and the two sets never intersected.
+    /// Both the storage key (camelCase rawValue) and the display
+    /// label (`.displayName`) come from the enum so the two stay in
+    /// lock-step on future expansions.
+    private var goalCatalog: [GoalsSectionCard.GoalEntry] {
+        OnboardingView.PrimaryGoal.allCases.map {
+            GoalsSectionCard.GoalEntry(key: $0.rawValue, displayName: $0.displayName)
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -48,8 +49,8 @@ struct ProfileView: View {
                         .sectionAppear(index: 3)
 
                     GoalsSectionCard(
-                        availableGoals: availableGoals,
-                        selectedGoals: Set(dataStore.profile.goals),
+                        goalCatalog: goalCatalog,
+                        selectedKeys: Set(dataStore.profile.goals),
                         hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                         onToggle: toggleGoal
                     )

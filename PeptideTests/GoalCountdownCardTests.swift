@@ -9,45 +9,28 @@ import SwiftUI
 @MainActor
 final class GoalCountdownCardTests: XCTestCase {
 
-    // MARK: - Helpers
+    // MARK: - Display label
 
-    /// Mirrors the production translation table so a drift in
-    /// `GoalCountdownCard.primaryGoalLabel` shows up immediately.
-    private func expectedLabel(for raw: String) -> String {
-        switch raw {
-        case "buildMuscle":    return "Build muscle"
-        case "loseFat":        return "Lose fat"
-        case "getStronger":    return "Get stronger"
-        case "stayConsistent": return "Stay consistent"
-        case "athletic":       return "Athletic performance"
-        case "recomp":         return "Recomp"
-        case "betterSleep":    return "Better sleep"
-        case "recovery":       return "Faster recovery"
-        case "antiAging":      return "Anti-aging"
-        case "skinHair":       return "Skin & hair"
-        case "energy":         return "More energy"
-        default:               return raw.capitalized
+    func test_everyPrimaryGoalCase_hasNonEmptyDisplayName() {
+        // Drift guard: if a new PrimaryGoal case is added in onboarding
+        // and someone forgets to expand displayName, this catches it.
+        // GoalCountdownCard reads displayName directly, so a single
+        // source of truth means there's no parallel translation table
+        // to drift.
+        for goal in OnboardingView.PrimaryGoal.allCases {
+            XCTAssertFalse(goal.displayName.isEmpty,
+                           "PrimaryGoal.\(goal.rawValue) has no display name")
+            XCTAssertNotEqual(goal.displayName, goal.rawValue,
+                              "PrimaryGoal.\(goal.rawValue) display name equals raw — likely missing translation")
         }
     }
 
-    func test_allOnboardingGoalRawValues_haveMappedLabels() {
-        // Acts as an enum-drift guard: if a new PrimaryGoal case is
-        // added without updating the home tile's translation table,
-        // this test should catch it.
-        let rawValues = [
-            "buildMuscle", "loseFat", "getStronger", "stayConsistent",
-            "athletic", "recomp", "betterSleep", "recovery",
-            "antiAging", "skinHair", "energy",
-        ]
-        for raw in rawValues {
-            let label = expectedLabel(for: raw)
-            XCTAssertFalse(label == raw, "Raw \(raw) returned its raw value — missing translation")
-            XCTAssertFalse(label.isEmpty)
-        }
-    }
-
-    func test_unknownGoal_fallsBackToCapitalized() {
-        XCTAssertEqual(expectedLabel(for: "experimental"), "Experimental")
+    func test_unknownGoalKey_fallsBackToCapitalized() {
+        // The card's lookup uses PrimaryGoal(rawValue:) then
+        // .capitalized for unknown keys. "experimental" should hit the
+        // fallback branch.
+        XCTAssertNil(OnboardingView.PrimaryGoal(rawValue: "experimental"))
+        XCTAssertEqual("experimental".capitalized, "Experimental")
     }
 
     // MARK: - Time math (mirrors GoalCountdownCard's private computeds)

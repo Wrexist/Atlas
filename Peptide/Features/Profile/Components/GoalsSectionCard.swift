@@ -1,10 +1,25 @@
 import SwiftUI
 
+/// Profile-tab goal picker. Each entry is a (storage-key, display-name)
+/// pair so the underlying profile.goals array stores stable rawValues
+/// (camelCase, matching OnboardingView.PrimaryGoal) while the chips
+/// render the human-readable display names. Without this split, the
+/// Profile picker stored Title Case strings that never intersected
+/// with the camelCase rawValues onboarding wrote — picking a goal in
+/// onboarding then opening Profile left every chip unselected.
 struct GoalsSectionCard: View {
-    let availableGoals: [String]
-    let selectedGoals: Set<String>
+    /// (storage key, display label) pairs. Toggle is keyed on the
+    /// storage key; the display label is rendered on the chip.
+    let goalCatalog: [GoalEntry]
+    let selectedKeys: Set<String>
     var hapticEnabled: Bool = true
     let onToggle: (String) -> Void
+
+    struct GoalEntry: Identifiable, Hashable {
+        let key: String
+        let displayName: String
+        var id: String { key }
+    }
 
     var body: some View {
         GlassCard {
@@ -14,15 +29,15 @@ struct GoalsSectionCard: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 FlowLayout(spacing: Spacing.sm) {
-                    ForEach(availableGoals, id: \.self) { goal in
-                        let isSelected = selectedGoals.contains(goal)
+                    ForEach(goalCatalog) { entry in
+                        let isSelected = selectedKeys.contains(entry.key)
 
                         Button {
                             if hapticEnabled {
                                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                             }
                             withAnimation(AppAnimation.springSnappy) {
-                                onToggle(goal)
+                                onToggle(entry.key)
                             }
                         } label: {
                             HStack(spacing: Spacing.xs) {
@@ -31,7 +46,7 @@ struct GoalsSectionCard: View {
                                         .font(.system(size: 10, weight: .bold))
                                         .transition(.scale.combined(with: .opacity))
                                 }
-                                Text(goal)
+                                Text(entry.displayName)
                                     .font(AppFont.footnote)
                                     .fontWeight(.medium)
                             }
@@ -51,6 +66,8 @@ struct GoalsSectionCard: View {
                             }
                         }
                         .buttonStyle(ScalePressStyle(pressedScale: 0.95))
+                        .accessibilityLabel(entry.displayName)
+                        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
                     }
                 }
             }
@@ -62,8 +79,13 @@ struct GoalsSectionCard: View {
     ZStack {
         AppColor.background.ignoresSafeArea()
         GoalsSectionCard(
-            availableGoals: ["Muscle Recovery", "Better Sleep", "Cognitive Enhancement", "Anti-Aging", "Fat Loss"],
-            selectedGoals: ["Muscle Recovery", "Better Sleep"]
+            goalCatalog: [
+                .init(key: "buildMuscle",    displayName: "Build muscle"),
+                .init(key: "betterSleep",    displayName: "Better sleep"),
+                .init(key: "loseFat",        displayName: "Lose fat"),
+                .init(key: "antiAging",      displayName: "Anti-aging"),
+            ],
+            selectedKeys: ["buildMuscle", "betterSleep"]
         ) { _ in }
         .padding(Spacing.screenPadding)
     }

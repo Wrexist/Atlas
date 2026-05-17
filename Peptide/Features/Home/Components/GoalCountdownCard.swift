@@ -27,23 +27,14 @@ struct GoalCountdownCard: View {
 
     private var primaryGoalLabel: String? {
         guard let primaryGoal, !primaryGoal.isEmpty else { return nil }
-        // Translate the camelCase raw into the same display name the
-        // onboarding flow renders. Keeps the home tile aligned with
-        // the Ready summary row the user just saw.
-        switch primaryGoal {
-        case "buildMuscle":    return "Build muscle"
-        case "loseFat":        return "Lose fat"
-        case "getStronger":    return "Get stronger"
-        case "stayConsistent": return "Stay consistent"
-        case "athletic":       return "Athletic performance"
-        case "recomp":         return "Recomp"
-        case "betterSleep":    return "Better sleep"
-        case "recovery":       return "Faster recovery"
-        case "antiAging":      return "Anti-aging"
-        case "skinHair":       return "Skin & hair"
-        case "energy":         return "More energy"
-        default:               return primaryGoal.capitalized
+        // Look up the canonical display name via OnboardingView's
+        // PrimaryGoal enum so this surface stays in lock-step on
+        // future expansions. Falls back to a capitalized version of
+        // the stored key for legacy / unknown values.
+        if let known = OnboardingView.PrimaryGoal(rawValue: primaryGoal) {
+            return known.displayName
         }
+        return primaryGoal.capitalized
     }
 
     var body: some View {
