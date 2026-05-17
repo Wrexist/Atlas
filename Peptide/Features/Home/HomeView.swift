@@ -217,6 +217,18 @@ struct HomeView: View {
                     CoachingCard(message: coachingMessage)
                         .sectionAppear(index: 0)
 
+                    // Goal countdown from the onboarding "By when?"
+                    // step. Renders only when the user committed to a
+                    // future date; older accounts and skipped users
+                    // see nothing. Reads from dataStore so the card
+                    // updates the moment the user edits the date in
+                    // Profile.
+                    GoalCountdownCard(
+                        goalDate: dataStore.profile.goalDate,
+                        primaryGoal: dataStore.profile.primaryGoal
+                    )
+                    .sectionAppear(index: 0)
+
                     if overview.hasAnySignal {
                         TodayOverviewCard(
                             snapshot: overview,
