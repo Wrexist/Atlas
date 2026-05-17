@@ -7,6 +7,7 @@ struct ProfileView: View {
     @State private var achievementService = AchievementService.shared
     @State private var authService = AuthService.shared
     @State private var showReconstitutionCalculator = false
+    @State private var showRestoreBackup = false
 
     // Kept in sync with OnboardingView's `goals` array so a goal selected
     // during onboarding remains visible/editable here.
@@ -89,6 +90,9 @@ struct ProfileView: View {
                     ExportSection()
                         .sectionAppear(index: 7)
 
+                    RestoreBackupEntryRow(onTap: { showRestoreBackup = true })
+                        .sectionAppear(index: 7)
+
                     AccountSection()
                         .sectionAppear(index: 8)
 
@@ -109,6 +113,10 @@ struct ProfileView: View {
             .task { await authService.validateCredential() }
             .sheet(isPresented: $showReconstitutionCalculator) {
                 ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
+            }
+            .sheet(isPresented: $showRestoreBackup) {
+                RestoreBackupSheet()
+                    .environment(dataStore)
             }
             // Labs sheet + the `pendingLabsOpen` deep-link
             // consumption live on `BiologyView` now — labs sit

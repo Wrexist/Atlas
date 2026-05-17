@@ -1694,6 +1694,74 @@ final class DataStore: DataServiceProtocol {
         updateWatchData()
     }
 
+    /// Transactionally applies a backup import — the user has
+    /// already confirmed the Replace / Merge choice and seen a
+    /// validation preview. Plan E's commit phase.
+    ///
+    /// The mutation is atomic from the user's perspective: the
+    /// in-memory state is replaced in one assignment, the repo is
+    /// updated via the same upsert path the live save uses, and
+    /// pending deletion sets are cleared so the next save doesn't
+    /// inadvertently delete CloudKit-side data that came in via
+    /// the restore.
+    func applyImport(
+        protocols newProtocols: [PeptideProtocol],
+        entries newEntries: [ProtocolEntry],
+        profile newProfile: UserProfile
+    ) throws {
+        guard !isEphemeral else {
+            throw NSError(
+                domain: "Peptide.BackupImport",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey:
+                    "Backup import is disabled in screenshot/demo mode."]
+            )
+        }
+
+        // Drop any pending deletion bookkeeping — those IDs belong to
+        // the pre-import world and would otherwise propagate as
+        // CloudKit deletions against the just-restored rows.
+        pendingProtocolDeletions.removeAll()
+        pendingEntryDeletions.removeAll()
+
+        // Replace in-memory state first so any observers (Train tab,
+        // calendar, etc.) re-render against the new data while the
+        // disk write is in flight.
+        protocols = newProtocols
+        entries = newEntries
+        profile = newProfile
+
+        // Bulk write. For protocols + entries, use the upsert APIs +
+        // explicit deletes for any IDs that the import dropped.
+        // saveProfile is the simple replace.
+        let liveProtocolIDs = Set(repo.loadProtocols().map(\.id))
+        let importProtocolIDs = Set(newProtocols.map(\.id))
+        let liveEntryIDs = Set(repo.loadEntries().map(\.id))
+        let importEntryIDs = Set(newEntries.map(\.id))
+
+        repo.upsertProtocols(newProtocols)
+        repo.upsertEntries(newEntries)
+
+        // Anything in the live store that the import didn't carry =
+        // user intent to remove. Used by the Replace path; Merge
+        // never produces these because the merge logic kept current
+        // IDs intact upstream.
+        let droppedProtocolIDs = liveProtocolIDs.subtracting(importProtocolIDs)
+        for id in droppedProtocolIDs {
+            repo.deleteProtocol(id: id)
+        }
+        let droppedEntryIDs = liveEntryIDs.subtracting(importEntryIDs)
+        if !droppedEntryIDs.isEmpty {
+            repo.deleteEntries(ids: droppedEntryIDs)
+        }
+
+        repo.saveProfile(newProfile)
+        regenerateTodayEntries()
+        updateWidgetData()
+        updateWatchData()
+        rescheduleNotificationsIfEnabled()
+    }
+
     // MARK: - Entry Generation
 
     private static func generateInitialEntries(for protocols: [PeptideProtocol]) -> [ProtocolEntry] {
