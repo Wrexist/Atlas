@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 #endif
 
-/// Onboarding for Atlas — a health & fitness app. 20 steps covering
+/// Onboarding for Atlas — a health & fitness app. 18 steps covering
 /// training, nutrition, biology / recovery signals, AI-assisted
 /// research, and optional supplement tracking. Lean — every step
 /// earns its place: a moment, a data ask, a permission ask, or a
@@ -471,9 +471,13 @@ struct OnboardingView: View {
     /// poisons the recommendation engine and removes the sunk-cost
     /// commitment that drives trial conversion.
     private var showSkipOnCurrentPage: Bool {
+        // Projection deliberately omitted — that step also persists
+        // the derived nutrition targets, so a Skip would silently
+        // bypass the write (audit MED #2). Continue does the right
+        // thing whether the user lingered on the chart or not.
         switch page {
         case Page.signIn, Page.attribution, Page.demoSet,
-             Page.projection, Page.notifications, Page.health,
+             Page.notifications, Page.health,
              Page.creatorCode, Page.email:
             return true
         default:
@@ -1023,6 +1027,8 @@ struct OnboardingView: View {
                 )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Target date \(label.replacingOccurrences(of: "wks", with: " weeks").replacingOccurrences(of: "mo", with: " months"))")
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
     private func goalCard(_ goal: PrimaryGoal) -> some View {
@@ -1053,6 +1059,8 @@ struct OnboardingView: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(goal.displayName)
+        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
 
     /// Human-readable "8 weeks to commit" summary for the merged
@@ -2124,7 +2132,7 @@ struct OnboardingView: View {
                 userName: dataStore.profile.name,
                 userEmail: dataStore.profile.emailSubscription?.email,
                 onSubmit: { application in
-                    OnboardingFunnelTracker.recordEvent("affiliate_application_submitted")
+                    OnboardingFunnelTracker.recordEvent("creator_program_application_submitted")
                     // Persist the application onto the profile so a
                     // future Supabase drain can replay it 1:1. Backend
                     // wiring is a follow-up; local-only today.
@@ -2189,35 +2197,26 @@ struct OnboardingView: View {
         .transition(.scale(scale: 0.94).combined(with: .opacity))
     }
 
-    /// "Apply to be an affiliate" button — same vibe as the rest of
-    /// the onboarding (capsule, accent-tinted, with a SF symbol). The
-    /// label hints at the upside without overselling — the actual
-    /// program terms get communicated in the sheet.
+    /// Secondary "Join the creator program" link below the code
+    /// field. Toned-down chrome (no sparkle, neutral text colour) so
+    /// it reads as the secondary it is — the primary path on this
+    /// step is still entering a code and tapping Continue (audit
+    /// LOW: affiliate CTA was competing visually with the primary).
     private var affiliateApplyButton: some View {
         Button {
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-            OnboardingFunnelTracker.recordEvent("affiliate_apply_opened")
+            OnboardingFunnelTracker.recordEvent("creator_program_apply_opened")
             showingAffiliateApply = true
         } label: {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 14, weight: .semibold))
-                Text("Apply to be an affiliate")
-                    .font(AppFont.callout.weight(.semibold))
+            HStack(spacing: Spacing.xs) {
+                Text("Join the creator program")
+                    .font(AppFont.footnote.weight(.semibold))
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 11, weight: .bold))
             }
-            .foregroundStyle(AppColor.accentLight)
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
-            .background(
-                Capsule()
-                    .fill(AppColor.accentPrimary.opacity(0.12))
-            )
-            .overlay(
-                Capsule()
-                    .strokeBorder(AppColor.accentPrimary.opacity(0.35), lineWidth: 0.5)
-            )
+            .foregroundStyle(AppColor.textSecondary)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.sm)
         }
         .buttonStyle(.plain)
     }

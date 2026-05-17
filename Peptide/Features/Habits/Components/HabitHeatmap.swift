@@ -24,15 +24,21 @@ struct HabitHeatmap: View {
     private let cornerRadius: CGFloat = 2.5
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if showsMonthLabels {
-                monthRow
-                    .foregroundStyle(AppColor.textTertiary)
-                    .font(.system(size: 9, weight: .semibold))
-            }
+        // GeometryReader-derived cell size feeds both the label row
+        // widths and the grid height so the labels stay column-
+        // aligned and the grid is never vertically clipped (audit
+        // M5 + M6 — previously the labels used a hard-coded 14pt
+        // and the grid frame was clamped to 95pt regardless).
+        GeometryReader { proxy in
+            let cellSize = max(4, (proxy.size.width - CGFloat(columns.count - 1) * cellSpacing) / CGFloat(max(1, columns.count)))
+            let perColumnWidth = cellSize + cellSpacing
+            VStack(alignment: .leading, spacing: 4) {
+                if showsMonthLabels {
+                    monthRow(perColumnWidth: perColumnWidth)
+                        .foregroundStyle(AppColor.textTertiary)
+                        .font(.system(size: 9, weight: .semibold))
+                }
 
-            GeometryReader { proxy in
-                let cellSize = max(4, (proxy.size.width - CGFloat(columns.count - 1) * cellSpacing) / CGFloat(max(1, columns.count)))
                 HStack(spacing: cellSpacing) {
                     ForEach(Array(columns.enumerated()), id: \.offset) { _, column in
                         VStack(spacing: cellSpacing) {
@@ -43,15 +49,20 @@ struct HabitHeatmap: View {
                     }
                 }
             }
-            .frame(height: 7 * 11 + 6 * cellSpacing) // 11pt avg cell + spacing — clamps min height
         }
+        // Grid sizes vertically off whatever 1/N of the available
+        // width works out to. The fixed minimum keeps a freshly-
+        // mounted card from collapsing to zero height before layout
+        // settles.
+        .aspectRatio(CGFloat(max(1, columns.count)) / 7.0, contentMode: .fit)
+        .frame(minHeight: 80)
         .accessibilityElement()
         .accessibilityLabel(accessibilityLabel)
     }
 
-    private var monthRow: some View {
+    private func monthRow(perColumnWidth: CGFloat) -> some View {
         HStack(spacing: 0) {
-            ForEach(monthLabels, id: \.offset) { label in
+            ForEach(monthLabels(perColumnWidth: perColumnWidth), id: \.offset) { label in
                 Text(label.text)
                     .frame(width: label.width, alignment: .leading)
             }
@@ -65,9 +76,11 @@ struct HabitHeatmap: View {
     }
 
     /// Pre-computes month labels and the column-widths each one
-    /// spans. Falls back to evenly-spaced quarters when the caller
-    /// doesn't supply a `firstColumnStart`.
-    private var monthLabels: [MonthLabel] {
+    /// spans, given the actual per-column width computed from the
+    /// parent GeometryReader. Previously used a hard-coded 14pt
+    /// which drifted from the real cell layout on narrow screens
+    /// and iPad split-screen (audit M5).
+    private func monthLabels(perColumnWidth: CGFloat) -> [MonthLabel] {
         guard let firstDate = firstColumnStart, !columns.isEmpty else {
             return []
         }
@@ -97,7 +110,7 @@ struct HabitHeatmap: View {
                 widthAccumulator = 0
                 lastMonth = month
             }
-            widthAccumulator += 14
+            widthAccumulator += perColumnWidth
         }
         // Close the final label
         if !labels.isEmpty {

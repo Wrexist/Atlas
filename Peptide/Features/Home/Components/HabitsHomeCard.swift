@@ -212,7 +212,19 @@ struct HabitsHomeCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(habit.name)
-        .accessibilityValue(done ? "completed today" : "not yet completed")
+        .accessibilityValue(accessibilityValue(for: summary, completed: done))
+    }
+
+    private func accessibilityValue(
+        for summary: HabitsService.Summary,
+        completed: Bool
+    ) -> String {
+        var parts: [String] = []
+        parts.append(completed ? "completed today" : "not yet completed")
+        if summary.currentStreak >= 3 {
+            parts.append("\(summary.currentStreak) day streak")
+        }
+        return parts.joined(separator: ", ")
     }
 
     // MARK: - Derived counts

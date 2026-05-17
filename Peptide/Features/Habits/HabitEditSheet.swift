@@ -160,8 +160,13 @@ struct HabitEditSheet: View {
                             )
                         }
                     } label: {
-                        Label("Customize", systemImage: "slider.horizontal.3")
-                            .foregroundStyle(AppColor.textPrimary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Label("Customize", systemImage: "slider.horizontal.3")
+                                .foregroundStyle(AppColor.textPrimary)
+                            Text("Icon, color, target, reminder")
+                                .font(AppFont.caption)
+                                .foregroundStyle(AppColor.textTertiary)
+                        }
                     }
                 }
 
