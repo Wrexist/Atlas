@@ -141,22 +141,20 @@ struct OnboardingView: View {
         static let attribution      = 2
         static let name             = 3
         static let goal             = 4
-        static let goalDate         = 5
-        static let experience       = 6
-        static let bodyMetrics      = 7
-        static let schedule         = 8
-        static let equipment        = 9
-        static let demoSet          = 10
-        static let nutrition        = 11
-        static let projection       = 12
-        static let disclaimer       = 13
-        static let notifications    = 14
-        static let health           = 15
-        static let buildingPlan     = 16
-        static let creatorCode      = 17
-        static let email            = 18
-        static let ready            = 19
-        static let total            = 20
+        static let experience       = 5
+        static let bodyMetrics      = 6
+        static let schedule         = 7
+        static let equipment        = 8
+        static let demoSet          = 9
+        static let projection       = 10
+        static let disclaimer       = 11
+        static let notifications    = 12
+        static let health           = 13
+        static let buildingPlan     = 14
+        static let creatorCode      = 15
+        static let email            = 16
+        static let ready            = 17
+        static let total            = 18
     }
 
     private var totalPages: Int { Page.total }
@@ -255,13 +253,11 @@ struct OnboardingView: View {
                     attributionStep.tag(Page.attribution)
                     nameStep.tag(Page.name)
                     goalStep.tag(Page.goal)
-                    goalDateStep.tag(Page.goalDate)
                     experienceStep.tag(Page.experience)
                     bodyMetricsStep.tag(Page.bodyMetrics)
                     scheduleStep.tag(Page.schedule)
                     equipmentStep.tag(Page.equipment)
                     demoSetStep.tag(Page.demoSet)
-                    nutritionStep.tag(Page.nutrition)
                     projectionStep.tag(Page.projection)
                     disclaimerStep.tag(Page.disclaimer)
                     notificationsStep.tag(Page.notifications)
@@ -283,12 +279,18 @@ struct OnboardingView: View {
         .preferredColorScheme(.dark)
         .onAppear {
             OnboardingFunnelTracker.recordStepEntered(stepName(for: page), index: page)
-            // Re-hydrate goalDate from a previously-saved profile in case
-            // the user re-opened onboarding (debug menu, reset-onboarding
-            // tester). Otherwise the @State default (12 weeks from today)
-            // wins, which is also fine for a fresh install.
+            // Re-hydrate goalDate + selected-goal state from a
+            // previously-saved profile in case the user re-opened
+            // onboarding (debug menu, reset-onboarding tester).
+            // Otherwise the @State defaults (12 weeks from today,
+            // .buildMuscle) win, which is also fine for a fresh install.
             if let saved = dataStore.profile.goalDate {
                 goalDate = saved
+            }
+            if let rawGoal = dataStore.profile.primaryGoal,
+               let parsed = PrimaryGoal(rawValue: rawGoal) {
+                primaryGoal = parsed
+                goalHasBeenSelected = true
             }
         }
         .onChange(of: page) { _, newPage in
@@ -356,14 +358,12 @@ struct OnboardingView: View {
         case Page.signIn:         return "sign_in"
         case Page.attribution:    return "attribution"
         case Page.name:           return "name"
-        case Page.goal:           return "goal"
-        case Page.goalDate:       return "goal_date"
+        case Page.goal:           return "goal_and_date"
         case Page.experience:     return "experience"
         case Page.bodyMetrics:    return "body_metrics"
         case Page.schedule:       return "schedule"
         case Page.equipment:      return "equipment"
         case Page.demoSet:        return "demo_set"
-        case Page.nutrition:      return "nutrition"
         case Page.projection:     return "projection"
         case Page.disclaimer:     return "disclaimer"
         case Page.notifications:  return "notifications"
@@ -517,6 +517,11 @@ struct OnboardingView: View {
         switch page {
         case Page.name:
             return !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case Page.goal:
+            // Must pick a goal before Continue lights up. The date
+            // picker auto-defaults to 12 weeks from today so no
+            // explicit date selection is required.
+            return goalHasBeenSelected
         default:
             return true
         }
@@ -532,23 +537,16 @@ struct OnboardingView: View {
                 bio: dataStore.profile.bio
             )
         case Page.goal:
-            // setPrimaryGoal guards against goals that aren't in
-            // profile.goals — onboarding starts with an empty array, so
-            // we have to add the choice to the set first, then pin it.
-            // Without this updateGoals call the primary goal is silently
-            // dropped (audit C2) and every downstream surface (Home
-            // GoalCountdownCard, Profile pinned-goal banner, etc.) reads
-            // nil after a "complete" onboarding.
+            // Merged step persists both the primary goal AND the
+            // chosen date. setPrimaryGoal guards against goals that
+            // aren't in profile.goals, so updateGoals must run first
+            // (audit C2). Flush sync so a force-quit within the
+            // 350ms debounce doesn't lose either field.
             let raw = primaryGoal.rawValue
             var goalSet = Set(dataStore.profile.goals)
             goalSet.insert(raw)
             dataStore.updateGoals(goalSet)
             dataStore.setPrimaryGoal(raw)
-        case Page.goalDate:
-            // Persist directly — there's no dedicated DataStore mutator
-            // for goalDate yet. Flush synchronously so a force-quit
-            // within the 350ms save debounce doesn't lose the user's
-            // chosen date (audit code-review #5).
             dataStore.profile.goalDate = goalDate
             dataStore.flushPendingSave()
         case Page.bodyMetrics:
@@ -561,7 +559,10 @@ struct OnboardingView: View {
             // back-navs past schedule to bodyMetrics doesn't lose the
             // schedule changes (audit code-review #H3).
             dataStore.updateTrainingPreferences(currentTrainingPrefs)
-        case Page.nutrition:
+        case Page.projection:
+            // Nutrition targets derived from body metrics persist here,
+            // alongside the user seeing them on the same screen as the
+            // projection (merged from a now-deleted dedicated step).
             if let targets = NutritionMath.dailyTargets(for: bodyMetrics) {
                 dataStore.updateNutritionTargets(targets)
             }
@@ -918,18 +919,22 @@ struct OnboardingView: View {
 
     // MARK: - Primary goal
 
+    /// Merged "what's your goal + by when?" step. The user picks a
+    /// goal from the grid; the date row animates in below once a
+    /// goal is selected. Two intentions, one screen — captures
+    /// commitment without burning a full page on date-picking.
     private var goalStep: some View {
-        VStack(spacing: Spacing.lg) {
+        VStack(spacing: 0) {
             VStack(spacing: Spacing.sm) {
-                Text("What's your goal?")
+                Text(goalHeadline)
                     .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
-                Text("You can change this later.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
+                    .contentTransition(.opacity)
+                    .animation(.easeInOut(duration: 0.25), value: goalHasBeenSelected)
             }
             .padding(.top, Spacing.xl)
+            .padding(.bottom, Spacing.md)
 
             ScrollView {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
@@ -937,9 +942,86 @@ struct OnboardingView: View {
                     ForEach(PrimaryGoal.allCases) { goalCard($0) }
                 }
                 .padding(.horizontal, Spacing.lg)
-                .padding(.bottom, Spacing.xxxxl)
+                .padding(.top, Spacing.sm)
+
+                if goalHasBeenSelected {
+                    goalDateSection
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.top, Spacing.lg)
+                        .padding(.bottom, Spacing.xxxxl)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                } else {
+                    Color.clear.frame(height: Spacing.xxxxl)
+                }
             }
         }
+        .animation(AppAnimation.springSmooth, value: goalHasBeenSelected)
+    }
+
+    private var goalHeadline: String {
+        goalHasBeenSelected ? "Hit it by when?" : "What's your goal?"
+    }
+
+    /// True after the user has tapped a goal card at least once.
+    /// Drives the date-section reveal so the picker only appears
+    /// once there's an intention to anchor it to.
+    @State private var goalHasBeenSelected: Bool = false
+
+    private var goalDateSection: some View {
+        VStack(spacing: Spacing.sm) {
+            HStack(spacing: Spacing.sm) {
+                goalDateChip("8 wks",  weeks: 8)
+                goalDateChip("12 wks", weeks: 12)
+                goalDateChip("6 mo",   weeks: 26)
+            }
+
+            DatePicker(
+                "Or a custom date",
+                selection: $goalDate,
+                in: Date().addingTimeInterval(60 * 60 * 24 * 14)...,
+                displayedComponents: .date
+            )
+            .datePickerStyle(.compact)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .fill(AppColor.surfaceSecondary.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .stroke(AppColor.glassBorder, lineWidth: 0.5)
+            )
+
+            Text(goalDateSummary)
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textTertiary)
+                .padding(.top, 2)
+        }
+    }
+
+    private func goalDateChip(_ label: String, weeks: Int) -> some View {
+        let candidate = Calendar.current.date(byAdding: .weekOfYear, value: weeks, to: Date()) ?? Date()
+        let isSelected = Calendar.current.isDate(goalDate, inSameDayAs: candidate)
+        return Button {
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            withAnimation(AppAnimation.springSnappy) { goalDate = candidate }
+        } label: {
+            Text(label)
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .foregroundStyle(isSelected ? AppColor.background : AppColor.textPrimary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Spacing.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .fill(isSelected ? primaryGoal.tint : AppColor.surfaceSecondary.opacity(0.7))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .stroke(isSelected ? primaryGoal.tint : AppColor.glassBorder, lineWidth: isSelected ? 1 : 0.5)
+                )
+        }
+        .buttonStyle(.plain)
     }
 
     private func goalCard(_ goal: PrimaryGoal) -> some View {
@@ -947,6 +1029,7 @@ struct OnboardingView: View {
         return Button {
             haptic()
             primaryGoal = goal
+            withAnimation(AppAnimation.springSmooth) { goalHasBeenSelected = true }
         } label: {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: goal.icon)
@@ -971,98 +1054,11 @@ struct OnboardingView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Goal date
-
-    /// Date-based goal commitment. Creates the loss-aversion anchor
-    /// behind the projection chart — the user picked a real date, so
-    /// the curve isn't generic anymore.
-    private var goalDateStep: some View {
-        VStack(spacing: Spacing.lg) {
-            VStack(spacing: Spacing.sm) {
-                Text("By when?")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-                Text("Pick a date to hit your goal. We'll build the plan around it.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.lg)
-            }
-            .padding(.top, Spacing.xl)
-
-            VStack(spacing: Spacing.md) {
-                goalDateQuickPick("8 weeks",  weeks: 8)
-                goalDateQuickPick("12 weeks", weeks: 12)
-                goalDateQuickPick("6 months", weeks: 26)
-
-                DatePicker(
-                    "Custom date",
-                    selection: $goalDate,
-                    in: Date().addingTimeInterval(60 * 60 * 24 * 14)...,
-                    displayedComponents: .date
-                )
-                .datePickerStyle(.compact)
-                .padding(Spacing.md)
-                .background(
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .stroke(AppColor.glassBorder, lineWidth: 0.5)
-                )
-            }
-            .padding(.horizontal, Spacing.lg)
-
-            Text(goalDateSummary)
-                .font(AppFont.footnote)
-                .foregroundStyle(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.lg)
-                .padding(.top, Spacing.sm)
-
-            Spacer()
-        }
-    }
-
-    private func goalDateQuickPick(_ label: String, weeks: Int) -> some View {
-        let candidate = Calendar.current.date(byAdding: .weekOfYear, value: weeks, to: Date()) ?? Date()
-        // Two dates count as "the same" if they fall on the same day —
-        // ignore the hh:mm:ss noise the DatePicker writes when the user
-        // taps a different chip and then types into the custom field.
-        let isSelected = Calendar.current.isDate(goalDate, inSameDayAs: candidate)
-        return Button {
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-            withAnimation(AppAnimation.springSnappy) { goalDate = candidate }
-        } label: {
-            HStack {
-                Text(label)
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-                Spacer()
-                Text(candidate.formatted(.dateTime.month(.abbreviated).day()))
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
-            }
-            .padding(Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(isSelected ? AppColor.accentPrimary.opacity(0.12) : AppColor.surfaceSecondary.opacity(0.6))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .stroke(isSelected ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: isSelected ? 1 : 0.5)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
+    /// Human-readable "8 weeks to commit" summary for the merged
+    /// goal-and-date step. Used inside the date section underneath
+    /// the picker.
     private var goalDateSummary: String {
-        let weeks = max(1, Int(goalDate.timeIntervalSince(Date()) / (60 * 60 * 24 * 7)))
-        return "That's \(weeks) week\(weeks == 1 ? "" : "s") to commit."
+        "That's \(goalWeeks) week\(goalWeeks == 1 ? "" : "s") to commit."
     }
 
     /// Weeks between today and the user's chosen goal date, clamped to
@@ -1431,16 +1427,6 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Nutrition
-
-    private var nutritionStep: some View {
-        ScrollView {
-            DailyTargetsPage(metrics: bodyMetrics)
-                .padding(.top, Spacing.lg)
-                .padding(.bottom, Spacing.xxxxl)
-        }
-    }
-
     // MARK: - Projection (personalised plan reveal)
 
     /// Cal-AI-style projection moment. Numbers are illustrative — the
@@ -1479,6 +1465,19 @@ struct OnboardingView: View {
                         icon: primaryGoal.icon,
                         tint: primaryGoal.tint
                     )
+                    if let targets = NutritionMath.dailyTargets(for: bodyMetrics) {
+                        // Daily nutrition targets folded in here so the
+                        // user sees the derived plan inline rather than
+                        // on a separate "Nutrition" step. Hidden when
+                        // body metrics aren't filled in enough to derive
+                        // a real Mifflin-St Jeor estimate.
+                        projectionStatRow(
+                            label: "Daily targets",
+                            value: "\(targets.calories) kcal · \(targets.proteinG)P · \(targets.carbsG)C · \(targets.fatG)F",
+                            icon: "fork.knife",
+                            tint: Color(hex: 0xD4A844)
+                        )
+                    }
                     projectionStatRow(
                         label: "First milestone",
                         value: "Week 2 · habit locked in",
