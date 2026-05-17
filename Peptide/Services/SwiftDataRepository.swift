@@ -67,11 +67,12 @@ final class SwiftDataRepository {
 
     /// Compares the live identity token against the snapshot taken at
     /// container creation. If the user signed out / switched accounts,
-    /// posts an internal notification so DataStore can clear its
-    /// in-memory state and re-init from the new container. The
-    /// container itself is reopened lazily on the next save attempt
-    /// rather than recreated synchronously, since SwiftData's
-    /// ModelContainer is expensive to re-establish.
+    /// tears down the old container and rebuilds for the new identity
+    /// before posting a notification — DataStore listens and reloads
+    /// from the new container. The previous implementation only set
+    /// `isInoperable = true` and never recreated the container, which
+    /// left persistence permanently degraded for the rest of the
+    /// process lifetime.
     @MainActor
     private func handleIdentityChange() {
         let current = FileManager.default.ubiquityIdentityToken
@@ -86,12 +87,38 @@ final class SwiftDataRepository {
         guard !isSame else { return }
         lastObservedIdentityToken = current
         AppLog.swiftData.error(
-            "iCloud identity changed; pausing repository writes until re-init"
+            "iCloud identity changed; tearing down container and re-initializing"
         )
+
+        // Pause writes during the swap so any in-flight save attempt
+        // doesn't see a half-initialised container.
         isInoperable = true
-        // Post a notification so DataStore can clear its in-memory
-        // state. Defining the name inline rather than at module
-        // scope keeps the contract local to this file.
+        container = nil
+        isCloudSyncEnabled = false
+        isUsingFallbackStore = false
+
+        // Rebuild — same fallback chain as `init`.
+        if current != nil, let ck = Self.makeCloudContainer() {
+            container = ck
+            isCloudSyncEnabled = true
+            isInoperable = false
+        } else if let local = Self.makeLocalContainer() {
+            container = local
+            isInoperable = false
+        } else if let inMemory = Self.makeInMemoryContainer() {
+            container = inMemory
+            isUsingFallbackStore = true
+            isInoperable = false
+        } else {
+            // Genuinely couldn't open anything — leave isInoperable=true.
+            // DataStore will see empty loads + writes will no-op, which
+            // is the safest available state until the user relaunches.
+            AppLog.swiftData.error("Container re-init failed after identity change; reads will be empty")
+        }
+
+        // Notify DataStore — by the time this fires, the container has
+        // already swapped, so `reloadFromDisk` in the observer reads
+        // from the new identity's store.
         NotificationCenter.default.post(name: .peptideXiCloudIdentityChanged, object: nil)
     }
 

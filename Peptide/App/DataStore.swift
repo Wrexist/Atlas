@@ -166,16 +166,27 @@ final class DataStore: DataServiceProtocol {
 
     @MainActor
     private func handleIdentityChange() {
-        AppLog.persistence.error("iCloud identity changed; clearing in-memory store and pending deletions")
-        // Drop pending writes — they belong to the previous identity.
+        AppLog.persistence.error("iCloud identity changed; clearing + reloading from new store")
+        // Drop pending writes — they belong to the previous identity
+        // and the next save's diff would otherwise commit them against
+        // the new container.
         pendingProtocolDeletions.removeAll()
         pendingEntryDeletions.removeAll()
-        // didSet on protocols/entries auto-bumps cacheVersion so
-        // every derived metric (streak, weeklyCompletion, etc.)
+        // Clear first so any UI binding that runs between the clear
+        // and the reload doesn't see a mix of the two identities'
+        // data. didSet on protocols/entries auto-bumps cacheVersion
+        // so every derived metric (streak, weeklyCompletion, etc.)
         // recomputes against the cleared state.
         protocols = []
         entries = []
         profile = .fresh
+        // SwiftDataRepository's identity handler swaps the container
+        // BEFORE posting the notification, so loadProtocols / etc.
+        // here read from the new identity's store. If the new
+        // account has synced data this surfaces it immediately
+        // instead of forcing the user through a relaunch to see
+        // their own records.
+        reloadFromDisk()
     }
 
     /// The currently-active `DataStore`, set by `init` and consumed
