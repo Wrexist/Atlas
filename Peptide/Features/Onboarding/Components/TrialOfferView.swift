@@ -1,12 +1,14 @@
 import SwiftUI
+import StoreKit
 #if canImport(UIKit)
 import UIKit
 #endif
 
-/// Conversion-optimized 3-day free trial paywall surfaced at the end of
-/// onboarding. Calls `StoreService.startMonthlyTrial()` which delegates to
-/// `Product.purchase()` — Apple presents the intro offer sheet and, after the
-/// 3-day free period, auto-renews the monthly subscription until cancellation.
+/// Conversion-optimized paywall surfaced at the end of onboarding. The
+/// user picks Yearly (anchored as best value with savings vs 12× monthly)
+/// or Monthly (with the 3-day free trial); the CTA delegates to
+/// `StoreService.purchase(_:)` which calls `Product.purchase()` and lets
+/// Apple present the intro-offer sheet or charge immediately as appropriate.
 struct TrialOfferView: View {
     let onAccept: () -> Void
     let onDecline: () -> Void
@@ -17,9 +19,52 @@ struct TrialOfferView: View {
     @State private var sparklePhase = 0.0
     @State private var ctaPulse = false
     @State private var didReveal = false
+    /// Selected billing cadence. Annual is the default — anchoring
+    /// against the more expensive (per-month) monthly tier first is
+    /// the standard pattern across health-app paywalls.
+    @State private var selectedTier: Tier = .annual
+
+    enum Tier: String, CaseIterable, Identifiable {
+        case annual, monthly
+        var id: String { rawValue }
+        var displayName: String {
+            switch self {
+            case .annual:  return "Yearly"
+            case .monthly: return "Monthly"
+            }
+        }
+    }
 
     private var monthlyPrice: String {
         storeService.monthlyProduct?.displayPrice ?? "$9.99"
+    }
+
+    private var annualPrice: String {
+        storeService.annualProduct?.displayPrice ?? "$49.99"
+    }
+
+    /// Per-month equivalent of the annual plan, formatted with the
+    /// product's locale-aware price style. Falls back to a hard-coded
+    /// "$4.17" so the UI is never empty before products load.
+    private var annualPerMonthPrice: String {
+        guard let annual = storeService.annualProduct, annual.price > 0 else {
+            return "$4.17"
+        }
+        let perMonth = annual.price / 12
+        return perMonth.formatted(annual.priceFormatStyle)
+    }
+
+    /// Savings percent of annual vs 12× monthly. Returns nil while
+    /// products are loading or when annual isn't actually cheaper.
+    private var annualSavingsPercent: Int? {
+        guard let annual = storeService.annualProduct,
+              let monthly = storeService.monthlyProduct,
+              annual.price > 0, monthly.price > 0
+        else { return nil }
+        let yearAtMonthly = monthly.price * 12
+        guard yearAtMonthly > annual.price else { return nil }
+        let saved = (yearAtMonthly - annual.price) / yearAtMonthly
+        return Int((Double(truncating: saved as NSNumber) * 100).rounded())
     }
 
     private var trialDays: Int {
@@ -40,6 +85,7 @@ struct TrialOfferView: View {
                     heroBadge
                     headline
                     benefitsCard
+                    tierPicker
 
                     Spacer(minLength: Spacing.md)
                 }
@@ -172,6 +218,100 @@ struct TrialOfferView: View {
         )
     }
 
+    // MARK: - Tier picker
+
+    private var tierPicker: some View {
+        VStack(spacing: Spacing.sm) {
+            tierCard(.annual)
+            tierCard(.monthly)
+        }
+        .opacity(didReveal ? 1 : 0)
+        .offset(y: didReveal ? 0 : 16)
+        .animation(AppAnimation.springSmooth.delay(0.35), value: didReveal)
+    }
+
+    private func tierCard(_ tier: Tier) -> some View {
+        let isSelected = selectedTier == tier
+        let isAnnual = tier == .annual
+        return Button {
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            withAnimation(AppAnimation.springSnappy) { selectedTier = tier }
+        } label: {
+            HStack(spacing: Spacing.md) {
+                ZStack {
+                    Circle()
+                        .strokeBorder(
+                            isSelected ? AppColor.accentPrimary : AppColor.glassBorder,
+                            lineWidth: isSelected ? 6 : 1.2
+                        )
+                        .frame(width: 22, height: 22)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: Spacing.xs) {
+                        Text(tier.displayName)
+                            .font(AppFont.headline)
+                            .foregroundStyle(AppColor.textPrimary)
+                        if isAnnual, let savings = annualSavingsPercent {
+                            Text("SAVE \(savings)%")
+                                .font(.system(size: 10, weight: .heavy))
+                                .tracking(0.6)
+                                .foregroundStyle(AppColor.background)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule().fill(AppColor.accentLight)
+                                )
+                        }
+                    }
+                    Text(tierSubtitle(for: tier))
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(tierPrimaryPrice(for: tier))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text("/mo")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+            }
+            .padding(Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .fill(isSelected
+                          ? AppColor.accentPrimary.opacity(0.14)
+                          : AppColor.surfaceSecondary.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .stroke(
+                        isSelected ? AppColor.accentPrimary : AppColor.glassBorder,
+                        lineWidth: isSelected ? 1.5 : 0.5
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+    }
+
+    private func tierPrimaryPrice(for tier: Tier) -> String {
+        switch tier {
+        case .annual:  return annualPerMonthPrice
+        case .monthly: return monthlyPrice
+        }
+    }
+
+    private func tierSubtitle(for tier: Tier) -> String {
+        switch tier {
+        case .annual:
+            return "Billed \(annualPrice)/yr"
+        case .monthly:
+            return "\(trialDays) days free, then \(monthlyPrice)/mo"
+        }
+    }
+
     // MARK: - Footer
 
     private var footer: some View {
@@ -192,7 +332,7 @@ struct TrialOfferView: View {
                     } else {
                         Image(systemName: "sparkles")
                             .font(.system(size: 15, weight: .bold))
-                        Text("Start My \(trialDays)-Day Free Trial")
+                        Text(ctaTitle)
                             .font(AppFont.headline)
                     }
                 }
@@ -215,7 +355,7 @@ struct TrialOfferView: View {
             }
             .buttonStyle(.plain)
             .disabled(isPurchasing)
-            .accessibilityLabel("Start \(trialDays)-day free trial")
+            .accessibilityLabel(ctaTitle)
 
             Button(action: declineTrial) {
                 Text("Maybe later")
@@ -226,7 +366,7 @@ struct TrialOfferView: View {
             .buttonStyle(.plain)
             .disabled(isPurchasing)
 
-            Text("No charge for \(trialDays) days. Then \(monthlyPrice)/month for the Atlas Pro Monthly subscription. Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → Apple ID → Subscriptions.")
+            Text(legalCopy)
                 .font(.system(size: 10))
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
@@ -269,16 +409,47 @@ struct TrialOfferView: View {
             .position(x: size.width * xRatio, y: size.height * (1 - y))
     }
 
+    private var productForSelectedTier: Product? {
+        switch selectedTier {
+        case .annual:  return storeService.annualProduct
+        case .monthly: return storeService.monthlyProduct
+        }
+    }
+
+    // MARK: - CTA / legal copy
+
+    private var ctaTitle: String {
+        switch selectedTier {
+        case .annual:
+            return "Start Yearly Plan"
+        case .monthly:
+            return "Start My \(trialDays)-Day Free Trial"
+        }
+    }
+
+    private var legalCopy: String {
+        switch selectedTier {
+        case .annual:
+            return "Billed \(annualPrice) per year for the Atlas Pro Yearly subscription. Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → Apple ID → Subscriptions."
+        case .monthly:
+            return "No charge for \(trialDays) days. Then \(monthlyPrice)/month for the Atlas Pro Monthly subscription. Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → Apple ID → Subscriptions."
+        }
+    }
+
     // MARK: - Actions
 
     private func startTrial() {
         guard !isPurchasing else { return }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         errorMessage = nil
+        guard let product = productForSelectedTier else {
+            withAnimation { errorMessage = "Plan still loading. Try again in a moment." }
+            return
+        }
         isPurchasing = true
         Task {
             do {
-                let success = try await storeService.startMonthlyTrial()
+                let success = try await storeService.purchase(product)
                 isPurchasing = false
                 if success {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -286,7 +457,7 @@ struct TrialOfferView: View {
                 }
             } catch {
                 isPurchasing = false
-                withAnimation { errorMessage = "Couldn't start the trial. Please try again." }
+                withAnimation { errorMessage = "Couldn't complete the purchase. Please try again." }
             }
         }
     }
