@@ -69,6 +69,13 @@ struct OnboardingView: View {
     // Projection chart "reveal" state. Drives a tasteful fade-in on
     // the chart instead of jump-cutting from the building screen.
     @State private var projectionRevealed: Bool = false
+    // Date-based goal target. Defaults to 12 weeks from today so a
+    // user who taps Continue without touching the picker still gets a
+    // meaningful projection. Persisted to dataStore.profile on
+    // advance off the goalDate step.
+    @State private var goalDate: Date = Calendar.current.date(
+        byAdding: .weekOfYear, value: 12, to: Date()
+    ) ?? Date().addingTimeInterval(60 * 60 * 24 * 84)
 
     @FocusState private var nameFocused: Bool
 
@@ -82,23 +89,24 @@ struct OnboardingView: View {
         static let valueProof       = 3
         static let name             = 4
         static let goal             = 5
-        static let experience       = 6
-        static let bodyMetrics      = 7
-        static let schedule         = 8
-        static let equipment        = 9
-        static let demoSet          = 10
-        static let comparison       = 11
-        static let programPreview   = 12
-        static let nutrition        = 13
-        static let projection       = 14
-        static let disclaimer       = 15
-        static let notifications    = 16
-        static let health           = 17
-        static let buildingPlan     = 18
-        static let creatorCode      = 19
-        static let email            = 20
-        static let ready            = 21
-        static let total            = 22
+        static let goalDate         = 6
+        static let experience       = 7
+        static let bodyMetrics      = 8
+        static let schedule         = 9
+        static let equipment        = 10
+        static let demoSet          = 11
+        static let comparison       = 12
+        static let programPreview   = 13
+        static let nutrition        = 14
+        static let projection       = 15
+        static let disclaimer       = 16
+        static let notifications    = 17
+        static let health           = 18
+        static let buildingPlan     = 19
+        static let creatorCode      = 20
+        static let email            = 21
+        static let ready            = 22
+        static let total            = 23
     }
 
     private var totalPages: Int { Page.total }
@@ -198,6 +206,7 @@ struct OnboardingView: View {
                     valueProof.tag(Page.valueProof)
                     nameStep.tag(Page.name)
                     goalStep.tag(Page.goal)
+                    goalDateStep.tag(Page.goalDate)
                     experienceStep.tag(Page.experience)
                     bodyMetricsStep.tag(Page.bodyMetrics)
                     scheduleStep.tag(Page.schedule)
@@ -267,6 +276,7 @@ struct OnboardingView: View {
         case Page.valueProof:     return "value_proof"
         case Page.name:           return "name"
         case Page.goal:           return "goal"
+        case Page.goalDate:       return "goal_date"
         case Page.experience:     return "experience"
         case Page.bodyMetrics:    return "body_metrics"
         case Page.schedule:       return "schedule"
@@ -784,6 +794,107 @@ struct OnboardingView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Goal date
+
+    /// Date-based goal commitment. Creates the loss-aversion anchor
+    /// behind the projection chart — the user picked a real date, so
+    /// the curve isn't generic anymore.
+    private var goalDateStep: some View {
+        VStack(spacing: Spacing.lg) {
+            VStack(spacing: Spacing.sm) {
+                Text("By when?")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                Text("Pick a date to hit your goal. We'll build the plan around it.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.lg)
+            }
+            .padding(.top, Spacing.xl)
+
+            VStack(spacing: Spacing.md) {
+                goalDateQuickPick("8 weeks",  weeks: 8)
+                goalDateQuickPick("12 weeks", weeks: 12)
+                goalDateQuickPick("6 months", weeks: 26)
+
+                DatePicker(
+                    "Custom date",
+                    selection: $goalDate,
+                    in: Date().addingTimeInterval(60 * 60 * 24 * 14)...,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.compact)
+                .padding(Spacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .fill(AppColor.surfaceSecondary.opacity(0.6))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .stroke(AppColor.glassBorder, lineWidth: 0.5)
+                )
+            }
+            .padding(.horizontal, Spacing.lg)
+
+            Text(goalDateSummary)
+                .font(AppFont.footnote)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.lg)
+                .padding(.top, Spacing.sm)
+
+            Spacer()
+        }
+    }
+
+    private func goalDateQuickPick(_ label: String, weeks: Int) -> some View {
+        let candidate = Calendar.current.date(byAdding: .weekOfYear, value: weeks, to: Date()) ?? Date()
+        // Two dates count as "the same" if they fall on the same day —
+        // ignore the hh:mm:ss noise the DatePicker writes when the user
+        // taps a different chip and then types into the custom field.
+        let isSelected = Calendar.current.isDate(goalDate, inSameDayAs: candidate)
+        return Button {
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            withAnimation(AppAnimation.springSnappy) { goalDate = candidate }
+        } label: {
+            HStack {
+                Text(label)
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                Spacer()
+                Text(candidate.formatted(.dateTime.month(.abbreviated).day()))
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
+            }
+            .padding(Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .fill(isSelected ? AppColor.accentPrimary.opacity(0.12) : AppColor.surfaceSecondary.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .stroke(isSelected ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: isSelected ? 1 : 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var goalDateSummary: String {
+        let weeks = max(1, Int(goalDate.timeIntervalSince(Date()) / (60 * 60 * 24 * 7)))
+        return "That's \(weeks) week\(weeks == 1 ? "" : "s") to commit."
+    }
+
+    /// Weeks between today and the user's chosen goal date, clamped to
+    /// at least one week. Used by the projection step's headline and
+    /// the ProjectionChart's framing.
+    private var goalWeeks: Int {
+        max(1, Int(goalDate.timeIntervalSince(Date()) / (60 * 60 * 24 * 7)))
     }
 
     // MARK: - Step 4: Experience
@@ -1310,6 +1421,8 @@ struct OnboardingView: View {
                     goal: primaryGoal,
                     daysPerWeek: daysPerWeek,
                     startWeightKg: bodyMetrics.weightKg,
+                    weeks: goalWeeks,
+                    targetDate: goalDate,
                     revealed: projectionRevealed
                 )
                 .padding(.top, Spacing.sm)
@@ -1350,7 +1463,7 @@ struct OnboardingView: View {
     }
 
     private var projectionHeadline: String {
-        let weeks = 12
+        let weeks = goalWeeks
         switch primaryGoal {
         case .buildMuscle:    return "+\(min(6, max(2, Int(estimatedMuscleGainKg)))) kg in \(weeks) weeks"
         case .loseFat:        return "−\(min(10, max(3, Int(estimatedFatLossKg)))) kg in \(weeks) weeks"
@@ -1397,7 +1510,7 @@ struct OnboardingView: View {
         case .buildMuscle: return "+\(min(6, max(2, Int(estimatedMuscleGainKg)))) kg lean mass"
         case .loseFat:     return "−\(min(10, max(3, Int(estimatedFatLossKg)))) kg body weight"
         case .getStronger: return "+10–15% on your top lifts"
-        case .stayConsistent, .athletic: return "\(daysPerWeek * 12) sessions logged"
+        case .stayConsistent, .athletic: return "\(daysPerWeek * goalWeeks) sessions logged"
         case .recomp:      return "Body recomp tracked weekly"
         case .betterSleep: return "+45 min average sleep"
         case .recovery:    return "+10 HRV points (avg)"
@@ -1956,6 +2069,8 @@ private struct ProjectionChart: View {
     let goal: OnboardingView.PrimaryGoal
     let daysPerWeek: Int
     let startWeightKg: Double?
+    let weeks: Int
+    let targetDate: Date
     let revealed: Bool
 
     @State private var drawAmount: CGFloat = 0
@@ -2000,7 +2115,7 @@ private struct ProjectionChart: View {
             HStack {
                 Text("Today")
                 Spacer()
-                Text("12 weeks")
+                Text(targetDate.formatted(.dateTime.month(.abbreviated).day()))
             }
             .font(AppFont.caption)
             .fontWeight(.semibold)
