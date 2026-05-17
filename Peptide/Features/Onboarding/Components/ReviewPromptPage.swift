@@ -8,7 +8,7 @@ struct ReviewPromptPage: View {
     var body: some View {
         VStack(spacing: Spacing.xl) {
             VStack(spacing: Spacing.md) {
-                Text("Join 10,000+ biohackers tracking smarter")
+                Text("Join 10,000+ people training smarter")
                     .font(AppFont.largeTitle)
                     .foregroundStyle(
                         LinearGradient(
@@ -49,13 +49,13 @@ struct ReviewPromptPage: View {
             initials: "MT",
             name: "Marcus T.",
             tint: AppColor.accentPrimary,
-            quote: "Finally a tracker built for actual peptide protocols. The reconstitution calculator alone saves me 10 minutes every cycle. Essential for anyone running a serious stack."
+            quote: "Logging a set takes two taps and the last-weight cue tells me when to add more. I haven't missed a session since I started using Atlas."
         ),
         Testimonial(
             initials: "AR",
             name: "Alex R.",
             tint: AppColor.accentLight,
-            quote: "I've tried 4 apps. Atlas is the only one that understands stacking. The half-life overlay is a game changer — I can finally see my active windows at a glance."
+            quote: "I've tried 4 apps. Atlas is the only one that pulls training, meals, and recovery into one place — and the AI research chat actually cites its sources."
         ),
     ]
 
