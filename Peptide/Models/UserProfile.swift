@@ -252,7 +252,22 @@ struct UserProfile: Codable, Sendable {
     /// tab's structured flow writes to `StoredWorkoutSession` via
     /// `WorkoutSessionService` instead. Newest-last so callers
     /// iterating forward see chronological order without re-sorting.
+    ///
+    /// **Deprecated**: `WorkoutLogMigrationService.migrateIfNeeded`
+    /// drains this on first launch after Plan C lands and flips the
+    /// `workoutLegacyMigrationCompleted` marker. New writes go via
+    /// `DataStore.logWorkout`'s now-shimmed implementation, which
+    /// constructs a `WorkoutSession` and persists through the
+    /// SwiftData repository. Field kept on the schema so older builds
+    /// can still read the profile blob — a CloudKit roll-back to a
+    /// pre-migration build wouldn't see "missing column" decode errors.
     var workoutHistory: [WorkoutEntry]
+    /// Marker set once `WorkoutLogMigrationService` has copied any
+    /// existing `workoutHistory` into `StoredWorkoutSession`. Once true
+    /// the migration is permanently skipped, so a user who created
+    /// post-migration sessions via the new path never has them
+    /// duplicated on a subsequent relaunch.
+    var workoutLegacyMigrationCompleted: Bool = false
     /// JPEG-encoded profile avatar uploaded from the photo library. Stored
     /// inline so the avatar travels with the profile across exports and
     /// iCloud sync. Compressed before save — see DataStore.updateAvatar.
@@ -366,6 +381,7 @@ struct UserProfile: Codable, Sendable {
         progressPhotoFilenames: [String] = [],
         dailyConsumption: [String: DailyConsumption] = [:],
         workoutHistory: [WorkoutEntry] = [],
+        workoutLegacyMigrationCompleted: Bool = false,
         avatarImageData: Data? = nil,
         bio: String = "",
         primaryGoal: String? = nil,
@@ -399,6 +415,7 @@ struct UserProfile: Codable, Sendable {
         self.progressPhotoFilenames = progressPhotoFilenames
         self.dailyConsumption = dailyConsumption
         self.workoutHistory = workoutHistory
+        self.workoutLegacyMigrationCompleted = workoutLegacyMigrationCompleted
         self.avatarImageData = avatarImageData
         self.bio = bio
         self.primaryGoal = primaryGoal
@@ -435,6 +452,7 @@ struct UserProfile: Codable, Sendable {
         progressPhotoFilenames = try container.decodeIfPresent([String].self, forKey: .progressPhotoFilenames) ?? []
         dailyConsumption = try container.decodeIfPresent([String: DailyConsumption].self, forKey: .dailyConsumption) ?? [:]
         workoutHistory = try container.decodeIfPresent([WorkoutEntry].self, forKey: .workoutHistory) ?? []
+        workoutLegacyMigrationCompleted = try container.decodeIfPresent(Bool.self, forKey: .workoutLegacyMigrationCompleted) ?? false
         avatarImageData = try container.decodeIfPresent(Data.self, forKey: .avatarImageData)
         bio = try container.decodeIfPresent(String.self, forKey: .bio) ?? ""
         primaryGoal = try container.decodeIfPresent(String.self, forKey: .primaryGoal)

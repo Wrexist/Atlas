@@ -589,9 +589,32 @@ struct HomeView: View {
     private var timelineEvents: [TodayTimelineEvent] {
         let now = Date()
         let cal = Calendar.current
-        let workoutsToday = dataStore.profile.workoutHistory.filter { entry in
-            cal.isDate(entry.date, inSameDayAs: now)
-        }
+        // Plan C: workouts now live in StoredWorkoutSession; the
+        // timeline still expects the legacy `WorkoutEntry` shape, so
+        // adapt at this boundary. Mirrors the converter on
+        // `WorkoutDetailView.entryFromSession`. Empty-exercise quick-
+        // log sessions still render — the timeline only needs name +
+        // date + duration.
+        let workoutsToday: [WorkoutEntry] = SwiftDataRepository.shared
+            .loadWorkoutSessions()
+            .filter { cal.isDate($0.startedAt, inSameDayAs: now) }
+            .map { session in
+                let sets = session.exercises.flatMap(\.sets)
+                let reps = sets.reduce(0) { $0 + $1.reps }
+                let avgReps = sets.isEmpty ? 0 : reps / sets.count
+                let duration: Int = {
+                    guard let finished = session.finishedAt else { return 0 }
+                    return max(0, Int(finished.timeIntervalSince(session.startedAt) / 60))
+                }()
+                return WorkoutEntry(
+                    id: session.id,
+                    date: session.startedAt,
+                    name: session.name ?? "Workout",
+                    sets: sets.count,
+                    reps: avgReps,
+                    durationMinutes: duration
+                )
+            }
         return TodayTimelineEvent.build(
             doses: dataStore.todayEntries,
             meals: dataStore.mealEntries(),

@@ -122,6 +122,18 @@ final class DataStore: DataServiceProtocol {
             self.entries   = savedEntries
             self.profile   = savedProfile ?? .fresh
             regenerateTodayEntries()
+            // Plan C — drain the legacy `profile.workoutHistory` array
+            // into the structured `StoredWorkoutSession` store the
+            // Train tab reads from. Idempotent; flips a marker on the
+            // profile so the migration is a no-op on every subsequent
+            // launch. Profile is persisted via the standard save path
+            // below so the marker survives.
+            if WorkoutLogMigrationService.migrateIfNeeded(profile: &profile, repository: repo) > 0 {
+                // Persist immediately so a crash between init and the
+                // next save doesn't re-run the migration and risk
+                // duplicating entries on a second pass.
+                repo.saveProfile(profile)
+            }
         } else if seedSampleData {
             // Tests/previews: seed mock data
             let sampleProtocols = MockProtocols.all
@@ -1275,30 +1287,65 @@ final class DataStore: DataServiceProtocol {
         )
     }
 
-    /// Legacy free-form workout log stored on `profile.workoutHistory`.
-    /// The structured Train tab (PR #127) writes through
-    /// `WorkoutSessionService` to `StoredWorkoutSession` instead.
-    /// These two stores are not currently reconciled — the Train tab
-    /// surfaces `WorkoutSession` and only this entry-point's callers
-    /// see the legacy `WorkoutEntry` list. Track for deprecation:
-    /// once the Train tab's history surface is the canonical view,
-    /// migrate any remaining callers and remove this method.
+    /// Quick-log workout entry — kept for the freeform "Movement"
+    /// surface on the Today scroll. Plan C reconciled the dual store
+    /// split: this method no longer writes to the legacy
+    /// `profile.workoutHistory` array; instead it constructs a
+    /// `WorkoutSession` (empty exercises, the legacy sets×reps in the
+    /// `note` field) and persists through the same SwiftData repo
+    /// the Train tab reads from. Both surfaces converge on
+    /// `StoredWorkoutSession` so a quick-log entry shows up in Train,
+    /// and a Train-tab session shows up in the Today summary.
     func logWorkout(_ entry: WorkoutEntry) {
-        LifestyleDataLogic.logWorkout(into: &profile, entry: entry)
-        save()
+        let finishedAt = entry.date.addingTimeInterval(
+            TimeInterval(max(0, entry.durationMinutes) * 60)
+        )
+        let session = WorkoutSession(
+            id: entry.id,
+            name: entry.name,
+            routineID: nil,
+            programID: nil,
+            startedAt: entry.date,
+            finishedAt: finishedAt,
+            exercises: [],
+            note: "Quick-log · \(entry.sets) sets × \(entry.reps) reps",
+            perceivedEffort: nil
+        )
+        repo.upsertWorkoutSession(session)
+        // Bump the day-version so workoutSummary's cache invalidates
+        // and the Today scroll refreshes its count.
+        bumpVersionIfDayChanged()
     }
 
-    /// See `logWorkout(_:)` — also part of the legacy free-form
-    /// workout log.
+    /// Deletes a workout by ID from the structured store. Same plumbing
+    /// as `WorkoutSessionService.discardWorkout` for the active path —
+    /// here it targets the historical row directly.
     func deleteWorkout(id: UUID) {
-        LifestyleDataLogic.deleteWorkout(from: &profile, id: id)
-        save()
+        repo.deleteWorkoutSession(id: id)
+        bumpVersionIfDayChanged()
     }
 
     /// (count, totalMinutes) for workout sessions logged on `date`'s
     /// calendar day.
     func workoutSummary(for date: Date = Date()) -> (count: Int, minutes: Int) {
-        LifestyleDataLogic.workoutSummary(of: profile, for: date)
+        // Reads from `StoredWorkoutSession` now (Plan C) — quick-log
+        // entries and Train-tab sessions both land there. Filters to
+        // the requested calendar day. `finishedAt` is canonical when
+        // present; in-progress sessions use `startedAt`.
+        let cal = Calendar.current
+        let target = cal.startOfDay(for: date)
+        let sessions = repo.loadWorkoutSessions()
+            .filter { session in
+                let anchor = session.finishedAt ?? session.startedAt
+                return cal.isDate(cal.startOfDay(for: anchor), inSameDayAs: target)
+            }
+        let count = sessions.count
+        let minutes = sessions.reduce(0) { acc, session in
+            guard let finished = session.finishedAt else { return acc }
+            let secs = finished.timeIntervalSince(session.startedAt)
+            return acc + max(0, Int(secs / 60))
+        }
+        return (count, minutes)
     }
 
     func addProgressPhotoFilename(_ filename: String) {

@@ -112,28 +112,35 @@ final class LifestyleDataStoreTests: XCTestCase {
 
     // MARK: - Workouts
 
-    func test_logWorkout_appendsAndSorts() {
+    /// Plan C: workouts moved from `profile.workoutHistory` (legacy
+    /// array on the profile blob) to `StoredWorkoutSession` (SwiftData
+    /// rows). The DataStore APIs (logWorkout / deleteWorkout /
+    /// workoutSummary) preserve their original signatures — they're
+    /// now thin shims over `SwiftDataRepository`. Assertions here
+    /// read through `workoutSummary` rather than the deprecated
+    /// profile array.
+    func test_logWorkout_increasesSummaryCount() {
         let store = makeStore()
         let now = Date()
-        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: now)!
-        let twoDaysAgo = Calendar.current.date(byAdding: .day, value: -2, to: now)!
+        XCTAssertEqual(store.workoutSummary().count, 0)
 
-        store.logWorkout(WorkoutEntry(date: yesterday, name: "Push", sets: 4, reps: 8, durationMinutes: 45))
-        store.logWorkout(WorkoutEntry(date: now,        name: "Cardio", sets: 0, reps: 0, durationMinutes: 30))
-        store.logWorkout(WorkoutEntry(date: twoDaysAgo, name: "Pull",  sets: 4, reps: 8, durationMinutes: 50))
+        store.logWorkout(WorkoutEntry(date: now, name: "Push",   sets: 4, reps: 8, durationMinutes: 45))
+        store.logWorkout(WorkoutEntry(date: now, name: "Cardio", sets: 0, reps: 0, durationMinutes: 30))
 
-        let dates = store.profile.workoutHistory.map(\.date)
-        XCTAssertEqual(dates, dates.sorted(), "workoutHistory should be sorted oldest-first")
+        let summary = store.workoutSummary()
+        XCTAssertEqual(summary.count, 2)
+        XCTAssertEqual(summary.minutes, 75, "Today's total minutes should sum both sessions")
     }
 
     func test_deleteWorkout_removesById() {
         let store = makeStore()
-        store.logWorkout(WorkoutEntry(date: Date(), name: "Push", sets: 4, reps: 8, durationMinutes: 45))
-        guard let entry = store.profile.workoutHistory.last else {
-            return XCTFail("expected at least one workout entry")
-        }
+        let entry = WorkoutEntry(date: Date(), name: "Push", sets: 4, reps: 8, durationMinutes: 45)
+        store.logWorkout(entry)
+        XCTAssertEqual(store.workoutSummary().count, 1)
+
         store.deleteWorkout(id: entry.id)
-        XCTAssertFalse(store.profile.workoutHistory.contains(where: { $0.id == entry.id }))
+        XCTAssertEqual(store.workoutSummary().count, 0,
+                       "Deletion should drop the row from the WorkoutSession store too")
     }
 
     /// workoutSummary(for:) only counts sessions on the requested
