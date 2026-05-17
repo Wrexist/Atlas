@@ -86,10 +86,6 @@ struct OnboardingView: View {
     @State private var creatorCodeInput: String = ""
     @State private var creatorAttribution: CreatorAttribution?
     @State private var creatorError: String?
-    // Set when the user confirms the medical disclaimer. Hard-gates
-    // primary-action advance off the disclaimer step so the user
-    // can't blow through it.
-    @State private var disclaimerAcknowledged: Bool = false
     // Projection chart "reveal" state. Drives a tasteful fade-in on
     // the chart instead of jump-cutting from the building screen.
     @State private var projectionRevealed: Bool = false
@@ -521,7 +517,7 @@ struct OnboardingView: View {
     private var primaryTitle: String {
         switch page {
         case Page.welcome:      return "Let's go"
-        case Page.disclaimer:   return disclaimerAcknowledged ? "Continue" : "I understand"
+        case Page.disclaimer:   return "I understand"
         case Page.creatorCode:  return creatorAttribution == nil ? "Apply" : "Continue"
         case Page.email:        return emailInput.isEmpty ? "Skip for now" : "Subscribe"
         case Page.ready:        return "Open Atlas"
@@ -582,21 +578,10 @@ struct OnboardingView: View {
                 dataStore.updateNutritionTargets(targets)
             }
         case Page.disclaimer:
-            // Two-tap pattern: first tap acknowledges (and bounces a
-            // success feedback), second tap advances. Keeps the user
-            // from blowing through the legal moment without reading.
-            // The persistent @AppStorage timestamp is the audit trail
-            // — `disclaimerAcknowledged` is the in-flight @State that
-            // drives the "Thanks. Tap Continue" confirmation row.
-            if !disclaimerAcknowledged {
-                withAnimation(AppAnimation.springSnappy) {
-                    disclaimerAcknowledged = true
-                }
-                disclaimerAcknowledgedAt = Date().timeIntervalSince1970
-                OnboardingFunnelTracker.recordEvent("disclaimer_acknowledged")
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                return
-            }
+            // One-tap acknowledge → advance. The persistent
+            // @AppStorage timestamp is the legal audit trail.
+            disclaimerAcknowledgedAt = Date().timeIntervalSince1970
+            OnboardingFunnelTracker.recordEvent("disclaimer_acknowledged")
         case Page.creatorCode:
             if creatorAttribution == nil {
                 applyCreatorCode()
@@ -733,7 +718,7 @@ struct OnboardingView: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(-2)
-                Text("Sign in with Apple to back up your stack across devices. Optional — everything works without it.")
+                Text("Optional. Back up across your devices.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
@@ -847,7 +832,7 @@ struct OnboardingView: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(-2)
-                Text("Helps us know what's working. Skip if you'd rather not say.")
+                Text("Optional — helps us know what's working.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
@@ -975,9 +960,6 @@ struct OnboardingView: View {
                     .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
-                Text("We'll keep things personal.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
             }
             TextField("First name", text: $name)
                 .focused($nameFocused)
@@ -1179,9 +1161,6 @@ struct OnboardingView: View {
                     .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
-                Text("This shapes your starter program.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
             }
             .padding(.top, Spacing.xl)
 
@@ -1250,9 +1229,6 @@ struct OnboardingView: View {
                     .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
-                Text("Days per week + preferred slot.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
             }
             .padding(.top, Spacing.xl)
 
@@ -1369,11 +1345,6 @@ struct OnboardingView: View {
                     .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
-                Text("We'll filter exercises and programs to match.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.lg)
             }
             .padding(.top, Spacing.xl)
 
@@ -1881,18 +1852,6 @@ struct OnboardingView: View {
                         .stroke(AppColor.glassBorder, lineWidth: 0.5)
                 )
 
-                if disclaimerAcknowledged {
-                    HStack(spacing: Spacing.sm) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(Color(red: 0.30, green: 0.80, blue: 0.50))
-                        Text("Thanks. Tap Continue when you're ready.")
-                            .font(AppFont.footnote)
-                            .foregroundStyle(AppColor.textSecondary)
-                    }
-                    .padding(.top, Spacing.sm)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-
                 Spacer(minLength: 100)
             }
             .padding(.horizontal, Spacing.lg)
@@ -2143,18 +2102,18 @@ struct OnboardingView: View {
         guard !buildingStarted else { return }
         buildingStarted = true
         buildingProgress = 0
-        withAnimation(.easeInOut(duration: 2.8)) {
+        withAnimation(.easeInOut(duration: 1.2)) {
             buildingProgress = 1
         }
         // Auto-advance once the ring fills. Matches the animation
-        // duration plus a 250ms beat so the user reads "Done." Held on
+        // duration plus a 200ms beat so the user reads "Done." Held on
         // a @State property so a back-navigation off the page can
         // cancel the in-flight sleep — without cancellation the user
-        // could be advanced from an unrelated step three seconds after
+        // could be advanced from an unrelated step seconds after
         // they swiped back (audit code-review #6).
         buildingTask?.cancel()
         buildingTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(3050))
+            try? await Task.sleep(for: .milliseconds(1400))
             guard !Task.isCancelled, page == Page.buildingPlan else { return }
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             advance()

@@ -1,24 +1,20 @@
 import SwiftUI
 
-/// Compact, minimizable habits card for the Home tab. Three states:
+/// Compact habits card for the Home tab. Two states:
 ///
 /// 1. **Empty** — no habits yet. Single CTA "Track a daily habit"
-///    that opens the full HabitsView in a sheet.
-/// 2. **Collapsed** (default after at least one habit exists) — header
-///    + horizontally-scrollable row of today's habit chips. ~70pt
-///    tall, doesn't dominate the Home feed.
-/// 3. **Expanded** — header + collapsed row + a compact daily
-///    completion bar at the bottom (today / yesterday / 7-day
-///    summary). Tapping the expand chevron toggles.
+///    that opens the editor sheet.
+/// 2. **Populated** — header (HABITS · N of M done · View all) +
+///    a horizontally-scrollable row of today's habit chips with
+///    one-tap checkmarks. ~70pt tall, doesn't dominate the Home
+///    feed. "View all" opens the full HabitsView with per-habit
+///    heatmaps — the place to go for depth.
 ///
-/// All three states surface a "View all" affordance that presents
-/// the full HabitsView for editing and the deeper heatmap layouts.
-/// Collapsed-by-default keeps the Home feed cohesive; users who care
-/// about their habits expand once and it stays expanded across
-/// launches via `@AppStorage`.
+/// Deliberately no expand toggle: the agent polish review noted the
+/// 6×7 dot grid was hard to read at 6pt and duplicated what the
+/// full view shows in full fidelity. Minimal beats clever.
 struct HabitsHomeCard: View {
     @Environment(DataStore.self) private var dataStore
-    @AppStorage("habits.home.expanded") private var isExpanded: Bool = false
     @State private var showingFullView: Bool = false
     @State private var addingNew: Bool = false
 
@@ -86,10 +82,6 @@ struct HabitsHomeCard: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             header
             chipsRow
-            if isExpanded {
-                expandedFooter
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
         }
         .padding(Spacing.md)
         .background(
@@ -133,19 +125,6 @@ struct HabitsHomeCard: View {
                     .foregroundStyle(AppColor.accentLight)
             }
             .buttonStyle(.plain)
-            Button {
-                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                withAnimation(AppAnimation.springSnappy) { isExpanded.toggle() }
-            } label: {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(AppColor.textTertiary)
-                    .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                    .frame(width: 22, height: 22)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isExpanded ? "Collapse habits" : "Expand habits")
         }
     }
 
@@ -234,60 +213,6 @@ struct HabitsHomeCard: View {
         .buttonStyle(.plain)
         .accessibilityLabel(habit.name)
         .accessibilityValue(done ? "completed today" : "not yet completed")
-    }
-
-    // MARK: - Expanded footer (7-day mini-summary)
-
-    private var expandedFooter: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("LAST 7 DAYS")
-                .font(.system(size: 10, weight: .heavy))
-                .tracking(1)
-                .foregroundStyle(AppColor.textTertiary)
-            HStack(spacing: 4) {
-                ForEach(0..<7, id: \.self) { dayOffset in
-                    weekColumn(dayOffset: 6 - dayOffset)
-                }
-            }
-            .frame(height: 36)
-        }
-        .padding(.top, 6)
-    }
-
-    /// One column = one day. Each row inside the column is a habit's
-    /// completion dot for that day; column height auto-sizes so up to
-    /// 8 habits visualize cleanly without scroll.
-    private func weekColumn(dayOffset: Int) -> some View {
-        let calendar = Calendar.current
-        let day = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) ?? Date()
-        let shortLabel: String = {
-            let f = DateFormatter()
-            f.dateFormat = "E"
-            return String(f.string(from: day).prefix(1))
-        }()
-
-        return VStack(spacing: 4) {
-            HStack(spacing: 2) {
-                ForEach(habits.prefix(6)) { habit in
-                    dotFor(habit: habit, day: day)
-                }
-            }
-            Text(shortLabel)
-                .font(.system(size: 8, weight: .semibold))
-                .foregroundStyle(dayOffset == 0 ? AppColor.accentPrimary : AppColor.textTertiary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func dotFor(habit: Habit, day: Date) -> some View {
-        let entry = dataStore.profile.habitEntries.first {
-            $0.habitId == habit.id && Calendar.current.isDate($0.date, inSameDayAs: day)
-        }
-        let target = habit.targetValue ?? 1
-        let completed = (entry?.value ?? 0) >= target
-        return Circle()
-            .fill(completed ? habit.tint : AppColor.surfaceSecondary.opacity(0.6))
-            .frame(width: 6, height: 6)
     }
 
     // MARK: - Derived counts
