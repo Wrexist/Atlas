@@ -44,8 +44,15 @@ final class AuthService {
                 return "You canceled the sign-in. You can try again or continue without signing in — all features work without an account."
             case .timedOut:
                 return "Apple’s sign-in service didn’t respond. Check your connection or continue without signing in — all features work without an account."
-            case .failed(let underlying):
-                return "\(underlying) You can try again or continue without signing in — all features work without an account."
+            case .failed:
+                // Intentionally drops the underlying localizedDescription
+                // from the user-visible string — that text comes from
+                // ASAuthorizationError / underlying NSError userInfo and
+                // could contain attacker- or system-controlled content
+                // (audit security H-2). The full description is still
+                // logged at .private privacy in AuthService.finishSignIn
+                // for diagnostic purposes.
+                return "Something went wrong signing in. You can try again or continue without signing in — all features work without an account."
             }
         }
     }

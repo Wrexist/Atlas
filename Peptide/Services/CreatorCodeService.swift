@@ -20,12 +20,14 @@ enum CreatorCodeService {
 
     /// Case-insensitive, whitespace-trimmed lookup. Returns nil for empty
     /// or unmatched input so the caller can show the inline "Code not
-    /// found" error state.
+    /// found" error state. Caps at 32 chars to match the seeded codes'
+    /// upper bound and to keep pasted megabytes from hitting the
+    /// equality scan (audit security M-2).
     static func lookup(_ raw: String) -> CreatorAttribution? {
         let needle = raw
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .uppercased()
-        guard !needle.isEmpty else { return nil }
+        guard (1...32).contains(needle.count) else { return nil }
         return seeded.first { $0.code == needle }
     }
 }

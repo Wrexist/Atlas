@@ -62,8 +62,12 @@ extension String {
     /// pathological-but-technically-valid address.
     var looksLikeEmail: Bool {
         let trimmed = self.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return false }
-        let pattern = #"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$"#
+        // RFC 5321: SMTP path is capped at 256 octets. 254 leaves room
+        // for the `<` and `>` framing. Caps both DoS-shape concerns
+        // (regex on multi-MB pasted blobs) and storage bloat
+        // (persisted to disk and eventually a backend).
+        guard (3...254).contains(trimmed.count) else { return false }
+        let pattern = #"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,63}$"#
         return trimmed.range(of: pattern, options: .regularExpression) != nil
     }
 }

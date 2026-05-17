@@ -25,6 +25,12 @@ struct OnboardingView: View {
     @Environment(DataStore.self) private var dataStore
     @AppStorage("hasCompletedOnboarding") private var hasCompleted = false
     @AppStorage("experienceLevel") private var experienceLevel: String = "beginner"
+    /// Unix timestamp of the moment the user tapped "I understand" on
+    /// the medical disclaimer step. Persisted because the disclaimer
+    /// step is the only legal record of acknowledgement (audit security
+    /// H-3); without persistence a scene-restore or `@State` reset
+    /// would erase the audit trail. Zero means "never acknowledged."
+    @AppStorage("disclaimerAcknowledgedAt") private var disclaimerAcknowledgedAt: Double = 0
 
     @State private var page: Int = 0
     @State private var name: String = ""
@@ -35,7 +41,6 @@ struct OnboardingView: View {
     @State private var timeOfDay: PreferredTimeOfDay = .anytime
     @State private var equipment: Set<EquipmentKind> = [.bodyweight]
     @State private var bounceTrigger = 0
-    @State private var storeService = StoreService.shared
     @State private var requestingHealth = false
     @State private var requestingNotifications = false
     /// Reflects the live UNUserNotificationCenter authorization status —
@@ -57,6 +62,11 @@ struct OnboardingView: View {
     // ring fill on `buildingPlanStep` and gates the auto-advance.
     @State private var buildingProgress: Double = 0
     @State private var buildingStarted: Bool = false
+    /// Holds the in-flight "auto-advance after the ring fills" task so
+    /// a back-navigation off the building-plan page can cancel it
+    /// (audit code-review #6 — unstructured task survived page exit and
+    /// could double-advance on re-entry).
+    @State private var buildingTask: Task<Void, Never>?
     // Email-capture step state. Validated against `looksLikeEmail` on
     // primary-action; opt-in is genuinely optional — leaving it blank
     // advances without persisting an EmailSubscription.
@@ -285,17 +295,19 @@ struct OnboardingView: View {
         }
         .onChange(of: page) { _, newPage in
             OnboardingFunnelTracker.recordStepEntered(stepName(for: newPage), index: newPage)
+            updateBuildingPlanForPage(newPage)
         }
-        .onChange(of: scenePhase) { _, newPhase in
+        .task(id: scenePhase) {
             // Re-check OS permission state when the user returns from
             // Settings — a flipped notification or HealthKit auth in
             // iOS Settings must reflect in the onboarding row, otherwise
-            // the UI lies about the live grant.
-            guard newPhase == .active else { return }
-            Task {
-                let status = await NotificationService.shared.checkAuthorization()
-                notificationsAuthorized = (status == .authorized || status == .provisional)
-            }
+            // the UI lies about the live grant. .task(id:) cancels the
+            // previous task on each phase change so rapid background/
+            // foreground toggles don't accumulate observers (audit
+            // code-review #14).
+            guard scenePhase == .active else { return }
+            let status = await NotificationService.shared.checkAuthorization()
+            notificationsAuthorized = (status == .authorized || status == .provisional)
         }
         .fullScreenCover(isPresented: $showTrialOffer) {
             // Post-Ready paywall. Both branches advance into the
@@ -431,6 +443,10 @@ struct OnboardingView: View {
             if showSkipOnCurrentPage {
                 Button("Skip") {
                     haptic()
+                    // Record the skip with the step name so the funnel
+                    // can distinguish "user advanced after engaging" vs
+                    // "user tapped Skip" (audit integration M3).
+                    OnboardingFunnelTracker.recordEvent("skip_\(stepName(for: page))")
                     advance()
                 }
                 .font(AppFont.footnote)
@@ -524,11 +540,11 @@ struct OnboardingView: View {
             dataStore.setPrimaryGoal(raw)
         case Page.goalDate:
             // Persist directly — there's no dedicated DataStore mutator
-            // for goalDate yet, and the value is harmless if a future
-            // save races with another mutator (the field is independent
-            // of other profile state).
+            // for goalDate yet. Flush synchronously so a force-quit
+            // within the 350ms save debounce doesn't lose the user's
+            // chosen date (audit code-review #5).
             dataStore.profile.goalDate = goalDate
-            dataStore.persistProfile()
+            dataStore.flushPendingSave()
         case Page.bodyMetrics:
             dataStore.updateBodyMetrics(bodyMetrics)
         case Page.equipment:
@@ -545,10 +561,14 @@ struct OnboardingView: View {
             // Two-tap pattern: first tap acknowledges (and bounces a
             // success feedback), second tap advances. Keeps the user
             // from blowing through the legal moment without reading.
+            // The persistent @AppStorage timestamp is the audit trail
+            // — `disclaimerAcknowledged` is the in-flight @State that
+            // drives the "Thanks. Tap Continue" confirmation row.
             if !disclaimerAcknowledged {
                 withAnimation(AppAnimation.springSnappy) {
                     disclaimerAcknowledged = true
                 }
+                disclaimerAcknowledgedAt = Date().timeIntervalSince1970
                 OnboardingFunnelTracker.recordEvent("disclaimer_acknowledged")
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
                 return
@@ -590,7 +610,8 @@ struct OnboardingView: View {
             email: trimmed,
             capturedAt: Date()
         )
-        dataStore.persistProfile()
+        // Flush sync — see goalDate comment.
+        dataStore.flushPendingSave()
         OnboardingFunnelTracker.recordEvent("email_captured")
         return true
     }
@@ -611,7 +632,8 @@ struct OnboardingView: View {
                 creatorError = nil
             }
             dataStore.profile.creatorAttribution = match
-            dataStore.persistProfile()
+            // Flush sync — see goalDate comment.
+            dataStore.flushPendingSave()
             OnboardingFunnelTracker.recordEvent("creator_code_applied")
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         } else {
@@ -828,34 +850,40 @@ struct OnboardingView: View {
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             withAnimation(AppAnimation.springSnappy) { attributionChannel = channel }
             OnboardingFunnelTracker.recordEvent("attribution_\(channel.rawValue)")
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: channel.icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
-                    .frame(width: 22)
-                Text(channel.displayName)
-                    .font(AppFont.callout.weight(.medium))
-                    .foregroundStyle(AppColor.textPrimary)
-                Spacer(minLength: 0)
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(AppColor.accentPrimary)
-                }
-            }
-            .padding(Spacing.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(isSelected ? AppColor.accentPrimary.opacity(0.12) : AppColor.surfaceSecondary.opacity(0.6))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .stroke(isSelected ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: isSelected ? 1 : 0.5)
-            )
-        }
+        } label: { chipLabel(channel: channel, isSelected: isSelected) }
         .buttonStyle(.plain)
+        .accessibilityLabel(channel.displayName)
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+        .accessibilityHint(isSelected ? "" : "Selects how you heard about Atlas")
+    }
+
+    @ViewBuilder
+    private func chipLabel(channel: AttributionChannel, isSelected: Bool) -> some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: channel.icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
+                .frame(width: 22)
+            Text(channel.displayName)
+                .font(AppFont.callout.weight(.medium))
+                .foregroundStyle(AppColor.textPrimary)
+            Spacer(minLength: 0)
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(AppColor.accentPrimary)
+            }
+        }
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(isSelected ? AppColor.accentPrimary.opacity(0.12) : AppColor.surfaceSecondary.opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .stroke(isSelected ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: isSelected ? 1 : 0.5)
+        )
     }
 
     // MARK: - Value proof (feature reel)
@@ -948,7 +976,18 @@ struct OnboardingView: View {
                 .onSubmit { if primaryEnabled { primaryAction() } }
             Spacer()
         }
-        .onAppear { nameFocused = true }
+        .onAppear {
+            nameFocused = true
+            // Pre-fill from the Apple-relayed full name if the user
+            // signed in on step 1. AppleSignInButton only forwards the
+            // name on the very first authorization — once we have it,
+            // we shouldn't ask twice (audit H2). Trim to first name so
+            // the placeholder semantic ("First name") still reads true.
+            if name.isEmpty, let display = AuthService.shared.userDisplayName {
+                let first = display.split(separator: " ").first.map(String.init) ?? display
+                if !first.isEmpty { name = first }
+            }
+        }
     }
 
     // MARK: - Primary goal
@@ -2026,15 +2065,23 @@ struct OnboardingView: View {
             Spacer()
         }
         .padding(.horizontal, Spacing.lg)
-        .onChange(of: page) { _, newPage in
-            if newPage == Page.buildingPlan {
-                startBuildingPlanAnimation()
-            } else if newPage != Page.buildingPlan, buildingStarted {
-                // Reset so a back-nav into this page re-runs the
-                // animation instead of seeing progress already at 1.
-                buildingProgress = 0
-                buildingStarted = false
-            }
+    }
+
+    /// Drives the building-plan reveal. Called from the outer body's
+    /// .onChange(of: page) so the animation fires exactly when the
+    /// user lands on the page — not on every other page transition the
+    /// way an .onChange registered inside the sub-view would (audit
+    /// code-review #4 / integration L7).
+    private func updateBuildingPlanForPage(_ newPage: Int) {
+        if newPage == Page.buildingPlan {
+            startBuildingPlanAnimation()
+        } else if buildingStarted {
+            // Reset so a back-nav into this page re-runs the
+            // animation instead of seeing progress already at 1.
+            buildingProgress = 0
+            buildingStarted = false
+            buildingTask?.cancel()
+            buildingTask = nil
         }
     }
 
@@ -2076,13 +2123,17 @@ struct OnboardingView: View {
             buildingProgress = 1
         }
         // Auto-advance once the ring fills. Matches the animation
-        // duration plus a 250ms beat so the user reads "Done."
-        Task { @MainActor in
+        // duration plus a 250ms beat so the user reads "Done." Held on
+        // a @State property so a back-navigation off the page can
+        // cancel the in-flight sleep — without cancellation the user
+        // could be advanced from an unrelated step three seconds after
+        // they swiped back (audit code-review #6).
+        buildingTask?.cancel()
+        buildingTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(3050))
-            if page == Page.buildingPlan {
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                advance()
-            }
+            guard !Task.isCancelled, page == Page.buildingPlan else { return }
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            advance()
         }
     }
 

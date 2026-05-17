@@ -25,15 +25,31 @@ enum OnboardingFunnelTracker {
         AppLog.onboarding.info("step entered: \(stepName, privacy: .public) (\(index, privacy: .public))")
     }
 
+    /// Hard cap on how many events the local snapshot retains. Older
+    /// entries get dropped when the cap is exceeded so a user who
+    /// resets onboarding many times doesn't accumulate an unbounded
+    /// UserDefaults blob (audit security M-5). 200 is generous —
+    /// the full v3 flow records ~25 events per run.
+    private static let maxEvents = 200
+
     /// Records a free-form event for the current onboarding session. Used
     /// for things like "trial accepted", "trial declined", "creator code
     /// applied", "email captured" — moments that don't map to a step
-    /// index but matter for funnel analysis.
+    /// index but matter for funnel analysis. Event names are also
+    /// truncated to 64 chars before logging to defend against a future
+    /// caller passing user-controlled content.
     static func recordEvent(_ event: String) {
+        let safeEvent = String(event.prefix(64))
         var snapshot = currentSnapshot
-        snapshot.events.append(EventEntry(name: event, timestamp: Date()))
+        snapshot.events.append(EventEntry(name: safeEvent, timestamp: Date()))
+        if snapshot.events.count > maxEvents {
+            snapshot.events.removeFirst(snapshot.events.count - maxEvents)
+        }
         write(snapshot)
-        AppLog.onboarding.info("event: \(event, privacy: .public)")
+        // Log at .private so any future PII-bearing event doesn't leak
+        // through Console / sysdiagnose. Step names stay .public —
+        // they're not sensitive on their own.
+        AppLog.onboarding.info("event: \(safeEvent, privacy: .private)")
     }
 
     /// Stamped on the terminal "Enter Atlas" tap. Locks the current

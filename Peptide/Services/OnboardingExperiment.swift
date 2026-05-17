@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// Deterministic per-install A/B assignment for onboarding variants.
 /// Hash-of-install-ID maps each user into the same variant on every
@@ -47,14 +48,19 @@ enum OnboardingExperiment {
         return assignment
     }
 
-    /// Deterministic assignment via the install ID's stable hash. A
+    /// Deterministic assignment via SHA-256 of (installID + salt). A
     /// 50/50 split today — adjust the modulus for finer-grained
-    /// rollouts (e.g. % 10 < 1 for a 10% pilot).
+    /// rollouts (e.g. % 10 < 1 for a 10% pilot). SHA-256 is used
+    /// instead of `String.hashValue` because Swift randomises hashValue
+    /// per process launch — a future refactor that drops the
+    /// UserDefaults cache, or a test that calls assign directly, would
+    /// produce nondeterministic results with the old impl (audit
+    /// security M-4 / code-review #13).
     private static func assign(for experiment: Experiment) -> Variant {
-        let id = installID
-        let salt = experiment.rawValue
-        let hash = (id + salt).hashValue
-        return abs(hash) % 2 == 0 ? .control : .variantA
+        let bytes = Data((installID + experiment.rawValue).utf8)
+        let digest = SHA256.hash(data: bytes)
+        let leading = digest.withUnsafeBytes { $0.load(as: UInt64.self) }
+        return leading.isMultiple(of: 2) ? .control : .variantA
     }
 
     /// Stable per-install identifier. UUID-on-first-launch, then
