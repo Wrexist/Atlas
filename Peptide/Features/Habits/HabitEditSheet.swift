@@ -24,6 +24,13 @@ struct HabitEditSheet: View {
     @State private var reminderTime: Date
     @State private var category: HabitCategory
     @State private var showingDeleteConfirm: Bool = false
+    /// Hides Category / Icon / Color / Target / Reminder behind a
+    /// single "Customize" disclosure so the create-form is a
+    /// type-and-save flow by default. The user can tap Customize to
+    /// reveal the rest. Edit mode opens with the section expanded
+    /// since the user is editing an existing habit and probably
+    /// wants the knobs visible.
+    @State private var showingCustomization: Bool
 
     @FocusState private var nameFocused: Bool
 
@@ -77,6 +84,7 @@ struct HabitEditSheet: View {
         _targetValue = State(initialValue: base.targetValue ?? 8)
         _enableReminder = State(initialValue: base.reminderTime != nil)
         _reminderTime = State(initialValue: base.reminderTime ?? Self.defaultReminderTime())
+        _showingCustomization = State(initialValue: editing != nil)
     }
 
     private static func defaultReminderTime() -> Date {
@@ -96,23 +104,6 @@ struct HabitEditSheet: View {
                         .submitLabel(.done)
                 }
 
-                Section("Category") {
-                    Picker("Category", selection: $category) {
-                        ForEach(HabitCategory.allCases) { c in
-                            Label(c.displayName, systemImage: c.icon).tag(c)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                }
-
-                Section("Icon") {
-                    iconGrid
-                }
-
-                Section("Color") {
-                    colorGrid
-                }
-
                 Section("Schedule") {
                     Picker("Frequency", selection: $scheduleKind) {
                         ForEach(ScheduleKind.allCases) { kind in
@@ -126,31 +117,44 @@ struct HabitEditSheet: View {
                     }
                 }
 
-                Section("Target") {
-                    Toggle("Track a count", isOn: $enableTarget)
-                    if enableTarget {
-                        Stepper(value: $targetValue, in: 1...100000, step: targetStep) {
-                            HStack {
-                                Text("Target")
-                                Spacer()
-                                Text("\(targetValue)")
-                                    .foregroundStyle(AppColor.textSecondary)
+                Section {
+                    DisclosureGroup(isExpanded: $showingCustomization) {
+                        // Inside-disclosure pickers — collapsed by
+                        // default on Create so the user can save in
+                        // two taps (type name → Save). Edit mode
+                        // opens with this expanded.
+                        Picker("Category", selection: $category) {
+                            ForEach(HabitCategory.allCases) { c in
+                                Label(c.displayName, systemImage: c.icon).tag(c)
                             }
                         }
-                        Text(targetHint)
-                            .font(AppFont.caption)
-                            .foregroundStyle(AppColor.textTertiary)
-                    }
-                }
-
-                Section("Reminder") {
-                    Toggle("Daily reminder", isOn: $enableReminder)
-                    if enableReminder {
-                        DatePicker(
-                            "Time",
-                            selection: $reminderTime,
-                            displayedComponents: .hourAndMinute
-                        )
+                        iconGrid
+                        colorGrid
+                        Toggle("Track a count", isOn: $enableTarget)
+                        if enableTarget {
+                            Stepper(value: $targetValue, in: 1...100000, step: targetStep) {
+                                HStack {
+                                    Text("Target")
+                                    Spacer()
+                                    Text("\(targetValue)")
+                                        .foregroundStyle(AppColor.textSecondary)
+                                }
+                            }
+                            Text(targetHint)
+                                .font(AppFont.caption)
+                                .foregroundStyle(AppColor.textTertiary)
+                        }
+                        Toggle("Daily reminder", isOn: $enableReminder)
+                        if enableReminder {
+                            DatePicker(
+                                "Time",
+                                selection: $reminderTime,
+                                displayedComponents: .hourAndMinute
+                            )
+                        }
+                    } label: {
+                        Label("Customize", systemImage: "slider.horizontal.3")
+                            .foregroundStyle(AppColor.textPrimary)
                     }
                 }
 

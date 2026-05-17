@@ -803,15 +803,14 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.lg) {
             VStack(spacing: Spacing.sm) {
                 Text("Where did you hear\nabout Atlas?")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(-2)
-                Text("Optional — helps us know what's working.")
+                Text("Optional.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.lg)
             }
             .padding(.top, Spacing.xl)
 
