@@ -81,8 +81,40 @@ struct OnboardingView: View {
     @State private var goalDate: Date = Calendar.current.date(
         byAdding: .weekOfYear, value: 12, to: Date()
     ) ?? Date().addingTimeInterval(60 * 60 * 24 * 84)
+    /// Selected marketing-attribution channel. Persisted into the funnel
+    /// snapshot only — never into the user profile (the marketing-channel
+    /// answer is anonymous-aggregate signal, not personal data).
+    @State private var attributionChannel: AttributionChannel? = nil
+
+    enum AttributionChannel: String, CaseIterable, Identifiable {
+        case friend, appStore, tiktok, youtube, reddit, podcast, other
+        var id: String { rawValue }
+        var displayName: String {
+            switch self {
+            case .friend:   return "A friend"
+            case .appStore: return "App Store"
+            case .tiktok:   return "TikTok"
+            case .youtube:  return "YouTube"
+            case .reddit:   return "Reddit"
+            case .podcast:  return "Podcast"
+            case .other:    return "Other"
+            }
+        }
+        var icon: String {
+            switch self {
+            case .friend:   return "person.2.fill"
+            case .appStore: return "apple.logo"
+            case .tiktok:   return "music.note"
+            case .youtube:  return "play.rectangle.fill"
+            case .reddit:   return "bubble.left.and.bubble.right.fill"
+            case .podcast:  return "mic.fill"
+            case .other:    return "ellipsis.circle.fill"
+            }
+        }
+    }
 
     @FocusState private var nameFocused: Bool
+    @Environment(\.scenePhase) private var scenePhase
 
     // Page indices — single source of truth for the flow. Adjusting
     // ordering only requires renaming here; everything else reads
@@ -91,27 +123,28 @@ struct OnboardingView: View {
         static let welcome          = 0
         static let signIn           = 1
         static let socialProof      = 2
-        static let valueProof       = 3
-        static let name             = 4
-        static let goal             = 5
-        static let goalDate         = 6
-        static let experience       = 7
-        static let bodyMetrics      = 8
-        static let schedule         = 9
-        static let equipment        = 10
-        static let demoSet          = 11
-        static let comparison       = 12
-        static let programPreview   = 13
-        static let nutrition        = 14
-        static let projection       = 15
-        static let disclaimer       = 16
-        static let notifications    = 17
-        static let health           = 18
-        static let buildingPlan     = 19
-        static let creatorCode      = 20
-        static let email            = 21
-        static let ready            = 22
-        static let total            = 23
+        static let attribution      = 3
+        static let valueProof       = 4
+        static let name             = 5
+        static let goal             = 6
+        static let goalDate         = 7
+        static let experience       = 8
+        static let bodyMetrics      = 9
+        static let schedule         = 10
+        static let equipment        = 11
+        static let demoSet          = 12
+        static let comparison       = 13
+        static let programPreview   = 14
+        static let nutrition        = 15
+        static let projection       = 16
+        static let disclaimer       = 17
+        static let notifications    = 18
+        static let health           = 19
+        static let buildingPlan     = 20
+        static let creatorCode      = 21
+        static let email            = 22
+        static let ready            = 23
+        static let total            = 24
     }
 
     private var totalPages: Int { Page.total }
@@ -208,6 +241,7 @@ struct OnboardingView: View {
                     welcome.tag(Page.welcome)
                     signInStep.tag(Page.signIn)
                     socialProofStep.tag(Page.socialProof)
+                    attributionStep.tag(Page.attribution)
                     valueProof.tag(Page.valueProof)
                     nameStep.tag(Page.name)
                     goalStep.tag(Page.goal)
@@ -252,6 +286,17 @@ struct OnboardingView: View {
         .onChange(of: page) { _, newPage in
             OnboardingFunnelTracker.recordStepEntered(stepName(for: newPage), index: newPage)
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            // Re-check OS permission state when the user returns from
+            // Settings — a flipped notification or HealthKit auth in
+            // iOS Settings must reflect in the onboarding row, otherwise
+            // the UI lies about the live grant.
+            guard newPhase == .active else { return }
+            Task {
+                let status = await NotificationService.shared.checkAuthorization()
+                notificationsAuthorized = (status == .authorized || status == .provisional)
+            }
+        }
         .fullScreenCover(isPresented: $showTrialOffer) {
             // Post-Ready paywall. Both branches advance into the
             // theme picker — the trial is genuinely optional, but the
@@ -287,6 +332,7 @@ struct OnboardingView: View {
         case Page.welcome:        return "welcome"
         case Page.signIn:         return "sign_in"
         case Page.socialProof:    return "social_proof"
+        case Page.attribution:    return "attribution"
         case Page.valueProof:     return "value_proof"
         case Page.name:           return "name"
         case Page.goal:           return "goal"
@@ -402,9 +448,9 @@ struct OnboardingView: View {
     /// commitment that drives trial conversion.
     private var showSkipOnCurrentPage: Bool {
         switch page {
-        case Page.signIn, Page.socialProof, Page.demoSet,
-             Page.comparison, Page.programPreview, Page.projection,
-             Page.notifications, Page.health,
+        case Page.signIn, Page.socialProof, Page.attribution,
+             Page.demoSet, Page.comparison, Page.programPreview,
+             Page.projection, Page.notifications, Page.health,
              Page.creatorCode, Page.email:
             return true
         default:
@@ -731,6 +777,76 @@ struct OnboardingView: View {
         }
     }
 
+    // MARK: - Attribution survey
+
+    /// Marketing-channel survey. Anonymous, captured into the funnel
+    /// snapshot only — useful for allocating ad spend, never stored on
+    /// the user profile. Skippable.
+    private var attributionStep: some View {
+        VStack(spacing: Spacing.lg) {
+            VStack(spacing: Spacing.sm) {
+                Text("Where did you hear\nabout Atlas?")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(-2)
+                Text("Helps us know what's working. Skip if you'd rather not say.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.lg)
+            }
+            .padding(.top, Spacing.xl)
+
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
+                          spacing: Spacing.sm) {
+                    ForEach(AttributionChannel.allCases) { channel in
+                        attributionChip(channel)
+                    }
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.bottom, Spacing.xxxxl)
+            }
+        }
+    }
+
+    private func attributionChip(_ channel: AttributionChannel) -> some View {
+        let isSelected = attributionChannel == channel
+        return Button {
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            withAnimation(AppAnimation.springSnappy) { attributionChannel = channel }
+            OnboardingFunnelTracker.recordEvent("attribution_\(channel.rawValue)")
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: channel.icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
+                    .frame(width: 22)
+                Text(channel.displayName)
+                    .font(AppFont.callout.weight(.medium))
+                    .foregroundStyle(AppColor.textPrimary)
+                Spacer(minLength: 0)
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(AppColor.accentPrimary)
+                }
+            }
+            .padding(Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .fill(isSelected ? AppColor.accentPrimary.opacity(0.12) : AppColor.surfaceSecondary.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .stroke(isSelected ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: isSelected ? 1 : 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: - Value proof (feature reel)
 
     private var valueProof: some View {
@@ -793,7 +909,7 @@ struct OnboardingView: View {
                 .padding(.top, Spacing.xl)
             VStack(spacing: Spacing.sm) {
                 Text("What should we call you?")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                 Text("We'll keep things personal.")
@@ -830,7 +946,7 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.lg) {
             VStack(spacing: Spacing.sm) {
                 Text("What's your goal?")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                 Text("You can change this later.")
@@ -888,7 +1004,7 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.lg) {
             VStack(spacing: Spacing.sm) {
                 Text("By when?")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                 Text("Pick a date to hit your goal. We'll build the plan around it.")
@@ -986,7 +1102,7 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.lg) {
             VStack(spacing: Spacing.sm) {
                 Text("How much experience?")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                 Text("This shapes your starter program.")
@@ -1057,7 +1173,7 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.lg) {
             VStack(spacing: Spacing.sm) {
                 Text("When do you train?")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                 Text("Days per week + preferred slot.")
@@ -1176,7 +1292,7 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.lg) {
             VStack(spacing: Spacing.sm) {
                 Text("What gear do you have?")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                 Text("We'll filter exercises and programs to match.")
@@ -2055,10 +2171,47 @@ struct OnboardingView: View {
                         )
                     }
                 }
+
+                widgetTipCard
                 .padding(.horizontal, Spacing.lg)
                 Spacer(minLength: 100)
             }
         }
+    }
+
+    /// Subtle "add the widget" tip on Ready. iOS doesn't expose a
+    /// public deep link to the widget gallery, so this is a tip card,
+    /// not a button — but the visual cue is enough to lift widget-
+    /// install rate on comparable apps.
+    private var widgetTipCard: some View {
+        HStack(spacing: Spacing.md) {
+            Image(systemName: "square.grid.2x2.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Pro tip")
+                    .font(AppFont.caption.weight(.bold))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .textCase(.uppercase)
+                Text("Long-press your home screen to add the Atlas widget for daily progress at a glance.")
+                    .font(AppFont.footnote)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.accentPrimary.opacity(0.08))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .stroke(AppColor.accentPrimary.opacity(0.25), lineWidth: 0.5)
+        )
+        .padding(.horizontal, Spacing.lg)
+        .padding(.top, Spacing.sm)
     }
 
     private func summaryRow(label: String, value: String) -> some View {
