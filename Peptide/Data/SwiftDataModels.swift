@@ -358,7 +358,8 @@ final class StoredProfile {
             weeklySummaryEnabled: ext.weeklySummaryEnabled ?? true,
             weeklySummaries: ext.weeklySummaries ?? [:],
             biologyConfig: ext.biologyConfig,
-            trainingPreferences: ext.trainingPreferences
+            trainingPreferences: ext.trainingPreferences,
+            goalDate: ext.goalDate
         )
     }
 }
@@ -409,6 +410,9 @@ private struct ProfileExtension: Codable {
     /// empty dict for the cache) without a migration.
     var weeklySummaryEnabled: Bool? = nil
     var weeklySummaries: [String: WeeklySummary]? = nil
+    /// User-committed goal completion date from the onboarding "By
+    /// when?" step. Optional so older sidecar blobs decode cleanly.
+    var goalDate: Date? = nil
 
     static let empty = ProfileExtension()
 
@@ -434,7 +438,8 @@ private struct ProfileExtension: Codable {
             biologyConfig: profile.biologyConfig,
             trainingPreferences: profile.trainingPreferences,
             weeklySummaryEnabled: profile.weeklySummaryEnabled,
-            weeklySummaries: profile.weeklySummaries
+            weeklySummaries: profile.weeklySummaries,
+            goalDate: profile.goalDate
         )
     }
 }

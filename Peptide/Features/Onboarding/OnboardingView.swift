@@ -239,7 +239,16 @@ struct OnboardingView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .onAppear { OnboardingFunnelTracker.recordStepEntered(stepName(for: page), index: page) }
+        .onAppear {
+            OnboardingFunnelTracker.recordStepEntered(stepName(for: page), index: page)
+            // Re-hydrate goalDate from a previously-saved profile in case
+            // the user re-opened onboarding (debug menu, reset-onboarding
+            // tester). Otherwise the @State default (12 weeks from today)
+            // wins, which is also fine for a fresh install.
+            if let saved = dataStore.profile.goalDate {
+                goalDate = saved
+            }
+        }
         .onChange(of: page) { _, newPage in
             OnboardingFunnelTracker.recordStepEntered(stepName(for: newPage), index: newPage)
         }
@@ -321,19 +330,48 @@ struct OnboardingView: View {
                 Color.clear.frame(width: 36, height: 36)
             }
             Spacer()
-            HStack(spacing: 6) {
-                ForEach(0..<totalPages, id: \.self) { idx in
-                    Capsule()
-                        .fill(idx == page
-                              ? AppColor.accentPrimary
-                              : AppColor.textTertiary.opacity(0.3))
-                        .frame(width: idx == page ? 16 : 6, height: 6)
-                        .animation(AppAnimation.springSmooth, value: page)
-                }
-            }
+            progressIndicator
             Spacer()
             Color.clear.frame(width: 36, height: 36)
         }
+    }
+
+    /// Compact progress indicator — a thin capsule that fills based on
+    /// the current page, with a small "step / total" counter underneath.
+    /// Replaces the per-page dot row that overflowed once the flow grew
+    /// past ~12 steps, and gives the user a concrete sense of how much
+    /// is left ("you're 80% there") instead of a foggy dot count.
+    private var progressIndicator: some View {
+        VStack(spacing: 4) {
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(AppColor.textTertiary.opacity(0.25))
+                    .frame(height: 4)
+                GeometryReader { proxy in
+                    Capsule()
+                        .fill(AppColor.accentPrimary)
+                        .frame(
+                            width: max(8, proxy.size.width * progressFraction),
+                            height: 4
+                        )
+                        .animation(AppAnimation.springSmooth, value: page)
+                }
+                .frame(height: 4)
+            }
+            .frame(width: 160)
+
+            Text("\(min(page + 1, totalPages)) / \(totalPages)")
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .foregroundStyle(AppColor.textTertiary)
+                .contentTransition(.numericText())
+                .animation(AppAnimation.springSmooth, value: page)
+        }
+    }
+
+    private var progressFraction: CGFloat {
+        guard totalPages > 1 else { return 1 }
+        let pos = CGFloat(min(page, totalPages - 1)) / CGFloat(totalPages - 1)
+        return min(1, max(0, pos))
     }
 
     private var footer: some View {
@@ -427,6 +465,13 @@ struct OnboardingView: View {
             )
         case Page.goal:
             dataStore.setPrimaryGoal(primaryGoal.rawValue)
+        case Page.goalDate:
+            // Persist directly — there's no dedicated DataStore mutator
+            // for goalDate yet, and the value is harmless if a future
+            // save races with another mutator (the field is independent
+            // of other profile state).
+            dataStore.profile.goalDate = goalDate
+            dataStore.persistProfile()
         case Page.bodyMetrics:
             dataStore.updateBodyMetrics(bodyMetrics)
         case Page.equipment:
@@ -538,7 +583,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 0: Welcome
+    // MARK: - Welcome
 
     private var welcome: some View {
         VStack(spacing: Spacing.xl) {
@@ -594,6 +639,14 @@ struct OnboardingView: View {
             VStack(spacing: Spacing.md) {
                 if AuthService.shared.isSignedIn {
                     signedInBadge
+                } else if AuthService.shared.isSigningIn {
+                    HStack(spacing: Spacing.sm) {
+                        ProgressView()
+                        Text("Signing in…")
+                            .font(AppFont.callout)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                    .frame(height: 50)
                 } else {
                     AppleSignInButton {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -610,6 +663,24 @@ struct OnboardingView: View {
             Spacer()
         }
         .padding(.horizontal, Spacing.lg)
+        .alert(
+            AuthService.shared.lastError?.title ?? "",
+            isPresented: signInErrorBinding,
+            presenting: AuthService.shared.lastError
+        ) { _ in
+            Button("OK") { AuthService.shared.clearLastError() }
+        } message: { error in
+            Text(error.message)
+        }
+    }
+
+    private var signInErrorBinding: Binding<Bool> {
+        Binding(
+            get: { AuthService.shared.lastError != nil },
+            set: { newValue in
+                if !newValue { AuthService.shared.clearLastError() }
+            }
+        )
     }
 
     private var signedInBadge: some View {
@@ -707,7 +778,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 2: Name
+    // MARK: - Name
 
     private var nameStep: some View {
         VStack(spacing: Spacing.xl) {
@@ -746,7 +817,7 @@ struct OnboardingView: View {
         .onAppear { nameFocused = true }
     }
 
-    // MARK: - Step 3: Primary goal
+    // MARK: - Primary goal
 
     private var goalStep: some View {
         VStack(spacing: Spacing.lg) {
@@ -902,7 +973,7 @@ struct OnboardingView: View {
         max(1, Int(goalDate.timeIntervalSince(Date()) / (60 * 60 * 24 * 7)))
     }
 
-    // MARK: - Step 4: Experience
+    // MARK: - Experience
 
     private var experienceStep: some View {
         VStack(spacing: Spacing.lg) {
@@ -963,7 +1034,7 @@ struct OnboardingView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Step 5: Body metrics
+    // MARK: - Body metrics
 
     private var bodyMetricsStep: some View {
         ScrollView {
@@ -973,7 +1044,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 6: Schedule
+    // MARK: - Schedule
 
     private var scheduleStep: some View {
         VStack(spacing: Spacing.lg) {
@@ -1092,7 +1163,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 7: Equipment
+    // MARK: - Equipment
 
     private var equipmentStep: some View {
         VStack(spacing: Spacing.lg) {
@@ -1148,7 +1219,7 @@ struct OnboardingView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Step 8: Try a set (interactive workout demo)
+    // MARK: - Try a set (interactive workout demo)
 
     private var demoSetStep: some View {
         ScrollView {
@@ -1243,7 +1314,7 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Step 9: With / Without Atlas comparison
+    // MARK: - With / Without Atlas comparison
 
     private var comparisonStep: some View {
         ScrollView {
@@ -1319,7 +1390,7 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Step 10: Program preview
+    // MARK: - Program preview
 
     private var programPreviewStep: some View {
         VStack(spacing: Spacing.lg) {
@@ -1391,7 +1462,7 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Step 11: Nutrition
+    // MARK: - Nutrition
 
     private var nutritionStep: some View {
         ScrollView {
@@ -1637,7 +1708,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 12: Notifications (with preview)
+    // MARK: - Notifications (with preview)
 
     private var notificationsStep: some View {
         ScrollView {
@@ -1683,7 +1754,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 13: Health (with value preview)
+    // MARK: - Health (with value preview)
 
     private var healthStep: some View {
         ScrollView {
@@ -1791,7 +1862,7 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Step 14: Building your plan…
+    // MARK: - Building your plan…
 
     private var buildingPlanStep: some View {
         VStack(spacing: Spacing.xl) {
@@ -1952,7 +2023,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 15: Ready
+    // MARK: - Ready
 
     private var readyStep: some View {
         ScrollView {

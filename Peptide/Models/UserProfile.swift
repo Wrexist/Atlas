@@ -344,6 +344,13 @@ struct UserProfile: Codable, Sendable {
     /// + "Equipment access" steps; nil for profiles created before
     /// the training pivot.
     var trainingPreferences: TrainingPreferences?
+    /// User-committed goal completion date, set on the onboarding
+    /// "By when?" step. Drives the projection chart's right-axis
+    /// label, the ProjectionChart math, and (eventually) a "X weeks
+    /// until your goal" surface on Home. Optional so older profiles
+    /// decode cleanly and so the field can be edited later without
+    /// re-running onboarding.
+    var goalDate: Date?
 
     init(
         name: String,
@@ -377,7 +384,8 @@ struct UserProfile: Codable, Sendable {
         weeklySummaryEnabled: Bool = true,
         weeklySummaries: [String: WeeklySummary] = [:],
         biologyConfig: BiologyConfig = .default,
-        trainingPreferences: TrainingPreferences? = nil
+        trainingPreferences: TrainingPreferences? = nil,
+        goalDate: Date? = nil
     ) {
         self.name = name
         self.goals = goals
@@ -411,6 +419,7 @@ struct UserProfile: Codable, Sendable {
         self.weeklySummaries = weeklySummaries
         self.biologyConfig = biologyConfig
         self.trainingPreferences = trainingPreferences
+        self.goalDate = goalDate
     }
 
     init(from decoder: Decoder) throws {
@@ -451,6 +460,7 @@ struct UserProfile: Codable, Sendable {
         weeklySummaries = try container.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries) ?? [:]
         biologyConfig = try container.decodeIfPresent(BiologyConfig.self, forKey: .biologyConfig) ?? .default
         trainingPreferences = try container.decodeIfPresent(TrainingPreferences.self, forKey: .trainingPreferences)
+        goalDate = try container.decodeIfPresent(Date.self, forKey: .goalDate)
     }
 
     static var fresh: UserProfile {
