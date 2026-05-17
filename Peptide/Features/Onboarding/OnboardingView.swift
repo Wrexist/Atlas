@@ -77,27 +77,28 @@ struct OnboardingView: View {
     // through these constants.
     private enum Page {
         static let welcome          = 0
-        static let socialProof      = 1
-        static let valueProof       = 2
-        static let name             = 3
-        static let goal             = 4
-        static let experience       = 5
-        static let bodyMetrics      = 6
-        static let schedule         = 7
-        static let equipment        = 8
-        static let demoSet          = 9
-        static let comparison       = 10
-        static let programPreview   = 11
-        static let nutrition        = 12
-        static let projection       = 13
-        static let disclaimer       = 14
-        static let notifications    = 15
-        static let health           = 16
-        static let buildingPlan     = 17
-        static let creatorCode      = 18
-        static let email            = 19
-        static let ready            = 20
-        static let total            = 21
+        static let signIn           = 1
+        static let socialProof      = 2
+        static let valueProof       = 3
+        static let name             = 4
+        static let goal             = 5
+        static let experience       = 6
+        static let bodyMetrics      = 7
+        static let schedule         = 8
+        static let equipment        = 9
+        static let demoSet          = 10
+        static let comparison       = 11
+        static let programPreview   = 12
+        static let nutrition        = 13
+        static let projection       = 14
+        static let disclaimer       = 15
+        static let notifications    = 16
+        static let health           = 17
+        static let buildingPlan     = 18
+        static let creatorCode      = 19
+        static let email            = 20
+        static let ready            = 21
+        static let total            = 22
     }
 
     private var totalPages: Int { Page.total }
@@ -192,6 +193,7 @@ struct OnboardingView: View {
 
                 TabView(selection: $page) {
                     welcome.tag(Page.welcome)
+                    signInStep.tag(Page.signIn)
                     socialProofStep.tag(Page.socialProof)
                     valueProof.tag(Page.valueProof)
                     nameStep.tag(Page.name)
@@ -260,6 +262,7 @@ struct OnboardingView: View {
     private func stepName(for index: Int) -> String {
         switch index {
         case Page.welcome:        return "welcome"
+        case Page.signIn:         return "sign_in"
         case Page.socialProof:    return "social_proof"
         case Page.valueProof:     return "value_proof"
         case Page.name:           return "name"
@@ -346,8 +349,8 @@ struct OnboardingView: View {
     /// commitment that drives trial conversion.
     private var showSkipOnCurrentPage: Bool {
         switch page {
-        case Page.socialProof, Page.demoSet, Page.comparison,
-             Page.programPreview, Page.projection,
+        case Page.signIn, Page.socialProof, Page.demoSet,
+             Page.comparison, Page.programPreview, Page.projection,
              Page.notifications, Page.health,
              Page.creatorCode, Page.email:
             return true
@@ -546,6 +549,84 @@ struct OnboardingView: View {
             SocialProofPill()
                 .padding(.top, Spacing.sm)
             Spacer()
+            Spacer()
+        }
+        .padding(.horizontal, Spacing.lg)
+    }
+
+    // MARK: - Sign in with Apple
+
+    /// Optional sign-in step. Skipping is genuinely fine — every feature
+    /// works without an Apple ID — but a signed-in user gets cloud sync
+    /// across devices, abandoned-onboarding retargeting hooks, and
+    /// referral credit when the backend ships.
+    private var signInStep: some View {
+        VStack(spacing: Spacing.xl) {
+            Spacer()
+            HeroIcon(symbol: "person.crop.circle.fill", bounceTrigger: bounceTrigger)
+            VStack(spacing: Spacing.md) {
+                Text("Save your\nprogress.")
+                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(-2)
+                Text("Sign in with Apple to back up your stack across devices. Optional — everything works without it.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.lg)
+            }
+            VStack(spacing: Spacing.md) {
+                if AuthService.shared.isSignedIn {
+                    signedInBadge
+                } else {
+                    AppleSignInButton {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        OnboardingFunnelTracker.recordEvent("sign_in_initiated")
+                        AuthService.shared.signIn()
+                    }
+                    .frame(height: 50)
+                    .padding(.horizontal, Spacing.lg)
+                }
+
+                signInDisclosureRow(icon: "icloud.fill", text: "Cloud sync across iPhone, iPad, and Watch.")
+                signInDisclosureRow(icon: "lock.shield.fill", text: "Atlas never sees your email — Apple relays it.")
+            }
+            Spacer()
+        }
+        .padding(.horizontal, Spacing.lg)
+    }
+
+    private var signedInBadge: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "checkmark.seal.fill")
+                .foregroundStyle(AppColor.accentPrimary)
+            Text(AuthService.shared.userDisplayName.map { "Signed in as \($0)" } ?? "Signed in with Apple")
+                .font(AppFont.callout.weight(.semibold))
+                .foregroundStyle(AppColor.textPrimary)
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+        .background(
+            Capsule()
+                .fill(AppColor.accentPrimary.opacity(0.14))
+        )
+        .overlay(
+            Capsule()
+                .strokeBorder(AppColor.accentPrimary.opacity(0.45), lineWidth: 0.5)
+        )
+    }
+
+    private func signInDisclosureRow(icon: String, text: String) -> some View {
+        HStack(spacing: Spacing.md) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+                .frame(width: 22)
+            Text(text)
+                .font(AppFont.footnote)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer()
         }
         .padding(.horizontal, Spacing.lg)
