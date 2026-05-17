@@ -124,13 +124,20 @@ final class SwiftDataRepository {
 
     private(set) var isCloudSyncEnabled = false
 
+    /// Versioned schema declaration used by every container path
+    /// below. Plan D scaffold — see `PeptideAtlasSchema.swift` for
+    /// the V2 declaration and the migration plan template that a
+    /// future V3 will extend.
+    private static var versionedSchema: Schema {
+        Schema(versionedSchema: PeptideAtlasSchemaV2.self)
+    }
+
     private static func makeCloudContainer() -> ModelContainer? {
         do {
             let config = ModelConfiguration(cloudKitDatabase: .private("iCloud.com.peptidesai.app"))
             let container = try ModelContainer(
-                for: StoredProtocol.self, StoredEntry.self, StoredProfile.self,
-                StoredWorkoutSession.self, StoredCustomExercise.self,
-                StoredRoutine.self, StoredPersonalRecord.self,
+                for: versionedSchema,
+                migrationPlan: PeptideAtlasMigrationPlan.self,
                 configurations: config
             )
             AppLog.swiftData.info("Using CloudKit-backed store")
@@ -144,9 +151,8 @@ final class SwiftDataRepository {
     private static func makeLocalContainer() -> ModelContainer? {
         do {
             return try ModelContainer(
-                for: StoredProtocol.self, StoredEntry.self, StoredProfile.self,
-                StoredWorkoutSession.self, StoredCustomExercise.self,
-                StoredRoutine.self, StoredPersonalRecord.self
+                for: versionedSchema,
+                migrationPlan: PeptideAtlasMigrationPlan.self
             )
         } catch {
             AppLog.swiftData.error("Failed to create persistent ModelContainer: \(error.localizedDescription, privacy: .public)")
@@ -158,9 +164,8 @@ final class SwiftDataRepository {
         do {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
             return try ModelContainer(
-                for: StoredProtocol.self, StoredEntry.self, StoredProfile.self,
-                StoredWorkoutSession.self, StoredCustomExercise.self,
-                StoredRoutine.self, StoredPersonalRecord.self,
+                for: versionedSchema,
+                migrationPlan: PeptideAtlasMigrationPlan.self,
                 configurations: config
             )
         } catch {
