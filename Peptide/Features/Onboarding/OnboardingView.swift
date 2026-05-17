@@ -510,7 +510,18 @@ struct OnboardingView: View {
                 bio: dataStore.profile.bio
             )
         case Page.goal:
-            dataStore.setPrimaryGoal(primaryGoal.rawValue)
+            // setPrimaryGoal guards against goals that aren't in
+            // profile.goals — onboarding starts with an empty array, so
+            // we have to add the choice to the set first, then pin it.
+            // Without this updateGoals call the primary goal is silently
+            // dropped (audit C2) and every downstream surface (Home
+            // GoalCountdownCard, Profile pinned-goal banner, etc.) reads
+            // nil after a "complete" onboarding.
+            let raw = primaryGoal.rawValue
+            var goalSet = Set(dataStore.profile.goals)
+            goalSet.insert(raw)
+            dataStore.updateGoals(goalSet)
+            dataStore.setPrimaryGoal(raw)
         case Page.goalDate:
             // Persist directly — there's no dedicated DataStore mutator
             // for goalDate yet, and the value is harmless if a future
@@ -1551,7 +1562,10 @@ struct OnboardingView: View {
         // partial-range-inside-tuple-pattern Swift 6 parser ambiguity
         // (the older `case (.buildMuscle, 5...)` form looked like it
         // worked but the audit flagged it as unreliable across
-        // compiler versions).
+        // compiler versions). Every PrimaryGoal case must be covered —
+        // the v3 expansion added five wellness-track goals that need
+        // explicit program names so the Program Preview screen
+        // doesn't crash on a non-exhaustive switch.
         switch primaryGoal {
         case .getStronger:    return "5/3/1 Strength"
         case .buildMuscle:    return daysPerWeek >= 5 ? "Push Pull Legs" : "Upper / Lower"
@@ -1559,6 +1573,11 @@ struct OnboardingView: View {
         case .athletic:       return "Athletic Conditioning"
         case .recomp:         return "Hybrid Recomp"
         case .stayConsistent: return "Consistency Builder"
+        case .betterSleep:    return "Recovery & Sleep Hygiene"
+        case .recovery:       return "Active Recovery Plan"
+        case .antiAging:      return "Longevity Protocol"
+        case .skinHair:       return "Skin & Hair Protocol"
+        case .energy:         return "Energy & Vitality Plan"
         }
     }
 

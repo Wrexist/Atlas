@@ -19,17 +19,17 @@ struct TrialOfferView: View {
     @State private var sparklePhase = 0.0
     @State private var ctaPulse = false
     @State private var didReveal = false
-    /// Selected billing cadence. Default is whichever tier the
-    /// `paywallTierOrder` experiment puts first — control = annual
-    /// (savings anchor), variantA = monthly (trial framing). Sticky
-    /// per install so the user doesn't see the default flip between
-    /// launches.
-    @State private var selectedTier: Tier = {
-        switch OnboardingExperiment.variant(for: .paywallTierOrder) {
-        case .control:  return .annual
-        case .variantA: return .monthly
-        }
-    }()
+    /// Selected billing cadence. Initialised to `.annual` then re-assigned
+    /// from `OnboardingExperiment.variant(for: .paywallTierOrder)` inside
+    /// the view's `.task` modifier — the experiment service is
+    /// `@MainActor`-isolated and calling it from a `@State` default
+    /// initializer is a Swift 6 concurrency violation (audit H1).
+    @State private var selectedTier: Tier = .annual
+    /// Tier display order, written once on view appear from the same
+    /// experiment assignment. Until the task runs, the view renders
+    /// the default (annual-first); the task assigns synchronously on
+    /// MainActor so the "blink" is invisible to the user.
+    @State private var orderedTiers: [Tier] = [.annual, .monthly]
 
     enum Tier: String, CaseIterable, Identifiable {
         case annual, monthly
@@ -74,11 +74,25 @@ struct TrialOfferView: View {
         return Int((Double(truncating: saved as NSNumber) * 100).rounded())
     }
 
+    /// Trial length in days. Must convert through the intro offer's
+    /// `period.unit` — Apple may configure a 1-week trial as
+    /// `(value: 1, unit: .week)` rather than `(value: 7, unit: .day)`,
+    /// and the legacy `period.value * periodCount` math returned `1` in
+    /// that case (audit code-review #7). Falls back to 3 when products
+    /// haven't loaded yet so the headline reads sensibly during the
+    /// brief StoreKit warm-up.
     private var trialDays: Int {
         guard let intro = storeService.monthlyProduct?.subscription?.introductoryOffer,
               intro.paymentMode == .freeTrial
         else { return 3 }
-        return intro.period.value * intro.periodCount
+        let count = intro.period.value * intro.periodCount
+        switch intro.period.unit {
+        case .day:   return count
+        case .week:  return count * 7
+        case .month: return count * 30
+        case .year:  return count * 365
+        @unknown default: return count
+        }
     }
 
     var body: some View {
@@ -107,6 +121,20 @@ struct TrialOfferView: View {
             }
         }
         .task {
+            // Resolve the A/B experiment assignment from inside the
+            // MainActor-isolated task — calling
+            // OnboardingExperiment.variant from a `@State` default
+            // initializer would violate Swift 6 actor isolation.
+            let variant = OnboardingExperiment.variant(for: .paywallTierOrder)
+            switch variant {
+            case .control:
+                orderedTiers = [.annual, .monthly]
+                selectedTier = .annual
+            case .variantA:
+                orderedTiers = [.monthly, .annual]
+                selectedTier = .monthly
+            }
+
             await storeService.loadProducts()
             withAnimation(AppAnimation.springBouncy) { didReveal = true }
             withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) {
@@ -240,13 +268,6 @@ struct TrialOfferView: View {
         .opacity(didReveal ? 1 : 0)
         .offset(y: didReveal ? 0 : 16)
         .animation(AppAnimation.springSmooth.delay(0.35), value: didReveal)
-    }
-
-    private var orderedTiers: [Tier] {
-        switch OnboardingExperiment.variant(for: .paywallTierOrder) {
-        case .control:  return [.annual, .monthly]
-        case .variantA: return [.monthly, .annual]
-        }
     }
 
     private func tierCard(_ tier: Tier) -> some View {
@@ -467,15 +488,18 @@ struct TrialOfferView: View {
         }
         isPurchasing = true
         Task {
+            // Reset isPurchasing unconditionally in a defer so a userCancelled
+            // or pending purchase doesn't leave the CTA stuck (audit C-1).
+            // `purchase(_:)` returns false on both cancel and pending; we
+            // only call onAccept on a verified .success.
+            defer { isPurchasing = false }
             do {
                 let success = try await storeService.purchase(product)
-                isPurchasing = false
                 if success {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                     onAccept()
                 }
             } catch {
-                isPurchasing = false
                 withAnimation { errorMessage = "Couldn't complete the purchase. Please try again." }
             }
         }

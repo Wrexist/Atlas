@@ -708,9 +708,16 @@ final class DataStore: DataServiceProtocol {
     }
 
     /// Pin or clear the headline goal. Pass `nil` to remove the pin. The goal
-    /// must already exist in `profile.goals` — otherwise the call is ignored.
+    /// must already exist in `profile.goals` — otherwise the call is ignored
+    /// and a warning is logged so a future silent-drop is visible to anyone
+    /// scraping Console for the onboarding category.
     func setPrimaryGoal(_ goal: String?) {
-        if let goal, !profile.goals.contains(goal) { return }
+        if let goal, !profile.goals.contains(goal) {
+            AppLog.onboarding.warning(
+                "setPrimaryGoal('\(goal, privacy: .public)') dropped — not in profile.goals. Call updateGoals first."
+            )
+            return
+        }
         profile.primaryGoal = goal
         // Same reason as updateGoals: goal-derived caches are stale until the
         // next protocols/entries mutation without this manual bump.
