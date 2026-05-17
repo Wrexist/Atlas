@@ -3,16 +3,21 @@ import SwiftUI
 import UIKit
 #endif
 
-/// Redesigned onboarding for the training pivot — 14 premium steps that
+/// Redesigned onboarding for the training pivot — 16 premium steps that
 /// lead with the workout story, use very bold display typography, the
 /// anatomical figure from MuscleMapView for the body selection, an
-/// Atlas-vs-without comparison, and a real "log a set" demo before the
-/// paywall. Peptides are no longer pushed during onboarding; users
-/// discover them later from the Library tab.
+/// Atlas-vs-without comparison, a real "log a set" demo, and a 3-second
+/// "Building your plan…" reveal that sets up the post-Ready paywall.
+/// Peptides are no longer pushed during onboarding; users discover them
+/// later from the Library tab.
+///
+/// Page indices live in the nested `Page` enum so reordering only
+/// requires renaming there.
 ///
 /// State writes:
 ///
-///   - `hasCompletedOnboarding` — final dismiss flag
+///   - `hasCompletedOnboarding` — final dismiss flag (set by the paywall
+///     handlers, not by the Ready button itself)
 ///   - `experienceLevel` — beginner / intermediate / advanced
 ///   - `profile.{name,bodyMetrics,nutritionTargets,primaryGoal,
 ///      trainingPreferences}` — persisted via DataStore
@@ -36,10 +41,41 @@ struct OnboardingView: View {
     // Live "try a set" demo state.
     @State private var demoSet = SetEntry(index: 1, weightKg: 60, reps: 8, completed: false)
     @State private var demoCelebrate = false
+    // Drives the post-Ready paywall full-screen cover. Decline and
+    // accept both flip `hasCompleted` — the trial is optional, but the
+    // user shouldn't enter the app before seeing the offer once.
+    @State private var showTrialOffer: Bool = false
+    // "Building your plan…" loading screen progress (0…1). Drives the
+    // ring fill on `buildingPlanStep` and gates the auto-advance.
+    @State private var buildingProgress: Double = 0
+    @State private var buildingStarted: Bool = false
 
     @FocusState private var nameFocused: Bool
 
-    private let totalPages = 14
+    // Page indices — single source of truth for the flow. Adjusting
+    // ordering only requires renaming here; everything else reads
+    // through these constants.
+    private enum Page {
+        static let welcome          = 0
+        static let valueProof       = 1
+        static let name             = 2
+        static let goal             = 3
+        static let experience       = 4
+        static let bodyMetrics      = 5
+        static let schedule         = 6
+        static let equipment        = 7
+        static let demoSet          = 8
+        static let comparison       = 9
+        static let programPreview   = 10
+        static let nutrition        = 11
+        static let notifications    = 12
+        static let health           = 13
+        static let buildingPlan     = 14
+        static let ready            = 15
+        static let total            = 16
+    }
+
+    private var totalPages: Int { Page.total }
 
     enum PrimaryGoal: String, CaseIterable, Identifiable {
         case buildMuscle, loseFat, getStronger, stayConsistent, athletic, recomp
@@ -113,20 +149,22 @@ struct OnboardingView: View {
                     .padding(.bottom, Spacing.sm)
 
                 TabView(selection: $page) {
-                    welcome.tag(0)
-                    valueProof.tag(1)
-                    nameStep.tag(2)
-                    goalStep.tag(3)
-                    experienceStep.tag(4)
-                    bodyMetricsStep.tag(5)
-                    scheduleStep.tag(6)
-                    equipmentStep.tag(7)
-                    demoSetStep.tag(8)
-                    comparisonStep.tag(9)
-                    programPreviewStep.tag(10)
-                    nutritionStep.tag(11)
-                    permissionsStep.tag(12)
-                    readyStep.tag(13)
+                    welcome.tag(Page.welcome)
+                    valueProof.tag(Page.valueProof)
+                    nameStep.tag(Page.name)
+                    goalStep.tag(Page.goal)
+                    experienceStep.tag(Page.experience)
+                    bodyMetricsStep.tag(Page.bodyMetrics)
+                    scheduleStep.tag(Page.schedule)
+                    equipmentStep.tag(Page.equipment)
+                    demoSetStep.tag(Page.demoSet)
+                    comparisonStep.tag(Page.comparison)
+                    programPreviewStep.tag(Page.programPreview)
+                    nutritionStep.tag(Page.nutrition)
+                    notificationsStep.tag(Page.notifications)
+                    healthStep.tag(Page.health)
+                    buildingPlanStep.tag(Page.buildingPlan)
+                    readyStep.tag(Page.ready)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: page)
@@ -138,6 +176,15 @@ struct OnboardingView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .fullScreenCover(isPresented: $showTrialOffer) {
+            // Post-Ready paywall. Both branches finish onboarding —
+            // the trial is genuinely optional, but the user shouldn't
+            // enter the app without seeing the offer once.
+            TrialOfferView(
+                onAccept: { hasCompleted = true },
+                onDecline: { hasCompleted = true }
+            )
+        }
     }
 
     // MARK: - Chrome
@@ -176,8 +223,13 @@ struct OnboardingView: View {
 
     private var footer: some View {
         VStack(spacing: Spacing.xs) {
-            primaryButton
-            if page < totalPages - 1 && page > 1 {
+            // Hide the primary button on the building-plan screen —
+            // it auto-advances when the ring fills, and a tappable
+            // CTA next to a progress ring reads as "click to bypass."
+            if page != Page.buildingPlan {
+                primaryButton
+            }
+            if showSkipOnCurrentPage {
                 Button("Skip") {
                     haptic()
                     advance()
@@ -188,6 +240,21 @@ struct OnboardingView: View {
         }
         .padding(.horizontal, Spacing.screenPadding)
         .padding(.bottom, Spacing.xl)
+    }
+
+    /// Skip is shown only on optional informational pages. Data-input
+    /// pages (goal, experience, body, schedule, equipment) lose Skip so
+    /// that personalization is genuinely captured — skipping these
+    /// poisons the recommendation engine and removes the sunk-cost
+    /// commitment that drives trial conversion.
+    private var showSkipOnCurrentPage: Bool {
+        switch page {
+        case Page.demoSet, Page.comparison, Page.programPreview,
+             Page.notifications, Page.health:
+            return true
+        default:
+            return false
+        }
     }
 
     private var primaryButton: some View {
@@ -214,16 +281,18 @@ struct OnboardingView: View {
 
     private var primaryTitle: String {
         switch page {
-        case 0:                  return "Let's go"
-        case totalPages - 1:     return "Open Atlas"
-        default:                 return "Continue"
+        case Page.welcome:  return "Let's go"
+        case Page.ready:    return "Open Atlas"
+        default:            return "Continue"
         }
     }
 
     private var primaryEnabled: Bool {
         switch page {
-        case 2: return !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        default: return true
+        case Page.name:
+            return !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        default:
+            return true
         }
     }
 
@@ -231,27 +300,30 @@ struct OnboardingView: View {
         haptic()
         bounceTrigger += 1
         switch page {
-        case 2:
+        case Page.name:
             dataStore.updateProfileIdentity(
                 name: name.trimmingCharacters(in: .whitespacesAndNewlines),
                 bio: dataStore.profile.bio
             )
-        case 3:
+        case Page.goal:
             dataStore.setPrimaryGoal(primaryGoal.rawValue)
-        case 5:
+        case Page.bodyMetrics:
             dataStore.updateBodyMetrics(bodyMetrics)
-        case 7:
-            // Schedule (page 6) and equipment (page 7) both feed the
-            // same struct — persist once on the final advance off
-            // page 7 so a back-and-forth between the two doesn't
-            // lose the second screen's changes.
+        case Page.equipment:
+            // Schedule and equipment both feed the same struct —
+            // persist once on the final advance off equipment so a
+            // back-and-forth between the two doesn't lose the second
+            // screen's changes.
             dataStore.updateTrainingPreferences(currentTrainingPrefs)
-        case 11:
+        case Page.nutrition:
             if let targets = NutritionMath.dailyTargets(for: bodyMetrics) {
                 dataStore.updateNutritionTargets(targets)
             }
-        case totalPages - 1:
-            hasCompleted = true
+        case Page.ready:
+            // Present the trial paywall instead of finishing immediately.
+            // The paywall handlers flip `hasCompleted` after the user
+            // either starts the trial or taps "Maybe later".
+            showTrialOffer = true
             return
         default:
             break
@@ -301,6 +373,8 @@ struct OnboardingView: View {
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
             }
+            SocialProofPill()
+                .padding(.top, Spacing.sm)
             Spacer()
             Spacer()
         }
@@ -947,43 +1021,235 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 12: Permissions
+    // MARK: - Step 12: Notifications (with preview)
 
-    private var permissionsStep: some View {
-        VStack(spacing: Spacing.lg) {
-            HeroIcon(symbol: "checkmark.shield.fill", bounceTrigger: bounceTrigger)
-                .padding(.top, Spacing.xl)
-            VStack(spacing: Spacing.sm) {
-                Text("A couple of permissions.")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-                Text("Both optional. Change them anytime.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.lg)
-            }
-            VStack(spacing: Spacing.sm) {
-                permissionRow(
-                    icon: "heart.fill",
-                    title: "Apple Health",
-                    subtitle: "Read sleep, heart rate, and weight to enrich your insights.",
-                    isLoading: requestingHealth,
-                    isOn: dataStore.profile.healthConnected,
-                    action: requestHealth
+    private var notificationsStep: some View {
+        ScrollView {
+            VStack(spacing: Spacing.lg) {
+                HeroIcon(symbol: "bell.badge.fill", bounceTrigger: bounceTrigger)
+                    .padding(.top, Spacing.xl)
+                VStack(spacing: Spacing.sm) {
+                    Text("Stay on track.")
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundStyle(AppColor.textPrimary)
+                        .multilineTextAlignment(.center)
+                    Text("Workout reminders, weekly recaps,\nand rest-timer alerts.")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Spacing.lg)
+                }
+
+                NotificationPreviewCard(
+                    title: "Leg day in 30 minutes",
+                    subtitle: "Hit your second session of the week",
+                    timestamp: "now"
                 )
+                .padding(.horizontal, Spacing.lg)
+                .padding(.top, Spacing.sm)
+
                 permissionRow(
                     icon: "bell.fill",
-                    title: "Notifications",
-                    subtitle: "Workout reminders and rest-timer alerts.",
+                    title: "Enable notifications",
+                    subtitle: "Tap to allow. You can change this anytime.",
                     isLoading: requestingNotifications,
                     isOn: dataStore.profile.doseRemindersEnabled,
                     action: requestNotifications
                 )
+                .padding(.horizontal, Spacing.lg)
+
+                Spacer(minLength: 100)
             }
-            .padding(.horizontal, Spacing.lg)
+        }
+    }
+
+    // MARK: - Step 13: Health (with value preview)
+
+    private var healthStep: some View {
+        ScrollView {
+            VStack(spacing: Spacing.lg) {
+                HeroIcon(
+                    symbol: "heart.fill",
+                    color: Color(red: 1.0, green: 0.42, blue: 0.42),
+                    accent: Color(red: 1.0, green: 0.62, blue: 0.62),
+                    bounceTrigger: bounceTrigger
+                )
+                .padding(.top, Spacing.xl)
+                VStack(spacing: Spacing.sm) {
+                    Text("Connect Apple Health.")
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundStyle(AppColor.textPrimary)
+                        .multilineTextAlignment(.center)
+                    Text("Unlock Recovery, HRV trends,\nand sleep-quality insights.")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Spacing.lg)
+                }
+
+                healthValuePreview
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.top, Spacing.sm)
+
+                permissionRow(
+                    icon: "heart.fill",
+                    title: "Connect Apple Health",
+                    subtitle: "Reads sleep, HRV, heart rate, and weight.",
+                    isLoading: requestingHealth,
+                    isOn: dataStore.profile.healthConnected,
+                    action: requestHealth
+                )
+                .padding(.horizontal, Spacing.lg)
+
+                Text("Atlas reads only — never writes. Lockable with Face ID.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textTertiary)
+                    .padding(.top, Spacing.xs)
+
+                Spacer(minLength: 100)
+            }
+        }
+    }
+
+    /// Mocked Health Monitor grid — three sample biomarker cards that
+    /// preview what connecting Health unlocks. Pure presentation; the
+    /// values are illustrative.
+    private var healthValuePreview: some View {
+        HStack(spacing: Spacing.sm) {
+            healthPreviewCard(
+                icon: "waveform.path.ecg",
+                label: "HRV",
+                value: "62",
+                unit: "ms",
+                tint: Color(red: 0.30, green: 0.80, blue: 0.50)
+            )
+            healthPreviewCard(
+                icon: "bed.double.fill",
+                label: "Sleep",
+                value: "7.4",
+                unit: "h",
+                tint: Color(hex: 0x9B72CF)
+            )
+            healthPreviewCard(
+                icon: "heart.fill",
+                label: "Recovery",
+                value: "84",
+                unit: "%",
+                tint: AppColor.accentPrimary
+            )
+        }
+    }
+
+    private func healthPreviewCard(
+        icon: String, label: String, value: String, unit: String, tint: Color
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(tint)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(value)
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                Text(unit)
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+            Text(label)
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .stroke(AppColor.glassBorder, lineWidth: 0.5)
+        )
+    }
+
+    // MARK: - Step 14: Building your plan…
+
+    private var buildingPlanStep: some View {
+        VStack(spacing: Spacing.xl) {
             Spacer()
+            buildingRing
+            VStack(spacing: Spacing.sm) {
+                Text("Building your plan…")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                Text(buildingStageLabel)
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.xl)
+                    .contentTransition(.opacity)
+                    .animation(.easeInOut(duration: 0.25), value: buildingStageLabel)
+            }
+            Spacer()
+            Spacer()
+        }
+        .padding(.horizontal, Spacing.lg)
+        .onChange(of: page) { _, newPage in
+            if newPage == Page.buildingPlan {
+                startBuildingPlanAnimation()
+            } else if newPage != Page.buildingPlan, buildingStarted {
+                // Reset so a back-nav into this page re-runs the
+                // animation instead of seeing progress already at 1.
+                buildingProgress = 0
+                buildingStarted = false
+            }
+        }
+    }
+
+    private var buildingRing: some View {
+        ZStack {
+            Circle()
+                .stroke(AppColor.accentPrimary.opacity(0.15), lineWidth: 8)
+                .frame(width: 120, height: 120)
+            Circle()
+                .trim(from: 0, to: buildingProgress)
+                .stroke(
+                    AppColor.accentPrimary,
+                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                )
+                .frame(width: 120, height: 120)
+                .rotationEffect(.degrees(-90))
+            Text("\(Int(buildingProgress * 100))%")
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .foregroundStyle(AppColor.textPrimary)
+                .contentTransition(.numericText())
+                .animation(.linear(duration: 0.1), value: buildingProgress)
+        }
+    }
+
+    private var buildingStageLabel: String {
+        switch buildingProgress {
+        case ..<0.33:  return "Matching your goal to a program…"
+        case ..<0.66:  return "Tuning volume to your schedule…"
+        case ..<1.0:   return "Calibrating nutrition targets…"
+        default:       return "Done."
+        }
+    }
+
+    private func startBuildingPlanAnimation() {
+        guard !buildingStarted else { return }
+        buildingStarted = true
+        buildingProgress = 0
+        withAnimation(.easeInOut(duration: 2.8)) {
+            buildingProgress = 1
+        }
+        // Auto-advance once the ring fills. Matches the animation
+        // duration plus a 250ms beat so the user reads "Done."
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(3050))
+            if page == Page.buildingPlan {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                advance()
+            }
         }
     }
 
@@ -1058,7 +1324,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 13: Ready
+    // MARK: - Step 15: Ready
 
     private var readyStep: some View {
         VStack(spacing: Spacing.lg) {
@@ -1100,6 +1366,43 @@ struct OnboardingView: View {
         .overlay(
             RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                 .stroke(AppColor.glassBorder, lineWidth: 0.5)
+        )
+    }
+}
+
+/// Compact social-proof pill — five gold stars, a 4.9 score, and a
+/// user count. Sits under the welcome headline as the first trust
+/// anchor before any data is asked from the user.
+private struct SocialProofPill: View {
+    private let gold = Color(red: 0.961, green: 0.620, blue: 0.043)
+
+    var body: some View {
+        HStack(spacing: Spacing.sm) {
+            HStack(spacing: 2) {
+                ForEach(0..<5, id: \.self) { _ in
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(gold)
+                }
+            }
+            Text("4.9")
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundStyle(AppColor.textPrimary)
+            Text("·")
+                .foregroundStyle(AppColor.textTertiary)
+            Text("12k+ training")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+        }
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.xs)
+        .background(
+            Capsule()
+                .fill(AppColor.surfaceSecondary.opacity(0.7))
+        )
+        .overlay(
+            Capsule()
+                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
         )
     }
 }
