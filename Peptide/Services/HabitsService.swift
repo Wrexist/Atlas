@@ -91,7 +91,10 @@ enum HabitsService {
         return (0..<dayCount).reversed().compactMap { offset in
             guard let day = calendar.date(byAdding: .day, value: -offset, to: end) else { return nil }
             let isDue = habit.schedule.isDue(on: day, calendar: calendar)
-            let value = entriesById[day]?.first?.value ?? 0
+            // Take the max value per day so a CloudKit race that
+            // produces two entries for one day doesn't silently
+            // undercount the higher one (audit L2).
+            let value = entriesById[day]?.map(\.value).max() ?? 0
             let status: HeatmapStatus
             if value >= target {
                 status = .completed
@@ -155,7 +158,12 @@ enum HabitsService {
         // schedule) counts toward the streak only when there's no
         // completion on it — same logic as Streaks.app: gaps on non-
         // due days don't break the chain.
-        while true {
+        // Absolute iteration cap so a `.weekdays(Set())` (empty set,
+        // every day is "not due") or a clock-confused device can't
+        // spin forever. The original streak > 3650 guard never
+        // tripped in that pathological case because streak never
+        // incremented (audit L1).
+        for _ in 0..<3650 {
             let isDue = habit.schedule.isDue(on: cursor, calendar: calendar)
             if completedDays.contains(cursor) {
                 streak += 1
@@ -163,18 +171,13 @@ enum HabitsService {
                 // Today is allowed to be missing without breaking — a
                 // user opening the app at 09:00 hasn't necessarily
                 // logged their daily habit yet.
-                if calendar.isDate(cursor, inSameDayAs: today) {
-                    // skip — don't count, don't break
-                } else {
+                if !calendar.isDate(cursor, inSameDayAs: today) {
                     break
                 }
             }
             // else: not due and not completed → silently skip
             guard let prev = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
             cursor = prev
-            // Safety: stop after 10 years to avoid pathological loops
-            // on a clock-confused device.
-            if streak > 3650 { break }
         }
         return streak
     }
@@ -185,30 +188,79 @@ enum HabitsService {
         calendar: Calendar
     ) -> Int {
         let target = habit.targetValue ?? 1
-        let completed = entries
-            .filter { $0.value >= target }
-            .map { calendar.startOfDay(for: $0.date) }
-            .sorted()
-
+        let completed = Set(
+            entries
+                .filter { $0.value >= target }
+                .map { calendar.startOfDay(for: $0.date) }
+        )
         guard !completed.isEmpty else { return 0 }
 
+        // Walk each completed day forward across due days only —
+        // non-due rest days don't break the chain (matching
+        // currentStreak's semantic). For a M/W/F habit a perfect
+        // Mon → Wed → Fri pattern returns 3, not 1.
         var best = 1
-        var current = 1
-        for i in 1..<completed.count {
-            let prior = completed[i - 1]
-            let next  = completed[i]
-            if let between = calendar.dateComponents([.day], from: prior, to: next).day, between == 1 {
-                current += 1
-                best = max(best, current)
-            } else {
-                current = 1
+        for start in completed {
+            var run = 1
+            var cursor = start
+            // Bounded loop so a corrupted blob can't spin forever.
+            for _ in 0..<3650 {
+                guard let next = nextDueDay(after: cursor, schedule: habit.schedule, calendar: calendar) else { break }
+                if completed.contains(next) {
+                    run += 1
+                    cursor = next
+                } else {
+                    break
+                }
             }
+            best = max(best, run)
         }
         return best
     }
 
-    private static func completedDays(habit: Habit, entries: [HabitEntry]) -> Set<UUID> {
+    /// Returns the next calendar day strictly after `from` where the
+    /// schedule says the habit is due. Daily and `.timesPerWeek`
+    /// return tomorrow; `.weekdays(Set)` walks forward up to 7 days
+    /// to find the next match. Returns nil only on a `.weekdays`
+    /// schedule with an empty day set (defensive — the editor
+    /// substitutes all-days, but a corrupted blob could land here).
+    private static func nextDueDay(
+        after from: Date,
+        schedule: HabitSchedule,
+        calendar: Calendar
+    ) -> Date? {
+        switch schedule {
+        case .daily, .timesPerWeek:
+            return calendar.date(byAdding: .day, value: 1, to: from)
+        case .weekdays(let days):
+            guard !days.isEmpty else { return nil }
+            for offset in 1...7 {
+                guard let candidate = calendar.date(byAdding: .day, value: offset, to: from) else { return nil }
+                if let weekday = HabitWeekday.from(date: candidate, calendar: calendar),
+                   days.contains(weekday) {
+                    return candidate
+                }
+            }
+            return nil
+        }
+    }
+
+    /// De-duplicated set of calendar days on which the habit hit
+    /// target. Keyed by `startOfDay(for:)` so two entries for the
+    /// same day (CloudKit race) don't double-count. The previous
+    /// implementation used entry-id as the dedup key, which the
+    /// audit's L9 flagged as wrong — `.count` would over-report on
+    /// any duplicate row.
+    private static func completedDays(
+        habit: Habit,
+        entries: [HabitEntry],
+        calendar: Calendar = .current
+    ) -> Set<Date> {
         let target = habit.targetValue ?? 1
-        return Set(entries.filter { $0.value >= target }.map(\.id))
+        return Set(
+            entries
+                .filter { $0.value >= target }
+                .map { calendar.startOfDay(for: $0.date) }
+        )
     }
 }

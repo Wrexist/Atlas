@@ -217,14 +217,27 @@ struct HabitsHomeCard: View {
 
     // MARK: - Derived counts
 
-    private var dueCountToday: Int {
-        habits.filter { $0.schedule.isDue(on: Date()) }.count
+    /// Computes summaries once per render and caches them so the
+    /// header count, chip row, and badge all consult the same
+    /// snapshot — previously each pass re-walked the entries array
+    /// (audit M4).
+    private var todaySummaries: [(habit: Habit, summary: HabitsService.Summary)] {
+        habits.map { habit in
+            (habit, HabitsService.summary(for: habit, entries: dataStore.profile.habitEntries))
+        }
     }
 
+    /// Habits the schedule says are due today. Drives the denominator
+    /// in "N of M done".
+    private var dueCountToday: Int {
+        todaySummaries.filter { $0.summary.isDueToday }.count
+    }
+
+    /// Habits that are BOTH due today AND completed. Previously
+    /// counted any completed habit regardless of due-ness, so a
+    /// M/W/F habit completed on a Tuesday read "1 of 0 done"
+    /// (audit H2).
     private var completedCountToday: Int {
-        habits.filter { habit in
-            let summary = HabitsService.summary(for: habit, entries: dataStore.profile.habitEntries)
-            return summary.isCompletedToday
-        }.count
+        todaySummaries.filter { $0.summary.isDueToday && $0.summary.isCompletedToday }.count
     }
 }

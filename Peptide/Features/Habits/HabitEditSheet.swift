@@ -87,11 +87,18 @@ struct HabitEditSheet: View {
         _showingCustomization = State(initialValue: editing != nil)
     }
 
+    /// Default reminder time anchored to TODAY at 8:00 AM. The
+    /// DatePicker only reads hour + minute, but the underlying Date
+    /// shouldn't be year 0001 (the previous impl produced a 2000-
+    /// year-old timestamp from a date-less DateComponents, which is
+    /// semantically wrong and trips anything that does direct
+    /// equality on the Date later — audit M9).
     private static func defaultReminderTime() -> Date {
-        var components = DateComponents()
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: Date())
         components.hour = 8
         components.minute = 0
-        return Calendar.current.date(from: components) ?? Date()
+        return calendar.date(from: components) ?? Date()
     }
 
     var body: some View {
@@ -209,17 +216,17 @@ struct HabitEditSheet: View {
                 } label: {
                     Image(systemName: symbol)
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(iconSymbol == symbol ? Color(hex: Int(tintHex)) : AppColor.textSecondary)
+                        .foregroundStyle(iconSymbol == symbol ? Color(hex: UInt(tintHex)) : AppColor.textSecondary)
                         .frame(width: 36, height: 36)
                         .background(
                             Circle()
                                 .fill(iconSymbol == symbol
-                                      ? Color(hex: Int(tintHex)).opacity(0.18)
+                                      ? Color(hex: UInt(tintHex)).opacity(0.18)
                                       : AppColor.surfaceSecondary.opacity(0.6))
                         )
                         .overlay(
                             Circle().stroke(
-                                iconSymbol == symbol ? Color(hex: Int(tintHex)) : Color.clear,
+                                iconSymbol == symbol ? Color(hex: UInt(tintHex)) : Color.clear,
                                 lineWidth: 1
                             )
                         )
@@ -242,7 +249,7 @@ struct HabitEditSheet: View {
                 } label: {
                     ZStack {
                         Circle()
-                            .fill(Color(hex: Int(hex)))
+                            .fill(Color(hex: UInt(hex)))
                             .frame(width: 32, height: 32)
                         if tintHex == hex {
                             Image(systemName: "checkmark")
@@ -279,7 +286,7 @@ struct HabitEditSheet: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 32)
                         .background(
-                            Circle().fill(isSelected ? Color(hex: Int(tintHex)) : AppColor.surfaceSecondary.opacity(0.7))
+                            Circle().fill(isSelected ? Color(hex: UInt(tintHex)) : AppColor.surfaceSecondary.opacity(0.7))
                         )
                 }
                 .buttonStyle(.plain)
@@ -323,13 +330,20 @@ struct HabitEditSheet: View {
             schedule = .timesPerWeek(timesPerWeek)
         }
 
+        // Re-anchor reminder to today's date with the chosen hour +
+        // minute — keeps the stored value semantically a "time of
+        // day" while avoiding the year-0001 timestamp the old impl
+        // produced (audit M9). NotificationService only needs the
+        // hour + minute components to build a DateComponents
+        // trigger, so the date component here is cosmetic.
         let normalizedReminder: Date? = {
             guard enableReminder else { return nil }
-            let comps = Calendar.current.dateComponents([.hour, .minute], from: reminderTime)
-            var stamp = DateComponents()
-            stamp.hour = comps.hour
-            stamp.minute = comps.minute
-            return Calendar.current.date(from: stamp) ?? reminderTime
+            let calendar = Calendar.current
+            var components = calendar.dateComponents([.year, .month, .day], from: Date())
+            let timeOnly = calendar.dateComponents([.hour, .minute], from: reminderTime)
+            components.hour = timeOnly.hour
+            components.minute = timeOnly.minute
+            return calendar.date(from: components) ?? reminderTime
         }()
 
         let habit = Habit(

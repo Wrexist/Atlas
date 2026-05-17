@@ -1277,15 +1277,28 @@ final class DataStore: DataServiceProtocol {
             $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: day)
         }
         if habit.isCountable {
+            // Countable habit: increment by one toward the target. If
+            // the user has already hit target, the next tap RESETS to
+            // zero (audit M2 — original impl silently no-op'd past
+            // target with no way back). Zero == remove the entry so
+            // the array doesn't accumulate value-0 zombies (M1).
             if let idx = existingIdx {
-                profile.habitEntries[idx].value = min(target, profile.habitEntries[idx].value + 1)
+                let current = profile.habitEntries[idx].value
+                if current >= target {
+                    profile.habitEntries.remove(at: idx)
+                } else {
+                    profile.habitEntries[idx].value = min(target, current + 1)
+                }
             } else {
                 profile.habitEntries.append(HabitEntry(habitId: habitId, date: day, value: 1))
             }
         } else {
+            // Boolean habit: tap once to complete, again to un-complete.
+            // Un-completing REMOVES the entry instead of writing 0 so
+            // a noisy check/uncheck cycle doesn't accumulate zombie
+            // rows in the array (audit M1).
             if let idx = existingIdx {
-                // Toggle: completed → reset to zero (un-check), zero → completed
-                profile.habitEntries[idx].value = profile.habitEntries[idx].value == 0 ? 1 : 0
+                profile.habitEntries.remove(at: idx)
             } else {
                 profile.habitEntries.append(HabitEntry(habitId: habitId, date: day, value: 1))
             }

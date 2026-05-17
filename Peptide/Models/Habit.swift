@@ -63,7 +63,7 @@ struct Habit: Codable, Identifiable, Hashable, Sendable {
         self.archived = archived
     }
 
-    var tint: Color { Color(hex: Int(tintHex)) }
+    var tint: Color { Color(hex: UInt(tintHex)) }
 
     /// True for habits with a numeric target (8 glasses, 10k steps).
     /// Drives the editor UI's value-input visibility.
