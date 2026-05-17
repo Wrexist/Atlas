@@ -148,6 +148,102 @@ final class HabitsServiceTests: XCTestCase {
         }
     }
 
+    // MARK: - bestStreak across rest days (regression — audit H1)
+
+    func test_bestStreak_skipsRestDays_forWeekdaySchedule() {
+        // M/W/F schedule, perfect six-completion run:
+        // Mon, Wed, Fri, Mon, Wed, Fri across two weeks should
+        // report best = 6, not 1 (the old impl required day
+        // gaps of exactly 1).
+        let habit = makeHabit(
+            schedule: .weekdays(Set([.monday, .wednesday, .friday]))
+        )
+        // Find the last Mon/Wed/Fri sequence relative to today
+        // and seed completions on those days. Easier: explicitly
+        // construct ten consecutive M/W/F days going back.
+        let calendar = Calendar.current
+        var dueDays: [Date] = []
+        var cursor = calendar.startOfDay(for: Date())
+        while dueDays.count < 6 {
+            if let weekday = HabitWeekday.from(date: cursor),
+               [.monday, .wednesday, .friday].contains(weekday) {
+                dueDays.append(cursor)
+            }
+            guard let prev = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
+            cursor = prev
+        }
+        let entries = dueDays.map { HabitEntry(habitId: habit.id, date: $0, value: 1) }
+        let summary = HabitsService.summary(for: habit, entries: entries)
+        XCTAssertEqual(summary.bestStreak, 6,
+                       "bestStreak should walk across rest days for weekday-scheduled habits")
+    }
+
+    func test_bestStreak_zero_whenNoCompletions() {
+        let habit = makeHabit(schedule: .weekdays(Set([.monday])))
+        let summary = HabitsService.summary(for: habit, entries: [])
+        XCTAssertEqual(summary.bestStreak, 0)
+    }
+
+    // MARK: - Countable habit streak (audit H4)
+
+    func test_countableHabit_streak_onlyCountsTargetHitDays() {
+        let habit = makeHabit(target: 8)
+        let entries = [
+            HabitEntry(habitId: habit.id, date: day(2), value: 8),  // hit
+            HabitEntry(habitId: habit.id, date: day(1), value: 5),  // partial
+            HabitEntry(habitId: habit.id, date: day(0), value: 8),  // hit
+        ]
+        let summary = HabitsService.summary(for: habit, entries: entries)
+        // Day 1's partial doesn't count as a completion, so the
+        // current streak from "today's hit" walks back, finds
+        // yesterday wasn't a hit, and stops at 1.
+        XCTAssertEqual(summary.currentStreak, 1)
+        XCTAssertEqual(summary.totalCompletedDays, 2)
+    }
+
+    // MARK: - Duplicate-entry dedup (audit L9)
+
+    func test_totalCompletedDays_dedupesDuplicates() {
+        // Simulate a CloudKit race where two devices wrote the
+        // same day's completion. The total should count once.
+        let habit = makeHabit()
+        let entries = [
+            HabitEntry(habitId: habit.id, date: day(0), value: 1),
+            HabitEntry(habitId: habit.id, date: day(0), value: 1),
+        ]
+        let summary = HabitsService.summary(for: habit, entries: entries)
+        XCTAssertEqual(summary.totalCompletedDays, 1)
+    }
+
+    // MARK: - Heatmap dedup (audit L2)
+
+    func test_heatmap_takesMaxValuePerDay_onDuplicateEntries() {
+        let habit = makeHabit(target: 8)
+        // Two entries for today — one above target, one below.
+        let entries = [
+            HabitEntry(habitId: habit.id, date: day(0), value: 3),
+            HabitEntry(habitId: habit.id, date: day(0), value: 8),
+        ]
+        let days = HabitsService.heatmap(for: habit, entries: entries, dayCount: 5)
+        guard case .completed = days.last!.status else {
+            XCTFail("Expected today to be completed via max-value dedup")
+            return
+        }
+    }
+
+    // MARK: - Empty input
+
+    func test_heatmap_emptyEntries_marksAllDaysAsDue() {
+        let habit = makeHabit()
+        let days = HabitsService.heatmap(for: habit, entries: [], dayCount: 5)
+        XCTAssertEqual(days.count, 5)
+        for entry in days {
+            if case .due = entry.status { } else {
+                XCTFail("Expected all days to render .due for an empty entry list, got \(entry.status)")
+            }
+        }
+    }
+
     // MARK: - Schedule due-date math
 
     func test_dailySchedule_isAlwaysDue() {
