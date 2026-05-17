@@ -19,10 +19,17 @@ struct TrialOfferView: View {
     @State private var sparklePhase = 0.0
     @State private var ctaPulse = false
     @State private var didReveal = false
-    /// Selected billing cadence. Annual is the default — anchoring
-    /// against the more expensive (per-month) monthly tier first is
-    /// the standard pattern across health-app paywalls.
-    @State private var selectedTier: Tier = .annual
+    /// Selected billing cadence. Default is whichever tier the
+    /// `paywallTierOrder` experiment puts first — control = annual
+    /// (savings anchor), variantA = monthly (trial framing). Sticky
+    /// per install so the user doesn't see the default flip between
+    /// launches.
+    @State private var selectedTier: Tier = {
+        switch OnboardingExperiment.variant(for: .paywallTierOrder) {
+        case .control:  return .annual
+        case .variantA: return .monthly
+        }
+    }()
 
     enum Tier: String, CaseIterable, Identifiable {
         case annual, monthly
@@ -222,12 +229,24 @@ struct TrialOfferView: View {
 
     private var tierPicker: some View {
         VStack(spacing: Spacing.sm) {
-            tierCard(.annual)
-            tierCard(.monthly)
+            // A/B: control = yearly first (savings anchor), variantA =
+            // monthly first (trial framing prominent). Variant is sticky
+            // per install via OnboardingExperiment so a user doesn't see
+            // the order flip between launches.
+            ForEach(orderedTiers, id: \.self) { tier in
+                tierCard(tier)
+            }
         }
         .opacity(didReveal ? 1 : 0)
         .offset(y: didReveal ? 0 : 16)
         .animation(AppAnimation.springSmooth.delay(0.35), value: didReveal)
+    }
+
+    private var orderedTiers: [Tier] {
+        switch OnboardingExperiment.variant(for: .paywallTierOrder) {
+        case .control:  return [.annual, .monthly]
+        case .variantA: return [.monthly, .annual]
+        }
     }
 
     private func tierCard(_ tier: Tier) -> some View {
