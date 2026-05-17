@@ -127,6 +127,59 @@ struct CreatorAttribution: Codable, Hashable, Sendable {
     let discountPercent: Int
 }
 
+/// Application submitted via the "Apply to be an affiliate" CTA on
+/// the onboarding creator step. Stored locally until the Atlas
+/// creator-program backend ships; the same struct shape will be
+/// POSTed to the application-intake endpoint on first sync. We
+/// deliberately capture only what we need to follow up — handle,
+/// audience size band, channel URL, optional notes.
+struct AffiliateApplication: Codable, Hashable, Sendable {
+    enum Channel: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
+        case instagram, tiktok, youtube, podcast, newsletter, website, other
+        var id: String { rawValue }
+        var displayName: String {
+            switch self {
+            case .instagram:  return "Instagram"
+            case .tiktok:     return "TikTok"
+            case .youtube:    return "YouTube"
+            case .podcast:    return "Podcast"
+            case .newsletter: return "Newsletter"
+            case .website:    return "Website / blog"
+            case .other:      return "Other"
+            }
+        }
+    }
+
+    enum AudienceBand: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
+        case under1k    = "under_1k"
+        case k1to10     = "1k_to_10k"
+        case k10to50    = "10k_to_50k"
+        case k50to250   = "50k_to_250k"
+        case over250k   = "over_250k"
+        var id: String { rawValue }
+        var displayName: String {
+            switch self {
+            case .under1k:   return "Under 1k"
+            case .k1to10:    return "1k – 10k"
+            case .k10to50:   return "10k – 50k"
+            case .k50to250:  return "50k – 250k"
+            case .over250k:  return "250k +"
+            }
+        }
+    }
+
+    var handle: String
+    var channel: Channel
+    var audienceBand: AudienceBand
+    var channelURL: String?
+    var notes: String?
+    var submittedAt: Date
+    /// Carried forward so the eventual backend drain can match the
+    /// application to the rest of the user's onboarding session.
+    var name: String?
+    var email: String?
+}
+
 /// Email captured during the onboarding mailing-list step. Stored locally
 /// so the address survives a relaunch; pushing it to the spec'd
 /// `email_subscribers` Supabase table + Resend welcome email + 7-day
@@ -228,6 +281,11 @@ struct UserProfile: Codable, Sendable {
     /// discount and (eventually) by the backend to count installs /
     /// conversions per creator.
     var creatorAttribution: CreatorAttribution?
+    /// Submitted via the "Apply to be an affiliate" button on the
+    /// onboarding creator step. Local-only until the backend ships;
+    /// the eventual sync job can replay this row to the creator-
+    /// program intake endpoint without re-prompting the user.
+    var affiliateApplication: AffiliateApplication?
     /// Set when the user opts in on the onboarding email-capture step.
     /// Local-only today; will be drained into Supabase + Resend when the
     /// backend ships.
@@ -371,6 +429,7 @@ struct UserProfile: Codable, Sendable {
         bodyMetrics: BodyMetrics = .unspecified,
         nutritionTargets: NutritionTargets? = nil,
         creatorAttribution: CreatorAttribution? = nil,
+        affiliateApplication: AffiliateApplication? = nil,
         emailSubscription: EmailSubscription? = nil,
         weightHistory: [WeightEntry] = [],
         progressPhotoFilenames: [String] = [],
@@ -407,6 +466,7 @@ struct UserProfile: Codable, Sendable {
         self.bodyMetrics = bodyMetrics
         self.nutritionTargets = nutritionTargets
         self.creatorAttribution = creatorAttribution
+        self.affiliateApplication = affiliateApplication
         self.emailSubscription = emailSubscription
         self.weightHistory = weightHistory
         self.progressPhotoFilenames = progressPhotoFilenames
@@ -446,6 +506,7 @@ struct UserProfile: Codable, Sendable {
         bodyMetrics = try container.decodeIfPresent(BodyMetrics.self, forKey: .bodyMetrics) ?? .unspecified
         nutritionTargets = try container.decodeIfPresent(NutritionTargets.self, forKey: .nutritionTargets)
         creatorAttribution = try container.decodeIfPresent(CreatorAttribution.self, forKey: .creatorAttribution)
+        affiliateApplication = try container.decodeIfPresent(AffiliateApplication.self, forKey: .affiliateApplication)
         emailSubscription = try container.decodeIfPresent(EmailSubscription.self, forKey: .emailSubscription)
         weightHistory = try container.decodeIfPresent([WeightEntry].self, forKey: .weightHistory) ?? []
         progressPhotoFilenames = try container.decodeIfPresent([String].self, forKey: .progressPhotoFilenames) ?? []

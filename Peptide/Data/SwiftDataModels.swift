@@ -337,6 +337,7 @@ final class StoredProfile {
             bodyMetrics: metrics,
             nutritionTargets: ext.nutritionTargets,
             creatorAttribution: ext.creatorAttribution,
+            affiliateApplication: ext.affiliateApplication,
             emailSubscription: ext.emailSubscription,
             weightHistory: ext.weightHistory,
             progressPhotoFilenames: ext.progressPhotoFilenames,
@@ -377,6 +378,7 @@ final class StoredProfile {
 private struct ProfileExtension: Codable {
     var nutritionTargets: NutritionTargets? = nil
     var creatorAttribution: CreatorAttribution? = nil
+    var affiliateApplication: AffiliateApplication? = nil
     var emailSubscription: EmailSubscription? = nil
     var weightHistory: [WeightEntry] = []
     var progressPhotoFilenames: [String] = []
@@ -426,6 +428,7 @@ private struct ProfileExtension: Codable {
         ProfileExtension(
             nutritionTargets: profile.nutritionTargets,
             creatorAttribution: profile.creatorAttribution,
+            affiliateApplication: profile.affiliateApplication,
             emailSubscription: profile.emailSubscription,
             weightHistory: profile.weightHistory,
             progressPhotoFilenames: profile.progressPhotoFilenames,

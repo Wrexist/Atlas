@@ -87,6 +87,7 @@ struct OnboardingView: View {
     @State private var creatorCodeInput: String = ""
     @State private var creatorAttribution: CreatorAttribution?
     @State private var creatorError: String?
+    @State private var showingAffiliateApply: Bool = false
     // Projection chart "reveal" state. Drives a tasteful fade-in on
     // the chart instead of jump-cutting from the building screen.
     @State private var projectionRevealed: Bool = false
@@ -2081,22 +2082,144 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Creator code
+    // MARK: - Creator code / affiliate apply
 
+    /// Dual-purpose step. For users with a code: enter it and we
+    /// stamp the attribution + discount onto the profile. For users
+    /// without a code: tap "Apply to be an affiliate" to surface a
+    /// short form (handle, audience, channel link). Either path
+    /// advances the onboarding; the step is skippable.
     private var creatorCodeStep: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
                 HeroIcon(symbol: "person.text.rectangle", bounceTrigger: bounceTrigger)
                     .padding(.top, Spacing.xl)
-                CreatorAttributionPage(
-                    input: $creatorCodeInput,
-                    attribution: creatorAttribution,
-                    error: creatorError
-                )
+
+                VStack(spacing: Spacing.sm) {
+                    Text("Got a creator code?")
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .foregroundStyle(AppColor.textPrimary)
+                        .multilineTextAlignment(.center)
+                    Text("Apply a friend's code or join the Atlas creator program.")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Spacing.lg)
+                }
+
+                if let attribution = creatorAttribution {
+                    creatorSuccessCard(attribution)
+                } else {
+                    creatorCodeField
+                }
+
+                affiliateApplyButton
+
                 Spacer(minLength: 100)
             }
             .padding(.horizontal, Spacing.lg)
         }
+        .sheet(isPresented: $showingAffiliateApply) {
+            AffiliateApplySheet(
+                userName: dataStore.profile.name,
+                userEmail: dataStore.profile.emailSubscription?.email,
+                onSubmit: { application in
+                    OnboardingFunnelTracker.recordEvent("affiliate_application_submitted")
+                    // Persist the application onto the profile so a
+                    // future Supabase drain can replay it 1:1. Backend
+                    // wiring is a follow-up; local-only today.
+                    dataStore.profile.affiliateApplication = application
+                    dataStore.flushPendingSave()
+                }
+            )
+        }
+    }
+
+    private var creatorCodeField: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            GlassTextField(
+                placeholder: "Enter creator code…",
+                text: $creatorCodeInput,
+                icon: "person.text.rectangle"
+            )
+            .textInputAutocapitalization(.characters)
+            .autocorrectionDisabled()
+            .submitLabel(.done)
+
+            if let error = creatorError {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(error)
+                        .font(AppFont.caption)
+                }
+                .foregroundStyle(AppColor.destructive)
+                .padding(.leading, Spacing.md)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    private func creatorSuccessCard(_ attribution: CreatorAttribution) -> some View {
+        HStack(alignment: .top, spacing: Spacing.md) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(AppColor.accentPrimary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Code applied")
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("\(attribution.creatorName) gets credit — you get \(attribution.discountPercent)% off.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.accentPrimary.opacity(0.12))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .strokeBorder(AppColor.accentPrimary.opacity(0.45), lineWidth: 1)
+        )
+        .transition(.scale(scale: 0.94).combined(with: .opacity))
+    }
+
+    /// "Apply to be an affiliate" button — same vibe as the rest of
+    /// the onboarding (capsule, accent-tinted, with a SF symbol). The
+    /// label hints at the upside without overselling — the actual
+    /// program terms get communicated in the sheet.
+    private var affiliateApplyButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            OnboardingFunnelTracker.recordEvent("affiliate_apply_opened")
+            showingAffiliateApply = true
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("Apply to be an affiliate")
+                    .font(AppFont.callout.weight(.semibold))
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 12, weight: .bold))
+            }
+            .foregroundStyle(AppColor.accentLight)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+            .background(
+                Capsule()
+                    .fill(AppColor.accentPrimary.opacity(0.12))
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(AppColor.accentPrimary.opacity(0.35), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Email capture
