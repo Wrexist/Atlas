@@ -261,6 +261,53 @@ final class DataStore: DataServiceProtocol {
         rescheduleNotificationsIfEnabled()
     }
 
+    /// Extends the cycle length of an active protocol by `weeks`. Used
+    /// by the cycle-completion prompt's "Extend" action so the
+    /// existing cycle's `startDate` stays put — the user just gets a
+    /// longer cycle window. The completion prompt will re-fire when
+    /// the extended window also ends.
+    func extendProtocol(id: UUID, byWeeks weeks: Int) {
+        guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
+        protocols[index].cycleLengthWeeks = max(1, protocols[index].cycleLengthWeeks + weeks)
+        save()
+        rescheduleNotificationsIfEnabled()
+    }
+
+    /// Starts a fresh cycle for an existing protocol — same compounds,
+    /// same schedule, `startDate` reset to today, status flipped back
+    /// to `.active`. Used by the cycle-completion prompt's "Start new
+    /// cycle" action. CycleMilestoneService keys on `startDate` so
+    /// Day-7 / Day-30 / Complete prompts fire fresh for the new
+    /// cycle without manual reset.
+    func restartProtocol(id: UUID) {
+        guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
+        protocols[index].startDate = Calendar.current.startOfDay(for: Date())
+        protocols[index].status = .active
+        appendTodayEntries(for: protocols[index])
+        save()
+        rescheduleNotificationsIfEnabled()
+    }
+
+    /// Sweep called from `handleAppActivation` so cycles past the
+    /// dismiss-or-grace threshold flip to `.completed` without user
+    /// interaction. Logged at error level so the auto-completion is
+    /// auditable in Console.app.
+    func performCycleAutoCompletion() {
+        let due = CycleCompletionService.shared.protocolsDueForAutoCompletion(in: protocols)
+        guard !due.isEmpty else { return }
+        for proto in due {
+            AppLog.persistence.error(
+                "Auto-completing protocol \(proto.id.uuidString, privacy: .public) — cycle ended"
+            )
+            if let index = protocols.firstIndex(where: { $0.id == proto.id }) {
+                protocols[index].status = .completed
+            }
+            CycleCompletionService.shared.markAutoCompleted(proto)
+        }
+        save()
+        rescheduleNotificationsIfEnabled()
+    }
+
     // MARK: - Entries
 
     var todayEntries: [ProtocolEntry] {
@@ -1576,6 +1623,11 @@ final class DataStore: DataServiceProtocol {
     /// last check and regenerates today's entries when needed. Idempotent.
     func handleAppActivation() {
         bumpVersionIfDayChanged()
+        // Flip any `.active` protocols past the soft auto-complete
+        // threshold to `.completed`. Runs BEFORE regenerateTodayEntries
+        // so the just-completed cycles don't produce another day of
+        // scheduled entries before the status change lands.
+        performCycleAutoCompletion()
         regenerateTodayEntries()
     }
 

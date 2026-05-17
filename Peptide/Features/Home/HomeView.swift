@@ -37,6 +37,11 @@ struct HomeView: View {
     /// modals across runloop ticks.
     @State private var milestonePrompt: MilestonePromptItem?
     @State private var milestoneShareProtocol: PeptideProtocol?
+    /// Drives the cycle-completion sheet (Plan A). Set when a user's
+    /// active protocol has passed its cycle end and they haven't
+    /// already dismissed past the threshold. Cleared via the four
+    /// onResolve callbacks (mark / extend / new / dismiss).
+    @State private var completionPrompt: CompletionPromptItem?
     /// Tracks which jump-bar section is currently nearest the top of
     /// the viewport so the corresponding chip highlights. Driven by
     /// per-section preference reads in `.onScrollGeometryChange` —
@@ -416,6 +421,38 @@ struct HomeView: View {
                 )
                 .liquidGlassPresentation(detents: [.medium])
             }
+            .sheet(item: $completionPrompt) { item in
+                CycleCompletionPromptSheet(
+                    proto: item.proto,
+                    daysPastEnd: item.daysPastEnd,
+                    onMarkComplete: {
+                        dataStore.updateProtocolStatus(id: item.proto.id, to: .completed)
+                        CycleCompletionService.shared.markAutoCompleted(item.proto)
+                        completionPrompt = nil
+                    },
+                    onExtend: {
+                        dataStore.extendProtocol(id: item.proto.id, byWeeks: 2)
+                        // Mark as resolved so the prompt doesn't re-fire
+                        // immediately — the extended cycle will trigger
+                        // again when ITS end date passes.
+                        CycleCompletionService.shared.markAutoCompleted(item.proto)
+                        completionPrompt = nil
+                    },
+                    onStartNewCycle: {
+                        // Mark BEFORE restarting so the suppression key
+                        // is recorded against the pre-restart startDate
+                        // (the cycle that actually ended).
+                        CycleCompletionService.shared.markAutoCompleted(item.proto)
+                        dataStore.restartProtocol(id: item.proto.id)
+                        completionPrompt = nil
+                    },
+                    onDismiss: {
+                        CycleCompletionService.shared.recordDismissal(for: item.proto)
+                        completionPrompt = nil
+                    }
+                )
+                .liquidGlassPresentation(detents: [.medium, .large])
+            }
             .sheet(item: $milestoneShareProtocol) { proto in
                 ShareCardSheet(subject: .singleProtocol(proto))
                     .environment(dataStore)
@@ -760,11 +797,28 @@ struct HomeView: View {
     /// Surfaces the next pending Day-7 / Day-30 / cycle-complete prompt
     /// when Home becomes visible. Skipped when another sheet is already
     /// up so we never stack modals on top of each other.
+    ///
+    /// Cycle-completion prompts (Plan A: an `.active` protocol whose
+    /// cycle window ended) take priority over share milestones — the
+    /// user has to resolve state-transition decisions before we ask
+    /// them to share. Only one prompt fires per Home appear.
     private func checkMilestonePrompt() {
         guard milestonePrompt == nil,
               milestoneShareProtocol == nil,
+              completionPrompt == nil,
               !showProfileCustomization
         else { return }
+
+        // Completion prompt wins when present.
+        if let pending = CycleCompletionService.shared.pendingCompletion(in: dataStore.protocols) {
+            let days = max(0, daysPastCycleEnd(of: pending))
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(800))
+                guard completionPrompt == nil else { return }
+                completionPrompt = CompletionPromptItem(proto: pending, daysPastEnd: days)
+            }
+            return
+        }
 
         guard let pending = CycleMilestoneService.shared.pendingMilestone(in: dataStore.protocols) else {
             return
@@ -775,6 +829,22 @@ struct HomeView: View {
             guard milestonePrompt == nil else { return }
             milestonePrompt = MilestonePromptItem(proto: pending.proto, milestone: pending.milestone)
         }
+    }
+
+    private func daysPastCycleEnd(of proto: PeptideProtocol) -> Int {
+        let cal = Calendar.current
+        guard let end = cal.date(
+            byAdding: .day,
+            value: proto.safeCycleLengthWeeks * 7,
+            to: cal.startOfDay(for: proto.startDate)
+        ) else { return 0 }
+        return cal.dateComponents([.day], from: end, to: cal.startOfDay(for: Date())).day ?? 0
+    }
+
+    private struct CompletionPromptItem: Identifiable {
+        let proto: PeptideProtocol
+        let daysPastEnd: Int
+        var id: String { "\(proto.id.uuidString):\(Int(proto.startDate.timeIntervalSince1970))" }
     }
 
     private struct MilestonePromptItem: Identifiable {
