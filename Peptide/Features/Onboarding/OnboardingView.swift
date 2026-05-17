@@ -731,52 +731,59 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Value proof
+    // MARK: - Value proof (feature reel)
 
     private var valueProof: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.lg) {
-                Text("Know exactly when to\n")
-                    .font(.system(size: 38, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppColor.textPrimary)
-                + Text("push harder.")
-                    .font(.system(size: 38, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppColor.accentPrimary)
-
-                VStack(alignment: .leading, spacing: Spacing.md) {
-                    valueBullet(icon: "list.bullet.rectangle.fill",
-                                text: "Plan your workouts and stay on track.")
-                    valueBullet(icon: "scalemass.fill",
-                                text: "See your last weight so you know when to add more.")
-                    valueBullet(icon: "chart.line.uptrend.xyaxis",
-                                text: "Track progress and balance hard training with recovery.")
-                    valueBullet(icon: "trophy.fill",
-                                text: "Celebrate every PR with confetti and haptic feedback.")
-                }
-                Spacer(minLength: 120)
-            }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.top, Spacing.lg)
-        }
-    }
-
-    private func valueBullet(icon: String, text: String) -> some View {
-        HStack(alignment: .top, spacing: Spacing.md) {
-            ZStack {
-                Circle()
-                    .fill(AppColor.accentPrimary.opacity(0.18))
-                    .frame(width: 32, height: 32)
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(AppColor.accentPrimary)
-            }
-            Text(text)
-                .font(AppFont.callout)
+        VStack(alignment: .leading, spacing: Spacing.lg) {
+            Text("What Atlas\nactually does.")
+                .font(.system(size: 38, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
+                .lineSpacing(-2)
+                .padding(.horizontal, Spacing.lg)
+                .padding(.top, Spacing.lg)
+
+            FeatureReel(features: Self.featureReel)
+
+            Spacer(minLength: 100)
         }
     }
+
+    /// Hand-picked features that read as "this is the differentiated
+    /// product" without overwhelming a first-run user. Ordered to lead
+    /// with the visible training story and trail with the higher-end
+    /// AI / Biology surfaces that Pro unlocks.
+    fileprivate static let featureReel: [FeatureReel.Feature] = [
+        .init(
+            icon: "figure.strengthtraining.traditional",
+            tint: Color(hex: 0xCF7272),
+            title: "Train",
+            body: "Plan sessions, log sets in two taps, see your last weight inline so you know when to add more."
+        ),
+        .init(
+            icon: "fork.knife",
+            tint: Color(hex: 0xD4A844),
+            title: "Eat",
+            body: "Scan a barcode or snap a plate — Claude estimates the macros and logs the meal."
+        ),
+        .init(
+            icon: "heart.fill",
+            tint: Color(hex: 0xCF6C6C),
+            title: "Biology",
+            body: "HRV, RHR, sleep, and a Performance Age that explains what's moving the markers."
+        ),
+        .init(
+            icon: "brain.head.profile.fill",
+            tint: Color(hex: 0x9B72CF),
+            title: "Research",
+            body: "Ask the AI assistant — grounded in a 208-compound database with citations."
+        ),
+        .init(
+            icon: "flask.fill",
+            tint: Color(hex: 0x5B8FB9),
+            title: "Track protocols",
+            body: "Cycle plans, vials, dose windows, and weekly recaps — for anyone running serious protocols."
+        ),
+    ]
 
     // MARK: - Name
 
@@ -2106,6 +2113,105 @@ struct OnboardingView: View {
             }
             .padding(.horizontal, Spacing.lg)
         }
+    }
+}
+
+/// Horizontal-paging feature carousel shown on the value-proof step.
+/// Each card surfaces one differentiated capability with a tinted icon,
+/// short headline, and one-sentence framing — answers "what does this
+/// app actually do" before any data is asked from the user.
+struct FeatureReel: View {
+    struct Feature: Identifiable, Hashable {
+        let id = UUID()
+        let icon: String
+        let tint: Color
+        let title: String
+        let body: String
+    }
+
+    let features: [Feature]
+    @State private var currentIndex: Int = 0
+
+    var body: some View {
+        VStack(spacing: Spacing.md) {
+            // Horizontal ScrollView with paging instead of a nested
+            // TabView — the outer onboarding flow already owns the
+            // page-swipe gesture, so a nested .page TabView fights it.
+            // scrollTargetBehavior(.viewAligned) + scrollTargetLayout()
+            // snap each card to the leading edge and keep paging clean.
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: Spacing.md) {
+                    ForEach(Array(features.enumerated()), id: \.offset) { offset, feature in
+                        FeatureReelCard(feature: feature)
+                            .containerRelativeFrame(.horizontal)
+                            .id(offset)
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.viewAligned)
+            .scrollPosition(id: scrollPositionBinding, anchor: .leading)
+            .frame(height: 280)
+            .contentMargins(.horizontal, Spacing.lg, for: .scrollContent)
+
+            HStack(spacing: 6) {
+                ForEach(0..<features.count, id: \.self) { idx in
+                    Capsule()
+                        .fill(idx == currentIndex
+                              ? AppColor.accentPrimary
+                              : AppColor.textTertiary.opacity(0.3))
+                        .frame(width: idx == currentIndex ? 18 : 6, height: 6)
+                        .animation(AppAnimation.springSnappy, value: currentIndex)
+                }
+            }
+        }
+    }
+
+    /// `.scrollPosition(id:)` expects a Binding<Int?> — wrap the plain
+    /// `currentIndex: Int` state so the dot row updates as the user
+    /// pages, and so taps on a dot can scroll-target a specific card.
+    private var scrollPositionBinding: Binding<Int?> {
+        Binding(
+            get: { currentIndex },
+            set: { newValue in
+                if let newValue { currentIndex = newValue }
+            }
+        )
+    }
+}
+
+private struct FeatureReelCard: View {
+    let feature: FeatureReel.Feature
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            ZStack {
+                Circle()
+                    .fill(feature.tint.opacity(0.18))
+                    .frame(width: 64, height: 64)
+                Image(systemName: feature.icon)
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(feature.tint)
+            }
+            Text(feature.title)
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .foregroundStyle(AppColor.textPrimary)
+            Text(feature.body)
+                .font(AppFont.callout)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer()
+        }
+        .padding(Spacing.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .stroke(AppColor.glassBorder, lineWidth: 0.5)
+        )
     }
 }
 
