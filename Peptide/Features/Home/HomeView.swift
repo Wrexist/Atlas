@@ -585,6 +585,9 @@ struct HomeView: View {
         let nextTimeDisplay: String? = next.map {
             DateFormatter.localizedString(from: $0.date, dateStyle: .none, timeStyle: .short)
         }
+        let memberDays = Calendar.current
+            .dateComponents([.day], from: dataStore.profile.memberSince, to: Date())
+            .day ?? 0
         let context = CoachingMessageEngine.Context(
             hasProtocols: !dataStore.protocols.isEmpty,
             healthConnected: dataStore.profile.healthConnected,
@@ -596,7 +599,8 @@ struct HomeView: View {
             pendingDoseCount: todayStats.total - todayStats.completed,
             nextDoseAbbreviation: next?.peptide.abbreviation,
             nextDoseTimeDisplay: nextTimeDisplay,
-            hourOfDay: Calendar.current.component(.hour, from: Date())
+            hourOfDay: Calendar.current.component(.hour, from: Date()),
+            memberDays: memberDays
         )
         return CoachingMessageEngine.pick(context: context)
     }

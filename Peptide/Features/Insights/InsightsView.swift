@@ -140,7 +140,14 @@ struct InsightsView: View {
                         )
                         .sectionAppear(index: 8)
 
-                        if let headline = OutcomeCorrelationEngine.headline(
+                        // Gate the outcome-correlation headline on a real
+                        // sample size. ROADMAP item 6.6 specifies
+                        // entries > 60; the engine itself only enforces
+                        // 4-per-bucket which produces statistically
+                        // meaningless headlines for a user with 8
+                        // check-ins (audit Insights H4).
+                        if dataStore.entries.count > 60,
+                           let headline = OutcomeCorrelationEngine.headline(
                             outcomes: dataStore.profile.outcomeHistory,
                             entries: dataStore.entries
                         ) {

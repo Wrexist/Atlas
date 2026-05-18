@@ -37,5 +37,5 @@ protocol DataServiceProtocol {
     // Profile
     var profile: UserProfile { get }
     func updateGoals(_ goals: Set<String>)
-    func toggleHealthConnection()
+    func toggleHealthConnection() async -> Bool
 }

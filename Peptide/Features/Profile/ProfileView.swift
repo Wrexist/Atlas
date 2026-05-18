@@ -124,10 +124,10 @@ struct ProfileView: View {
 
     private func connectHealthKit() {
         Task { @MainActor in
-            let authorized = await HealthKitService.shared.requestAuthorization()
-            if authorized {
-                dataStore.toggleHealthConnection()
-            }
+            // toggleHealthConnection now requests authorization internally
+            // and refuses to flip ON without a grant — so we can call it
+            // directly without a separate pre-check.
+            _ = await dataStore.toggleHealthConnection()
         }
     }
 

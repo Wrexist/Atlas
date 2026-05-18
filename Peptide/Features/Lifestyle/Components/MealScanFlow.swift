@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import Photos
 import UIKit
 
 /// End-to-end meal-scanner sheet: picks an image (camera or library),
@@ -22,6 +23,11 @@ struct MealScanFlow: View {
     @State private var errorText: String?
     @State private var category: MealCategory = MealCategory.auto(for: Date())
     @State private var isShowingCamera = false
+    /// Honors the photo's EXIF creation date so picking yesterday's
+    /// dinner from the library at 10am today logs the meal into
+    /// yesterday's bucket (audit Meals HIGH 2). Camera captures
+    /// stamp Date() since there's no asset to read from.
+    @State private var capturedAtDate: Date = Date()
 
     private enum Phase: Equatable {
         case pickImage
@@ -316,17 +322,41 @@ struct MealScanFlow: View {
                 }
                 return
             }
+            // Capture EXIF date so a meal picked from a yesterday-
+            // dinner photo logs into yesterday's bucket, not today's
+            // (audit Meals HIGH 2). Falls back to today only when
+            // the asset truly has no creation date.
+            let capturedAt = await loadCreationDate(for: item) ?? Date()
             await MainActor.run {
                 image = ui
+                capturedAtDate = capturedAt
                 phase = .analyzing
             }
             await runAnalysis(on: ui)
         } catch {
             await MainActor.run {
-                errorText = error.localizedDescription
+                // Never surface raw PHPhotosErrorDomain strings to
+                // the user — those read "The operation couldn't be
+                // completed. (PHPhotosErrorDomain error 3304.)"
+                // which is unactionable (audit Meals HIGH 3). Log
+                // the underlying string at .private privacy for
+                // diagnostic purposes.
+                AppLog.persistence.error("PhotosPicker loadImage failed: \(error.localizedDescription, privacy: .private)")
+                errorText = "Couldn't load that photo. Try another one."
                 phase = .error
             }
         }
+    }
+
+    /// Reads the original asset's `creationDate` via PhotoKit so we
+    /// preserve the moment-of-capture for the meal log. The
+    /// `PhotosPickerItem.itemIdentifier` is the local PHAsset
+    /// identifier; absent or unfetchable assets fall back to nil and
+    /// the caller writes "now" as a final fallback.
+    private func loadCreationDate(for item: PhotosPickerItem) async -> Date? {
+        guard let assetID = item.itemIdentifier else { return nil }
+        let result = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil)
+        return result.firstObject?.creationDate
     }
 
     private func runAnalysis(on image: UIImage) async {
@@ -353,8 +383,12 @@ struct MealScanFlow: View {
 
     private func confirm() {
         guard let estimate else { return }
+        // Use the photo's capture time so a yesterday-dinner photo
+        // picked at 10am today logs into yesterday's bucket. Falls
+        // back to now (set in @State default) for camera captures or
+        // assets without a creation date.
         let entry = MealEntry(
-            date: Date(),
+            date: capturedAtDate,
             category: category,
             name: estimate.mealName.capitalized,
             calories: estimate.calories,

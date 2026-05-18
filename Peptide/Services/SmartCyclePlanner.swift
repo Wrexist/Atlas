@@ -120,20 +120,31 @@ enum SmartCyclePlanner {
     }
 
     /// No completed entries in the past 7 days for an "active" protocol
-    /// → recommend pausing rather than silently abandoning.
+    /// → recommend pausing rather than silently abandoning. Gated on
+    /// the protocol being at least 7 days old — a brand-new
+    /// protocol naturally has no completed entries yet and triggering
+    /// "Pause this stack?" on day one is wrong (audit Library P1.7).
     private static func idleNudge(
         for proto: PeptideProtocol,
         entries: [ProtocolEntry],
         today: Date,
         calendar: Calendar
     ) -> Suggestion? {
+        let daysSinceStart = calendar.dateComponents([.day], from: proto.startDate, to: today).day ?? 0
+        guard daysSinceStart >= 7 else { return nil }
+
         let cutoff = calendar.date(byAdding: .day, value: -7, to: today) ?? today
         let recent = entries.filter { $0.completed && $0.date >= cutoff }
         guard recent.isEmpty else { return nil }
 
         let lastCompleted = entries.filter(\.completed).map(\.date).max()
         let idleDays: Int = {
-            guard let last = lastCompleted else { return 30 }
+            guard let last = lastCompleted else {
+                // No completions ever, but the protocol is ≥7 days old —
+                // measure idle from start date rather than the
+                // misleading fallback of 30.
+                return daysSinceStart
+            }
             return max(7, calendar.dateComponents([.day], from: last, to: today).day ?? 7)
         }()
 

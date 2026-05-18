@@ -1234,9 +1234,29 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
-    func toggleHealthConnection() {
-        profile.healthConnected.toggle()
+    /// Toggle off (revoke local link) is unconditional. Toggle ON
+    /// only succeeds after the user has actually granted at least
+    /// one HealthKit type — previously we'd flip the bool to true
+    /// regardless, then PeptideApp's task fired
+    /// startBackgroundDelivery against permissionless observer
+    /// queries, and downstream UI showed "connected" with empty
+    /// cards (audit Biology H9). Caller can `await` the result and
+    /// surface a permissions prompt when this returns false.
+    @discardableResult
+    func toggleHealthConnection() async -> Bool {
+        if profile.healthConnected {
+            profile.healthConnected = false
+            save()
+            return true
+        }
+        let granted = await HealthKitService.shared.requestAuthorization()
+        guard granted else {
+            AppLog.healthKit.warning("toggleHealthConnection blocked — no HealthKit grant")
+            return false
+        }
+        profile.healthConnected = true
         save()
+        return true
     }
 
     /// Atomically updates the user-customizable identity fields shown on the

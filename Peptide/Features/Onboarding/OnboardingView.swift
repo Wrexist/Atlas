@@ -1757,7 +1757,7 @@ struct OnboardingView: View {
                 )
                 .padding(.horizontal, Spacing.lg)
 
-                Text("Atlas reads only — never writes. Lockable with Face ID.")
+                Text("Reads only by default. Optional nutrition-write turns on later from Profile. Lockable with Face ID.")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
                     .padding(.top, Spacing.xs)
@@ -1969,13 +1969,14 @@ struct OnboardingView: View {
         Task {
             let granted = await HealthKitService.shared.requestAuthorization()
             requestingHealth = false
-            // HealthKit deliberately doesn't tell apps when the user
-            // denies — `granted == true` only confirms the user saw
-            // the dialog. We only flip the local flag when the system
-            // actually returned success so the UI never claims
-            // "connected" against a denial.
+            // Note: HealthKit deliberately doesn't tell apps when the
+            // user denies a specific type — `granted == true` only
+            // confirms the user saw the dialog. The toggleHealthConnection
+            // path re-runs the auth request anyway and only flips the
+            // flag when the system reports success, so a deny-all
+            // still leaves healthConnected false.
             if granted, !dataStore.profile.healthConnected {
-                dataStore.toggleHealthConnection()
+                _ = await dataStore.toggleHealthConnection()
             }
             OnboardingFunnelTracker.recordEvent(granted ? "health_granted" : "health_denied")
         }
