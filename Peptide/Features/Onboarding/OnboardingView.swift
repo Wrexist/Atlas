@@ -941,27 +941,42 @@ struct OnboardingView: View {
             .padding(.top, Spacing.xl)
             .padding(.bottom, Spacing.md)
 
-            ScrollView {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
-                          spacing: Spacing.sm) {
-                    ForEach(PrimaryGoal.allCases) { goalCard($0) }
-                }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.top, Spacing.sm)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
+                              spacing: Spacing.sm) {
+                        ForEach(PrimaryGoal.allCases) { goalCard($0) }
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.top, Spacing.sm)
 
-                if goalHasBeenSelected {
-                    goalDateSection
-                        .padding(.horizontal, Spacing.lg)
-                        .padding(.top, Spacing.lg)
-                        .padding(.bottom, Spacing.xxxxl)
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
-                } else {
-                    Color.clear.frame(height: Spacing.xxxxl)
+                    if goalHasBeenSelected {
+                        goalDateSection
+                            .id(Self.goalDateAnchorID)
+                            .padding(.horizontal, Spacing.lg)
+                            .padding(.top, Spacing.lg)
+                            .padding(.bottom, Spacing.xxxxl)
+                            .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    } else {
+                        Color.clear.frame(height: Spacing.xxxxl)
+                    }
+                }
+                .onChange(of: goalHasBeenSelected) { _, isSelected in
+                    // After the date section reveals, pull it into view —
+                    // on small phones (SE) the goal grid fills the
+                    // viewport and the chips sit below the fold, hiding
+                    // the next-step affordance (audit Onboarding 4.14).
+                    guard isSelected else { return }
+                    withAnimation(AppAnimation.springSmooth) {
+                        proxy.scrollTo(Self.goalDateAnchorID, anchor: .bottom)
+                    }
                 }
             }
         }
         .animation(AppAnimation.springSmooth, value: goalHasBeenSelected)
     }
+
+    private static let goalDateAnchorID = "onboarding.goal.dateSection"
 
     private var goalHeadline: String {
         goalHasBeenSelected ? "Hit it by when?" : "What's your goal?"

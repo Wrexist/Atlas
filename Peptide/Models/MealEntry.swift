@@ -37,15 +37,17 @@ enum MealCategory: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 
     /// Time-of-day default. Matches a typical Western eating pattern:
-    /// 4–10:59 → breakfast, 11–15:59 → lunch, 16–21:59 → dinner,
+    /// 4–10:59 → breakfast, 11–15:59 → lunch, 16–22:59 → dinner,
     /// otherwise snack. Users can override on the review screen, but
-    /// most don't — picking a sane default saves a tap per log.
+    /// most don't — picking a sane default saves a tap per log. The
+    /// 23:00 dinner→snack boundary is intentionally generous: a 22:15
+    /// late dinner is still dinner (audit Meals L15).
     static func auto(for date: Date) -> MealCategory {
         let hour = Calendar.current.component(.hour, from: date)
         switch hour {
         case 4...10:   return .breakfast
         case 11...15:  return .lunch
-        case 16...21:  return .dinner
+        case 16...22:  return .dinner
         default:       return .snack
         }
     }

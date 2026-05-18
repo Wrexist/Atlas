@@ -29,6 +29,8 @@
 	<string>Atlas reads heart rate, HRV, resting heart rate, body mass, steps, and active energy from Apple Health to correlate your peptide protocols with biometric trends. All analysis happens on your device.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Atlas can optionally write the meals you log (calories, protein, carbs, fat, fiber) to Apple Health, so your nutrition shows up alongside everything else Apple Health tracks. Writing is off by default and you can disable it any time in Profile → Apple Health.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Atlas can save your generated share cards (cycle summaries, achievement cards) to your Photo Library when you tap Save. Only the images you choose to save are written — Atlas never reads from your library.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UILaunchScreen</key>

@@ -75,9 +75,16 @@ struct ProtocolDetailView: View {
                             }
                         }
 
-                        // Stats row
+                        // Stats row. Once a user rolls into their
+                        // second cycle (8-on-4-off, repeated), the
+                        // bare "Week 2" loses the cycle context;
+                        // prefix with "C2 ·" so they read both
+                        // (audit Library P2.14).
                         HStack(spacing: Spacing.lg) {
-                            MiniStat(value: "Week \(liveProtocol.weekNumber)", label: "Current")
+                            let weekLabel = liveProtocol.cycleNumber > 1
+                                ? "C\(liveProtocol.cycleNumber) · W\(liveProtocol.weekNumber)"
+                                : "Week \(liveProtocol.weekNumber)"
+                            MiniStat(value: weekLabel, label: "Current")
                             MiniStat(value: "\(liveProtocol.daysRemaining)", label: "Days Left")
                             if let adherencePercent {
                                 MiniStat(value: "\(adherencePercent)%", label: "Adherence")

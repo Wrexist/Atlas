@@ -29,9 +29,14 @@ enum WeeklyMuscleHeatmap {
         from sessions: [WorkoutSession],
         library: ExerciseLibrary,
         days: Int = 7,
-        now: Date = Date()
+        now: Date = Date(),
+        calendar: Calendar = .current
     ) -> [AnatomicalMuscle: Double] {
-        let cutoff = now.addingTimeInterval(-Double(days) * 86_400)
+        // Calendar-day window so DST flips don't push the boundary an
+        // hour off, and so a workout at 23:50 doesn't fall out of the
+        // window when re-rendered 10 minutes later (audit Train M6).
+        let today = calendar.startOfDay(for: now)
+        let cutoff = calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
         var counts: [AnatomicalMuscle: Double] = [:]
 
         for session in sessions where session.startedAt >= cutoff {

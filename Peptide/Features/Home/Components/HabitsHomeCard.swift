@@ -194,6 +194,19 @@ struct HabitsHomeCard: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(done ? AppColor.textSecondary : AppColor.textPrimary)
                     .lineLimit(1)
+                // `.timesPerWeek` habits aren't gated by per-day due-ness;
+                // the user wants to know how the WEEK is going. Show
+                // "X/N" alongside the streak so they can see at a glance
+                // that 2 of 3 lifts are in (audit Habits L7).
+                if let weekly = HabitsService.weeklyProgress(
+                    for: habit,
+                    entries: dataStore.profile.habitEntries
+                ) {
+                    Text("\(weekly.count)/\(weekly.target)")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundStyle(habit.tint)
+                        .monospacedDigit()
+                }
                 if summary.currentStreak >= 3 {
                     HStack(spacing: 2) {
                         Image(systemName: "flame.fill")

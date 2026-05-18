@@ -113,10 +113,19 @@ final class WorkoutSessionService {
     func addExercise(_ exercise: Exercise) {
         guard var session = activeSession else { return }
         let nextIndex = session.exercises.count
+        // Seed the first set with the user's last working weight /
+        // reps for this exercise so they aren't staring at a 0kg
+        // placeholder every time (audit Train M4). Default to a
+        // conservative 8 reps when no history exists.
+        let seed = lastCompletedSet(forExerciseID: exercise.id)
         let entry = WorkoutExerciseEntry(
             exerciseID: exercise.id,
             index: nextIndex,
-            sets: [SetEntry(index: 1, weightKg: 0, reps: 8)]
+            sets: [SetEntry(
+                index: 1,
+                weightKg: seed?.weightKg ?? 0,
+                reps: seed?.reps ?? 8
+            )]
         )
         session.exercises.append(entry)
         persist(session)

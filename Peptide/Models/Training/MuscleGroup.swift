@@ -58,8 +58,11 @@ enum MuscleGroup: String, CaseIterable, Codable, Identifiable, Sendable {
         case "shoulders", "neck":                                return .shoulders
         case "biceps", "triceps", "forearms":                    return .arms
         case "quadriceps", "hamstrings", "calves",
-             "adductors", "abductors":                           return .legs
-        case "glutes":                                           return .glutes
+             "adductors":                                        return .legs
+        // Abductors (gluteus medius/minimus) anatomically sit with the
+        // glutes — `AnatomicalMuscle.fromRaw` already maps them that
+        // way, so the collapsed group matches (audit Train M5).
+        case "glutes", "abductors":                              return .glutes
         case "abdominals":                                       return .core
         default:                                                 return nil
         }

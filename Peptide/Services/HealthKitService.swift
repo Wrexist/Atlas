@@ -199,6 +199,14 @@ final class HealthKitService {
             HKMetadataKeyFoodType: entry.name,
         ]
 
+        // Write every macro as a sample even when the value is zero —
+        // a 0g-protein entry IS information ("this meal had no
+        // protein"). Skipping zero samples left Apple Health's daily
+        // totals incomplete: a day of three meals all with 0g protein
+        // would have no protein sample at all, so the day showed
+        // blank instead of "0g" (audit Meals L13). Calories still
+        // gate on > 0 because writing a 0-kcal sample would be noise
+        // in the Health app's calorie chart.
         var samples: [HKQuantitySample] = []
         if entry.calories > 0 {
             samples.append(makeSample(
@@ -209,33 +217,27 @@ final class HealthKitService {
                 metadata: baseMetadata
             ))
         }
-        if entry.proteinG > 0 {
-            samples.append(makeSample(
-                type: .dietaryProtein,
-                unit: .gram(),
-                value: Double(entry.proteinG),
-                date: entry.date,
-                metadata: baseMetadata
-            ))
-        }
-        if entry.carbsG > 0 {
-            samples.append(makeSample(
-                type: .dietaryCarbohydrates,
-                unit: .gram(),
-                value: Double(entry.carbsG),
-                date: entry.date,
-                metadata: baseMetadata
-            ))
-        }
-        if entry.fatG > 0 {
-            samples.append(makeSample(
-                type: .dietaryFatTotal,
-                unit: .gram(),
-                value: Double(entry.fatG),
-                date: entry.date,
-                metadata: baseMetadata
-            ))
-        }
+        samples.append(makeSample(
+            type: .dietaryProtein,
+            unit: .gram(),
+            value: Double(entry.proteinG),
+            date: entry.date,
+            metadata: baseMetadata
+        ))
+        samples.append(makeSample(
+            type: .dietaryCarbohydrates,
+            unit: .gram(),
+            value: Double(entry.carbsG),
+            date: entry.date,
+            metadata: baseMetadata
+        ))
+        samples.append(makeSample(
+            type: .dietaryFatTotal,
+            unit: .gram(),
+            value: Double(entry.fatG),
+            date: entry.date,
+            metadata: baseMetadata
+        ))
         // Fiber intentionally omitted — `MealEntry` doesn't expose
         // it separately. See `nutritionWriteTypes` doc comment for
         // the full rationale.

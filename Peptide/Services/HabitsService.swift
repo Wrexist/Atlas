@@ -263,4 +263,22 @@ enum HabitsService {
                 .map { calendar.startOfDay(for: $0.date) }
         )
     }
+
+    /// "X of N this week" engagement gate for `.timesPerWeek` habits.
+    /// Daily and `.weekdays` schedules don't have a weekly count — those
+    /// callers should keep using the per-day summary (audit Habits L7).
+    /// Window is the current ISO week (firstWeekday of `calendar`).
+    static func weeklyProgress(
+        for habit: Habit,
+        entries: [HabitEntry],
+        on date: Date = Date(),
+        calendar: Calendar = .current
+    ) -> (count: Int, target: Int)? {
+        guard case .timesPerWeek(let target) = habit.schedule else { return nil }
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: date) else { return nil }
+        let count = completedDays(habit: habit, entries: entries, calendar: calendar)
+            .filter { $0 >= interval.start && $0 < interval.end }
+            .count
+        return (count: min(count, target), target: max(target, 0))
+    }
 }
