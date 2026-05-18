@@ -601,7 +601,7 @@ struct ProtocolBuilderView: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
-                    Text("1080 × 1350")
+                    Text("1080 × 1920")
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .foregroundStyle(AppColor.textTertiary)
                 }

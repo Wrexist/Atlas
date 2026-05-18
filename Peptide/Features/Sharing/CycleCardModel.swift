@@ -88,8 +88,15 @@ extension CycleCardModel {
         // would otherwise show "Day 1 of N" — misleading. Render day 0
         // when the cycle hasn't started yet so the view can downgrade the
         // copy to "Starts soon" if it wants to.
+        // Unified with `forProtocol.cycleDay` clamping at max(1, ...)
+        // so the stack-level card and the per-protocol card describe
+        // a not-yet-started protocol consistently as "Day 1 of N"
+        // (audit Sharing P2.15). Previously forStack used max(0,...)
+        // and forProtocol used max(1,...), so a brand-new stack
+        // showed "Day 0 of N" on the stack card and "Day 1 of N" on
+        // the per-protocol card.
         let raw = Calendar.current.dateComponents([.day], from: earliestStart, to: Date()).day ?? 0
-        let cycleDay = max(0, raw + 1)
+        let cycleDay = max(1, raw + 1)
         return CycleCardModel(
             subjectTitle: "My Protocol",
             peptides: dataStore.stackPeptides,

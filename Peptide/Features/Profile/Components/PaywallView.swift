@@ -290,6 +290,10 @@ struct PaywallView: View {
     // MARK: - Pricing cards
 
     private var pricingCardsRow: some View {
+        // Three tiers — Yearly / Monthly / Lifetime — surfaced in
+        // priority order with the savings anchor on Yearly. Lifetime
+        // was previously loaded into StoreService.products but never
+        // rendered on the paywall (audit Library P1.10).
         HStack(alignment: .top, spacing: Spacing.md) {
             if let annual = storeService.annualProduct {
                 pricingCard(
@@ -310,6 +314,17 @@ struct PaywallView: View {
                     primaryUnit: "/mo",
                     subtitle: "Billed \(monthly.displayPrice)/mo",
                     badge: nil,
+                    isYearly: false
+                )
+            }
+            if let lifetime = storeService.lifetimeProduct {
+                pricingCard(
+                    product: lifetime,
+                    title: "Lifetime",
+                    primaryPrice: lifetime.displayPrice,
+                    primaryUnit: "once",
+                    subtitle: "Pay once. Yours forever.",
+                    badge: "BEST VALUE",
                     isYearly: false
                 )
             }
@@ -445,8 +460,15 @@ struct PaywallView: View {
         let yearAtMonthly = monthly.price * 12
         guard yearAtMonthly > annual.price else { return nil }
         let saved = (yearAtMonthly - annual.price) / yearAtMonthly
-        let percent = Int((saved as NSDecimalNumber).doubleValue * 100)
-        return percent > 0 ? "\(percent)% OFF" : nil
+        // Round instead of truncating — a 0.085 fraction was rendering
+        // as "8% OFF" before; a 0.07 fraction rendered as "7% OFF"
+        // but a 0.999% (yes, occasionally happens with mismatched
+        // currency rounding) silently became 0 and got filtered
+        // (audit Library P1.9). Threshold raised to >= 5% so a
+        // negligible saving doesn't ship a "5% OFF" badge that
+        // makes the annual tier look weak.
+        let percent = Int(((saved as NSDecimalNumber).doubleValue * 100).rounded())
+        return percent >= 5 ? "\(percent)% OFF" : nil
     }
 
     // MARK: - CTA
@@ -626,8 +648,19 @@ struct PaywallView: View {
         isPurchasing = true
         defer { isPurchasing = false }
         do {
-            _ = try await storeService.purchase(product)
-            if storeService.isProUser { dismiss() }
+            // purchaseWithOutcome distinguishes success / pending /
+            // cancel so an "Ask to Buy" approval-needed flow surfaces
+            // a real message instead of looking like a no-op
+            // (audit Library P0.5).
+            let outcome = try await storeService.purchaseWithOutcome(product)
+            switch outcome {
+            case .success:
+                if storeService.isProUser { dismiss() }
+            case .pending:
+                errorMessage = "Purchase pending approval. We'll unlock Pro automatically when it's approved."
+            case .userCancelled:
+                break // no UI noise on explicit cancel
+            }
         } catch {
             errorMessage = "Purchase failed. Try again or restore."
         }

@@ -138,14 +138,19 @@ struct HabitsHomeCard: View {
                     Button {
                         showingFullView = true
                     } label: {
-                        Text("+\(habits.count - 8)")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(AppColor.textSecondary)
-                            .frame(height: 32)
-                            .padding(.horizontal, Spacing.md)
-                            .background(Capsule().fill(AppColor.surfaceSecondary.opacity(0.7)))
+                        HStack(spacing: 4) {
+                            Text("+\(habits.count - 8)")
+                                .font(.system(size: 12, weight: .semibold))
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(AppColor.textSecondary)
+                        .frame(height: 32)
+                        .padding(.horizontal, Spacing.md)
+                        .background(Capsule().fill(AppColor.surfaceSecondary.opacity(0.7)))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("View all \(habits.count) habits")
                 }
             }
         }

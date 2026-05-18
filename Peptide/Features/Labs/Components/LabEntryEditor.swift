@@ -59,7 +59,31 @@ struct LabEntryEditor: View {
 
     private var canSave: Bool {
         guard let value = parsedValue, value > 0 else { return false }
-        return true
+        return rangeError == nil
+    }
+
+    /// Sanity bound — a value 10× beyond the typical-range floor /
+    /// ceiling is almost certainly a unit confusion or typo. We
+    /// reject save when the value falls outside [floor × 0.1,
+    /// ceiling × 10]. Anything narrower would also reject the
+    /// 0-ferritin / 999-cholesterol legitimate outliers that
+    /// motivate users to track in the first place (audit Biology
+    /// MED 12).
+    private var rangeError: String? {
+        guard let value = parsedValue, let range = panel.typicalRange else { return nil }
+        let floor = range.lowerBound * 0.1
+        let ceiling = range.upperBound * 10
+        if value < floor {
+            return "That's way below the typical \(format(range.lowerBound))–\(format(range.upperBound)) \(panel.canonicalUnit). Double-check the unit."
+        }
+        if value > ceiling {
+            return "That's way above the typical \(format(range.lowerBound))–\(format(range.upperBound)) \(panel.canonicalUnit). Double-check the unit."
+        }
+        return nil
+    }
+
+    private func format(_ d: Double) -> String {
+        d.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(d)) : String(format: "%.1f", d)
     }
 
     var body: some View {
@@ -87,7 +111,20 @@ struct LabEntryEditor: View {
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                     }
-                    DatePicker("Drawn on", selection: $drawDate, displayedComponents: .date)
+                    if let rangeError {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 11))
+                            Text(rangeError)
+                                .font(AppFont.caption)
+                        }
+                        .foregroundStyle(AppColor.destructive)
+                    }
+                    // Future draw-dates would break the chart's
+                    // time-based axis (audit Biology MED 12). The
+                    // `in: ...Date()` bound caps the picker at
+                    // today.
+                    DatePicker("Drawn on", selection: $drawDate, in: ...Date(), displayedComponents: .date)
                 } header: {
                     Text("Result")
                 } footer: {

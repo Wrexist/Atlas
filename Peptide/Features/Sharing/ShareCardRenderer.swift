@@ -68,6 +68,9 @@ enum ShareCardRenderer {
             .joined(separator: "-")
             .lowercased()
         let prefix = safeTitle.isEmpty ? "cycle" : safeTitle
-        return "peptidex-\(prefix)-\(UUID().uuidString.prefix(6)).png"
+        // "atlas-" prefix — was "peptidex-" which leaked the
+        // pre-rebrand product name into AirDrop / share sheet
+        // filenames (audit Sharing P2.13).
+        return "atlas-\(prefix)-\(UUID().uuidString.prefix(6)).png"
     }
 }

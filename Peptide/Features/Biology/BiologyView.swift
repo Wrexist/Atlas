@@ -49,7 +49,16 @@ struct BiologyView: View {
                     }
 
                     BiomarkerListSection(
-                        visibleBiomarkers: dataStore.profile.biologyConfig.visibleBiomarkers,
+                        // Pro biomarkers stay in profile.biologyConfig
+                        // after a subscription lapse so the user's
+                        // selection is preserved across re-up — but
+                        // we filter them out of the visible list when
+                        // !isProUser (audit Biology MED 11).
+                        // EditBiomarkersSheet already blocks adding
+                        // new Pro entries; this closes the rendering
+                        // side of the gate.
+                        visibleBiomarkers: dataStore.profile.biologyConfig.visibleBiomarkers
+                            .filter { storeService.isProUser || !$0.requiresPro },
                         onEditTapped: { showEditSheet = true },
                         onSelectBiomarker: { biomarker in openDetail(for: biomarker) }
                     )

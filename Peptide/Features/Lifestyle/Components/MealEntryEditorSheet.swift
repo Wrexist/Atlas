@@ -1,13 +1,12 @@
 import SwiftUI
 
 /// Edit-or-delete sheet for an existing `MealEntry`. Reached from
-/// `TodaysMealsCard` by tapping a row. Keeps the surface tiny — the
-/// only things a user typically wants to fix on a past log are the
-/// meal category (auto-detect occasionally lands on the wrong bucket
-/// near a boundary) and "I shouldn't have logged this at all". For
-/// macro corrections the user logs again via the food library and
-/// deletes the duplicate; building a full macro re-editor inline
-/// would be scope creep this sheet doesn't need.
+/// `TodaysMealsCard` by tapping a row. Allows full edit of every
+/// field that matters — category, macros, time. Previously only the
+/// category was editable, with footer copy that told the user to
+/// delete + re-log for macro fixes; but the re-log lands in *today's*
+/// bucket (audit Meals MED 9), so a user trying to fix yesterday's
+/// entry would silently move it to today. Full edit closes that loop.
 struct MealEntryEditorSheet: View {
     let initial: MealEntry
     let onSave: (MealEntry) -> Void
@@ -15,6 +14,11 @@ struct MealEntryEditorSheet: View {
     let onCancel: () -> Void
 
     @State private var category: MealCategory
+    @State private var calories: Int
+    @State private var proteinG: Int
+    @State private var carbsG: Int
+    @State private var fatG: Int
+    @State private var date: Date
     @State private var showDeleteConfirm: Bool = false
 
     init(
@@ -28,6 +32,20 @@ struct MealEntryEditorSheet: View {
         self.onDelete = onDelete
         self.onCancel = onCancel
         _category = State(initialValue: initial.category)
+        _calories = State(initialValue: initial.calories)
+        _proteinG = State(initialValue: initial.proteinG)
+        _carbsG = State(initialValue: initial.carbsG)
+        _fatG = State(initialValue: initial.fatG)
+        _date = State(initialValue: initial.date)
+    }
+
+    private var hasChanges: Bool {
+        category != initial.category
+            || calories != initial.calories
+            || proteinG != initial.proteinG
+            || carbsG != initial.carbsG
+            || fatG != initial.fatG
+            || !Calendar.current.isDate(date, equalTo: initial.date, toGranularity: .minute)
     }
 
     var body: some View {
@@ -53,7 +71,8 @@ struct MealEntryEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: commit)
-                        .disabled(category == initial.category)
+                        .disabled(!hasChanges)
+                        .fontWeight(.semibold)
                 }
             }
             .confirmationDialog(
@@ -112,34 +131,40 @@ struct MealEntryEditorSheet: View {
     private var macrosCard: some View {
         GlassCard(tinted: true, padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Logged values")
+                Text("Macros & time")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                 Divider().background(AppColor.glassBorder)
-                macroRow(label: "Calories", value: "\(initial.calories) kcal")
-                macroRow(label: "Protein",  value: "\(initial.proteinG) g")
-                macroRow(label: "Carbs",    value: "\(initial.carbsG) g")
-                macroRow(label: "Fat",      value: "\(initial.fatG) g")
-                Text("To change macros, delete this entry and re-log via the food library.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, Spacing.xs)
+                macroStepper(label: "Calories", unit: "kcal", value: $calories, step: 10, range: 0...10000)
+                macroStepper(label: "Protein",  unit: "g",   value: $proteinG, step: 1,  range: 0...500)
+                macroStepper(label: "Carbs",    unit: "g",   value: $carbsG,   step: 1,  range: 0...1000)
+                macroStepper(label: "Fat",      unit: "g",   value: $fatG,     step: 1,  range: 0...500)
+                Divider().background(AppColor.glassBorder)
+                DatePicker("Logged at", selection: $date, in: ...Date(), displayedComponents: [.date, .hourAndMinute])
+                    .font(AppFont.subheadline)
             }
         }
     }
 
-    private func macroRow(label: LocalizedStringKey, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            Spacer()
-            Text(value)
-                .font(AppFont.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.textPrimary)
-                .monospacedDigit()
+    private func macroStepper(
+        label: LocalizedStringKey,
+        unit: String,
+        value: Binding<Int>,
+        step: Int,
+        range: ClosedRange<Int>
+    ) -> some View {
+        Stepper(value: value, in: range, step: step) {
+            HStack {
+                Text(label)
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                Spacer()
+                Text("\(value.wrappedValue) \(unit)")
+                    .font(AppFont.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .monospacedDigit()
+            }
         }
     }
 
@@ -161,6 +186,11 @@ struct MealEntryEditorSheet: View {
     private func commit() {
         var updated = initial
         updated.category = category
+        updated.calories = calories
+        updated.proteinG = proteinG
+        updated.carbsG = carbsG
+        updated.fatG = fatG
+        updated.date = date
         onSave(updated)
     }
 

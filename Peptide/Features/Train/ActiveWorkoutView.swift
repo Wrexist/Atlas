@@ -77,12 +77,19 @@ struct ActiveWorkoutView: View {
                 .foregroundStyle(AppColor.destructive)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Finish") {
-                    showFinishConfirm = true
+                // Empty session is allowed to exit too — the alert
+                // copy redirects to Discard when nothing's logged so
+                // the user isn't stuck in a "Finish disabled / Discard
+                // only" trap (audit Train M3).
+                Button(session.completedSetCount == 0 ? "Exit" : "Finish") {
+                    if session.completedSetCount == 0 {
+                        showDiscardConfirm = true
+                    } else {
+                        showFinishConfirm = true
+                    }
                 }
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.accentPrimary)
-                .disabled(session.completedSetCount == 0)
             }
         }
         .sheet(isPresented: $showExercisePicker) {

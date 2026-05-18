@@ -111,7 +111,11 @@ enum MealSource: String, Codable, Sendable {
 /// gets bucketed as `Other` so the legacy rings still add up.
 struct MealEntry: Codable, Hashable, Identifiable, Sendable {
     let id: UUID
-    let date: Date
+    /// Was `let` — promoted to `var` so MealEntryEditorSheet can
+    /// fix yesterday's entry without a delete-and-re-log cycle that
+    /// would otherwise re-stamp the new entry as "now" and break the
+    /// user's historical bucket (audit Meals MED 9).
+    var date: Date
     var category: MealCategory
     var name: String
     var calories: Int
