@@ -1,4 +1,13 @@
-# App Store Connect — Metadata for PeptideX v1.0.0
+# App Store Connect — Metadata for Atlas v1.0.0
+
+> **Rebrand note.** The legacy product/bundle name remains `PeptideX` /
+> `com.peptidesai.app` so the StoreKit products and TestFlight history
+> stay intact. User-facing copy throughout this document leads with
+> Atlas — a health & fitness app for training, nutrition, recovery, and
+> protocol tracking — to match the in-app positioning shipped on the
+> rebrand branch. The peptide tracking surface is still present, framed
+> as an advanced-user feature alongside training and nutrition rather
+> than the headline.
 
 Paste the sections below into the corresponding fields in App Store Connect.
 All text respects Apple's current character limits. Placeholders are marked
@@ -10,8 +19,8 @@ All text respects Apple's current character limits. Placeholders are marked
 
 | Field | Value |
 |---|---|
-| App Name | `PeptideX` *(12 / 30)* |
-| Subtitle | `Peptide protocol tracker` *(24 / 30)* |
+| App Name | `Atlas` *(5 / 30)* |
+| Subtitle | `Train, eat, recover, repeat` *(27 / 30)* |
 | Primary Category | **Health & Fitness** |
 | Secondary Category | **Medical** *(optional — leave blank if you want a lighter review)* |
 | Bundle ID | `com.peptidesai.app` |
@@ -44,52 +53,79 @@ All text respects Apple's current character limits. Placeholders are marked
 ## Promotional Text *(170 char limit — can be updated without review)*
 
 ```
-Educational peptide reference and on-device dose journal. Read research,
-log what you take, see your compliance. Pro unlocks more (subscription).
+Train, log your meals, watch recovery climb. Atlas pulls workouts,
+nutrition, and biology into one private, on-device companion. Pro
+unlocks more.
 ```
-*(141 / 170)*
+*(165 / 170)*
 
 ---
 
 ## Description *(4000 char limit)*
 
 ```
-PeptideX is a private, native iOS educational reference and self-tracking
-journal for people who already follow peptide supplementation protocols on
-the advice of a qualified clinician. Look up published research, build a
-schedule you input yourself, log what you actually take, and see your
-adherence over time — all stored on your device.
+Atlas is a private, native iOS companion for training, nutrition, recovery,
+and (for the advanced user) supplementation protocols. Everything you log
+stays on your device or syncs through your own iCloud — there is no
+backend, no analytics, and no tracking.
 
-PeptideX does NOT prescribe, recommend, or calculate doses. Every value is
-labeled as reported in the research literature with citations on each
-peptide page. Always consult a qualified clinician before starting,
-changing, or stopping any protocol.
+TRAIN
+• Log every set with weight, reps, RPE, rest timer, and the previous
+  session pre-filled so you can focus on lifting
+• Library of common exercises plus custom lifts you build yourself
+• Per-muscle heatmap of the week's training volume
+• Personal records detected automatically and surfaced after the workout
+• Full session history with month-grouped browsing
+• Calendar that respects your locale's first day of the week
 
-INCLUDED FOR EVERY USER (FREE)
-• Browse 208 peptides across six categories with full research citations
-• Build up to 3 active protocols with flexible daily, weekly, or cycled schedules
-• Log each dose with the amount, time, injection site, and free-form notes
-• Pause and resume cycles without losing history
-• Local dose reminders on your iPhone (Mark as Taken / Snooze actions)
-• Read-only Apple Health integration for HR, HRV, sleep, activity
-• Basic compliance analytics — streaks, weekly heatmap, day-of-week patterns
-• Compliance widget on your Home Screen
-• 14 achievements across dose milestones, streaks, and logging consistency
-• Add your own custom peptides
-• Sign in with Apple (optional)
+NUTRITION
+• Barcode scanner backed by Open Food Facts (200 million+ products)
+• Photo-based meal scanner powered by on-server vision (your photo is
+  analyzed and discarded; nothing is stored remotely)
+• Custom-food library plus quick re-log of recent meals
+• Daily calorie + macro rings, with TDEE derived from your activity level
+• Per-meal history grouped by breakfast, lunch, dinner, snack
+• Optional one-way write to Apple Health for the meals you log
 
-PEPTIDEX PRO — UNLOCKED BY SUBSCRIPTION OR LIFETIME PURCHASE
-Every feature listed below requires PeptideX Pro. Pro is offered as a
-monthly auto-renewing subscription, an annual auto-renewing subscription,
-or a one-time lifetime purchase. A 3-day free trial is available on monthly
-and a 14-day free trial on annual. Cancel anytime in your Apple ID
-settings.
-• Unlimited protocols (PeptideX Pro — subscription required)
-• Full analytics with HealthKit correlation (PeptideX Pro — subscription required)
-• AI insights and smart suggestions (PeptideX Pro — subscription required)
-• Cloud sync across all your devices (PeptideX Pro — subscription required)
-• Every Home Screen widget plus Apple Watch (PeptideX Pro — subscription required)
-• CSV and JSON data export (PeptideX Pro — subscription required)
+BIOLOGY & RECOVERY
+• Recovery score that combines HRV, RHR, and sleep into a single number
+• Trend cards for weight, body fat, waist, blood pressure, and any lab
+  panel you enter (testosterone, ferritin, vitamin D, lipids, more)
+• Daily check-in for biology metrics with editable history
+• Compatible with Apple Health for the metrics it tracks; everything
+  manual otherwise
+
+HABITS
+• Build streaks for the small things — drink water, stretch, walk
+• Daily, weekday-specific, or times-per-week schedules
+• Heatmap of the last six months so you can see momentum at a glance
+• Optional reminders that fire when you set a time on the habit
+
+PEPTIDE PROTOCOL TRACKING (ADVANCED)
+For users already following peptide protocols on the advice of a qualified
+clinician, Atlas keeps the research library and protocol tracker that
+shipped with the original release:
+• 208 peptides across six categories with research citations
+• Up to 3 active protocols on the free tier, unlimited with Atlas Pro
+• Dose logging with time, site, and free-form notes
+• Local dose reminders with Mark-as-Taken and Snooze actions
+
+ATLAS DOES NOT prescribe, recommend, or calculate doses for any compound.
+Every peptide value is labeled as reported in the literature with
+citations on each detail page. Always consult a qualified clinician before
+starting, changing, or stopping any protocol.
+
+ATLAS PRO — UNLOCKED BY SUBSCRIPTION OR LIFETIME PURCHASE
+Pro is offered as a monthly auto-renewing subscription, an annual
+auto-renewing subscription, or a one-time lifetime purchase. A 3-day free
+trial is available on monthly and a 14-day free trial on annual. Cancel
+anytime in your Apple ID settings.
+• Unlimited protocols (Atlas Pro — subscription required)
+• Full Biology tab including body fat, waist, blood pressure, lab panels (Atlas Pro — subscription required)
+• AI research assistant with peptide-database RAG (Atlas Pro — subscription required)
+• Cloud sync across all your devices (Atlas Pro — subscription required)
+• Every Home Screen widget plus Apple Watch (Atlas Pro — subscription required)
+• CSV and JSON data export (Atlas Pro — subscription required)
 
 PRIVATE BY DEFAULT
 • No analytics, no trackers, no advertising SDKs
@@ -98,13 +134,11 @@ PRIVATE BY DEFAULT
 • Privacy manifest declares zero collected data types
 
 IMPORTANT — MEDICAL DISCLAIMER
-PeptideX is an educational reference and self-tracking journal. It is not a
+Atlas is an educational reference and self-tracking journal. It is not a
 medical device and does not provide medical advice, diagnosis, treatment,
-dose recommendations, or dose calculations. Information about peptides is
-summarized from published research with citations on each peptide page.
-Many substances referenced are research chemicals not approved for human
-use in many jurisdictions. Always consult a qualified, licensed healthcare
-provider before starting, changing, or stopping any protocol.
+dose recommendations, or dose calculations. Always consult a qualified,
+licensed healthcare provider before starting, changing, or stopping any
+training, nutrition, supplement, or peptide protocol.
 ```
 
 ---
@@ -112,9 +146,9 @@ provider before starting, changing, or stopping any protocol.
 ## Keywords *(100 char limit — comma-separated, NO spaces after commas)*
 
 ```
-peptide,protocol,tracker,bpc,health,fitness,supplement,reminder,dose,hrv,sleep,compliance
+workout,nutrition,macros,recovery,hrv,sleep,habits,barcode,peptide,protocol,journal,wellness
 ```
-*(91 / 100 — balances general health/fitness discovery with peptide-specific terms)*
+*(95 / 100 — leads with the fitness/nutrition surface to broaden discovery, keeps peptide/protocol so the existing audience still matches)*
 
 More technical alternative (narrower audience, higher intent):
 ```
@@ -126,36 +160,59 @@ peptide,protocol,tracker,bpc157,tb500,biohack,supplement,injection,dose,reminder
 ## "What's New in This Version" *(4000 char limit)*
 
 ```
-Welcome to PeptideX 1.0.
+Welcome to Atlas 1.0.
 
-Version 1.0 ships the full v1 experience.
+This release pulls everything we've built into one health & fitness
+companion — and keeps it private by default.
 
-Included for every user (free):
-• 208 peptides across six categories, fully searchable, with research citations
-• Up to 3 protocols with flexible schedules
-• Dose logging with site, time, and notes
-• Local dose reminders with Mark as Taken / Snooze
-• Read-only HealthKit correlation (HR, HRV, sleep, activity)
-• Compliance widget for your Home Screen
-• Basic analytics: streaks, heatmap, day-of-week
-• 14 achievements
-• Optional Sign in with Apple
+TRAIN
+• Full workout logging with sets, reps, RPE, and a rest timer that wakes
+  you with a local notification when the break is over
+• Per-muscle weekly volume heatmap
+• Automatic personal-record detection (incl. bodyweight rep PRs)
+• Searchable exercise library + custom lifts
+• Month-grouped workout history
 
-PeptideX Pro features (subscription or lifetime purchase required):
+NUTRITION
+• Open Food Facts barcode scanner with a 60-minute duplicate guard
+• Photo-based meal scanner; review and edit before saving
+• Daily calorie + macro targets derived from your activity level
+• Per-meal history grouped by breakfast, lunch, dinner, snack
+• Optional one-way write to Apple Health
+
+BIOLOGY & RECOVERY
+• Recovery score combining HRV, RHR, and sleep
+• Trend cards for weight, body fat, waist, blood pressure, and any lab
+  panel you enter
+• Daily check-in with editable history
+
+HABITS
+• Streak tracking with daily, weekday, or times-per-week schedules
+• Six-month heatmap for each habit
+• Optional reminders on the days the habit is due
+
+PEPTIDE TRACKING (FOR ADVANCED USERS)
+• 208 peptides with research citations
+• Up to 3 active protocols on the free tier
+• Dose logging + local reminders with Mark-as-Taken / Snooze
+• Atlas does not prescribe, recommend, or calculate doses
+
+ATLAS PRO (subscription or lifetime purchase required):
 • Unlimited protocols
-• Full analytics with HealthKit correlation
-• AI insights and smart suggestions
+• Full Biology tab (body composition + lab panels)
+• AI research assistant with peptide-database RAG
 • Cloud sync across devices
 • Every Home Screen widget plus Apple Watch
 • CSV and JSON data export
-• 3-day free trial on monthly, 14-day free trial on annual, or one-time lifetime
+• 3-day trial on monthly, 14-day trial on annual, or one-time lifetime
 
 Private by default: no backend, no analytics, no third-party SDKs.
 
-PeptideX is an educational reference and self-tracking journal — it does
-not recommend or calculate doses. Always consult a qualified clinician.
+Atlas is an educational reference and self-tracking journal — it does
+not recommend doses, diagnose, or replace a clinician. Always consult a
+qualified healthcare provider.
 
-Thanks for trying PeptideX. Send feedback to support@peptidesai.com — we
+Thanks for trying Atlas. Send feedback to support@peptidesai.com — we
 read everything.
 ```
 
@@ -229,7 +286,7 @@ performance-monitoring code lands.
 
 ### Why `NSPrivacyCollectedDataTypes` is empty
 
-PeptideX has **no developer backend** — all user data either:
+Atlas has **no developer backend** — all user data either:
 
 1. Stays in `UserDefaults` / SwiftData on-device, or
 2. Syncs through the user's **private** CloudKit database (Apple's
@@ -255,7 +312,7 @@ App Store Connect will not ask further questions.
 ## Review Information
 
 ### Sign-in credentials
-*(Provide only if the reviewer must sign in. PeptideX works without sign-in,
+*(Provide only if the reviewer must sign in. Atlas works without sign-in,
 so this is optional. If you leave it off, add a line to Notes explaining
 "Sign in with Apple is optional — every feature works without an account.")*
 
@@ -268,7 +325,7 @@ so this is optional. If you leave it off, add a line to Notes explaining
 ### Notes for App Review
 
 ```
-Thank you for reviewing PeptideX.
+Thank you for reviewing Atlas.
 
 • Sign in with Apple is optional. Every feature works without an account —
   you can skip sign-in on the onboarding screen.
@@ -276,17 +333,20 @@ Thank you for reviewing PeptideX.
   Health" in the Health Connection card. It is NOT requested automatically
   from the Analytics tab. Denying access does not disable any feature; it
   only hides the HealthKit correlation section.
-• PeptideX is read-only against Apple Health. Only
-  NSHealthShareUsageDescription is declared in Info.plist;
-  NSHealthUpdateUsageDescription is intentionally absent. The
-  authorization request is `requestAuthorization(toShare: [], read: ...)`
-  in HealthKitService.swift — six metric types are read (heart rate, HRV,
-  resting heart rate, body mass, step count, active energy), nothing is
-  ever written.
-• The peptide database is educational. The in-app medical disclaimer is
-  surfaced in onboarding and on every peptide detail screen. Peptides are
-  referenced as research chemicals; PeptideX does not sell, prescribe, or
-  source any compound.
+• Atlas reads six biometrics from Apple Health (heart rate, HRV, resting
+  HR, body mass, step count, active energy) for recovery correlation. It
+  also optionally WRITES the meals you log (dietaryEnergyConsumed,
+  dietaryProtein, dietaryCarbohydrates, dietaryFatTotal) so nutrition
+  shows up in Apple Health alongside everything else. Both
+  NSHealthShareUsageDescription and NSHealthUpdateUsageDescription are
+  declared in Info.plist with strings that describe their use. Writing is
+  off by default and toggled by the user from Profile → Apple Health.
+• The peptide database is educational, and the broader app frames itself as
+  a fitness companion (training, nutrition, recovery) with peptide tracking
+  as one of several surfaces. The in-app medical disclaimer is surfaced in
+  onboarding and on every peptide detail screen. Peptides are referenced
+  as research chemicals; Atlas does not sell, prescribe, or source any
+  compound.
 • Subscriptions are standard StoreKit 2 auto-renewable in-app purchases;
   Lifetime is a non-consumable in-app purchase. Sandbox accounts work
   without additional setup. Full data export (CSV / JSON / PDF) is a Pro
@@ -322,39 +382,44 @@ iOS requires at least the following (take in Simulator with
 | iPhone 6.5" (iPhone 11 Pro Max) | 1242 × 2688 | 3–10 *(legacy fallback, optional if 6.9" provided)* |
 | iPad Pro 13" (M4) | 2064 × 2752 | 3–10 *(required since you target iPad)* |
 
-Suggested screen order (per device):
+Suggested screen order (per device) — leads with the broad fitness
+surface, keeps the peptide tracker visible since it's still a real
+audience hook:
 
-1. **Home / Today view** — next dose, compliance ring
-2. **Peptide database** — search and category filter
-3. **Protocol builder** — schedule editor
-4. **Analytics** — heatmap + streak
-5. **HealthKit correlation** — HRV / sleep overlay
-6. **Widgets on Home Screen** — small + medium (marketing shot)
-7. **Paywall** — clean pricing page
+1. **Home / Today view** — recovery score, next workout, today's macros
+2. **Active workout / set logging** — sets with rest timer
+3. **Meals tab** — macro rings + per-meal history
+4. **Biology tab** — recovery score, weight trend, lab panels (Atlas Pro)
+5. **Habits** — streak heatmap + chip row
+6. **Peptide library + protocol detail** — research citations + adherence ring
+7. **Widgets on Home Screen** — small + medium (marketing shot)
+8. **Paywall** — clean pricing page with Yearly / Monthly / Lifetime
 
 ### Apple Guideline 2.3.2 — paid-feature labeling on screenshots
 
 Apple's most recent rejection cited the screenshots and description for
-referencing paid content (PeptideX Pro features, advanced analytics, cloud
+referencing paid content (Atlas Pro features, advanced analytics, cloud
 sync, AI insights, full export, all widgets, Apple Watch) without
 indicating that a purchase is required.
 
 Before resubmitting:
 
 - **Caption every screenshot that depicts a Pro-only feature** with the
-  literal text `PeptideX Pro — subscription required`. Paid features in
-  this app are: unlimited protocols, full analytics with HealthKit
-  correlation, AI insights, cloud sync, every Home Screen widget, Apple
-  Watch app, and CSV/JSON export.
-- **Free-tier features that should NOT carry the Pro label**: protocol
-  building (up to 3), dose logging, local dose reminders, the basic
-  compliance widget, the educational peptide library with citations, and
-  read-only HealthKit correlation visible inside the basic analytics view.
-- The paywall screenshot (slot 7) must remain in the screenshot set and
+  literal text `Atlas Pro — subscription required`. Paid features in
+  this app are: unlimited protocols, body-composition + lab biomarkers
+  in the Biology tab, the AI research assistant, cloud sync, every Home
+  Screen widget, Apple Watch app, and CSV/JSON export.
+- **Free-tier features that should NOT carry the Pro label**: workout
+  logging with rest timer + PR detection, meal logging via barcode /
+  photo / manual, the four free biomarker baselines (weight, HRV, RHR,
+  sleep), habit streak tracking, protocol building (up to 3 active),
+  dose logging, local dose reminders, the basic compliance widget, and
+  the educational peptide library with citations.
+- The paywall screenshot (slot 8) must remain in the screenshot set and
   display the auto-renew disclosure plus Terms / Privacy links so the
   reviewer can see them at a glance.
-- If you keep an "AI insights" or "Cloud sync" screenshot, add a visible
-  badge or caption overlay reading "PeptideX Pro" so the listing matches
+- If you keep an "AI research" or "Cloud sync" screenshot, add a visible
+  badge or caption overlay reading "Atlas Pro" so the listing matches
   what is gated in the binary (`StoreService.canAccessAIFeatures`,
   `canAccessCloudSync`, `canAccessFullAnalytics`, `canAccessExport`,
   `canAccessAllWidgets`).
@@ -369,25 +434,30 @@ App Store listing icon.
 
 | Product | Product ID | Type | Price | Trial |
 |---|---|---|---|---|
-| PeptideX Pro — Monthly | `com.peptidesai.app.pro.monthly` | Auto-Renewable | $9.99/mo | 3 days |
-| PeptideX Pro — Annual | `com.peptidesai.app.pro.annual` | Auto-Renewable | $49.99/yr | 14 days |
-| PeptideX Pro — Lifetime | `com.peptidesai.app.pro.lifetime` | Non-Consumable | $169.00 | — |
+| Atlas Pro — Monthly | `com.peptidesai.app.pro.monthly` | Auto-Renewable | $9.99/mo | 3 days |
+| Atlas Pro — Annual | `com.peptidesai.app.pro.annual` | Auto-Renewable | $49.99/yr | 14 days |
+| Atlas Pro — Lifetime | `com.peptidesai.app.pro.lifetime` | Non-Consumable | $169.00 | — |
 
-**Subscription group:** `PeptideX Pro`
+**Subscription group:** `Atlas Pro`
+
+> **Product ID note.** The reverse-DNS product IDs (`com.peptidesai.app.pro.*`)
+> stay unchanged so existing subscribers and the StoreKit sandbox
+> history continue working. Only the user-facing display names switch
+> from "PeptideX Pro" to "Atlas Pro".
 
 **Localization (display name and description) for each subscription:**
 
 Monthly:
-- Display Name: `PeptideX Pro Monthly`
-- Description: `Unlimited protocols, full analytics with HealthKit correlation, AI insights, all widgets, and full CSV/JSON/PDF export. Renews monthly; cancel anytime.`
+- Display Name: `Atlas Pro Monthly`
+- Description: `Unlimited protocols, the full Biology tab (body composition + labs), AI research assistant, all widgets, and full CSV/JSON export. Renews monthly; cancel anytime.`
 
 Annual:
-- Display Name: `PeptideX Pro Annual`
-- Description: `PeptideX Pro for a full year. Unlimited protocols, full analytics, AI insights, all widgets, full data export. Save versus monthly billing.`
+- Display Name: `Atlas Pro Annual`
+- Description: `Atlas Pro for a full year. Unlimited protocols, full Biology, AI research, all widgets, full data export. Save versus monthly billing.`
 
 Lifetime (non-consumable, listed under In-App Purchases, not Subscriptions):
-- Display Name: `PeptideX Pro Lifetime`
-- Description: `One-time purchase. Unlock PeptideX Pro forever — unlimited protocols, full analytics, AI insights, all widgets, and full data export. No subscription, no renewals.`
+- Display Name: `Atlas Pro Lifetime`
+- Description: `One-time purchase. Unlock Atlas Pro forever — unlimited protocols, full Biology, AI research, all widgets, and full data export. No subscription, no renewals.`
 
 Auto-renewal disclosure (already shown on the in-app paywall) satisfies
 Apple's requirement for the auto-renewable subscriptions.

@@ -112,6 +112,16 @@ struct PeptideApp: App {
                 // local until completion.
                 await OnboardingFunnelTracker.drainIfReady()
             }
+            .task {
+                // Drain any local affiliate application to the creator-
+                // program intake endpoint. Same opt-in shape as the
+                // funnel drain — gated on AffiliateIntakeEndpoint in
+                // Info.plist, no-op otherwise. The local copy stays
+                // on disk regardless so the user can re-edit.
+                await AffiliateIntakeService.drainIfReady(
+                    dataStore.profile.affiliateApplication
+                )
+            }
             .onOpenURL { url in
                 // Live Activity tap → `peptidex://dose/<uuid>`. Park
                 // the UUID on AppState; HomeView consumes it on its
