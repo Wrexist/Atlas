@@ -346,6 +346,13 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
+                // Cap content width on iPad / landscape — without this
+                // the cards stretch the full screen and the long-form
+                // copy reads as awkward 80-character lines (audit
+                // Phase 5.8 partial). 640pt keeps a comfortable
+                // readable measure; the rest gets centered.
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
             // Scroll-driven sticky header progress: fade begins
             // once the welcome card scrolls ~80pt out of view and

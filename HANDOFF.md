@@ -62,6 +62,31 @@ Then add to `Peptide/Resources/Info.plist`:
 
 (The same proxy serves both surfaces — the body shape is identical.)
 
+### 2b. Optional analytics drain endpoints
+
+Two new Info.plist keys gate the post-onboarding analytics drains.
+Both must use `https://`; absent / empty disables the drain entirely
+and the client keeps the local copy on disk.
+
+```xml
+<!-- POST target for completed OnboardingFunnelTracker snapshots.
+     Body shape: { sessionID, steps, events, completedAt }. -->
+<key>OnboardingFunnelEndpoint</key>
+<string>https://your-backend.example/api/onboarding/funnel</string>
+
+<!-- POST target for AffiliateApplication submissions. Body shape
+     matches the AffiliateApplication struct. Idempotent on the
+     client side: each unique submittedAt is drained at most once. -->
+<key>AffiliateIntakeEndpoint</key>
+<string>https://your-backend.example/api/creator/apply</string>
+```
+
+The funnel drain runs on every app launch once the user has
+finished onboarding; the affiliate drain runs on every launch when
+a local application exists and hasn't been drained yet. Failures
+are logged at `.warning` (no UI surface). Stand the endpoints up
+on Supabase / your own server when you're ready.
+
 ### 3. Live Activities entitlement
 
 `project.yml` now declares `NSSupportsLiveActivities: true`, but the entitlement also needs to be present in your Apple Developer App ID config. Check Apple Developer → Identifiers → `com.peptidesai.app` → make sure "Live Activities" is in the supported capabilities. The certificate / provisioning profile should refresh automatically after enabling.
