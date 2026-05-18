@@ -197,14 +197,33 @@ final class DataStore: DataServiceProtocol {
         rescheduleNotificationsIfEnabled()
     }
 
-    func updateProtocolStatus(id: UUID, to status: ProtocolStatus) {
-        guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
+    /// Returns true on success, false when activating would exceed
+    /// the free-tier 3-active-protocol cap. Callers should surface
+    /// the paywall when this returns false on an .active transition.
+    /// Was previously a `Void`-returning method with no gate, which
+    /// let a free user stockpile paused protocols and resume them
+    /// all to bypass the cap (audit Library P0.3).
+    @discardableResult
+    func updateProtocolStatus(id: UUID, to status: ProtocolStatus) -> Bool {
+        guard let index = protocols.firstIndex(where: { $0.id == id }) else { return false }
+        if status == .active {
+            let currentActive = protocols.filter {
+                $0.status == .active && $0.id != id
+            }.count
+            if StoreService.shared.requiresPro(activeProtocolCount: currentActive) {
+                AppLog.storeKit.warning(
+                    "updateProtocolStatus(.active) blocked — would exceed free-tier cap (\(currentActive, privacy: .public) already active)"
+                )
+                return false
+            }
+        }
         protocols[index].status = status
         if status == .active {
             appendTodayEntries(for: protocols[index])
         }
         save()
         rescheduleNotificationsIfEnabled()
+        return true
     }
 
     // MARK: - Entries
@@ -369,16 +388,38 @@ final class DataStore: DataServiceProtocol {
         )
         protocols[index] = updated
 
-        // Regenerate today's entries to reflect the new schedule — but
-        // only when the protocol is active. For paused / completed
-        // protocols, deleting today's entries would discard any doses
-        // the user already logged earlier today against that protocol,
-        // which is real data loss.
+        // Regenerate today's entries to reflect the new schedule. We
+        // preserve any entries the user has already completed or
+        // explicitly logged earlier today — re-generating without
+        // this guard would silently erase logged doses, which the
+        // audit (Library P0.2) flagged as real data loss for active
+        // protocols too, not just paused ones.
         if updated.status == .active {
+            let completedToday = entries.filter { entry in
+                entry.protocolId == id
+                    && Calendar.current.isDateInToday(entry.date)
+                    && (entry.completed || entry.actualDose != nil || entry.notes != nil)
+            }
             entries.removeAll { entry in
                 entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
             }
-            entries.append(contentsOf: Self.generateTodayEntries(for: updated))
+            // Append regenerated entries first, then re-insert the
+            // user-logged ones. If the regenerated schedule already
+            // covers the same (peptide, time) pair, the user's
+            // completion wins via the dedup pass below.
+            let fresh = Self.generateTodayEntries(for: updated)
+            var merged = fresh
+            for logged in completedToday {
+                if let dupeIdx = merged.firstIndex(where: {
+                    $0.peptide.id == logged.peptide.id
+                        && Calendar.current.isDate($0.date, equalTo: logged.date, toGranularity: .minute)
+                }) {
+                    merged[dupeIdx] = logged
+                } else {
+                    merged.append(logged)
+                }
+            }
+            entries.append(contentsOf: merged)
         }
 
         save()

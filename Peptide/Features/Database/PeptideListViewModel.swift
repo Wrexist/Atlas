@@ -6,18 +6,21 @@ final class PeptideListViewModel {
     var selectedCategory: PeptideCategory?
     private(set) var allPeptides: [Peptide]
     private(set) var filteredPeptides: [Peptide] = []
-    private var hasLoadedFromStore = false
 
     init(peptides: [Peptide] = []) {
         self.allPeptides = peptides
-        self.hasLoadedFromStore = !peptides.isEmpty
         refilter()
     }
 
+    /// Replace the in-memory catalog with the latest from DataStore.
+    /// Previously had a one-shot `hasLoadedFromStore` guard that
+    /// dropped every subsequent update — meaning a freshly-created
+    /// custom peptide never appeared in the list until the next app
+    /// launch (audit Library P0.1). Always refilter; the operation is
+    /// cheap (208 + ~N custom entries) and the user-data freshness
+    /// is the contract.
     func updatePeptides(_ peptides: [Peptide]) {
-        guard !hasLoadedFromStore else { return }
         allPeptides = peptides
-        hasLoadedFromStore = true
         refilter()
     }
 

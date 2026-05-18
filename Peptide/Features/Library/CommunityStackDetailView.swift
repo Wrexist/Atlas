@@ -4,7 +4,9 @@ struct CommunityStackDetailView: View {
     let stack: CommunityStack
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
+    @State private var storeService = StoreService.shared
     @State private var didFork = false
+    @State private var showingPaywall = false
     /// Stable id for the preview proto so SwiftUI doesn't churn on body re-runs.
     @State private var previewID = UUID()
 
@@ -233,7 +235,14 @@ struct CommunityStackDetailView: View {
         ) {
             useThisStack()
         }
-        .disabled(didFork)
+        // Disable when forked OR when nothing resolved locally (a
+        // community stack that references peptides not in the user's
+        // database would otherwise create an empty protocol — audit
+        // Library P0.4).
+        .disabled(didFork || resolvedPeptides.isEmpty)
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView()
+        }
     }
 
     private func miniStat(value: String, label: String) -> some View {
@@ -250,6 +259,15 @@ struct CommunityStackDetailView: View {
 
     private func useThisStack() {
         guard !didFork else { return }
+        guard !resolvedPeptides.isEmpty else { return }
+        // Honor the free-tier 3-active-protocol cap. The Pro gate on
+        // the FAB in ProtocolListView is the documented path; this
+        // route used to bypass it (audit Library P0.3).
+        let activeCount = dataStore.activeProtocols.count
+        if storeService.requiresPro(activeProtocolCount: activeCount) {
+            showingPaywall = true
+            return
+        }
         let proto = CommunityStackService.shared.forkToProtocol(stack)
         dataStore.addProtocol(proto)
         didFork = true

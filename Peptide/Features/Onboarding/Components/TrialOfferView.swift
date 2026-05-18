@@ -490,14 +490,23 @@ struct TrialOfferView: View {
         Task {
             // Reset isPurchasing unconditionally in a defer so a userCancelled
             // or pending purchase doesn't leave the CTA stuck (audit C-1).
-            // `purchase(_:)` returns false on both cancel and pending; we
-            // only call onAccept on a verified .success.
+            // purchaseWithOutcome distinguishes success / cancel /
+            // pending so we can surface "Ask to Buy" as a real
+            // outcome instead of letting the tap look like a no-op
+            // (audit Library P0.5).
             defer { isPurchasing = false }
             do {
-                let success = try await storeService.purchase(product)
-                if success {
+                let outcome = try await storeService.purchaseWithOutcome(product)
+                switch outcome {
+                case .success:
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                     onAccept()
+                case .pending:
+                    withAnimation {
+                        errorMessage = "Purchase pending approval. We'll unlock Pro as soon as it's approved."
+                    }
+                case .userCancelled:
+                    break // no UI noise on explicit cancel
                 }
             } catch {
                 withAnimation { errorMessage = "Couldn't complete the purchase. Please try again." }
