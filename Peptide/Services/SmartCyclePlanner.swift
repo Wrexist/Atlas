@@ -105,7 +105,7 @@ enum SmartCyclePlanner {
         today: Date,
         calendar: Calendar
     ) -> Suggestion? {
-        let weeks = max(1, proto.cycleLengthWeeks)
+        let weeks = proto.safeCycleLengthWeeks
         guard let end = calendar.date(byAdding: .day, value: weeks * 7, to: proto.startDate) else { return nil }
         let remaining = calendar.dateComponents([.day], from: today, to: end).day ?? -1
         guard remaining >= 0, remaining <= 5 else { return nil }
@@ -165,14 +165,22 @@ enum SmartCyclePlanner {
         today: Date,
         calendar: Calendar
     ) -> Suggestion? {
-        let weeks = max(1, proto.cycleLengthWeeks)
+        let weeks = proto.safeCycleLengthWeeks
         guard weeks >= 4 else { return nil } // too short to split
 
         let cycleStart = calendar.startOfDay(for: proto.startDate)
         let mid = calendar.date(byAdding: .day, value: (weeks * 7) / 2, to: cycleStart) ?? cycleStart
         let firstHalf = entries.filter { $0.date < mid && $0.date >= cycleStart }
         let secondHalf = entries.filter { $0.date >= mid && $0.date <= today }
-        guard firstHalf.count >= 5, secondHalf.count >= 5 else { return nil }
+        // Require enough samples in each half to draw a real signal —
+        // 5 was low enough that 5 entries spanning a few days in the
+        // second half could outweigh 30 over weeks in the first and
+        // produce a spurious 'compliance decaying' high-confidence
+        // card. 10 per half is a defensible minimum for a 4-week
+        // cycle (~7 entries/half if 1×/day, so this also blocks
+        // 1×/day protocols from the heuristic — those are too sparse
+        // to support a half-vs-half claim).
+        guard firstHalf.count >= 10, secondHalf.count >= 10 else { return nil }
 
         let firstRate = Double(firstHalf.filter(\.completed).count) / Double(firstHalf.count)
         let secondRate = Double(secondHalf.filter(\.completed).count) / Double(secondHalf.count)
@@ -208,6 +216,10 @@ enum SmartCyclePlanner {
         guard perTime.count >= 2,
               let worst = perTime.min(by: { $0.rate < $1.rate }),
               let best = perTime.max(by: { $0.rate < $1.rate }),
+              // When two slots tie on adherence, min/max may select
+              // the same element. Suggesting "Shift 8:00 AM → 8:00 AM"
+              // is nonsense; guard against the self-shift here.
+              best.time != worst.time,
               best.rate - worst.rate >= 0.25
         else { return nil }
 
@@ -228,7 +240,7 @@ enum SmartCyclePlanner {
         today: Date,
         calendar: Calendar
     ) -> Suggestion? {
-        let weeks = max(1, proto.cycleLengthWeeks)
+        let weeks = proto.safeCycleLengthWeeks
         guard let end = calendar.date(byAdding: .day, value: weeks * 7, to: proto.startDate) else { return nil }
         let offWindowDays = max(7, weeks * 7 / 2)
         guard let resumeDate = calendar.date(byAdding: .day, value: offWindowDays, to: end) else { return nil }

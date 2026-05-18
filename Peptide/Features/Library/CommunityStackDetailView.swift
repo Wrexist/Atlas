@@ -9,20 +9,22 @@ struct CommunityStackDetailView: View {
     @State private var showingPaywall = false
     /// Stable id for the preview proto so SwiftUI doesn't churn on body re-runs.
     @State private var previewID = UUID()
+    /// Memoised peptide list — looking up each abbreviation against the
+    /// PeptideDatabase on every render was wasted work, and the result
+    /// is stable for the lifetime of this view.
+    @State private var resolvedPeptidesCache: [Peptide] = []
+    /// Memoised preview protocol. Built once on `.task` and reused so
+    /// the share-card preview doesn't reconstruct the struct (and re-
+    /// resolve every abbreviation) on every body evaluation.
+    @State private var previewProtocolCache: PeptideProtocol?
 
-    private var resolvedPeptides: [Peptide] {
-        stack.peptideAbbreviations.compactMap { PeptideDatabase.peptide(matching: $0) }
-    }
-
-    /// A non-persisted protocol used purely for the share-card preview.
-    /// Cheaper than `forkToProtocol` (no notes-string formatting) and
-    /// stable across renders.
-    private var previewProtocol: PeptideProtocol {
+    private func buildPreviewProtocol() -> PeptideProtocol {
+        let peptides = stack.peptideAbbreviations.compactMap { PeptideDatabase.peptide(matching: $0) }
         let times = (1...max(1, stack.scheduleTimesPerDay)).map { _ in "8:00 AM" }
         return PeptideProtocol(
             id: previewID,
             name: stack.name,
-            peptides: resolvedPeptides,
+            peptides: peptides,
             schedule: ProtocolSchedule(
                 daysOfWeek: stack.scheduleDaysOfWeek,
                 timesPerDay: stack.scheduleTimesPerDay,
@@ -38,6 +40,9 @@ struct CommunityStackDetailView: View {
             createdAt: Date()
         )
     }
+
+    private var resolvedPeptides: [Peptide] { resolvedPeptidesCache }
+    private var previewProtocol: PeptideProtocol { previewProtocolCache ?? buildPreviewProtocol() }
 
     var body: some View {
         ScrollView {
@@ -55,6 +60,15 @@ struct CommunityStackDetailView: View {
         .background(AppColor.background)
         .navigationTitle(stack.name)
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            // Resolve peptides + build preview protocol once. Doing
+            // this in computed properties recomputed each on every
+            // body evaluation (4-8 PeptideDatabase lookups per
+            // render), including during scrolls.
+            let peptides = stack.peptideAbbreviations.compactMap { PeptideDatabase.peptide(matching: $0) }
+            resolvedPeptidesCache = peptides
+            previewProtocolCache = buildPreviewProtocol()
+        }
     }
 
     private var hero: some View {

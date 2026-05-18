@@ -21,9 +21,14 @@ Peptide/                 iOS app (SwiftUI)
   Services/               37 services: networking, scheduling, store,
                           HealthKit, notifications, cycle planning,
                           watch sync, recommendations
-  Features/               UI by tab: Home, Library, Protocols,
-                          Analytics, Lifestyle, Profile, AIResearch,
-                          Onboarding, Auth, Sharing, Database
+  Features/               UI by tab: Home (Today), Train, Meals,
+                          Biology, Library — plus secondary surfaces
+                          Profile, AIResearch, Onboarding, Auth,
+                          Sharing, Database. Lifestyle/ and Insights/
+                          are retired namespaces kept only for the
+                          handful of helpers (LifestyleDataLogic,
+                          WeeklySummaryDetailView) still referenced
+                          from active surfaces.
   Intents/                Siri shortcuts (AppIntents)
   Resources/              Info.plist, Localizable.xcstrings, .storekit
 

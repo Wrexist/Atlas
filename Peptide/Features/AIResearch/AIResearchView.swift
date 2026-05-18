@@ -14,6 +14,11 @@ struct AIResearchView: View {
     @State private var input: String = ""
     @State private var isStreaming = false
     @State private var errorText: String?
+    /// In-flight Anthropic request. Cancelled on send (so a new
+    /// question doesn't double-bill) and on disappear (closing the
+    /// chat sheet shouldn't keep a 30s call alive against the
+    /// proxy quota).
+    @State private var inflight: Task<Void, Never>?
     /// The last prompt that hit an error, kept around so the Retry button on
     /// the alert can re-send it without making the user retype.
     @State private var lastFailedPrompt: String?
@@ -34,6 +39,14 @@ struct AIResearchView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .onDisappear {
+                // Stop any in-flight Anthropic call when the sheet
+                // closes — otherwise a 30-second response keeps
+                // billing the proxy for a question the user
+                // abandoned.
+                inflight?.cancel()
+                inflight = nil
             }
             .alert(
                 "Couldn't reach the assistant",
@@ -235,7 +248,11 @@ struct AIResearchView: View {
         let assistantTurn = AIResearchService.Turn(role: .assistant, content: "")
         transcript.append(assistantTurn)
 
-        Task { @MainActor in
+        // Cancel any in-flight stream from a previous question so the
+        // user can fire off a new prompt without waiting and without
+        // having stale tokens land in the new bubble (main-side fix).
+        inflight?.cancel()
+        inflight = Task { @MainActor in
             defer { isStreaming = false }
             let stream = AIResearchService.shared.replyStream(
                 history: priorHistory,
@@ -244,6 +261,7 @@ struct AIResearchView: View {
             )
             do {
                 for try await chunk in stream {
+                    guard !Task.isCancelled else { return }
                     if let idx = transcript.lastIndex(where: { $0.id == assistantTurn.id }) {
                         transcript[idx].content.append(chunk)
                     }
@@ -256,6 +274,13 @@ struct AIResearchView: View {
                     transcript.remove(at: idx)
                     errorText = AIResearchService.ChatError.invalidResponse.errorDescription
                     lastFailedPrompt = prompt
+                }
+            } catch is CancellationError {
+                // User fired a new question or closed the sheet — drop
+                // the partially-streamed placeholder silently, no alert.
+                if let idx = transcript.lastIndex(where: { $0.id == assistantTurn.id }),
+                   transcript[idx].content.isEmpty {
+                    transcript.remove(at: idx)
                 }
             } catch {
                 // Drop the empty placeholder before showing the alert so

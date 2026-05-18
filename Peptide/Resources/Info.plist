@@ -26,7 +26,7 @@
 	<key>NSFaceIDUsageDescription</key>
 	<string>Atlas uses Face ID to optionally lock the app, so your protocols and health data stay private if your device is unlocked. Face ID is optional — you can disable it in Settings.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Atlas reads heart rate, HRV, resting heart rate, body mass, steps, and active energy from Apple Health to correlate your peptide protocols with biometric trends. All analysis happens on your device.</string>
+	<string>Atlas reads heart rate, HRV, resting heart rate, body mass, steps, active energy, and sleep from Apple Health to correlate your peptide protocols with biometric trends. All analysis happens on your device.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Atlas can optionally write the meals you log (calories, protein, carbs, fat, fiber) to Apple Health, so your nutrition shows up alongside everything else Apple Health tracks. Writing is off by default and you can disable it any time in Profile → Apple Health.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

@@ -19,7 +19,13 @@ private let sdDecoder: JSONDecoder = {
 
 @Model
 final class StoredProtocol {
-    @Attribute(.unique) var id: UUID
+    // CloudKit-backed stores reject `@Attribute(.unique)` — the
+    // container init throws and the fallback chain in
+    // `SwiftDataRepository.makeCloudContainer()` silently drops the
+    // user to a local-only store. Uniqueness is enforced by the
+    // fetch-then-update-or-insert pattern in
+    // `SwiftDataRepository.saveProtocols`.
+    var id: UUID
     var name: String
     var cycleLengthWeeks: Int
     var startDate: Date
@@ -159,7 +165,10 @@ private struct EncodedSchedule: Codable {
 
 @Model
 final class StoredEntry {
-    @Attribute(.unique) var id: UUID
+    // See StoredProtocol — `.unique` is CloudKit-incompatible.
+    // Uniqueness is enforced by the fetch-then-update-or-insert
+    // pattern in `SwiftDataRepository.saveEntries`.
+    var id: UUID
     var protocolId: UUID
     var date: Date
     var dose: String
@@ -246,9 +255,10 @@ final class StoredProfile {
     var avatarImageData: Data?
     var bio: String?
     var primaryGoal: String?
-    /// JSON-encoded `ProfileExtension` carrying the long-tail Lifestyle/
-    /// onboarding fields that don't warrant their own columns (nutrition
-    /// targets, weight + workout history, daily consumption buckets, etc.).
+    /// JSON-encoded `ProfileExtension` carrying the long-tail Meals /
+    /// Biology / onboarding fields that don't warrant their own columns
+    /// (nutrition targets, weight + workout history, daily consumption
+    /// buckets, biology config, etc.).
     /// Optional so existing rows decode cleanly — `toUserProfile` falls
     /// back to empty collections on a missing/legacy blob.
     var extensionData: Data?
@@ -320,9 +330,24 @@ final class StoredProfile {
             metrics = .unspecified
         }
         let ext: ProfileExtension
-        if let data = extensionData,
-           let decoded = try? sdDecoder.decode(ProfileExtension.self, from: data) {
-            ext = decoded
+        if let data = extensionData {
+            do {
+                ext = try sdDecoder.decode(ProfileExtension.self, from: data)
+            } catch {
+                // ProfileExtension is the catch-all blob for everything
+                // not in the @Model columns (biology config, meal
+                // history, lab values, training prefs, …). A silent
+                // fallback to `.empty` was disproportionately
+                // destructive: any future schema addition that the
+                // decoder couldn't tolerate would wipe the user's
+                // visible Meals/Biology/Labs data for the session.
+                // Log so the issue is diagnosable; the empty fallback
+                // still preserves the rest of the profile load.
+                AppLog.swiftData.error(
+                    "ProfileExtension decode failed; falling back to empty: \(error.localizedDescription, privacy: .public)"
+                )
+                ext = .empty
+            }
         } else {
             ext = .empty
         }

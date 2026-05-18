@@ -68,7 +68,7 @@ final class WeeklySummaryService {
         hrvSeries: [(date: Date, value: Double)] = [],
         rhrSeries: [(date: Date, value: Double)] = [],
         sleepSeries: [(date: Date, value: Double)] = [],
-        topInsight: String? = nil,
+        topInsightCategory: String? = nil,
         referenceDate: Date = Date(),
         forceRefresh: Bool = false
     ) async throws -> WeeklySummary {
@@ -84,7 +84,7 @@ final class WeeklySummaryService {
             hrvSeries: hrvSeries,
             rhrSeries: rhrSeries,
             sleepSeries: sleepSeries,
-            topInsight: topInsight
+            topInsightCategory: topInsightCategory
         ) else {
             throw GenerationError.insufficientData
         }

@@ -43,14 +43,17 @@ struct ExercisePickerSheet: View {
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: Text("Search exercises")
             )
-            .task { library.load() }
+            .task { await library.load() }
             .sheet(isPresented: $creatingCustomExercise) {
                 CustomExerciseEditorSheet { custom in
                     SwiftDataRepository.shared.upsertCustomExercise(custom)
-                    library.load()
+                    // Reload picks up the new custom lift; await so
+                    // the auto-select below sees the freshly-loaded
+                    // library rather than racing the load.
+                    Task { await library.load() }
                     // Auto-select the newly created exercise so the
-                    // user goes straight back into their workout
-                    // with the new lift added — matches the picker's
+                    // user goes straight back into their workout with
+                    // the new lift added — matches the picker's
                     // standard tap → onSelect → dismiss flow.
                     onSelect(custom.asExercise())
                     dismiss()

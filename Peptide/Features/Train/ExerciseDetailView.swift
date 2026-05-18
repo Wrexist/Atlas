@@ -31,7 +31,7 @@ struct ExerciseDetailView: View {
         }
         .background(AppColor.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
-        .task { library.load() }
+        .task { await library.load() }
     }
 
     // MARK: - Header

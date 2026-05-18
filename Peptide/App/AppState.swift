@@ -2,9 +2,9 @@ import SwiftUI
 
 enum AppTab: String, CaseIterable {
     /// Daily action hub — doses, meals, check-in. Was `.home`
-    /// (renamed in Phase 32 to be verb-forward; the old raw
-    /// value is migrated below for users with a persisted
-    /// state from a prior build).
+    /// (renamed in Phase 32 to be verb-forward). `selectedTab`
+    /// isn't currently persisted across launches, so no
+    /// migration of the prior raw value is required.
     case today
     /// Workout planning + logging. Added in the training pivot —
     /// raw value is new so older builds that don't know about it
@@ -50,9 +50,12 @@ final class AppState {
     /// profile customization sheet to deep-link from a stack row to that
     /// protocol's full detail screen.
     var pendingProtocolDeepLink: UUID?
-    /// When set, the Lifestyle tab opens the food library with the
-    /// matching food pre-selected on the review screen. Cleared the
-    /// moment Lifestyle consumes it. Populated by the CoreSpotlight
+    /// When set, the Meals tab opens the food library with the matching
+    /// food pre-selected on the review screen. Only the Meals-tab
+    /// instance of `HomeMealsSection` (the one with
+    /// `consumesDeepLink: true`) clears it — the Today-scroll
+    /// instance ignores the flag to avoid a same-runloop race
+    /// between the two live mounts. Populated by the CoreSpotlight
     /// `NSUserActivity` handler so tapping a food result on the Home
     /// Screen's Spotlight pull-down lands the user directly on the
     /// log-this-food sheet, not just on the app's launch view.
@@ -112,7 +115,14 @@ enum FoodLogDeepLink: Equatable, Hashable, Sendable {
             guard let uuid = UUID(uuidString: payload) else { return nil }
             self = .custom(id: uuid)
         case "off":
-            guard !payload.isEmpty else { return nil }
+            // OFF barcodes are 8-14 ASCII digits. A malicious
+            // NSUserActivity (Handoff sync, a crafted Spotlight
+            // donation by another app) could push arbitrary strings
+            // through this path otherwise; the validated shape
+            // matches `OpenFoodFactsService.normalize(barcode:)`.
+            guard (8...14).contains(payload.count),
+                  payload.allSatisfy({ $0.isASCII && $0.isNumber })
+            else { return nil }
             self = .openFoodFacts(barcode: payload)
         case "recipe":
             guard let uuid = UUID(uuidString: payload) else { return nil }

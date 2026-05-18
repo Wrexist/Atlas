@@ -183,15 +183,48 @@ final class PerformanceAgeEngineTests: XCTestCase {
     }
 
     /// Sum of negative deltas below -maxDriftYears must clamp.
-    /// Hard to construct in realistic ranges given the
-    /// thresholds, but the cap is a defensive guarantee — test
-    /// it explicitly.
+    /// Construct unrealistically saturating positive inputs and
+    /// verify the result lands exactly at `chronologicalAge -
+    /// maxDriftYears` — proving the clamp is doing its job, not
+    /// just that the constant exists.
     func test_estimate_extremePositivePush_clampsToCap() {
-        // Synthesise an unrealistically saturating positive input
-        // and verify the cap holds. Since real inputs can't exceed
-        // about +6.3 years, fake it via the engine internals.
-        // Realistic test: confirm the cap exists by inspecting
-        // the constant.
-        XCTAssertEqual(PerformanceAgeEngine.maxDriftYears, 8.0)
+        // Best-case-everything inputs: very high HRV, very low RHR,
+        // long sleep, and ongoing weight loss. Each driver
+        // contributes its full negative-delta share; the sum will
+        // exceed -8 years without the cap.
+        let inputs = PerformanceAgeEngine.Inputs(
+            chronologicalAge: 50,
+            hrvMedian30d: 120,
+            rhrMedian30d: 40,
+            sleepHoursMedian30d: 9,
+            weightDeltaKg30d: -4,
+            healthDataDays: 30
+        )
+        guard let result = PerformanceAgeEngine.estimate(inputs: inputs) else {
+            return XCTFail("Engine should accept fully-loaded inputs")
+        }
+        // chronologicalAge - maxDriftYears = 50 - 8 = 42.
+        XCTAssertEqual(result.biologicalAge, 42.0, accuracy: 0.01,
+                       "Biological age should clamp at chronologicalAge - maxDriftYears")
+    }
+
+    /// Symmetric clamp on the worst-case side: low HRV, high RHR,
+    /// poor sleep, weight gain. Sum exceeds +maxDriftYears; result
+    /// must clamp at `chronologicalAge + maxDriftYears`.
+    func test_estimate_extremeNegativePush_clampsToCap() {
+        let inputs = PerformanceAgeEngine.Inputs(
+            chronologicalAge: 30,
+            hrvMedian30d: 15,
+            rhrMedian30d: 95,
+            sleepHoursMedian30d: 4,
+            weightDeltaKg30d: 5,
+            healthDataDays: 30
+        )
+        guard let result = PerformanceAgeEngine.estimate(inputs: inputs) else {
+            return XCTFail("Engine should accept fully-loaded inputs")
+        }
+        // chronologicalAge + maxDriftYears = 30 + 8 = 38.
+        XCTAssertEqual(result.biologicalAge, 38.0, accuracy: 0.01,
+                       "Biological age should clamp at chronologicalAge + maxDriftYears")
     }
 }

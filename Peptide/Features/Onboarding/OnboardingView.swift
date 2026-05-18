@@ -34,6 +34,11 @@ struct OnboardingView: View {
     /// H-3); without persistence a scene-restore or `@State` reset
     /// would erase the audit trail. Zero means "never acknowledged."
     @AppStorage("disclaimerAcknowledgedAt") private var disclaimerAcknowledgedAt: Double = 0
+    /// Persisted so a kill mid-flow resumes where the user left off
+    /// instead of restarting at the Welcome screen. Cleared on the
+    /// final "Ready" step (which also sets `hasCompletedOnboarding`)
+    /// so a future re-run of onboarding (testing path) starts at 0.
+    @AppStorage("onboarding.lastPage") private var lastPage: Int = 0
 
     @State private var page: Int = 0
     @State private var name: String = ""
@@ -249,6 +254,17 @@ struct OnboardingView: View {
                     .padding(.bottom, Spacing.sm)
 
                 TabView(selection: $page) {
+                    // Note: page-resume + bookmark wiring lives on the
+                    // ZStack below — `.onAppear` restores from
+                    // `lastPage`, `.onChange(of: page)` writes it
+                    // back. A kill mid-flow resumes where the user
+                    // left off instead of restarting from page 0 with
+                    // partially-saved body metrics.
+                    //
+                    // Tags use `Page.*` integer constants (see Page
+                    // namespace below) rather than literal Ints so a
+                    // step insertion doesn't silently shift every
+                    // downstream tag and re-bucket the funnel events.
                     welcome.tag(Page.welcome)
                     signInStep.tag(Page.signIn)
                     attributionStep.tag(Page.attribution)
@@ -276,6 +292,17 @@ struct OnboardingView: View {
                 Spacer()
                 footer
             }
+        }
+        .onAppear {
+            // Resume from the last saved page so a kill / re-launch
+            // mid-onboarding doesn't drop the user back at Welcome
+            // with partial body metrics already written.
+            if page == 0 && lastPage > 0 && lastPage < totalPages {
+                page = lastPage
+            }
+        }
+        .onChange(of: page) { _, newValue in
+            lastPage = newValue
         }
         .preferredColorScheme(.dark)
         .onAppear {
@@ -333,6 +360,10 @@ struct OnboardingView: View {
                 OnboardingFunnelTracker.recordCompletion()
                 showThemePicker = false
                 hasCompleted = true
+                // Reset the resume bookmark so a future re-onboarding
+                // (testing path or user-triggered reset) starts at
+                // page 0 instead of the now-stale last page.
+                lastPage = 0
             })
         }
         .onChange(of: showTrialOffer) { _, presented in
@@ -448,6 +479,12 @@ struct OnboardingView: View {
             if page != Page.buildingPlan {
                 primaryButton
             }
+            // `showSkipOnCurrentPage` whitelists Skip on the optional
+            // steps only; the personalization-critical pages (goal,
+            // experience, body metrics, schedule, equipment,
+            // projection) are intentionally excluded — skipping body
+            // metrics silently breaks nutrition targets and skipping
+            // projection bypasses the derived-targets write.
             if showSkipOnCurrentPage {
                 Button("Skip") {
                     haptic()
@@ -594,6 +631,8 @@ struct OnboardingView: View {
         case Page.ready:
             // Present the trial paywall — flow continues through the
             // paywall and the theme picker before hasCompleted flips.
+            // The theme picker's onContinue path resets `lastPage = 0`
+            // so a future re-onboarding starts at page 0.
             showTrialOffer = true
             return
         default:
@@ -1322,7 +1361,19 @@ struct OnboardingView: View {
         let selected = equipment.contains(kind)
         return Button {
             haptic()
-            if selected { equipment.remove(kind) } else { equipment.insert(kind) }
+            if selected {
+                // Always keep at least one option selected — an empty
+                // set makes ExerciseLibrary filters return zero hits
+                // and the program preview renders a blank list. The
+                // last-deselect is silently ignored so the user
+                // notices a non-response rather than getting trapped
+                // in a broken-state next step.
+                if equipment.count > 1 {
+                    equipment.remove(kind)
+                }
+            } else {
+                equipment.insert(kind)
+            }
         } label: {
             VStack(spacing: Spacing.xs) {
                 Image(systemName: kind.symbolName)
@@ -2030,6 +2081,11 @@ struct OnboardingView: View {
             // later from Profile without revoking notification permission.
             if granted, !dataStore.profile.doseRemindersEnabled {
                 dataStore.profile.doseRemindersEnabled = true
+                // Persist so a crash / quick backgrounding between here
+                // and the next onboarding-driven save doesn't lose the
+                // toggle. Settings-side `onChange` handlers do this same
+                // belt-and-braces persist.
+                dataStore.persistProfile()
             }
             OnboardingFunnelTracker.recordEvent(granted ? "notifications_granted" : "notifications_denied")
         }

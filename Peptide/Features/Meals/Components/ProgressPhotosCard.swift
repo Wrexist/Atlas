@@ -221,6 +221,14 @@ struct ProgressPhotosCard: View {
                     .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
             }
             .contentShape(Rectangle())
+            // Wrap the tappable surface in a `Button` so VoiceOver
+            // announces it as interactive — `.onTapGesture` alone is
+            // invisible to assistive tech. The label changes between
+            // the two-phase states so a screen-reader user knows
+            // whether they're about to reveal or open.
+            .accessibilityElement(children: .ignore)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel(isRevealed ? Text("Open progress photo viewer") : Text("Reveal progress photo"))
             .onTapGesture {
                 // Two-phase tap: first tap unblurs (privacy-by-
                 // default), second tap on an unblurred photo opens

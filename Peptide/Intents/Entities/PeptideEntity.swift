@@ -43,15 +43,17 @@ struct PeptideEntity: AppEntity, Identifiable {
 struct PeptideEntityQuery: EntityQuery {
 
     func entities(for identifiers: [String]) async throws -> [PeptideEntity] {
-        let store = await MainActor.run { IntentDataStore.resolve() }
-        let all = await MainActor.run { Self.allEntities(in: store) }
+        // One hop, not two — both helpers are @MainActor so they can
+        // share a single run block. The prior double-hop made two
+        // serial waits on the main runloop for a piece of work that
+        // could complete in a single transition.
+        let all = await MainActor.run { Self.allEntities(in: IntentDataStore.resolve()) }
         let lookup = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
         return identifiers.compactMap { lookup[$0] }
     }
 
     func suggestedEntities() async throws -> [PeptideEntity] {
-        let store = await MainActor.run { IntentDataStore.resolve() }
-        return await MainActor.run { Self.allEntities(in: store) }
+        return await MainActor.run { Self.allEntities(in: IntentDataStore.resolve()) }
     }
 
     /// String-search resolver. Siri's NL pipeline calls this when the

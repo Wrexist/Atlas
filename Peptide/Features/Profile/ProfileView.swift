@@ -7,6 +7,7 @@ struct ProfileView: View {
     @State private var achievementService = AchievementService.shared
     @State private var authService = AuthService.shared
     @State private var showReconstitutionCalculator = false
+    @State private var showRestoreBackup = false
 
     /// Single source of truth for the goal catalog. Reads from
     /// OnboardingView.PrimaryGoal so a goal selected during the new
@@ -72,10 +73,11 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 6)
 
-                    // Labs entry moved to the Insights tab in
-                    // Phase 32 — it's a high-engagement analytical
-                    // feature, not a settings-flavoured tool, and
-                    // it was hiding behind a settings tab here.
+                    // Labs entry lives on the Biology tab (renamed
+                    // from Insights in Phase 33). It's a high-
+                    // engagement analytical feature, not a settings-
+                    // flavoured tool, and it was hiding behind a
+                    // settings tab here.
 
                     ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
                         .sectionAppear(index: 7)
@@ -89,17 +91,20 @@ struct ProfileView: View {
                     ExportSection()
                         .sectionAppear(index: 10)
 
-                    AccountSection()
+                    RestoreBackupEntryRow(onTap: { showRestoreBackup = true })
                         .sectionAppear(index: 11)
 
-                    AppearanceSettings()
+                    AccountSection()
                         .sectionAppear(index: 12)
 
-                    DiagnosticsSection()
+                    AppearanceSettings()
                         .sectionAppear(index: 13)
 
-                    AboutSection()
+                    DiagnosticsSection()
                         .sectionAppear(index: 14)
+
+                    AboutSection()
+                        .sectionAppear(index: 15)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
@@ -115,10 +120,14 @@ struct ProfileView: View {
             .sheet(isPresented: $showReconstitutionCalculator) {
                 ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
             }
+            .sheet(isPresented: $showRestoreBackup) {
+                RestoreBackupSheet()
+                    .environment(dataStore)
+            }
             // Labs sheet + the `pendingLabsOpen` deep-link
-            // consumption moved to InsightsView in Phase 32 — labs
-            // now live under "Insights" alongside the correlation
-            // engines they share the analytical surface with.
+            // consumption live on `BiologyView` now — labs sit
+            // alongside the biomarker list on the Biology tab, and
+            // the Home overview-card insight tap routes there.
         }
     }
 

@@ -195,6 +195,17 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         Calendar.current.date(byAdding: .weekOfYear, value: cycleLengthWeeks, to: startDate) ?? startDate
     }
 
+    /// Canonical "cycle is over" boundary used by `CycleCompletionService`
+    /// and `daysRemaining`. Normalised to `startOfDay(of: startDate)`
+    /// so a protocol created at 11 PM doesn't drift its end-of-cycle
+    /// across midnight relative to `endDate`. Uses `safeCycleLengthWeeks`
+    /// to floor at 1 week.
+    var cycleEndDay: Date {
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: startDate)
+        return cal.date(byAdding: .day, value: safeCycleLengthWeeks * 7, to: dayStart) ?? dayStart
+    }
+
     var cycleProgress: Double {
         let total = endDate.timeIntervalSince(startDate)
         let elapsed = Date().timeIntervalSince(startDate)
@@ -233,6 +244,17 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         guard totalCycleWeeks > 0 else { return 1 }
         let weeks = Calendar.current.dateComponents([.weekOfYear], from: startDate, to: Date()).weekOfYear ?? 0
         return max(1, (weeks / totalCycleWeeks) + 1)
+    }
+
+    /// Floor for `cycleLengthWeeks`. The raw value can be 0 on
+    /// malformed import / migration; clamping to 1 here gives the
+    /// engines (`CyclePhaseEngine`, `SmartCyclePlanner`,
+    /// `DoseDayMap`, `CycleBands`, `CycleCardModel`) a single
+    /// source of truth so they can't silently disagree if one site
+    /// is later changed to a different floor. Use everywhere the
+    /// raw `cycleLengthWeeks` is multiplied or divided.
+    var safeCycleLengthWeeks: Int {
+        max(1, cycleLengthWeeks)
     }
 
     static func == (lhs: PeptideProtocol, rhs: PeptideProtocol) -> Bool {

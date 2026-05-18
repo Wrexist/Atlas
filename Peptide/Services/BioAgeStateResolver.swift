@@ -52,14 +52,15 @@ enum BioAgeStateResolver {
         async let hrv      = kit.averageHRV(days: 30)
         async let rhr      = kit.averageRestingHeartRate(days: 30)
         async let sleep    = kit.averageSleepHours(days: 30)
-        // Real day-coverage now — the dailyHRV() query returns one
-        // value per day with samples present. Previously we passed
-        // 30 (full window) whenever averageHRV came back non-nil
-        // and 0 otherwise, so a user with 1 day of HRV got
+        // Real day-coverage via `dailyHRV()` which returns one value
+        // per calendar day with samples present. The previous
+        // approach passed 30 unconditionally whenever `averageHRV`
+        // came back non-nil, so a user with 1 day of HRV got
         // density factor 1.0 and a real Bio Age estimate after a
-        // single morning (audit Biology H7). The confidence
-        // curve in PerformanceAgeEngine is tuned for actual
-        // sample density; feed it the real number.
+        // single morning (audit Biology H7). The confidence curve
+        // in PerformanceAgeEngine is tuned for actual sample
+        // density; feed it the real number, which also obsoletes
+        // the `minBaselineDays`-floor workaround on main.
         async let hrvDaily = kit.dailyHRV(days: 30)
         let hrvValue = await hrv
         let rhrValue = await rhr

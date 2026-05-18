@@ -212,6 +212,27 @@ struct PeptideApp: App {
             if phase == .active {
                 ReviewPromptService.shared.recordLaunch()
                 dataStore.handleAppActivation()
+                // Re-check StoreKit entitlements so a subscription
+                // that lapsed while the app was suspended flips
+                // `isProUser` off. The `Transaction.updates` stream
+                // only fires for incoming transactions; an expiry
+                // produces no transaction, so the cached
+                // entitlement would otherwise stay true until the
+                // user manually purchased again.
+                Task { await StoreService.shared.checkProAccess() }
+                // Re-check notification authorization. If the user
+                // revoked permission in iOS Settings while the app
+                // was suspended, the local `doseRemindersEnabled`
+                // flag stays true and `scheduleNotifications` would
+                // silently no-op forever. Flip the flag so the UI
+                // surfaces the inconsistency.
+                Task { @MainActor in
+                    let status = await NotificationService.shared.checkAuthorization()
+                    if status == .denied && dataStore.profile.doseRemindersEnabled {
+                        dataStore.profile.doseRemindersEnabled = false
+                        dataStore.persistProfile()
+                    }
+                }
                 // Drain any "user tapped Log on the Live Activity"
                 // markers the widget extension queued while we were
                 // suspended. Runs before reconcile so the just-

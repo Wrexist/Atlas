@@ -171,6 +171,12 @@ struct EditBiomarkersSheet: View {
     }
 
     private func toggle(_ biomarker: Biomarker) {
+        // Defense in depth — the row's `Toggle` is `.disabled(...)` for
+        // Pro-only biomarkers when the user isn't on Pro, but
+        // VoiceOver's `accessibilityActivate`, keyboard control, or any
+        // future programmatic caller can still reach this method.
+        // Re-check the entitlement at the mutation site.
+        guard !biomarker.requiresPro || isPro else { return }
         if config.visibleBiomarkers.contains(biomarker) {
             config.hide(biomarker)
         } else {

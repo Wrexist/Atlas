@@ -15,6 +15,14 @@ struct HomeMealsSection: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
 
+    /// True when this instance is the canonical destination for
+    /// Spotlight food deep-links. The section is mounted both on
+    /// the Today scroll and on the Meals tab; only the Meals-tab
+    /// instance should react to `appState.pendingFoodLogID`,
+    /// otherwise both instances clear the flag on the same runloop
+    /// tick and the active-tab instance loses the race.
+    var consumesDeepLink: Bool = false
+
     @State private var showMealScan = false
     @State private var showBarcodeScan = false
     @State private var showFoodLibrary = false
@@ -156,10 +164,9 @@ struct HomeMealsSection: View {
             )
         }
         .onChange(of: appState.pendingFoodLogID) { _, deepLink in
-            // Spotlight tapped a food index entry. Stash the
-            // deep-link locally + clear the app-state slot so a
-            // second tap on the same Spotlight result re-triggers.
-            guard let deepLink else { return }
+            // Spotlight tapped a food index entry. Only the Meals-tab
+            // instance consumes — see `consumesDeepLink` above.
+            guard consumesDeepLink, let deepLink else { return }
             pendingFoodLogID = deepLink
             appState.pendingFoodLogID = nil
             showFoodLibrary = true

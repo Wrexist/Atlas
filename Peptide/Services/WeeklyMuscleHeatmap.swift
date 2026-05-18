@@ -35,6 +35,8 @@ enum WeeklyMuscleHeatmap {
         // Calendar-day window so DST flips don't push the boundary an
         // hour off, and so a workout at 23:50 doesn't fall out of the
         // window when re-rendered 10 minutes later (audit Train M6).
+        // Anchored at startOfDay so the window is a clean N calendar
+        // days ending today, not a rolling time-of-day cut.
         let today = calendar.startOfDay(for: now)
         let cutoff = calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
         var counts: [AnatomicalMuscle: Double] = [:]

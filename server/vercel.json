@@ -1,3 +1,8 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/meal-scan.js":      { "maxDuration": 30 },
+    "api/ai-research.js":    { "maxDuration": 30 },
+    "api/weekly-summary.js": { "maxDuration": 30 }
+  }
 }

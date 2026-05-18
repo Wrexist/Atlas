@@ -37,6 +37,11 @@ struct HomeView: View {
     /// modals across runloop ticks.
     @State private var milestonePrompt: MilestonePromptItem?
     @State private var milestoneShareProtocol: PeptideProtocol?
+    /// Drives the cycle-completion sheet (Plan A). Set when a user's
+    /// active protocol has passed its cycle end and they haven't
+    /// already dismissed past the threshold. Cleared via the four
+    /// onResolve callbacks (mark / extend / new / dismiss).
+    @State private var completionPrompt: CompletionPromptItem?
     /// Tracks which jump-bar section is currently nearest the top of
     /// the viewport so the corresponding chip highlights. Driven by
     /// per-section preference reads in `.onScrollGeometryChange` —
@@ -427,7 +432,7 @@ struct HomeView: View {
                     proto: item.proto,
                     milestone: item.milestone,
                     onShare: {
-                        CycleMilestoneService.shared.markShown(item.milestone, for: item.proto.id)
+                        CycleMilestoneService.shared.markShown(item.milestone, for: item.proto)
                         let proto = item.proto
                         milestonePrompt = nil
                         // Defer one runloop tick so the prompt sheet has
@@ -439,11 +444,51 @@ struct HomeView: View {
                         }
                     },
                     onDismiss: {
-                        CycleMilestoneService.shared.markShown(item.milestone, for: item.proto.id)
+                        CycleMilestoneService.shared.markShown(item.milestone, for: item.proto)
                         milestonePrompt = nil
                     }
                 )
                 .liquidGlassPresentation(detents: [.medium])
+            }
+            .sheet(item: $completionPrompt) { item in
+                CycleCompletionPromptSheet(
+                    proto: item.proto,
+                    daysPastEnd: item.daysPastEnd,
+                    onMarkComplete: {
+                        dataStore.updateProtocolStatus(id: item.proto.id, to: .completed)
+                        CycleCompletionService.shared.markAutoCompleted(item.proto)
+                        completionPrompt = nil
+                    },
+                    onExtend: {
+                        // Extending the cycle pushes `endDate` out,
+                        // so `pendingCompletion` naturally stops
+                        // returning this protocol until the new
+                        // window expires — no suppression marker
+                        // needed. Calling `markAutoCompleted` here
+                        // (the previous behaviour) shared a key with
+                        // the now-extended cycle (same id + same
+                        // startDate) and permanently silenced the
+                        // prompt for every future end-of-cycle on
+                        // this protocol. Clear the dismiss counter
+                        // instead so subsequent dismissals on the
+                        // extended cycle start from zero.
+                        dataStore.extendProtocol(id: item.proto.id, byWeeks: 2)
+                        completionPrompt = nil
+                    },
+                    onStartNewCycle: {
+                        // Mark BEFORE restarting so the suppression key
+                        // is recorded against the pre-restart startDate
+                        // (the cycle that actually ended).
+                        CycleCompletionService.shared.markAutoCompleted(item.proto)
+                        dataStore.restartProtocol(id: item.proto.id)
+                        completionPrompt = nil
+                    },
+                    onDismiss: {
+                        CycleCompletionService.shared.recordDismissal(for: item.proto)
+                        completionPrompt = nil
+                    }
+                )
+                .liquidGlassPresentation(detents: [.medium, .large])
             }
             .sheet(item: $milestoneShareProtocol) { proto in
                 ShareCardSheet(subject: .singleProtocol(proto))
@@ -468,6 +513,12 @@ struct HomeView: View {
                 if let newId, let achievement = achievementService.achievements.first(where: { $0.id == newId }) {
                     toastAchievement = achievement
                     withAnimation(AppAnimation.springBouncy) { showAchievementToast = true }
+                    // Drain so the next check pass can write a fresh
+                    // unlock without the observer seeing the same id
+                    // re-fire. `checkAchievements` and
+                    // `checkLifestyleAchievements` no longer reset
+                    // this themselves.
+                    achievementService.acknowledgeLatestUnlock()
                     if Self.reviewWorthyAchievements.contains(newId) {
                         Task { @MainActor in
                             try? await Task.sleep(for: .seconds(2))
@@ -582,9 +633,33 @@ struct HomeView: View {
     private var timelineEvents: [TodayTimelineEvent] {
         let now = Date()
         let cal = Calendar.current
-        let workoutsToday = dataStore.profile.workoutHistory.filter { entry in
-            cal.isDate(entry.date, inSameDayAs: now)
-        }
+        // Plan C: workouts now live in StoredWorkoutSession; the
+        // timeline still expects the legacy `WorkoutEntry` shape, so
+        // adapt at this boundary. Mirrors the converter on
+        // `WorkoutDetailView.entryFromSession`. Empty-exercise quick-
+        // log sessions still render — the timeline only needs name +
+        // date + duration.
+        let dayStart = cal.startOfDay(for: now)
+        let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
+        let workoutsToday: [WorkoutEntry] = SwiftDataRepository.shared
+            .loadWorkoutSessions(startedBetween: dayStart..<dayEnd)
+            .map { session in
+                let sets = session.exercises.flatMap(\.sets)
+                let reps = sets.reduce(0) { $0 + $1.reps }
+                let avgReps = sets.isEmpty ? 0 : reps / sets.count
+                let duration: Int = {
+                    guard let finished = session.finishedAt else { return 0 }
+                    return max(0, Int(finished.timeIntervalSince(session.startedAt) / 60))
+                }()
+                return WorkoutEntry(
+                    id: session.id,
+                    date: session.startedAt,
+                    name: session.name ?? "Workout",
+                    sets: sets.count,
+                    reps: avgReps,
+                    durationMinutes: duration
+                )
+            }
         return TodayTimelineEvent.build(
             doses: dataStore.todayEntries,
             meals: dataStore.mealEntries(),
@@ -737,7 +812,18 @@ struct HomeView: View {
                 protocols: dataStore.protocols,
                 entries: dataStore.entries,
                 hrvSeries: hrv,
-                topInsight: dataStore.topInsight?.title,
+                // Pass a stable category code rather than the
+                // free-text title — the title can embed details about
+                // dose timing / protocol count that the aggregate's
+                // privacy contract says we never send. The proxy
+                // model has the numeric fields to infer the situation.
+                topInsightCategory: dataStore.topInsight.map { insight in
+                    switch insight.type {
+                    case .positive: return "positive"
+                    case .warning:  return "warning"
+                    case .neutral:  return "neutral"
+                    }
+                },
                 forceRefresh: forceRefresh
             )
             WeeklySummaryService.shared.record(summary, in: &dataStore.profile)
@@ -783,11 +869,37 @@ struct HomeView: View {
     /// Surfaces the next pending Day-7 / Day-30 / cycle-complete prompt
     /// when Home becomes visible. Skipped when another sheet is already
     /// up so we never stack modals on top of each other.
+    ///
+    /// Cycle-completion prompts (Plan A: an `.active` protocol whose
+    /// cycle window ended) take priority over share milestones — the
+    /// user has to resolve state-transition decisions before we ask
+    /// them to share. Only one prompt fires per Home appear.
     private func checkMilestonePrompt() {
         guard milestonePrompt == nil,
               milestoneShareProtocol == nil,
+              completionPrompt == nil,
               !showProfileCustomization
         else { return }
+
+        // Run the auto-completion sweep BEFORE deciding which prompt
+        // to fire. A user who never backgrounds the app (scene-phase
+        // .active never re-triggers) but switches between tabs would
+        // otherwise see a prompt for a protocol the next foreground
+        // would have silently auto-completed — three buttons that
+        // all apply to a soon-to-be-completed cycle. Running the
+        // sweep here too keeps the two surfaces consistent.
+        dataStore.performCycleAutoCompletion()
+
+        // Completion prompt wins when present.
+        if let pending = CycleCompletionService.shared.pendingCompletion(in: dataStore.protocols) {
+            let days = max(0, daysPastCycleEnd(of: pending))
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(800))
+                guard completionPrompt == nil else { return }
+                completionPrompt = CompletionPromptItem(proto: pending, daysPastEnd: days)
+            }
+            return
+        }
 
         guard let pending = CycleMilestoneService.shared.pendingMilestone(in: dataStore.protocols) else {
             return
@@ -798,6 +910,20 @@ struct HomeView: View {
             guard milestonePrompt == nil else { return }
             milestonePrompt = MilestonePromptItem(proto: pending.proto, milestone: pending.milestone)
         }
+    }
+
+    private func daysPastCycleEnd(of proto: PeptideProtocol) -> Int {
+        // Reads `cycleEndDay` (the model's single source of truth)
+        // so this surface stays in lockstep with CycleCompletionService.
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        return cal.dateComponents([.day], from: proto.cycleEndDay, to: today).day ?? 0
+    }
+
+    private struct CompletionPromptItem: Identifiable {
+        let proto: PeptideProtocol
+        let daysPastEnd: Int
+        var id: String { "\(proto.id.uuidString):\(Int(proto.startDate.timeIntervalSince1970))" }
     }
 
     private struct MilestonePromptItem: Identifiable {

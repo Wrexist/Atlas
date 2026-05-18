@@ -101,7 +101,7 @@ enum LifestyleDataLogic {
     }
 
     /// Adds water (oz) to the day's consumption bucket. Quick-add buttons
-    /// on the Lifestyle tab call this with +250 mL ≈ 8.5 oz and +500 mL
+    /// on the Meals tab call this with +250 mL ≈ 8.5 oz and +500 mL
     /// ≈ 16.9 oz pre-converted to integer ounces.
     static func logWater(into profile: inout UserProfile, oz: Int, date: Date) {
         let key = consumptionKey(for: date)

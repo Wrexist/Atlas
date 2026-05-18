@@ -72,15 +72,23 @@ actor BarcodeProductCache {
     /// last-fetched-first. Used by the scanner UI to surface a "recently
     /// scanned" row above the live viewfinder so users can re-log
     /// without re-aiming the camera.
+    ///
+    /// Pre-filters candidates by TTL using only the directory listing's
+    /// modification dates so stale entries are skipped without opening
+    /// the file. Cuts a sweep of N `Data(contentsOf:)` reads down to
+    /// only the live entries actually returned.
     func recent(limit: Int) -> [ScannedProduct] {
         guard limit > 0 else { return [] }
-        let entries = entriesByDescendingModifiedDate()
+        let now = Date()
+        let ttl = self.ttl
+        let liveEntries = entriesByDescendingModifiedDate()
+            .filter { now.timeIntervalSince($0.modified) <= ttl }
+
         var out: [ScannedProduct] = []
-        out.reserveCapacity(min(limit, entries.count))
-        for entry in entries {
+        out.reserveCapacity(min(limit, liveEntries.count))
+        for entry in liveEntries {
             guard out.count < limit else { break }
             guard
-                Date().timeIntervalSince(entry.modified) <= ttl,
                 let data = try? Data(contentsOf: entry.url),
                 let product = try? Self.decoder.decode(ScannedProduct.self, from: data)
             else { continue }
@@ -131,8 +139,18 @@ actor BarcodeProductCache {
 
     // MARK: - Internals
 
+    /// Builds the on-disk URL for a cache entry. Barcodes from the OFF
+    /// lookup path are normalised to 8-14 digits, and the OCR fallback
+    /// builds `ocr:<uuid>` keys — both are safe filenames. Future
+    /// callers might not be; the precondition keeps a malformed key
+    /// (slashes, `..`) from escaping the cache directory and writing
+    /// outside the sandbox-allowed Caches folder.
     private func fileURL(for barcode: String) -> URL {
-        directory.appendingPathComponent("\(barcode).json")
+        precondition(
+            barcode.allSatisfy { $0.isLetter || $0.isNumber || $0 == ":" || $0 == "-" || $0 == "_" },
+            "BarcodeProductCache key must be filename-safe: got \(barcode)"
+        )
+        return directory.appendingPathComponent("\(barcode).json")
     }
 
     private static func defaultDirectory(using fileManager: FileManager) -> URL {

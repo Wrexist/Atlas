@@ -159,8 +159,15 @@ struct BioAgeHeroSection: View {
     }
 
     private func buildingLabel(progress: Double) -> some View {
-        let days = Int((progress * 7).rounded())
-        return Text("\(days) of 7 days of baseline collected")
+        // `progress` from BioAgeStateResolver is "fraction of HRV / RHR
+        // / Sleep signals present", not "days of baseline" — the two
+        // scales are unrelated, and the old "X of 7 days collected"
+        // copy mapped a 0…1 signal fraction onto a 0…7 day axis which
+        // produced numbers that didn't match the user's HealthKit
+        // history. Render what the resolver actually computes: the
+        // count of connected baseline signals out of three.
+        let signals = max(0, min(3, Int((progress * 3).rounded())))
+        return Text("\(signals) of 3 baseline signals connected")
             .font(.system(size: 13, weight: .medium))
             .foregroundStyle(Color.white.opacity(0.55))
     }

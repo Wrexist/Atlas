@@ -16,6 +16,7 @@
  * Returns: `{ text: string, generatedAt: ISOString }`.
  */
 import { timingSafeEqual } from 'node:crypto';
+import { clientKey } from './_lib/anthropic-proxy.js';
 
 const MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 360; // ~280 words; 150 ideal, 200 hard ceiling
@@ -68,10 +69,8 @@ const buckets = new Map();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_RPM = parseInt(process.env.WEEKLY_RPM || '6', 10);
 
-function clientKey(req) {
-  const forwarded = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || req.socket?.remoteAddress || 'unknown';
-}
+// `clientKey` lives in `_lib/anthropic-proxy.js` so all three routes share
+// the same Vercel-aware (un-spoofable) IP derivation.
 
 function checkRateLimit(req) {
   if (!Number.isFinite(RATE_LIMIT_RPM) || RATE_LIMIT_RPM <= 0) return true;
@@ -93,7 +92,11 @@ function checkRateLimit(req) {
  */
 function validateAggregate(agg) {
   if (!agg || typeof agg !== 'object') return false;
-  if (typeof agg.weekStart !== 'string' || agg.weekStart.length > 16) return false;
+  // Strict ISO-date (no time component). The iOS encoder emits
+  // `YYYY-MM-DD` (10 chars); a looser cap let a truncated datetime
+  // through which could narrow down the user's timezone if correlated
+  // externally.
+  if (typeof agg.weekStart !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(agg.weekStart)) return false;
   const c = agg.compliance;
   if (!c || typeof c !== 'object') return false;
   if (typeof c.completed !== 'number' || typeof c.total !== 'number') return false;
@@ -132,7 +135,8 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    res.status(500).json({ error: { message: 'Proxy not configured' } });
+    console.error('[weekly-summary] ANTHROPIC_API_KEY missing on this deployment');
+    res.status(503).json({ error: { message: 'Service unavailable' } });
     return;
   }
 

@@ -16,6 +16,7 @@ struct BiologyView: View {
     )
     @State private var showPaywall = false
     @State private var showEditSheet = false
+    @State private var showLabs = false
     /// Drives the per-biomarker detail sheet. Identifiable wrapper
     /// so `.sheet(item:)` lifecycle is clean across taps.
     @State private var detailItem: BiomarkerDetailItem?
@@ -99,6 +100,14 @@ struct BiologyView: View {
                 )
                 .liquidGlassPresentation()
             }
+            .sheet(isPresented: $showLabs) {
+                LabsView()
+                    .environment(dataStore)
+            }
+            .onAppear { consumePendingLabsDeepLink() }
+            .onChange(of: appState.pendingLabsOpen) { _, _ in
+                consumePendingLabsDeepLink()
+            }
         }
         .task { await refreshState() }
         .onChange(of: storeService.isProUser) { _, _ in
@@ -107,6 +116,19 @@ struct BiologyView: View {
         .onChange(of: dataStore.profile.age) { _, _ in
             Task { await refreshState() }
         }
+    }
+
+    /// Consumes the cross-tab "open Labs" deep-link flag set by the
+    /// Home overview card's latest-lab insight tap. Cleared the
+    /// moment we present the sheet so re-appearing the tab doesn't
+    /// re-fire. Mirrors the consumer that lived on the retired
+    /// `InsightsView` so the deep-link from `HomeView.onTapInsight`
+    /// still lands on the right surface after the Insights → Biology
+    /// rename.
+    private func consumePendingLabsDeepLink() {
+        guard appState.pendingLabsOpen else { return }
+        appState.pendingLabsOpen = false
+        showLabs = true
     }
 
     // MARK: - Bio Age resolution
@@ -129,13 +151,13 @@ struct BiologyView: View {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let cutoff = calendar.date(byAdding: .day, value: -30, to: today) ?? today
-        // Pick the entry closest to (but on/after) the cutoff so the
-        // delta represents the actual 30-day window. If NO entry is
-        // newer than the cutoff (user weighed in once two years ago
-        // and twice yesterday), return nil — comparing today's
-        // weight against a two-year-old measurement and labelling it
-        // a "30-day delta" mis-tells the story (audit Biology
-        // follow-up). The card hides itself when this returns nil.
+        // Return nil when no entry falls within the 30-day window
+        // (user weighed in once two years ago and twice yesterday):
+        // comparing today's weight against the year-old baseline and
+        // labelling it a "30-day delta" mis-tells the story. The
+        // card hides itself in that case (audit Biology follow-up).
+        // Optional binding also dodges the force-unwrap the main-side
+        // fallback used to carry.
         guard let baseline = history.first(where: { $0.date >= cutoff }) else { return nil }
         guard baseline.id != latest.id else { return nil }
         return latest.kg - baseline.kg
@@ -164,14 +186,16 @@ struct BiologyView: View {
         if dataStore.profile.hapticFeedbackEnabled {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
-        // Fetch the 14-day initial snapshot so the sheet has
-        // something to render the moment it mounts. The sheet
-        // upgrades to the 90-day chart on its own .task via the
-        // historicalFetcher closure below.
-        Task {
-            let snapshot = await snapshot(for: biomarker, days: BiomarkerSeriesService.windowDays)
-            detailItem = BiomarkerDetailItem(biomarker: biomarker, snapshot: snapshot)
-        }
+        // Present the sheet immediately with an empty snapshot, then
+        // let it fill in via `historicalFetcher`. Fetching before
+        // setting `detailItem` raced on rapid taps: the second tap
+        // would overwrite the first `detailItem`, and SwiftUI's
+        // `.sheet(item:)` dismisses the first sheet mid-flight on
+        // an Identifiable change.
+        detailItem = BiomarkerDetailItem(
+            biomarker: biomarker,
+            snapshot: .empty(biomarker)
+        )
     }
 
     /// 90-day fetcher passed to the detail sheet. Same code path

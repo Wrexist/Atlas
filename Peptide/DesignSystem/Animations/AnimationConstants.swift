@@ -21,10 +21,12 @@ enum AppAnimation {
     /// flipping the first binding to false.
     ///
     /// Replaces the inline `try? await Task.sleep(for: .milliseconds(350))`
-    /// (and a stray 300ms variant) that were sprinkled across HomeView
-    /// and LifestyleView — name the magic number once so the next
-    /// sheet-chain author doesn't pick a different value and find out
-    /// the hard way that 200ms is too short.
+    /// (and a stray 300ms variant) that used to be sprinkled across
+    /// the sheet-handoff paths in `HomeMealsSection`,
+    /// `ProfileCustomizationSheet`, and the meal-scan flow — name
+    /// the magic number once so the next sheet-chain author doesn't
+    /// pick a different value and find out the hard way that 200ms
+    /// is too short.
     static let sheetDismissDelay: Duration = .milliseconds(350)
 
     // MARK: - Food library timings

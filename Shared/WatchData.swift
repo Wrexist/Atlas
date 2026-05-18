@@ -17,7 +17,7 @@ struct WatchEntry: Codable, Identifiable, Sendable {
 }
 
 /// Compact nutrition snapshot for the Watch app. Mirrors the
-/// macro-ring data shown on the iOS Lifestyle tab so the Watch
+/// macro-ring data shown on the iOS Meals tab so the Watch
 /// surface can render a coherent "where am I against my target
 /// today" glance without depending on shared types from the
 /// iOS-only target. Optional throughout so the Watch app can

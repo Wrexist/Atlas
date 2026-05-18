@@ -75,7 +75,12 @@ final class CommunityStackService {
         case 1: ["8:00 AM"]
         case 2: ["8:00 AM", "8:00 PM"]
         case 3: ["8:00 AM", "1:00 PM", "8:00 PM"]
-        default: Array(repeating: "8:00 AM", count: count)
+        // ≥4: spread across the waking window instead of returning
+        // N identical "8:00 AM" entries, which would render as
+        // overlapping morning slots in the schedule editor.
+        default:
+            let anchors = ["8:00 AM", "12:00 PM", "4:00 PM", "8:00 PM"]
+            return (0..<count).map { anchors[$0 % anchors.count] }
         }
     }
 

@@ -20,6 +20,12 @@ struct CalendarDoseMark: Identifiable, Hashable {
     /// passes this to any per-row action (open, edit, delete) once those
     /// affordances ship. Nil for synthetic scheduled marks.
     let entryID: UUID?
+    /// Status of the owning protocol at the time the mark was built.
+    /// Synthetic scheduled marks are only emitted for `.active`, but a
+    /// logged entry from a now-paused or completed protocol still shows
+    /// on the calendar — render it with a muted treatment so the user
+    /// can distinguish historical from active doses.
+    let protocolStatus: ProtocolStatus
 }
 
 /// Builds a per-day map of marks across both logged entries and scheduled
@@ -42,6 +48,13 @@ enum DoseDayMap {
 
         var result: [Date: [CalendarDoseMark]] = [:]
 
+        // Index protocols by ID so we can attach the owning protocol's
+        // current status to each logged mark. Used by the detail panel
+        // to render historical/paused entries with a muted style.
+        let protocolStatusByID = Dictionary(
+            uniqueKeysWithValues: protocols.map { ($0.id, $0.status) }
+        )
+
         // Logged — group entries that fall inside the visible window by day.
         for entry in entries {
             let day = cal.startOfDay(for: entry.date)
@@ -55,7 +68,8 @@ enum DoseDayMap {
                 dose: entry.dose,
                 time: timeString(for: entry.date, calendar: cal),
                 injectionSite: entry.injectionSite,
-                entryID: entry.id
+                entryID: entry.id,
+                protocolStatus: protocolStatusByID[entry.protocolId] ?? .active
             )
             result[day, default: []].append(mark)
         }
@@ -91,7 +105,10 @@ enum DoseDayMap {
                         dose: proto.schedule.customDose ?? peptide.dosageRange,
                         time: proto.schedule.preferredTimes.first,
                         injectionSite: nil,
-                        entryID: nil
+                        entryID: nil,
+                        // Synthetic scheduled marks only emit for
+                        // active protocols (guard above on line 69).
+                        protocolStatus: .active
                     )
                     result[day, default: []].append(mark)
                 }
@@ -110,7 +127,7 @@ enum DoseDayMap {
     ) -> Bool {
         let start = calendar.startOfDay(for: proto.startDate)
         guard day >= start else { return false }
-        let weeks = max(1, proto.cycleLengthWeeks)
+        let weeks = proto.safeCycleLengthWeeks
         guard let end = calendar.date(byAdding: .day, value: weeks * 7, to: start) else { return true }
         return day < end
     }

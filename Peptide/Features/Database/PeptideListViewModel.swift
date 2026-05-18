@@ -12,14 +12,14 @@ final class PeptideListViewModel {
         refilter()
     }
 
-    /// Replace the in-memory catalog with the latest from DataStore.
-    /// Previously had a one-shot `hasLoadedFromStore` guard that
-    /// dropped every subsequent update — meaning a freshly-created
-    /// custom peptide never appeared in the list until the next app
-    /// launch (audit Library P0.1). Always refilter; the operation is
-    /// cheap (208 + ~N custom entries) and the user-data freshness
-    /// is the contract.
+    /// Replaces the in-memory peptide list and refilters. Was one-shot
+    /// (`hasLoadedFromStore` flag) so every subsequent call was dropped
+    /// — broke pull-to-refresh, freshly-created custom peptides, and
+    /// iCloud syncs after first load (audit Library P0.1). Idempotent
+    /// equality guard short-circuits when SwiftData triggers a redundant
+    /// refresh with the same list.
     func updatePeptides(_ peptides: [Peptide]) {
+        guard allPeptides != peptides else { return }
         allPeptides = peptides
         refilter()
     }

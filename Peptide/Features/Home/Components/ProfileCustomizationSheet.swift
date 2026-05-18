@@ -45,6 +45,13 @@ struct ProfileCustomizationSheet: View {
     @State private var isShowingLibrary = false
     @State private var isShowingCamera = false
     @State private var isShowingPresetPicker = false
+    @State private var cameraDeniedReason: CameraDeniedReason?
+
+    private enum CameraDeniedReason: Identifiable {
+        case denied
+        case restricted
+        var id: Self { self }
+    }
 
     var body: some View {
         @Bindable var store = dataStore
@@ -233,6 +240,29 @@ struct ProfileCustomizationSheet: View {
             )
             .ignoresSafeArea()
         }
+        .alert(item: $cameraDeniedReason) { reason in
+            switch reason {
+            case .denied:
+                Alert(
+                    title: Text("Camera Access Off"),
+                    message: Text("Turn on Camera access for Atlas in Settings to take a profile photo. You can also pick from your library."),
+                    primaryButton: .default(Text("Open Settings")) {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    },
+                    secondaryButton: .cancel(Text("Use Library")) {
+                        isShowingLibrary = true
+                    }
+                )
+            case .restricted:
+                Alert(
+                    title: Text("Camera Unavailable"),
+                    message: Text("The camera is restricted on this device. Pick from your library or choose a preset avatar."),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
+        }
         .sheet(isPresented: $isShowingPresetPicker) {
             AvatarPresetPickerSheet(
                 hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
@@ -250,11 +280,27 @@ struct ProfileCustomizationSheet: View {
     @ViewBuilder
     private var photoSourceButtons: some View {
         if UIImagePickerController.isSourceTypeAvailable(.camera) {
-            Button("Take Photo") { isShowingCamera = true }
+            Button("Take Photo") {
+                Task { await tapTakePhoto() }
+            }
         }
         Button("Choose from Library") { isShowingLibrary = true }
         Button("Pick a Preset Avatar") { isShowingPresetPicker = true }
         Button("Cancel", role: .cancel) {}
+    }
+
+    /// Camera authorization gate — see `CameraAuthorization` for the
+    /// rationale. Without it, `.denied` users get a black fullscreen
+    /// cover.
+    private func tapTakePhoto() async {
+        switch await CameraAuthorization.resolve() {
+        case .granted:
+            isShowingCamera = true
+        case .denied:
+            cameraDeniedReason = .denied
+        case .restricted:
+            cameraDeniedReason = .restricted
+        }
     }
 
     private var avatarCircle: some View {
