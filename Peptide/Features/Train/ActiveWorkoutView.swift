@@ -12,6 +12,7 @@ import SwiftUI
 /// same service sees the same numbers.
 struct ActiveWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(DataStore.self) private var dataStore
     @State private var sessionService = WorkoutSessionService.shared
     @State private var library = ExerciseLibrary.shared
     @State private var showExercisePicker = false
@@ -23,6 +24,12 @@ struct ActiveWorkoutView: View {
     /// Bumps every second while the workout is active so the elapsed
     /// timer redraws without a publisher boilerplate dance.
     @State private var tick = 0
+    /// In-workout rest timer. Driven by the per-exercise restSeconds
+    /// or the training preferences default; surfaces a countdown
+    /// overlay above the bottom edge and schedules a local
+    /// notification so the user gets a buzz even when the phone is
+    /// face-down (audit Train H2).
+    @State private var restTimer = RestTimerState.inactive
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -112,6 +119,10 @@ struct ActiveWorkoutView: View {
         } message: {
             Text("Nothing logged so far will be saved.")
         }
+        .overlay(alignment: .bottom) {
+            RestTimerOverlay(state: $restTimer)
+                .animation(AppAnimation.springSmooth, value: restTimer.isRunning)
+        }
     }
 
     // MARK: - Hero
@@ -190,7 +201,19 @@ struct ActiveWorkoutView: View {
                             sessionService.lastCompletedSet(forExerciseID: entry.exerciseID)
                         },
                         onSetUpdate: { updated in
+                            // Detect the "just got checked off"
+                            // transition so we can kick the rest
+                            // timer. We compare against the entry's
+                            // current snapshot before persisting.
+                            let priorSnapshot = entry.sets.first(where: { $0.id == updated.id })
+                            let wasIncomplete = priorSnapshot?.completed == false
                             sessionService.updateSet(updated, inExerciseEntryID: entry.id)
+                            if wasIncomplete && updated.completed && !updated.isWarmup {
+                                let seconds = entry.restSeconds
+                                    ?? dataStore.profile.trainingPreferences?.restTimerDefault
+                                    ?? 90
+                                restTimer.start(seconds: seconds)
+                            }
                         },
                         onAddSet: {
                             sessionService.addSet(toExerciseID: entry.id)

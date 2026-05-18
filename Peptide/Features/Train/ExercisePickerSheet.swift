@@ -13,6 +13,7 @@ struct ExercisePickerSheet: View {
     @State private var query: String = ""
     @State private var muscleFilter: MuscleGroup?
     @State private var equipmentFilter: EquipmentKind?
+    @State private var creatingCustomExercise: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -24,8 +25,17 @@ struct ExercisePickerSheet: View {
             .navigationTitle("Add exercise")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        creatingCustomExercise = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .accessibilityLabel("Create custom exercise")
                 }
             }
             .searchable(
@@ -34,6 +44,18 @@ struct ExercisePickerSheet: View {
                 prompt: Text("Search exercises")
             )
             .task { library.load() }
+            .sheet(isPresented: $creatingCustomExercise) {
+                CustomExerciseEditorSheet { custom in
+                    SwiftDataRepository.shared.upsertCustomExercise(custom)
+                    library.load()
+                    // Auto-select the newly created exercise so the
+                    // user goes straight back into their workout
+                    // with the new lift added — matches the picker's
+                    // standard tap → onSelect → dismiss flow.
+                    onSelect(custom.asExercise())
+                    dismiss()
+                }
+            }
         }
     }
 
@@ -53,11 +75,29 @@ struct ExercisePickerSheet: View {
             equipment: equipmentFilter
         )
         if results.isEmpty {
-            EmptyStateView(
-                icon: "magnifyingglass",
-                title: "No matches",
-                message: "Try a different muscle group or clear the filters."
-            )
+            VStack(spacing: Spacing.md) {
+                EmptyStateView(
+                    icon: "magnifyingglass",
+                    title: "No matches",
+                    message: "Don't see your lift? Create a custom exercise to add it to your routine."
+                )
+                Button {
+                    creatingCustomExercise = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus.circle.fill")
+                        Text("Create custom exercise")
+                    }
+                    .font(AppFont.callout.weight(.semibold))
+                    .foregroundStyle(AppColor.accentPrimary)
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
+                    .background(
+                        Capsule().fill(AppColor.accentPrimary.opacity(0.12))
+                    )
+                }
+                .buttonStyle(.plain)
+            }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView {

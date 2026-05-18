@@ -28,22 +28,29 @@ struct WorkoutHistoryView: View {
     }
 
     private var content: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: Spacing.lg, pinnedViews: [.sectionHeaders]) {
-                ForEach(groupedSessions, id: \.month) { group in
-                    Section {
-                        VStack(spacing: Spacing.sm) {
-                            ForEach(group.sessions) { session in
-                                row(for: session)
+        NavigationStack {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: Spacing.lg, pinnedViews: [.sectionHeaders]) {
+                    ForEach(groupedSessions, id: \.month) { group in
+                        Section {
+                            VStack(spacing: Spacing.sm) {
+                                ForEach(group.sessions) { session in
+                                    NavigationLink {
+                                        WorkoutSessionDetailView(session: session)
+                                    } label: {
+                                        row(for: session)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
+                        } header: {
+                            sectionHeader(group.month)
                         }
-                    } header: {
-                        sectionHeader(group.month)
                     }
                 }
+                .padding(.horizontal, Spacing.screenPadding)
+                .padding(.bottom, Spacing.xxxl)
             }
-            .padding(.horizontal, Spacing.screenPadding)
-            .padding(.bottom, Spacing.xxxl)
         }
     }
 
