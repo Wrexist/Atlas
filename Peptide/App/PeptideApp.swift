@@ -104,6 +104,14 @@ struct PeptideApp: App {
                 // is the documented usage.
                 DiagnosticsService.shared.startCollecting()
             }
+            .task {
+                // Drain any completed onboarding funnel snapshot to the
+                // analytics endpoint configured via Info.plist. No-op
+                // unless the endpoint is configured AND the user
+                // finished onboarding — partial in-flight runs stay
+                // local until completion.
+                await OnboardingFunnelTracker.drainIfReady()
+            }
             .onOpenURL { url in
                 // Live Activity tap → `peptidex://dose/<uuid>`. Park
                 // the UUID on AppState; HomeView consumes it on its
@@ -353,8 +361,13 @@ struct PeptideApp: App {
             // scheduleNotifications can't see in its set-diff and won't remove.
             await NotificationService.shared.reconcilePendingState()
 
+            // Habit reminders are gated per-habit (Habit.reminderTime), not
+            // by `doseRemindersEnabled`. Re-stamp them every activation so a
+            // reminderTime change made on another device propagates.
+            NotificationService.shared.scheduleHabitReminders(for: dataStore.activeHabits)
+
             guard dataStore.profile.doseRemindersEnabled else {
-                NotificationService.shared.cancelAll()
+                NotificationService.shared.cancelProtocolReminders()
                 return
             }
 
@@ -364,13 +377,13 @@ struct PeptideApp: App {
                 if !granted {
                     dataStore.profile.doseRemindersEnabled = false
                     dataStore.persistProfile()
-                    NotificationService.shared.cancelAll()
+                    NotificationService.shared.cancelProtocolReminders()
                     return
                 }
             } else if status == .denied {
                 dataStore.profile.doseRemindersEnabled = false
                 dataStore.persistProfile()
-                NotificationService.shared.cancelAll()
+                NotificationService.shared.cancelProtocolReminders()
                 return
             }
 

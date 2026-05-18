@@ -8,6 +8,11 @@ struct HabitsView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
     @State private var editing: HabitEditTarget?
+    /// Memoized per-row payload. Rebuilt only when the habit list or
+    /// entry list changes — without this, every body invalidation
+    /// (scroll, color-scheme flicker, environment change) re-walks
+    /// summary + heatmap + columns for every habit (audit Habits P2).
+    @State private var rows: [Row] = []
 
     /// One state for both the "add" sheet and the "edit existing" sheet.
     /// Single source of truth so the same sheet binding works for both.
@@ -22,48 +27,57 @@ struct HabitsView: View {
         }
     }
 
+    private struct Row: Identifiable {
+        let habit: Habit
+        let summary: HabitsService.Summary
+        let columns: [[HabitsService.HeatmapStatus]]
+        let heatmapStart: Date?
+        var id: UUID { habit.id }
+    }
+
     private var habits: [Habit] { dataStore.activeHabits }
+
+    /// Cheap-enough equality token. SwiftUI's `.task(id:)` re-runs the
+    /// rebuild only when this tuple changes; comparing two Habit /
+    /// HabitEntry arrays is the same cost as one rebuild, so we don't
+    /// lose anything by skipping a manual digest.
+    private struct ChangeToken: Equatable {
+        let habits: [Habit]
+        let entries: [HabitEntry]
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: Spacing.md) {
                     if habits.isEmpty {
+                        // Empty state — driven by `habits`, not `rows`, so
+                        // the first-frame-before-task gap doesn't flash a
+                        // false "no habits" message.
                         emptyState
                             .padding(.top, Spacing.xxxxl)
                     } else {
-                        ForEach(habits) { habit in
-                            let summary = HabitsService.summary(
-                                for: habit,
-                                entries: dataStore.profile.habitEntries
-                            )
-                            let days = HabitsService.heatmap(
-                                for: habit,
-                                entries: dataStore.profile.habitEntries,
-                                dayCount: 182
-                            )
-                            let columns = HabitsService.heatmapColumns(from: days)
-
+                        ForEach(rows) { row in
                             HabitRowCard(
-                                habit: habit,
-                                summary: summary,
-                                heatmapColumns: columns,
-                                heatmapStart: days.first?.date,
+                                habit: row.habit,
+                                summary: row.summary,
+                                heatmapColumns: row.columns,
+                                heatmapStart: row.heatmapStart,
                                 onToggleToday: {
-                                    dataStore.toggleHabitEntry(habitId: habit.id)
+                                    dataStore.toggleHabitEntry(habitId: row.habit.id)
                                 },
                                 onTap: {
-                                    editing = .existing(habit)
+                                    editing = .existing(row.habit)
                                 }
                             )
                             .contextMenu {
                                 Button {
-                                    editing = .existing(habit)
+                                    editing = .existing(row.habit)
                                 } label: {
                                     Label("Edit", systemImage: "pencil")
                                 }
                                 Button(role: .destructive) {
-                                    dataStore.archiveHabit(id: habit.id)
+                                    dataStore.archiveHabit(id: row.habit.id)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
@@ -73,6 +87,9 @@ struct HabitsView: View {
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxl)
+            }
+            .task(id: ChangeToken(habits: habits, entries: dataStore.profile.habitEntries)) {
+                rebuildRows()
             }
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle("Habits")
@@ -106,6 +123,16 @@ struct HabitsView: View {
                     }
                 }
             }
+        }
+    }
+
+    private func rebuildRows() {
+        let entries = dataStore.profile.habitEntries
+        rows = habits.map { habit in
+            let summary = HabitsService.summary(for: habit, entries: entries)
+            let days = HabitsService.heatmap(for: habit, entries: entries, dayCount: 182)
+            let columns = HabitsService.heatmapColumns(from: days)
+            return Row(habit: habit, summary: summary, columns: columns, heatmapStart: days.first?.date)
         }
     }
 

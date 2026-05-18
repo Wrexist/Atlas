@@ -1320,12 +1320,14 @@ final class DataStore: DataServiceProtocol {
         }
         profile.habits.append(copy)
         save()
+        rescheduleHabitReminders()
     }
 
     func updateHabit(_ habit: Habit) {
         guard let idx = profile.habits.firstIndex(where: { $0.id == habit.id }) else { return }
         profile.habits[idx] = habit
         save()
+        rescheduleHabitReminders()
     }
 
     /// Soft-delete via the `archived` flag so the history isn't
@@ -1335,6 +1337,7 @@ final class DataStore: DataServiceProtocol {
         guard let idx = profile.habits.firstIndex(where: { $0.id == id }) else { return }
         profile.habits[idx].archived = true
         save()
+        rescheduleHabitReminders()
     }
 
     func reorderHabits(_ ordered: [Habit]) {
@@ -1460,6 +1463,14 @@ final class DataStore: DataServiceProtocol {
     private func rescheduleNotificationsIfEnabled() {
         guard profile.doseRemindersEnabled else { return }
         NotificationService.shared.scheduleNotifications(for: activeProtocols)
+    }
+
+    /// Re-stamps habit reminders against the current habit list. Habit
+    /// reminders are per-habit opt-in (gated on `Habit.reminderTime != nil`)
+    /// rather than the global `doseRemindersEnabled` switch — setting a
+    /// reminder time on a habit is already an explicit opt-in.
+    private func rescheduleHabitReminders() {
+        NotificationService.shared.scheduleHabitReminders(for: activeHabits)
     }
 
     // MARK: - Persistence

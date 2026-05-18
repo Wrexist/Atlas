@@ -360,6 +360,10 @@ final class HealthKitService {
     }
 
     private func enableAndObserve(_ sampleType: HKSampleType, frequency: HKUpdateFrequency) async {
+        // BG delivery failure (simulator, denied auth) only means we won't
+        // wake from the background — observer queries still fire while the
+        // app is in the foreground, which is what keeps the in-session
+        // snapshot fresh on simulator builds (audit Biology MED 14).
         do {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 store.enableBackgroundDelivery(for: sampleType, frequency: frequency) { _, error in
@@ -371,9 +375,7 @@ final class HealthKitService {
                 }
             }
         } catch {
-            // Routine on simulator and when the user denied authorization.
             AppLog.healthKit.debug("enableBackgroundDelivery skipped for \(sampleType.identifier, privacy: .public): \(error.localizedDescription, privacy: .private)")
-            return
         }
 
         let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { [weak self] _, completionHandler, error in

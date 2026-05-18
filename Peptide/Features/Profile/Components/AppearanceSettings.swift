@@ -124,7 +124,9 @@ struct AppearanceSettings: View {
                 }
             }
         } else {
-            NotificationService.shared.cancelAll()
+            // Habit reminders survive a dose-reminder toggle-off — they're
+            // opted into separately on each habit.
+            NotificationService.shared.cancelProtocolReminders()
         }
     }
 }

@@ -226,16 +226,41 @@ struct AIResearchView: View {
         let priorHistory = Array(transcript.dropLast()) // exclude the user turn we just appended
         let database = dataStore.peptideDatabase
 
+        // Empty assistant turn — chunks land into this turn's content
+        // as the SSE stream arrives, so the bubble animates token-by-
+        // token instead of popping in fully formed.
+        let assistantTurn = AIResearchService.Turn(role: .assistant, content: "")
+        transcript.append(assistantTurn)
+
         Task { @MainActor in
             defer { isStreaming = false }
+            let stream = AIResearchService.shared.replyStream(
+                history: priorHistory,
+                newUserPrompt: prompt,
+                in: database
+            )
             do {
-                let reply = try await AIResearchService.shared.reply(
-                    history: priorHistory,
-                    newUserPrompt: prompt,
-                    in: database
-                )
-                transcript.append(AIResearchService.Turn(role: .assistant, content: reply))
+                for try await chunk in stream {
+                    if let idx = transcript.lastIndex(where: { $0.id == assistantTurn.id }) {
+                        transcript[idx].content.append(chunk)
+                    }
+                }
+                // Empty stream (proxy returned 200 but nothing parseable)
+                // — surface a friendly error instead of leaving a blank
+                // bubble sitting in the transcript.
+                if let idx = transcript.lastIndex(where: { $0.id == assistantTurn.id }),
+                   transcript[idx].content.isEmpty {
+                    transcript.remove(at: idx)
+                    errorText = AIResearchService.ChatError.invalidResponse.errorDescription
+                    lastFailedPrompt = prompt
+                }
             } catch {
+                // Drop the empty placeholder before showing the alert so
+                // the user doesn't see a half-rendered assistant bubble.
+                if let idx = transcript.lastIndex(where: { $0.id == assistantTurn.id }),
+                   transcript[idx].content.isEmpty {
+                    transcript.remove(at: idx)
+                }
                 errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 lastFailedPrompt = prompt
                 if dataStore.profile.hapticFeedbackEnabled {
