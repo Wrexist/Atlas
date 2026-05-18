@@ -555,7 +555,15 @@ struct OnboardingView: View {
             dataStore.profile.goalDate = goalDate
             dataStore.flushPendingSave()
         case Page.bodyMetrics:
-            dataStore.updateBodyMetrics(bodyMetrics)
+            // Seed `activityLevel` from the experience picker — beginner
+            // lifters tend to fall in `.light`, intermediates `.moderate`,
+            // advanced trainees `.active`. Without this every user gets
+            // `.moderate` regardless of what they told us (audit Meals
+            // L12). The Profile editor can override later.
+            var withActivity = bodyMetrics
+            withActivity.activityLevel = activityFromExperience()
+            bodyMetrics = withActivity
+            dataStore.updateBodyMetrics(withActivity)
         case Page.schedule, Page.equipment:
             // Schedule and equipment both feed the same struct.
             // Persist on advance off either step (writes are idempotent
@@ -653,6 +661,17 @@ struct OnboardingView: View {
             timeOfDay: timeOfDay,
             equipmentAccess: equipment
         )
+    }
+
+    /// Maps the lifting-experience picker to the closest TDEE
+    /// activity bucket. Conservative — most users land in `.moderate`
+    /// and can tune up in Profile when their training volume warrants.
+    private func activityFromExperience() -> ActivityLevel {
+        switch Experience(rawValue: experienceLevel) ?? .beginner {
+        case .beginner:     return .light
+        case .intermediate: return .moderate
+        case .advanced:     return .active
+        }
     }
 
     private func advance() {

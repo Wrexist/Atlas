@@ -98,6 +98,8 @@ struct SetEditorRow: View {
                     .stroke(weightFocused ? AppColor.accentPrimary : AppColor.glassBorder,
                             lineWidth: weightFocused ? 1 : 0.5)
             )
+            .accessibilityLabel(Text("Weight for set \(set.index)"))
+            .accessibilityValue(Text("\(formatted(set.weightKg)) kilograms"))
     }
 
     private var repsField: some View {
@@ -123,6 +125,8 @@ struct SetEditorRow: View {
                     .stroke(repsFocused ? AppColor.accentPrimary : AppColor.glassBorder,
                             lineWidth: repsFocused ? 1 : 0.5)
             )
+            .accessibilityLabel(Text("Reps for set \(set.index)"))
+            .accessibilityValue(Text("\(set.reps) reps"))
     }
 
     private var completionToggle: some View {

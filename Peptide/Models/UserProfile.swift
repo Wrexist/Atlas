@@ -53,6 +53,22 @@ enum ActivityLevel: String, Codable, CaseIterable, Identifiable, Sendable {
         case .athlete: "Daily training, competition"
         }
     }
+
+    /// Mifflin-St Jeor TDEE multiplier against BMR. Industry-standard
+    /// PAL (physical-activity-level) bands — these are the same
+    /// numbers Lifesum / MyFitnessPal / Cronometer apply, so a user
+    /// comparing across apps sees consistent calorie targets.
+    /// Pulled into the model so `NutritionMath` can read it without
+    /// the screen-spec hardcoding a single bucket (audit Meals L12).
+    var tdeeMultiplier: Double {
+        switch self {
+        case .sedentary: return 1.2
+        case .light:     return 1.375
+        case .moderate:  return 1.55
+        case .active:    return 1.725
+        case .athlete:   return 1.9
+        }
+    }
 }
 
 enum MeasurementUnit: String, Codable, Sendable {

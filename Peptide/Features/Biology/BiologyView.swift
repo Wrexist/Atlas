@@ -119,7 +119,16 @@ struct BiologyView: View {
     private func computeWeightDelta30d() -> Double? {
         let history = dataStore.profile.weightHistory.sorted { $0.date < $1.date }
         guard history.count >= 2, let latest = history.last else { return nil }
-        let cutoff = Date().addingTimeInterval(-30 * 24 * 60 * 60)
+        // Calendar-day cutoff so DST flips don't shift the boundary an
+        // hour and so the window is "30 days ago" rather than "30 ×
+        // 86,400 seconds ago" (audit Biology L17).
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let cutoff = calendar.date(byAdding: .day, value: -30, to: today) ?? today
+        // Pick the entry closest to (but on/after) the cutoff so the
+        // delta represents the actual 30-day window rather than the
+        // first-ever measurement when the cutoff happens to predate
+        // the user's whole history.
         let baseline = history.first { $0.date >= cutoff } ?? history.first!
         guard baseline.id != latest.id else { return nil }
         return latest.kg - baseline.kg

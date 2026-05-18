@@ -7,9 +7,11 @@ import Foundation
 /// targets — not medical advice — and are surfaced behind a disclaimer.
 enum NutritionMath {
 
-    /// Activity multiplier used for the onboarding TDEE estimate. The
-    /// product spec hard-codes "moderate" so the screen renders a single
-    /// number without asking the user to pick an activity bucket.
+    /// Fallback activity multiplier when the user hasn't picked an
+    /// `ActivityLevel`. Equivalent to `.moderate` — the value that
+    /// used to be hard-coded for everyone (audit Meals L12).
+    /// Live callers should read `BodyMetrics.activityLevel
+    /// .tdeeMultiplier` to honor the user's pick.
     static let activityMultiplier: Double = 1.55
 
     /// Protein recommendation in grams per kilogram of bodyweight.
@@ -40,7 +42,7 @@ enum NutritionMath {
         }
 
         let bmr = mifflinStJeor(weightKg: weightKg, heightCm: heightCm, age: age, sex: metrics.sex)
-        let tdee = bmr * activityMultiplier
+        let tdee = bmr * metrics.activityLevel.tdeeMultiplier
 
         // Round the macros first, then derive calories from the
         // rounded values. Otherwise the displayed `calories` value

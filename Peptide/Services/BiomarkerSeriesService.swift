@@ -27,6 +27,10 @@ enum BiomarkerSeriesService {
     /// Below this we surface `.insufficient` instead of flipping
     /// up/down on two noisy readings.
     static let trendMinSamples: Int = 4
+    /// Minimum samples before the row renders a sparkline. A single
+    /// dot doesn't communicate a trajectory; below this we drop the
+    /// sparkline so the row stays clean (audit Biology L20).
+    static let sparklineMinSamples: Int = 2
     /// Relative change between window start and end below which
     /// we report `.flat` rather than `.up` / `.down`. Picked so a
     /// 0.3 kg weight fluctuation on a 70 kg user reads as flat
@@ -112,7 +116,7 @@ enum BiomarkerSeriesService {
             biomarker: .weight,
             latest: latest,
             trend: trend,
-            sparkline: recent,
+            sparkline: recent.count >= sparklineMinSamples ? recent : [],
             changeText: changeText(for: .weight, trend: trend, latest: latest)
         )
     }
@@ -128,7 +132,7 @@ enum BiomarkerSeriesService {
             biomarker: biomarker,
             latest: latest,
             trend: trend,
-            sparkline: series,
+            sparkline: series.count >= sparklineMinSamples ? series : [],
             changeText: changeText(for: biomarker, trend: trend, latest: latest)
         )
     }

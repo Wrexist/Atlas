@@ -212,7 +212,11 @@ struct HabitEditSheet: View {
     }
 
     private var iconGrid: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 36), spacing: Spacing.sm), count: 6),
+        // `.adaptive` so the grid reflows to fit the available width
+        // (Form row width varies between iPhone SE and iPad split-
+        // view); the hard-coded 6-column count broke on the narrowest
+        // iPhone, where the 36pt minimum × 6 wouldn't fit (audit 4.13).
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 40, maximum: 48), spacing: Spacing.sm)],
                   spacing: Spacing.sm) {
             ForEach(HabitIconCatalog.all, id: \.self) { symbol in
                 Button {
@@ -245,7 +249,7 @@ struct HabitEditSheet: View {
     }
 
     private var colorGrid: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 30), spacing: Spacing.sm), count: 6),
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 36, maximum: 44), spacing: Spacing.sm)],
                   spacing: Spacing.sm) {
             ForEach(HabitTintCatalog.all, id: \.self) { hex in
                 Button {

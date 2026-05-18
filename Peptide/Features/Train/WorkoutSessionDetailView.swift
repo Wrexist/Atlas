@@ -212,9 +212,18 @@ struct WorkoutSessionDetailView: View {
     }
 
     private var dateLabel: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE · MMMM d, yyyy"
-        return formatter.string(from: session.finishedAt ?? session.startedAt)
+        // Use the locale-aware format API instead of a hard-coded
+        // `EEEE · MMMM d, yyyy`. Non-Latin locales (ja, zh, ar)
+        // render their own canonical week/month strings rather than
+        // forcing an English shape onto them (audit Biology L18).
+        let date = session.finishedAt ?? session.startedAt
+        return date.formatted(
+            .dateTime
+                .weekday(.wide)
+                .month(.wide)
+                .day()
+                .year()
+        )
     }
 
     private var durationLabel: String? {
