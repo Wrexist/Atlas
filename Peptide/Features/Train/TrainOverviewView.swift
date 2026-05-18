@@ -304,12 +304,15 @@ struct TrainingCalendarGrid: View {
         // ClosedRange trap can't fire under any locale / time zone.
         let daysInMonth = cal.range(of: .day, in: .month, for: now)?.count ?? 30
         guard daysInMonth > 0 else { return AnyView(EmptyView()) }
-        // Convert to Monday-first column index: Sunday=1 → 6, Monday=2 → 0, …
-        let leadingBlanks = (firstDayWeekday + 5) % 7
+        // Honor the user's calendar (`firstWeekday`): US starts on Sunday,
+        // UK / Germany on Monday, Saudi on Saturday. Previously a Monday
+        // pivot was hardcoded which left a leading-blank shift on
+        // Sunday-first locales (audit Train M2).
+        let leadingBlanks = (firstDayWeekday - cal.firstWeekday + 7) % 7
 
         return AnyView(
             VStack(spacing: Spacing.xs) {
-                weekdayHeaderRow
+                weekdayHeaderRow(calendar: cal)
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7),
                           spacing: 6) {
                     ForEach(0..<leadingBlanks, id: \.self) { _ in
@@ -323,10 +326,12 @@ struct TrainingCalendarGrid: View {
         )
     }
 
-    private var weekdayHeaderRow: some View {
-        let days = ["M", "T", "W", "T", "F", "S", "S"]
+    private func weekdayHeaderRow(calendar: Calendar) -> some View {
+        let symbols = calendar.veryShortStandaloneWeekdaySymbols
+        let offset = calendar.firstWeekday - 1
+        let rotated = Array(symbols[offset...]) + Array(symbols[..<offset])
         return HStack(spacing: 6) {
-            ForEach(Array(days.enumerated()), id: \.offset) { _, letter in
+            ForEach(Array(rotated.enumerated()), id: \.offset) { _, letter in
                 Text(letter)
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)

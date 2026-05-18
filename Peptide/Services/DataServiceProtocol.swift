@@ -9,7 +9,8 @@ protocol DataServiceProtocol {
     var completedProtocols: [PeptideProtocol] { get }
     func addProtocol(_ protocol: PeptideProtocol)
     func deleteProtocol(id: UUID)
-    func updateProtocolStatus(id: UUID, to status: ProtocolStatus)
+    @discardableResult
+    func updateProtocolStatus(id: UUID, to status: ProtocolStatus) -> Bool
 
     // Entry management
     var entries: [ProtocolEntry] { get }
@@ -37,5 +38,5 @@ protocol DataServiceProtocol {
     // Profile
     var profile: UserProfile { get }
     func updateGoals(_ goals: Set<String>)
-    func toggleHealthConnection()
+    func toggleHealthConnection() async -> Bool
 }

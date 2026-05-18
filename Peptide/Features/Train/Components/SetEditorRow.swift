@@ -29,9 +29,14 @@ struct SetEditorRow: View {
             completionToggle
         }
         .padding(.vertical, Spacing.xs)
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+        .contentShape(Rectangle())
+        // .swipeActions is a no-op outside List/Form (audit Train
+        // M1 — sets live in a VStack), so a long-press contextMenu
+        // is the only way to expose the delete affordance without
+        // restructuring the parent container.
+        .contextMenu {
             Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
+                Label("Delete set", systemImage: "trash")
             }
         }
     }
@@ -93,6 +98,8 @@ struct SetEditorRow: View {
                     .stroke(weightFocused ? AppColor.accentPrimary : AppColor.glassBorder,
                             lineWidth: weightFocused ? 1 : 0.5)
             )
+            .accessibilityLabel(Text("Weight for set \(set.index)"))
+            .accessibilityValue(Text("\(formatted(set.weightKg)) kilograms"))
     }
 
     private var repsField: some View {
@@ -118,6 +125,8 @@ struct SetEditorRow: View {
                     .stroke(repsFocused ? AppColor.accentPrimary : AppColor.glassBorder,
                             lineWidth: repsFocused ? 1 : 0.5)
             )
+            .accessibilityLabel(Text("Reps for set \(set.index)"))
+            .accessibilityValue(Text("\(set.reps) reps"))
     }
 
     private var completionToggle: some View {

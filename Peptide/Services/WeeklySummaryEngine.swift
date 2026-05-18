@@ -346,9 +346,16 @@ enum WeeklySummaryEngine {
         return start..<end
     }
 
-    private static func isoDateString(_ date: Date) -> String {
+    /// Renders a Date as "yyyy-MM-dd" in the user's local calendar
+    /// timezone. Previously the formatter had no `timeZone` set and
+    /// defaulted to UTC, so users east of UTC (AEDT, JST) saw the
+    /// previous Sunday's date written to the cache key and the AI
+    /// payload (audit Biology H8). Caller passes the same calendar
+    /// used to compute `weekRange` so the keys stay consistent.
+    private static func isoDateString(_ date: Date, calendar: Calendar = .current) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]
+        formatter.timeZone = calendar.timeZone
         return formatter.string(from: date)
     }
 

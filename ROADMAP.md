@@ -1,8 +1,18 @@
-# Atlas / PeptideX Roadmap
+# Atlas Roadmap
 
 ## Current State
 
-Atlas is a native iOS SwiftUI app for tracking peptide supplementation protocols with grounded AI assistance — barcode scanning, photo + live-camera meal estimation, multi-turn research chat, HealthKit-correlated analytics, and a Bevel-style health-monitor dashboard. iOS 18+, Swift 6.0, SwiftData (CloudKit-backed). 5-tab navigation, companion Watch app, two widget targets, Live Activities, biometric lock, and CI/CD to TestFlight via Fastlane.
+Atlas is a native iOS SwiftUI health & fitness app — workout
+tracking with rest timer and PR detection, nutrition via barcode +
+photo meal scanning, biology (HRV / RHR / sleep / recovery score /
+lab panels), habits with streak tracking, and an AI research chat.
+For advanced users, a peptide-protocol tracker rides alongside the
+fitness surfaces — the legacy peptide name lives on in the bundle
+ID and StoreKit product IDs (`com.peptidesai.app`) so existing
+subscribers keep working through the rebrand. iOS 18+, Swift 6.0,
+SwiftData (CloudKit-backed). 5-tab navigation, companion Watch
+app, two widget targets, Live Activities, biometric lock, and
+CI/CD to TestFlight via Fastlane.
 
 ### What's shipped
 

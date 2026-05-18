@@ -29,19 +29,31 @@ enum WeeklyMuscleHeatmap {
         from sessions: [WorkoutSession],
         library: ExerciseLibrary,
         days: Int = 7,
-        now: Date = Date()
+        now: Date = Date(),
+        calendar: Calendar = .current
     ) -> [AnatomicalMuscle: Double] {
-        // Use a calendar-aware subtraction so DST transitions don't
-        // shift the cutoff by an hour. Fixed `days * 86_400` math
-        // could include or exclude a session trained right at the
-        // boundary on spring-forward / fall-back nights.
-        let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: now)
-            ?? now.addingTimeInterval(-Double(days) * 86_400)
+        // Calendar-day window so DST flips don't push the boundary an
+        // hour off, and so a workout at 23:50 doesn't fall out of the
+        // window when re-rendered 10 minutes later (audit Train M6).
+        // Anchored at startOfDay so the window is a clean N calendar
+        // days ending today, not a rolling time-of-day cut.
+        let today = calendar.startOfDay(for: now)
+        let cutoff = calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
         var counts: [AnatomicalMuscle: Double] = [:]
 
         for session in sessions where session.startedAt >= cutoff {
             for entry in session.exercises {
-                guard let exercise = library.lookup(id: entry.exerciseID) else { continue }
+                guard let exercise = library.lookup(id: entry.exerciseID) else {
+                    // Silent skip used to hide deleted-custom-exercise
+                    // referrals from the heatmap entirely — a user
+                    // training on a since-deleted lift saw an empty
+                    // map. Log so debug builds catch the data drift
+                    // (audit Train T3).
+                    AppLog.training.warning(
+                        "Heatmap: exercise lookup miss for id \(entry.exerciseID, privacy: .public)"
+                    )
+                    continue
+                }
                 let workingSets = entry.sets.filter { $0.completed && !$0.isWarmup }
                 guard !workingSets.isEmpty else { continue }
                 let setCount = Double(workingSets.count)

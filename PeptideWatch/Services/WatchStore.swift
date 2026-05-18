@@ -116,9 +116,10 @@ final class WatchStore: NSObject, ObservableObject {
         WKInterfaceDevice.current().play(entry.completed ? .click : .success)
 
         // Optimistically update local state. Preserve the watch-side
-        // stats fields (streak / weeklyCompliance / totalDosesLogged)
-        // that arrived from the phone — the user just toggled a dose,
-        // we shouldn't reset the streak to nil on every tap.
+        // stats fields (streak / weeklyCompliance / totalDosesLogged /
+        // nutrition) that arrived from the phone — the user just
+        // toggled a dose, we shouldn't reset the streak to nil or
+        // drop the nutrition snapshot on every tap (audit Watch).
         if let index = watchData.todayEntries.firstIndex(where: { $0.id == entry.id }) {
             var updated = watchData.todayEntries
             updated[index].completed.toggle()

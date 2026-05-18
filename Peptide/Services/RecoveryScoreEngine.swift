@@ -103,7 +103,14 @@ enum RecoveryScoreEngine {
         let weighted = weightedAverage(hrv: hrv, sleep: sleep, rhr: rhr)
         guard let weighted else { return nil }   // no inputs at all
 
-        let isPartial = (hrv == nil) || (sleep == nil) || (rhr == nil)
+        // Only treat as partial when the user is missing one of the
+        // two cardio signals (HRV / RHR). A nil sleep is common —
+        // plenty of users don't wear their Watch to bed — and dimming
+        // the score badge every morning for them is a false alarm
+        // (audit Biology L16). Tradeoff: a user with sleep alone (no
+        // HRV/RHR, e.g. a manual sleep logger) still gets flagged so
+        // they can see the upgrade nudge.
+        let isPartial = (hrv == nil) || (rhr == nil)
         return Score(
             value: Int((weighted * 100).rounded()),
             components: Components(hrv: hrv, sleep: sleep, rhr: rhr),

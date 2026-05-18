@@ -220,7 +220,30 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
 
     var weekNumber: Int {
         let weeks = Calendar.current.dateComponents([.weekOfYear], from: startDate, to: Date()).weekOfYear ?? 0
+        let totalCycleWeeks = cycleLengthWeeks + washoutWeeks
+        guard cycleLengthWeeks > 0 else { return 1 }
+        if totalCycleWeeks > 0 {
+            // Wrap into the current cycle so a user partway through a
+            // second cycle reads "Week 2" of the new cycle rather than
+            // staying clamped at the first cycle's final week. The
+            // cycle index itself is on `cycleNumber`.
+            let weekInCycle = (weeks % totalCycleWeeks) + 1
+            return max(1, min(weekInCycle, cycleLengthWeeks))
+        }
         return max(1, min(weeks + 1, cycleLengthWeeks))
+    }
+
+    /// Which cycle the user is currently in, 1-indexed. Increments
+    /// every `cycleLengthWeeks + washoutWeeks` weeks since `startDate`,
+    /// so an 8-on / 4-off protocol on its 13th calendar week reads as
+    /// "Cycle 2 · Week 1" (audit Library P2.14). Returns 1 for
+    /// protocols without a defined cycle length.
+    var cycleNumber: Int {
+        guard cycleLengthWeeks > 0 else { return 1 }
+        let totalCycleWeeks = cycleLengthWeeks + washoutWeeks
+        guard totalCycleWeeks > 0 else { return 1 }
+        let weeks = Calendar.current.dateComponents([.weekOfYear], from: startDate, to: Date()).weekOfYear ?? 0
+        return max(1, (weeks / totalCycleWeeks) + 1)
     }
 
     /// Floor for `cycleLengthWeeks`. The raw value can be 0 on

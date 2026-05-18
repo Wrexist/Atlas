@@ -12,13 +12,12 @@ final class PeptideListViewModel {
         refilter()
     }
 
-    /// Replaces the in-memory peptide list. Idempotent — calling
-    /// with the same value is a no-op for SwiftUI's diff. The
-    /// previous implementation guarded on a "first load" flag and
-    /// silently dropped every subsequent call, which broke the
-    /// `refreshable` pull-to-refresh handler on the list view and
-    /// hid any custom peptides synced in from another device via
-    /// iCloud after the initial load.
+    /// Replaces the in-memory peptide list and refilters. Was one-shot
+    /// (`hasLoadedFromStore` flag) so every subsequent call was dropped
+    /// — broke pull-to-refresh, freshly-created custom peptides, and
+    /// iCloud syncs after first load (audit Library P0.1). Idempotent
+    /// equality guard short-circuits when SwiftData triggers a redundant
+    /// refresh with the same list.
     func updatePeptides(_ peptides: [Peptide]) {
         guard allPeptides != peptides else { return }
         allPeptides = peptides

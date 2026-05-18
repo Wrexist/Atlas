@@ -61,8 +61,19 @@ struct BiomarkerSparkline: View {
         guard points.count >= 2 else { return [] }
         let minValue = points.min() ?? 0
         let maxValue = points.max() ?? 1
-        let range = max(0.001, maxValue - minValue)
+        let range = maxValue - minValue
         let stepX = size.width / CGFloat(points.count - 1)
+        // When every sample is identical (flat HRV at 50 ms for 14
+        // days) the range collapses to 0. Render the line through
+        // the vertical middle instead of jamming it to the floor —
+        // a flat-mid line reads as "steady," a flat-bottom line
+        // read as "your HRV is at zero" (audit Biology follow-up).
+        guard range > 0 else {
+            let midY = size.height / 2
+            return points.enumerated().map { idx, _ in
+                CGPoint(x: CGFloat(idx) * stepX, y: midY)
+            }
+        }
         return points.enumerated().map { idx, value in
             let x = CGFloat(idx) * stepX
             let normalized = (value - minValue) / range

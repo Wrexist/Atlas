@@ -362,6 +362,7 @@ final class StoredProfile {
             bodyMetrics: metrics,
             nutritionTargets: ext.nutritionTargets,
             creatorAttribution: ext.creatorAttribution,
+            affiliateApplication: ext.affiliateApplication,
             emailSubscription: ext.emailSubscription,
             weightHistory: ext.weightHistory,
             progressPhotoFilenames: ext.progressPhotoFilenames,
@@ -383,7 +384,10 @@ final class StoredProfile {
             weeklySummaryEnabled: ext.weeklySummaryEnabled ?? true,
             weeklySummaries: ext.weeklySummaries ?? [:],
             biologyConfig: ext.biologyConfig,
-            trainingPreferences: ext.trainingPreferences
+            trainingPreferences: ext.trainingPreferences,
+            goalDate: ext.goalDate,
+            habits: ext.habits,
+            habitEntries: ext.habitEntries
         )
     }
 }
@@ -399,6 +403,7 @@ final class StoredProfile {
 private struct ProfileExtension: Codable {
     var nutritionTargets: NutritionTargets? = nil
     var creatorAttribution: CreatorAttribution? = nil
+    var affiliateApplication: AffiliateApplication? = nil
     var emailSubscription: EmailSubscription? = nil
     var weightHistory: [WeightEntry] = []
     var progressPhotoFilenames: [String] = []
@@ -434,6 +439,13 @@ private struct ProfileExtension: Codable {
     /// empty dict for the cache) without a migration.
     var weeklySummaryEnabled: Bool? = nil
     var weeklySummaries: [String: WeeklySummary]? = nil
+    /// User-committed goal completion date from the onboarding "By
+    /// when?" step. Optional so older sidecar blobs decode cleanly.
+    var goalDate: Date? = nil
+    /// User-defined habits surfaced on Home. Optional in encoded form
+    /// (defaults to empty) so legacy sidecar blobs decode cleanly.
+    var habits: [Habit] = []
+    var habitEntries: [HabitEntry] = []
 
     static let empty = ProfileExtension()
 
@@ -441,6 +453,7 @@ private struct ProfileExtension: Codable {
         ProfileExtension(
             nutritionTargets: profile.nutritionTargets,
             creatorAttribution: profile.creatorAttribution,
+            affiliateApplication: profile.affiliateApplication,
             emailSubscription: profile.emailSubscription,
             weightHistory: profile.weightHistory,
             progressPhotoFilenames: profile.progressPhotoFilenames,
@@ -459,7 +472,10 @@ private struct ProfileExtension: Codable {
             biologyConfig: profile.biologyConfig,
             trainingPreferences: profile.trainingPreferences,
             weeklySummaryEnabled: profile.weeklySummaryEnabled,
-            weeklySummaries: profile.weeklySummaries
+            weeklySummaries: profile.weeklySummaries,
+            goalDate: profile.goalDate,
+            habits: profile.habits,
+            habitEntries: profile.habitEntries
         )
     }
 }

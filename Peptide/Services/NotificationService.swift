@@ -51,6 +51,11 @@ final class NotificationService {
     /// a MainActor hop.
     nonisolated static let snoozeIDPrefix = "snooze-"
 
+    /// Prefix used by habit reminders so the peptide scheduler's set-diff
+    /// doesn't sweep them away (and vice versa). Each habit reserves up to
+    /// 7 weekday slots, kept distinct from the protocol/snooze namespaces.
+    nonisolated static let habitIDPrefix = "habit-"
+
     private init() {}
 
     func requestAuthorization() async -> Bool {
@@ -161,8 +166,14 @@ final class NotificationService {
         let newIDs = Set(kept.map(\.request.identifier))
         // Preserve user-initiated snoozes across reschedules — they're one-shot
         // transient requests that iOS clears after firing, not stale doses.
+        // Habit reminders live in a separate namespace; their own scheduler
+        // owns their lifecycle so we must not sweep them here.
         let preservedSnoozes = currentIDs.filter { $0.hasPrefix(Self.snoozeIDPrefix) }
-        let toRemove = currentIDs.subtracting(newIDs).subtracting(preservedSnoozes)
+        let preservedHabits = currentIDs.filter { $0.hasPrefix(Self.habitIDPrefix) }
+        let toRemove = currentIDs
+            .subtracting(newIDs)
+            .subtracting(preservedSnoozes)
+            .subtracting(preservedHabits)
 
         if !toRemove.isEmpty {
             center.removePendingNotificationRequests(withIdentifiers: Array(toRemove))
@@ -171,7 +182,7 @@ final class NotificationService {
             center.add(entry.request)
         }
 
-        currentIDs = newIDs.union(preservedSnoozes)
+        currentIDs = newIDs.union(preservedSnoozes).union(preservedHabits)
         requestedCount = pendingRequests.count
         scheduledCount = kept.count
 
@@ -199,6 +210,70 @@ final class NotificationService {
     func reconcilePendingState() async {
         let pending = await center.pendingNotificationRequests()
         currentIDs = Set(pending.map(\.identifier))
+    }
+
+    /// Schedules one calendar reminder per scheduled day per habit. Only
+    /// habits with a non-nil `reminderTime` produce requests; the rest are
+    /// silently skipped. Uses the `habit-` ID namespace so the peptide
+    /// scheduler's set-diff leaves them alone.
+    ///
+    /// Schedule mapping:
+    ///   - `.daily` and `.timesPerWeek` → one repeating request that fires
+    ///     every day at the chosen hour:minute. Flexible cadences nudge the
+    ///     user daily; if they've already hit the week's count, they just
+    ///     dismiss.
+    ///   - `.weekdays(set)` → one repeating request per weekday so the
+    ///     reminder only fires on the days the habit is actually due.
+    @discardableResult
+    func scheduleHabitReminders(for habits: [Habit]) -> Int {
+        let stale = currentIDs.filter { $0.hasPrefix(Self.habitIDPrefix) }
+        if !stale.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: Array(stale))
+            currentIDs.subtract(stale)
+        }
+
+        var scheduled = 0
+        let calendar = Calendar.current
+
+        for habit in habits where !habit.archived {
+            guard let reminderTime = habit.reminderTime else { continue }
+            let hour = calendar.component(.hour, from: reminderTime)
+            let minute = calendar.component(.minute, from: reminderTime)
+
+            let content = UNMutableNotificationContent()
+            content.title = habit.name
+            if let target = habit.targetValue {
+                content.body = String(localized: "Today's goal: \(target)", comment: "Habit reminder body — countable habits, value is the target.")
+            } else {
+                content.body = String(localized: "Time to check in.", comment: "Habit reminder body — boolean habits.")
+            }
+            content.sound = .default
+            content.userInfo = ["habitId": habit.id.uuidString]
+
+            let weekdays: [Int?]
+            switch habit.schedule {
+            case .daily, .timesPerWeek:
+                // nil weekday → matches every day.
+                weekdays = [nil]
+            case .weekdays(let days):
+                weekdays = days.map { Optional($0.rawValue) }
+            }
+
+            for weekday in weekdays {
+                var components = DateComponents()
+                components.hour = hour
+                components.minute = minute
+                if let weekday { components.weekday = weekday }
+                let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+                let suffix = weekday.map(String.init) ?? "daily"
+                let id = "\(Self.habitIDPrefix)\(habit.id)-\(suffix)"
+                let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+                center.add(request)
+                currentIDs.insert(id)
+                scheduled += 1
+            }
+        }
+        return scheduled
     }
 
     /// Tracks a snooze identifier the delegate just submitted to UNUserNotificationCenter
@@ -277,6 +352,23 @@ final class NotificationService {
     func cancelAll() {
         center.removeAllPendingNotificationRequests()
         currentIDs.removeAll()
+        scheduledCount = 0
+        requestedCount = 0
+        lastReport = .empty
+    }
+
+    /// Wipes only the protocol-dose reminders, leaving habit reminders and
+    /// pending snoozes intact. Used when the user disables dose reminders —
+    /// flipping that switch shouldn't silently break their habit reminders.
+    func cancelProtocolReminders() {
+        let toKeep = currentIDs.filter {
+            $0.hasPrefix(Self.snoozeIDPrefix) || $0.hasPrefix(Self.habitIDPrefix)
+        }
+        let toRemove = currentIDs.subtracting(toKeep)
+        if !toRemove.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: Array(toRemove))
+        }
+        currentIDs = toKeep
         scheduledCount = 0
         requestedCount = 0
         lastReport = .empty

@@ -44,6 +44,13 @@ enum CoachingMessageEngine {
         let nextDoseAbbreviation: String?       // e.g. "BPC-157"
         let nextDoseTimeDisplay: String?        // e.g. "8:00 PM"
         let hourOfDay: Int                      // 0…23 in user's locale
+        /// Days since the user signed up. Drives the welcome-vs-on-
+        /// track decision so a long-time user who archives their last
+        /// protocol doesn't get "WELCOME — Set up your first protocol"
+        /// (audit Biology CRITICAL 3). Pass `nil` for backwards-compat
+        /// — the welcome message then defaults to the legacy
+        /// !hasProtocols path.
+        let memberDays: Int?
 
         init(
             hasProtocols: Bool,
@@ -54,7 +61,8 @@ enum CoachingMessageEngine {
             pendingDoseCount: Int = 0,
             nextDoseAbbreviation: String? = nil,
             nextDoseTimeDisplay: String? = nil,
-            hourOfDay: Int = 12
+            hourOfDay: Int = 12,
+            memberDays: Int? = nil
         ) {
             self.hasProtocols = hasProtocols
             self.healthConnected = healthConnected
@@ -65,8 +73,16 @@ enum CoachingMessageEngine {
             self.nextDoseAbbreviation = nextDoseAbbreviation
             self.nextDoseTimeDisplay = nextDoseTimeDisplay
             self.hourOfDay = hourOfDay
+            self.memberDays = memberDays
         }
     }
+
+    /// Welcome message only fires for genuinely new users — defined
+    /// here as `memberDays ≤ 14`. A user who deleted their last
+    /// protocol after 3 months would otherwise get a "WELCOME" pill
+    /// every time they opened the app, overriding the rest of the
+    /// cascade.
+    private static let welcomeMemberDayThreshold = 14
 
     // Tuned thresholds. Kept as static constants so a future tweak
     // doesn't fan out into the algorithm itself.
@@ -76,7 +92,7 @@ enum CoachingMessageEngine {
     private static let lateInDayHour = 18    // 6pm cutoff for "catch-up" copy
 
     static func pick(context: Context) -> CoachingMessage {
-        if !context.hasProtocols {
+        if !context.hasProtocols, isNewMember(context) {
             return welcomeMessage()
         }
         if !context.healthConnected {
@@ -98,6 +114,14 @@ enum CoachingMessageEngine {
     }
 
     // MARK: - Messages
+
+    /// True when memberDays is unset (back-compat) OR ≤ welcome
+    /// threshold. A nil here matches the historical behavior so
+    /// existing call sites that don't pass memberDays still work.
+    private static func isNewMember(_ context: Context) -> Bool {
+        guard let days = context.memberDays else { return true }
+        return days <= welcomeMemberDayThreshold
+    }
 
     private static func welcomeMessage() -> CoachingMessage {
         CoachingMessage(

@@ -59,21 +59,41 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
-    /// Default unit string shown next to the value. `nil` for
-    /// biomarkers without a fixed unit (e.g. the lab panel,
-    /// which renders a panel summary rather than a number).
-    var unit: String? {
+    /// Default unit string in metric. Kept for back-compat with
+    /// any caller that doesn't have a `MeasurementUnit` to hand.
+    /// New code should call `displayUnit(for:)` so US users see
+    /// pounds / inches / °F (audit Biology MED 10).
+    var unit: String? { displayUnit(for: .metric) }
+
+    /// Locale-aware unit string. `MeasurementUnit.imperial` swaps
+    /// kg → lb, cm → in, °C → °F. The numeric value itself is
+    /// converted at the render site (BiomarkerRow uses the
+    /// user's BodyMetrics.unit to choose).
+    func displayUnit(for unit: MeasurementUnit) -> String? {
         switch self {
-        case .weight:           "kg"
-        case .hrvBaseline:      "ms"
-        case .rhrBaseline:      "bpm"
-        case .sleepBaseline:    "h"
-        case .stepsBaseline:    "steps"
-        case .bodyTemperature:  "°C"
-        case .bodyFat:          "%"
-        case .waist:            "cm"
-        case .bloodPressure:    "mmHg"
-        case .latestLabPanel:   nil
+        case .weight:           return unit == .imperial ? "lb" : "kg"
+        case .hrvBaseline:      return "ms"
+        case .rhrBaseline:      return "bpm"
+        case .sleepBaseline:    return "h"
+        case .stepsBaseline:    return "steps"
+        case .bodyTemperature:  return unit == .imperial ? "°F" : "°C"
+        case .bodyFat:          return "%"
+        case .waist:            return unit == .imperial ? "in" : "cm"
+        case .bloodPressure:    return "mmHg"
+        case .latestLabPanel:   return nil
+        }
+    }
+
+    /// Converts a metric-stored value to the user's preferred unit
+    /// for display. Pure presentation — the underlying storage stays
+    /// canonical metric.
+    func displayValue(_ metricValue: Double, for unit: MeasurementUnit) -> Double {
+        guard unit == .imperial else { return metricValue }
+        switch self {
+        case .weight:           return metricValue * 2.20462         // kg → lb
+        case .waist:            return metricValue / 2.54            // cm → in
+        case .bodyTemperature:  return metricValue * 9.0 / 5.0 + 32  // °C → °F
+        default:                return metricValue
         }
     }
 

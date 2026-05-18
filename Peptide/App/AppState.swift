@@ -94,7 +94,7 @@ final class AppState {
 /// carry a barcode, custom foods carry a UUID, recipes carry a
 /// recipe UUID. The receiving view pattern-matches on the case to
 /// resolve which path to take.
-enum FoodLogDeepLink: Equatable, Sendable {
+enum FoodLogDeepLink: Equatable, Hashable, Sendable {
     case openFoodFacts(barcode: String)
     case custom(id: UUID)
     case recipe(id: UUID)

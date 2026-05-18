@@ -23,6 +23,11 @@ struct ShareCardSheet: View {
     @Environment(DataStore.self) private var dataStore
 
     @State private var includeHealth = false
+    /// When true, the rendered card uses "Compound A / B / C…" in
+    /// place of real peptide names and abbreviations. Default false
+    /// — the user opts INTO masking. Adds a real-privacy lever the
+    /// audit (Sharing P1.8) flagged as missing.
+    @State private var maskCompoundNames = false
     @State private var healthSummary: CycleCardModel.HealthSummary?
     @State private var isLoadingHealth = false
     @State private var renderedURL: URL?
@@ -117,6 +122,7 @@ struct ShareCardSheet: View {
                 }
                 refreshPreview()
             }
+            .onChange(of: maskCompoundNames) { _, _ in refreshPreview() }
             .onChange(of: healthSummary) { _, _ in refreshPreview() }
             .task { refreshPreview() }
         }
@@ -170,7 +176,10 @@ struct ShareCardSheet: View {
             // flushed before the (synchronous) ImageRenderer captures.
             await Task.yield()
             guard previewToken == token else { return }
-            let image = try? ShareCardRenderer.renderImage(for: modelForRender)
+            let image = try? ShareCardRenderer.renderImage(
+                for: modelForRender,
+                maskCompoundNames: maskCompoundNames
+            )
             guard previewToken == token else { return }
             previewImage = image
         }
@@ -203,10 +212,27 @@ struct ShareCardSheet: View {
             .toggleStyle(.switch)
             .tint(AppColor.accentPrimary)
 
+            Toggle(isOn: $maskCompoundNames) {
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "eye.slash.fill")
+                        .foregroundStyle(AppColor.accentLight)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Hide compound names")
+                            .font(AppFont.headline)
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text("Renders the stack as Compound A · B · C.")
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                }
+            }
+            .toggleStyle(.switch)
+            .tint(AppColor.accentPrimary)
+
             HStack(spacing: 6) {
                 Image(systemName: "lock.fill")
                     .font(.system(size: 11, weight: .semibold))
-                Text("Off by default. Injection sites are never shared.")
+                Text("Both off by default. Injection sites are never shared.")
                     .font(AppFont.caption)
             }
             .foregroundStyle(AppColor.textTertiary)
@@ -304,7 +330,10 @@ struct ShareCardSheet: View {
             await Task.yield()
             defer { isRendering = false }
             do {
-                let url = try ShareCardRenderer.renderPNG(for: modelForRender)
+                let url = try ShareCardRenderer.renderPNG(
+                    for: modelForRender,
+                    maskCompoundNames: maskCompoundNames
+                )
                 renderedURL = url
                 if dataStore.profile.hapticFeedbackEnabled {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()

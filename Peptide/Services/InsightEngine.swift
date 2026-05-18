@@ -116,6 +116,13 @@ struct InsightEngine {
         return streak
     }
 
+    /// Per-weekday miss rate. Gate at minimum 4 observations per day
+    /// so a user who missed their first Tuesday dose (1/1 = 100%)
+    /// doesn't trigger a "you tend to miss Tuesdays" false pattern
+    /// (audit Insights H5). Days with fewer than 4 entries return 0
+    /// (treated as no signal by downstream consumers' > 0.3 gate).
+    private static let dayPatternMinObservations = 4
+
     private static func analyzeDayPatterns(entries: [ProtocolEntry]) -> [Int: Double] {
         let calendar = Calendar.current
         var dayMissRates: [Int: (missed: Int, total: Int)] = [:]
@@ -130,7 +137,8 @@ struct InsightEngine {
         }
 
         return dayMissRates.mapValues { pair in
-            pair.total > 0 ? Double(pair.missed) / Double(pair.total) : 0
+            guard pair.total >= dayPatternMinObservations else { return 0 }
+            return Double(pair.missed) / Double(pair.total)
         }
     }
 

@@ -50,7 +50,16 @@ struct BiologyView: View {
                     }
 
                     BiomarkerListSection(
-                        visibleBiomarkers: dataStore.profile.biologyConfig.visibleBiomarkers,
+                        // Pro biomarkers stay in profile.biologyConfig
+                        // after a subscription lapse so the user's
+                        // selection is preserved across re-up — but
+                        // we filter them out of the visible list when
+                        // !isProUser (audit Biology MED 11).
+                        // EditBiomarkersSheet already blocks adding
+                        // new Pro entries; this closes the rendering
+                        // side of the gate.
+                        visibleBiomarkers: dataStore.profile.biologyConfig.visibleBiomarkers
+                            .filter { storeService.isProUser || !$0.requiresPro },
                         onEditTapped: { showEditSheet = true },
                         onSelectBiomarker: { biomarker in openDetail(for: biomarker) }
                     )
@@ -59,6 +68,10 @@ struct BiologyView: View {
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
+                // iPad content cap — Biology rows benefit from a
+                // readable measure (Phase 5.8 partial).
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
             .background {
                 CosmicBackdrop(intensity: 0.55)
@@ -131,17 +144,21 @@ struct BiologyView: View {
 
     private func computeWeightDelta30d() -> Double? {
         let history = dataStore.profile.weightHistory.sorted { $0.date < $1.date }
-        guard let earliest = history.first, let latest = history.last, earliest.id != latest.id else {
-            return nil
-        }
-        let cutoff = Date().addingTimeInterval(-30 * 24 * 60 * 60)
-        // Prefer the first entry on/after the 30-day cutoff so the delta
-        // reflects "the last 30 days"; fall back to the earliest entry
-        // when the user has older but no recent history (still better
-        // than nothing). The optional binding above keeps this safe
-        // without any force-unwrap — a future refactor that drops the
-        // length guard can't accidentally crash on a single-entry log.
-        let baseline = history.first { $0.date >= cutoff } ?? earliest
+        guard history.count >= 2, let latest = history.last else { return nil }
+        // Calendar-day cutoff so DST flips don't shift the boundary an
+        // hour and so the window is "30 days ago" rather than "30 ×
+        // 86,400 seconds ago" (audit Biology L17).
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let cutoff = calendar.date(byAdding: .day, value: -30, to: today) ?? today
+        // Return nil when no entry falls within the 30-day window
+        // (user weighed in once two years ago and twice yesterday):
+        // comparing today's weight against the year-old baseline and
+        // labelling it a "30-day delta" mis-tells the story. The
+        // card hides itself in that case (audit Biology follow-up).
+        // Optional binding also dodges the force-unwrap the main-side
+        // fallback used to carry.
+        guard let baseline = history.first(where: { $0.date >= cutoff }) else { return nil }
         guard baseline.id != latest.id else { return nil }
         return latest.kg - baseline.kg
     }

@@ -8,4 +8,12 @@ enum TrainNavigation: Hashable {
     /// Drill into the full exercise detail (instructions, muscles,
     /// images, history).
     case exerciseDetail(String)
+    /// Full workout-session detail: per-exercise sets, effort chip,
+    /// PRs, note. Carries the session UUID so the destination view
+    /// can fetch from SwiftData lazily — the alternative (passing
+    /// the WorkoutSession value itself) would bloat the Hashable
+    /// payload and prevent deep-link reconstruction.
+    case workoutDetail(UUID)
+    /// Full workout history list.
+    case workoutHistory
 }

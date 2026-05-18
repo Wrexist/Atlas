@@ -1,12 +1,20 @@
-# Peptide-ai (PeptideX)
+# Atlas — health & fitness iOS app
 
 ## Project Overview
-Native iOS SwiftUI app for peptide protocol tracking with grounded AI
-assistance. iOS 18+, Swift 6.0, SwiftData (CloudKit-backed), companion
-Watch app + two widget targets + Live Activities. See `README.md` for
-the directory layout and `HANDOFF.md` for the most-recent in-flight
-state. The Vercel proxy in `server/` holds the Anthropic key so the
-iOS binary never ships one.
+Atlas is a native iOS SwiftUI health & fitness app — training,
+nutrition (barcode + photo meal scanner via Claude vision), biology /
+recovery (HRV, RHR, sleep, Performance Age), AI-assisted research
+chat, and optional supplement / protocol tracking. iOS 18+, Swift 6.0,
+SwiftData (CloudKit-backed), companion Watch app + two widget targets
++ Live Activities. See `README.md` for the directory layout and
+`HANDOFF.md` for the most-recent in-flight state. The Vercel proxy in
+`server/` holds the Anthropic key so the iOS binary never ships one.
+
+The repo's legacy name is "Peptide-ai" / "PeptideX" — the product
+positioning is Atlas, a health & fitness app. The bundled peptide
+database (208 entries) and protocol-tracking surfaces remain
+available for the advanced-user audience, but onboarding and the App
+Store framing lead with training / nutrition / recovery.
 
 This file configures Claude Code for the codebase's conventions.
 

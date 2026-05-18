@@ -34,6 +34,10 @@ struct BarcodeScanFlow: View {
     @State private var loggedSnapshot: LoggedSnapshot?
     @State private var torchOn = false
     @State private var ocrPickerItem: PhotosPickerItem?
+    /// Drives the "you just logged this 30 minutes ago — log again?"
+    /// confirmation when the user re-scans the same barcode within
+    /// a short window (audit Meals MED 7). Nil = no prompt pending.
+    @State private var pendingDuplicateConfirm: (product: ScannedProduct, lastLoggedAt: Date)?
 
     private enum Phase: Equatable {
         case preflight       // checking camera permission + device support
@@ -105,6 +109,30 @@ struct BarcodeScanFlow: View {
             // fires would otherwise double-call `onClose()`.
             guard !Task.isCancelled, phase == .logged else { return }
             onClose()
+        }
+        .confirmationDialog(
+            "Already logged this recently",
+            isPresented: Binding(
+                get: { pendingDuplicateConfirm != nil },
+                set: { newValue in
+                    if !newValue { pendingDuplicateConfirm = nil }
+                }
+            ),
+            titleVisibility: .visible,
+            presenting: pendingDuplicateConfirm
+        ) { ctx in
+            Button("Log again", role: .none) {
+                if let meal = currentMacros(for: ctx.product) {
+                    commitMealEntry(product: ctx.product, meal: meal)
+                }
+                pendingDuplicateConfirm = nil
+            }
+            Button("Cancel", role: .cancel) {
+                pendingDuplicateConfirm = nil
+            }
+        } message: { ctx in
+            let mins = Int(Date().timeIntervalSince(ctx.lastLoggedAt) / 60)
+            Text("You logged \(ctx.product.name) \(mins) minute\(mins == 1 ? "" : "s") ago. Log it again?")
         }
         .sheet(isPresented: $showEditSheet) {
             if let product {
@@ -919,6 +947,34 @@ struct BarcodeScanFlow: View {
         guard phase == .review,
               let product,
               let meal = currentMacros(for: product) else { return }
+        // Duplicate-scan guard (audit Meals MED 7): if the same
+        // barcode was logged in the past 60 minutes, surface a
+        // confirmation prompt instead of silently appending a
+        // second identical row. The user can confirm "yes log it
+        // again" — sometimes a re-scan is intentional (second
+        // helping at the same meal).
+        if let lastLoggedAt = recentlyLoggedAt(barcode: product.barcode, within: 3600) {
+            pendingDuplicateConfirm = (product, lastLoggedAt)
+            return
+        }
+        commitMealEntry(product: product, meal: meal)
+    }
+
+    /// Returns the most-recent `logged` timestamp for a MealEntry that
+    /// referenced `barcode` within the window — nil when no match.
+    /// Used to drive the duplicate-scan confirmation dialog.
+    private func recentlyLoggedAt(barcode: String, within seconds: TimeInterval) -> Date? {
+        let cutoff = Date().addingTimeInterval(-seconds)
+        return dataStore.profile.mealHistory
+            .filter { $0.sourceID == barcode && $0.date >= cutoff }
+            .map(\.date)
+            .max()
+    }
+
+    /// Commits the meal entry to DataStore. Extracted from the body
+    /// of confirm() so the duplicate-scan confirmation dialog can
+    /// call it directly when the user picks "Log again".
+    private func commitMealEntry(product: ScannedProduct, meal: LoggableMeal) {
         let now = Date()
         // OCR-synthesised products and manual-override edits share the
         // OFF flow but aren't strictly Open Food Facts data; tag them

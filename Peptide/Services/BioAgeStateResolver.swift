@@ -49,22 +49,24 @@ enum BioAgeStateResolver {
         }
 
         let kit = HealthKitService.shared
-        async let hrv   = kit.averageHRV(days: 30)
-        async let rhr   = kit.averageRestingHeartRate(days: 30)
-        async let sleep = kit.averageSleepHours(days: 30)
-        // HealthKit averages don't carry a sample count, so we
-        // can't tell whether HRV came from 1 day or 30. To stay
-        // honest about confidence, we floor at `minBaselineDays`
-        // (7) when HRV is present — enough for the engine to
-        // attempt an estimate, but the confidence curve stays
-        // conservative until a real "samples-in-window" query
-        // gives us a true count. The previous behaviour passed
-        // 30 unconditionally and could surface an estimate
-        // backed by a single day of HRV.
+        async let hrv      = kit.averageHRV(days: 30)
+        async let rhr      = kit.averageRestingHeartRate(days: 30)
+        async let sleep    = kit.averageSleepHours(days: 30)
+        // Real day-coverage via `dailyHRV()` which returns one value
+        // per calendar day with samples present. The previous
+        // approach passed 30 unconditionally whenever `averageHRV`
+        // came back non-nil, so a user with 1 day of HRV got
+        // density factor 1.0 and a real Bio Age estimate after a
+        // single morning (audit Biology H7). The confidence curve
+        // in PerformanceAgeEngine is tuned for actual sample
+        // density; feed it the real number, which also obsoletes
+        // the `minBaselineDays`-floor workaround on main.
+        async let hrvDaily = kit.dailyHRV(days: 30)
         let hrvValue = await hrv
         let rhrValue = await rhr
         let sleepValue = await sleep
-        let dataDays = hrvValue != nil ? minBaselineDays : 0
+        let hrvDays = await hrvDaily
+        let dataDays = hrvDays.count
 
         let inputs = PerformanceAgeEngine.Inputs(
             chronologicalAge: age,
@@ -79,15 +81,12 @@ enum BioAgeStateResolver {
             return Resolved(state: .unlocked(estimate: estimate), chronologicalAge: age)
         }
 
-        // Pro user but not enough data yet. Surface progress so
-        // the user sees a path to value, not a permanent block.
-        // Without a real "samples-per-day" count we approximate
-        // progress as how many of HRV / RHR / Sleep came back —
-        // each present signal pushes toward 1.0.
-        let presentSignals = [hrvValue, rhrValue, sleepValue]
-            .compactMap { $0 }
-            .count
-        let progress = Double(presentSignals) / 3.0
+        // Pro user but not enough data yet. Progress is now anchored
+        // to the actual `dataDays / minBaselineDays` ratio so the
+        // "N of 7 days collected" copy in BioAgeHeroSection reflects
+        // the real day count instead of the present-signals-out-of-3
+        // approximation (audit Biology H6).
+        let progress = min(1.0, Double(dataDays) / Double(minBaselineDays))
         return Resolved(state: .building(progress: progress), chronologicalAge: age)
     }
 

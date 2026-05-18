@@ -77,16 +77,26 @@ final class WorkoutSessionService {
     /// the finish-screen render path; the service drops its
     /// `activeSession` so the next `startWorkout` is unambiguous.
     @discardableResult
-    func finishWorkout(perceivedEffort: Int? = nil, note: String? = nil) -> WorkoutSession? {
+    /// Finish-result bundle so the WorkoutFinishView can render PR
+    /// detections without re-calling PRDetectionEngine.ingest (which
+    /// mutates the records on first call and returns [] on every
+    /// subsequent call against the same session — audit Train H4:
+    /// "PR celebrations never fire on the finish screen").
+    struct FinishedWorkout {
+        let session: WorkoutSession
+        let detectedPRs: [PRDetectionEngine.DetectedPR]
+    }
+
+    func finishWorkout(perceivedEffort: Int? = nil, note: String? = nil) -> FinishedWorkout? {
         guard var session = activeSession else { return nil }
         session.finishedAt = Date()
         session.perceivedEffort = perceivedEffort
         session.note = note
         SwiftDataRepository.shared.upsertWorkoutSession(session)
-        PRDetectionEngine.shared.ingest(session: session)
+        let detections = PRDetectionEngine.shared.ingest(session: session)
         activeSession = nil
-        AppLog.training.info("Workout finished (id: \(session.id, privacy: .public), sets: \(session.completedSetCount, privacy: .public))")
-        return session
+        AppLog.training.info("Workout finished (id: \(session.id, privacy: .public), sets: \(session.completedSetCount, privacy: .public), PRs: \(detections.count, privacy: .public))")
+        return FinishedWorkout(session: session, detectedPRs: detections)
     }
 
     /// Drop the in-progress session without recording it. Called when
@@ -103,10 +113,19 @@ final class WorkoutSessionService {
     func addExercise(_ exercise: Exercise) {
         guard var session = activeSession else { return }
         let nextIndex = session.exercises.count
+        // Seed the first set with the user's last working weight /
+        // reps for this exercise so they aren't staring at a 0kg
+        // placeholder every time (audit Train M4). Default to a
+        // conservative 8 reps when no history exists.
+        let seed = lastCompletedSet(forExerciseID: exercise.id)
         let entry = WorkoutExerciseEntry(
             exerciseID: exercise.id,
             index: nextIndex,
-            sets: [SetEntry(index: 1, weightKg: 0, reps: 8)]
+            sets: [SetEntry(
+                index: 1,
+                weightKg: seed?.weightKg ?? 0,
+                reps: seed?.reps ?? 8
+            )]
         )
         session.exercises.append(entry)
         persist(session)
@@ -174,6 +193,25 @@ final class WorkoutSessionService {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         session.name = trimmed.isEmpty ? nil : trimmed
         persist(session)
+    }
+
+    /// Returns the last completed set the user logged for the given
+    /// exercise in any prior workout session. Wires the "previous"
+    /// cue on each SetEditorRow so the user sees "Last: 60 kg × 8"
+    /// before they tap to log the next set (audit Train C1). Returns
+    /// nil when the user hasn't ever logged this exercise.
+    func lastCompletedSet(forExerciseID id: String) -> SetEntry? {
+        let sessions = SwiftDataRepository.shared.loadWorkoutSessions()
+        // Walk newest-first, skip the in-flight session.
+        for session in sessions.sorted(by: { $0.startedAt > $1.startedAt }) {
+            if session.id == activeSession?.id { continue }
+            guard let exerciseEntry = session.exercises.first(where: { $0.exerciseID == id })
+            else { continue }
+            if let lastCompleted = exerciseEntry.sets.last(where: { $0.completed }) {
+                return lastCompleted
+            }
+        }
+        return nil
     }
 
     // MARK: - Internals

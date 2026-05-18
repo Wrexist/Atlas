@@ -170,16 +170,29 @@ struct WeeklySummaryHeroCard: View {
                 .foregroundStyle(accent)
             Spacer(minLength: 0)
             if let badge {
-                Text(badge)
-                    .font(.system(size: 10, weight: .heavy))
-                    .tracking(0.8)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .background {
-                        Capsule()
-                            .strokeBorder(AppColor.textSecondary.opacity(0.35), lineWidth: 0.5)
-                    }
+                // The previous treatment (textSecondary on a hairline
+                // outline) blended into the tinted card on bright
+                // displays — users didn't see the offline marker
+                // (audit Biology L19). Foreground on a filled capsule
+                // with an icon makes it unmissable without screaming.
+                HStack(spacing: 3) {
+                    Image(systemName: "wifi.slash")
+                        .font(.system(size: 9, weight: .heavy))
+                    Text(badge)
+                        .font(.system(size: 10, weight: .heavy))
+                        .tracking(0.8)
+                }
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .foregroundStyle(AppColor.textPrimary)
+                .background {
+                    Capsule()
+                        .fill(AppColor.surfaceSecondary.opacity(0.9))
+                        .overlay {
+                            Capsule()
+                                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                        }
+                }
             }
         }
     }

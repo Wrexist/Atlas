@@ -37,6 +37,14 @@ struct TrainContainerView: View {
                 switch destination {
                 case .exerciseDetail(let id):
                     ExerciseDetailView(exerciseID: id)
+                case .workoutDetail(let id):
+                    // Resolve the session lazily so the destination
+                    // works for deep-links from outside the History
+                    // list (Spotlight, Live Activity, weekly recap)
+                    // without forcing the caller to hold the value.
+                    workoutDetailDestination(for: id)
+                case .workoutHistory:
+                    WorkoutHistoryView()
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -134,17 +142,27 @@ struct TrainContainerView: View {
         case .exercises:
             ExerciseLibraryView()
         case .history:
-            placeholderHistory
+            WorkoutHistoryView()
         }
     }
 
-    private var placeholderHistory: some View {
-        EmptyStateView(
-            icon: "calendar",
-            title: "No workouts logged yet",
-            message: "Once you finish your first session, it'll show up here with PRs and a monthly heat-calendar."
-        )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    @ViewBuilder
+    private func workoutDetailDestination(for id: UUID) -> some View {
+        if let session = SwiftDataRepository.shared
+            .loadWorkoutSessions()
+            .first(where: { $0.id == id }) {
+            WorkoutSessionDetailView(session: session)
+        } else {
+            // Session was deleted between deep-link generation and
+            // open — fall through to an empty state rather than
+            // crashing on a stale UUID.
+            EmptyStateView(
+                icon: "questionmark.circle",
+                title: "Workout not found",
+                message: "This session may have been deleted."
+            )
+            .navigationTitle("Workout")
+        }
     }
 
     // MARK: - SectionTab

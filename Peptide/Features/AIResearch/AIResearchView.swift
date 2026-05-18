@@ -118,7 +118,10 @@ struct AIResearchView: View {
                     }
                 }
                 .padding(Spacing.lg)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                // iPad cap so chat bubbles don't stretch into an
+                // unreadably wide column (Phase 5.8 partial).
+                .frame(maxWidth: 720, alignment: .leading)
+                .frame(maxWidth: .infinity)
             }
             .onChange(of: transcript.count) { _, _ in
                 guard let last = transcript.last else { return }
@@ -239,21 +242,53 @@ struct AIResearchView: View {
         let priorHistory = Array(transcript.dropLast()) // exclude the user turn we just appended
         let database = dataStore.peptideDatabase
 
+        // Empty assistant turn — chunks land into this turn's content
+        // as the SSE stream arrives, so the bubble animates token-by-
+        // token instead of popping in fully formed.
+        let assistantTurn = AIResearchService.Turn(role: .assistant, content: "")
+        transcript.append(assistantTurn)
+
+        // Cancel any in-flight stream from a previous question so the
+        // user can fire off a new prompt without waiting and without
+        // having stale tokens land in the new bubble (main-side fix).
         inflight?.cancel()
         inflight = Task { @MainActor in
             defer { isStreaming = false }
+            let stream = AIResearchService.shared.replyStream(
+                history: priorHistory,
+                newUserPrompt: prompt,
+                in: database
+            )
             do {
-                let reply = try await AIResearchService.shared.reply(
-                    history: priorHistory,
-                    newUserPrompt: prompt,
-                    in: database
-                )
-                guard !Task.isCancelled else { return }
-                transcript.append(AIResearchService.Turn(role: .assistant, content: reply))
+                for try await chunk in stream {
+                    guard !Task.isCancelled else { return }
+                    if let idx = transcript.lastIndex(where: { $0.id == assistantTurn.id }) {
+                        transcript[idx].content.append(chunk)
+                    }
+                }
+                // Empty stream (proxy returned 200 but nothing parseable)
+                // — surface a friendly error instead of leaving a blank
+                // bubble sitting in the transcript.
+                if let idx = transcript.lastIndex(where: { $0.id == assistantTurn.id }),
+                   transcript[idx].content.isEmpty {
+                    transcript.remove(at: idx)
+                    errorText = AIResearchService.ChatError.invalidResponse.errorDescription
+                    lastFailedPrompt = prompt
+                }
             } catch is CancellationError {
-                // Either the user sent a new question or closed the
-                // sheet — silent.
+                // User fired a new question or closed the sheet — drop
+                // the partially-streamed placeholder silently, no alert.
+                if let idx = transcript.lastIndex(where: { $0.id == assistantTurn.id }),
+                   transcript[idx].content.isEmpty {
+                    transcript.remove(at: idx)
+                }
             } catch {
+                // Drop the empty placeholder before showing the alert so
+                // the user doesn't see a half-rendered assistant bubble.
+                if let idx = transcript.lastIndex(where: { $0.id == assistantTurn.id }),
+                   transcript[idx].content.isEmpty {
+                    transcript.remove(at: idx)
+                }
                 errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 lastFailedPrompt = prompt
                 if dataStore.profile.hapticFeedbackEnabled {

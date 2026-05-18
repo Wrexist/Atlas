@@ -97,22 +97,39 @@ final class StoreService {
 
     // MARK: - Purchase
 
-    func purchase(_ product: Product) async throws -> Bool {
-        let result = try await product.purchase()
+    enum PurchaseOutcome: Equatable, Sendable {
+        case success
+        case userCancelled
+        /// "Ask to Buy" — the parent needs to approve. Apple's
+        /// recommended pattern is to tell the user the request was
+        /// submitted; previously this was indistinguishable from a
+        /// no-op (audit Library P0.5).
+        case pending
+    }
 
+    /// Detailed purchase result. Use this from new code; the legacy
+    /// `Bool`-returning shim below is kept for back-compat with
+    /// existing call sites and returns `true` only on `.success`.
+    func purchaseWithOutcome(_ product: Product) async throws -> PurchaseOutcome {
+        let result = try await product.purchase()
         switch result {
         case .success(let verification):
             let transaction = try checkVerified(verification)
             await transaction.finish()
             await updatePurchasedProducts()
-            return true
+            return .success
         case .userCancelled:
-            return false
+            return .userCancelled
         case .pending:
-            return false
+            return .pending
         @unknown default:
-            return false
+            return .userCancelled
         }
+    }
+
+    @discardableResult
+    func purchase(_ product: Product) async throws -> Bool {
+        try await purchaseWithOutcome(product) == .success
     }
 
     /// Starts the monthly subscription, which auto-applies the configured

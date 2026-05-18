@@ -9,18 +9,19 @@ struct ProfileView: View {
     @State private var showReconstitutionCalculator = false
     @State private var showRestoreBackup = false
 
-    // Kept in sync with OnboardingView's `goals` array so a goal selected
-    // during onboarding remains visible/editable here.
-    private let availableGoals = [
-        "Muscle Recovery",
-        "Better Sleep",
-        "Cognitive Edge",
-        "Anti-Aging",
-        "Fat Loss",
-        "Immune Support",
-        "Joint Health",
-        "Stress Reduction",
-    ]
+    /// Single source of truth for the goal catalog. Reads from
+    /// OnboardingView.PrimaryGoal so a goal selected during the new
+    /// onboarding flow renders as pre-selected here — previously the
+    /// Profile picker used Title Case display strings while onboarding
+    /// wrote camelCase rawValues, and the two sets never intersected.
+    /// Both the storage key (camelCase rawValue) and the display
+    /// label (`.displayName`) come from the enum so the two stay in
+    /// lock-step on future expansions.
+    private var goalCatalog: [GoalsSectionCard.GoalEntry] {
+        OnboardingView.PrimaryGoal.allCases.map {
+            GoalsSectionCard.GoalEntry(key: $0.rawValue, displayName: $0.displayName)
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -49,8 +50,8 @@ struct ProfileView: View {
                         .sectionAppear(index: 3)
 
                     GoalsSectionCard(
-                        availableGoals: availableGoals,
-                        selectedGoals: Set(dataStore.profile.goals),
+                        goalCatalog: goalCatalog,
+                        selectedKeys: Set(dataStore.profile.goals),
                         hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                         onToggle: toggleGoal
                     )
@@ -82,31 +83,36 @@ struct ProfileView: View {
                         .sectionAppear(index: 7)
 
                     WeeklySummaryToggleRow()
-                        .sectionAppear(index: 7)
-
-                    ScreenshotModeRow()
-                        .sectionAppear(index: 7)
-
-                    ExportSection()
-                        .sectionAppear(index: 7)
-
-                    RestoreBackupEntryRow(onTap: { showRestoreBackup = true })
-                        .sectionAppear(index: 7)
-
-                    AccountSection()
                         .sectionAppear(index: 8)
 
-                    AppearanceSettings()
+                    ScreenshotModeRow()
                         .sectionAppear(index: 9)
 
-                    DiagnosticsSection()
+                    ExportSection()
                         .sectionAppear(index: 10)
 
-                    AboutSection()
+                    RestoreBackupEntryRow(onTap: { showRestoreBackup = true })
                         .sectionAppear(index: 11)
+
+                    AccountSection()
+                        .sectionAppear(index: 12)
+
+                    AppearanceSettings()
+                        .sectionAppear(index: 13)
+
+                    DiagnosticsSection()
+                        .sectionAppear(index: 14)
+
+                    AboutSection()
+                        .sectionAppear(index: 15)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
+                // iPad content width cap — matches HomeView's
+                // treatment so Profile doesn't stretch full-width on
+                // larger devices (Phase 5.8 partial).
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
             .background(AppColor.background)
             .navigationTitle("Profile")
@@ -132,10 +138,10 @@ struct ProfileView: View {
 
     private func connectHealthKit() {
         Task { @MainActor in
-            let authorized = await HealthKitService.shared.requestAuthorization()
-            if authorized {
-                dataStore.toggleHealthConnection()
-            }
+            // toggleHealthConnection now requests authorization internally
+            // and refuses to flip ON without a grant — so we can call it
+            // directly without a separate pre-check.
+            _ = await dataStore.toggleHealthConnection()
         }
     }
 

@@ -222,6 +222,25 @@ struct HomeView: View {
                     CoachingCard(message: coachingMessage)
                         .sectionAppear(index: 0)
 
+                    // Goal countdown from the onboarding "By when?"
+                    // step. Renders only when the user committed to a
+                    // future date; older accounts and skipped users
+                    // see nothing. Reads from dataStore so the card
+                    // updates the moment the user edits the date in
+                    // Profile.
+                    GoalCountdownCard(
+                        goalDate: dataStore.profile.goalDate,
+                        primaryGoal: dataStore.profile.primaryGoal
+                    )
+                    .sectionAppear(index: 0)
+
+                    // Habits — compact / expandable / "View all" sheet.
+                    // Sits just under the goal countdown so the user's
+                    // daily-action surface (single check-tap per habit)
+                    // is right under the projection that motivates it.
+                    HabitsHomeCard()
+                        .sectionAppear(index: 0)
+
                     if overview.hasAnySignal {
                         TodayOverviewCard(
                             snapshot: overview,
@@ -265,10 +284,13 @@ struct HomeView: View {
                     // jump chips above reach the full schedule in
                     // one tap.
 
-                    HomeMealsSection()
-                        .id(TodayJumpBar.SectionAnchor.meals)
-                        .trackSectionAnchor(.meals)
-                        .sectionAppear(index: 2)
+                    // HomeMealsSection used to render on the Today scroll
+                    // AND inside MealsContainerView. Spotlight taps with
+                    // a recipe deep-link fired sheets in both mounts
+                    // simultaneously (audit Meals MED 10). Removed from
+                    // Today; the dedicated Meals tab is the single
+                    // owner. The jump-bar .meals chip now navigates to
+                    // the Meals tab (handled in handleJump).
 
                     if !dataStore.protocols.isEmpty {
                         DailyPlanCard(
@@ -329,6 +351,13 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
+                // Cap content width on iPad / landscape — without this
+                // the cards stretch the full screen and the long-form
+                // copy reads as awkward 80-character lines (audit
+                // Phase 5.8 partial). 640pt keeps a comfortable
+                // readable measure; the rest gets centered.
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
             // Scroll-driven sticky header progress: fade begins
             // once the welcome card scrolls ~80pt out of view and
@@ -577,7 +606,14 @@ struct HomeView: View {
             withAnimation(AppAnimation.springSnappy) {
                 appState.selectedTab = .biology
             }
-        case .doses, .meals, .wellness, .movement:
+        case .meals:
+            // Meals lives on its own tab now (audit Meals MED 10).
+            // The Today scroll no longer mounts HomeMealsSection so
+            // scrolling here would be a no-op — switch tab instead.
+            withAnimation(AppAnimation.springSnappy) {
+                appState.selectedTab = .meals
+            }
+        case .doses, .wellness, .movement:
             withAnimation(.smooth(duration: 0.35)) {
                 proxy.scrollTo(anchor, anchor: .top)
             }
@@ -641,6 +677,9 @@ struct HomeView: View {
         let nextTimeDisplay: String? = next.map {
             DateFormatter.localizedString(from: $0.date, dateStyle: .none, timeStyle: .short)
         }
+        let memberDays = Calendar.current
+            .dateComponents([.day], from: dataStore.profile.memberSince, to: Date())
+            .day ?? 0
         let context = CoachingMessageEngine.Context(
             hasProtocols: !dataStore.protocols.isEmpty,
             healthConnected: dataStore.profile.healthConnected,
@@ -652,7 +691,8 @@ struct HomeView: View {
             pendingDoseCount: todayStats.total - todayStats.completed,
             nextDoseAbbreviation: next?.peptide.abbreviation,
             nextDoseTimeDisplay: nextTimeDisplay,
-            hourOfDay: Calendar.current.component(.hour, from: Date())
+            hourOfDay: Calendar.current.component(.hour, from: Date()),
+            memberDays: memberDays
         )
         return CoachingMessageEngine.pick(context: context)
     }

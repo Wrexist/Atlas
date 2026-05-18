@@ -10,6 +10,14 @@ import CoreImage.CIFilterBuiltins
 /// the watermark.
 struct CycleCardView: View {
     let model: CycleCardModel
+    /// When true, compound names and abbreviations are masked behind
+    /// "Compound A / B / C". The visual silhouettes / vial counts
+    /// stay so the share still tells a story; the user just doesn't
+    /// publish what they're running. Defaults to false — the call
+    /// site decides based on the privacy toggle on ShareCardSheet
+    /// (audit Sharing P1.8: the toggle previously only hid health
+    /// metrics; compound names were always shown).
+    var maskCompoundNames: Bool = false
 
     private static let canvasWidth: CGFloat = 1080
     private static let canvasHeight: CGFloat = 1920
@@ -127,11 +135,17 @@ struct CycleCardView: View {
         HStack(spacing: -28) {
             let visible = Array(model.peptides.prefix(Self.maxVisibleVials))
             ForEach(Array(visible.enumerated()), id: \.offset) { index, peptide in
+                let label: String = maskCompoundNames
+                    ? String(Character(UnicodeScalar(65 + index)!))
+                    : peptide.abbreviation
+                let displayName: String = maskCompoundNames
+                    ? "Compound \(label)"
+                    : peptide.name
                 CompoundVial(
-                    compoundName: peptide.name,
+                    compoundName: displayName,
                     category: peptide.category,
                     liquidLevel: 1.0,
-                    labelText: peptide.abbreviation,
+                    labelText: label,
                     size: .lg
                 )
                 .zIndex(Double(visible.count - index))
@@ -148,7 +162,16 @@ struct CycleCardView: View {
     }
 
     private var peptideNamesLine: String {
-        model.peptides
+        if maskCompoundNames {
+            // "Compound A · Compound B · …" — preserves the count
+            // and the impression of stacking without naming the
+            // specific compounds.
+            let count = min(Self.maxVisibleVials, model.peptides.count)
+            return (0..<count)
+                .map { "Compound \(Character(UnicodeScalar(65 + $0)!))" }
+                .joined(separator: " · ")
+        }
+        return model.peptides
             .prefix(Self.maxVisibleVials)
             .map(\.name)
             .joined(separator: ", ")
@@ -323,7 +346,21 @@ struct CycleCardView: View {
     // MARK: - Accessibility
 
     private var accessibilityLabel: String {
-        let names = model.peptides.map(\.abbreviation).joined(separator: ", ")
+        // Honour `maskCompoundNames` here too — a sighted user sees
+        // "Compound A / B" while VoiceOver was reading the real
+        // abbreviations, defeating the privacy point of the mask
+        // (audit Sharing P2).
+        let names: String
+        if maskCompoundNames {
+            names = model.peptides
+                .enumerated()
+                .map { idx, _ in
+                    "Compound " + String(Character(UnicodeScalar(65 + idx)!))
+                }
+                .joined(separator: ", ")
+        } else {
+            names = model.peptides.map(\.abbreviation).joined(separator: ", ")
+        }
         return "\(model.subjectTitle) cycle card. Day \(model.cycleDay) of \(model.cycleTotalDays). " +
                "Peptides: \(names). " +
                "Doses logged: \(model.dosesLogged). Adherence: \(model.adherencePercent) percent. " +

@@ -51,6 +51,76 @@ final class HealthKitService {
         }
     }
 
+    /// HealthKit deliberately doesn't tell apps which read types were
+    /// granted (privacy contract). The only honest signal is to probe
+    /// for actual sample availability — if at least one of the 6
+    /// quantity types has a sample in the past 90 days, the grant is
+    /// meaningfully alive. Returns counts per type so the caller can
+    /// surface a "0 of 7 — check Settings" affordance when nothing
+    /// comes back at all (audit Biology C1 + C2).
+    ///
+    /// Sleep is intentionally excluded from this probe because Apple
+    /// uses a `HKCategoryType`, not a quantity type, and a separate
+    /// query shape — and a user with a Watch typically has plenty of
+    /// quantity samples regardless.
+    func probeReadAvailability() async -> ReadAvailabilityProbe {
+        guard isAvailable else {
+            return ReadAvailabilityProbe(typesWithData: 0, typesProbed: 0, isAvailable: false)
+        }
+        let identifiers: [HKQuantityTypeIdentifier] = [
+            .heartRate,
+            .heartRateVariabilitySDNN,
+            .restingHeartRate,
+            .bodyMass,
+            .stepCount,
+            .activeEnergyBurned,
+        ]
+        let cutoff = Calendar.current.date(byAdding: .day, value: -90, to: Date()) ?? Date()
+        var typesWithData = 0
+        for identifier in identifiers {
+            let type = HKQuantityType(identifier)
+            let predicate = HKQuery.predicateForSamples(withStart: cutoff, end: nil)
+            let hasAny = await firstSampleExists(type: type, predicate: predicate)
+            if hasAny { typesWithData += 1 }
+        }
+        return ReadAvailabilityProbe(
+            typesWithData: typesWithData,
+            typesProbed: identifiers.count,
+            isAvailable: true
+        )
+    }
+
+    private func firstSampleExists(type: HKQuantityType, predicate: NSPredicate) async -> Bool {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            let query = HKSampleQuery(
+                sampleType: type,
+                predicate: predicate,
+                limit: 1,
+                sortDescriptors: nil
+            ) { _, samples, _ in
+                continuation.resume(returning: !(samples?.isEmpty ?? true))
+            }
+            store.execute(query)
+        }
+    }
+
+    /// Carries the result of `probeReadAvailability()`. The view
+    /// surfaces a "Connected" pill when `typesWithData > 0`, a
+    /// "Connected · checking…" pill on a fresh install while no data
+    /// has arrived yet, and "Verify in Settings →" when the user
+    /// likely denied everything (typesWithData == 0 after a grant).
+    struct ReadAvailabilityProbe: Equatable, Sendable {
+        let typesWithData: Int
+        let typesProbed: Int
+        let isAvailable: Bool
+
+        var hasAnyData: Bool { typesWithData > 0 }
+        var coveragePercent: Int {
+            guard typesProbed > 0 else { return 0 }
+            return Int((Double(typesWithData) / Double(typesProbed) * 100).rounded())
+        }
+    }
+
     // MARK: - Nutrition write authorization
 
     /// HK quantity types we write when the user opts in. Kept as a
@@ -129,6 +199,14 @@ final class HealthKitService {
             HKMetadataKeyFoodType: entry.name,
         ]
 
+        // Write every macro as a sample even when the value is zero —
+        // a 0g-protein entry IS information ("this meal had no
+        // protein"). Skipping zero samples left Apple Health's daily
+        // totals incomplete: a day of three meals all with 0g protein
+        // would have no protein sample at all, so the day showed
+        // blank instead of "0g" (audit Meals L13). Calories still
+        // gate on > 0 because writing a 0-kcal sample would be noise
+        // in the Health app's calorie chart.
         var samples: [HKQuantitySample] = []
         if entry.calories > 0 {
             samples.append(makeSample(
@@ -139,33 +217,27 @@ final class HealthKitService {
                 metadata: baseMetadata
             ))
         }
-        if entry.proteinG > 0 {
-            samples.append(makeSample(
-                type: .dietaryProtein,
-                unit: .gram(),
-                value: Double(entry.proteinG),
-                date: entry.date,
-                metadata: baseMetadata
-            ))
-        }
-        if entry.carbsG > 0 {
-            samples.append(makeSample(
-                type: .dietaryCarbohydrates,
-                unit: .gram(),
-                value: Double(entry.carbsG),
-                date: entry.date,
-                metadata: baseMetadata
-            ))
-        }
-        if entry.fatG > 0 {
-            samples.append(makeSample(
-                type: .dietaryFatTotal,
-                unit: .gram(),
-                value: Double(entry.fatG),
-                date: entry.date,
-                metadata: baseMetadata
-            ))
-        }
+        samples.append(makeSample(
+            type: .dietaryProtein,
+            unit: .gram(),
+            value: Double(entry.proteinG),
+            date: entry.date,
+            metadata: baseMetadata
+        ))
+        samples.append(makeSample(
+            type: .dietaryCarbohydrates,
+            unit: .gram(),
+            value: Double(entry.carbsG),
+            date: entry.date,
+            metadata: baseMetadata
+        ))
+        samples.append(makeSample(
+            type: .dietaryFatTotal,
+            unit: .gram(),
+            value: Double(entry.fatG),
+            date: entry.date,
+            metadata: baseMetadata
+        ))
         // Fiber intentionally omitted — `MealEntry` doesn't expose
         // it separately. See `nutritionWriteTypes` doc comment for
         // the full rationale.
@@ -290,6 +362,10 @@ final class HealthKitService {
     }
 
     private func enableAndObserve(_ sampleType: HKSampleType, frequency: HKUpdateFrequency) async {
+        // BG delivery failure (simulator, denied auth) only means we won't
+        // wake from the background — observer queries still fire while the
+        // app is in the foreground, which is what keeps the in-session
+        // snapshot fresh on simulator builds (audit Biology MED 14).
         do {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 store.enableBackgroundDelivery(for: sampleType, frequency: frequency) { _, error in
@@ -301,9 +377,7 @@ final class HealthKitService {
                 }
             }
         } catch {
-            // Routine on simulator and when the user denied authorization.
             AppLog.healthKit.debug("enableBackgroundDelivery skipped for \(sampleType.identifier, privacy: .public): \(error.localizedDescription, privacy: .private)")
-            return
         }
 
         let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { [weak self] _, completionHandler, error in

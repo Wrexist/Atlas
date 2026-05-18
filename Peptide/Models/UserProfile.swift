@@ -53,6 +53,22 @@ enum ActivityLevel: String, Codable, CaseIterable, Identifiable, Sendable {
         case .athlete: "Daily training, competition"
         }
     }
+
+    /// Mifflin-St Jeor TDEE multiplier against BMR. Industry-standard
+    /// PAL (physical-activity-level) bands — these are the same
+    /// numbers Lifesum / MyFitnessPal / Cronometer apply, so a user
+    /// comparing across apps sees consistent calorie targets.
+    /// Pulled into the model so `NutritionMath` can read it without
+    /// the screen-spec hardcoding a single bucket (audit Meals L12).
+    var tdeeMultiplier: Double {
+        switch self {
+        case .sedentary: return 1.2
+        case .light:     return 1.375
+        case .moderate:  return 1.55
+        case .active:    return 1.725
+        case .athlete:   return 1.9
+        }
+    }
 }
 
 enum MeasurementUnit: String, Codable, Sendable {
@@ -125,6 +141,59 @@ struct CreatorAttribution: Codable, Hashable, Sendable {
     let code: String
     let creatorName: String
     let discountPercent: Int
+}
+
+/// Application submitted via the "Apply to be an affiliate" CTA on
+/// the onboarding creator step. Stored locally until the Atlas
+/// creator-program backend ships; the same struct shape will be
+/// POSTed to the application-intake endpoint on first sync. We
+/// deliberately capture only what we need to follow up — handle,
+/// audience size band, channel URL, optional notes.
+struct AffiliateApplication: Codable, Hashable, Sendable {
+    enum Channel: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
+        case instagram, tiktok, youtube, podcast, newsletter, website, other
+        var id: String { rawValue }
+        var displayName: String {
+            switch self {
+            case .instagram:  return "Instagram"
+            case .tiktok:     return "TikTok"
+            case .youtube:    return "YouTube"
+            case .podcast:    return "Podcast"
+            case .newsletter: return "Newsletter"
+            case .website:    return "Website / blog"
+            case .other:      return "Other"
+            }
+        }
+    }
+
+    enum AudienceBand: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
+        case under1k    = "under_1k"
+        case k1to10     = "1k_to_10k"
+        case k10to50    = "10k_to_50k"
+        case k50to250   = "50k_to_250k"
+        case over250k   = "over_250k"
+        var id: String { rawValue }
+        var displayName: String {
+            switch self {
+            case .under1k:   return "Under 1k"
+            case .k1to10:    return "1k – 10k"
+            case .k10to50:   return "10k – 50k"
+            case .k50to250:  return "50k – 250k"
+            case .over250k:  return "250k +"
+            }
+        }
+    }
+
+    var handle: String
+    var channel: Channel
+    var audienceBand: AudienceBand
+    var channelURL: String?
+    var notes: String?
+    var submittedAt: Date
+    /// Carried forward so the eventual backend drain can match the
+    /// application to the rest of the user's onboarding session.
+    var name: String?
+    var email: String?
 }
 
 /// Email captured during the onboarding mailing-list step. Stored locally
@@ -231,6 +300,11 @@ struct UserProfile: Codable, Sendable {
     /// discount and (eventually) by the backend to count installs /
     /// conversions per creator.
     var creatorAttribution: CreatorAttribution?
+    /// Submitted via the "Apply to be an affiliate" button on the
+    /// onboarding creator step. Local-only until the backend ships;
+    /// the eventual sync job can replay this row to the creator-
+    /// program intake endpoint without re-prompting the user.
+    var affiliateApplication: AffiliateApplication?
     /// Set when the user opts in on the onboarding email-capture step.
     /// Local-only today; will be drained into Supabase + Resend when the
     /// backend ships.
@@ -364,6 +438,21 @@ struct UserProfile: Codable, Sendable {
     /// + "Equipment access" steps; nil for profiles created before
     /// the training pivot.
     var trainingPreferences: TrainingPreferences?
+    /// User-committed goal completion date, set on the onboarding
+    /// "By when?" step. Drives the projection chart's right-axis
+    /// label, the ProjectionChart math, and (eventually) a "X weeks
+    /// until your goal" surface on Home. Optional so older profiles
+    /// decode cleanly and so the field can be edited later without
+    /// re-running onboarding.
+    var goalDate: Date?
+    /// User-defined habits surfaced on Home (Morning Workout, Read 20
+    /// pages, …). New-style data — older profiles decode to an empty
+    /// list. See `HabitsService` for the streak / heatmap math.
+    var habits: [Habit]
+    /// Per-day check-ins for each habit. Stored separately from
+    /// `habits` so a heavy log (years of daily entries) doesn't bloat
+    /// the habit array's diffing cost.
+    var habitEntries: [HabitEntry]
 
     init(
         name: String,
@@ -376,6 +465,7 @@ struct UserProfile: Codable, Sendable {
         bodyMetrics: BodyMetrics = .unspecified,
         nutritionTargets: NutritionTargets? = nil,
         creatorAttribution: CreatorAttribution? = nil,
+        affiliateApplication: AffiliateApplication? = nil,
         emailSubscription: EmailSubscription? = nil,
         weightHistory: [WeightEntry] = [],
         progressPhotoFilenames: [String] = [],
@@ -398,7 +488,10 @@ struct UserProfile: Codable, Sendable {
         weeklySummaryEnabled: Bool = true,
         weeklySummaries: [String: WeeklySummary] = [:],
         biologyConfig: BiologyConfig = .default,
-        trainingPreferences: TrainingPreferences? = nil
+        trainingPreferences: TrainingPreferences? = nil,
+        goalDate: Date? = nil,
+        habits: [Habit] = [],
+        habitEntries: [HabitEntry] = []
     ) {
         self.name = name
         self.goals = goals
@@ -410,6 +503,7 @@ struct UserProfile: Codable, Sendable {
         self.bodyMetrics = bodyMetrics
         self.nutritionTargets = nutritionTargets
         self.creatorAttribution = creatorAttribution
+        self.affiliateApplication = affiliateApplication
         self.emailSubscription = emailSubscription
         self.weightHistory = weightHistory
         self.progressPhotoFilenames = progressPhotoFilenames
@@ -433,6 +527,9 @@ struct UserProfile: Codable, Sendable {
         self.weeklySummaries = weeklySummaries
         self.biologyConfig = biologyConfig
         self.trainingPreferences = trainingPreferences
+        self.goalDate = goalDate
+        self.habits = habits
+        self.habitEntries = habitEntries
     }
 
     init(from decoder: Decoder) throws {
@@ -447,6 +544,7 @@ struct UserProfile: Codable, Sendable {
         bodyMetrics = try container.decodeIfPresent(BodyMetrics.self, forKey: .bodyMetrics) ?? .unspecified
         nutritionTargets = try container.decodeIfPresent(NutritionTargets.self, forKey: .nutritionTargets)
         creatorAttribution = try container.decodeIfPresent(CreatorAttribution.self, forKey: .creatorAttribution)
+        affiliateApplication = try container.decodeIfPresent(AffiliateApplication.self, forKey: .affiliateApplication)
         emailSubscription = try container.decodeIfPresent(EmailSubscription.self, forKey: .emailSubscription)
         weightHistory = try container.decodeIfPresent([WeightEntry].self, forKey: .weightHistory) ?? []
         progressPhotoFilenames = try container.decodeIfPresent([String].self, forKey: .progressPhotoFilenames) ?? []
@@ -474,6 +572,9 @@ struct UserProfile: Codable, Sendable {
         weeklySummaries = try container.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries) ?? [:]
         biologyConfig = try container.decodeIfPresent(BiologyConfig.self, forKey: .biologyConfig) ?? .default
         trainingPreferences = try container.decodeIfPresent(TrainingPreferences.self, forKey: .trainingPreferences)
+        goalDate = try container.decodeIfPresent(Date.self, forKey: .goalDate)
+        habits = try container.decodeIfPresent([Habit].self, forKey: .habits) ?? []
+        habitEntries = try container.decodeIfPresent([HabitEntry].self, forKey: .habitEntries) ?? []
     }
 
     static var fresh: UserProfile {

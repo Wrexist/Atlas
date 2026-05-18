@@ -6,10 +6,16 @@ import SwiftUI
 /// offers a "Done" button that returns to the Train tab.
 struct WorkoutFinishView: View {
     let session: WorkoutSession
+    /// PRs detected at finish-time, passed in by the caller. The
+    /// PRDetectionEngine mutates record state on first ingest and
+    /// returns [] on every subsequent call — re-running ingest in
+    /// .onAppear (the previous behaviour) meant the celebrations
+    /// row was always empty because the engine had already run in
+    /// WorkoutSessionService.finishWorkout. Audit Train H4.
+    let detectedPRs: [PRDetectionEngine.DetectedPR]
     let onClose: () -> Void
 
     @State private var library = ExerciseLibrary.shared
-    @State private var prDetections: [PRDetectionEngine.DetectedPR] = []
 
     private var muscleHighlights: [AnatomicalMuscle: MuscleHighlight] {
         var primary = Set<AnatomicalMuscle>()
@@ -34,7 +40,7 @@ struct WorkoutFinishView: View {
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: 320)
                 statsRow
-                if !prDetections.isEmpty {
+                if !detectedPRs.isEmpty {
                     prsCard
                 }
                 exercisesList
@@ -47,14 +53,12 @@ struct WorkoutFinishView: View {
         .navigationTitle("Workout complete")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            // The active-workout finish path already ran the detection
-            // engine; rerun a fresh ingest is idempotent (the engine
-            // only writes when values increase) so the finish screen
-            // can render PRs even if the user reopened it.
-            prDetections = PRDetectionEngine.shared.ingest(session: session)
-            if UIAccessibility.isReduceMotionEnabled == false {
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-            }
+            // Haptic on landing; the PR list comes from the caller's
+            // detectedPRs param (we no longer re-ingest here).
+            // Reduce-motion guards the *visual* bounce — haptics
+            // should fire regardless, so this guard now wraps
+            // animation hooks only (audit Train M7).
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
     }
 
@@ -111,12 +115,12 @@ struct WorkoutFinishView: View {
                 HStack {
                     Image(systemName: "trophy.fill")
                         .foregroundStyle(AppColor.achievement)
-                    Text("\(prDetections.count) new \(prDetections.count == 1 ? "PR" : "PRs")")
+                    Text("\(detectedPRs.count) new \(detectedPRs.count == 1 ? "PR" : "PRs")")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                 }
-                ForEach(prDetections, id: \.self) { pr in
+                ForEach(detectedPRs, id: \.self) { pr in
                     HStack {
                         Text(library.lookup(id: pr.exerciseID)?.name ?? pr.exerciseID)
                             .font(AppFont.callout)
@@ -138,6 +142,7 @@ struct WorkoutFinishView: View {
         case .estimatedOneRepMax: return "e1RM \(Int(pr.value.rounded())) kg"
         case .absoluteWeight:     return "Top set \(Int(pr.value.rounded())) kg"
         case .sessionVolume:      return "Volume \(Int(pr.value.rounded())) kg"
+        case .bodyweightReps:     return "\(Int(pr.value)) reps"
         }
     }
 

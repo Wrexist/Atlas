@@ -27,8 +27,10 @@ enum ShareCardRenderer {
 
     /// Renders `model` as a 1080×1920 PNG and writes it to a temporary file.
     /// Returns the file URL for use with `UIActivityViewController`.
-    static func renderPNG(for model: CycleCardModel) throws -> URL {
-        let image = try renderImage(for: model)
+    /// `maskCompoundNames` swaps real peptide names for "Compound A/B/C"
+    /// so a user can share without publishing their exact stack.
+    static func renderPNG(for model: CycleCardModel, maskCompoundNames: Bool = false) throws -> URL {
+        let image = try renderImage(for: model, maskCompoundNames: maskCompoundNames)
         guard let data = image.pngData() else { throw Failure.encoding }
 
         let url = FileManager.default.temporaryDirectory
@@ -43,8 +45,8 @@ enum ShareCardRenderer {
 
     /// Renders `model` as an in-memory UIImage. Useful for unit tests and
     /// for any code path that needs the image without writing to disk.
-    static func renderImage(for model: CycleCardModel) throws -> UIImage {
-        let view = CycleCardView(model: model)
+    static func renderImage(for model: CycleCardModel, maskCompoundNames: Bool = false) throws -> UIImage {
+        let view = CycleCardView(model: model, maskCompoundNames: maskCompoundNames)
             .frame(width: canvasSize.width, height: canvasSize.height)
 
         let renderer = ImageRenderer(content: view)
@@ -66,6 +68,9 @@ enum ShareCardRenderer {
             .joined(separator: "-")
             .lowercased()
         let prefix = safeTitle.isEmpty ? "cycle" : safeTitle
-        return "peptidex-\(prefix)-\(UUID().uuidString.prefix(6)).png"
+        // "atlas-" prefix — was "peptidex-" which leaked the
+        // pre-rebrand product name into AirDrop / share sheet
+        // filenames (audit Sharing P2.13).
+        return "atlas-\(prefix)-\(UUID().uuidString.prefix(6)).png"
     }
 }

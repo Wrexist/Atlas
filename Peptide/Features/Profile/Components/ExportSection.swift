@@ -81,7 +81,7 @@ struct ExportSection: View {
             entries: dataStore.entries
         )
         let dateStr = Date().formatted(.iso8601.year().month().day())
-        if let url = ExportService.shared.writeCSV(csv, filename: "peptidex-export-\(dateStr).csv") {
+        if let url = ExportService.shared.writeCSV(csv, filename: "atlas-export-\(dateStr).csv") {
             exportURL = url
             showShareSheet = true
         }
@@ -152,7 +152,7 @@ struct ExportSection: View {
     private func exportLabsCSV() {
         let csv = ExportService.shared.exportLabsCSV(labs: dataStore.profile.labHistory)
         let dateStr = Date().formatted(.iso8601.year().month().day())
-        if let url = ExportService.shared.writeCSV(csv, filename: "peptidex-labs-\(dateStr).csv") {
+        if let url = ExportService.shared.writeCSV(csv, filename: "atlas-labs-\(dateStr).csv") {
             exportURL = url
             showShareSheet = true
         }
@@ -161,7 +161,7 @@ struct ExportSection: View {
     private func exportMealsCSV() {
         let csv = ExportService.shared.exportMealsCSV(meals: dataStore.profile.mealHistory)
         let dateStr = Date().formatted(.iso8601.year().month().day())
-        if let url = ExportService.shared.writeCSV(csv, filename: "peptidex-meals-\(dateStr).csv") {
+        if let url = ExportService.shared.writeCSV(csv, filename: "atlas-meals-\(dateStr).csv") {
             exportURL = url
             showShareSheet = true
         }
@@ -170,7 +170,7 @@ struct ExportSection: View {
     private func exportOutcomesCSV() {
         let csv = ExportService.shared.exportOutcomesCSV(outcomes: dataStore.profile.outcomeHistory)
         let dateStr = Date().formatted(.iso8601.year().month().day())
-        if let url = ExportService.shared.writeCSV(csv, filename: "peptidex-checkins-\(dateStr).csv") {
+        if let url = ExportService.shared.writeCSV(csv, filename: "atlas-checkins-\(dateStr).csv") {
             exportURL = url
             showShareSheet = true
         }
@@ -183,7 +183,7 @@ struct ExportSection: View {
             profile: dataStore.profile
         ) {
             let dateStr = Date().formatted(.iso8601.year().month().day())
-            if let url = ExportService.shared.writeJSON(data, filename: "peptidex-backup-\(dateStr).json") {
+            if let url = ExportService.shared.writeJSON(data, filename: "atlas-backup-\(dateStr).json") {
                 exportURL = url
                 showShareSheet = true
             }
@@ -198,7 +198,7 @@ struct ExportSection: View {
                 profile: dataStore.profile
             )
             let dateStr = Date().formatted(.iso8601.year().month().day())
-            if let url = ExportService.shared.writePDF(data, filename: "peptidex-report-\(dateStr).pdf") {
+            if let url = ExportService.shared.writePDF(data, filename: "atlas-report-\(dateStr).pdf") {
                 exportURL = url
                 showShareSheet = true
             } else {

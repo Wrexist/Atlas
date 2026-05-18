@@ -268,14 +268,33 @@ final class DataStore: DataServiceProtocol {
         rescheduleNotificationsIfEnabled()
     }
 
-    func updateProtocolStatus(id: UUID, to status: ProtocolStatus) {
-        guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
+    /// Returns true on success, false when activating would exceed
+    /// the free-tier 3-active-protocol cap. Callers should surface
+    /// the paywall when this returns false on an .active transition.
+    /// Was previously a `Void`-returning method with no gate, which
+    /// let a free user stockpile paused protocols and resume them
+    /// all to bypass the cap (audit Library P0.3).
+    @discardableResult
+    func updateProtocolStatus(id: UUID, to status: ProtocolStatus) -> Bool {
+        guard let index = protocols.firstIndex(where: { $0.id == id }) else { return false }
+        if status == .active {
+            let currentActive = protocols.filter {
+                $0.status == .active && $0.id != id
+            }.count
+            if StoreService.shared.requiresPro(activeProtocolCount: currentActive) {
+                AppLog.storeKit.warning(
+                    "updateProtocolStatus(.active) blocked — would exceed free-tier cap (\(currentActive, privacy: .public) already active)"
+                )
+                return false
+            }
+        }
         protocols[index].status = status
         if status == .active {
             appendTodayEntries(for: protocols[index])
         }
         save()
         rescheduleNotificationsIfEnabled()
+        return true
     }
 
     /// Extends the cycle length of an active protocol by `weeks`. Used
@@ -493,20 +512,46 @@ final class DataStore: DataServiceProtocol {
         )
         protocols[index] = updated
 
-        // Regenerate today's entries to reflect the new schedule — but
-        // only when the protocol is active. For paused / completed
-        // protocols, deleting today's entries would discard any doses
-        // the user already logged earlier today against that protocol,
-        // which is real data loss.
+        // Regenerate today's entries to reflect the new schedule. We
+        // preserve any entries the user has already completed or
+        // explicitly logged earlier today — re-generating without
+        // this guard would silently erase logged doses, which the
+        // audit (Library P0.2) flagged as real data loss for active
+        // protocols too, not just paused ones.
         if updated.status == .active {
-            let removed = entries.filter { entry in
+            // Capture both: (a) all entries we're about to remove so
+            // CloudKit can mirror the deletion server-side, and
+            // (b) the user-logged ones we want to preserve through
+            // regenerate (audit Library P0.2 — silent erase of
+            // completed doses). The two sets are inputs to different
+            // downstream code paths and must both survive the merge.
+            let toRemove = entries.filter { entry in
                 entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
             }
-            pendingEntryDeletions.formUnion(removed.map(\.id))
+            pendingEntryDeletions.formUnion(toRemove.map(\.id))
+            let completedToday = toRemove.filter { entry in
+                entry.completed || entry.actualDose != nil || entry.notes != nil
+            }
             entries.removeAll { entry in
                 entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
             }
-            entries.append(contentsOf: Self.generateTodayEntries(for: updated))
+            // Append regenerated entries first, then re-insert the
+            // user-logged ones. If the regenerated schedule already
+            // covers the same (peptide, time) pair, the user's
+            // completion wins via the dedup pass below.
+            let fresh = Self.generateTodayEntries(for: updated)
+            var merged = fresh
+            for logged in completedToday {
+                if let dupeIdx = merged.firstIndex(where: {
+                    $0.peptide.id == logged.peptide.id
+                        && Calendar.current.isDate($0.date, equalTo: logged.date, toGranularity: .minute)
+                }) {
+                    merged[dupeIdx] = logged
+                } else {
+                    merged.append(logged)
+                }
+            }
+            entries.append(contentsOf: merged)
         }
 
         save()
@@ -722,6 +767,26 @@ final class DataStore: DataServiceProtocol {
         return dailyCompliance.reduce(0, +) / Double(dailyCompliance.count)
     }
 
+    /// Adherence (0…1) limited to a single protocol's entries. Used
+    /// by the per-protocol share card so the "75%" figure on a
+    /// shareable artifact actually reflects that protocol — the
+    /// previous implementation used the global averageCompliance and
+    /// shipped a misleading number when the user had multiple stacks
+    /// (audit Sharing P1.6).
+    func adherence(forProtocol id: UUID) -> Double {
+        let now = Date()
+        let protocolEntries = entries.filter { $0.protocolId == id && $0.date <= now }
+        let grouped = protocolEntries.groupedByDay
+        guard !grouped.isEmpty else { return 0 }
+
+        let dailyCompliance = grouped.map { _, dayEntries in
+            let completed = dayEntries.filter(\.completed).count
+            return Double(completed) / Double(dayEntries.count)
+        }
+
+        return dailyCompliance.reduce(0, +) / Double(dailyCompliance.count)
+    }
+
     func complianceTrend(for range: Int) -> Double {
         let calendar = Calendar.current
         let now = Date()
@@ -840,9 +905,16 @@ final class DataStore: DataServiceProtocol {
     }
 
     /// Pin or clear the headline goal. Pass `nil` to remove the pin. The goal
-    /// must already exist in `profile.goals` — otherwise the call is ignored.
+    /// must already exist in `profile.goals` — otherwise the call is ignored
+    /// and a warning is logged so a future silent-drop is visible to anyone
+    /// scraping Console for the onboarding category.
     func setPrimaryGoal(_ goal: String?) {
-        if let goal, !profile.goals.contains(goal) { return }
+        if let goal, !profile.goals.contains(goal) {
+            AppLog.onboarding.warning(
+                "setPrimaryGoal('\(goal, privacy: .public)') dropped — not in profile.goals. Call updateGoals first."
+            )
+            return
+        }
         profile.primaryGoal = goal
         // Same reason as updateGoals: goal-derived caches are stale until the
         // next protocols/entries mutation without this manual bump.
@@ -1364,9 +1436,29 @@ final class DataStore: DataServiceProtocol {
         save()
     }
 
-    func toggleHealthConnection() {
-        profile.healthConnected.toggle()
+    /// Toggle off (revoke local link) is unconditional. Toggle ON
+    /// only succeeds after the user has actually granted at least
+    /// one HealthKit type — previously we'd flip the bool to true
+    /// regardless, then PeptideApp's task fired
+    /// startBackgroundDelivery against permissionless observer
+    /// queries, and downstream UI showed "connected" with empty
+    /// cards (audit Biology H9). Caller can `await` the result and
+    /// surface a permissions prompt when this returns false.
+    @discardableResult
+    func toggleHealthConnection() async -> Bool {
+        if profile.healthConnected {
+            profile.healthConnected = false
+            save()
+            return true
+        }
+        let granted = await HealthKitService.shared.requestAuthorization()
+        guard granted else {
+            AppLog.healthKit.warning("toggleHealthConnection blocked — no HealthKit grant")
+            return false
+        }
+        profile.healthConnected = true
         save()
+        return true
     }
 
     /// Atomically updates the user-customizable identity fields shown on the
@@ -1388,6 +1480,114 @@ final class DataStore: DataServiceProtocol {
 
     func updateAvatarImageData(_ data: Data?) {
         profile.avatarImageData = data
+        save()
+    }
+
+    // MARK: - Habits
+
+    /// All non-archived habits, ordered by their `sortIndex` so the
+    /// user's drag-to-reorder order survives a relaunch.
+    var activeHabits: [Habit] {
+        profile.habits
+            .filter { !$0.archived }
+            .sorted { $0.sortIndex < $1.sortIndex }
+    }
+
+    func addHabit(_ habit: Habit) {
+        var copy = habit
+        if copy.sortIndex == 0 {
+            // Append to the bottom by default — drag-reorder writes
+            // a fresh index later.
+            copy.sortIndex = (profile.habits.map(\.sortIndex).max() ?? 0) + 1
+        }
+        profile.habits.append(copy)
+        save()
+        rescheduleHabitReminders()
+    }
+
+    func updateHabit(_ habit: Habit) {
+        guard let idx = profile.habits.firstIndex(where: { $0.id == habit.id }) else { return }
+        profile.habits[idx] = habit
+        save()
+        rescheduleHabitReminders()
+    }
+
+    /// Soft-delete via the `archived` flag so the history isn't
+    /// thrown away the moment the user removes a habit. Hard delete
+    /// is `purgeArchivedHabits()` from settings if we ever expose it.
+    func archiveHabit(id: UUID) {
+        guard let idx = profile.habits.firstIndex(where: { $0.id == id }) else { return }
+        profile.habits[idx].archived = true
+        save()
+        rescheduleHabitReminders()
+    }
+
+    func reorderHabits(_ ordered: [Habit]) {
+        for (index, habit) in ordered.enumerated() {
+            if let i = profile.habits.firstIndex(where: { $0.id == habit.id }) {
+                profile.habits[i].sortIndex = index
+            }
+        }
+        save()
+    }
+
+    /// Toggle today's completion for a boolean habit, or bump the
+    /// count by one for a countable habit (capped at target). For
+    /// custom set-the-exact-value flows (e.g. "I drank 6 glasses"),
+    /// use `setHabitEntry(habitId:date:value:)` directly.
+    func toggleHabitEntry(habitId: UUID, on date: Date = Date()) {
+        guard let habit = profile.habits.first(where: { $0.id == habitId }) else { return }
+        let day = Calendar.current.startOfDay(for: date)
+        let target = habit.targetValue ?? 1
+        let existingIdx = profile.habitEntries.firstIndex {
+            $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: day)
+        }
+        if habit.isCountable {
+            // Countable habit: increment by one toward the target. If
+            // the user has already hit target, the next tap RESETS to
+            // zero (audit M2 — original impl silently no-op'd past
+            // target with no way back). Zero == remove the entry so
+            // the array doesn't accumulate value-0 zombies (M1).
+            if let idx = existingIdx {
+                let current = profile.habitEntries[idx].value
+                if current >= target {
+                    profile.habitEntries.remove(at: idx)
+                } else {
+                    profile.habitEntries[idx].value = min(target, current + 1)
+                }
+            } else {
+                profile.habitEntries.append(HabitEntry(habitId: habitId, date: day, value: 1))
+            }
+        } else {
+            // Boolean habit: tap once to complete, again to un-complete.
+            // Un-completing REMOVES the entry instead of writing 0 so
+            // a noisy check/uncheck cycle doesn't accumulate zombie
+            // rows in the array (audit M1).
+            if let idx = existingIdx {
+                profile.habitEntries.remove(at: idx)
+            } else {
+                profile.habitEntries.append(HabitEntry(habitId: habitId, date: day, value: 1))
+            }
+        }
+        save()
+    }
+
+    /// Set the exact value for a given day. Use for countable habits
+    /// where the user wants to type "6 glasses" rather than tap +1
+    /// six times. Value 0 = uncompleted (removes the entry to keep
+    /// the storage compact).
+    func setHabitEntry(habitId: UUID, date: Date, value: Int) {
+        let day = Calendar.current.startOfDay(for: date)
+        let existingIdx = profile.habitEntries.firstIndex {
+            $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: day)
+        }
+        if value <= 0 {
+            if let idx = existingIdx { profile.habitEntries.remove(at: idx) }
+        } else if let idx = existingIdx {
+            profile.habitEntries[idx].value = value
+        } else {
+            profile.habitEntries.append(HabitEntry(habitId: habitId, date: day, value: value))
+        }
         save()
     }
 
@@ -1445,6 +1645,14 @@ final class DataStore: DataServiceProtocol {
     private func rescheduleNotificationsIfEnabled() {
         guard profile.doseRemindersEnabled else { return }
         NotificationService.shared.scheduleNotifications(for: activeProtocols)
+    }
+
+    /// Re-stamps habit reminders against the current habit list. Habit
+    /// reminders are per-habit opt-in (gated on `Habit.reminderTime != nil`)
+    /// rather than the global `doseRemindersEnabled` switch — setting a
+    /// reminder time on a habit is already an explicit opt-in.
+    private func rescheduleHabitReminders() {
+        NotificationService.shared.scheduleHabitReminders(for: activeHabits)
     }
 
     // MARK: - Persistence

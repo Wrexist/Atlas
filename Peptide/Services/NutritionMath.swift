@@ -7,9 +7,11 @@ import Foundation
 /// targets — not medical advice — and are surfaced behind a disclaimer.
 enum NutritionMath {
 
-    /// Activity multiplier used for the onboarding TDEE estimate. The
-    /// product spec hard-codes "moderate" so the screen renders a single
-    /// number without asking the user to pick an activity bucket.
+    /// Fallback activity multiplier when the user hasn't picked an
+    /// `ActivityLevel`. Equivalent to `.moderate` — the value that
+    /// used to be hard-coded for everyone (audit Meals L12).
+    /// Live callers should read `BodyMetrics.activityLevel
+    /// .tdeeMultiplier` to honor the user's pick.
     static let activityMultiplier: Double = 1.55
 
     /// Protein recommendation in grams per kilogram of bodyweight.
@@ -40,20 +42,34 @@ enum NutritionMath {
         }
 
         let bmr = mifflinStJeor(weightKg: weightKg, heightCm: heightCm, age: age, sex: metrics.sex)
-        let tdee = bmr * activityMultiplier
+        let tdee = bmr * metrics.activityLevel.tdeeMultiplier
 
-        let proteinG = weightKg * proteinPerKg
+        // Round the macros first, then derive calories from the
+        // rounded values. Otherwise the displayed `calories` value
+        // (Int(tdee.rounded())) wouldn't equal `proteinG*4 + carbsG*4
+        // + fatG*9` once each macro got individually rounded — the
+        // "your macros sum to 2,051 but your target is 2,054" mismatch
+        // confuses users who notice the numbers don't add up
+        // (audit Meals L11).
+        let proteinGRaw = weightKg * proteinPerKg
         let fatCalories = tdee * fatCalorieFraction
-        let fatG = fatCalories / kcalPerGramFat
-        let proteinCalories = proteinG * kcalPerGramProtein
+        let fatGRaw = fatCalories / kcalPerGramFat
+        let proteinCalories = proteinGRaw * kcalPerGramProtein
         let carbCalories = max(0, tdee - proteinCalories - fatCalories)
-        let carbsG = carbCalories / kcalPerGramCarbs
+        let carbsGRaw = carbCalories / kcalPerGramCarbs
+
+        let proteinG = Int(proteinGRaw.rounded())
+        let fatG = Int(fatGRaw.rounded())
+        let carbsG = Int(carbsGRaw.rounded())
+        let derivedCalories = proteinG * Int(kcalPerGramProtein)
+            + carbsG * Int(kcalPerGramCarbs)
+            + fatG * Int(kcalPerGramFat)
 
         return NutritionTargets(
-            calories: Int(tdee.rounded()),
-            proteinG: Int(proteinG.rounded()),
-            carbsG: Int(carbsG.rounded()),
-            fatG: Int(fatG.rounded()),
+            calories: derivedCalories,
+            proteinG: proteinG,
+            carbsG: carbsG,
+            fatG: fatG,
             fiberG: fiberDefaultG
         )
     }

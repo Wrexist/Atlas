@@ -218,11 +218,18 @@ struct FoodLibraryFlow: View {
             // and doesn't need re-running on every render.
             await refreshRecentOFFProducts()
         }
-        .task {
+        .task(id: initialDeepLink) {
             // Spotlight deep-link path. Resolves the namespaced
             // identifier into a `ScannedProduct` and transitions
             // straight to the review phase so a tap on a Spotlight
             // tile lands the user one tap away from logging.
+            //
+            // task(id:) re-runs whenever initialDeepLink changes —
+            // including when the user taps a second Spotlight result
+            // while the library is already open. Previously the
+            // .task fired only on first mount and ignored later
+            // deep-links (audit Meals HIGH 1: recipe tile silently
+            // dropped when library was already up).
             if let deepLink = initialDeepLink {
                 await resolveDeepLink(deepLink)
             }
