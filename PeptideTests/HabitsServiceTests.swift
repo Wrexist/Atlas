@@ -267,4 +267,43 @@ final class HabitsServiceTests: XCTestCase {
         let schedule = HabitSchedule.timesPerWeek(3)
         XCTAssertTrue(schedule.isDue(on: Date()))
     }
+
+    // MARK: - weeklyProgress (audit Habits L7)
+
+    func test_weeklyProgress_nil_forNonTimesPerWeekSchedules() {
+        let daily = makeHabit(schedule: .daily)
+        XCTAssertNil(HabitsService.weeklyProgress(for: daily, entries: []))
+        let weekdays = makeHabit(schedule: .weekdays(Set([.monday])))
+        XCTAssertNil(HabitsService.weeklyProgress(for: weekdays, entries: []))
+    }
+
+    func test_weeklyProgress_countsCompletionsInCurrentWeek() {
+        let habit = makeHabit(schedule: .timesPerWeek(3))
+        // Anchor inside the current week to dodge week-boundary
+        // flakiness — three completions across the last 3 days.
+        let entries = [
+            HabitEntry(habitId: habit.id, date: day(0), value: 1),
+            HabitEntry(habitId: habit.id, date: day(1), value: 1),
+            HabitEntry(habitId: habit.id, date: day(2), value: 1),
+        ]
+        let progress = HabitsService.weeklyProgress(for: habit, entries: entries)
+        XCTAssertNotNil(progress)
+        // Some of the 3 days may fall in the previous calendar week
+        // if today is early in the week; we expect ≤3 with at least 1.
+        XCTAssertGreaterThanOrEqual(progress?.count ?? 0, 1)
+        XCTAssertLessThanOrEqual(progress?.count ?? 0, 3)
+        XCTAssertEqual(progress?.target, 3)
+    }
+
+    func test_weeklyProgress_capsAtTarget() {
+        let habit = makeHabit(schedule: .timesPerWeek(2))
+        // Five completions, target is 2 — count clamps so the
+        // "X of N" badge can't display "5 of 2".
+        let entries = (0..<5).map {
+            HabitEntry(habitId: habit.id, date: day($0), value: 1)
+        }
+        let progress = HabitsService.weeklyProgress(for: habit, entries: entries)
+        XCTAssertEqual(progress?.target, 2)
+        XCTAssertLessThanOrEqual(progress?.count ?? 99, 2)
+    }
 }

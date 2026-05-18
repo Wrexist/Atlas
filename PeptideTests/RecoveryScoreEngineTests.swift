@@ -141,4 +141,37 @@ final class RecoveryScoreEngineTests: XCTestCase {
         XCTAssertEqual(withAll?.value, 100)
         XCTAssertEqual(withoutRHR?.value, 100)
     }
+
+    // MARK: - Partial-data flag (audit Biology L16)
+
+    /// Nil sleep is common (no Watch at bed). The score should NOT
+    /// flag as partial when both cardio signals are present — that
+    /// false alarm dimmed the badge every morning for Watch-only
+    /// users.
+    func test_isPartialData_falseWhenOnlySleepMissing() {
+        let result = RecoveryScoreEngine.score(inputs: .init(
+            recentHRV: 50, baselineHRV: 50,
+            recentRHR: 60, baselineRHR: 60
+            // no lastSleepHours
+        ))
+        XCTAssertEqual(result?.isPartialData, false)
+    }
+
+    /// HRV missing → partial, regardless of sleep / RHR presence.
+    func test_isPartialData_trueWhenHRVMissing() {
+        let result = RecoveryScoreEngine.score(inputs: .init(
+            recentRHR: 60, baselineRHR: 60,
+            lastSleepHours: 8.0
+        ))
+        XCTAssertEqual(result?.isPartialData, true)
+    }
+
+    /// RHR missing → partial.
+    func test_isPartialData_trueWhenRHRMissing() {
+        let result = RecoveryScoreEngine.score(inputs: .init(
+            recentHRV: 50, baselineHRV: 50,
+            lastSleepHours: 8.0
+        ))
+        XCTAssertEqual(result?.isPartialData, true)
+    }
 }
