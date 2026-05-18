@@ -105,7 +105,10 @@ struct AIResearchView: View {
                     }
                 }
                 .padding(Spacing.lg)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                // iPad cap so chat bubbles don't stretch into an
+                // unreadably wide column (Phase 5.8 partial).
+                .frame(maxWidth: 720, alignment: .leading)
+                .frame(maxWidth: .infinity)
             }
             .onChange(of: transcript.count) { _, _ in
                 guard let last = transcript.last else { return }

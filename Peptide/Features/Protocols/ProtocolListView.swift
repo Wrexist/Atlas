@@ -90,6 +90,11 @@ struct ProtocolListView: View {
                     }
                     .padding(.horizontal, Spacing.screenPadding)
                     .padding(.bottom, 100)
+                    // iPad content cap so the protocol list reads in
+                    // a comfortable measure rather than stretching
+                    // edge-to-edge (Phase 5.8 partial).
+                    .frame(maxWidth: 640)
+                    .frame(maxWidth: .infinity)
                 }
                 .background(AppColor.background)
 
