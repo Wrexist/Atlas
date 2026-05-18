@@ -346,7 +346,21 @@ struct CycleCardView: View {
     // MARK: - Accessibility
 
     private var accessibilityLabel: String {
-        let names = model.peptides.map(\.abbreviation).joined(separator: ", ")
+        // Honour `maskCompoundNames` here too — a sighted user sees
+        // "Compound A / B" while VoiceOver was reading the real
+        // abbreviations, defeating the privacy point of the mask
+        // (audit Sharing P2).
+        let names: String
+        if maskCompoundNames {
+            names = model.peptides
+                .enumerated()
+                .map { idx, _ in
+                    "Compound " + String(Character(UnicodeScalar(65 + idx)!))
+                }
+                .joined(separator: ", ")
+        } else {
+            names = model.peptides.map(\.abbreviation).joined(separator: ", ")
+        }
         return "\(model.subjectTitle) cycle card. Day \(model.cycleDay) of \(model.cycleTotalDays). " +
                "Peptides: \(names). " +
                "Doses logged: \(model.dosesLogged). Adherence: \(model.adherencePercent) percent. " +

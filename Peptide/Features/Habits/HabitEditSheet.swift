@@ -285,6 +285,12 @@ struct HabitEditSheet: View {
         HStack(spacing: 6) {
             ForEach(HabitWeekday.allCases.sorted(by: { $0.calendarOrder < $1.calendarOrder })) { day in
                 let isSelected = weekdays.contains(day)
+                // Disable deselecting the LAST remaining day so the
+                // user can't end up with an empty set that commit()
+                // silently rewrites to "all days." That rewrite is
+                // confusing — they think they picked nothing and got
+                // daily (audit Habits H6).
+                let isLastSelected = isSelected && weekdays.count == 1
                 Button {
                     UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                     if isSelected { weekdays.remove(day) } else { weekdays.insert(day) }
@@ -299,6 +305,7 @@ struct HabitEditSheet: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .disabled(isLastSelected)
                 .accessibilityLabel(day.fullName)
                 .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
             }

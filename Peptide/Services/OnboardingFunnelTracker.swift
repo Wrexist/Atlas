@@ -54,9 +54,13 @@ enum OnboardingFunnelTracker {
 
     /// Stamped on the terminal "Enter Atlas" tap. Locks the current
     /// snapshot under a UUID key so a future replay/upload job can drain
-    /// completed runs without racing the in-flight one.
+    /// completed runs without racing the in-flight one. Idempotent — a
+    /// double-tap or two completion paths racing won't overwrite the
+    /// first timestamp and won't duplicate the rows on drain (audit
+    /// Onboarding P2).
     static func recordCompletion() {
         var snapshot = currentSnapshot
+        guard snapshot.completedAt == nil else { return }
         snapshot.completedAt = Date()
         write(snapshot)
         UserDefaults.standard.set(true, forKey: completedKey)
