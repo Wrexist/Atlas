@@ -39,8 +39,16 @@ enum HabitsService {
             .sorted { $0.date < $1.date }
 
         let today = calendar.startOfDay(for: date)
-        let todayEntry = habitEntries.first { calendar.isDate($0.date, inSameDayAs: today) }
-        let todayValue = todayEntry?.value ?? 0
+        // Take the MAX value when multiple same-day entries exist
+        // (CloudKit-race duplicate rows) — `heatmap` already does
+        // this; the summary path used to take `first`, which could
+        // under-report today's progress and flip isCompletedToday
+        // false even after a later entry hit target (PR #131 Codex
+        // P2).
+        let todayValue = habitEntries
+            .filter { calendar.isDate($0.date, inSameDayAs: today) }
+            .map(\.value)
+            .max() ?? 0
         let target = habit.targetValue ?? 1
         let isCompletedToday = todayValue >= target
         let progress = min(1.0, Double(todayValue) / Double(target))

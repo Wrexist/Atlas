@@ -78,7 +78,13 @@ enum OnboardingExperiment {
     private static func assign(for experiment: Experiment) -> Variant {
         let bytes = Data((installID + experiment.rawValue).utf8)
         let digest = SHA256.hash(data: bytes)
-        let leading = digest.withUnsafeBytes { $0.load(as: UInt64.self) }
+        // `load(as:)` requires 8-byte alignment, and CryptoKit's
+        // digest buffer doesn't guarantee that — on an unaligned
+        // device/build the regular load can trap and break
+        // onboarding entirely. `loadUnaligned` is alignment-safe
+        // (iOS 14+; we target 18+) and equally cheap for an 8-byte
+        // read (PR #131 Codex P1).
+        let leading = digest.withUnsafeBytes { $0.loadUnaligned(as: UInt64.self) }
         return leading.isMultiple(of: 2) ? .control : .variantA
     }
 
