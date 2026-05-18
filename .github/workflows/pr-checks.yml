@@ -1,11 +1,13 @@
 name: PR Checks
 
-# Cost model: macOS build-check is gated on `draft == false`, so drafts
-# run only the cheap Ubuntu `changes` job. The `ready_for_review` event
-# triggers the workflow when a draft is marked ready so the build kicks
-# off without an extra push. `labeled` lets `run-ui-tests` take effect
-# without forcing the dev to push again. See per-job `if:` conditions
-# for what each label / state actually unlocks.
+# Cost model: macOS build-check is gated on (a) `draft == false`, so
+# drafts run only the cheap Ubuntu jobs, and (b) the `filter` job's
+# `ios` output, so docs/server/scripts-only PRs skip the macOS runner
+# entirely. The `ready_for_review` event triggers the workflow when a
+# draft is marked ready so the build kicks off without an extra push.
+# `labeled` lets `run-ui-tests` take effect without forcing the dev to
+# push again. See per-job `if:` conditions for what each label / state
+# actually unlocks.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, labeled]
@@ -20,25 +22,67 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Path-scope gating retired. The previous `changes` job (first
-  # dorny/paths-filter@v3, then a native git diff replacement) failed
-  # in 2-3 seconds on every run regardless of contents — the failure
-  # was at the runner / setup layer, not in the script. Until that's
-  # root-caused, both `build-check` and `proxy-checks` run
-  # unconditionally to keep CI green. The macOS-build draft gate is
-  # preserved on build-check so WIP PRs don't burn macOS time.
+  # ───────────────────────────────────────────────────────── Path scope
+  #
+  # Cheap Ubuntu job (~10 s) that decides whether the macOS build is
+  # worth running. Earlier attempts at this gate (dorny/paths-filter,
+  # native git diff with `set -euo pipefail` + while-read loops)
+  # failed in 2-3 s with no recoverable error surface. This rewrite
+  # is fail-SAFE: if the diff cannot be computed for any reason,
+  # `ios` defaults to `true` so we never silently skip a needed build.
+  # A grep-against-explicit-SHAs replaces the prior bash case loop,
+  # which removes the most likely culprits (set -u tripping on edge
+  # cases, herestring quirks, multi-line case patterns).
+  filter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      ios: ${{ steps.scope.outputs.ios }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
+      - name: Detect iOS scope
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Fail-safe default: if anything below errors out, run the
+          # macOS build. Skipping a needed build is far more expensive
+          # (a red merged PR) than paying for one we didn't strictly
+          # need.
+          IOS=true
+
+          if FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" 2>&1); then
+            echo "Diff $BASE_SHA..$HEAD_SHA:"
+            echo "$FILES" | sed 's/^/  /'
+
+            # Single grep against one regex — no bash case loops, no
+            # backslash continuations. Any iOS-relevant prefix flips
+            # ios to true; otherwise we skip the macOS runner.
+            if echo "$FILES" | grep -qE '^(Peptide(Tests|UITests|Widgets|Watch|WatchWidgets)?/|Shared/|fastlane/|project\.yml$|Gemfile(\.lock)?$|\.swiftlint\.yml$|\.github/workflows/(pr-checks|ios-testflight|release|binary-size)\.yml$)'; then
+              IOS=true
+              echo "→ iOS-relevant changes detected; build-check will run."
+            else
+              IOS=false
+              echo "→ No iOS-relevant changes; build-check will be skipped."
+            fi
+          else
+            echo "::warning::git diff failed — defaulting ios=true so the build still runs."
+            echo "git output: $FILES"
+            IOS=true
+          fi
+
+          echo "ios=$IOS" >> "$GITHUB_OUTPUT"
 
   build-check:
-    # The `changes` job that used to gate this on touched-path scope
-    # has been retired — it consistently failed in 2-3 seconds on
-    # this repo regardless of action choice (dorny/paths-filter, then
-    # native git diff), which kept every PR red. The cost saving was
-    # ~$1-2 per skipped run on docs-only PRs; until the runner-level
-    # issue is identified, paying that to keep CI green is the right
-    # tradeoff. Draft gate is preserved so work-in-progress doesn't
-    # burn macOS time.
-    if: github.event.pull_request.draft == false
+    needs: filter
+    # Skip macOS entirely on docs/server-only PRs (filter says no iOS
+    # changes) and on drafts. macos-15 runs at ~$0.062/min — a single
+    # 15-min skip saves ~$0.93.
+    if: needs.filter.outputs.ios == 'true' && github.event.pull_request.draft == false
     runs-on: macos-15
     timeout-minutes: 25
 
@@ -135,16 +179,24 @@ jobs:
           # (plutil's auto-detection on the .xcstrings extension is unreliable).
           python3 -c "import json; json.load(open('Peptide/Resources/Localizable.xcstrings'))"
 
-      - name: Build
-        # Building the Peptide scheme transitively compiles PeptideWidgets
-        # (incl. the DoseWindowLiveActivity ActivityConfiguration),
-        # PeptideWatch, and PeptideWatchWidgets via the dependency edges
-        # declared in project.yml. One build = full cross-target check.
+      - name: Build for testing
+        # Single compile pass for both the cross-target build check
+        # AND the unit-test run. Replaces the previous two-step
+        # `xcodebuild build` (generic destination) + `xcodebuild test`
+        # (concrete iPhone 16 destination) pattern, which paid for
+        # roughly two full compiles because the destinations produced
+        # incompatible build products. Building once for the same
+        # destination the tests use cuts macOS time ~30-50% per run.
+        #
+        # A compile failure here still gates the PR (no
+        # continue-on-error). The follow-up `test-without-building`
+        # step is the one that's soft-gated for runtime test
+        # failures.
         run: |
-          xcodebuild build \
+          xcodebuild build-for-testing \
             -project Peptide.xcodeproj \
             -scheme Peptide \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -174,22 +226,19 @@ jobs:
         run: swiftlint lint --reporter github-actions-logging
 
       - name: Unit Tests
-        # Soft-gated: a few tests in the suite need follow-up work
-        # (Swift 6 sendability edges, mocks lagging behind production
-        # API changes). Build + Lint stay required so compile and
-        # style regressions still block; runtime test failures are
-        # surfaced as job annotations via the steps below without
-        # marking the whole job red. Re-tighten once the suite is
-        # back to green.
+        # Reuses the build-for-testing artifacts via
+        # `test-without-building` — no recompile here. Soft-gated: a
+        # few tests in the suite need follow-up work (Swift 6
+        # sendability edges, mocks lagging behind production API
+        # changes). Build + Lint stay required so compile and style
+        # regressions still block; runtime test failures are surfaced
+        # as job annotations via the steps below without marking the
+        # whole job red.
         continue-on-error: true
         run: |
           touch test-output.log
           set -o pipefail
-          # The 3 DailyScheduleEngine ordering tests that used to be
-          # skipped here now pass — the engine's resolveSlot routes
-          # CJC-1295 DAC + Ipamorelin into pre-bed when the user
-          # schedules them there.
-          xcodebuild test \
+          xcodebuild test-without-building \
             -project Peptide.xcodeproj \
             -scheme Peptide \
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
@@ -267,6 +316,13 @@ jobs:
         # only verifies tab-bar reachability. Expand the suite, then
         # consider making this gating again. Label the PR with
         # `run-ui-tests` to exercise them on the next push.
+        #
+        # NOTE: this step uses `xcodebuild test` (not
+        # test-without-building) because build-for-testing above only
+        # builds PeptideTests (via -only-testing has no effect at
+        # build-time, but the xcodebuild scheme settings determine
+        # what's compiled). For safety against scheme drift, we let
+        # this opt-in path do its own incremental build.
         if: contains(github.event.pull_request.labels.*.name, 'run-ui-tests')
         run: |
           xcodebuild test \
@@ -300,11 +356,11 @@ jobs:
   # Lightweight syntax + lint pass for the standalone Vercel meal-scan
   # proxy under server/. Runs in seconds on ubuntu-latest so a one-line
   # change to the proxy doesn't burn a 15-min macOS runner; the iOS
-  # build is skipped via the paths filter above.
+  # build is skipped via the filter job above.
   proxy-checks:
-    # Always run. See build-check comment on the retired `changes`
-    # gate. The proxy job is <30s on Ubuntu, so the unconditional
-    # run cost is negligible.
+    # Runs unconditionally. The proxy job is <30 s on Ubuntu, so the
+    # cost of running it on every PR (including iOS-only ones) is
+    # negligible (~$0.003) and keeps the aggregator simple.
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -350,24 +406,31 @@ jobs:
 
   # ───────────────────────────────────────────────────────── Aggregate
   #
-  # A no-op job that depends on both real jobs but only requires at least
-  # one of them to run. Lets the branch-protection "require status check"
-  # rule point at a single name (pr-checks) without forcing both jobs to
-  # be required when only one is relevant.
+  # A no-op job that depends on all real jobs. Lets the branch-protection
+  # "require status check" rule point at a single name (pr-checks)
+  # regardless of which jobs ran or were filtered out.
   pr-checks:
-    needs: [build-check, proxy-checks]
+    needs: [filter, build-check, proxy-checks]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Aggregate result
         run: |
+          FILTER_RESULT="${{ needs.filter.result }}"
           BUILD_RESULT="${{ needs.build-check.result }}"
           PROXY_RESULT="${{ needs.proxy-checks.result }}"
-          echo "build-check: $BUILD_RESULT"
+          echo "filter:       $FILTER_RESULT"
+          echo "build-check:  $BUILD_RESULT"
           echo "proxy-checks: $PROXY_RESULT"
+
           # Pass if every job that *ran* succeeded. Jobs skipped by the
-          # paths filter return 'skipped' which we treat as a pass —
-          # that's the whole point of the filter.
+          # filter return 'skipped' which we treat as a pass — that's
+          # the whole point of the filter. The filter job itself must
+          # always succeed since it gates everything else.
+          if [ "$FILTER_RESULT" != "success" ]; then
+            echo "::error::filter job did not succeed ($FILTER_RESULT)."
+            exit 1
+          fi
           if [ "$BUILD_RESULT" = "failure" ] || [ "$PROXY_RESULT" = "failure" ]; then
             echo "::error::A required check failed."
             exit 1
