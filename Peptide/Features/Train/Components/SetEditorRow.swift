@@ -29,9 +29,14 @@ struct SetEditorRow: View {
             completionToggle
         }
         .padding(.vertical, Spacing.xs)
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+        .contentShape(Rectangle())
+        // .swipeActions is a no-op outside List/Form (audit Train
+        // M1 — sets live in a VStack), so a long-press contextMenu
+        // is the only way to expose the delete affordance without
+        // restructuring the parent container.
+        .contextMenu {
             Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
+                Label("Delete set", systemImage: "trash")
             }
         }
     }

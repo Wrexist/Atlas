@@ -279,10 +279,13 @@ struct HomeView: View {
                     // jump chips above reach the full schedule in
                     // one tap.
 
-                    HomeMealsSection()
-                        .id(TodayJumpBar.SectionAnchor.meals)
-                        .trackSectionAnchor(.meals)
-                        .sectionAppear(index: 2)
+                    // HomeMealsSection used to render on the Today scroll
+                    // AND inside MealsContainerView. Spotlight taps with
+                    // a recipe deep-link fired sheets in both mounts
+                    // simultaneously (audit Meals MED 10). Removed from
+                    // Today; the dedicated Meals tab is the single
+                    // owner. The jump-bar .meals chip now navigates to
+                    // the Meals tab (handled in handleJump).
 
                     if !dataStore.protocols.isEmpty {
                         DailyPlanCard(
@@ -545,7 +548,14 @@ struct HomeView: View {
             withAnimation(AppAnimation.springSnappy) {
                 appState.selectedTab = .biology
             }
-        case .doses, .meals, .wellness, .movement:
+        case .meals:
+            // Meals lives on its own tab now (audit Meals MED 10).
+            // The Today scroll no longer mounts HomeMealsSection so
+            // scrolling here would be a no-op — switch tab instead.
+            withAnimation(AppAnimation.springSnappy) {
+                appState.selectedTab = .meals
+            }
+        case .doses, .wellness, .movement:
             withAnimation(.smooth(duration: 0.35)) {
                 proxy.scrollTo(anchor, anchor: .top)
             }

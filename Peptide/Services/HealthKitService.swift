@@ -51,6 +51,76 @@ final class HealthKitService {
         }
     }
 
+    /// HealthKit deliberately doesn't tell apps which read types were
+    /// granted (privacy contract). The only honest signal is to probe
+    /// for actual sample availability — if at least one of the 6
+    /// quantity types has a sample in the past 90 days, the grant is
+    /// meaningfully alive. Returns counts per type so the caller can
+    /// surface a "0 of 7 — check Settings" affordance when nothing
+    /// comes back at all (audit Biology C1 + C2).
+    ///
+    /// Sleep is intentionally excluded from this probe because Apple
+    /// uses a `HKCategoryType`, not a quantity type, and a separate
+    /// query shape — and a user with a Watch typically has plenty of
+    /// quantity samples regardless.
+    func probeReadAvailability() async -> ReadAvailabilityProbe {
+        guard isAvailable else {
+            return ReadAvailabilityProbe(typesWithData: 0, typesProbed: 0, isAvailable: false)
+        }
+        let identifiers: [HKQuantityTypeIdentifier] = [
+            .heartRate,
+            .heartRateVariabilitySDNN,
+            .restingHeartRate,
+            .bodyMass,
+            .stepCount,
+            .activeEnergyBurned,
+        ]
+        let cutoff = Calendar.current.date(byAdding: .day, value: -90, to: Date()) ?? Date()
+        var typesWithData = 0
+        for identifier in identifiers {
+            let type = HKQuantityType(identifier)
+            let predicate = HKQuery.predicateForSamples(withStart: cutoff, end: nil)
+            let hasAny = await firstSampleExists(type: type, predicate: predicate)
+            if hasAny { typesWithData += 1 }
+        }
+        return ReadAvailabilityProbe(
+            typesWithData: typesWithData,
+            typesProbed: identifiers.count,
+            isAvailable: true
+        )
+    }
+
+    private func firstSampleExists(type: HKQuantityType, predicate: NSPredicate) async -> Bool {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            let query = HKSampleQuery(
+                sampleType: type,
+                predicate: predicate,
+                limit: 1,
+                sortDescriptors: nil
+            ) { _, samples, _ in
+                continuation.resume(returning: !(samples?.isEmpty ?? true))
+            }
+            store.execute(query)
+        }
+    }
+
+    /// Carries the result of `probeReadAvailability()`. The view
+    /// surfaces a "Connected" pill when `typesWithData > 0`, a
+    /// "Connected · checking…" pill on a fresh install while no data
+    /// has arrived yet, and "Verify in Settings →" when the user
+    /// likely denied everything (typesWithData == 0 after a grant).
+    struct ReadAvailabilityProbe: Equatable, Sendable {
+        let typesWithData: Int
+        let typesProbed: Int
+        let isAvailable: Bool
+
+        var hasAnyData: Bool { typesWithData > 0 }
+        var coveragePercent: Int {
+            guard typesProbed > 0 else { return 0 }
+            return Int((Double(typesWithData) / Double(typesProbed) * 100).rounded())
+        }
+    }
+
     // MARK: - Nutrition write authorization
 
     /// HK quantity types we write when the user opts in. Kept as a

@@ -54,6 +54,11 @@ extension CycleCardModel {
         let logged = dataStore.entries
             .filter { $0.protocolId == proto.id && $0.completed }
             .count
+        // Per-protocol card uses the protocol-scoped adherence so the
+        // shared "75%" figure reflects this stack — not the user's
+        // global average across every protocol they run (audit
+        // Sharing P1.6).
+        let adherence = dataStore.adherence(forProtocol: proto.id)
         return CycleCardModel(
             subjectTitle: proto.name,
             peptides: proto.peptides,
@@ -61,7 +66,7 @@ extension CycleCardModel {
             cycleDay: cycleDay(for: proto),
             cycleTotalDays: max(1, proto.cycleLengthWeeks * 7),
             dosesLogged: logged,
-            adherencePercent: Int((dataStore.averageCompliance * 100).rounded()),
+            adherencePercent: Int((adherence * 100).rounded()),
             currentStreakDays: dataStore.currentStreak,
             healthSummary: healthSummary
         )

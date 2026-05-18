@@ -631,6 +631,26 @@ final class DataStore: DataServiceProtocol {
         return dailyCompliance.reduce(0, +) / Double(dailyCompliance.count)
     }
 
+    /// Adherence (0…1) limited to a single protocol's entries. Used
+    /// by the per-protocol share card so the "75%" figure on a
+    /// shareable artifact actually reflects that protocol — the
+    /// previous implementation used the global averageCompliance and
+    /// shipped a misleading number when the user had multiple stacks
+    /// (audit Sharing P1.6).
+    func adherence(forProtocol id: UUID) -> Double {
+        let now = Date()
+        let protocolEntries = entries.filter { $0.protocolId == id && $0.date <= now }
+        let grouped = protocolEntries.groupedByDay
+        guard !grouped.isEmpty else { return 0 }
+
+        let dailyCompliance = grouped.map { _, dayEntries in
+            let completed = dayEntries.filter(\.completed).count
+            return Double(completed) / Double(dayEntries.count)
+        }
+
+        return dailyCompliance.reduce(0, +) / Double(dailyCompliance.count)
+    }
+
     func complianceTrend(for range: Int) -> Double {
         let calendar = Calendar.current
         let now = Date()
