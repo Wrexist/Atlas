@@ -554,16 +554,16 @@ struct OnboardingView: View {
             dataStore.setPrimaryGoal(raw)
             dataStore.profile.goalDate = goalDate
             dataStore.flushPendingSave()
+        case Page.experience:
+            // Seed `activityLevel` from the experience picker on the
+            // way OUT of the experience step. This sets a sensible
+            // default before the user lands on the body-metrics page
+            // (audit Meals L12). Anything the user changes on a later
+            // step persists — only seeding here, not overriding on
+            // save, so we never clobber an explicit choice.
+            bodyMetrics.activityLevel = activityFromExperience()
         case Page.bodyMetrics:
-            // Seed `activityLevel` from the experience picker — beginner
-            // lifters tend to fall in `.light`, intermediates `.moderate`,
-            // advanced trainees `.active`. Without this every user gets
-            // `.moderate` regardless of what they told us (audit Meals
-            // L12). The Profile editor can override later.
-            var withActivity = bodyMetrics
-            withActivity.activityLevel = activityFromExperience()
-            bodyMetrics = withActivity
-            dataStore.updateBodyMetrics(withActivity)
+            dataStore.updateBodyMetrics(bodyMetrics)
         case Page.schedule, Page.equipment:
             // Schedule and equipment both feed the same struct.
             // Persist on advance off either step (writes are idempotent

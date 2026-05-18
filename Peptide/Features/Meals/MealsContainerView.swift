@@ -25,6 +25,11 @@ struct MealsContainerView: View {
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.top, Spacing.lg)
                 .padding(.bottom, Spacing.xxxxl)
+                // iPad content cap — Meals stretches less comfortably
+                // than Home (per-meal rows want a readable measure)
+                // (Phase 5.8 partial).
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle("Meals")

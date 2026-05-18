@@ -103,6 +103,11 @@ struct ProfileView: View {
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
+                // iPad content width cap — matches HomeView's
+                // treatment so Profile doesn't stretch full-width on
+                // larger devices (Phase 5.8 partial).
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
             .background(AppColor.background)
             .navigationTitle("Profile")
