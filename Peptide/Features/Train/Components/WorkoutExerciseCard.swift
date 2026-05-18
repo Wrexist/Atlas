@@ -6,6 +6,13 @@ import SwiftUI
 struct WorkoutExerciseCard: View {
     let entry: WorkoutExerciseEntry
     let exercise: Exercise?
+    /// Looks up the user's last completed set for this exercise from
+    /// past sessions — wired to PRDetectionEngine's stored records.
+    /// `nil` means there's no prior session and the "60 × 8" cue
+    /// row renders as "—". Was previously hard-coded `nil` in this
+    /// view, which silently dropped the entire "log a set with last-
+    /// weight inline" UX promise (audit Train C1).
+    let previousSetLookup: () -> SetEntry?
     let onSetUpdate: (SetEntry) -> Void
     let onAddSet: () -> Void
     let onRemoveSet: (UUID) -> Void
@@ -59,14 +66,18 @@ struct WorkoutExerciseCard: View {
     }
 
     private var setsList: some View {
-        VStack(spacing: 0) {
+        // Compute once per render so every row in this exercise card
+        // shares the same prior-session reference (the lookup hits
+        // SwiftData and shouldn't run N times for N sets).
+        let lastSession = previousSetLookup()
+        return VStack(spacing: 0) {
             ForEach(entry.sets) { setSnapshot in
                 SetEditorRow(
                     set: Binding(
                         get: { setSnapshot },
                         set: { onSetUpdate($0) }
                     ),
-                    previousSet: nil,
+                    previousSet: lastSession,
                     onDelete: { onRemoveSet(setSnapshot.id) }
                 )
                 if setSnapshot.id != entry.sets.last?.id {

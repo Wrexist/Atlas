@@ -134,17 +134,8 @@ struct TrainContainerView: View {
         case .exercises:
             ExerciseLibraryView()
         case .history:
-            placeholderHistory
+            WorkoutHistoryView()
         }
-    }
-
-    private var placeholderHistory: some View {
-        EmptyStateView(
-            icon: "calendar",
-            title: "No workouts logged yet",
-            message: "Once you finish your first session, it'll show up here with PRs and a monthly heat-calendar."
-        )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - SectionTab

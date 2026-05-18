@@ -18,6 +18,7 @@ struct ActiveWorkoutView: View {
     @State private var showFinishConfirm = false
     @State private var showDiscardConfirm = false
     @State private var finishedSession: WorkoutSession?
+    @State private var finishedPRs: [PRDetectionEngine.DetectedPR] = []
     @State private var workoutName: String = ""
     /// Bumps every second while the workout is active so the elapsed
     /// timer redraws without a publisher boilerplate dance.
@@ -29,7 +30,11 @@ struct ActiveWorkoutView: View {
             if let session = sessionService.activeSession {
                 content(for: session)
             } else if let finished = finishedSession {
-                WorkoutFinishView(session: finished, onClose: { dismiss() })
+                WorkoutFinishView(
+                    session: finished,
+                    detectedPRs: finishedPRs,
+                    onClose: { dismiss() }
+                )
             } else {
                 noActiveSession
             }
@@ -80,8 +85,18 @@ struct ActiveWorkoutView: View {
         }
         .alert("Finish workout?", isPresented: $showFinishConfirm) {
             Button("Finish", role: .none) {
+                // Persist the latest workout-name edit FIRST — the
+                // .onSubmit-only binding meant a user who typed
+                // "Push Day A" then tapped Finish without hitting
+                // Return saved the session with a nil name (audit
+                // Train C3).
+                let trimmed = workoutName.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    sessionService.renameWorkout(trimmed)
+                }
                 if let finished = sessionService.finishWorkout() {
-                    finishedSession = finished
+                    finishedSession = finished.session
+                    finishedPRs = finished.detectedPRs
                 }
             }
             Button("Cancel", role: .cancel) {}
@@ -171,6 +186,9 @@ struct ActiveWorkoutView: View {
                     WorkoutExerciseCard(
                         entry: entry,
                         exercise: library.lookup(id: entry.exerciseID),
+                        previousSetLookup: {
+                            sessionService.lastCompletedSet(forExerciseID: entry.exerciseID)
+                        },
                         onSetUpdate: { updated in
                             sessionService.updateSet(updated, inExerciseEntryID: entry.id)
                         },
