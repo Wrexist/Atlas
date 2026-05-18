@@ -41,7 +41,17 @@ enum WeeklyMuscleHeatmap {
 
         for session in sessions where session.startedAt >= cutoff {
             for entry in session.exercises {
-                guard let exercise = library.lookup(id: entry.exerciseID) else { continue }
+                guard let exercise = library.lookup(id: entry.exerciseID) else {
+                    // Silent skip used to hide deleted-custom-exercise
+                    // referrals from the heatmap entirely — a user
+                    // training on a since-deleted lift saw an empty
+                    // map. Log so debug builds catch the data drift
+                    // (audit Train T3).
+                    AppLog.training.warning(
+                        "Heatmap: exercise lookup miss for id \(entry.exerciseID, privacy: .public)"
+                    )
+                    continue
+                }
                 let workingSets = entry.sets.filter { $0.completed && !$0.isWarmup }
                 guard !workingSets.isEmpty else { continue }
                 let setCount = Double(workingSets.count)

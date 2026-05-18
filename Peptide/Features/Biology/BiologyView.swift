@@ -130,10 +130,13 @@ struct BiologyView: View {
         let today = calendar.startOfDay(for: Date())
         let cutoff = calendar.date(byAdding: .day, value: -30, to: today) ?? today
         // Pick the entry closest to (but on/after) the cutoff so the
-        // delta represents the actual 30-day window rather than the
-        // first-ever measurement when the cutoff happens to predate
-        // the user's whole history.
-        let baseline = history.first { $0.date >= cutoff } ?? history.first!
+        // delta represents the actual 30-day window. If NO entry is
+        // newer than the cutoff (user weighed in once two years ago
+        // and twice yesterday), return nil — comparing today's
+        // weight against a two-year-old measurement and labelling it
+        // a "30-day delta" mis-tells the story (audit Biology
+        // follow-up). The card hides itself when this returns nil.
+        guard let baseline = history.first(where: { $0.date >= cutoff }) else { return nil }
         guard baseline.id != latest.id else { return nil }
         return latest.kg - baseline.kg
     }

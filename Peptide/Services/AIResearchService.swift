@@ -165,10 +165,17 @@ final class AIResearchService: Sendable {
                 continuation.yield(text)
             } else if type == "message_stop" {
                 return
-            } else if type == "error",
-                      let err = dict["error"] as? [String: Any],
-                      let message = err["message"] as? String {
-                throw ChatError.requestFailed(message)
+            } else if type == "error" {
+                // Surface even when the upstream `error` event omits a
+                // `message` string — otherwise the stream ends silently
+                // and the view's empty-bubble cleanup leaves the user
+                // staring at no answer + no error (audit AI Research
+                // P2 follow-up).
+                let err = dict["error"] as? [String: Any]
+                let message = (err?["message"] as? String).map { $0.isEmpty ? nil : $0 } ?? nil
+                throw ChatError.requestFailed(
+                    message ?? "The research assistant returned an unspecified error."
+                )
             }
         }
     }

@@ -364,7 +364,11 @@ struct MealScanFlow: View {
             let result = try await MealScannerService.shared.analyze(image: image)
             await MainActor.run {
                 estimate = result
-                category = MealCategory.auto(for: Date())
+                // Auto-categorise from the PHOTO's capture time, not
+                // the analyze-finished time. Otherwise a yesterday-
+                // dinner photo picked at 10am gets bucketed as snack
+                // (audit Meals M1).
+                category = MealCategory.auto(for: capturedAtDate)
                 phase = .review
                 if dataStore.profile.hapticFeedbackEnabled {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)

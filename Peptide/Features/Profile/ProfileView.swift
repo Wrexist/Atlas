@@ -81,25 +81,25 @@ struct ProfileView: View {
                         .sectionAppear(index: 7)
 
                     WeeklySummaryToggleRow()
-                        .sectionAppear(index: 7)
-
-                    ScreenshotModeRow()
-                        .sectionAppear(index: 7)
-
-                    ExportSection()
-                        .sectionAppear(index: 7)
-
-                    AccountSection()
                         .sectionAppear(index: 8)
 
-                    AppearanceSettings()
+                    ScreenshotModeRow()
                         .sectionAppear(index: 9)
 
-                    DiagnosticsSection()
+                    ExportSection()
                         .sectionAppear(index: 10)
 
-                    AboutSection()
+                    AccountSection()
                         .sectionAppear(index: 11)
+
+                    AppearanceSettings()
+                        .sectionAppear(index: 12)
+
+                    DiagnosticsSection()
+                        .sectionAppear(index: 13)
+
+                    AboutSection()
+                        .sectionAppear(index: 14)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
