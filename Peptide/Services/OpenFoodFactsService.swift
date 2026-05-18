@@ -537,12 +537,30 @@ private extension OpenFoodFactsService {
                 ?? "Unknown product"
 
             let n = nutriments
-            // Real OFF data sometimes reports calories as kJ only — fall
-            // back through the energy_100g (kJ) field divided by 4.184.
-            // Without this, kJ-only products would silently log 0 kcal.
+            // Energy resolution path (audit Meals MED 5):
+            // 1. Prefer `energy-kcal_100g` when present — already kcal.
+            // 2. Fall back to `energy_100g`, but consult `energy_unit`
+            //    before dividing — legacy OFF entries sometimes store
+            //    a kcal value in `energy_100g` AND label it "kcal",
+            //    in which case dividing by 4.184 silently logs ~4×
+            //    less calories than the actual product.
+            //    Default unit is kJ when the field is absent.
             let kcal = n?.energyKcal100g?.value
-            let kJ = n?.energy100g?.value
-            let calories = kcal ?? kJ.map { $0 / 4.184 } ?? 0
+            let rawEnergy = n?.energy100g?.value
+            let unit = n?.energyUnit?.lowercased()
+            let calories: Double
+            if let kcal {
+                calories = kcal
+            } else if let rawEnergy {
+                switch unit {
+                case "kcal":   calories = rawEnergy
+                case "kj":     calories = rawEnergy / 4.184
+                case nil:      calories = rawEnergy / 4.184 // legacy default
+                default:       calories = rawEnergy / 4.184 // unknown → assume kJ
+                }
+            } else {
+                calories = 0
+            }
 
             let per100 = ScannedProduct.Nutriments(
                 calories: calories,
@@ -587,6 +605,13 @@ private extension OpenFoodFactsService {
     struct RawNutriments: Decodable {
         let energyKcal100g: FlexibleDouble?
         let energy100g: FlexibleDouble?
+        /// "kj" / "kcal" — sometimes absent on legacy entries. When
+        /// present, drives whether `energy_100g` is interpreted as
+        /// kilojoules (default) or already-kcal. Without this check
+        /// we used to silently divide an already-kcal value by 4.184
+        /// and log ~4× less calories than the actual product
+        /// (audit Meals MED 5).
+        let energyUnit: String?
         let proteins100g: FlexibleDouble?
         let carbohydrates100g: FlexibleDouble?
         let fat100g: FlexibleDouble?
@@ -596,6 +621,7 @@ private extension OpenFoodFactsService {
         enum CodingKeys: String, CodingKey {
             case energyKcal100g     = "energy-kcal_100g"
             case energy100g         = "energy_100g"
+            case energyUnit         = "energy_unit"
             case proteins100g       = "proteins_100g"
             case carbohydrates100g  = "carbohydrates_100g"
             case fat100g            = "fat_100g"

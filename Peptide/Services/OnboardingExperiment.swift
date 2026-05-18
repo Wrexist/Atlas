@@ -34,18 +34,37 @@ enum OnboardingExperiment {
     /// Returns the variant for the given experiment, lazily assigning
     /// (and persisting) on first read. Idempotent — same install ID
     /// always returns the same variant.
+    ///
+    /// Returns a tuple so the caller can distinguish a cached read
+    /// from a first-time assignment and record the funnel event
+    /// itself — this keeps `OnboardingExperiment` free of any direct
+    /// dependency on `OnboardingFunnelTracker`, simplifies the
+    /// actor-isolation story under Swift 6 strict concurrency, and
+    /// makes the cached/freshly-assigned distinction explicit for
+    /// tests.
     static func variant(for experiment: Experiment) -> Variant {
+        resolve(for: experiment).variant
+    }
+
+    /// Like `variant(for:)` but also reports whether the value was
+    /// newly assigned on this call (worth recording in the funnel)
+    /// or read from the persistent cache (already recorded).
+    static func resolve(for experiment: Experiment) -> (variant: Variant, isFresh: Bool) {
         let key = "experiment.\(experiment.rawValue).v1"
         if let stored = UserDefaults.standard.string(forKey: key),
            let parsed = Variant(rawValue: stored) {
-            return parsed
+            return (parsed, false)
         }
         let assignment = assign(for: experiment)
         UserDefaults.standard.set(assignment.rawValue, forKey: key)
-        OnboardingFunnelTracker.recordEvent(
-            "experiment_\(experiment.rawValue)_\(assignment.rawValue)"
-        )
-        return assignment
+        return (assignment, true)
+    }
+
+    /// Stable funnel-event name for a given (experiment, variant)
+    /// pair. Centralized here so the call site doesn't have to
+    /// re-derive the string format.
+    static func funnelEventName(for experiment: Experiment, variant: Variant) -> String {
+        "experiment_\(experiment.rawValue)_\(variant.rawValue)"
     }
 
     /// Deterministic assignment via SHA-256 of (installID + salt). A

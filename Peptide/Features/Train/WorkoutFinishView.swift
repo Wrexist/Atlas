@@ -142,6 +142,7 @@ struct WorkoutFinishView: View {
         case .estimatedOneRepMax: return "e1RM \(Int(pr.value.rounded())) kg"
         case .absoluteWeight:     return "Top set \(Int(pr.value.rounded())) kg"
         case .sessionVolume:      return "Volume \(Int(pr.value.rounded())) kg"
+        case .bodyweightReps:     return "\(Int(pr.value)) reps"
         }
     }
 

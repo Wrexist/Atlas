@@ -23,6 +23,11 @@ final class PRDetectionEngine {
             case estimatedOneRepMax
             case absoluteWeight
             case sessionVolume
+            /// Best rep count for bodyweight (weight-0) exercises.
+            /// Push-ups / pull-ups / dips fall here so the user gets
+            /// a celebration without needing to log a phantom weight
+            /// (audit Train H3).
+            case bodyweightReps
         }
     }
 
@@ -50,6 +55,13 @@ final class PRDetectionEngine {
             let bestE1RM = allSets.compactMap(\.estimatedOneRepMaxKg).max() ?? 0
             let bestAbs = allSets.map(\.weightKg).max() ?? 0
             let sessionVolume = allSets.reduce(0) { $0 + $1.volumeKg }
+            // Bodyweight track: best reps across all weight-0 sets.
+            // This is what "I did 35 push-ups today" looks like —
+            // weight 0, reps high. Reported separately from the
+            // weighted track so a bodyweight-only user still gets
+            // celebration moments.
+            let bodyweightSets = allSets.filter { $0.weightKg == 0 }
+            let bestBodyweightReps = bodyweightSets.map(\.reps).max() ?? 0
             let finishedAt = session.finishedAt ?? Date()
 
             var record = existing[exerciseID]
@@ -78,6 +90,14 @@ final class PRDetectionEngine {
                 detected.append(.init(exerciseID: exerciseID,
                                       kind: .sessionVolume,
                                       value: sessionVolume))
+                dirty = true
+            }
+            if bestBodyweightReps > (record.bestRepsBodyweight ?? 0) {
+                record.bestRepsBodyweight = bestBodyweightReps
+                record.bestRepsBodyweightAt = finishedAt
+                detected.append(.init(exerciseID: exerciseID,
+                                      kind: .bodyweightReps,
+                                      value: Double(bestBodyweightReps)))
                 dirty = true
             }
 

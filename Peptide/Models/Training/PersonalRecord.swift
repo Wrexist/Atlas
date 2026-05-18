@@ -35,6 +35,13 @@ struct PersonalRecord: Codable, Hashable, Identifiable, Sendable {
     /// more weight than last time" callouts.
     var bestSessionVolumeKg: Double?
     var bestSessionVolumeAt: Date?
+    /// Best single-set rep count for bodyweight exercises (weightKg
+    /// == 0). Tracked separately so push-ups, pull-ups, and other
+    /// no-load lifts can produce PRs — previously every weight-0 set
+    /// failed the `bestE1RM > 0` and `bestAbs > 0` guards and
+    /// bodyweight-only users saw no PRs forever (audit Train H3).
+    var bestRepsBodyweight: Int?
+    var bestRepsBodyweightAt: Date?
 
     init(
         exerciseID: String,
@@ -43,7 +50,9 @@ struct PersonalRecord: Codable, Hashable, Identifiable, Sendable {
         bestAbsoluteWeightKg: Double? = nil,
         bestAbsoluteWeightAt: Date? = nil,
         bestSessionVolumeKg: Double? = nil,
-        bestSessionVolumeAt: Date? = nil
+        bestSessionVolumeAt: Date? = nil,
+        bestRepsBodyweight: Int? = nil,
+        bestRepsBodyweightAt: Date? = nil
     ) {
         self.exerciseID = exerciseID
         self.bestEstimatedOneRepMaxKg = bestEstimatedOneRepMaxKg
@@ -52,5 +61,7 @@ struct PersonalRecord: Codable, Hashable, Identifiable, Sendable {
         self.bestAbsoluteWeightAt = bestAbsoluteWeightAt
         self.bestSessionVolumeKg = bestSessionVolumeKg
         self.bestSessionVolumeAt = bestSessionVolumeAt
+        self.bestRepsBodyweight = bestRepsBodyweight
+        self.bestRepsBodyweightAt = bestRepsBodyweightAt
     }
 }

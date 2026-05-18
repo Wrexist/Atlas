@@ -503,6 +503,26 @@ final class SwiftDataRepository {
         }
     }
 
+    /// Removes the PR row for a given exercise. Used by tests to
+    /// scrub state and (eventually) by a "reset this exercise"
+    /// affordance the user might surface if their PR data gets
+    /// corrupted. No-op when the row doesn't exist.
+    func deletePersonalRecord(exerciseID: String) {
+        guard let context else { return }
+        let id = exerciseID
+        let descriptor = FetchDescriptor<StoredPersonalRecord>(
+            predicate: #Predicate { $0.exerciseID == id }
+        )
+        do {
+            for row in try context.fetch(descriptor) {
+                context.delete(row)
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("delete PR failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     // MARK: - State
 
     var hasAnyData: Bool {

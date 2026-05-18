@@ -125,8 +125,20 @@ struct TrialOfferView: View {
             // MainActor-isolated task — calling
             // OnboardingExperiment.variant from a `@State` default
             // initializer would violate Swift 6 actor isolation.
-            let variant = OnboardingExperiment.variant(for: .paywallTierOrder)
-            switch variant {
+            // resolve(for:) returns the variant + an isFresh flag so
+            // the funnel event fires exactly once per install rather
+            // than from inside the experiment service (which would
+            // make it depend on the funnel tracker).
+            let resolution = OnboardingExperiment.resolve(for: .paywallTierOrder)
+            if resolution.isFresh {
+                OnboardingFunnelTracker.recordEvent(
+                    OnboardingExperiment.funnelEventName(
+                        for: .paywallTierOrder,
+                        variant: resolution.variant
+                    )
+                )
+            }
+            switch resolution.variant {
             case .control:
                 orderedTiers = [.annual, .monthly]
                 selectedTier = .annual

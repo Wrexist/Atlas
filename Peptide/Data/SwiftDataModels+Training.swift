@@ -257,6 +257,12 @@ final class StoredPersonalRecord {
     var bestAbsoluteWeightAt: Date?
     var bestSessionVolumeKg: Double?
     var bestSessionVolumeAt: Date?
+    /// Bodyweight rep PR — populated for weight-0 exercises like
+    /// push-ups, pull-ups, dips. Older SwiftData stores migrate
+    /// gracefully because Swift's @Model lightweight migration adds
+    /// new optional properties as `nil` on existing rows.
+    var bestRepsBodyweight: Int?
+    var bestRepsBodyweightAt: Date?
 
     init(
         exerciseID: String,
@@ -265,7 +271,9 @@ final class StoredPersonalRecord {
         bestAbsoluteWeightKg: Double? = nil,
         bestAbsoluteWeightAt: Date? = nil,
         bestSessionVolumeKg: Double? = nil,
-        bestSessionVolumeAt: Date? = nil
+        bestSessionVolumeAt: Date? = nil,
+        bestRepsBodyweight: Int? = nil,
+        bestRepsBodyweightAt: Date? = nil
     ) {
         self.exerciseID = exerciseID
         self.bestEstimatedOneRepMaxKg = bestEstimatedOneRepMaxKg
@@ -274,6 +282,8 @@ final class StoredPersonalRecord {
         self.bestAbsoluteWeightAt = bestAbsoluteWeightAt
         self.bestSessionVolumeKg = bestSessionVolumeKg
         self.bestSessionVolumeAt = bestSessionVolumeAt
+        self.bestRepsBodyweight = bestRepsBodyweight
+        self.bestRepsBodyweightAt = bestRepsBodyweightAt
     }
 
     static func make(from record: PersonalRecord) -> StoredPersonalRecord {
@@ -284,7 +294,9 @@ final class StoredPersonalRecord {
             bestAbsoluteWeightKg: record.bestAbsoluteWeightKg,
             bestAbsoluteWeightAt: record.bestAbsoluteWeightAt,
             bestSessionVolumeKg: record.bestSessionVolumeKg,
-            bestSessionVolumeAt: record.bestSessionVolumeAt
+            bestSessionVolumeAt: record.bestSessionVolumeAt,
+            bestRepsBodyweight: record.bestRepsBodyweight,
+            bestRepsBodyweightAt: record.bestRepsBodyweightAt
         )
     }
 
@@ -295,6 +307,8 @@ final class StoredPersonalRecord {
         bestAbsoluteWeightAt = record.bestAbsoluteWeightAt
         bestSessionVolumeKg = record.bestSessionVolumeKg
         bestSessionVolumeAt = record.bestSessionVolumeAt
+        bestRepsBodyweight = record.bestRepsBodyweight
+        bestRepsBodyweightAt = record.bestRepsBodyweightAt
     }
 
     func toPersonalRecord() -> PersonalRecord {
@@ -305,7 +319,9 @@ final class StoredPersonalRecord {
             bestAbsoluteWeightKg: bestAbsoluteWeightKg,
             bestAbsoluteWeightAt: bestAbsoluteWeightAt,
             bestSessionVolumeKg: bestSessionVolumeKg,
-            bestSessionVolumeAt: bestSessionVolumeAt
+            bestSessionVolumeAt: bestSessionVolumeAt,
+            bestRepsBodyweight: bestRepsBodyweight,
+            bestRepsBodyweightAt: bestRepsBodyweightAt
         )
     }
 }

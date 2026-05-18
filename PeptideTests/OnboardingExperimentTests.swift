@@ -50,31 +50,25 @@ final class OnboardingExperimentTests: XCTestCase {
         _ = first  // silence the unused-variable warning
     }
 
-    func test_assignment_recordsFunnelEvent() {
-        _ = OnboardingExperiment.variant(for: .paywallTierOrder)
-        let events = OnboardingFunnelTracker.snapshot.events.map(\.name)
-        XCTAssertTrue(
-            events.contains { $0.hasPrefix("experiment_paywall_tier_order_") },
-            "Expected a funnel event for the assigned variant; got \(events)"
-        )
+    func test_resolve_returnsIsFreshTrue_onFirstCall() {
+        let resolution = OnboardingExperiment.resolve(for: .paywallTierOrder)
+        XCTAssertTrue(resolution.isFresh,
+                      "First resolve should report isFresh = true so the caller records the funnel event")
     }
 
-    func test_subsequentReads_doNotRecordDuplicateAssignmentEvents() {
-        // First read assigns + records; second read should hit the
-        // cached UserDefaults entry and skip the event recording.
-        _ = OnboardingExperiment.variant(for: .paywallTierOrder)
-        let firstCount = OnboardingFunnelTracker.snapshot.events.filter {
-            $0.name.hasPrefix("experiment_paywall_tier_order_")
-        }.count
+    func test_resolve_returnsIsFreshFalse_onSubsequentCalls() {
+        // Prime the cache.
+        _ = OnboardingExperiment.resolve(for: .paywallTierOrder)
+        let second = OnboardingExperiment.resolve(for: .paywallTierOrder)
+        let third  = OnboardingExperiment.resolve(for: .paywallTierOrder)
+        XCTAssertFalse(second.isFresh)
+        XCTAssertFalse(third.isFresh)
+    }
 
-        _ = OnboardingExperiment.variant(for: .paywallTierOrder)
-        _ = OnboardingExperiment.variant(for: .paywallTierOrder)
-
-        let finalCount = OnboardingFunnelTracker.snapshot.events.filter {
-            $0.name.hasPrefix("experiment_paywall_tier_order_")
-        }.count
-
-        XCTAssertEqual(firstCount, finalCount,
-                       "Variant should record assignment exactly once per install")
+    func test_funnelEventName_isStable() {
+        let control  = OnboardingExperiment.funnelEventName(for: .paywallTierOrder, variant: .control)
+        let variantA = OnboardingExperiment.funnelEventName(for: .paywallTierOrder, variant: .variantA)
+        XCTAssertEqual(control, "experiment_paywall_tier_order_control")
+        XCTAssertEqual(variantA, "experiment_paywall_tier_order_variantA")
     }
 }

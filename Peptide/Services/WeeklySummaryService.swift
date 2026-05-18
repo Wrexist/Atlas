@@ -191,12 +191,20 @@ final class WeeklySummaryService {
 
     // MARK: - Helpers
 
+    /// Builds the cache key "yyyy-MM-dd" anchored to the user's local
+    /// calendar's week-start. Previously ISO8601DateFormatter had no
+    /// timezone set and defaulted to UTC, while the week-range
+    /// computation ran in user-local TZ — for users east of UTC
+    /// (AEDT, JST) the key wrote the previous Sunday's date and
+    /// cache lookups missed (audit Biology H8). Now stamps with the
+    /// calendar's timezone so the key round-trips locally.
     private static func weekStartString(for date: Date) -> String {
         var calendar = Calendar(identifier: .iso8601)
         calendar.firstWeekday = 2
         let interval = calendar.dateInterval(of: .weekOfYear, for: date) ?? DateInterval()
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]
+        formatter.timeZone = calendar.timeZone
         return formatter.string(from: interval.start)
     }
 
