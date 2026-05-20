@@ -2001,7 +2001,7 @@ final class DataStore: DataServiceProtocol {
     /// `ProtocolSchedule.preferredTimes`. Hoisted to `static let` so we don't
     /// pay the ~1ms `DateFormatter` allocation on every dose generation —
     /// `todayEntries(for:in:)` runs once per peptide on every entry mutation.
-    nonisolated(unsafe) private static let timeStringParser: DateFormatter = {
+    private static let timeStringParser: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "h:mm a"
         f.locale = Locale(identifier: "en_US_POSIX")

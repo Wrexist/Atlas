@@ -165,70 +165,80 @@ struct BiomarkerDetailSheet: View {
                     .tracking(1.0)
                     .foregroundStyle(AppColor.accentLight)
 
-                Chart {
-                    ForEach(Array(snapshot.sparkline.enumerated()), id: \.offset) { idx, value in
-                        LineMark(
-                            x: .value("Day", -snapshot.sparkline.count + idx + 1),
-                            y: .value(biomarker.displayName, value)
-                        )
-                        .interpolationMethod(.monotone)
-                        .lineStyle(.init(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                        .foregroundStyle(AppColor.accentPrimary)
-
-                        AreaMark(
-                            x: .value("Day", -snapshot.sparkline.count + idx + 1),
-                            y: .value(biomarker.displayName, value)
-                        )
-                        .interpolationMethod(.monotone)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [
-                                    AppColor.accentPrimary.opacity(0.35),
-                                    AppColor.accentPrimary.opacity(0.0),
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                    }
-                }
-                .chartXAxis {
-                    // Stride scales with the window — daily ticks
-                    // would be unreadable at 90 days, weekly is
-                    // unreadable at 14, so we pick based on series
-                    // length.
-                    AxisMarks(values: .stride(by: axisStride)) { value in
-                        AxisValueLabel {
-                            if let day = value.as(Int.self) {
-                                Text(dayLabel(daysAgo: day))
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(AppColor.textTertiary)
-                            }
-                        }
-                        AxisGridLine().foregroundStyle(AppColor.glassBorder)
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(position: .leading) { _ in
-                        AxisValueLabel()
-                            .foregroundStyle(AppColor.textTertiary)
-                        AxisGridLine().foregroundStyle(AppColor.glassBorder)
-                    }
-                }
-                .frame(height: 180)
-                .padding(Spacing.md)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.55))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                        }
-                }
+                trendChart
             }
         } else {
             insufficientChartPlaceholder
         }
+    }
+
+    private var trendChart: some View {
+        Chart {
+            ForEach(Array(snapshot.sparkline.enumerated()), id: \.offset) { idx, value in
+                trendMarks(idx: idx, value: value)
+            }
+        }
+        .chartXAxis {
+            // Stride scales with the window — daily ticks
+            // would be unreadable at 90 days, weekly is
+            // unreadable at 14, so we pick based on series
+            // length.
+            AxisMarks(values: .stride(by: axisStride)) { value in
+                AxisValueLabel {
+                    if let day = value.as(Int.self) {
+                        Text(dayLabel(daysAgo: day))
+                            .font(.system(size: 10))
+                            .foregroundStyle(AppColor.textTertiary)
+                    }
+                }
+                AxisGridLine().foregroundStyle(AppColor.glassBorder)
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading) { _ in
+                AxisValueLabel()
+                    .foregroundStyle(AppColor.textTertiary)
+                AxisGridLine().foregroundStyle(AppColor.glassBorder)
+            }
+        }
+        .frame(height: 180)
+        .padding(Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.55))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                }
+        }
+    }
+
+    @ChartContentBuilder
+    private func trendMarks(idx: Int, value: Double) -> some ChartContent {
+        let day = -snapshot.sparkline.count + idx + 1
+        LineMark(
+            x: .value("Day", day),
+            y: .value(biomarker.displayName, value)
+        )
+        .interpolationMethod(.monotone)
+        .lineStyle(.init(lineWidth: 2, lineCap: .round, lineJoin: .round))
+        .foregroundStyle(AppColor.accentPrimary)
+
+        AreaMark(
+            x: .value("Day", day),
+            y: .value(biomarker.displayName, value)
+        )
+        .interpolationMethod(.monotone)
+        .foregroundStyle(
+            LinearGradient(
+                colors: [
+                    AppColor.accentPrimary.opacity(0.35),
+                    AppColor.accentPrimary.opacity(0.0),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
     }
 
     private func dayLabel(daysAgo: Int) -> String {

@@ -73,10 +73,6 @@ final class WorkoutSessionService {
         return session
     }
 
-    /// Mark the session complete. Returns the finished session for
-    /// the finish-screen render path; the service drops its
-    /// `activeSession` so the next `startWorkout` is unambiguous.
-    @discardableResult
     /// Finish-result bundle so the WorkoutFinishView can render PR
     /// detections without re-calling PRDetectionEngine.ingest (which
     /// mutates the records on first call and returns [] on every
@@ -87,6 +83,10 @@ final class WorkoutSessionService {
         let detectedPRs: [PRDetectionEngine.DetectedPR]
     }
 
+    /// Mark the session complete. Returns the finished session for
+    /// the finish-screen render path; the service drops its
+    /// `activeSession` so the next `startWorkout` is unambiguous.
+    @discardableResult
     func finishWorkout(perceivedEffort: Int? = nil, note: String? = nil) -> FinishedWorkout? {
         guard var session = activeSession else { return nil }
         session.finishedAt = Date()

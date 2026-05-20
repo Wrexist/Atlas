@@ -30,7 +30,7 @@ struct HabitsView: View {
     private struct Row: Identifiable {
         let habit: Habit
         let summary: HabitsService.Summary
-        let columns: [[HabitsService.HeatmapStatus]]
+        let columns: [[HabitsService.HeatmapStatus?]]
         let heatmapStart: Date?
         var id: UUID { habit.id }
     }

@@ -472,17 +472,14 @@ private struct TimeSlotRow: View {
     @State private var pickerDate: Date = Date()
     @State private var isShowingPicker = false
 
-    // Both formatters are read-only after configuration; DateFormatter
-    // is thread-safe for reads. `nonisolated(unsafe)` is the escape
-    // hatch since DateFormatter itself isn't marked Sendable.
-    nonisolated(unsafe) private static let formatter: DateFormatter = {
+    private static let formatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "h:mm a"
         f.locale = Locale(identifier: "en_US_POSIX")
         return f
     }()
 
-    nonisolated(unsafe) private static let displayFormatter: DateFormatter = {
+    private static let displayFormatter: DateFormatter = {
         let f = DateFormatter()
         f.timeStyle = .short
         return f

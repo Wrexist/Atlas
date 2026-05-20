@@ -111,9 +111,9 @@ struct RestTimerOverlay: View {
     }
 
     private func tick() {
-        guard state.isRunning else { return }
+        guard state.isRunning, let targetEnd = state.targetEnd else { return }
         let now = Date()
-        if now >= state.targetEnd {
+        if now >= targetEnd {
             state.completeNow()
             // Haptic when the timer hits zero — the user typically
             // isn't looking at the screen at the end of a rest.

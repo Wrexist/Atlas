@@ -289,13 +289,13 @@ struct BioAgeHeroSection: View {
 
     // MARK: - Formatters
 
-    nonisolated(unsafe) private static let asOfFormatter: DateFormatter = {
+    private static let asOfFormatter: DateFormatter = {
         let f = DateFormatter()
         f.setLocalizedDateFormatFromTemplate("d MMM")
         return f
     }()
 
-    nonisolated(unsafe) private static let bigNumberFormatter: NumberFormatter = {
+    private static let bigNumberFormatter: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .decimal
         f.minimumFractionDigits = 1
