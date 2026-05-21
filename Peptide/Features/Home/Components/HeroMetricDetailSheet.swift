@@ -333,7 +333,7 @@ struct HeroMetricDetailSheet: View {
         }
     }
 
-    nonisolated(unsafe) private static let timeFormatter: DateFormatter = {
+    private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .none
         f.timeStyle = .short

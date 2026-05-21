@@ -59,10 +59,7 @@ struct CustomFoodEditorSheet: View {
         return Double(trimmed)
     }
 
-    // NumberFormatter isn't Sendable but is thread-safe for read
-    // after configuration. nonisolated(unsafe) is the Swift 6
-    // escape hatch.
-    nonisolated(unsafe) private static let decimalFormatter: NumberFormatter = {
+    private static let decimalFormatter: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .decimal
         f.locale = .current

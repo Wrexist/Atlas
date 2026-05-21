@@ -139,6 +139,7 @@ struct ExerciseLibraryView: View {
             .navigationDestination(for: TrainNavigation.self) { dest in
                 switch dest {
                 case .exerciseDetail(let id): ExerciseDetailView(exerciseID: id)
+                case .workoutDetail, .workoutHistory: WorkoutHistoryView()
                 }
             }
     }

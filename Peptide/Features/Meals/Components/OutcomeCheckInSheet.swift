@@ -226,7 +226,7 @@ struct OutcomeCheckInSheet: View {
         onSave(entry)
     }
 
-    nonisolated(unsafe) private static let dayFormatter: DateFormatter = {
+    private static let dayFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .medium
         f.timeStyle = .none

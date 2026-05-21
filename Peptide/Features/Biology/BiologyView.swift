@@ -113,7 +113,7 @@ struct BiologyView: View {
         .onChange(of: storeService.isProUser) { _, _ in
             Task { await refreshState() }
         }
-        .onChange(of: dataStore.profile.age) { _, _ in
+        .onChange(of: dataStore.profile.bodyMetrics.age) { _, _ in
             Task { await refreshState() }
         }
     }
@@ -136,7 +136,7 @@ struct BiologyView: View {
     private func refreshState() async {
         let weightDelta = computeWeightDelta30d()
         resolved = await BioAgeStateResolver.resolve(
-            chronologicalAge: dataStore.profile.age,
+            chronologicalAge: dataStore.profile.bodyMetrics.age,
             weightDeltaKg30d: weightDelta,
             isPro: storeService.isProUser
         )

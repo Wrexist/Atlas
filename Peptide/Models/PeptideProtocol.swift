@@ -133,7 +133,7 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
     let peptides: [Peptide]
     let schedule: ProtocolSchedule
     let peptideSchedules: [UUID: ProtocolSchedule]
-    let cycleLengthWeeks: Int
+    var cycleLengthWeeks: Int
     /// Wash-out duration between repeated cycles, in weeks. `0`
     /// (default) means the protocol runs a single cycle and ends —
     /// no wash-out, no repeat. Non-zero means an alternating on/off
@@ -142,7 +142,7 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
     /// currently in an "on" phase or a "wash-out" phase without
     /// inventing the data after the fact.
     let washoutWeeks: Int
-    let startDate: Date
+    var startDate: Date
     var status: ProtocolStatus
     let notes: String
     let authorName: String?

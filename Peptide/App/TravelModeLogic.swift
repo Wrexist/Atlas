@@ -92,18 +92,14 @@ enum TravelModeLogic {
 
     // MARK: - Parsing helpers
 
-    // DateFormatter is documented thread-safe for read-only use
-    // after configuration. `nonisolated(unsafe)` opts these
-    // statics out of Swift 6's shared-mutable-state check since
-    // they're only ever read.
-    nonisolated(unsafe) private static let parseFormatter: DateFormatter = {
+    private static let parseFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "h:mm a"
         f.locale = Locale(identifier: "en_US_POSIX")
         return f
     }()
 
-    nonisolated(unsafe) private static let formatFormatter: DateFormatter = {
+    private static let formatFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "h:mm a"
         f.locale = Locale(identifier: "en_US_POSIX")

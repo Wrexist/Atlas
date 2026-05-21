@@ -294,7 +294,7 @@ struct LabPanelDetailView: View {
         return String(format: "%.1f", value)
     }
 
-    nonisolated(unsafe) private static let dateFormatter: DateFormatter = {
+    private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .medium
         f.timeStyle = .none

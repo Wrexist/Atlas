@@ -25,6 +25,7 @@ enum WeeklyMuscleHeatmap {
     ///     records so the muscle list can be looked up.
     ///   - days: Window size; defaults to 7 (the visible week).
     ///   - now: Reference clock; defaults to `Date()`.
+    @MainActor
     static func frequencies(
         from sessions: [WorkoutSession],
         library: ExerciseLibrary,

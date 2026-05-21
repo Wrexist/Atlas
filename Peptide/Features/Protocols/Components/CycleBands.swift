@@ -55,8 +55,8 @@ enum CycleBands {
                 guard isProtocolActive(in: weekStart..<weekEnd, protocol: proto, calendar: calendar) else {
                     return nil
                 }
-                let primary = proto.peptides.first
-                let palette = primary.map { VialPalette.colors(for: $0.name) } ?? .unknown
+                let primaryName = proto.peptides.first?.name ?? proto.name
+                let palette = VialPalette.colors(for: primaryName)
                 return CycleBand(id: proto.id, name: proto.name, color: palette.fill)
             }
         }

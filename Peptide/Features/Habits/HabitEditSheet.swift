@@ -283,7 +283,7 @@ struct HabitEditSheet: View {
 
     private var weekdayPicker: some View {
         HStack(spacing: 6) {
-            ForEach(HabitWeekday.allCases.sorted(by: { $0.calendarOrder < $1.calendarOrder })) { day in
+            ForEach(HabitWeekday.allCases.sorted(by: { $0.calendarOrder < $1.calendarOrder }), id: \.self) { day in
                 let isSelected = weekdays.contains(day)
                 // Disable deselecting the LAST remaining day so the
                 // user can't end up with an empty set that commit()

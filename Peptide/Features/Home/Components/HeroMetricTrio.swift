@@ -247,7 +247,7 @@ struct HeroMetricSnapshot: Equatable, Sendable {
             )
         }
 
-        let kit = HealthKitService.shared
+        let kit = await HealthKitService.shared
         async let recentHRV  = kit.averageHRV(days: 3)
         async let baseHRV    = kit.averageHRV(days: 30)
         async let recentRHR  = kit.averageRestingHeartRate(days: 3)

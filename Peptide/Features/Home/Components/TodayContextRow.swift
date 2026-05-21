@@ -96,16 +96,15 @@ struct TodayContextRow: View {
         .accessibilityLabel("Today, \(Self.accessibleFormatter.string(from: date))")
     }
 
-    // SwiftUI Views are MainActor; DateFormatter is thread-safe for
-    // read-only formatting after configuration. Declared static so
-    // each render doesn't pay the (small) allocation cost.
-    nonisolated(unsafe) private static let formatter: DateFormatter = {
+    // Declared static so each render doesn't pay the (small)
+    // allocation cost.
+    private static let formatter: DateFormatter = {
         let f = DateFormatter()
         f.setLocalizedDateFormatFromTemplate("MMM d")
         return f
     }()
 
-    nonisolated(unsafe) private static let accessibleFormatter: DateFormatter = {
+    private static let accessibleFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .long
         return f
