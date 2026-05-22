@@ -116,7 +116,7 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
             )
         }
         let snapshot = BiomarkerSeriesService.weightSnapshot(weightHistory: history)
-        XCTAssertEqual(snapshot.latest, 72.1, accuracy: 0.01)
+        XCTAssertEqual(snapshot.latest ?? .nan, 72.1, accuracy: 0.01)
         XCTAssertEqual(snapshot.trend, .up)
         XCTAssertEqual(snapshot.sparkline.count, 8)
         XCTAssertTrue(snapshot.changeText.contains("Increasing"))
