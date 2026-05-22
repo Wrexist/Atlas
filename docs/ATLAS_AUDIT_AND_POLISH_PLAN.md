@@ -254,7 +254,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
 
 ## Phase 4 — High & medium correctness bugs
 
-### 4.1 Services & data-layer bugs — `[ ]`
+### 4.1 Services & data-layer bugs — `[~]`
 - [ ] **Streak freeze ignored by dose streaks** — `DataStore.swift:623-706`:
   `currentStreak`/`bestStreak` never consult `StreakFreezeService.isFrozen`;
   the whole streak-freeze feature is non-functional for dose streaks. Mirror
@@ -303,7 +303,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
 - [ ] `NutritionMath.dailyTargets` — clamp protein grams so protein calories
   can't exceed ~40% of TDEE; surface a note when carbs floor at 0.
 
-### 4.2 Feature-view & state bugs — `[ ]`
+### 4.2 Feature-view & state bugs — `[~]`
 - [ ] **Watch pages missing titles** — wrap `WatchStatsView`/`WatchNutritionView`
   in their own `NavigationStack` (or drop the dead `.navigationTitle` calls)
   for consistency with `DoseListView`.
