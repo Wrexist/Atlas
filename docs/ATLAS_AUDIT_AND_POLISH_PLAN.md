@@ -254,7 +254,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
 
 ## Phase 4 — High & medium correctness bugs
 
-### 4.1 Services & data-layer bugs — `[~]`
+### 4.1 Services & data-layer bugs — `[x]`
 - [ ] **Streak freeze ignored by dose streaks** — `DataStore.swift:623-706`:
   `currentStreak`/`bestStreak` never consult `StreakFreezeService.isFrozen`;
   the whole streak-freeze feature is non-functional for dose streaks. Mirror
