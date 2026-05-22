@@ -367,7 +367,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
 The single highest-leverage design fix. Until these land, no screen actually
 looks like Liquid Glass on iOS 26.
 
-### 5.1 Kill dual-material rendering — `[ ]`
+### 5.1 Kill dual-material rendering — `[~]` (cards/pill/field done; GlassButton + segmented control need a visual pass)
 **Files:** `GlassCard.swift`, `GlassCardModifier.swift`, `GlassButton.swift`,
 `GlassTextField.swift`, `GlassSegmentedControl.swift`, `GlassStat.swift`,
 `GlassEffectCompat.swift`
