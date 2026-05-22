@@ -180,18 +180,21 @@ jobs:
           python3 -c "import json; json.load(open('Peptide/Resources/Localizable.xcstrings'))"
 
       - name: Build app
-        # Gates the PR on the iOS app target compiling. Builds only the
-        # `Peptide` target (and its embedded extension dependencies),
-        # NOT the test targets — the test target carries a backlog of
-        # pre-existing compile errors (stale API references, Swift-6
-        # actor-isolation, async-in-sync) that are unrelated to app
-        # correctness and are tracked as separate cleanup. Restore
-        # `build-for-testing` here once the test target compiles again.
+        # Gates the PR on the iOS app compiling. Uses `build` (not
+        # `build-for-testing`) so the test targets — which carry a
+        # pre-existing backlog of compile errors unrelated to app
+        # correctness — are not in the gating path: the plain `build`
+        # action only builds run-context targets, not testing-only
+        # ones. `-scheme` + `-destination` (not `-target -sdk`) is
+        # required so the embedded watchOS app builds against the
+        # watch SDK rather than having iphonesimulator forced on it.
+        # Restore `build-for-testing` here once the test target
+        # compiles again.
         run: |
           xcodebuild build \
             -project Peptide.xcodeproj \
-            -target Peptide \
-            -sdk iphonesimulator \
+            -scheme Peptide \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
