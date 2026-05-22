@@ -183,7 +183,7 @@ struct MealScanFlow: View {
     private enum PickerButtonStyle { case primary, secondary }
 
     @ViewBuilder
-    private func pickerButtonLabel(icon: String, title: LocalizedStringKey, style: PickerButtonStyle) -> some View {
+    nonisolated private func pickerButtonLabel(icon: String, title: LocalizedStringKey, style: PickerButtonStyle) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .bold))
