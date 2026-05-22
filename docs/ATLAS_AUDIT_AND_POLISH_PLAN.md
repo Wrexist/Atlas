@@ -303,7 +303,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
 - [ ] `NutritionMath.dailyTargets` — clamp protein grams so protein calories
   can't exceed ~40% of TDEE; surface a note when carbs floor at 0.
 
-### 4.2 Feature-view & state bugs — `[~]`
+### 4.2 Feature-view & state bugs — `[~]` (structural items M1/M2, M3/M4, H3 deferred to a build session)
 - [ ] **Watch pages missing titles** — wrap `WatchStatsView`/`WatchNutritionView`
   in their own `NavigationStack` (or drop the dead `.navigationTitle` calls)
   for consistency with `DoseListView`.
