@@ -562,6 +562,15 @@ struct HomeView: View {
                         summary: binding,
                         onRefresh: { await loadWeeklySummary(forceRefresh: true) }
                     )
+                } else {
+                    // The summary was deleted between push and render —
+                    // show a real empty state instead of a blank
+                    // pushed screen with only a back button.
+                    EmptyStateView(
+                        icon: "calendar.badge.exclamationmark",
+                        title: "Recap unavailable",
+                        message: "This weekly recap is no longer available."
+                    )
                 }
             }
             .sheet(item: $quickLogAction, content: quickLogSheet)

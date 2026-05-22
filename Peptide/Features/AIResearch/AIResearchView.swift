@@ -19,6 +19,11 @@ struct AIResearchView: View {
     /// chat sheet shouldn't keep a 30s call alive against the
     /// proxy quota).
     @State private var inflight: Task<Void, Never>?
+    /// Incremented on every `send()`. A stream task only clears
+    /// `isStreaming` if its generation still matches — otherwise a
+    /// cancelled task's `defer` would flip the flag false while a
+    /// newer stream is still running.
+    @State private var streamGeneration = 0
     /// The last prompt that hit an error, kept around so the Retry button on
     /// the alert can re-send it without making the user retype.
     @State private var lastFailedPrompt: String?
@@ -238,6 +243,8 @@ struct AIResearchView: View {
         transcript.append(userTurn)
         input = ""
         isStreaming = true
+        streamGeneration += 1
+        let generation = streamGeneration
 
         let priorHistory = Array(transcript.dropLast()) // exclude the user turn we just appended
         let database = dataStore.peptideDatabase
@@ -253,7 +260,9 @@ struct AIResearchView: View {
         // having stale tokens land in the new bubble (main-side fix).
         inflight?.cancel()
         inflight = Task { @MainActor in
-            defer { isStreaming = false }
+            // Only clear isStreaming if this is still the current
+            // stream — a superseding send() owns the flag otherwise.
+            defer { if generation == streamGeneration { isStreaming = false } }
             let stream = AIResearchService.shared.replyStream(
                 history: priorHistory,
                 newUserPrompt: prompt,

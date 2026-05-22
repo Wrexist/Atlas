@@ -14,11 +14,20 @@ struct PeptideWatchApp: App {
             TabView {
                 DoseListView()
                     .environmentObject(watchStore)
-                WatchStatsView()
-                    .environmentObject(watchStore)
-                if watchStore.watchData.nutrition != nil {
-                    WatchNutritionView()
+                // Stats / Nutrition need their own NavigationStack —
+                // their `.navigationTitle` modifiers render nothing
+                // without an enclosing navigation container, which
+                // left those two pages title-less and inconsistent
+                // with the Today page.
+                NavigationStack {
+                    WatchStatsView()
                         .environmentObject(watchStore)
+                }
+                if watchStore.watchData.nutrition != nil {
+                    NavigationStack {
+                        WatchNutritionView()
+                            .environmentObject(watchStore)
+                    }
                 }
             }
             .tabViewStyle(.page)
