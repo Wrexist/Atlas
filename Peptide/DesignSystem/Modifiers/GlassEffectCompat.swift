@@ -72,6 +72,47 @@ extension View {
     }
 }
 
+extension View {
+    /// The app's standard rounded-rect glass surface.
+    ///
+    /// On iOS 26+ this renders the real Liquid Glass material and
+    /// nothing else. On earlier OSes it falls back to the legacy
+    /// translucent-fill recipe (an opaque-ish fill + overlay tint +
+    /// hairline border).
+    ///
+    /// The two are deliberately mutually exclusive. The previous
+    /// `GlassCard` / `GlassCardModifier` painted the fake recipe
+    /// *and then* composited real `glassEffect` on top — so on iOS 26
+    /// every card stacked two materials and the genuine translucency
+    /// never showed. Routing every card surface through this single
+    /// modifier fixes that without changing the pre-iOS-26 look.
+    @ViewBuilder
+    func glassSurface(cornerRadius: CGFloat, tinted: Bool = false) -> some View {
+        if #available(iOS 26.0, *) {
+            let glass: Glass = tinted ? Glass.regular.tint(AppColor.glassTint) : .regular
+            self.glassEffect(glass, in: .rect(cornerRadius: cornerRadius))
+        } else {
+            self
+                .background {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(AppColor.surfaceSecondary.opacity(0.6))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                .fill(tinted ? AppColor.glassTint : AppColor.cardOverlay)
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                .strokeBorder(
+                                    tinted ? AppColor.glassBorderActive : AppColor.glassBorder,
+                                    lineWidth: 0.5
+                                )
+                        }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        }
+    }
+}
+
 /// Wraps content in a `GlassEffectContainer` on iOS 26+ so child glass shapes
 /// can morph into one another via `liquidGlassID(_:in:)`. No-op on earlier OSes.
 struct LiquidGlassContainer<Content: View>: View {
