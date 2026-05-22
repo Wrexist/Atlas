@@ -328,11 +328,18 @@ struct MealScanFlow: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
-            Button("Try again") {
-                image = nil
-                selectedItem = nil
+            Button(image == nil ? "Try again" : "Retry") {
                 errorText = nil
-                phase = .pickImage
+                if let image {
+                    // Re-run analysis on the photo already loaded —
+                    // no need to make the user re-pick and re-upload
+                    // from scratch after a transient failure.
+                    phase = .analyzing
+                    inFlightTask = Task { await runAnalysis(on: image) }
+                } else {
+                    selectedItem = nil
+                    phase = .pickImage
+                }
             }
             .buttonStyle(.borderedProminent)
             .tint(AppColor.accentPrimary)

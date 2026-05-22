@@ -381,6 +381,25 @@ jobs:
           fi
           echo "OK: no proxy secret keys committed."
 
+      - name: Verify bundled peptide dataset integrity
+        # PeptideDatabase falls back to a tiny MockPeptides set if
+        # peptides.json is missing or corrupt — and in release builds
+        # that fallback is silent (assertionFailure is a no-op). Fail
+        # the build here instead so a dropped/truncated dataset can
+        # never ship.
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          with open('Peptide/Resources/peptides.json') as f:
+              data = json.load(f)
+          entries = data.get('peptides', []) if isinstance(data, dict) else data
+          count = len(entries)
+          print(f'peptides.json entries: {count}')
+          if count != 208:
+              print(f'::error::peptides.json has {count} entries, expected 208')
+              sys.exit(1)
+          PY
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
