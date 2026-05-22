@@ -636,6 +636,16 @@ final class DataStore: DataServiceProtocol {
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: todayStart) else { break }
             let dayEntries = grouped[date] ?? []
 
+            // A streak-frozen day counts as covered. Without this the
+            // freeze feature is non-functional for dose streaks —
+            // a frozen missed day still consumed the empty-gap budget
+            // or broke the streak outright.
+            if StreakFreezeService.isFrozen(date, in: profile) {
+                consecutiveEmptyDays = 0
+                streak += 1
+                continue
+            }
+
             if dayEntries.isEmpty {
                 consecutiveEmptyDays += 1
                 if consecutiveEmptyDays > 2 { break }
@@ -683,7 +693,12 @@ final class DataStore: DataServiceProtocol {
         var day = earliest
         while day <= todayStart {
             let dayEntries = grouped[day] ?? []
-            if dayEntries.isEmpty {
+            if StreakFreezeService.isFrozen(day, in: profile) {
+                // Frozen day counts as covered — mirrors currentStreak.
+                consecutiveEmptyDays = 0
+                current += 1
+                best = max(best, current)
+            } else if dayEntries.isEmpty {
                 consecutiveEmptyDays += 1
                 if consecutiveEmptyDays > 2 {
                     current = 0
@@ -1181,7 +1196,13 @@ final class DataStore: DataServiceProtocol {
     @discardableResult
     func applyStreakFreeze(for date: Date = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()) -> Bool {
         let applied = StreakFreezeService.applyFreeze(in: &profile, for: date)
-        if applied { save() }
+        if applied {
+            // currentStreak / bestStreak now consult the freeze set —
+            // bump the cache version so they recompute (profile
+            // mutations don't auto-bump it the way protocols/entries do).
+            cacheVersion &+= 1
+            save()
+        }
         return applied
     }
 
@@ -1389,9 +1410,13 @@ final class DataStore: DataServiceProtocol {
             perceivedEffort: nil
         )
         repo.upsertWorkoutSession(session)
-        // Bump the day-version so workoutSummary's cache invalidates
-        // and the Today scroll refreshes its count.
-        bumpVersionIfDayChanged()
+        // Invalidate caches and refresh the widget/Watch surfaces.
+        // `bumpVersionIfDayChanged()` was a no-op on the common
+        // same-day path, so the Today widget's workout count went
+        // stale until an unrelated mutation happened to bump it.
+        cacheVersion &+= 1
+        updateWidgetData()
+        updateWatchData()
     }
 
     /// Deletes a workout by ID from the structured store. Same plumbing
@@ -1399,7 +1424,9 @@ final class DataStore: DataServiceProtocol {
     /// here it targets the historical row directly.
     func deleteWorkout(id: UUID) {
         repo.deleteWorkoutSession(id: id)
-        bumpVersionIfDayChanged()
+        cacheVersion &+= 1
+        updateWidgetData()
+        updateWatchData()
     }
 
     /// (count, totalMinutes) for workout sessions logged on `date`'s

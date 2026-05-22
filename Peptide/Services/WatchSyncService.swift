@@ -62,7 +62,15 @@ final class WatchSyncService: NSObject {
                 completed: entry.completed
             )
         }
-        .sorted { !$0.completed && $1.completed }
+        // Strict-weak-ordering comparator: incomplete doses first,
+        // then by scheduled time within each group. The old
+        // `!$0.completed && $1.completed` predicate isn't a valid
+        // ordering and left same-group entries in arbitrary order.
+        .sorted { lhs, rhs in
+            lhs.completed == rhs.completed
+                ? lhs.scheduledTime < rhs.scheduledTime
+                : !lhs.completed
+        }
 
         let completed = watchEntries.filter(\.completed).count
         let data = WatchData(

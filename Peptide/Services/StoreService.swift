@@ -34,10 +34,9 @@ final class StoreService {
         }
     }
 
-    deinit {
-        updateTask?.cancel()
-        productsTask?.cancel()
-    }
+    // No `deinit` — `StoreService` is a process-lifetime `shared`
+    // singleton, so it never deallocates. A cancellation `deinit`
+    // would be dead code that falsely implied lifecycle management.
 
     // MARK: - Products
 
