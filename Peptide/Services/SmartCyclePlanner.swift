@@ -105,9 +105,13 @@ enum SmartCyclePlanner {
         today: Date,
         calendar: Calendar
     ) -> Suggestion? {
-        let weeks = proto.safeCycleLengthWeeks
-        guard let end = calendar.date(byAdding: .day, value: weeks * 7, to: proto.startDate) else { return nil }
-        let remaining = calendar.dateComponents([.day], from: today, to: end).day ?? -1
+        // Use the protocol's canonical, start-of-day-normalised cycle
+        // end so this agrees with `daysRemaining` / CycleCompletionService
+        // rather than drifting by the start date's time-of-day.
+        let end = proto.cycleEndDay
+        let remaining = calendar.dateComponents(
+            [.day], from: calendar.startOfDay(for: today), to: end
+        ).day ?? -1
         guard remaining >= 0, remaining <= 5 else { return nil }
 
         return Suggestion(
@@ -241,11 +245,12 @@ enum SmartCyclePlanner {
         calendar: Calendar
     ) -> Suggestion? {
         let weeks = proto.safeCycleLengthWeeks
-        guard let end = calendar.date(byAdding: .day, value: weeks * 7, to: proto.startDate) else { return nil }
+        let end = proto.cycleEndDay
         let offWindowDays = max(7, weeks * 7 / 2)
         guard let resumeDate = calendar.date(byAdding: .day, value: offWindowDays, to: end) else { return nil }
-        guard today >= resumeDate else { return nil }
-        let elapsed = calendar.dateComponents([.day], from: end, to: today).day ?? 0
+        let todayStart = calendar.startOfDay(for: today)
+        guard todayStart >= resumeDate else { return nil }
+        let elapsed = calendar.dateComponents([.day], from: end, to: todayStart).day ?? 0
 
         return Suggestion(
             protocolID: proto.id,

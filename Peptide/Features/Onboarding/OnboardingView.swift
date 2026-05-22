@@ -82,6 +82,11 @@ struct OnboardingView: View {
     /// (audit code-review #6 — unstructured task survived page exit and
     /// could double-advance on re-entry).
     @State private var buildingTask: Task<Void, Never>?
+    /// Incremented every time the building-plan animation starts. The
+    /// auto-advance task captures the value and re-checks it after its
+    /// sleep — `cancel()` alone can lose a race against a fast
+    /// back-then-forward navigation, letting a stale task advance.
+    @State private var buildingGeneration: Int = 0
     // Email-capture step state. Validated against `looksLikeEmail` on
     // primary-action; opt-in is genuinely optional — leaving it blank
     // advances without persisting an EmailSubscription.
@@ -1355,6 +1360,13 @@ struct OnboardingView: View {
                 .padding(.bottom, Spacing.xxxxl)
             }
         }
+        .onAppear {
+            // `.other` has no card in the grid — if a re-hydrated
+            // profile carries it in the set, it can't be deselected
+            // and skews the "keep at least one selected" count. Strip
+            // it so the step only ever holds card-backed kinds.
+            equipment.remove(.other)
+        }
     }
 
     private func equipmentCard(_ kind: EquipmentKind) -> some View {
@@ -1998,9 +2010,16 @@ struct OnboardingView: View {
         // could be advanced from an unrelated step seconds after
         // they swiped back (audit code-review #6).
         buildingTask?.cancel()
+        buildingGeneration += 1
+        let generation = buildingGeneration
         buildingTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(1400))
-            guard !Task.isCancelled, page == Page.buildingPlan else { return }
+            // Re-check the generation as well as cancellation/page: a
+            // fast back-then-forward nav can leave a stale task that
+            // cancel() didn't catch in time.
+            guard !Task.isCancelled,
+                  generation == buildingGeneration,
+                  page == Page.buildingPlan else { return }
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             advance()
         }

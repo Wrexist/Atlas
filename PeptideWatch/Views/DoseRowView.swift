@@ -32,6 +32,10 @@ struct DoseRowView: View {
             .opacity(store.isSending ? 0.6 : 1)
         }
         .buttonStyle(.plain)
+        // Disable while a send is in flight — the row already dims to
+        // 0.6 opacity, so leaving it tappable gave no feedback that a
+        // second tap was being ignored (matches the water buttons).
+        .disabled(store.isSending)
         .strikethrough(entry.completed, color: .secondary)
     }
 }
