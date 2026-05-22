@@ -2070,7 +2070,17 @@ final class DataStore: DataServiceProtocol {
             guard let time = timeStringParser.date(from: timeString) else { return nil }
             let hour = calendar.component(.hour, from: time)
             let minute = calendar.component(.minute, from: time)
-            let entryDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
+            let entryDate: Date
+            if let resolved = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) {
+                entryDate = resolved
+            } else {
+                // The wall-clock time doesn't exist today (DST gap) —
+                // fall back to a deterministic offset from start-of-day
+                // rather than `Date()`, which would mis-time the dose
+                // to the current moment.
+                entryDate = calendar.startOfDay(for: Date())
+                    .addingTimeInterval(TimeInterval(hour * 3600 + minute * 60))
+            }
             return ProtocolEntry(
                 id: UUID(),
                 protocolId: proto.id,

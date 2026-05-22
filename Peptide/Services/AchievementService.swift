@@ -15,15 +15,16 @@ final class AchievementService {
     static let shared = AchievementService()
 
     private(set) var achievements: [Achievement] = []
-    /// Most-recently unlocked achievement, surfaced to the
-    /// celebration toast. Consumers should call
-    /// `acknowledgeLatestUnlock()` after presenting so the next
-    /// check-pass can write a fresh value. The previous design reset
-    /// this to nil at the top of each check method, which meant two
-    /// back-to-back checks (e.g. dose-based + lifestyle-based on the
-    /// same save) could clobber the first method's unlock before any
-    /// observer reacted.
-    private(set) var latestUnlock: Achievement?
+    /// FIFO queue of freshly-unlocked achievements awaiting a toast.
+    /// A single save can cross multiple milestones (e.g. a dose count
+    /// and a meal count) — a single slot would drop all but the last,
+    /// so unlocks queue and the consumer drains them one at a time.
+    private(set) var pendingUnlocks: [Achievement] = []
+
+    /// The achievement the celebration toast should currently show —
+    /// the head of `pendingUnlocks`. Consumers observe this, present
+    /// the toast, then call `acknowledgeLatestUnlock()` to advance.
+    var latestUnlock: Achievement? { pendingUnlocks.first }
 
     private let persistenceKey = "achievements"
     private let defaults = UserDefaults.standard
@@ -98,7 +99,7 @@ final class AchievementService {
     /// presented so the next check can write a fresh unlock without
     /// the observer seeing a redundant change.
     func acknowledgeLatestUnlock() {
-        latestUnlock = nil
+        if !pendingUnlocks.isEmpty { pendingUnlocks.removeFirst() }
     }
 
     var unlockedCount: Int {
@@ -114,12 +115,12 @@ final class AchievementService {
     private func unlock(_ id: String, if condition: Bool) {
         guard condition, let index = achievements.firstIndex(where: { $0.id == id && !$0.isUnlocked }) else { return }
         achievements[index].unlockedDate = Date()
-        latestUnlock = achievements[index]
+        pendingUnlocks.append(achievements[index])
     }
 
     func resetForTesting() {
         achievements = Self.defaultAchievements
-        latestUnlock = nil
+        pendingUnlocks = []
     }
 
     private func loadAchievements() {

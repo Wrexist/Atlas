@@ -513,12 +513,6 @@ struct HomeView: View {
                 if let newId, let achievement = achievementService.achievements.first(where: { $0.id == newId }) {
                     toastAchievement = achievement
                     withAnimation(AppAnimation.springBouncy) { showAchievementToast = true }
-                    // Drain so the next check pass can write a fresh
-                    // unlock without the observer seeing the same id
-                    // re-fire. `checkAchievements` and
-                    // `checkLifestyleAchievements` no longer reset
-                    // this themselves.
-                    achievementService.acknowledgeLatestUnlock()
                     if Self.reviewWorthyAchievements.contains(newId) {
                         Task { @MainActor in
                             try? await Task.sleep(for: .seconds(2))
@@ -526,6 +520,13 @@ struct HomeView: View {
                         }
                     }
                 }
+            }
+            .onChange(of: showAchievementToast) { _, isShowing in
+                // Drain one queued unlock when its toast finishes —
+                // this surfaces the next pending unlock (if a single
+                // save crossed several milestones) instead of all but
+                // the last being dropped.
+                if !isShowing { achievementService.acknowledgeLatestUnlock() }
             }
             // Single handler for adherence-ratio changes: refresh the
             // hero trio so the Adherence ring reflects a logged/unlogged
