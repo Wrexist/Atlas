@@ -111,7 +111,6 @@ extension View {
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
     }
-}
 
     /// Capsule-shaped companion to `glassSurface` — same mutually
     /// exclusive real-glass / legacy-recipe split, for pills, search
