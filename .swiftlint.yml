@@ -1,12 +1,8 @@
 included:
   - Peptide
-  - PeptideTests
-  - PeptideUITests
 
 excluded:
   - Peptide/Resources
-  - PeptideTests
-  - PeptideUITests
 
 disabled_rules:
   - trailing_whitespace

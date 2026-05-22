@@ -18,17 +18,18 @@ Peptide/                 iOS app (SwiftUI)
   DesignSystem/           Theme tokens, glass components, animations
   Models/                 PeptideProtocol, UserProfile, ScannedProduct, …
   Data/                   SwiftData @Model classes, peptide JSON, mocks
-  Services/               37 services: networking, scheduling, store,
-                          HealthKit, notifications, cycle planning,
-                          watch sync, recommendations
+  Services/               networking, scheduling, store, HealthKit,
+                          notifications, cycle planning, watch sync,
+                          recommendations (~70 files)
   Features/               UI by tab: Home (Today), Train, Meals,
                           Biology, Library — plus secondary surfaces
                           Profile, AIResearch, Onboarding, Auth,
                           Sharing, Database. Lifestyle/ and Insights/
-                          are retired namespaces kept only for the
-                          handful of helpers (LifestyleDataLogic,
-                          WeeklySummaryDetailView) still referenced
-                          from active surfaces.
+                          are retired namespaces: Lifestyle/ holds only
+                          WorkoutDetailView; Insights/ keeps the still-
+                          live WeeklySummaryDetailView + PastWeeksSection
+                          (the rest of Insights/ is unreferenced and
+                          slated for deletion).
   Intents/                Siri shortcuts (AppIntents)
   Resources/              Info.plist, Localizable.xcstrings, .storekit
 
@@ -58,17 +59,33 @@ for both Run and Test actions.
 
 ## Secrets
 
-The iOS app does **not** embed an Anthropic key. Both
-`MealScannerService` and `AIResearchService` require a configured
-proxy URL + shared secret — see [`server/README.md`](server/README.md)
-for the deployment. Four env-var slots are read from Info.plist (or
-the scheme env):
+The iOS app does **not** embed an Anthropic key. `MealScannerService`,
+`AIResearchService`, and `WeeklySummaryService` each require a
+configured proxy URL + shared secret — see
+[`server/README.md`](server/README.md) for the deployment. Six
+env-var slots are read from Info.plist (or the scheme env):
 
 - `MEAL_SCANNER_ENDPOINT` + `MEAL_SCANNER_SECRET`
 - `AI_RESEARCH_ENDPOINT` + `AI_RESEARCH_SECRET`
+- `WEEKLY_SUMMARY_ENDPOINT` + `WEEKLY_SUMMARY_SECRET`
 
 Set them via a gitignored `Secrets.xcconfig` and reference via
 `$(VAR_NAME)` in Info.plist so they never land in source control.
+
+## Naming
+
+The product is **Atlas**. The codebase carries legacy identifiers
+that are frozen for install/subscriber compatibility and should not
+be renamed:
+
+- Repo, Xcode project, scheme, target names: `Peptide` (legacy).
+- Bundle ID / StoreKit product IDs: `com.peptidesai.app` — changing
+  it would orphan existing purchases.
+- URL scheme, Spotlight domain, App Group, notification IDs:
+  `peptidex` / `peptidesai` prefixes — changing them breaks deep
+  links and the widget/Watch handoff for installed users.
+
+Only user-facing copy and `CFBundleDisplayName` say "Atlas".
 
 ## Dataset builder
 

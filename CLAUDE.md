@@ -39,7 +39,7 @@ This file configures Claude Code for the codebase's conventions.
 - Prefer integration tests over unit tests for API endpoints.
 - Use descriptive test names: `test_<scenario>_<expected_behavior>`
 
-## Context Management (Opus 4.6)
+## Context Management (Opus 4.7)
 - YOU MUST use subagents for codebase investigation to preserve main context.
 - Use /clear between unrelated tasks. Don't let context accumulate.
 - Scope explorations narrowly. Never read every file in a directory.

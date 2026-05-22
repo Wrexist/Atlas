@@ -17,11 +17,10 @@ import Foundation
 /// `PendingDoseLogProcessor` (app process) hit the same suite.
 enum PendingDoseLogStore {
 
-    /// App Group identifier. Mirrors the value in both the app and
-    /// widget entitlements — changing it here without updating
-    /// those plists is a silent miss, so the value is centralised
-    /// in this single constant.
-    static let appGroupSuiteName = "group.com.peptidesai.app"
+    /// App Group identifier — sourced from the single `AppGroup`
+    /// constant in `Shared/` so it can't drift from the other
+    /// shared-container call sites.
+    static let appGroupSuiteName = AppGroup.identifier
 
     /// UserDefaults key. The value is a JSON array of
     /// `PendingLog` so multiple taps queue cleanly when the app
