@@ -530,7 +530,7 @@ final class DataStore: DataServiceProtocol {
             }
             pendingEntryDeletions.formUnion(toRemove.map(\.id))
             let completedToday = toRemove.filter { entry in
-                entry.completed || entry.actualDose != nil || entry.notes != nil
+                entry.completed || entry.actualDose != nil || !entry.notes.isEmpty
             }
             entries.removeAll { entry in
                 entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
@@ -1708,6 +1708,7 @@ final class DataStore: DataServiceProtocol {
         // propagated back to CloudKit). Explicit deletion tracking
         // closes that window: only IDs that DataStore actually
         // intended to remove are deleted.
+        repo.beginSaveBatch()
         repo.upsertProtocols(protocols)
         repo.upsertEntries(entries)
         if !pendingProtocolDeletions.isEmpty {
@@ -1721,9 +1722,26 @@ final class DataStore: DataServiceProtocol {
             pendingEntryDeletions.removeAll()
         }
         repo.saveProfile(profile)
+
+        // Surface a banner if any commit in this batch failed — a
+        // disk-full / locked-store save would otherwise drop the
+        // user's latest change with no visible signal. Clear the
+        // banner once a save succeeds, but never clobber the more
+        // serious init-time "Storage unavailable" messages.
+        if repo.commitDidFail {
+            lastError = Self.saveFailureMessage
+        } else if lastError == Self.saveFailureMessage {
+            lastError = nil
+        }
+
         updateWidgetData()
         updateWatchData()
     }
+
+    /// Banner copy for a transient live-save failure. Kept as a
+    /// constant so `performSaveNow` can both set and clear exactly
+    /// this message without disturbing other `lastError` states.
+    static let saveFailureMessage = "Couldn't save your latest changes — your device may be low on storage."
 
     // MARK: - Ephemeral / screenshot mode
 

@@ -70,9 +70,11 @@ struct StackLibraryView: View {
         }
         .background(AppColor.background)
         .navigationTitle("Community Stacks")
-        .navigationDestination(for: CommunityStack.self) { stack in
-            CommunityStackDetailView(stack: stack)
-        }
+        // The `CommunityStack` navigation destination is declared by
+        // every host stack that pushes this view (ProtocolListView,
+        // ProtocolBuilderView). Declaring it again here collides on
+        // the same stack — SwiftUI ignores one and the behaviour is
+        // undefined — so it is intentionally omitted.
     }
 
     private var tagChips: some View {

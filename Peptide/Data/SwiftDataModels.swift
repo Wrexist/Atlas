@@ -19,20 +19,22 @@ private let sdDecoder: JSONDecoder = {
 
 @Model
 final class StoredProtocol {
-    // CloudKit-backed stores reject `@Attribute(.unique)` — the
-    // container init throws and the fallback chain in
-    // `SwiftDataRepository.makeCloudContainer()` silently drops the
-    // user to a local-only store. Uniqueness is enforced by the
-    // fetch-then-update-or-insert pattern in
-    // `SwiftDataRepository.saveProtocols`.
-    var id: UUID
-    var name: String
-    var cycleLengthWeeks: Int
-    var startDate: Date
-    var statusRaw: String
-    var notes: String
-    var peptideData: Data     // JSON-encoded [Peptide]
-    var scheduleData: Data    // JSON-encoded EncodedSchedule (or legacy ProtocolSchedule)
+    // CloudKit-backed stores impose two schema constraints, both
+    // required for `SwiftDataRepository.makeCloudContainer()` to
+    // succeed: (1) no `@Attribute(.unique)` — uniqueness is enforced
+    // by the fetch-then-update-or-insert pattern in
+    // `SwiftDataRepository.saveProtocols`; (2) every non-relationship
+    // attribute must be optional or carry a default value. Without
+    // the defaults the container init throws and the fallback chain
+    // silently drops every user to a local-only store.
+    var id: UUID = UUID()
+    var name: String = ""
+    var cycleLengthWeeks: Int = 8
+    var startDate: Date = Date()
+    var statusRaw: String = "active"
+    var notes: String = ""
+    var peptideData: Data = Data()     // JSON-encoded [Peptide]
+    var scheduleData: Data = Data()    // JSON-encoded EncodedSchedule (or legacy ProtocolSchedule)
     var authorName: String?
     var authorHandle: String?
     var forkedFromStackIdString: String?
@@ -165,19 +167,20 @@ private struct EncodedSchedule: Codable {
 
 @Model
 final class StoredEntry {
-    // See StoredProtocol — `.unique` is CloudKit-incompatible.
-    // Uniqueness is enforced by the fetch-then-update-or-insert
-    // pattern in `SwiftDataRepository.saveEntries`.
-    var id: UUID
-    var protocolId: UUID
-    var date: Date
-    var dose: String
-    var notes: String
-    var completed: Bool
+    // See StoredProtocol — CloudKit needs no `.unique` and every
+    // attribute optional-or-defaulted. Uniqueness is enforced by the
+    // fetch-then-update-or-insert pattern in
+    // `SwiftDataRepository.saveEntries`.
+    var id: UUID = UUID()
+    var protocolId: UUID = UUID()
+    var date: Date = Date()
+    var dose: String = ""
+    var notes: String = ""
+    var completed: Bool = false
     var actualDose: String?
     var actualTime: Date?
     var injectionSite: String?
-    var peptideData: Data     // JSON-encoded Peptide
+    var peptideData: Data = Data()     // JSON-encoded Peptide
 
     init(id: UUID, protocolId: UUID, date: Date, dose: String, notes: String,
          completed: Bool, actualDose: String?, actualTime: Date?,
@@ -241,13 +244,16 @@ final class StoredEntry {
 
 @Model
 final class StoredProfile {
-    var name: String
-    var memberSince: Date
-    var healthConnected: Bool
-    var hapticFeedbackEnabled: Bool
-    var doseRemindersEnabled: Bool
-    var biometricLockEnabled: Bool
-    var goalsData: Data       // JSON-encoded [String]
+    // CloudKit requires every attribute optional-or-defaulted — see
+    // StoredProtocol. Defaults below are placeholders only; every row
+    // is created via `make(from:)`/`update(from:)` which set real values.
+    var name: String = ""
+    var memberSince: Date = Date()
+    var healthConnected: Bool = false
+    var hapticFeedbackEnabled: Bool = true
+    var doseRemindersEnabled: Bool = true
+    var biometricLockEnabled: Bool = false
+    var goalsData: Data = Data()       // JSON-encoded [String]
     /// JSON-encoded BodyMetrics. Optional for legacy stores written before
     /// metrics existed; `toUserProfile` falls back to `.unspecified`.
     var bodyMetricsData: Data?

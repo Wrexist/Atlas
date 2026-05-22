@@ -30,27 +30,27 @@ private let trainingDecoder: JSONDecoder = {
 /// SwiftData migration.
 @Model
 final class StoredWorkoutSession {
-    // CloudKit-backed stores reject `@Attribute(.unique)` — uniqueness
-    // is enforced by the fetch-then-insert-or-update pattern in
-    // `SwiftDataRepository.saveWorkoutSession`, so the constraint
-    // added nothing here except a CloudKit init failure that
-    // silently dropped users to the local store.
-    var id: UUID
+    // CloudKit-backed stores need no `@Attribute(.unique)` and every
+    // attribute optional-or-defaulted. Uniqueness is enforced by the
+    // fetch-then-insert-or-update pattern in
+    // `SwiftDataRepository.saveWorkoutSession`; the defaults below
+    // keep the CloudKit container init from throwing.
+    var id: UUID = UUID()
     var name: String?
     var routineID: UUID?
     var programID: UUID?
-    var startedAt: Date
+    var startedAt: Date = Date()
     var finishedAt: Date?
     var note: String?
     var perceivedEffort: Int?
     /// JSON-encoded `[WorkoutExerciseEntry]`. See `WorkoutSession.swift`.
-    var exercisesData: Data
+    var exercisesData: Data = Data()
     /// Cached totals, recomputed on every write. Lets the history
     /// list render without decoding the full exercises blob — the
     /// blob is only touched when the user drills into a specific
     /// session.
-    var totalVolumeKg: Double
-    var completedSetCount: Int
+    var totalVolumeKg: Double = 0
+    var completedSetCount: Int = 0
 
     init(
         id: UUID,
@@ -128,19 +128,20 @@ final class StoredWorkoutSession {
 
 @Model
 final class StoredCustomExercise {
-    // See StoredWorkoutSession — `.unique` is CloudKit-incompatible.
-    var id: String
-    var name: String
+    // See StoredWorkoutSession — CloudKit needs no `.unique` and every
+    // attribute optional-or-defaulted.
+    var id: String = ""
+    var name: String = ""
     var equipment: String?
-    var createdAt: Date
+    var createdAt: Date = Date()
     /// JSON-encoded `[String]`. Two columns instead of one keeps the
     /// primary/secondary distinction queryable from a future SwiftData
     /// predicate, but the predicate use is hypothetical today —
     /// callers go through `ExerciseLibrary` and resolve in memory.
-    var primaryMusclesData: Data
-    var secondaryMusclesData: Data
+    var primaryMusclesData: Data = Data()
+    var secondaryMusclesData: Data = Data()
     /// JSON-encoded `[String]`.
-    var instructionsData: Data
+    var instructionsData: Data = Data()
 
     init(
         id: String,
@@ -197,14 +198,15 @@ final class StoredCustomExercise {
 
 @Model
 final class StoredRoutine {
-    // See StoredWorkoutSession — `.unique` is CloudKit-incompatible.
-    var id: UUID
-    var name: String
+    // See StoredWorkoutSession — CloudKit needs no `.unique` and every
+    // attribute optional-or-defaulted.
+    var id: UUID = UUID()
+    var name: String = ""
     var subtitle: String?
     var defaultRestSeconds: Int?
-    var updatedAt: Date
+    var updatedAt: Date = Date()
     /// JSON-encoded `[RoutineExercise]`.
-    var exercisesData: Data
+    var exercisesData: Data = Data()
 
     init(
         id: UUID,
@@ -257,11 +259,11 @@ final class StoredRoutine {
 
 @Model
 final class StoredPersonalRecord {
-    // See StoredWorkoutSession — `.unique` is CloudKit-incompatible.
+    // See StoredWorkoutSession — CloudKit needs no `.unique` and every
+    // attribute optional-or-defaulted.
     // `SwiftDataRepository.savePersonalRecord` already does a
-    // fetch-by-exerciseID then update-or-insert, so the unique
-    // attribute only ever caused a CloudKit init failure.
-    var exerciseID: String
+    // fetch-by-exerciseID then update-or-insert.
+    var exerciseID: String = ""
     var bestEstimatedOneRepMaxKg: Double?
     var bestEstimatedOneRepMaxAt: Date?
     var bestAbsoluteWeightKg: Double?

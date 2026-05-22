@@ -777,14 +777,40 @@ final class SwiftDataRepository {
         return false
     }
 
+    // MARK: - Save-failure tracking
+
+    /// Set to `true` by `commit()` when a `context.save()` fails. The
+    /// live DataStore save path resets it via `beginSaveBatch()` before
+    /// a batch of upserts and reads it afterwards to surface a
+    /// data-loss banner — previously these failures were only logged.
+    private(set) var commitDidFail = false
+
+    /// Resets the commit-failure flag at the start of a save batch.
+    func beginSaveBatch() { commitDidFail = false }
+
     // MARK: - Private
 
-    private func commit() {
-        guard let context else { return }
+    @discardableResult
+    private func commit() -> Bool {
+        guard let context else { return false }
         do {
             try context.save()
+            return true
         } catch {
             AppLog.swiftData.error("context.save failed: \(error.localizedDescription, privacy: .public)")
+            // One retry — covers transient file-protection / lock
+            // races (e.g. a background save that beat the device
+            // locking). A persistent failure (disk full, schema
+            // conflict) still fails the retry and flags the batch.
+            do {
+                try context.save()
+                AppLog.swiftData.info("context.save succeeded on retry")
+                return true
+            } catch {
+                AppLog.swiftData.error("context.save retry failed: \(error.localizedDescription, privacy: .public)")
+                commitDidFail = true
+                return false
+            }
         }
     }
 }
