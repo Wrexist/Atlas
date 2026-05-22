@@ -329,6 +329,13 @@ struct OnboardingView: View {
         .onChange(of: page) { _, newPage in
             OnboardingFunnelTracker.recordStepEntered(stepName(for: newPage), index: newPage)
             updateBuildingPlanForPage(newPage)
+            // Focus the name field only when the name page is actually
+            // the current one. Driving this from the sub-view's
+            // `.onAppear` summoned the keyboard early — TabView mounts
+            // adjacent pages, so `.onAppear` fired on the prior page.
+            if newPage == Page.name {
+                nameFocused = true
+            }
         }
         .task(id: scenePhase) {
             // Re-check OS permission state when the user returns from
@@ -972,7 +979,11 @@ struct OnboardingView: View {
             Spacer()
         }
         .onAppear {
-            nameFocused = true
+            // Focus is driven from the root `.onChange(of: page)` —
+            // setting it here fired while the page was still off-screen
+            // (TabView pre-mounts neighbours) and summoned the keyboard
+            // over the previous step.
+            //
             // Pre-fill from the Apple-relayed full name if the user
             // signed in on step 1. AppleSignInButton only forwards the
             // name on the very first authorization — once we have it,

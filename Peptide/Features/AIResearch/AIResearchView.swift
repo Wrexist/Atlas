@@ -134,6 +134,14 @@ struct AIResearchView: View {
                     proxy.scrollTo(last.id, anchor: .bottom)
                 }
             }
+            // Also follow the streaming text: chunks append to the
+            // last turn's `content` without changing `transcript.count`,
+            // so without this the view wouldn't scroll while a long
+            // answer streams in — only at the next turn boundary.
+            .onChange(of: transcript.last?.content) { _, _ in
+                guard let last = transcript.last else { return }
+                proxy.scrollTo(last.id, anchor: .bottom)
+            }
         }
     }
 

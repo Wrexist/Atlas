@@ -758,7 +758,16 @@ struct HomeView: View {
                 }
                 .liquidGlassPresentation()
             } else {
-                EmptyView()
+                // `nextDose` can go nil between the dialog tap and the
+                // sheet mounting (e.g. logged on the Watch). Show a
+                // real "nothing to log" state, not a blank modal.
+                EmptyStateView(
+                    icon: "checkmark.circle",
+                    title: "Nothing to log",
+                    message: "All of today's doses are already logged."
+                )
+                .padding(Spacing.screenPadding)
+                .liquidGlassPresentation()
             }
         }
     }
