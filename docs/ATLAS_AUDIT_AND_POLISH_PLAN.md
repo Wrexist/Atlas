@@ -159,7 +159,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
   rate-limit them server-side.
 - [ ] Update App Store privacy-nutrition labels to disclose PII transmission.
 
-### 2.4 Server-side input & error hygiene — `[ ]`
+### 2.4 Server-side input & error hygiene — `[x]`
 **Files:** `server/api/weekly-summary.js:93-105,186-192`,
 `server/api/_lib/anthropic-proxy.js:198-236`
 
@@ -172,7 +172,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
   (`Buffer.byteLength`), not the `content-length` header.
 - [ ] Add an `AbortController` (~25s) to each upstream `fetch`.
 
-### 2.5 Logging & secret-commit hygiene — `[ ]`
+### 2.5 Logging & secret-commit hygiene — `[~]`
 - [ ] `WeeklySummaryService.swift:134-136` — change error log `privacy: .public`
   → `.private` (URL/response fragments leak otherwise).
 - [ ] `OnboardingFunnelTracker` — never put emails/codes into event-name
