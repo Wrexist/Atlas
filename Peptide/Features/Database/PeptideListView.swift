@@ -19,6 +19,14 @@ struct PeptideListView: View {
 
     private func refreshPeptides() {
         viewModel.updatePeptides(dataStore.peptideDatabase)
+        // Clear the iPad detail selection if the selected peptide is no
+        // longer in the list (e.g. a custom peptide deleted or removed
+        // by a CloudKit sync) — otherwise the detail pane keeps showing
+        // a ghost record that's gone from the sidebar.
+        if let selected = selectedPeptide,
+           !viewModel.allPeptides.contains(where: { $0.id == selected.id }) {
+            selectedPeptide = nil
+        }
     }
 
     var body: some View {

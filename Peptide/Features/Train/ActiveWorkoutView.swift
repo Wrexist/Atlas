@@ -21,6 +21,7 @@ struct ActiveWorkoutView: View {
     @State private var finishedSession: WorkoutSession?
     @State private var finishedPRs: [PRDetectionEngine.DetectedPR] = []
     @State private var workoutName: String = ""
+    @FocusState private var nameFieldFocused: Bool
     /// Bumps every second while the workout is active so the elapsed
     /// timer redraws without a publisher boilerplate dance.
     @State private var tick = 0
@@ -52,6 +53,9 @@ struct ActiveWorkoutView: View {
     }
 
     private func syncNameFromSession() {
+        // Don't clobber an in-progress edit — only adopt the session's
+        // name when the user isn't actively typing in the field.
+        guard !nameFieldFocused else { return }
         workoutName = sessionService.activeSession?.name ?? ""
     }
 
@@ -140,6 +144,7 @@ struct ActiveWorkoutView: View {
                 TextField("Workout name", text: $workoutName)
                     .font(AppFont.title)
                     .foregroundStyle(AppColor.textPrimary)
+                    .focused($nameFieldFocused)
                     .onSubmit {
                         sessionService.renameWorkout(workoutName)
                     }
