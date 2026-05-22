@@ -113,6 +113,34 @@ extension View {
     }
 }
 
+    /// Capsule-shaped companion to `glassSurface` — same mutually
+    /// exclusive real-glass / legacy-recipe split, for pills, search
+    /// fields, and capsule buttons.
+    @ViewBuilder
+    func glassSurfaceCapsule(tinted: Bool = false) -> some View {
+        if #available(iOS 26.0, *) {
+            let glass: Glass = tinted ? Glass.regular.tint(AppColor.glassTint) : .regular
+            self.glassEffect(glass, in: .capsule)
+        } else {
+            self
+                .background {
+                    Capsule()
+                        .fill(AppColor.surfaceSecondary.opacity(0.6))
+                        .overlay {
+                            Capsule().fill(tinted ? AppColor.glassTint : AppColor.cardOverlay)
+                        }
+                        .overlay {
+                            Capsule().strokeBorder(
+                                tinted ? AppColor.glassBorderActive : AppColor.glassBorder,
+                                lineWidth: 0.5
+                            )
+                        }
+                }
+                .clipShape(Capsule())
+        }
+    }
+}
+
 /// Wraps content in a `GlassEffectContainer` on iOS 26+ so child glass shapes
 /// can morph into one another via `liquidGlassID(_:in:)`. No-op on earlier OSes.
 struct LiquidGlassContainer<Content: View>: View {
