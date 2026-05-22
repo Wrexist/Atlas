@@ -201,7 +201,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
 - [ ] Check `CKAccountStatus` to distinguish "no account" from "quota
   exceeded".
 
-### 3.2 Network resilience for AI surfaces — `[ ]`
+### 3.2 Network resilience for AI surfaces — `[x]`
 - [ ] `MealScannerService.swift:96-147` — add retry-with-backoff for transient
   transport errors / 502-504 (mirror `OpenFoodFactsService.retryableStatuses`);
   add a dedicated `ScanError.offline` case.
@@ -214,7 +214,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
   `try?` on the envelope `JSONSerialization` with `do/catch` that logs the
   decode error before throwing `.invalidResponse`.
 
-### 3.3 Watch reliability — `[ ]`
+### 3.3 Watch reliability — `[~]`
 **Files:** `PeptideWatch/Services/WatchStore.swift:90-153`,
 `Peptide/Services/WatchSyncService.swift:93-113`
 
@@ -225,7 +225,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
   the optimistic water update is real, or remove the dead reconstruction block
   (`WatchStore.swift:64-88`).
 
-### 3.4 Crash-safety: replace `precondition` in render/runtime paths — `[ ]`
+### 3.4 Crash-safety: replace `precondition` in render/runtime paths — `[x]`
 - [ ] `Peptide/Services/BarcodeProductCache.swift:148-154` — replace
   `precondition` with a graceful guard (sanitize/hash the key, treat a bad key
   as a cache miss).
@@ -235,14 +235,14 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
 - [ ] `Peptide/Services/ScreenshotSeedData.swift:156` — guard the
   `proto.peptides.first!` force-unwrap (demo-only, low priority).
 
-### 3.5 App Group / pending-dose-log durability — `[ ]`
+### 3.5 App Group / pending-dose-log durability — `[~]`
 **File:** `Shared/PendingDoseLogStore.swift`
 
 - [ ] Use `.completeUntilFirstUserAuthentication` file protection so Lock
   Screen "Log Dose" writes succeed while the device is locked.
 - [ ] Log write failures rather than swallowing them with `try?`.
 
-### 3.6 Build-integrity & minor fallbacks — `[ ]`
+### 3.6 Build-integrity & minor fallbacks — `[~]`
 - [ ] Add a CI check asserting `PeptideDatabase.shared.count == 208` so a build
   that drops `peptides.json` (silently falling back to `MockPeptides`) fails.
 - [ ] `MealScannerService.compress` — use `CGImageSourceCreateThumbnailAtIndex`
