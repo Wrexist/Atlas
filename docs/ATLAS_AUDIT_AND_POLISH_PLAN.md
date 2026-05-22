@@ -488,7 +488,7 @@ Liquid Glass is fundamentally an adaptive system.
 - [ ] Move `Features/Lifestyle/WorkoutDetailView.swift` into `Features/Train/`;
   delete the `Lifestyle/` folder.
 
-### 8.2 Naming & docs — `[ ]`
+### 8.2 Naming & docs — `[~]` (doc fixes done; folder renames need a build)
 - [ ] Add an authoritative "Naming" section to `README.md`: product = Atlas;
   Xcode targets/repo = Peptide (frozen); bundle ID / URL scheme / Spotlight
   prefixes = `peptidex`/`peptidesai` (frozen for install compatibility).
@@ -521,7 +521,7 @@ Liquid Glass is fundamentally an adaptive system.
 - [ ] Flatten one-file subfolders (`Home/Components/Adjustment/`).
 - [ ] Move the pure-logic `*Logic` files out of `App/` into `Services/`.
 
-### 8.4 Constants & config — `[ ]`
+### 8.4 Constants & config — `[~]` (App Group + swiftlint done)
 - [ ] Define the App Group identifier `"group.com.peptidesai.app"` once in
   `Shared/` (it's duplicated in `WidgetData.swift:4` and
   `PendingDoseLogStore.swift:24`); consolidate the cross-process notification
