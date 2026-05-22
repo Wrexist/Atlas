@@ -367,6 +367,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Guard against committed proxy secrets
+        # CI injects MEAL_SCANNER_SECRET / AI_RESEARCH_SECRET /
+        # WEEKLY_SUMMARY_SECRET into Info.plist at build time only.
+        # The committed file must never contain them — fail the PR if
+        # it does, so a local inject-then-commit can't leak the live
+        # proxy secret into git history.
+        run: |
+          if grep -lE 'MEAL_SCANNER_SECRET|AI_RESEARCH_SECRET|WEEKLY_SUMMARY_SECRET' \
+            Peptide/Resources/Info.plist 2>/dev/null; then
+            echo "::error::Proxy secret keys found in a committed Info.plist — remove before merging."
+            exit 1
+          fi
+          echo "OK: no proxy secret keys committed."
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:

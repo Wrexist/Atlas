@@ -166,6 +166,11 @@ final class MealScannerService: Sendable {
         guard let raw = stringSetting(forKey: key), let url = URL(string: raw) else {
             return nil
         }
+        // Require HTTPS — a misconfigured cleartext endpoint would
+        // otherwise send meal photos and the proxy secret over the
+        // wire unencrypted (ATS blocks it at runtime, but failing
+        // fast here is clearer than a silent network error).
+        guard url.scheme?.lowercased() == "https" else { return nil }
         return url
     }
 

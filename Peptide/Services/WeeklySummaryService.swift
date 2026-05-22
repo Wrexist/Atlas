@@ -131,8 +131,12 @@ final class WeeklySummaryService {
                 generatedAt: Date()
             )
         } catch {
+            // `.private` — `String(describing:)` on a URLError /
+            // DecodingError can carry the proxy endpoint URL and
+            // response-body fragments, which shouldn't land in
+            // Console.app / sysdiagnose at `.public`.
             AppLog.persistence.error(
-                "Weekly summary fetch failed: \(String(describing: error), privacy: .public)"
+                "Weekly summary fetch failed: \(String(describing: error), privacy: .private)"
             )
             return WeeklySummary(
                 weekStart: aggregate.weekStart,

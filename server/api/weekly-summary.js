@@ -86,22 +86,99 @@ function checkRateLimit(req) {
 }
 
 /**
- * Light schema check on the aggregate. Belt-and-suspenders over the
- * iOS encoder — guards against bad data poisoning the prompt and
- * blowing up the token count.
+ * Rebuilds the aggregate from an explicit allowlist of known fields
+ * (see `WeeklyAggregate` in `Peptide/Models/WeeklySummary.swift`) with
+ * a per-field type check. Returns null when the required core fields
+ * are missing/malformed. Unknown keys — and any free-text a tampered
+ * client may have appended — are dropped, so only this bounded shape
+ * ever reaches the model prompt: a client cannot smuggle a large
+ * adversarial blob into the prompt or inflate the token count.
  */
-function validateAggregate(agg) {
-  if (!agg || typeof agg !== 'object') return false;
+function asNum(v) {
+  return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+}
+function asInt(v) {
+  const n = asNum(v);
+  return n === undefined ? undefined : Math.trunc(n);
+}
+
+function sanitiseAggregate(agg) {
+  if (!agg || typeof agg !== 'object') return null;
   // Strict ISO-date (no time component). The iOS encoder emits
   // `YYYY-MM-DD` (10 chars); a looser cap let a truncated datetime
   // through which could narrow down the user's timezone if correlated
   // externally.
-  if (typeof agg.weekStart !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(agg.weekStart)) return false;
+  if (typeof agg.weekStart !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(agg.weekStart)) return null;
+
   const c = agg.compliance;
-  if (!c || typeof c !== 'object') return false;
-  if (typeof c.completed !== 'number' || typeof c.total !== 'number') return false;
-  if (c.total > 200) return false; // a week can't exceed this; reject blatant noise
-  return true;
+  if (!c || typeof c !== 'object') return null;
+  const completed = asInt(c.completed);
+  const total = asInt(c.total);
+  if (completed === undefined || total === undefined) return null;
+  if (total < 0 || total > 200) return null; // a week can't exceed this; reject blatant noise
+
+  const clean = {
+    weekStart: agg.weekStart,
+    compliance: {
+      completed,
+      total,
+      pct: asNum(c.pct) ?? 0,
+      bestDayPct: asNum(c.bestDayPct) ?? 0,
+      activeDaysCount: asInt(c.activeDaysCount) ?? 0,
+    },
+  };
+
+  const s = agg.streak;
+  if (s && typeof s === 'object') {
+    clean.streak = { current: asInt(s.current) ?? 0, best: asInt(s.best) ?? 0 };
+  }
+
+  const o = agg.outcomes;
+  if (o && typeof o === 'object') {
+    clean.outcomes = {
+      energyAvg: asNum(o.energyAvg) ?? 0,
+      sleepAvg: asNum(o.sleepAvg) ?? 0,
+      recoveryAvg: asNum(o.recoveryAvg) ?? 0,
+      moodAvg: asNum(o.moodAvg) ?? 0,
+      focusAvg: asNum(o.focusAvg) ?? 0,
+      compositeDelta: asNum(o.compositeDelta) ?? 0,
+      checkInsCount: asInt(o.checkInsCount) ?? 0,
+    };
+  }
+
+  const n = agg.nutrition;
+  if (n && typeof n === 'object') {
+    clean.nutrition = {
+      avgCalories: asInt(n.avgCalories) ?? 0,
+      targetCalories: asInt(n.targetCalories) ?? 0,
+      mealLoggingDays: asInt(n.mealLoggingDays) ?? 0,
+      proteinAvgG: asInt(n.proteinAvgG) ?? 0,
+      proteinTargetG: asInt(n.proteinTargetG) ?? 0,
+    };
+  }
+
+  const b = agg.biometrics;
+  if (b && typeof b === 'object') {
+    const bio = {};
+    if (asInt(b.hrvAvg) !== undefined) bio.hrvAvg = asInt(b.hrvAvg);
+    if (asInt(b.hrvDelta) !== undefined) bio.hrvDelta = asInt(b.hrvDelta);
+    if (asInt(b.rhrAvg) !== undefined) bio.rhrAvg = asInt(b.rhrAvg);
+    if (asNum(b.sleepHoursAvg) !== undefined) bio.sleepHoursAvg = asNum(b.sleepHoursAvg);
+    clean.biometrics = bio;
+  }
+
+  const l = agg.labs;
+  if (l && typeof l === 'object' && asInt(l.newPanelsLogged) !== undefined) {
+    clean.labs = { newPanelsLogged: asInt(l.newPanelsLogged) };
+  }
+
+  if (typeof agg.topInsightCategory === 'string') {
+    // Stable category codes are short; cap hard so this can never be
+    // a free-text injection vector.
+    clean.topInsightCategory = agg.topInsightCategory.slice(0, 64);
+  }
+
+  return clean;
 }
 
 function buildUserPrompt(aggregate) {
@@ -140,8 +217,8 @@ export default async function handler(req, res) {
     return;
   }
 
-  const aggregate = req.body?.aggregate;
-  if (!validateAggregate(aggregate)) {
+  const aggregate = sanitiseAggregate(req.body?.aggregate);
+  if (!aggregate) {
     res.status(400).json({ error: { message: 'Malformed aggregate' } });
     return;
   }
@@ -168,6 +245,8 @@ export default async function handler(req, res) {
     ]
   };
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25_000);
   try {
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -180,14 +259,16 @@ export default async function handler(req, res) {
         // changes semantics doesn't silently break.
         'anthropic-beta': 'prompt-caching-2024-07-31'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: controller.signal
     });
 
     if (!upstream.ok) {
+      // Collapse every upstream failure into a generic 502 — echoing
+      // Anthropic's exact status leaks server-side key state. The
+      // iOS client has a deterministic offline fallback for any 5xx.
       console.error('[weekly-summary] upstream non-2xx', upstream.status);
-      res.status(upstream.status).json({
-        error: { message: 'Upstream error', status: upstream.status }
-      });
+      res.status(502).json({ error: { message: 'Upstream error' } });
       return;
     }
 
@@ -228,8 +309,15 @@ export default async function handler(req, res) {
       generatedAt: new Date().toISOString()
     });
   } catch (err) {
+    if (err && err.name === 'AbortError') {
+      console.error('[weekly-summary] upstream timeout');
+      res.status(504).json({ error: { message: 'Upstream timeout' } });
+      return;
+    }
     console.error('[weekly-summary] fetch failure', err);
     res.status(502).json({ error: { message: 'Proxy failure' } });
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
