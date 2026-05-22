@@ -37,6 +37,15 @@ struct HabitsView: View {
 
     private var habits: [Habit] { dataStore.activeHabits }
 
+    /// `rows` filtered to habits that still exist. `rows` is rebuilt
+    /// asynchronously via `.task(id:)`, so for one frame after a
+    /// delete it can still carry the removed habit's card — rendering
+    /// (and accepting taps on) a row whose habit is already gone.
+    private var visibleRows: [Row] {
+        let liveIDs = Set(habits.map(\.id))
+        return rows.filter { liveIDs.contains($0.habit.id) }
+    }
+
     /// Cheap-enough equality token. SwiftUI's `.task(id:)` re-runs the
     /// rebuild only when this tuple changes; comparing two Habit /
     /// HabitEntry arrays is the same cost as one rebuild, so we don't
@@ -57,7 +66,7 @@ struct HabitsView: View {
                         emptyState
                             .padding(.top, Spacing.xxxxl)
                     } else {
-                        ForEach(rows) { row in
+                        ForEach(visibleRows) { row in
                             HabitRowCard(
                                 habit: row.habit,
                                 summary: row.summary,

@@ -527,7 +527,13 @@ struct HomeView: View {
                     }
                 }
             }
+            // Single handler for adherence-ratio changes: refresh the
+            // hero trio so the Adherence ring reflects a logged/unlogged
+            // dose immediately, and fire the review prompt when the day
+            // first hits 100%. Previously two separate `onChange(of:
+            // stats.score)` modifiers spawned two async tasks per toggle.
             .onChange(of: stats.score) { oldScore, newScore in
+                Task { await refreshHeroSnapshot() }
                 if oldScore < 1.0, newScore >= 1.0, stats.total > 0 {
                     Task { @MainActor in
                         try? await Task.sleep(for: .seconds(1))
@@ -545,13 +551,6 @@ struct HomeView: View {
             }
             .onChange(of: appState.pendingDoseLogEntryId) { _, _ in
                 consumePendingDoseDeepLink()
-            }
-            // Re-fetch the hero trio whenever today's adherence ratio
-            // shifts (a dose was logged/unlogged) so the Adherence
-            // ring reflects the action without waiting for a scene-
-            // phase round-trip.
-            .onChange(of: stats.score) { _, _ in
-                Task { await refreshHeroSnapshot() }
             }
             .onChange(of: appState.pendingWeeklyRecap) { _, _ in
                 consumeWeeklyDeepLink()
