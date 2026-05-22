@@ -183,7 +183,7 @@ struct BiomarkerDetailSheet: View {
             // would be unreadable at 90 days, weekly is
             // unreadable at 14, so we pick based on series
             // length.
-            AxisMarks(values: .stride(by: axisStride)) { value in
+            AxisMarks(values: .stride(by: Double(axisStride))) { value in
                 AxisValueLabel {
                     if let day = value.as(Int.self) {
                         Text(dayLabel(daysAgo: day))
