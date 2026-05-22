@@ -87,15 +87,7 @@ final class WatchStore: NSObject, ObservableObject {
             )
         }
 
-        if WCSession.default.isReachable {
-            WCSession.default.sendMessage(message, replyHandler: { [weak self] _ in
-                Task { @MainActor in self?.isSending = false }
-            }, errorHandler: { [weak self] _ in
-                Task { @MainActor in self?.isSending = false }
-            })
-        } else {
-            isSending = false
-        }
+        sendOrQueue(message)
     }
 
     func toggleEntry(_ entry: WatchEntry) {
@@ -141,13 +133,26 @@ final class WatchStore: NSObject, ObservableObject {
             )
         }
 
+        sendOrQueue(message)
+    }
+
+    /// Delivers a Watch→phone message. When the phone is reachable a
+    /// live `sendMessage` gives the fastest round-trip; when it is not
+    /// — or the live send fails — the message falls back to
+    /// `transferUserInfo`, which the system delivers in the background
+    /// once the phone is available again. Previously an unreachable
+    /// phone meant the tap was dropped entirely and the optimistic
+    /// Watch state was silently overwritten on the next sync.
+    private func sendOrQueue(_ message: [String: Any]) {
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(message, replyHandler: { [weak self] _ in
                 Task { @MainActor in self?.isSending = false }
             }, errorHandler: { [weak self] _ in
+                WCSession.default.transferUserInfo(message)
                 Task { @MainActor in self?.isSending = false }
             })
         } else {
+            WCSession.default.transferUserInfo(message)
             isSending = false
         }
     }

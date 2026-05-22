@@ -205,7 +205,11 @@ final class WeeklySummaryService {
     private static func weekStartString(for date: Date) -> String {
         var calendar = Calendar(identifier: .iso8601)
         calendar.firstWeekday = 2
-        let interval = calendar.dateInterval(of: .weekOfYear, for: date) ?? DateInterval()
+        // Fall back to the date itself (not `DateInterval()`, whose
+        // start is `.distantPast` — that produced a `0001-01-01` key
+        // that never matched any real lookup, re-firing the API).
+        let interval = calendar.dateInterval(of: .weekOfYear, for: date)
+            ?? DateInterval(start: date, duration: 0)
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]
         formatter.timeZone = calendar.timeZone

@@ -141,16 +141,18 @@ actor BarcodeProductCache {
 
     /// Builds the on-disk URL for a cache entry. Barcodes from the OFF
     /// lookup path are normalised to 8-14 digits, and the OCR fallback
-    /// builds `ocr:<uuid>` keys — both are safe filenames. Future
-    /// callers might not be; the precondition keeps a malformed key
-    /// (slashes, `..`) from escaping the cache directory and writing
-    /// outside the sandbox-allowed Caches folder.
+    /// builds `ocr:<uuid>` keys — both are safe filenames. A future
+    /// caller might pass an unsafe key; rather than trap (a cache must
+    /// never be able to crash the app), any character outside the
+    /// filename-safe set is replaced with `_`. This both prevents a
+    /// crash and keeps a malformed key (slashes, `..`) from escaping
+    /// the sandbox-allowed Caches directory.
     private func fileURL(for barcode: String) -> URL {
-        precondition(
-            barcode.allSatisfy { $0.isLetter || $0.isNumber || $0 == ":" || $0 == "-" || $0 == "_" },
-            "BarcodeProductCache key must be filename-safe: got \(barcode)"
-        )
-        return directory.appendingPathComponent("\(barcode).json")
+        let sanitised = String(barcode.map { ch -> Character in
+            (ch.isLetter || ch.isNumber || ch == ":" || ch == "-" || ch == "_") ? ch : "_"
+        })
+        let key = sanitised.isEmpty ? "_" : sanitised
+        return directory.appendingPathComponent("\(key).json")
     }
 
     private static func defaultDirectory(using fileManager: FileManager) -> URL {

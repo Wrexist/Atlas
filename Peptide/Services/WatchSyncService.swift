@@ -124,6 +124,13 @@ extension WatchSyncService: WCSessionDelegate {
         WCSession.default.activate()
     }
 
+    nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        // The Watch falls back to `transferUserInfo` when the phone is
+        // unreachable at tap time. Same payload shape as a live
+        // message, so route it through the identical handler.
+        session(session, didReceiveMessage: userInfo)
+    }
+
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         guard let action = message["action"] as? String else { return }
 

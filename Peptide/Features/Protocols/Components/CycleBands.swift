@@ -43,7 +43,13 @@ enum CycleBands {
         protocols: [PeptideProtocol],
         calendar: Calendar = .current
     ) -> [[CycleBand]] {
-        precondition(grid.count == 42, "Expected the standard 6x7 calendar grid")
+        // A render path must never trap on a malformed grid — degrade
+        // to six empty rows (the documented "off week" state) and flag
+        // it in debug builds only.
+        guard grid.count == 42 else {
+            assertionFailure("Expected the standard 6x7 calendar grid, got \(grid.count)")
+            return Array(repeating: [], count: 6)
+        }
 
         let active = protocols.filter { $0.status == .active }
 

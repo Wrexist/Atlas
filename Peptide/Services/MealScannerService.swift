@@ -52,6 +52,7 @@ final class MealScannerService: Sendable {
     enum ScanError: Error, LocalizedError {
         case proxyNotConfigured
         case unauthorised
+        case offline
         case imageTooLarge
         case requestFailed(String)
         case invalidResponse
@@ -62,6 +63,7 @@ final class MealScannerService: Sendable {
             switch self {
             case .proxyNotConfigured:   "Meal scanner isn't configured for this build. Set MEAL_SCANNER_ENDPOINT and MEAL_SCANNER_SECRET in Secrets.xcconfig and rebuild."
             case .unauthorised:         "Couldn't sign in to the meal scanner. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
+            case .offline:              "You're offline — meal scanning needs an internet connection. Reconnect and try again."
             case .imageTooLarge:        "Photo is too large to upload. Try a smaller image."
             case .requestFailed(let m): m
             case .invalidResponse:      "The scanner returned an unexpected response."
@@ -70,6 +72,20 @@ final class MealScannerService: Sendable {
             }
         }
     }
+
+    /// 5xx statuses worth one retry — a transient proxy / upstream
+    /// hiccup rather than a client error.
+    private static let retryableStatuses: Set<Int> = [502, 503, 504]
+    /// URLError codes that mean "no usable connection" — surfaced as a
+    /// dedicated `.offline` so the UI shows actionable copy.
+    private static let offlineCodes: Set<URLError.Code> = [
+        .notConnectedToInternet, .dataNotAllowed, .internationalRoamingOff
+    ]
+    /// URLError codes worth one retry before giving up.
+    private static let transientCodes: Set<URLError.Code> = [
+        .timedOut, .networkConnectionLost, .cannotConnectToHost,
+        .cannotFindHost, .dnsLookupFailed
+    ]
 
     /// Result shape mirrors the JSON keys we ask Claude to return so the
     /// roll-up into `dataStore.logMeal(...)` can be a 1:1 mapping.
@@ -125,11 +141,8 @@ final class MealScannerService: Sendable {
             options: []
         )
 
-        let (data, response) = try await session.data(for: request)
+        let (data, http) = try await sendWithRetry(request)
 
-        guard let http = response as? HTTPURLResponse else {
-            throw ScanError.invalidResponse
-        }
         guard (200..<300).contains(http.statusCode) else {
             // Surface only the status code — never echo the upstream
             // response body, which can include the request id and key
@@ -144,6 +157,38 @@ final class MealScannerService: Sendable {
         }
 
         return try parseEstimate(from: data)
+    }
+
+    /// Sends the request, retrying once on a transient transport
+    /// failure or a 502/503/504 response. A genuine offline condition
+    /// is classified into `ScanError.offline` so the UI can show
+    /// actionable copy instead of the raw `URLError` description.
+    private func sendWithRetry(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        let maxAttempts = 2
+        var attempt = 0
+        while true {
+            attempt += 1
+            do {
+                let (data, response) = try await session.data(for: request)
+                guard let http = response as? HTTPURLResponse else {
+                    throw ScanError.invalidResponse
+                }
+                if Self.retryableStatuses.contains(http.statusCode), attempt < maxAttempts {
+                    try await Task.sleep(for: .seconds(1.5))
+                    continue
+                }
+                return (data, http)
+            } catch let error as URLError {
+                if Self.offlineCodes.contains(error.code) {
+                    throw ScanError.offline
+                }
+                if Self.transientCodes.contains(error.code), attempt < maxAttempts {
+                    try await Task.sleep(for: .seconds(1.5))
+                    continue
+                }
+                throw error
+            }
+        }
     }
 
     // MARK: - Internals
@@ -230,8 +275,20 @@ final class MealScannerService: Sendable {
         // Anthropic Messages API wraps the model output in a content array;
         // the text we asked for sits at content[0].text. Extract it before
         // running the JSONDecoder against the JSON-only payload.
+        let envelopeObject: Any
+        do {
+            envelopeObject = try JSONSerialization.jsonObject(with: data)
+        } catch {
+            // Log the decode error before collapsing to a generic
+            // error — a server-side response-shape regression is
+            // otherwise undiagnosable from a TestFlight device.
+            AppLog.persistence.error(
+                "Meal scan envelope decode failed: \(error.localizedDescription, privacy: .private)"
+            )
+            throw ScanError.invalidResponse
+        }
         guard
-            let envelope = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let envelope = envelopeObject as? [String: Any],
             let content = envelope["content"] as? [[String: Any]],
             let text = content.first(where: { ($0["type"] as? String) == "text" })?["text"] as? String
         else {
