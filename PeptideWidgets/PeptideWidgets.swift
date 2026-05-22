@@ -212,7 +212,10 @@ struct MediumWidgetView: View {
                         .font(.headline)
                         .foregroundStyle(.green)
                 } else {
-                    ForEach(entry.upcoming.prefix(3), id: \.time) { slot in
+                    // Key by position, not `.time` — two peptides
+                    // scheduled at the same minute share a timestamp
+                    // and a `\.time` id would collide, dropping a row.
+                    ForEach(Array(entry.upcoming.prefix(3).enumerated()), id: \.offset) { _, slot in
                         doseRow(slot)
                     }
                 }

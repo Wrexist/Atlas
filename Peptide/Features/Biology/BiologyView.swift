@@ -101,7 +101,7 @@ struct BiologyView: View {
                 .liquidGlassPresentation()
             }
             .sheet(isPresented: $showLabs) {
-                LabsView()
+                LabsView(presentedModally: true)
                     .environment(dataStore)
             }
             .onAppear { consumePendingLabsDeepLink() }

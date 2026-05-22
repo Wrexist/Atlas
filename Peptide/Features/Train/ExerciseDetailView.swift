@@ -25,8 +25,12 @@ struct ExerciseDetailView: View {
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
-            } else {
+            } else if library.isLoaded {
                 missingState
+            } else {
+                // Library hasn't finished loading — don't flash a
+                // false "not found" before the async load completes.
+                loadingState
             }
         }
         .background(AppColor.background.ignoresSafeArea())
@@ -237,6 +241,13 @@ struct ExerciseDetailView: View {
             message: "We couldn't find this exercise in your library. It may have been removed."
         )
         .padding(.top, Spacing.xxxxl)
+    }
+
+    private var loadingState: some View {
+        ProgressView()
+            .tint(AppColor.accentPrimary)
+            .frame(maxWidth: .infinity)
+            .padding(.top, Spacing.xxxxl)
     }
 }
 
