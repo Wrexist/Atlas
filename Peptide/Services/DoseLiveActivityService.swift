@@ -33,6 +33,12 @@ final class DoseLiveActivityService {
     /// `activity.end(...)` calls race.
     private var dismissTasks: [UUID: Task<Void, Never>] = [:]
 
+    /// Identity token for the current dismiss task per entry. A task
+    /// re-checks its token after the 4s sleep before calling `end()`:
+    /// once past the sleep, `cancel()` is a no-op, so a `reconcile` or
+    /// a repeat `markCompleted` would otherwise race a second `end()`.
+    private var dismissTokens: [UUID: UUID] = [:]
+
     private init() {}
 
     // MARK: - Public surface
@@ -58,6 +64,9 @@ final class DoseLiveActivityService {
         for activity in openActivities where !inWindowIDs.contains(activity.attributes.entryId) {
             let entryId = activity.attributes.entryId
             dismissTasks.removeValue(forKey: entryId)?.cancel()
+            // Invalidate the token so a dismiss task already past its
+            // sleep bows out instead of racing this end().
+            dismissTokens.removeValue(forKey: entryId)
             Task { await activity.end(nil, dismissalPolicy: .immediate) }
         }
 
@@ -91,8 +100,10 @@ final class DoseLiveActivityService {
             loggedAt: currentState.loggedAt ?? Date()
         )
         // Cancel any prior dismiss-after-Logged task for this entry so
-        // we don't double-end.
+        // we don't double-end, and mint a fresh identity token.
         dismissTasks.removeValue(forKey: entryId)?.cancel()
+        let token = UUID()
+        dismissTokens[entryId] = token
         dismissTasks[entryId] = Task { [weak self] in
             await activity.update(ActivityContent(state: updated, staleDate: nil))
             // Auto-dismiss after a short confirmation window so the
@@ -103,9 +114,15 @@ final class DoseLiveActivityService {
             } catch {
                 return // cancelled — leave the activity for reconcile to clean up
             }
+            // Past the sleep, cancel() is a no-op — re-check that this
+            // task is still the current one before ending the activity
+            // so a superseding markCompleted / reconcile doesn't race
+            // a second end().
+            guard await self?.dismissTokens[entryId] == token else { return }
             await activity.end(nil, dismissalPolicy: .immediate)
             await MainActor.run {
                 self?.dismissTasks.removeValue(forKey: entryId)
+                self?.dismissTokens.removeValue(forKey: entryId)
                 return ()
             }
         }
@@ -116,6 +133,7 @@ final class DoseLiveActivityService {
         guard #available(iOS 16.1, *) else { return }
         dismissTasks.values.forEach { $0.cancel() }
         dismissTasks.removeAll()
+        dismissTokens.removeAll()
         for activity in Activity<DoseWindowAttributes>.activities {
             Task { await activity.end(nil, dismissalPolicy: .immediate) }
         }

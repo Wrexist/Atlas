@@ -184,6 +184,12 @@ final class DataStore: DataServiceProtocol {
     @MainActor
     private func handleIdentityChange() {
         AppLog.persistence.error("iCloud identity changed; clearing + reloading from new store")
+        // Cancel any debounced save still in flight — it captured the
+        // previous identity's in-memory state and, if it fired after
+        // the container swap, would either be dropped silently or
+        // written against the new account's store.
+        pendingSaveTask?.cancel()
+        pendingSaveTask = nil
         // Drop pending writes — they belong to the previous identity
         // and the next save's diff would otherwise commit them against
         // the new container.
