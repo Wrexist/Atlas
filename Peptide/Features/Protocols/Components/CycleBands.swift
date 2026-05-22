@@ -48,7 +48,7 @@ enum CycleBands {
         // it in debug builds only.
         guard grid.count == 42 else {
             assertionFailure("Expected the standard 6x7 calendar grid, got \(grid.count)")
-            return Array(repeating: [], count: 6)
+            return Array(repeating: [CycleBand](), count: 6)
         }
 
         let active = protocols.filter { $0.status == .active }
