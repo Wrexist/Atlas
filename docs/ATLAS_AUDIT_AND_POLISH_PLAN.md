@@ -32,7 +32,7 @@ build before changing anything else.
 These either lose user data, crash, or break a headline feature for 100% of
 users. Do this phase first.
 
-### 1.1 CloudKit sync is dead for the entire user base — `[ ]`
+### 1.1 CloudKit sync is dead for the entire user base — `[x]`
 **Files:** `Peptide/Data/SwiftDataModels.swift`,
 `Peptide/Data/SwiftDataModels+Training.swift`,
 `Peptide/Services/SwiftDataRepository.swift:135-151`
@@ -54,7 +54,7 @@ advertises it.
 - [ ] If a SwiftData store already exists from older builds, add a lightweight
   migration plan so existing local stores open cleanly.
 
-### 1.2 `entry.notes != nil` is always true → stale dose duplication — `[ ]`
+### 1.2 `entry.notes != nil` is always true → stale dose duplication — `[x]`
 **File:** `Peptide/App/DataStore.swift:533`
 
 `ProtocolEntry.notes` is a non-optional `String`; the regenerate-guard
@@ -67,7 +67,7 @@ dose rows when a protocol's schedule is edited.
   leave them.
 - [ ] This should already emit a compiler warning — confirm Phase 0 surfaces it.
 
-### 1.3 Revoked/expired StoreKit entitlements still grant Pro — `[ ]`
+### 1.3 Revoked/expired StoreKit entitlements still grant Pro — `[x]`
 **File:** `Peptide/Services/StoreService.swift:185-199`
 
 `updatePurchasedProducts` inserts every `Transaction.currentEntitlements`
@@ -77,7 +77,7 @@ lifetime IAPs and revoked subscriptions keep full Pro access indefinitely.
 - [ ] Skip entitlements where `revocationDate != nil`.
 - [ ] Skip subscription entitlements where `expirationDate < Date()`.
 
-### 1.4 SwiftData live-save failures are silently swallowed — `[ ]`
+### 1.4 SwiftData live-save failures are silently swallowed — `[x]`
 **Files:** `Peptide/Services/SwiftDataRepository.swift:782-789` (`commit()`),
 `Peptide/App/DataStore.swift` (`performSaveNow`, `lastError` at line 17)
 
@@ -89,7 +89,7 @@ no UI signal. `lastError` exists but is set only at init.
 - [ ] In `performSaveNow()`, on failure set `DataStore.lastError` with
   actionable copy and retry once on lock/`fileWriteFileExists` errors.
 
-### 1.5 `lastError` banner is invisible on the main app surface — `[ ]`
+### 1.5 `lastError` banner is invisible on the main app surface — `[x]`
 **Files:** `Peptide/App/DataStore.swift:15-17`, `PeptideApp.swift`
 
 The "Storage unavailable" condition is only rendered in `OnboardingView` and
@@ -98,7 +98,7 @@ The "Storage unavailable" condition is only rendered in `OnboardingView` and
 - [ ] Surface `lastError` as a persistent banner at the root `TabView`
   container so any data-loss condition is always visible.
 
-### 1.6 Watch `DoseListView` toolbar is outside the `NavigationStack` — `[ ]`
+### 1.6 Watch `DoseListView` toolbar is outside the `NavigationStack` — `[x]`
 **File:** `PeptideWatch/Views/DoseListView.swift:6-27`
 
 `.toolbar { complianceRing }` is chained onto the `NavigationStack`'s result,
@@ -106,7 +106,7 @@ not a descendant, so the compliance ring never renders.
 
 - [ ] Move `.toolbar { … }` inside the `NavigationStack` closure.
 
-### 1.7 Duplicate `navigationDestination(for: CommunityStack.self)` — `[ ]`
+### 1.7 Duplicate `navigationDestination(for: CommunityStack.self)` — `[x]`
 **Files:** `Peptide/Features/Library/StackLibraryView.swift:73-75`,
 `Peptide/Features/Protocols/ProtocolListView.swift:134-138`
 
