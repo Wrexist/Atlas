@@ -1,7 +1,7 @@
 # App Store Review Response — Guideline 2.1 (Information Needed)
 
 This is the complete, ordered checklist for replying to App Review's
-Guideline 2.1 information request for **PeptideX v1.0.0**. Apple asked for
+Guideline 2.1 information request for **Atlas v1.0.0**. Apple asked for
 six items plus addressed five "common issues." Each section below maps
 **what to deliver**, **how to produce it the best way**, and (where
 applicable) **ready-to-paste copy** for the Notes field in App Store
@@ -36,9 +36,9 @@ A single capture, started from app launch, walking the typical user flow
 through the **core features**, plus every flow they specifically called
 out:
 
-- Account registration / login / **account deletion** (Sign in with Apple is optional in PeptideX, but the deletion path must still be shown)
+- Account registration / login / **account deletion** (Sign in with Apple is optional in Atlas, but the deletion path must still be shown)
 - Paid content / subscription / purchase flows
-- User-generated content + reporting/blocking (PeptideX has none — say so)
+- User-generated content + reporting/blocking (Atlas has none — say so)
 - Every system permission prompt the app can trigger
 
 ### How to record (best way)
@@ -47,7 +47,7 @@ Use a real iPhone, not the Simulator — Apple explicitly says "physical
 device."
 
 1. **Reset app state** so prompts fire fresh:
-   - Settings → General → iPhone Storage → PeptideX → Offload App
+   - Settings → General → iPhone Storage → Atlas → Offload App
    - Reinstall via TestFlight
 2. **Disable "Do Not Disturb"** so notification banners can appear if you demo a reminder.
 3. **Start screen recording**: Control Center → Screen Recording (long-press to enable mic if you want voice-over). Recording starts after a 3-second countdown.
@@ -55,7 +55,7 @@ device."
 5. **Stop recording**, trim head/tail in Photos (Edit → trim handles), AirDrop to Mac.
 6. **Encode for upload**: keep under 250 MB. If you need to compress:
    ```bash
-   ffmpeg -i raw.mov -vcodec h264 -crf 24 -preset slow -acodec aac PeptideX-review.mp4
+   ffmpeg -i raw.mov -vcodec h264 -crf 24 -preset slow -acodec aac Atlas-review.mp4
    ```
 7. **Upload** as a reply attachment in the Resolution Center thread.
 
@@ -63,7 +63,7 @@ device."
 
 | # | Action | Why it satisfies the reviewer |
 |---|---|---|
-| 1 | Tap PeptideX icon on Home Screen | Proves cold launch on a physical device |
+| 1 | Tap Atlas icon on Home Screen | Proves cold launch on a physical device |
 | 2 | Step through the 4 onboarding screens, accept the medical disclaimer | Shows safety messaging up front |
 | 3 | On the sign-in screen, tap **"Continue without an account"** | Demonstrates that account is optional |
 | 4 | Land on Today tab — point out next-dose card and compliance ring | Core feature |
@@ -78,11 +78,11 @@ device."
 | 13 | Tap a plan → cancel the StoreKit sheet (don't actually buy) | Demonstrates the paywall, no charge |
 | 14 | Profile → Sign in with Apple → complete sign-in | Optional registration |
 | 15 | Profile → Account → **Delete Account** → confirm in the alert | **Account deletion** (mandatory per 5.1.1(v)) |
-| 16 | Settings app → Face ID & Passcode → confirm PeptideX listed (optional, only if you ship app-lock) | Face ID purpose string |
+| 16 | Settings app → Face ID & Passcode → confirm Atlas listed (optional, only if you ship app-lock) | Face ID purpose string |
 
 ### 1.2 If a flow does not exist, say so
 
-PeptideX has no UGC, no camera, no contacts, no location, no microphone.
+Atlas has no UGC, no camera, no contacts, no location, no microphone.
 Mention this in the Notes (§4) so the reviewer does not look for them.
 
 ---
@@ -93,32 +93,35 @@ Paste verbatim into the Notes field:
 
 ```
 PURPOSE
-PeptideX is a private, on-device tracker for people who already follow
-peptide supplementation protocols on the advice of a clinician or
-qualified practitioner. The app helps them schedule doses, log what they
-actually took, see compliance over time, and (optionally) correlate
-adherence with biometric trends from Apple Health.
+Atlas is a private, native iOS companion for training, nutrition,
+recovery, and (for advanced users) clinician-advised supplementation
+protocols. Everything the user logs stays on their device or syncs
+through their own iCloud — there is no developer backend, no analytics,
+and no tracking.
 
 PROBLEM IT SOLVES
-People who run multi-week peptide cycles typically track them in
-spreadsheets, paper notebooks, or generic reminder apps that lack any
-domain awareness (no concept of injection sites, cycle pauses,
-stacking, or compliance scoring). PeptideX consolidates protocol design,
-dose logging, reminders, and analytics into one purpose-built tool.
+Fitness-focused users juggle separate apps for workout logging, macro
+tracking, HRV/sleep analysis, habit streaks, and (for the advanced
+audience) peptide protocol compliance. Atlas consolidates all five
+surfaces into one private, on-device app with a recovery-first home
+screen that ties them together.
 
 VALUE TO THE USER
-1. Build flexible daily/weekly/cycled protocols in a structured editor.
-2. Log doses with site, time, amount, and free-form notes.
-3. Receive rich local notifications with "Mark as Taken" / "Snooze."
-4. See compliance analytics (streaks, heatmap, trend lines).
-5. Optionally overlay HealthKit signals (HR, HRV, sleep, activity) to
-   spot correlations — entirely on-device.
-6. Export everything to CSV / JSON / PDF for personal records.
+1. Log workouts in two taps — weight and reps are pre-filled from the
+   last session; rest timer fires automatically.
+2. Scan meals by barcode (200M+ products) or photo (AI vision).
+3. Wake up to a Recovery Score built from HRV, resting heart rate,
+   and sleep pulled from Apple Health.
+4. Track any habit with a 6-month momentum heatmap and streak counter.
+5. For users following clinician-advised protocols: build and log
+   peptide/supplement cycles with dose reminders, compliance analytics,
+   and a 208-compound research database with citations.
+6. Export everything to CSV / JSON for personal records (Atlas Pro).
 
-PeptideX is an EDUCATIONAL and TRACKING tool. It does not prescribe,
+Atlas is an EDUCATIONAL and TRACKING tool. It does not prescribe,
 sell, source, or recommend any compound for human use. The medical
-disclaimer is shown during onboarding and on every peptide detail
-screen.
+disclaimer is acknowledged during onboarding and visible on every
+peptide detail screen.
 ```
 
 ---
@@ -140,7 +143,7 @@ exercise every feature. Therefore in App Store Connect:
 ### 3.2 Reviewer instruction copy (paste into Notes)
 
 ```
-HOW TO REVIEW PEPTIDEX
+HOW TO REVIEW ATLAS
 
 Sign-in:
 • Sign in with Apple is optional. On the sign-in screen, tap "Continue
@@ -153,7 +156,7 @@ Sign-in:
 
 HealthKit:
 • HealthKit is requested ONLY when you tap "Connect Health" in the
-  Profile tab. It is never asked automatically. PeptideX is read-only
+  Profile tab. It is never asked automatically. Atlas is read-only
   against Apple Health (NSHealthShareUsageDescription only;
   NSHealthUpdateUsageDescription is intentionally absent in Info.plist).
 • Denying HealthKit hides the correlation card. No other feature is
@@ -194,7 +197,7 @@ vague. Be exhaustive. Paste verbatim:
 ```
 EXTERNAL SERVICES USED BY PEPTIDEX
 
-PeptideX has NO developer-operated backend. No analytics SDKs, no
+Atlas has NO developer-operated backend. No analytics SDKs, no
 crash reporters, no advertising identifiers, no third-party AI APIs,
 no remote config. The full list of external systems the app talks to:
 
@@ -250,7 +253,7 @@ Paste verbatim:
 ```
 REGIONAL AVAILABILITY
 
-PeptideX is functionally identical in every region where it is offered.
+Atlas is functionally identical in every region where it is offered.
 There is no geo-fenced content, no country-specific feature, and no
 region-specific pricing tier beyond Apple's standard auto-localization
 of subscription prices.
@@ -276,21 +279,21 @@ text above to list excluded territories.
 ## 6. Regulated-industry posture
 
 Peptides are a sensitive category. App Review will sometimes ask
-whether the developer is licensed/authorized. PeptideX positions itself
+whether the developer is licensed/authorized. Atlas positions itself
 as **educational and tracking only**, which is the established pattern
 that does not require credentials. Paste verbatim:
 
 ```
 REGULATED-INDUSTRY POSTURE
 
-PeptideX is a tracker and educational reference, not a medical device,
+Atlas is a tracker and educational reference, not a medical device,
 not a pharmacy, not a telehealth service, and not a marketplace. It
 does not prescribe, diagnose, treat, sell, source, or recommend any
 compound for human use. Many compounds in the database are explicitly
 labeled as research chemicals not approved for human use, and the app
 shows this disclaimer:
 
-  "PeptideX is an educational and tracking tool. It is not a medical
+  "Atlas is an educational and tracking tool. It is not a medical
    device and does not provide medical advice, diagnosis, or
    treatment. Many substances referenced are research chemicals not
    approved for human use. Always consult a qualified healthcare
@@ -351,7 +354,7 @@ forgotten.
 
 The paywall must clearly display, on the same screen as the buy buttons:
 
-- [ ] Subscription **title** for each tier (PeptideX Pro Monthly / Annual / Lifetime)
+- [ ] Subscription **title** for each tier (Atlas Pro Monthly / Annual / Lifetime)
 - [ ] Subscription **length** (monthly, annual, lifetime)
 - [ ] Subscription **price** (auto-localized via StoreKit)
 - [ ] Auto-renew disclosure (Apple's standard wording)
@@ -369,18 +372,18 @@ includes both **why** and a **concrete example**. Current state:
 
 | Key | Current value | Verdict |
 |---|---|---|
-| `NSFaceIDUsageDescription` | "PeptideX uses Face ID to protect your peptide protocols and health information." | ✅ Reason given. Could mention the example ("for example, when opening the app after backgrounding"). Optional polish. |
-| `NSHealthShareUsageDescription` | "PeptideX reads heart rate, HRV, resting heart rate, body mass, steps, and active energy from Apple Health to correlate your peptide protocols with biometric trends. All analysis happens on your device — nothing is sent off the device." | ✅ Excellent — explicit metrics, explicit purpose, on-device guarantee. |
+| `NSFaceIDUsageDescription` | "Atlas uses Face ID to protect your peptide protocols and health information." | ✅ Reason given. Could mention the example ("for example, when opening the app after backgrounding"). Optional polish. |
+| `NSHealthShareUsageDescription` | "Atlas reads heart rate, HRV, resting heart rate, body mass, steps, and active energy from Apple Health to correlate your peptide protocols with biometric trends. All analysis happens on your device — nothing is sent off the device." | ✅ Excellent — explicit metrics, explicit purpose, on-device guarantee. |
 
 Notification permission has no plist key (it's prompted via
 `UNUserNotificationCenter`) but the in-app pre-prompt should explain
-**why**: "PeptideX uses notifications to remind you of scheduled doses
+**why**: "Atlas uses notifications to remind you of scheduled doses
 and let you log them with one tap." Verify this string exists in the
 auth flow.
 
 If you add any new permission later (camera for QR import, contacts,
 location), the purpose string MUST follow the pattern: **what + why +
-example**, e.g. "PeptideX uses your camera to scan barcode peptide
+example**, e.g. "Atlas uses your camera to scan barcode peptide
 labels — for example, to auto-fill an entry instead of typing it."
 
 ---
@@ -420,12 +423,12 @@ Hello App Review,
 
 Thank you for the detailed feedback. Below is the requested
 information; the §1 screen recording is attached to this reply.
-PeptideX has no developer backend, no third-party SDKs, and no
-external AI services — every feature listed below runs on the user's
-device. Sign-in is optional, so no demo credentials are required to
-exercise the full feature set; the recording demonstrates this by
+Atlas is a fitness, nutrition, and recovery tracking app — no
+developer backend, no third-party SDKs, and no external AI services.
+Every feature runs on the user's device. Sign-in is optional, so no
+demo credentials are required; the recording demonstrates this by
 tapping "Continue without an account" at launch.
 
-— The PeptideX team
+— The Atlas team
 support@peptidesai.com
 ```
