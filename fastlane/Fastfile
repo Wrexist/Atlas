@@ -14,6 +14,52 @@ platform :ios do
       in_house:              false
     )
 
+    # ─── Version regression guardrail ─────────────────────────────
+    # The TestFlight tester app sorts builds by marketing version, not
+    # build number. A version <= the highest already on TestFlight
+    # therefore lands *beneath* the existing builds and testers are
+    # never offered it — exactly how 1.0.2 (118) got buried under
+    # 1.0.115. Compare the resolved version against every pre-release
+    # version Apple already has and refuse to ship a regression.
+    #
+    # Fail-open: if the App Store Connect lookup itself errors (network
+    # blip, API shape change) we warn and continue rather than wedge a
+    # legitimate release. A real regression still hard-fails below.
+    marketing_version = ENV["MARKETING_VERSION"]
+    if marketing_version && !marketing_version.empty?
+      begin
+        require "spaceship"
+        require "rubygems"
+
+        Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(
+          key_id:    ENV["ASC_KEY_ID"],
+          issuer_id: ENV["ASC_ISSUER_ID"],
+          key:       ENV["ASC_KEY_P8"]
+        )
+
+        app    = Spaceship::ConnectAPI::App.find("com.peptidesai.app")
+        latest = app.get_pre_release_versions
+                    .map(&:version).compact
+                    .map { |v| Gem::Version.new(v) }.max
+
+        if latest && Gem::Version.new(marketing_version) <= latest
+          UI.user_error!(
+            "Marketing version #{marketing_version} is not greater than the " \
+            "latest already on TestFlight (#{latest}). Builds sort by marketing " \
+            "version in the tester app, so this one would land beneath #{latest} " \
+            "and testers would never see it. Re-run with a higher version " \
+            "(e.g. 1.1.0, or any version above #{latest})."
+          )
+        end
+
+        UI.success("Version check OK: #{marketing_version} > #{latest || 'no prior TestFlight build'}")
+      rescue FastlaneCore::Interface::FastlaneError
+        raise # a real regression — let it fail the build
+      rescue => e
+        UI.important("Could not verify version against TestFlight (#{e.message}). Skipping regression guard.")
+      end
+    end
+
     target_to_bundle = {
       "Peptide"             => "com.peptidesai.app",
       "PeptideWidgets"      => "com.peptidesai.app.widgets",
@@ -47,8 +93,7 @@ platform :ios do
     # a last-resort pin — if XcodeGen or PlistBuddy ever fail to set
     # the version keys, xcodebuild's own MARKETING_VERSION /
     # CURRENT_PROJECT_VERSION still win.
-    marketing_version = ENV["MARKETING_VERSION"]
-    build_number      = ENV["GITHUB_RUN_NUMBER"]
+    build_number   = ENV["GITHUB_RUN_NUMBER"]
     version_xcargs = []
     version_xcargs << "MARKETING_VERSION=#{marketing_version}" if marketing_version && !marketing_version.empty?
     version_xcargs << "CURRENT_PROJECT_VERSION=#{build_number}" if build_number && !build_number.empty?
