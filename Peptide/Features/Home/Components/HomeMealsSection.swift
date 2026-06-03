@@ -150,6 +150,7 @@ struct HomeMealsSection: View {
                 },
                 onCancel: { showTargetsEditor = false }
             )
+            .liquidGlassPresentation()
         }
         .sheet(item: $editingMealEntry) { entry in
             MealEntryEditorSheet(

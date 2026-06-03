@@ -433,6 +433,7 @@ struct HomeView: View {
                     },
                     onCancel: { showTargetsEditor = false }
                 )
+                .liquidGlassPresentation()
             }
             .sheet(item: $milestonePrompt) { item in
                 CycleMilestonePromptSheet(
