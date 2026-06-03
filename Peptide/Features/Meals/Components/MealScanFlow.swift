@@ -4,8 +4,9 @@ import Photos
 import UIKit
 
 /// End-to-end meal-scanner sheet: picks an image (camera or library),
-/// posts it to `MealScannerService`, surfaces a confirmation card with
-/// the macro breakdown, and writes a `.photo`-sourced `MealEntry`
+/// posts it to `MealScannerService`, surfaces a per-item review where the
+/// user can adjust portions, drop misfires, and save items to their food
+/// library, then writes one `.photo`-sourced `MealEntry` per kept item
 /// through `dataStore.logMealEntry(_:)`.
 ///
 /// "Take photo" launches a live rear-camera capture via `CameraPicker`
@@ -19,7 +20,10 @@ struct MealScanFlow: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var image: UIImage?
     @State private var phase: Phase = .pickImage
-    @State private var estimate: MealScannerService.MealEstimate?
+    /// Per-item editable results from the scan. Each row carries its own
+    /// portion + include + saved-to-library state so the user can tune
+    /// the plate before logging.
+    @State private var items: [EditableFoodItem] = []
     @State private var errorText: String?
     @State private var category: MealCategory = MealCategory.auto(for: Date())
     @State private var isShowingCamera = false
@@ -142,7 +146,7 @@ struct MealScanFlow: View {
     private var picker: some View {
         VStack(spacing: Spacing.lg) {
             previewBox
-            Text("Snap or pick a photo of your meal — Claude will read it back as calories, protein, carbs, and fat.")
+            Text("Snap or pick a photo of your meal — Claude separates each food so you can fine-tune the portions before logging.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -261,58 +265,65 @@ struct MealScanFlow: View {
         }
     }
 
+    private var includedItems: [EditableFoodItem] { items.filter(\.include) }
+    private var totalCalories: Int { includedItems.reduce(0) { $0 + $1.calories } }
+
     private var reviewCard: some View {
-        VStack(spacing: Spacing.lg) {
-            previewBox
-                .frame(height: 160)
+        ScrollView {
+            VStack(spacing: Spacing.lg) {
+                previewBox
+                    .frame(height: 130)
 
-            if let estimate {
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    HStack {
-                        Text(estimate.mealName.capitalized)
-                            .font(AppFont.title2)
-                            .foregroundStyle(AppColor.textPrimary)
-                        Spacer()
-                        confidencePill(estimate.confidence)
-                    }
-
-                    Divider().background(AppColor.glassBorder)
-
-                    macroRow(label: "Calories", value: "\(estimate.calories) kcal")
-                    macroRow(label: "Protein",  value: "\(estimate.proteinG) g")
-                    macroRow(label: "Carbs",    value: "\(estimate.carbsG) g")
-                    macroRow(label: "Fat",      value: "\(estimate.fatG) g")
+                HStack {
+                    Text("Detected items")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Spacer()
+                    Text("\(includedItems.count) selected · \(totalCalories) kcal")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .monospacedDigit()
                 }
-                .padding(Spacing.md)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                                .strokeBorder(AppColor.accentPrimary.opacity(0.35), lineWidth: 1)
-                        }
+
+                Text("Tap a row to adjust the portion, untick anything that isn't yours, or save an item to your food library for next time.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textTertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                ForEach($items) { $item in
+                    FoodItemEditCard(
+                        item: $item,
+                        onSave: { saveToLibrary(item) }
+                    )
                 }
 
                 MealCategoryPicker(selection: $category)
-            }
 
-            HStack(spacing: Spacing.sm) {
-                Button("Re-scan") {
-                    image = nil
-                    selectedItem = nil
-                    estimate = nil
-                    phase = .pickImage
-                }
-                .buttonStyle(.bordered)
-                .tint(AppColor.textSecondary)
+                HStack(spacing: Spacing.sm) {
+                    Button("Re-scan") {
+                        image = nil
+                        selectedItem = nil
+                        items = []
+                        phase = .pickImage
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(AppColor.textSecondary)
 
-                Button("Add to today") {
-                    confirm()
+                    Button(addButtonTitle) {
+                        confirm()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColor.accentPrimary)
+                    .disabled(includedItems.isEmpty)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColor.accentPrimary)
+                .padding(.top, Spacing.xs)
             }
         }
+        .scrollIndicators(.hidden)
+    }
+
+    private var addButtonTitle: LocalizedStringKey {
+        includedItems.count <= 1 ? "Add to today" : "Add \(includedItems.count) items"
     }
 
     private var errorCard: some View {
@@ -344,32 +355,6 @@ struct MealScanFlow: View {
             .buttonStyle(.borderedProminent)
             .tint(AppColor.accentPrimary)
             .padding(.top, Spacing.md)
-        }
-    }
-
-    private func confidencePill(_ value: Double) -> some View {
-        let pct = Int((value * 100).rounded())
-        return Text("\(pct)% sure")
-            .font(.system(size: 11, weight: .heavy))
-            .foregroundStyle(AppColor.accentLight)
-            .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 3)
-            .background {
-                Capsule().fill(AppColor.accentPrimary.opacity(0.18))
-            }
-    }
-
-    private func macroRow(label: LocalizedStringKey, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            Spacer()
-            Text(value)
-                .font(AppFont.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.textPrimary)
-                .monospacedDigit()
         }
     }
 
@@ -427,9 +412,9 @@ struct MealScanFlow: View {
 
     private func runAnalysis(on image: UIImage) async {
         do {
-            let result = try await MealScannerService.shared.analyze(image: image)
+            let result = try await MealScannerService.shared.analyzeItems(image: image)
             await MainActor.run {
-                estimate = result
+                items = result.map(EditableFoodItem.init(from:))
                 // Auto-categorise from the PHOTO's capture time, not
                 // the analyze-finished time. Otherwise a yesterday-
                 // dinner photo picked at 10am gets bucketed as snack
@@ -447,25 +432,258 @@ struct MealScanFlow: View {
         }
     }
 
+    /// Logs one `MealEntry` per ticked item. Each carries the same
+    /// capture date + category, so a single photo of a sandwich and a
+    /// soda lands as two editable rows in the day's log. Uses the
+    /// photo's capture time so a yesterday-dinner photo picked at 10am
+    /// today logs into yesterday's bucket.
     private func confirm() {
-        guard let estimate else { return }
-        // Use the photo's capture time so a yesterday-dinner photo
-        // picked at 10am today logs into yesterday's bucket. Falls
-        // back to now (set in @State default) for camera captures or
-        // assets without a creation date.
-        let entry = MealEntry(
-            date: capturedAtDate,
-            category: category,
-            name: estimate.mealName.capitalized,
-            calories: estimate.calories,
-            proteinG: estimate.proteinG,
-            carbsG: estimate.carbsG,
-            fatG: estimate.fatG,
-            sourceID: nil,
-            source: .photo
-        )
-        dataStore.logMealEntry(entry)
+        let toLog = includedItems
+        guard !toLog.isEmpty else { return }
+        for item in toLog {
+            dataStore.logMealEntry(
+                MealEntry(
+                    date: capturedAtDate,
+                    category: category,
+                    name: item.name,
+                    calories: item.calories,
+                    proteinG: item.proteinG,
+                    carbsG: item.carbsG,
+                    fatG: item.fatG,
+                    sourceID: nil,
+                    source: .photo
+                )
+            )
+        }
         Haptics.success()
         onClose()
+    }
+
+    /// Saves the item to the user's food library as a `CustomFood` so it
+    /// can be re-logged later from search without re-scanning. Macros are
+    /// stored per-100g (derived on the item) and the current portion is
+    /// recorded as the default serving.
+    private func saveToLibrary(_ item: EditableFoodItem) {
+        let food = CustomFood(
+            name: item.name,
+            per100g: item.per100g,
+            servingGrams: item.grams > 0 ? item.grams : nil,
+            servingLabel: item.quantityLabel.nilIfEmpty
+        )
+        dataStore.saveCustomFood(food)
+        Haptics.success()
+        if let index = items.firstIndex(where: { $0.id == item.id }) {
+            items[index].savedToLibrary = true
+        }
+    }
+}
+
+// MARK: - Editable scanned item
+
+/// One scanned food the user can tune before logging. Macros are held on
+/// a per-100g basis (derived from the model's portion estimate) so the
+/// grams stepper rescales calories/protein/carbs/fat live, matching the
+/// portion math the rest of the food flow already uses.
+struct EditableFoodItem: Identifiable, Hashable {
+    let id: UUID
+    var name: String
+    var per100g: ScannedProduct.Nutriments
+    var grams: Double
+    /// The model's original portion estimate, offered as a one-tap
+    /// "Serving" preset so the user can snap back to it.
+    let aiGrams: Double
+    var quantityLabel: String
+    var include: Bool
+    var savedToLibrary: Bool
+
+    init(from item: MealScannerService.ScannedFoodItem) {
+        id = item.id
+        name = item.name.capitalized
+        // A zero/missing weight estimate falls back to a 100 g basis so
+        // the per-100g math stays finite; the user can correct the
+        // portion in the review card.
+        let basis = item.grams > 0 ? item.grams : 100
+        aiGrams = basis
+        grams = basis
+        quantityLabel = item.quantityLabel
+        include = true
+        savedToLibrary = false
+        per100g = ScannedProduct.Nutriments(
+            calories: Double(item.calories) / basis * 100,
+            proteinG: Double(item.proteinG) / basis * 100,
+            carbsG: Double(item.carbsG) / basis * 100,
+            fatG: Double(item.fatG) / basis * 100,
+            fiberG: nil,
+            sugarsG: nil
+        )
+    }
+
+    private func scaled(_ per100: Double) -> Int { Int((per100 * grams / 100).rounded()) }
+    var calories: Int { scaled(per100g.calories) }
+    var proteinG: Int { scaled(per100g.proteinG) }
+    var carbsG: Int { scaled(per100g.carbsG) }
+    var fatG: Int { scaled(per100g.fatG) }
+}
+
+// MARK: - Per-item review card
+
+/// Editable row for one detected food: rename, include/exclude, adjust
+/// the portion (stepper + Lifesum-style quick-pick chips), see macros
+/// rescale live, and save the item to the food library for re-logging
+/// without the camera.
+private struct FoodItemEditCard: View {
+    @Binding var item: EditableFoodItem
+    let onSave: () -> Void
+
+    /// Common portion presets (grams) shown as quick-pick chips.
+    private static let gramPresets: [Double] = [50, 100, 150, 200, 300]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            header
+            if item.include {
+                Divider().overlay(AppColor.glassBorder)
+                portionStepper
+                presetChips
+                macroSummary
+                saveButton
+            }
+        }
+        .padding(Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .strokeBorder(
+                            item.include ? AppColor.accentPrimary.opacity(0.30) : AppColor.glassBorder,
+                            lineWidth: item.include ? 1 : 0.5
+                        )
+                }
+        }
+        .opacity(item.include ? 1 : 0.55)
+    }
+
+    private var header: some View {
+        HStack(spacing: Spacing.sm) {
+            Button {
+                item.include.toggle()
+            } label: {
+                Image(systemName: item.include ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundStyle(item.include ? AppColor.accentPrimary : AppColor.textTertiary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(item.include ? "Exclude item" : "Include item")
+
+            VStack(alignment: .leading, spacing: 2) {
+                TextField("Item name", text: $item.name)
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .textInputAutocapitalization(.words)
+                if !item.quantityLabel.isEmpty {
+                    Text(item.quantityLabel)
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: Spacing.sm)
+
+            VStack(alignment: .trailing, spacing: 0) {
+                Text("\(item.calories)")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .monospacedDigit()
+                Text("kcal")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+        }
+    }
+
+    private var portionStepper: some View {
+        HStack {
+            Text("Portion")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+            Spacer()
+            Button {
+                item.grams = max(5, (item.grams - 10).rounded())
+            } label: {
+                Image(systemName: "minus.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(AppColor.accentLight)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Decrease portion")
+
+            Text("\(Int(item.grams.rounded())) g")
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
+                .monospacedDigit()
+                .frame(minWidth: 64)
+
+            Button {
+                item.grams = min(2000, (item.grams + 10).rounded())
+            } label: {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(AppColor.accentLight)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Increase portion")
+        }
+    }
+
+    private var presetChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Spacing.xs) {
+                chip(label: "Serving", grams: item.aiGrams)
+                ForEach(Self.gramPresets, id: \.self) { grams in
+                    chip(label: "\(Int(grams)) g", grams: grams)
+                }
+            }
+        }
+    }
+
+    private func chip(label: String, grams: Double) -> some View {
+        let isActive = Int(item.grams.rounded()) == Int(grams.rounded())
+        return Button {
+            item.grams = grams.rounded()
+        } label: {
+            Text(label)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(isActive ? .white : AppColor.textSecondary)
+                .padding(.horizontal, Spacing.sm)
+                .padding(.vertical, 5)
+                .background {
+                    Capsule().fill(isActive ? AppColor.accentPrimary : AppColor.surfaceElevated)
+                }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var macroSummary: some View {
+        Text("P \(item.proteinG)g · C \(item.carbsG)g · F \(item.fatG)g")
+            .font(AppFont.caption)
+            .foregroundStyle(AppColor.textSecondary)
+            .monospacedDigit()
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var saveButton: some View {
+        Button(action: onSave) {
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: item.savedToLibrary ? "checkmark" : "bookmark")
+                    .font(.system(size: 12, weight: .bold))
+                Text(item.savedToLibrary ? "Saved to library" : "Save to library")
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            .foregroundStyle(item.savedToLibrary ? AppColor.accentPrimary : AppColor.accentLight)
+        }
+        .buttonStyle(.plain)
+        .disabled(item.savedToLibrary)
     }
 }

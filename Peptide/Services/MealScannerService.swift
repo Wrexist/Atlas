@@ -107,9 +107,60 @@ final class MealScannerService: Sendable {
         }
     }
 
-    /// Compresses + base64-encodes the image, posts it to the proxy,
-    /// then parses the JSON the model is instructed to return.
+    /// One distinct food/drink the model picked out of the photo. The
+    /// multi-item counterpart to `MealEstimate` — `analyzeItems` returns
+    /// these so the review UI can let the user tweak each portion and
+    /// drop misfires before logging. `grams` is the model's estimate of
+    /// the *depicted* portion's weight, which the review UI divides out
+    /// into a per-100g basis so the quantity stepper can rescale macros.
+    struct ScannedFoodItem: Codable, Hashable, Identifiable {
+        /// Local identity for the editable list. Not part of the model
+        /// payload — defaulted here and skipped by `CodingKeys`.
+        let id = UUID()
+        let name: String
+        /// Human serving description, e.g. "1 can (330 ml)".
+        let quantityLabel: String
+        /// Estimated weight of the shown portion, grams.
+        let grams: Double
+        let calories: Int
+        let proteinG: Int
+        let carbsG: Int
+        let fatG: Int
+        let confidence: Double
+
+        enum CodingKeys: String, CodingKey {
+            case name, grams, calories, confidence
+            case quantityLabel = "quantity_label"
+            case proteinG      = "protein_g"
+            case carbsG        = "carbs_g"
+            case fatG          = "fat_g"
+        }
+    }
+
+    private struct ItemsEnvelope: Codable {
+        let items: [ScannedFoodItem]
+    }
+
+    /// Single-aggregate estimate for the whole plate. Retained for the
+    /// existing callers + test suite; the photo review UI now prefers
+    /// `analyzeItems(image:)` for per-item editing.
     func analyze(image: UIImage) async throws -> MealEstimate {
+        let data = try await performVision(image: image, prompt: Self.prompt)
+        return try parseEstimate(from: data)
+    }
+
+    /// Per-item breakdown of the photo — each distinct food/drink the
+    /// model can see, so the review UI can let the user adjust portions
+    /// and drop misfires before logging.
+    func analyzeItems(image: UIImage) async throws -> [ScannedFoodItem] {
+        let data = try await performVision(image: image, prompt: Self.itemsPrompt)
+        return try parseItems(from: data)
+    }
+
+    /// Compresses + base64-encodes the image, posts it to the proxy with
+    /// the given prompt, validates the HTTP status, and hands back the
+    /// raw response body for a caller-specific parse.
+    private func performVision(image: UIImage, prompt: String) async throws -> Data {
         guard let endpoint, let proxySecret, !proxySecret.isEmpty else {
             // The user-facing error stays generic so the public surface
             // doesn't leak which side is misconfigured, but the log call
@@ -137,7 +188,7 @@ final class MealScannerService: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
         request.httpBody = try JSONSerialization.data(
-            withJSONObject: requestPayload(base64: base64),
+            withJSONObject: requestPayload(base64: base64, prompt: prompt),
             options: []
         )
 
@@ -156,7 +207,7 @@ final class MealScannerService: Sendable {
             throw ScanError.requestFailed("Meal scanner returned HTTP \(http.statusCode).")
         }
 
-        return try parseEstimate(from: data)
+        return data
     }
 
     /// Sends the request, retrying once on a transient transport
@@ -232,10 +283,12 @@ final class MealScannerService: Sendable {
         return data
     }
 
-    private func requestPayload(base64: String) -> [String: Any] {
+    private func requestPayload(base64: String, prompt: String) -> [String: Any] {
         [
             "model": model,
-            "max_tokens": 400,
+            // Headroom for the multi-item JSON array; the single-estimate
+            // path never approaches this.
+            "max_tokens": 1024,
             "messages": [
                 [
                     "role": "user",
@@ -250,7 +303,7 @@ final class MealScannerService: Sendable {
                         ] as [String: Any],
                         [
                             "type": "text",
-                            "text": Self.prompt,
+                            "text": prompt,
                         ] as [String: Any],
                     ],
                 ]
@@ -271,10 +324,28 @@ final class MealScannerService: Sendable {
     surrounding prose, code fences, or commentary.
     """
 
-    private func parseEstimate(from data: Data) throws -> MealEstimate {
-        // Anthropic Messages API wraps the model output in a content array;
-        // the text we asked for sits at content[0].text. Extract it before
-        // running the JSONDecoder against the JSON-only payload.
+    private static let itemsPrompt = """
+    You are a meal-nutrition estimator. Look at the photo and identify \
+    EACH distinct food or drink item separately — a sandwich and a soda \
+    are two items, not one combined meal. Only describe food or drink \
+    that is visibly depicted. If the image shows no food, return \
+    {"items":[]}.
+
+    For every item, estimate the portion that is actually shown and its \
+    nutrition. Return JSON only in exactly this shape:
+    {"items":[{"name": string, "quantity_label": string (a short serving \
+    description such as "1 can (330 ml)" or "1 sandwich"), "grams": number \
+    (estimated weight of the shown portion in grams), "calories": integer \
+    kcal, "protein_g": integer grams, "carbs_g": integer grams, "fat_g": \
+    integer grams, "confidence": number between 0 and 1}]}
+    Output a single JSON object with the "items" array and no surrounding \
+    prose, code fences, or commentary.
+    """
+
+    /// Anthropic Messages API wraps the model output in a content array;
+    /// the JSON-only text we asked for sits at the first text block.
+    /// Shared by both the single-estimate and multi-item parsers.
+    private func extractModelText(from data: Data) throws -> String {
         let envelopeObject: Any
         do {
             envelopeObject = try JSONSerialization.jsonObject(with: data)
@@ -294,10 +365,51 @@ final class MealScannerService: Sendable {
         else {
             throw ScanError.invalidResponse
         }
-
-        let cleaned = text
+        return text
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .stripCodeFences()
+    }
+
+    /// Sanity bounds shared by both parsers — a prompt-injected or
+    /// non-food response can't write absurd values into daily totals.
+    private func isPlausible(calories: Int, proteinG: Int, carbsG: Int, fatG: Int) -> Bool {
+        (0...5_000).contains(calories)
+            && (0...500).contains(proteinG)
+            && (0...500).contains(carbsG)
+            && (0...500).contains(fatG)
+    }
+
+    private func parseItems(from data: Data) throws -> [ScannedFoodItem] {
+        let cleaned = try extractModelText(from: data)
+        guard let payloadData = cleaned.data(using: .utf8) else { throw ScanError.parseFailure }
+
+        let decoded: ItemsEnvelope
+        do {
+            decoded = try JSONDecoder().decode(ItemsEnvelope.self, from: payloadData)
+        } catch {
+            throw ScanError.parseFailure
+        }
+        // Drop individually-implausible items rather than failing the
+        // whole scan — one bad row shouldn't sink a four-item plate.
+        let valid = decoded.items.filter { item in
+            let name = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            return !name.isEmpty
+                && name.lowercased() != "unknown"
+                && (0...5_000).contains(Int(item.grams.rounded()))
+                && (0.0...1.0).contains(item.confidence)
+                && isPlausible(
+                    calories: item.calories,
+                    proteinG: item.proteinG,
+                    carbsG: item.carbsG,
+                    fatG: item.fatG
+                )
+        }
+        guard !valid.isEmpty else { throw ScanError.implausibleResult }
+        return valid
+    }
+
+    private func parseEstimate(from data: Data) throws -> MealEstimate {
+        let cleaned = try extractModelText(from: data)
 
         guard let payloadData = cleaned.data(using: .utf8) else { throw ScanError.parseFailure }
 
