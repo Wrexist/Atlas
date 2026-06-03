@@ -7,9 +7,7 @@ struct LanguagePickerRow: View {
 
     var body: some View {
         Button {
-            if dataStore.profile.hapticFeedbackEnabled {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            }
+            Haptics.impact(.light)
             isPresented = true
         } label: {
             HStack(spacing: Spacing.md) {
@@ -112,9 +110,7 @@ struct LanguagePickerSheet: View {
 
     private func select(_ code: String?) {
         guard localization.selectedCode != code else { return }
-        if dataStore.profile.hapticFeedbackEnabled {
-            UISelectionFeedbackGenerator().selectionChanged()
-        }
+        Haptics.selection()
         withAnimation(.snappy(duration: 0.2)) {
             localization.selectedCode = code
         }

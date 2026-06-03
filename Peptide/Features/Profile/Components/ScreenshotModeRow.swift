@@ -27,9 +27,7 @@ struct ScreenshotModeRow: View {
             if screenshotMode.isEnabled {
                 // Turning off is a low-stakes action — just swap
                 // back to real data with no confirmation.
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UISelectionFeedbackGenerator().selectionChanged()
-                }
+                Haptics.selection()
                 screenshotMode.deactivate(in: dataStore)
             } else {
                 // Turning on overrides the visible state — confirm
@@ -104,9 +102,7 @@ struct ScreenshotModeRow: View {
             titleVisibility: .visible
         ) {
             Button("Show demo data") {
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                }
+                Haptics.success()
                 screenshotMode.activate(in: dataStore)
             }
             Button("Cancel", role: .cancel) { }

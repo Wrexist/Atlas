@@ -23,9 +23,7 @@ struct ScreenshotModeBanner: View {
         if screenshotMode.isEnabled && screenshotMode.isBannerVisible {
             HStack(spacing: Spacing.sm) {
                 Button {
-                    if dataStore.profile.hapticFeedbackEnabled {
-                        UISelectionFeedbackGenerator().selectionChanged()
-                    }
+                    Haptics.selection()
                     screenshotMode.deactivate(in: dataStore)
                 } label: {
                     HStack(spacing: Spacing.sm) {

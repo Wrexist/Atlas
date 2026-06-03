@@ -232,9 +232,7 @@ final class DataStore: DataServiceProtocol {
     func addCustomPeptide(_ peptide: Peptide) {
         customPeptides.append(peptide)
         PersistenceService.shared.saveCustomPeptides(customPeptides)
-        if profile.hapticFeedbackEnabled {
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-        }
+        Haptics.success()
     }
 
     // MARK: - Protocols
@@ -256,9 +254,7 @@ final class DataStore: DataServiceProtocol {
         appendTodayEntries(for: newProtocol)
         save()
         rescheduleNotificationsIfEnabled()
-        if profile.hapticFeedbackEnabled {
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-        }
+        Haptics.success()
     }
 
     func deleteProtocol(id: UUID) {
@@ -369,9 +365,7 @@ final class DataStore: DataServiceProtocol {
         let becoming = !entries[index].completed
         entries[index].completed.toggle()
         save()
-        if profile.hapticFeedbackEnabled {
-            UIImpactFeedbackGenerator(style: becoming ? .light : .soft).impactOccurred()
-        }
+        Haptics.impact(becoming ? .light : .soft)
         // Live Activity reconciliation: when the user marks a dose
         // taken from the app (or undoes it), push the matching state
         // into any open lock-screen activity so the countdown stops
@@ -400,9 +394,7 @@ final class DataStore: DataServiceProtocol {
             injectionSite: injectionSite
         )
         save()
-        if !wasCompleted, profile.hapticFeedbackEnabled {
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-        }
+        if !wasCompleted { Haptics.success() }
     }
 
     /// Removes a previously-logged dose — flips `completed` back to false
@@ -428,9 +420,7 @@ final class DataStore: DataServiceProtocol {
             injectionSite: nil
         )
         save()
-        if profile.hapticFeedbackEnabled {
-            UINotificationFeedbackGenerator().notificationOccurred(.warning)
-        }
+        Haptics.warning()
         DoseLiveActivityService.shared.reconcile(entries: entries)
     }
 
@@ -477,9 +467,7 @@ final class DataStore: DataServiceProtocol {
 
         save()
         rescheduleNotificationsIfEnabled()
-        if profile.hapticFeedbackEnabled {
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-        }
+        Haptics.success()
         return true
     }
 
@@ -609,9 +597,7 @@ final class DataStore: DataServiceProtocol {
 
         save()
         rescheduleNotificationsIfEnabled()
-        if profile.hapticFeedbackEnabled {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        }
+        Haptics.impact(.light)
     }
 
     func entriesFor(protocolId: UUID, days: Int = 14) -> [ProtocolEntry] {

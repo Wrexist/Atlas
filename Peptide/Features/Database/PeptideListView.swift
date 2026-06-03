@@ -216,9 +216,7 @@ struct PeptideListView: View {
         } else {
             Button {
                 selectedPeptide = peptide
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UISelectionFeedbackGenerator().selectionChanged()
-                }
+                Haptics.selection()
             } label: {
                 PeptideRow(peptide: peptide)
             }

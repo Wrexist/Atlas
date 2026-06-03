@@ -122,9 +122,7 @@ struct HomeView: View {
                         date: dateString,
                         avatarImageData: dataStore.profile.avatarImageData,
                         onAvatarTap: {
-                            if dataStore.profile.hapticFeedbackEnabled {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            }
+                            Haptics.impact(.light)
                             // Phase D: avatar opens the full Profile
                             // screen now (Profile lost its tab slot).
                             // ProfileCustomizationSheet stays
@@ -205,9 +203,7 @@ struct HomeView: View {
                     HeroMetricTrio(
                         snapshot: heroSnapshot,
                         onTapRing: { kind in
-                            if dataStore.profile.hapticFeedbackEnabled {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            }
+                            Haptics.impact(.light)
                             heroDetailKind = HeroDetailItem(kind: kind)
                         },
                         hapticsEnabled: dataStore.profile.hapticFeedbackEnabled
@@ -391,9 +387,7 @@ struct HomeView: View {
                     firstName: firstNameForSticky,
                     avatarImageData: dataStore.profile.avatarImageData,
                     onAvatarTap: {
-                        if dataStore.profile.hapticFeedbackEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        }
+                        Haptics.impact(.light)
                         showProfileSheet = true
                     },
                     progress: stickyProgress
