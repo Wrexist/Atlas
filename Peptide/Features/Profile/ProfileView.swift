@@ -3,6 +3,7 @@ import SwiftUI
 struct ProfileView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
     @State private var storeService = StoreService.shared
     @State private var achievementService = AchievementService.shared
     @State private var authService = AuthService.shared
@@ -116,6 +117,13 @@ struct ProfileView: View {
             }
             .background(AppColor.background)
             .navigationTitle("Profile")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColor.accentPrimary)
+                }
+            }
             .task { await authService.validateCredential() }
             .sheet(isPresented: $showReconstitutionCalculator) {
                 ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
