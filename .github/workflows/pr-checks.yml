@@ -16,6 +16,12 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  # `actions: write` lets the Claude Code integration call
+  # `rerun_failed_jobs` programmatically when a transient runner-
+  # provisioning flake takes out a cheap Ubuntu job (proxy-checks /
+  # filter). Avoids burning a fresh full-build cycle on the macOS
+  # runner just to clear a flake.
+  actions: write
 
 concurrency:
   group: pr-checks-${{ github.event.pull_request.number }}
