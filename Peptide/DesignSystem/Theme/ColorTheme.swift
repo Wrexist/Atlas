@@ -39,6 +39,9 @@ enum AppColor {
     /// Soft gold used for achievement / trophy iconography.
     static let achievement = Color(hex: 0xD4A844)
 
+    /// Warm amber for the workout "perceived effort" indicator.
+    static let perceivedEffort = Color(hex: 0xFFB347)
+
     /// Canonical macro colors. Match the rings + legend on the Lifestyle
     /// Nutrition card so the same idea reads consistently across the app.
     static let macroProtein = Color(hex: 0xEF9F27)

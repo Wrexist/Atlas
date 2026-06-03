@@ -98,7 +98,7 @@ struct WorkoutSessionDetailView: View {
     private func perceivedEffortChip(_ effort: Int) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "bolt.fill")
-                .foregroundStyle(Color(hex: 0xFFB347))
+                .foregroundStyle(AppColor.perceivedEffort)
             Text("Perceived effort")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
