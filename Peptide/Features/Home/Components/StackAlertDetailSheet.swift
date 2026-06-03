@@ -3,7 +3,6 @@ import SwiftUI
 struct StackAlertDetailSheet: View {
     let warning: StackRecommendationEngine.Warning
     let peptideDatabase: [Peptide]
-    let hapticEnabled: Bool
     let onPrimaryAction: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -212,7 +211,7 @@ struct StackAlertDetailSheet: View {
             NavigationLink(value: peptide) {
                 peptideChipLabel(abbreviation, navigable: true)
             }
-            .buttonStyle(ChipPressStyle(hapticEnabled: hapticEnabled))
+            .buttonStyle(ChipPressStyle())
         } else {
             peptideChipLabel(abbreviation, navigable: false)
         }
@@ -337,15 +336,13 @@ struct StackAlertDetailSheet: View {
 }
 
 private struct ChipPressStyle: ButtonStyle {
-    var hapticEnabled: Bool
-
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
             .opacity(configuration.isPressed ? 0.85 : 1.0)
             .animation(AppAnimation.springSnappy, value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
-                if pressed && hapticEnabled {
+                if pressed {
                     Haptics.impact(.light)
                 }
             }
@@ -363,7 +360,6 @@ private struct ChipPressStyle: ButtonStyle {
             icon: "xmark.octagon.fill"
         ),
         peptideDatabase: [],
-        hapticEnabled: true,
         onPrimaryAction: {}
     )
     .preferredColorScheme(.dark)

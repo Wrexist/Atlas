@@ -208,8 +208,7 @@ struct HomeView: View {
                         onTapRing: { kind in
                             Haptics.impact(.light)
                             heroDetailKind = HeroDetailItem(kind: kind)
-                        },
-                        hapticsEnabled: dataStore.profile.hapticFeedbackEnabled
+                        }
                     )
                     .sectionAppear(index: 0)
 

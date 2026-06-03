@@ -3,7 +3,6 @@ import SwiftUI
 struct RecommendedPeptidesCard: View {
     let recommendations: [StackRecommendationEngine.Recommendation]
     var activeProtocols: [PeptideProtocol] = []
-    var hapticEnabled: Bool = true
 
     var body: some View {
         GlassCard {
@@ -28,7 +27,7 @@ struct RecommendedPeptidesCard: View {
                             NavigationLink(value: rec.peptide) {
                                 recommendationRow(rec, stacks: stacks(for: rec.peptide))
                             }
-                            .buttonStyle(RecommendationPressStyle(hapticEnabled: hapticEnabled))
+                            .buttonStyle(RecommendationPressStyle())
 
                             if rec.id != recommendations.last?.id {
                                 Divider().foregroundStyle(AppColor.glassBorder)
@@ -184,15 +183,13 @@ struct RecommendedPeptidesCard: View {
 }
 
 private struct RecommendationPressStyle: ButtonStyle {
-    var hapticEnabled: Bool
-
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .opacity(configuration.isPressed ? 0.8 : 1.0)
             .animation(AppAnimation.springSnappy, value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
-                if pressed && hapticEnabled {
+                if pressed {
                     Haptics.impact(.light)
                 }
             }

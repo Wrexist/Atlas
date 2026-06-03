@@ -31,8 +31,7 @@ struct ProtocolsDiscoverSection: View {
                 if !recommendations.isEmpty {
                     RecommendedPeptidesCard(
                         recommendations: recommendations,
-                        activeProtocols: dataStore.activeProtocols,
-                        hapticEnabled: dataStore.profile.hapticFeedbackEnabled
+                        activeProtocols: dataStore.activeProtocols
                     )
                 }
             }

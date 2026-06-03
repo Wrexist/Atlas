@@ -58,6 +58,7 @@ final class MealScannerService: Sendable {
         case invalidResponse
         case parseFailure
         case implausibleResult
+        case noFoodDetected
 
         var errorDescription: String? {
             switch self {
@@ -69,6 +70,7 @@ final class MealScannerService: Sendable {
             case .invalidResponse:      "The scanner returned an unexpected response."
             case .parseFailure:         "Couldn't read the meal estimate from the scanner."
             case .implausibleResult:    "The scanner returned values outside a realistic range — try a clearer photo."
+            case .noFoodDetected:       "No food found in that photo — point the camera at your meal and try again."
             }
         }
     }
@@ -389,6 +391,10 @@ final class MealScannerService: Sendable {
         } catch {
             throw ScanError.parseFailure
         }
+        // The prompt returns an empty array for a photo with no food
+        // (a book, a note, an empty plate) — surface that as its own
+        // friendly state rather than the generic "couldn't read" error.
+        guard !decoded.items.isEmpty else { throw ScanError.noFoodDetected }
         // Drop individually-implausible items rather than failing the
         // whole scan — one bad row shouldn't sink a four-item plate.
         let valid = decoded.items.filter { item in

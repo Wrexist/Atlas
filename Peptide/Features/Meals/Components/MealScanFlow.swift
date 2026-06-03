@@ -290,7 +290,7 @@ struct MealScanFlow: View {
                 ForEach($items) { $item in
                     FoodItemEditCard(
                         item: $item,
-                        onSave: { saveToLibrary(item) }
+                        onSave: { saveToLibrary(item.id) }
                     )
                 }
 
@@ -319,8 +319,10 @@ struct MealScanFlow: View {
         .scrollIndicators(.hidden)
     }
 
-    private var addButtonTitle: LocalizedStringKey {
-        includedItems.count <= 1 ? "Add to today" : "Add \(includedItems.count) items"
+    private var addButtonTitle: String {
+        includedItems.count <= 1
+            ? String(localized: "Add to today")
+            : String(format: String(localized: "Add %lld items"), includedItems.count)
     }
 
     private var errorCard: some View {
@@ -464,7 +466,12 @@ struct MealScanFlow: View {
     /// Re-saving the same scanned item reuses the existing same-name
     /// food's id so `saveCustomFood` updates it in place instead of
     /// cluttering "My Foods" with duplicates.
-    private func saveToLibrary(_ item: EditableFoodItem) {
+    private func saveToLibrary(_ id: UUID) {
+        // Read the live item so an inline rename / portion edit made just
+        // before tapping Save is reflected, rather than a stale copy
+        // captured when the row was built.
+        guard let item = items.first(where: { $0.id == id }) else { return }
+
         let normalizedName = item.name
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
