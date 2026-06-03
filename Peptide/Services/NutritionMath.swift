@@ -193,6 +193,75 @@ enum NutritionMath {
         )
     }
 
+    /// One-tap goal presets surfaced in the targets editor. Each maps to a
+    /// calorie strategy; when the user's body metrics are complete the preset
+    /// is personalised through `recommendedTargets`, otherwise it falls back
+    /// to a sensible fixed default so the editor always has something to
+    /// offer — even on a brand-new profile with no stats entered yet.
+    enum Preset: String, CaseIterable, Identifiable, Sendable {
+        case loseFat, maintain, buildMuscle
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .loseFat:     return "Lose fat"
+            case .maintain:    return "Maintain"
+            case .buildMuscle: return "Build muscle"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .loseFat:     return "flame.fill"
+            case .maintain:    return "equal.circle.fill"
+            case .buildMuscle: return "dumbbell.fill"
+            }
+        }
+
+        /// The persisted `primaryGoal` raw value each preset maps to, so
+        /// `recommendedTargets` applies the matching calorie strategy.
+        var goalRaw: String {
+            switch self {
+            case .loseFat:     return "loseFat"
+            case .maintain:    return "maintain"
+            case .buildMuscle: return "buildMuscle"
+            }
+        }
+
+        /// Fixed fallback for when body metrics are incomplete. Reference
+        /// targets for an average adult, shifted by goal. Calories are the
+        /// exact macro sum so the displayed total never disagrees with the
+        /// breakdown (same invariant the computed pipeline upholds).
+        var fallback: NutritionTargets {
+            switch self {
+            case .loseFat:
+                return NutritionTargets(calories: 1650, proteinG: 150, carbsG: 150, fatG: 50, fiberG: fiberDefaultG)
+            case .maintain:
+                return NutritionTargets(calories: 2105, proteinG: 150, carbsG: 230, fatG: 65, fiberG: fiberDefaultG)
+            case .buildMuscle:
+                return NutritionTargets(calories: 2575, proteinG: 175, carbsG: 300, fatG: 75, fiberG: fiberDefaultG)
+            }
+        }
+
+        /// The preset closest to a stored `primaryGoal` raw value, used to
+        /// flag the recommended chip. Recomp and unknown goals land on
+        /// `.maintain`.
+        static func matching(goalRaw: String?) -> Preset {
+            switch GoalIntent(goalRaw: goalRaw) {
+            case .deficit:               return .loseFat
+            case .surplus:               return .buildMuscle
+            case .recomp, .maintenance:  return .maintain
+            }
+        }
+    }
+
+    /// Targets for a one-tap preset. Personalised from body metrics when
+    /// they're complete; otherwise the preset's fixed fallback. Never nil,
+    /// so the editor can always apply a tapped preset.
+    static func presetTargets(_ preset: Preset, for metrics: BodyMetrics) -> NutritionTargets {
+        recommendedTargets(for: metrics, goalRaw: preset.goalRaw) ?? preset.fallback
+    }
+
     /// Mifflin-St Jeor BMR in kilocalories. The `.other` and `.unspecified`
     /// cases use the average of the male/female constants (-78) so a
     /// non-binary user still gets a reasonable estimate without forcing
