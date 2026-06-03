@@ -97,7 +97,7 @@ struct CalendarMonthView: View {
 
         return Button {
             selectedDay = calendar.startOfDay(for: date)
-            UISelectionFeedbackGenerator().selectionChanged()
+            Haptics.selection()
         } label: {
             VStack(spacing: 4) {
                 ZStack {

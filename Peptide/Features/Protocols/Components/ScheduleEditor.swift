@@ -32,7 +32,6 @@ struct ScheduleEditor: View {
     /// `timesPerDay` and the caller generates default times.
     var preferredTimes: Binding<[String]>?
     let dayNames: [String]
-    var hapticEnabled: Bool = true
 
     var body: some View {
         VStack(spacing: Spacing.lg) {
@@ -41,8 +40,7 @@ struct ScheduleEditor: View {
                     selection: cadenceBinding,
                     options: ScheduleCadenceMode.allCases,
                     label: { $0.label },
-                    icon: { $0.icon },
-                    hapticEnabled: hapticEnabled
+                    icon: { $0.icon }
                 )
             }
 
@@ -145,8 +143,7 @@ struct ScheduleEditor: View {
                     value: binding,
                     range: 1...30,
                     formatter: { $0 == 1 ? "1 day" : "\($0) days" },
-                    width: 88,
-                    hapticEnabled: hapticEnabled
+                    width: 88
                 )
             }
 
@@ -178,8 +175,7 @@ struct ScheduleEditor: View {
                 value: $timesPerDay,
                 range: 1...4,
                 formatter: { "\($0)" },
-                width: 36,
-                hapticEnabled: hapticEnabled
+                width: 36
             )
         }
     }
@@ -197,8 +193,7 @@ struct ScheduleEditor: View {
                 ForEach(0..<timesPerDay, id: \.self) { index in
                     TimeSlotRow(
                         index: index,
-                        timeString: timeStringBinding(for: index, in: binding),
-                        hapticEnabled: hapticEnabled
+                        timeString: timeStringBinding(for: index, in: binding)
                     )
                 }
             }
@@ -258,8 +253,7 @@ struct ScheduleEditor: View {
                 value: binding,
                 range: 1...24,
                 formatter: { "\($0) wk" },
-                width: 64,
-                hapticEnabled: hapticEnabled
+                width: 64
             )
         }
     }
@@ -267,8 +261,7 @@ struct ScheduleEditor: View {
     // MARK: - Haptics
 
     private func triggerSelectionHaptic() {
-        guard hapticEnabled else { return }
-        UISelectionFeedbackGenerator().selectionChanged()
+        Haptics.selection()
     }
 }
 
@@ -321,7 +314,6 @@ struct LiquidGlassSegmentedControl<Option: Hashable>: View {
     let options: [Option]
     let label: (Option) -> LocalizedStringKey
     let icon: (Option) -> String
-    var hapticEnabled: Bool = true
 
     @Namespace private var pillNamespace
 
@@ -351,9 +343,7 @@ struct LiquidGlassSegmentedControl<Option: Hashable>: View {
         let isSelected = option == selection
         return Button {
             guard option != selection else { return }
-            if hapticEnabled {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            }
+            Haptics.impact(.light)
             withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
                 selection = option
             }
@@ -397,7 +387,6 @@ struct LiquidGlassStepper: View {
     let range: ClosedRange<Int>
     var formatter: (Int) -> String = { "\($0)" }
     var width: CGFloat = 48
-    var hapticEnabled: Bool = true
 
     var body: some View {
         HStack(spacing: Spacing.md) {
@@ -454,8 +443,7 @@ struct LiquidGlassStepper: View {
     }
 
     private func tick() {
-        guard hapticEnabled else { return }
-        UISelectionFeedbackGenerator().selectionChanged()
+        Haptics.selection()
     }
 }
 
@@ -467,7 +455,6 @@ struct LiquidGlassStepper: View {
 private struct TimeSlotRow: View {
     let index: Int
     @Binding var timeString: String
-    var hapticEnabled: Bool = true
 
     @State private var pickerDate: Date = Date()
     @State private var isShowingPicker = false
@@ -489,9 +476,7 @@ private struct TimeSlotRow: View {
         Button {
             pickerDate = Self.formatter.date(from: timeString) ?? Date()
             isShowingPicker = true
-            if hapticEnabled {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            }
+            Haptics.impact(.light)
         } label: {
             HStack(spacing: Spacing.md) {
                 ZStack {

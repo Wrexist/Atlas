@@ -129,7 +129,7 @@ struct OutcomeCheckInSheet: View {
             ForEach(1...5, id: \.self) { rating in
                 pill(rating: rating, current: value.wrappedValue, tint: tint) {
                     if value.wrappedValue != rating {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        Haptics.impact(.light)
                         value.wrappedValue = rating
                     }
                 }
@@ -210,7 +210,7 @@ struct OutcomeCheckInSheet: View {
     }
 
     private func commit() {
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.success()
         let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
         let entry = OutcomeEntry(
             id: initial?.id ?? UUID(),

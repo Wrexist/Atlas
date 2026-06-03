@@ -13,11 +13,13 @@ struct HomeView: View {
     /// the View on its own.
     @State private var notificationService = NotificationService.shared
     @State private var showProfileCustomization = false
-    /// Phase D demoted Profile from the tab bar to a top-right
-    /// avatar entry on Today. Tap routes through this sheet so the
-    /// user reaches their full Profile screen in one hop without
-    /// nesting a NavigationStack.
-    @State private var showProfileSheet = false
+    /// Drives the calorie/macro targets editor presented from the
+    /// Today overview card's "Set a calorie target" nudge — previously
+    /// the nudge was tappable but wired to nothing.
+    @State private var showTargetsEditor = false
+    // Profile is opened via the shared `appState.showProfile` flag now
+    // (a single app-level sheet), so the Today avatar and every other
+    // tab's avatar button route through the same presentation.
     /// 0…1 fade progress for the sticky compressing header. Driven
     /// by `.onScrollGeometryChange` so the bar materialises in lock-
     /// step with the user's finger.
@@ -122,14 +124,11 @@ struct HomeView: View {
                         date: dateString,
                         avatarImageData: dataStore.profile.avatarImageData,
                         onAvatarTap: {
-                            if dataStore.profile.hapticFeedbackEnabled {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            }
-                            // Phase D: avatar opens the full Profile
-                            // screen now (Profile lost its tab slot).
-                            // ProfileCustomizationSheet stays
-                            // reachable from inside ProfileView.
-                            showProfileSheet = true
+                            Haptics.impact(.light)
+                            // Profile lost its tab slot in the training
+                            // pivot; the shared flag opens the app-level
+                            // sheet from here and every other tab alike.
+                            appState.showProfile = true
                         }
                     )
                     .sectionAppear(index: 0)
@@ -166,8 +165,7 @@ struct HomeView: View {
                         activeAnchor: activeJumpAnchor,
                         showsDoses: !dataStore.protocols.isEmpty,
                         onSelect: { anchor in handleJump(to: anchor, proxy: proxy) },
-                        onQuickLog: { showQuickLogMenu() },
-                        hapticsEnabled: dataStore.profile.hapticFeedbackEnabled
+                        onQuickLog: { showQuickLogMenu() }
                     )
                     .sectionAppear(index: 0)
 
@@ -205,12 +203,9 @@ struct HomeView: View {
                     HeroMetricTrio(
                         snapshot: heroSnapshot,
                         onTapRing: { kind in
-                            if dataStore.profile.hapticFeedbackEnabled {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            }
+                            Haptics.impact(.light)
                             heroDetailKind = HeroDetailItem(kind: kind)
-                        },
-                        hapticsEnabled: dataStore.profile.hapticFeedbackEnabled
+                        }
                     )
                     .sectionAppear(index: 0)
 
@@ -244,25 +239,32 @@ struct HomeView: View {
                     if overview.hasAnySignal {
                         TodayOverviewCard(
                             snapshot: overview,
-                            hapticsEnabled: dataStore.profile.hapticFeedbackEnabled,
                             onTapHero: { dose in
                                 guard let dose else { return }
                                 selectedEntry = dose
                             },
                             onTapInsight: { insight in
-                                if case .latestLab = insight {
+                                switch insight {
+                                case .latestLab:
                                     appState.pendingLabsOpen = true
                                     appState.selectedTab = .biology
+                                case .nudge(_, _, _, .setCalorieTarget):
+                                    showTargetsEditor = true
+                                case .nudge(_, _, _, .logMeal):
+                                    appState.selectedTab = .meals
+                                case .protocolInsight, .nudge:
+                                    break
                                 }
                             }
                         )
                         .sectionAppear(index: 0)
                     }
 
-                    if dataStore.protocols.isEmpty {
-                        gettingStartedCard
-                            .sectionAppear(index: 1)
-                    } else {
+                    // Protocol creation now lives on the Library tab —
+                    // Today no longer shows the full-screen "Create your
+                    // first protocol" card for new users. Once a protocol
+                    // exists, the score card surfaces here as before.
+                    if !dataStore.protocols.isEmpty {
                         ProtocolScoreCard(
                             score: stats.score,
                             completed: stats.completed,
@@ -391,10 +393,8 @@ struct HomeView: View {
                     firstName: firstNameForSticky,
                     avatarImageData: dataStore.profile.avatarImageData,
                     onAvatarTap: {
-                        if dataStore.profile.hapticFeedbackEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        }
-                        showProfileSheet = true
+                        Haptics.impact(.light)
+                        appState.showProfile = true
                     },
                     progress: stickyProgress
                 )
@@ -422,10 +422,15 @@ struct HomeView: View {
                     .environment(appState)
                     .liquidGlassPresentation()
             }
-            .sheet(isPresented: $showProfileSheet) {
-                ProfileView()
-                    .environment(dataStore)
-                    .environment(appState)
+            .sheet(isPresented: $showTargetsEditor) {
+                NutritionTargetsEditor(
+                    initial: dataStore.profile.nutritionTargets ?? .zero,
+                    onSave: { targets in
+                        dataStore.updateNutritionTargets(targets)
+                        showTargetsEditor = false
+                    },
+                    onCancel: { showTargetsEditor = false }
+                )
             }
             .sheet(item: $milestonePrompt) { item in
                 CycleMilestonePromptSheet(
@@ -950,24 +955,10 @@ struct HomeView: View {
         var id: String { "\(proto.id.uuidString):\(milestone.rawValue)" }
     }
 
-    private var gettingStartedCard: some View {
-        EmptyStateView(
-            icon: "flask.fill",
-            title: "Create your first protocol",
-            message: "Set up a peptide protocol to start tracking doses, streaks, and compliance.",
-            action: .init(title: "Get started", icon: "plus") {
-                withAnimation(AppAnimation.springSnappy) {
-                    appState.pendingProtocolList = true
-                    appState.selectedTab = .library
-                }
-            },
-            secondary: .init(title: "Browse the library", icon: "magnifyingglass") {
-                withAnimation(AppAnimation.springSnappy) {
-                    appState.selectedTab = .library
-                }
-            }
-        )
-    }
+    // The "Create your first protocol" empty state moved to the
+    // Library tab (PeptideListView) — protocol creation now lives
+    // alongside the peptide database there, so Today stays focused
+    // on the day's signals rather than onboarding chrome.
 
     // Stack-warning + stack-adjustment helpers moved to
     // ProtocolsStackHealthSection in Phase 34 alongside the cards

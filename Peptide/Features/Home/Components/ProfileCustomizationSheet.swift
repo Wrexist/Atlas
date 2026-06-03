@@ -265,7 +265,6 @@ struct ProfileCustomizationSheet: View {
         }
         .sheet(isPresented: $isShowingPresetPicker) {
             AvatarPresetPickerSheet(
-                hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                 onPick: { preset in
                     isShowingPresetPicker = false
                     Task { await ingestPreset(preset) }
@@ -565,9 +564,7 @@ struct ProfileCustomizationSheet: View {
             withAnimation(.snappy(duration: 0.2)) {
                 selection.wrappedValue = color
             }
-            if dataStore.profile.hapticFeedbackEnabled {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            }
+            Haptics.impact(.light)
         } label: {
             ZStack {
                 Circle()
@@ -691,9 +688,7 @@ struct ProfileCustomizationSheet: View {
                 } else {
                     Button {
                         dataStore.setPrimaryGoal(goal)
-                        if dataStore.profile.hapticFeedbackEnabled {
-                            UINotificationFeedbackGenerator().notificationOccurred(.success)
-                        }
+                        Haptics.success()
                     } label: {
                         Label("Pin as Primary", systemImage: "pin")
                     }
@@ -710,9 +705,7 @@ struct ProfileCustomizationSheet: View {
             current.insert(goal)
         }
         dataStore.updateGoals(current)
-        if dataStore.profile.hapticFeedbackEnabled {
-            UISelectionFeedbackGenerator().selectionChanged()
-        }
+        Haptics.selection()
     }
 
     // MARK: - Body Metrics summary

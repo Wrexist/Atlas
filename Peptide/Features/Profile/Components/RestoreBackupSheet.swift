@@ -260,9 +260,7 @@ struct RestoreBackupSheet: View {
                 )
                 resultPreview = realized
                 phase = .done
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                }
+                Haptics.success()
             } catch let error as BackupImportService.ImportError {
                 errorMessage = error.errorDescription
                 phase = .failed

@@ -50,9 +50,7 @@ struct ProtocolBuilderView: View {
         for peptide in peptidesToAdd {
             dataStore.addPeptide(peptide, toProtocolId: target.id)
         }
-        if dataStore.profile.hapticFeedbackEnabled {
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-        }
+        Haptics.success()
         dismiss()
     }
 
@@ -360,9 +358,7 @@ struct ProtocolBuilderView: View {
                     Spacer(minLength: Spacing.xs)
 
                     Button {
-                        if dataStore.profile.hapticFeedbackEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        }
+                        Haptics.impact(.light)
                         if isAppending {
                             withAnimation(AppAnimation.springSnappy) {
                                 appendTargetProtocolId = nil
@@ -512,8 +508,7 @@ struct ProtocolBuilderView: View {
                             cadenceMode: $cadenceMode,
                             intervalDays: $intervalDays,
                             preferredTimes: $preferredTimes,
-                            dayNames: dayNames,
-                            hapticEnabled: dataStore.profile.hapticFeedbackEnabled
+                            dayNames: dayNames
                         )
 
                         WashoutPicker(washoutWeeks: $washoutWeeks)

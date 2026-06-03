@@ -126,7 +126,7 @@ struct AccountSection: View {
                 .overlay(AppColor.glassBorder)
 
             GlassButton(title: "Sign Out", icon: "rectangle.portrait.and.arrow.right",
-                        style: .destructive, isFullWidth: true) {
+                        style: .secondary, isFullWidth: true) {
                 authService.signOut()
             }
 

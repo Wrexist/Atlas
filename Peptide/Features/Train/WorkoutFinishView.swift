@@ -58,7 +58,7 @@ struct WorkoutFinishView: View {
             // Reduce-motion guards the *visual* bounce — haptics
             // should fire regardless, so this guard now wraps
             // animation hooks only (audit Train M7).
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            Haptics.success()
         }
     }
 

@@ -294,92 +294,108 @@ struct PaywallView: View {
         // priority order with the savings anchor on Yearly. Lifetime
         // was previously loaded into StoreService.products but never
         // rendered on the paywall (audit Library P1.10).
-        HStack(alignment: .top, spacing: Spacing.md) {
+        //
+        // Stacked full-width rows rather than a 3-up grid: three tiers
+        // side-by-side left each card ~100pt wide, which forced the
+        // titles and localized prices to wrap mid-word ("Month\nly",
+        // "$4.1\n7"). Rows give every plan room to breathe and read
+        // as a single premium line — the layout RevenueCat / Whoop /
+        // Bevel use for 3+ tiers.
+        VStack(spacing: Spacing.sm) {
             if let annual = storeService.annualProduct {
-                pricingCard(
+                pricingRow(
                     product: annual,
                     title: "Yearly",
                     primaryPrice: perMonthEquivalent(for: annual) ?? annual.displayPrice,
                     primaryUnit: "/mo",
                     subtitle: yearlySubtitle(for: annual),
-                    badge: savingsBadge,
-                    isYearly: true
+                    badge: savingsBadge
                 )
             }
             if let monthly = storeService.monthlyProduct {
-                pricingCard(
+                pricingRow(
                     product: monthly,
                     title: "Monthly",
                     primaryPrice: monthly.displayPrice,
                     primaryUnit: "/mo",
                     subtitle: "Billed \(monthly.displayPrice)/mo",
-                    badge: nil,
-                    isYearly: false
+                    badge: nil
                 )
             }
             if let lifetime = storeService.lifetimeProduct {
                 // Lifetime is configured in App Store Connect but was
                 // previously unreachable from the paywall, so revenue
                 // from this product was effectively zero.
-                pricingCard(
+                pricingRow(
                     product: lifetime,
                     title: "Lifetime",
                     primaryPrice: lifetime.displayPrice,
                     primaryUnit: "once",
                     subtitle: "Pay once. Yours forever.",
-                    badge: "BEST VALUE",
-                    isYearly: false
+                    badge: "BEST VALUE"
                 )
             }
         }
     }
 
-    private func pricingCard(
+    private func pricingRow(
         product: Product,
         title: LocalizedStringKey,
         primaryPrice: String,
         primaryUnit: String,
         subtitle: String,
-        badge: String?,
-        isYearly: Bool
+        badge: String?
     ) -> some View {
         let isSelected = selectedProductID == product.id
         return Button {
-            UISelectionFeedbackGenerator().selectionChanged()
+            Haptics.selection()
             withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
                 selectedProductID = product.id
             }
         } label: {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                HStack {
-                    Text(title)
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(AppColor.textPrimary)
-                    Spacer()
-                    radioMark(isSelected: isSelected)
+            HStack(spacing: Spacing.md) {
+                radioMark(isSelected: isSelected)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: Spacing.xs) {
+                        Text(title)
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundStyle(AppColor.textPrimary)
+                        if let badge {
+                            savingsPill(badge)
+                        }
+                    }
+
+                    Text(subtitle)
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
+
+                Spacer(minLength: Spacing.sm)
 
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(primaryPrice)
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
                     Text(primaryUnit)
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                 }
-
-                Text(subtitle)
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .lineLimit(2)
+                .lineLimit(1)
+                .fixedSize()
             }
             .padding(Spacing.md)
-            .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.6))
+                    .fill(
+                        isSelected
+                            ? AppColor.accentPrimary.opacity(0.10)
+                            : AppColor.surfaceSecondary.opacity(0.6)
+                    )
                     .overlay {
                         RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                             .strokeBorder(
@@ -387,12 +403,6 @@ struct PaywallView: View {
                                 lineWidth: isSelected ? 2 : 0.5
                             )
                     }
-            }
-            .overlay(alignment: .top) {
-                if isYearly, let badge {
-                    savingsPill(badge)
-                        .offset(y: -12)
-                }
             }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.985))

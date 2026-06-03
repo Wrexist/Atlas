@@ -57,7 +57,7 @@ struct WorkoutHistoryView: View {
     private func sectionHeader(_ label: String) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.eyebrow)
                 .tracking(1.2)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()

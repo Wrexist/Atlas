@@ -33,6 +33,9 @@ struct TrainContainerView: View {
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle("Train")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
+            }
             .navigationDestination(for: TrainNavigation.self) { destination in
                 switch destination {
                 case .exerciseDetail(let id):
@@ -85,7 +88,7 @@ struct TrainContainerView: View {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "figure.run.circle.fill")
                     .font(.system(size: 22, weight: .semibold))
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Workout in progress")
                         .font(AppFont.callout.weight(.semibold))
                     if let active = sessionService.activeSession {

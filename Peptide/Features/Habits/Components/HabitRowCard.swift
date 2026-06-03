@@ -72,7 +72,7 @@ struct HabitRowCard: View {
 
     private var todayButton: some View {
         Button {
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            Haptics.impact(.soft)
             withAnimation(AppAnimation.springSnappy) { onToggleToday() }
         } label: {
             ZStack {

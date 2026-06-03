@@ -337,7 +337,7 @@ struct AffiliateApplySheet: View {
             name: userName.isEmpty ? nil : userName,
             email: userEmail
         )
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.success()
         onSubmit(application)
         dismiss()
     }

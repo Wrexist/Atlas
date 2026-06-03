@@ -4,6 +4,18 @@ struct AboutSection: View {
     @State private var showDisclaimer = false
     @State private var showWhatsNewReplay = false
 
+    /// Read the marketing version + build straight from the bundle so
+    /// the About card never drifts from what TestFlight / the App
+    /// Store actually shipped. These were hardcoded to "1.0.0" / "1",
+    /// which would silently lie the moment the build number bumped.
+    private static var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+    }
+
+    private static var buildNumber: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+    }
+
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
@@ -12,9 +24,9 @@ struct AboutSection: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 VStack(spacing: Spacing.md) {
-                    AboutRow(title: "Version", value: "1.0.0")
+                    AboutRow(title: "Version", value: Self.appVersion)
                     Divider().foregroundStyle(AppColor.glassBorder)
-                    AboutRow(title: "Build", value: "1")
+                    AboutRow(title: "Build", value: Self.buildNumber)
                     Divider().foregroundStyle(AppColor.glassBorder)
                     AboutRow(title: "Peptide Database", value: "\(PeptideDatabase.shared.count) peptides")
                     Divider().foregroundStyle(AppColor.glassBorder)

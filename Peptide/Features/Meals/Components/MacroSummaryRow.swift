@@ -185,7 +185,7 @@ struct MacroSummaryRow: View {
 
     private func quickAddButton(label: LocalizedStringKey, oz: Int) -> some View {
         Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Haptics.impact(.light)
             onAddWater(oz)
         } label: {
             HStack(spacing: 4) {

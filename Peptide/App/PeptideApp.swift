@@ -52,6 +52,12 @@ struct PeptideApp: App {
             WatchSyncService.shared.onLogWater = { oz in
                 store.logWater(oz: oz)
             }
+            // Resolve haptics against the live profile so the global
+            // "Haptic Feedback" toggle is honoured everywhere without
+            // threading it through each view.
+            Haptics.configure { [weak store] in
+                store?.profile.hapticFeedbackEnabled ?? true
+            }
             return store
         })
     }
@@ -343,9 +349,7 @@ struct PeptideApp: App {
             }
         }
         .onChange(of: appState.selectedTab) { _, _ in
-            if dataStore.profile.hapticFeedbackEnabled {
-                UISelectionFeedbackGenerator().selectionChanged()
-            }
+            Haptics.selection()
         }
     }
 
@@ -382,6 +386,13 @@ struct PeptideApp: App {
         .environment(dataStore)
         .preferredColorScheme(themeManager.displayMode.preferredScheme)
         .tint(AppColor.accentPrimary)
+        // Single Profile sheet shared by every tab's avatar button, so
+        // settings/account are reachable without returning to Today.
+        .sheet(isPresented: Bindable(appState).showProfile) {
+            ProfileView()
+                .environment(dataStore)
+                .environment(appState)
+        }
         .task {
             let delegate = NotificationDelegate(dataStore: dataStore)
             notificationDelegate = delegate

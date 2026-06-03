@@ -241,7 +241,7 @@ struct ProgressPhotosCard: View {
                         revealedFilename = filename
                     }
                 }
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
             }
             .contextMenu {
                 Button {
@@ -305,14 +305,10 @@ struct ProgressPhotosCard: View {
             }
             let filename = try ProgressPhotoStorage.save(image)
             dataStore.addProgressPhotoFilename(filename)
-            if dataStore.profile.hapticFeedbackEnabled {
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-            }
+            Haptics.success()
         } catch {
             errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            if dataStore.profile.hapticFeedbackEnabled {
-                UINotificationFeedbackGenerator().notificationOccurred(.error)
-            }
+            Haptics.error()
         }
     }
 
@@ -320,9 +316,7 @@ struct ProgressPhotosCard: View {
         ProgressPhotoStorage.delete(filename: filename)
         dataStore.removeProgressPhotoFilename(filename)
         if revealedFilename == filename { revealedFilename = nil }
-        if dataStore.profile.hapticFeedbackEnabled {
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        }
+        Haptics.impact(.medium)
     }
 }
 

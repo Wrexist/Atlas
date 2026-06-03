@@ -36,6 +36,9 @@ struct MealsContainerView: View {
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle("Meals")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
+            }
         }
     }
 }

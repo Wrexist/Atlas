@@ -101,7 +101,7 @@ struct RecommendationsPage: View {
                 selectedIds.insert(id)
             }
         }
-        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        Haptics.impact(.soft)
     }
 }
 

@@ -57,7 +57,6 @@ struct TodayJumpBar: View {
     /// Triggered by the trailing "+" quick-log button. Parent decides
     /// what to surface (meal scan, dose entry, check-in).
     let onQuickLog: () -> Void
-    var hapticsEnabled: Bool = true
 
     private var chips: [SectionAnchor] {
         SectionAnchor.allCases.filter { $0 != .doses || showsDoses }
@@ -82,9 +81,7 @@ struct TodayJumpBar: View {
     private func chipButton(for anchor: SectionAnchor) -> some View {
         let isActive = (anchor == activeAnchor)
         return Button {
-            if hapticsEnabled {
-                UISelectionFeedbackGenerator().selectionChanged()
-            }
+            Haptics.selection()
             onSelect(anchor)
         } label: {
             HStack(spacing: Spacing.xs) {
@@ -127,9 +124,7 @@ struct TodayJumpBar: View {
 
     private var quickLogButton: some View {
         Button {
-            if hapticsEnabled {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            }
+            Haptics.impact(.medium)
             onQuickLog()
         } label: {
             HStack(spacing: Spacing.xs) {

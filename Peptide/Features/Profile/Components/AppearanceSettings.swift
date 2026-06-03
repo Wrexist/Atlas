@@ -61,8 +61,7 @@ struct AppearanceSettings: View {
                 Divider().foregroundStyle(AppColor.glassBorder)
 
                 ThemePickerRow(
-                    selection: $themeBinding.theme,
-                    hapticEnabled: dataStore.profile.hapticFeedbackEnabled
+                    selection: $themeBinding.theme
                 )
 
                 Divider().foregroundStyle(AppColor.glassBorder)
@@ -164,7 +163,6 @@ private struct SettingsToggleRow: View {
 
 private struct ThemePickerRow: View {
     @Binding var selection: AppThemeColor
-    let hapticEnabled: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -202,9 +200,7 @@ private struct ThemePickerRow: View {
             withAnimation(.snappy(duration: 0.2)) {
                 selection = theme
             }
-            if hapticEnabled {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            }
+            Haptics.impact(.light)
         } label: {
             Circle()
                 .fill(theme.primary)

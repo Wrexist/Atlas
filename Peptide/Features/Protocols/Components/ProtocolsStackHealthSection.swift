@@ -52,7 +52,6 @@ struct ProtocolsStackHealthSection: View {
                 if !warnings.isEmpty {
                     StackWarningCard(
                         warnings: warnings,
-                        hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                         onSelect: { selectedAlert = $0 }
                     )
                 }
@@ -69,7 +68,6 @@ struct ProtocolsStackHealthSection: View {
                 StackAlertDetailSheet(
                     warning: warning,
                     peptideDatabase: dataStore.peptideDatabase,
-                    hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                     onPrimaryAction: {
                         if canAdjustStack(for: warning) {
                             // Defer until the detail sheet finishes
@@ -99,7 +97,6 @@ struct ProtocolsStackHealthSection: View {
                     candidateProtocols: candidates,
                     allActiveProtocols: dataStore.activeProtocols,
                     peptideDatabase: dataStore.peptideDatabase,
-                    hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                     onApply: applyStackAdjustment
                 )
             }

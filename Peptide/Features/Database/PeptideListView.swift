@@ -80,7 +80,7 @@ struct PeptideListView: View {
     private var iPadSplitLayout: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             sidebarContent(useNavigationLinks: false)
-                .navigationTitle("Peptides")
+                .navigationTitle("Library")
                 .toolbar { sidebarToolbar }
                 .sheet(isPresented: $showCustomForm) {
                     CustomPeptideForm { peptide in
@@ -122,7 +122,7 @@ struct PeptideListView: View {
     private var iPhoneStackLayout: some View {
         NavigationStack {
             sidebarContent(useNavigationLinks: true)
-                .navigationTitle("Peptides")
+                .navigationTitle("Library")
                 .toolbar { sidebarToolbar }
                 .navigationDestination(for: Peptide.self) { peptide in
                     PeptideDetailView(peptide: peptide)
@@ -155,6 +155,16 @@ struct PeptideListView: View {
     private func sidebarContent(useNavigationLinks: Bool) -> some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
+                // Protocol creation lives here now (moved off Today).
+                // Reads as the primary CTA for a new user with no
+                // protocols, then collapses to a compact "manage"
+                // entry once they have one.
+                ProtocolsEntryCard(
+                    activeCount: dataStore.activeProtocols.count,
+                    onTap: { showProtocols = true }
+                )
+                .padding(.horizontal, Spacing.screenPadding)
+
                 AddCustomPeptideCard {
                     showCustomForm = true
                 }
@@ -169,7 +179,6 @@ struct PeptideListView: View {
                 CategoryFilterChips(
                     categories: viewModel.categories,
                     selected: viewModel.selectedCategory,
-                    hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                     onSelect: viewModel.selectCategory
                 )
 
@@ -216,9 +225,7 @@ struct PeptideListView: View {
         } else {
             Button {
                 selectedPeptide = peptide
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UISelectionFeedbackGenerator().selectionChanged()
-                }
+                Haptics.selection()
             } label: {
                 PeptideRow(peptide: peptide)
             }
@@ -267,6 +274,82 @@ struct PeptideListView: View {
                         .fill(AppColor.accentPrimary.opacity(0.15))
                 }
         }
+    }
+}
+
+/// Top-of-Library entry into protocols. Doubles as the new-user
+/// "create your first protocol" CTA (this moved off the Today tab) and,
+/// once protocols exist, a compact way back into the protocol list.
+private struct ProtocolsEntryCard: View {
+    let activeCount: Int
+    let onTap: () -> Void
+
+    private var isEmpty: Bool { activeCount == 0 }
+
+    private var title: LocalizedStringKey {
+        isEmpty ? "Create your first protocol" : "Your protocols"
+    }
+
+    private var subtitle: String {
+        if isEmpty {
+            return String(localized: "Track doses, streaks, and compliance.")
+        }
+        return activeCount == 1
+            ? String(localized: "1 active · tap to manage")
+            : String(format: String(localized: "%d active · tap to manage"), activeCount)
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(AppColor.accentPrimary.opacity(0.18))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "flask.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(AppColor.accentLight)
+                }
+
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(title)
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(subtitle)
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
+
+                Spacer()
+
+                if isEmpty {
+                    Text("Get started")
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(AppColor.accentPrimary)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+            }
+            .padding(Spacing.md)
+            .frame(maxWidth: .infinity)
+            .background {
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .fill(AppColor.accentPrimary.opacity(isEmpty ? 0.12 : 0.06))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                            .strokeBorder(
+                                isEmpty ? AppColor.accentPrimary.opacity(0.45) : AppColor.glassBorder,
+                                lineWidth: isEmpty ? 1 : 0.5
+                            )
+                    }
+            }
+        }
+        .buttonStyle(ScalePressStyle())
+        .accessibilityLabel(isEmpty ? "Create your first protocol" : "Open your protocols")
     }
 }
 

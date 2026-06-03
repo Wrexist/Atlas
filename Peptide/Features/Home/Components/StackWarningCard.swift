@@ -2,7 +2,6 @@ import SwiftUI
 
 struct StackWarningCard: View {
     let warnings: [StackRecommendationEngine.Warning]
-    var hapticEnabled: Bool = true
     var onSelect: (StackRecommendationEngine.Warning) -> Void
 
     var body: some View {
@@ -19,7 +18,7 @@ struct StackWarningCard: View {
                         } label: {
                             warningRow(warning)
                         }
-                        .buttonStyle(WarningRowPressStyle(hapticEnabled: hapticEnabled))
+                        .buttonStyle(WarningRowPressStyle())
 
                         if warning.id != warnings.last?.id {
                             Divider().foregroundStyle(AppColor.glassBorder)
@@ -112,16 +111,14 @@ struct StackWarningCard: View {
 }
 
 private struct WarningRowPressStyle: ButtonStyle {
-    var hapticEnabled: Bool
-
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
             .opacity(configuration.isPressed ? 0.85 : 1.0)
             .animation(AppAnimation.springSnappy, value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
-                if pressed && hapticEnabled {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                if pressed {
+                    Haptics.impact(.light)
                 }
             }
     }

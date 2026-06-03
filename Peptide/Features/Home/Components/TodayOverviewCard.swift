@@ -15,7 +15,6 @@ import SwiftUI
 /// labs or dismisses the nudge via `onTapInsight`.
 struct TodayOverviewCard: View {
     let snapshot: TodayOverviewSnapshot
-    let hapticsEnabled: Bool
     /// Called when the user taps the hero. Receives the next
     /// pending dose if there is one, else nil — the host decides
     /// whether to open the logging sheet or no-op.
@@ -63,9 +62,7 @@ struct TodayOverviewCard: View {
 
     private var nextDoseStrip: some View {
         Button {
-            if hapticsEnabled {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            }
+            Haptics.impact(.light)
             onTapHero(snapshot.nextDose)
         } label: {
             HStack(spacing: Spacing.md) {
@@ -80,6 +77,7 @@ struct TodayOverviewCard: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                     if let subtitle = stripSubtitle {
                         Text(subtitle)
                             .font(AppFont.caption)
@@ -141,34 +139,6 @@ struct TodayOverviewCard: View {
         }
         if snapshot.dosesTotalToday > 0, snapshot.doseStreak > 1 {
             return String(format: String(localized: "%d-day streak"), snapshot.doseStreak)
-        }
-        return nil
-    }
-
-    private var heroEyebrow: String {
-        if snapshot.nextDose != nil { return String(localized: "NEXT DOSE") }
-        if snapshot.dosesTotalToday > 0 { return String(localized: "ALL DONE") }
-        return String(localized: "PROTOCOL") }
-
-    private var heroTitle: String {
-        if let dose = snapshot.nextDose {
-            return dose.peptide.name
-        }
-        if snapshot.dosesTotalToday > 0 {
-            return String(localized: "You're set for today")
-        }
-        return String(localized: "Add a protocol to get started")
-    }
-
-    private var heroSubtitle: String? {
-        if let dose = snapshot.nextDose {
-            let time = Self.timeFormatter.string(from: dose.date)
-            return "\(dose.dose) · \(time)"
-        }
-        if snapshot.dosesTotalToday > 0 {
-            return snapshot.doseStreak > 1
-                ? String(format: String(localized: "%d-day streak"), snapshot.doseStreak)
-                : String(localized: "Great job staying consistent")
         }
         return nil
     }
@@ -263,9 +233,7 @@ struct TodayOverviewCard: View {
 
     private func bottomInsight(_ insight: TodayOverviewSnapshot.BottomInsight) -> some View {
         Button {
-            if hapticsEnabled {
-                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-            }
+            Haptics.impact(.soft)
             onTapInsight(insight)
         } label: {
             HStack(spacing: Spacing.md) {
@@ -414,10 +382,10 @@ private struct OverviewTile: View {
                 bottomInsight: .nudge(
                     title: "Set a calorie target",
                     body: "Unlocks the macro rings and Watch glance.",
-                    icon: "target"
+                    icon: "target",
+                    action: .setCalorieTarget
                 )
             ),
-            hapticsEnabled: false,
             onTapHero: { _ in },
             onTapInsight: { _ in }
         )
@@ -444,7 +412,6 @@ private struct OverviewTile: View {
                 latestLab: nil,
                 bottomInsight: nil
             ),
-            hapticsEnabled: false,
             onTapHero: { _ in },
             onTapInsight: { _ in }
         )

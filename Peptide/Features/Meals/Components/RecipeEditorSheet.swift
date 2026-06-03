@@ -285,7 +285,7 @@ struct RecipeEditorSheet: View {
     }
 
     private func commit() {
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.success()
         let saved = Recipe(
             id: initial.id,
             name: trimmedName,

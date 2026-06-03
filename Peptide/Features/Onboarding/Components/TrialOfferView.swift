@@ -155,7 +155,7 @@ struct TrialOfferView: View {
             withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
                 ctaPulse = true
             }
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            Haptics.success()
         }
     }
 
@@ -286,7 +286,7 @@ struct TrialOfferView: View {
         let isSelected = selectedTier == tier
         let isAnnual = tier == .annual
         return Button {
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            Haptics.impact(.soft)
             withAnimation(AppAnimation.springSnappy) { selectedTier = tier }
         } label: {
             HStack(spacing: Spacing.md) {
@@ -492,7 +492,7 @@ struct TrialOfferView: View {
 
     private func startTrial() {
         guard !isPurchasing else { return }
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        Haptics.impact(.medium)
         errorMessage = nil
         guard let product = productForSelectedTier else {
             withAnimation { errorMessage = "Plan still loading. Try again in a moment." }
@@ -511,7 +511,7 @@ struct TrialOfferView: View {
                 let outcome = try await storeService.purchaseWithOutcome(product)
                 switch outcome {
                 case .success:
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    Haptics.success()
                     onAccept()
                 case .pending:
                     withAnimation {
@@ -527,7 +527,7 @@ struct TrialOfferView: View {
     }
 
     private func declineTrial() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        Haptics.impact(.light)
         onDecline()
     }
 }

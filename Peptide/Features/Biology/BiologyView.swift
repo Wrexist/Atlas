@@ -80,6 +80,9 @@ struct BiologyView: View {
             .navigationTitle("Biology")
             .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
+            }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
                     .liquidGlassPresentation()
@@ -190,9 +193,7 @@ struct BiologyView: View {
     // MARK: - Detail sheet routing
 
     private func openDetail(for biomarker: Biomarker) {
-        if dataStore.profile.hapticFeedbackEnabled {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        }
+        Haptics.impact(.light)
         // Present the sheet immediately with an empty snapshot, then
         // let it fill in via `historicalFetcher`. Fetching before
         // setting `detailItem` raced on rapid taps: the second tap
@@ -228,9 +229,7 @@ struct BiologyView: View {
     // MARK: - Paywall
 
     private func presentPaywall() {
-        if dataStore.profile.hapticFeedbackEnabled {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        }
+        Haptics.impact(.light)
         showPaywall = true
     }
 

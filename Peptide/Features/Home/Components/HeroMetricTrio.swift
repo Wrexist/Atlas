@@ -16,11 +16,6 @@ import SwiftUI
 struct HeroMetricTrio: View {
     let snapshot: HeroMetricSnapshot
     var onTapRing: ((HeroMetricKind) -> Void)?
-    /// Honours the user's "Haptic Feedback" toggle. The trio fires
-    /// a success notification haptic when the adherence ring
-    /// crosses 100% — pair that with the visible scale-pulse for
-    /// the "you finished today" moment.
-    var hapticsEnabled: Bool = true
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
@@ -77,9 +72,8 @@ struct HeroMetricTrio: View {
                     // Suppressed for Recovery + Sleep — same
                     // reason as celebrateAtCompletion above.
                     guard kind == .adherence,
-                          oldValue < 1.0, newValue >= 1.0,
-                          hapticsEnabled else { return }
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                          oldValue < 1.0, newValue >= 1.0 else { return }
+                    Haptics.success()
                 }
 
                 Text(kind.label)

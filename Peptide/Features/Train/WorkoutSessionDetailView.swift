@@ -59,7 +59,7 @@ struct WorkoutSessionDetailView: View {
                 .foregroundStyle(AppColor.textTertiary)
                 .textCase(.uppercase)
             Text(session.name ?? "Workout")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .font(AppFont.statHeader)
                 .foregroundStyle(AppColor.textPrimary)
         }
     }
@@ -98,7 +98,7 @@ struct WorkoutSessionDetailView: View {
     private func perceivedEffortChip(_ effort: Int) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "bolt.fill")
-                .foregroundStyle(Color(hex: 0xFFB347))
+                .foregroundStyle(AppColor.perceivedEffort)
             Text("Perceived effort")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
@@ -117,7 +117,7 @@ struct WorkoutSessionDetailView: View {
     private func noteCard(_ note: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Note")
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.eyebrow)
                 .tracking(1.2)
                 .foregroundStyle(AppColor.textTertiary)
             Text(note)
@@ -136,7 +136,7 @@ struct WorkoutSessionDetailView: View {
     private var exercisesList: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text("Exercises")
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.eyebrow)
                 .tracking(1.2)
                 .foregroundStyle(AppColor.textSecondary)
             ForEach(session.exercises) { entry in

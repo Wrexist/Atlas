@@ -45,6 +45,11 @@ enum AppTab: String, CaseIterable {
 @MainActor @Observable
 final class AppState {
     var selectedTab: AppTab = .today
+    /// Presents the Profile + settings sheet over whichever tab is
+    /// active. Profile lost its tab slot in the training pivot; routing
+    /// it through a shared flag lets every tab open it from a top-right
+    /// avatar button instead of forcing the user back to Today.
+    var showProfile = false
     /// When set, the Protocols tab pushes the matching protocol's detail view
     /// onto its navigation stack and then clears this value. Used by the
     /// profile customization sheet to deep-link from a stack row to that

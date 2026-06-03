@@ -12,7 +12,6 @@ struct GoalsSectionCard: View {
     /// storage key; the display label is rendered on the chip.
     let goalCatalog: [GoalEntry]
     let selectedKeys: Set<String>
-    var hapticEnabled: Bool = true
     let onToggle: (String) -> Void
 
     struct GoalEntry: Identifiable, Hashable {
@@ -33,9 +32,7 @@ struct GoalsSectionCard: View {
                         let isSelected = selectedKeys.contains(entry.key)
 
                         Button {
-                            if hapticEnabled {
-                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                            }
+                            Haptics.impact(.soft)
                             withAnimation(AppAnimation.springSnappy) {
                                 onToggle(entry.key)
                             }

@@ -3,14 +3,11 @@ import SwiftUI
 struct CategoryFilterChips: View {
     let categories: [PeptideCategory]
     let selected: PeptideCategory?
-    var hapticEnabled: Bool = true
     let onSelect: (PeptideCategory?) -> Void
 
     private func handleSelect(_ category: PeptideCategory?) {
         guard category != selected else { return }
-        if hapticEnabled {
-            UISelectionFeedbackGenerator().selectionChanged()
-        }
+        Haptics.selection()
         onSelect(category)
     }
 

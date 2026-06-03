@@ -69,7 +69,7 @@ struct BodyMetricsPage: View {
         let isSelected = metrics.unit == unit
         return Button {
             withAnimation(AppAnimation.springSnappy) { metrics.unit = unit }
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            Haptics.impact(.soft)
         } label: {
             Text(label)
                 .font(AppFont.subheadline)
@@ -180,7 +180,7 @@ struct BodyMetricsPage: View {
         let isSelected = metrics.sex == option
         return Button {
             withAnimation(AppAnimation.springSnappy) { metrics.sex = option }
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            Haptics.impact(.soft)
         } label: {
             Text(option.localizedShortLabel)
                 .font(AppFont.subheadline)

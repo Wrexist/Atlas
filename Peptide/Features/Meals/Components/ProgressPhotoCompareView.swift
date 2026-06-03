@@ -220,7 +220,7 @@ struct ProgressPhotoCompareView: View {
             withAnimation(.easeOut(duration: 0.18)) {
                 compareWith = filename
             }
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Haptics.impact(.light)
         } label: {
             VStack(spacing: 4) {
                 if let image = ProgressPhotoStorage.loadImage(for: filename) {

@@ -50,7 +50,7 @@ struct WhatsNewTourSheet: View {
         .onChange(of: currentIndex) { _, _ in
             triggerHeroPulse()
             if !reduceMotion {
-                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                Haptics.impact(.soft)
             }
         }
     }
@@ -300,7 +300,7 @@ struct WhatsNewTourSheet: View {
     }
 
     private func completeAndDismiss() {
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.success()
         onComplete()
     }
 

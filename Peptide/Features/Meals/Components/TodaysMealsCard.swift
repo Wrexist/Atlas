@@ -46,7 +46,7 @@ struct TodaysMealsCard: View {
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Today's meals")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.8)
@@ -108,7 +108,7 @@ struct MealEntryRow: View {
         Button(action: onTap) {
             HStack(spacing: Spacing.sm) {
                 categoryBadge
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(entry.name)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
@@ -124,7 +124,7 @@ struct MealEntryRow: View {
                     }
                 }
                 Spacer(minLength: 0)
-                VStack(alignment: .trailing, spacing: 2) {
+                VStack(alignment: .trailing, spacing: Spacing.xxs) {
                     Text("\(entry.calories) kcal")
                         .font(.system(size: 13, weight: .heavy))
                         .monospacedDigit()

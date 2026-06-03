@@ -308,9 +308,7 @@ struct AIResearchView: View {
                 }
                 errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 lastFailedPrompt = prompt
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.error)
-                }
+                Haptics.error()
             }
         }
     }

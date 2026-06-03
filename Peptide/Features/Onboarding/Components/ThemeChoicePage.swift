@@ -55,7 +55,7 @@ struct ThemeChoicePage: View {
         let isSelected = theme.displayMode == mode && !comingSoon
         return Button {
             guard !comingSoon else {
-                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                Haptics.warning()
                 return
             }
             select(mode)
@@ -207,7 +207,7 @@ struct ThemeChoicePage: View {
         withAnimation(AppAnimation.springSnappy) {
             theme.displayMode = mode
         }
-        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        Haptics.impact(.soft)
     }
 
     private func select(_ color: AppThemeColor) {
@@ -215,7 +215,7 @@ struct ThemeChoicePage: View {
         withAnimation(AppAnimation.springSnappy) {
             theme.theme = color
         }
-        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        Haptics.impact(.soft)
     }
 }
 

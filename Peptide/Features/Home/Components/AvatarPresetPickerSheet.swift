@@ -7,7 +7,6 @@ import PhotosUI
 /// distinct enough — pick a preset, hand it back — that the file
 /// boundary doesn't introduce coupling.
 struct AvatarPresetPickerSheet: View {
-    let hapticEnabled: Bool
     let onPick: (AvatarPreset) -> Void
     let onCancel: () -> Void
 
@@ -19,9 +18,7 @@ struct AvatarPresetPickerSheet: View {
                 LazyVGrid(columns: columns, spacing: Spacing.md) {
                     ForEach(AvatarPreset.all) { preset in
                         Button {
-                            if hapticEnabled {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            }
+                            Haptics.impact(.light)
                             onPick(preset)
                         } label: {
                             tile(for: preset)
