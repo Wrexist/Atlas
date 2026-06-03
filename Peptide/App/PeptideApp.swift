@@ -386,6 +386,13 @@ struct PeptideApp: App {
         .environment(dataStore)
         .preferredColorScheme(themeManager.displayMode.preferredScheme)
         .tint(AppColor.accentPrimary)
+        // Single Profile sheet shared by every tab's avatar button, so
+        // settings/account are reachable without returning to Today.
+        .sheet(isPresented: Bindable(appState).showProfile) {
+            ProfileView()
+                .environment(dataStore)
+                .environment(appState)
+        }
         .task {
             let delegate = NotificationDelegate(dataStore: dataStore)
             notificationDelegate = delegate

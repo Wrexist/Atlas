@@ -80,6 +80,9 @@ struct BiologyView: View {
             .navigationTitle("Biology")
             .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
+            }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
                     .liquidGlassPresentation()

@@ -17,11 +17,9 @@ struct HomeView: View {
     /// Today overview card's "Set a calorie target" nudge — previously
     /// the nudge was tappable but wired to nothing.
     @State private var showTargetsEditor = false
-    /// Phase D demoted Profile from the tab bar to a top-right
-    /// avatar entry on Today. Tap routes through this sheet so the
-    /// user reaches their full Profile screen in one hop without
-    /// nesting a NavigationStack.
-    @State private var showProfileSheet = false
+    // Profile is opened via the shared `appState.showProfile` flag now
+    // (a single app-level sheet), so the Today avatar and every other
+    // tab's avatar button route through the same presentation.
     /// 0…1 fade progress for the sticky compressing header. Driven
     /// by `.onScrollGeometryChange` so the bar materialises in lock-
     /// step with the user's finger.
@@ -127,11 +125,10 @@ struct HomeView: View {
                         avatarImageData: dataStore.profile.avatarImageData,
                         onAvatarTap: {
                             Haptics.impact(.light)
-                            // Phase D: avatar opens the full Profile
-                            // screen now (Profile lost its tab slot).
-                            // ProfileCustomizationSheet stays
-                            // reachable from inside ProfileView.
-                            showProfileSheet = true
+                            // Profile lost its tab slot in the training
+                            // pivot; the shared flag opens the app-level
+                            // sheet from here and every other tab alike.
+                            appState.showProfile = true
                         }
                     )
                     .sectionAppear(index: 0)
@@ -397,7 +394,7 @@ struct HomeView: View {
                     avatarImageData: dataStore.profile.avatarImageData,
                     onAvatarTap: {
                         Haptics.impact(.light)
-                        showProfileSheet = true
+                        appState.showProfile = true
                     },
                     progress: stickyProgress
                 )
@@ -434,11 +431,6 @@ struct HomeView: View {
                     },
                     onCancel: { showTargetsEditor = false }
                 )
-            }
-            .sheet(isPresented: $showProfileSheet) {
-                ProfileView()
-                    .environment(dataStore)
-                    .environment(appState)
             }
             .sheet(item: $milestonePrompt) { item in
                 CycleMilestonePromptSheet(

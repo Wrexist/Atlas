@@ -33,6 +33,9 @@ struct TrainContainerView: View {
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle("Train")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
+            }
             .navigationDestination(for: TrainNavigation.self) { destination in
                 switch destination {
                 case .exerciseDetail(let id):
