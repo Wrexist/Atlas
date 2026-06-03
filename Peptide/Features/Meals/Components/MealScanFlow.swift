@@ -461,13 +461,30 @@ struct MealScanFlow: View {
 
     /// Saves the item to the user's food library as a `CustomFood` so it
     /// can be re-logged later from search without re-scanning. Macros are
-    /// stored per-100g (derived on the item) and the current portion is
-    /// recorded as the default serving.
+    /// stored per-100g (derived on the item) and the model's depicted
+    /// portion is recorded as the canonical one-serving size.
+    ///
+    /// Re-saving the same scanned item reuses the existing same-name
+    /// food's id so `saveCustomFood` updates it in place instead of
+    /// cluttering "My Foods" with duplicates.
     private func saveToLibrary(_ item: EditableFoodItem) {
+        let normalizedName = item.name
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        let existingID = dataStore.profile.customFoods.first { existing in
+            existing.brand == nil
+                && existing.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    .lowercased() == normalizedName
+        }?.id
+
         let food = CustomFood(
+            id: existingID ?? UUID(),
             name: item.name,
             per100g: item.per100g,
-            servingGrams: item.grams > 0 ? item.grams : nil,
+            // One serving = the model's depicted-portion estimate, not
+            // whatever the user dialed the portion to before saving, so
+            // the library's "Serving" mode stays accurate on re-log.
+            servingGrams: item.aiGrams > 0 ? item.aiGrams : nil,
             servingLabel: item.quantityLabel.nilIfEmpty
         )
         dataStore.saveCustomFood(food)
@@ -636,26 +653,37 @@ private struct FoodItemEditCard: View {
     }
 
     private var servingStepper: some View {
-        HStack {
-            Text("Amount")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            Spacer()
-            stepperButton(icon: "minus.circle.fill", label: "Fewer servings") {
-                setServings(item.servings - 0.5)
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack {
+                Text("Amount")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                Spacer()
+                stepperButton(icon: "minus.circle.fill", label: "Fewer servings") {
+                    setServings(item.servings - 0.5)
+                }
+                VStack(spacing: 0) {
+                    Text(servingsLabel)
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .monospacedDigit()
+                    Text("≈ \(Int(item.grams.rounded())) g")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+                .frame(minWidth: 80)
+                stepperButton(icon: "plus.circle.fill", label: "More servings") {
+                    setServings(item.servings + 0.5)
+                }
             }
-            VStack(spacing: 0) {
-                Text(servingsLabel)
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .monospacedDigit()
-                Text("≈ \(Int(item.grams.rounded())) g")
+
+            // Name what one serving actually is, when the scan gave a label.
+            if !item.quantityLabel.isEmpty {
+                Text("1 serving = \(item.quantityLabel)")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
-            }
-            .frame(minWidth: 80)
-            stepperButton(icon: "plus.circle.fill", label: "More servings") {
-                setServings(item.servings + 0.5)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
         }
     }
