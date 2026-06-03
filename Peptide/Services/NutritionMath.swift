@@ -235,11 +235,11 @@ enum NutritionMath {
         var fallback: NutritionTargets {
             switch self {
             case .loseFat:
-                return NutritionTargets(calories: 1650, proteinG: 150, carbsG: 150, fatG: 50, fiberG: fiberDefaultG)
+                return NutritionTargets(calories: 1650, proteinG: 150, carbsG: 150, fatG: 50, fiberG: NutritionMath.fiberDefaultG)
             case .maintain:
-                return NutritionTargets(calories: 2105, proteinG: 150, carbsG: 230, fatG: 65, fiberG: fiberDefaultG)
+                return NutritionTargets(calories: 2105, proteinG: 150, carbsG: 230, fatG: 65, fiberG: NutritionMath.fiberDefaultG)
             case .buildMuscle:
-                return NutritionTargets(calories: 2575, proteinG: 175, carbsG: 300, fatG: 75, fiberG: fiberDefaultG)
+                return NutritionTargets(calories: 2575, proteinG: 175, carbsG: 300, fatG: 75, fiberG: NutritionMath.fiberDefaultG)
             }
         }
 
