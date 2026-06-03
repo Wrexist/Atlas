@@ -80,6 +80,7 @@ struct TodayOverviewCard: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                     if let subtitle = stripSubtitle {
                         Text(subtitle)
                             .font(AppFont.caption)
