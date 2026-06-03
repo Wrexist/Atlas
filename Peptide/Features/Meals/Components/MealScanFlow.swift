@@ -202,10 +202,7 @@ struct MealScanFlow: View {
                 .fill(
                     LinearGradient(
                         colors: style == .primary
-                            ? [
-                                Color(red: 0.310, green: 0.275, blue: 0.898),
-                                Color(red: 0.486, green: 0.227, blue: 0.929),
-                            ]
+                            ? [AppColor.accentPrimary, AppColor.accentLight]
                             : [
                                 AppColor.surfaceSecondary.opacity(0.85),
                                 AppColor.surfaceSecondary.opacity(0.55),
@@ -516,10 +513,11 @@ struct EditableFoodItem: Identifiable, Hashable {
     /// Defaults to servings — most people think "1 sandwich", not "180 g".
     var portionMode: PortionMode = .serving
 
-    enum PortionMode: String, CaseIterable, Identifiable {
+    enum PortionMode: String, CaseIterable, Identifiable, CustomStringConvertible {
         case serving, grams
         var id: Self { self }
         var label: String { self == .serving ? "Servings" : "Grams" }
+        var description: String { label }
     }
 
     /// Current portion expressed in servings, where one serving is the
@@ -564,6 +562,8 @@ struct EditableFoodItem: Identifiable, Hashable {
 private struct FoodItemEditCard: View {
     @Binding var item: EditableFoodItem
     let onSave: () -> Void
+    /// Drives the sliding selection pill on the Servings/Grams control.
+    @Namespace private var portionNS
 
     /// Quick-pick portion presets for each mode.
     private static let gramPresets: [Double] = [50, 100, 150, 200, 300]
@@ -577,8 +577,13 @@ private struct FoodItemEditCard: View {
                 modePicker
                 portionStepper
                 presetChips
-                macroSummary
-                saveButton
+                // Macros on the left, save affordance on the right —
+                // one balanced row instead of two stacked ones.
+                HStack(spacing: Spacing.sm) {
+                    macroSummary
+                    Spacer(minLength: Spacing.sm)
+                    saveButton
+                }
             }
         }
         .padding(Spacing.md)
@@ -636,12 +641,11 @@ private struct FoodItemEditCard: View {
     }
 
     private var modePicker: some View {
-        Picker("Portion mode", selection: $item.portionMode) {
-            ForEach(EditableFoodItem.PortionMode.allCases) { mode in
-                Text(mode.label).tag(mode)
-            }
-        }
-        .pickerStyle(.segmented)
+        GlassSegmentedControl(
+            options: EditableFoodItem.PortionMode.allCases,
+            selected: $item.portionMode,
+            namespace: portionNS
+        )
     }
 
     @ViewBuilder
@@ -771,7 +775,6 @@ private struct FoodItemEditCard: View {
             .font(AppFont.caption)
             .foregroundStyle(AppColor.textSecondary)
             .monospacedDigit()
-            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var saveButton: some View {
