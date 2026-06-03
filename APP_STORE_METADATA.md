@@ -195,59 +195,83 @@ supplement, or peptide protocol.
 ## "What's New" *(4000 char limit)*
 
 ```
-Welcome to Atlas 1.0.
+Atlas 1.0 — rebuilt from the ground up.
 
-We rebuilt the whole thing. Training, nutrition, recovery, habits — and the
-peptide tracking surface that started it all — pulled into one private,
-native iOS app. No backend. No analytics. Your data stays yours.
+Training, nutrition, biology, habits, and protocol tracking — all in one
+private app. No backend. No analytics. Your data stays on your device.
 
-WHAT'S IN 1.0
+——
 
-WORKOUTS
-• Two-tap set logging — pre-filled weight and reps from your last session
-• Rest timer with automatic Lock Screen notification
-• PR detection for weight, reps, and bodyweight movements
-• 200+ exercise library plus custom lifts
-• Weekly muscle volume heatmap and month-grouped history
+BIOLOGY TAB — NEW
+Your biomarkers, all in one place. HRV, resting heart rate, sleep, weight,
+body fat, blood pressure, and lab values (testosterone, vitamin D, lipids)
+displayed as sparkline cards with 90-day drill-down charts.
 
-NUTRITION
-• Photo meal scanner (AI-powered — photo deleted after analysis)
-• Barcode scanner with 200M+ product database
-• Daily calorie + macro rings built from your TDEE
-• Custom food library and per-meal history
+Atlas Pro unlocks the Biological Age dial — a single metric that tracks your
+biological fitness trajectory from your HRV, RHR, sleep, and weight trend.
+Three states: building a baseline, estimated age, or nudge to improve.
 
-RECOVERY
-• Recovery Score combining HRV, resting heart rate, and sleep
-• Performance Age metric
-• Biomarker trending and lab value tracking
-• Full Apple Health integration
+——
 
-HABITS
-• Streak tracking with daily, weekday, or times-per-week schedules
-• 6-month momentum heatmap per habit
-• Optional reminders on habit days
+TRAIN TAB — NEW
+Log sets with two taps. Atlas pre-fills your last weight and reps — confirm
+or adjust and move on. 873-exercise library, custom lifts, automatic PR
+detection for weight, reps, and bodyweight movements, rest timer with Lock
+Screen notification, and a weekly muscle volume heatmap.
 
-PEPTIDE TRACKING  (Advanced users)
-• 208 compounds with research citations
-• Up to 3 active protocols on the free tier
-• Dose logging + local reminders with Mark-as-Taken / Snooze
-• Atlas does not prescribe or recommend doses
+Tap any past session to see every set, the muscle map, and every PR you hit.
 
-ATLAS PRO (subscription or lifetime required)
-• Unlimited protocols
-• Full Biology tab (body composition + lab panels)
-• AI Research assistant
-• Apple Watch + all widgets + Live Activities
-• Cloud sync and full data export
-• 3-day trial (monthly) · 14-day trial (annual) · or one-time lifetime
+——
 
-Private by default — no backend, no analytics, no third-party SDKs.
+HABITS — NEW
+Track any daily routine with a 6-month GitHub-style heatmap. Daily, weekday,
+or X-per-week schedules with optional reminders on the days they're due.
+
+——
+
+SMARTER MEAL SCANNER
+Three ways to log food — and all three are faster now.
+
+Photo scanner: Atlas now identifies each food item separately. Adjust
+portions, drop any misfire, and save items to your food library before
+logging. Your photo is analyzed and deleted immediately.
+
+Barcode scanner: remembers the portion you chose last time and pre-selects
+it on re-scan. Frequency-ranked recents surface the foods you actually eat,
+not just the last one you scanned.
+
+OCR fallback: when a barcode isn't in the 200M-product database, point the
+camera at the nutrition label. Atlas reads it on-device — no server call,
+no AI cost, result in under a second.
+
+——
+
+NUTRITION TARGETS
+Open the targets editor and Atlas recommends your daily calories and macros
+based on your body metrics and goal — one tap to apply. The macro bar
+animates live as you edit so you see the calorie split in real-time.
+
+——
+
+STABILITY
+This release fixes iCloud sync (it was silently falling back to local-only
+storage), dose duplication on schedule edits, expired Pro entitlements that
+were staying active, and achievement toasts that were racing to dismiss
+before you saw them.
+
+——
+
+PRIVATE BY DEFAULT
+No backend. No analytics. No third-party SDKs. Data on-device or in your
+private iCloud — we cannot see it. No account required.
 
 Atlas is an educational reference and tracking journal. Always consult a
-qualified healthcare provider before changing any protocol.
+licensed healthcare provider before changing any protocol.
 
-Questions or feedback? support@peptidesai.com — we read everything.
+Feedback → support@peptidesai.com
 ```
+
+*(3 891 / 4 000)*
 
 ---
 
@@ -334,87 +358,261 @@ No further export-compliance questions will be asked.
 
 ## Screenshots
 
-iOS requires uploads for these device classes (take in Simulator with
-`xcrun simctl io <device> screenshot` or on a physical device via Xcode):
+> A dedicated Claude prompt for generating polished screenshot mockups is in
+> `SCREENSHOT_PROMPT.md`. Paste it into Claude.ai to get a full HTML/CSS
+> mockup for each of the 8 slots below.
 
-| Device class | Pixel size | Required |
+### Device sizes required
+
+| Device class | Canvas size | Notes |
 |---|---|---|
-| iPhone 6.9" (16 Pro Max) | 1320 × 2868 | **Yes** |
-| iPhone 6.5" (11 Pro Max) | 1242 × 2688 | Optional fallback |
-| iPad Pro 13" (M4) | 2064 × 2752 | **Yes** (if iPad-targeted) |
+| **iPhone 6.9"** (16 Pro Max) | **1320 × 2868 px** | Required — primary set |
+| iPhone 6.5" (11 Pro Max) | 1242 × 2688 px | Optional legacy fallback |
+| **iPad Pro 13"** (M4) | **2064 × 2752 px** | Required if iPad-targeted |
 
-### Screenshot sequence and captions
+Capture with: `xcrun simctl io booted screenshot ~/Desktop/ss-01.png`
+or Xcode Device toolbar → Screenshot button on a physical device.
 
-Use 6–8 screenshots per device class. Lead with the broad fitness hook;
-put peptide protocols mid-sequence; close on the paywall.
+### Overlay anatomy (apply to every screenshot)
 
-**Screenshot 1 — Hero: Recovery Dashboard**
-Show: Today tab with Recovery Score ring, HRV/RHR/sleep tiles, next
-workout card, and macro summary.
-Caption overlay: `Know if you're ready to train.`
-Sub-caption: `Recovery Score · HRV · Sleep · Resting HR`
-*Free feature — no Pro badge needed.*
+```
+┌─────────────────────────────────┐
+│                                 │
+│   [STATUS BAR — real or fake]   │
+│                                 │
+│   ┌─────────────────────────┐   │
+│   │                         │   │
+│   │    ACTUAL APP UI        │   │  ← 75–80% of frame height
+│   │   (populated with       │   │
+│   │    realistic data)      │   │
+│   │                         │   │
+│   └─────────────────────────┘   │
+│                                 │
+│   HEADLINE TEXT                 │  ← 32–36pt bold, white
+│   Sub-caption line              │  ← 18–20pt regular, 70% white
+│   [ATLAS PRO badge if gated]    │  ← pill: accent colour, 14pt
+│                                 │
+└─────────────────────────────────┘
+```
 
-**Screenshot 2 — Workouts: Two-Tap Set Logging**
-Show: Active workout view with pre-filled weight/reps, rest timer
-countdown, and the muscle heatmap peek at the bottom.
-Caption overlay: `Log sets faster than any other app.`
-Sub-caption: `Pre-filled from last session. Rest timer included.`
-*Free feature.*
+Background: deep charcoal (`#0D0D12`) or the app's own dark gradient.
+Font: SF Pro Display (or close equivalent in mockup tools).
+Pro badge pill: `#7B5CFF` background, white text, 6pt corner radius.
 
-**Screenshot 3 — Nutrition: Photo + Barcode Scan**
-Show: Split composition — barcode scanner on one side, photo scan
-result on the other, with macro breakdown visible.
-Caption overlay: `Snap a photo. Macros logged instantly.`
-Sub-caption: `200M+ products · AI photo scanner · Custom foods`
-*Free feature.*
+---
 
-**Screenshot 4 — Recovery: Biology Tab** `Atlas Pro`
-Show: Bio Age dial, HRV trend chart, weight/body-fat graph, lab-value
-cards (testosterone, vitamin D).
-Caption overlay: `Your biology, trending.`
-Sub-caption: `Performance Age · Lab panels · Biomarker history`
-Badge: `Atlas Pro — subscription required`
+### Screenshot 1 — Today / Recovery Dashboard  *(FREE)*
 
-**Screenshot 5 — Habits: 6-Month Heatmap**
-Show: Habit list with streak counters and a full heatmap below.
-Caption overlay: `Build momentum that sticks.`
-Sub-caption: `Daily streaks · 6-month heatmap · Smart reminders`
-*Free feature.*
+**What to show**
+Today tab fully loaded. Large Recovery Score ring at 78% (green), three
+stat tiles below it: HRV 62 ms · RHR 54 bpm · Sleep 7.4 h. Below that,
+a workout card ("Push Day · 6 exercises") and a macro ring (1,840 / 2,400
+kcal). Status bar: 9:41 AM, full battery/signal.
 
-**Screenshot 6 — Protocols: Peptide Library** *(Advanced)*
-Show: Peptide detail screen with research citations visible and the
-dose-log timeline below.
-Caption overlay: `208 research-backed compounds.`
-Sub-caption: `Dose logging · Cycle calendar · Community stacks`
-*Free up to 3 active protocols.*
+**App state to set up**
+Connect Apple Health test data or manually enter: HRV 62, RHR 54, sleep
+7.4 h. Have an active workout template named "Push Day". Log a breakfast
+with ~500 kcal earlier in the day.
 
-**Screenshot 7 — Watch + Widgets** `Atlas Pro`
-Show: Lock Screen widget showing Recovery Score, Home Screen medium
-widget with upcoming doses, Apple Watch face with compliance ring.
-Caption overlay: `Always on your wrist and home screen.`
-Sub-caption: `Dynamic Island · Live Activities · watchOS app`
-Badge: `Atlas Pro — subscription required`
+**Overlay copy**
+- Headline: `Know if you're ready to train.`
+- Sub-caption: `Recovery Score · HRV · Sleep · Resting HR`
+- Pro badge: **none**
 
-**Screenshot 8 — Paywall: Clean Pricing**
-Show: The paywall with Annual / Monthly / Lifetime options, trial
-length prominent, auto-renew disclosure visible, Terms + Privacy links.
-Caption overlay: `Try free. Upgrade when ready.`
-Sub-caption: `14-day free trial on annual · Cancel anytime`
-*This screenshot is required by App Review.*
+**Composition note**
+Crop so the Recovery Score ring is the top visual anchor. This is the
+first screenshot a browser sees — it must convey "daily intelligence"
+at a glance.
 
-### Guideline 2.3.2 — Pro-feature labeling
+---
 
-Every screenshot depicting a Pro-only feature **must** carry a visible
-`Atlas Pro — subscription required` badge or overlay. Pro features:
-unlimited protocols, body-composition + lab panels in Biology tab,
-AI Research assistant, cloud sync, all Home Screen widgets, Apple Watch
-app, Live Activities, and CSV/JSON export.
+### Screenshot 2 — Active Workout / Set Logging  *(FREE)*
 
-Free features that must NOT carry a Pro badge: workout logging (rest
-timer, PR detection), barcode and photo meal scanning, the four base
-biomarkers (weight, HRV, RHR, sleep), habit tracking, up to 3 active
-protocols, dose logging, local dose reminders, peptide library browse.
+**What to show**
+Active workout view mid-session. Exercise "Bench Press" is selected. The
+set row shows: Set 3 · 90 kg · 8 reps (pre-filled from last session in
+lighter text). Rest timer circle visible at bottom edge counting 1:24.
+Muscle heatmap strip at very bottom showing chest/anterior delt lit up.
+
+**App state to set up**
+Start a workout with Bench Press already logged twice (so Set 3 pre-fills
+correctly). Do not dismiss the rest timer.
+
+**Overlay copy**
+- Headline: `Log sets in 2 taps.`
+- Sub-caption: `Pre-filled from last session · Auto rest timer · PR detection`
+- Pro badge: **none**
+
+**Composition note**
+Show the pre-filled value visually distinct (lighter / ghost text) from
+confirmed sets so the "2-tap" hook is obvious without reading the caption.
+
+---
+
+### Screenshot 3 — Meal Scanner: Per-Item Review  *(FREE)*
+
+**What to show**
+Photo meal scanner review screen. Detected items: "Chicken breast · 180g
+· 297 kcal", "Brown rice · 150g · 195 kcal", "Broccoli · 120g · 41 kcal".
+Each item has a portion stepper and a checkmark toggle. "Add 3 items" CTA
+button at bottom. Macro breakdown ring visible in the background.
+
+**App state to set up**
+Scan a real plate of food with the photo scanner. Alternatively capture
+the review UI with realistic mock data already populated.
+
+**Overlay copy**
+- Headline: `Snap a photo. Every item logged.`
+- Sub-caption: `AI identifies each food · Edit portions · Save to library`
+- Pro badge: **none**
+
+**Composition note**
+The per-item breakdown is the key differentiator vs. competitors — make
+sure at least 2 distinct food items are visible. Show the portion stepper
+on at least one item.
+
+---
+
+### Screenshot 4 — Biology Tab: Biological Age  *(ATLAS PRO)*
+
+**What to show**
+Biology tab. Bio Age dial front-and-centre showing "28.4" in large
+mint-green text (user is chronologically 32 — 3.6 years younger). Delta
+badge reads "3.6 years younger". Three driver pills below: "HRV −2.5y /
+RHR −1.8y / SLEEP +0.7y". Below the dial, two biomarker rows with
+sparklines: HRV trending up (Trending up · 62 ms), RHR steady (Steady ·
+54 bpm). Deep cosmic/purple gradient background.
+
+**App state to set up**
+Enable Pro in debug settings. Have at least 7 days of HealthKit data
+(HRV, RHR, sleep). Profile age: 32. The Bio Age engine will compute the
+displayed value from real data.
+
+**Overlay copy**
+- Headline: `See your biological age.`
+- Sub-caption: `HRV · Sleep · Resting HR · Performance Age`
+- Pro badge: `Atlas Pro — subscription required`
+
+**Composition note**
+The cosmic background and glowing dial are the visual hook. Frame the
+dial as the hero — it should occupy at least 40% of the screenshot
+height. This is the biggest Pro conversion screenshot.
+
+---
+
+### Screenshot 5 — Nutrition Targets Editor  *(FREE)*
+
+**What to show**
+Nutrition targets editor open. Hero calorie display: "2,340 kcal".
+Proportional macro bar below it (protein orange, carbs blue, fat yellow
+at roughly 35/45/20 split). "Recommended for you" banner showing
+goal-derived suggestion. Three glass input cards: Protein 195g, Carbs
+265g, Fat 52g. Goal chip "Build Muscle" lit at the top.
+
+**App state to set up**
+Open Profile → Nutrition Targets. Body metrics set (male, 80 kg, 178 cm,
+28 y, moderately active, goal: Build Muscle). Tap "Recommended for you"
+to populate the values before screenshotting.
+
+**Overlay copy**
+- Headline: `Targets built for your goal.`
+- Sub-caption: `Goal-aware recommendations · Live macro preview`
+- Pro badge: **none**
+
+---
+
+### Screenshot 6 — Habits: 6-Month Heatmap  *(FREE)*
+
+**What to show**
+Habits tab with two habits visible. "Morning walk" — 47-day streak,
+heatmap below filled 80% green with a few orange/empty gaps. "Cold
+shower" — 12-day streak. The 6-month grid is the main visual. Week labels
+on the left edge (Mon / Wed / Fri), month labels across the top.
+
+**App state to set up**
+Create habits and manually seed 6 months of completion data in the test
+device (or use a pre-seeded simulator snapshot). Aim for mostly green
+with realistic gaps — perfection looks fake.
+
+**Overlay copy**
+- Headline: `Build momentum that sticks.`
+- Sub-caption: `Daily streaks · 6-month heatmap · Smart reminders`
+- Pro badge: **none**
+
+---
+
+### Screenshot 7 — Protocols: Dose Logging  *(FREE / PRO)*
+
+**What to show**
+Protocol detail view. Active protocol "BPC-157 + TB-500" with a compliance
+ring at 87%. Today's dose card: "BPC-157 · 250 mcg · 7:30 AM · Sub-Q
+abdomen" marked as taken (green checkmark). Timeline below showing 5 days
+of dose history. Research citation chip visible at the top.
+
+**App state to set up**
+Create a 2-compound protocol with today's dose already logged. This shows
+the free tier working without a Pro badge.
+
+**Overlay copy**
+- Headline: `Track every protocol. Down to the dose.`
+- Sub-caption: `208 compounds · Dose log · Reminders · Community stacks`
+- Pro badge: **none** (up to 3 protocols is free)
+
+**Composition note**
+Keep the medical disclaimer chip visible somewhere on screen — it signals
+to App Review that the disclaimer is in-app, not just in the description.
+
+---
+
+### Screenshot 8 — Paywall  *(REQUIRED BY APP REVIEW)*
+
+**What to show**
+Paywall full screen. Three plan rows stacked full-width:
+- Annual · $49.99/year · "14-day free trial" · "BEST VALUE" chip
+- Monthly · $9.99/month · "3-day free trial"
+- Lifetime · $169 · "One-time purchase"
+
+Auto-renew disclosure visible above the CTA. Terms of Use and Privacy
+Policy links visible at the bottom. "Atlas Pro" headline at top with 5–6
+feature bullets below it.
+
+**App state to set up**
+Navigate to Profile → Upgrade. Paywall renders live from StoreKit in
+Sandbox — prices auto-populate.
+
+**Overlay copy**
+- Headline: `Try free. Upgrade when ready.`
+- Sub-caption: `14-day free trial on annual · Cancel anytime in Settings`
+- Pro badge: **none** (this IS the paywall screen)
+
+**Critical:** This screenshot is checked by App Review. The disclosure
+text, Terms link, and Privacy link must be legible at screenshot size.
+Do not crop them out.
+
+---
+
+### Guideline 2.3.2 — Pro-feature labeling checklist
+
+| Screenshot | Pro-gated? | Badge required? |
+|---|---|---|
+| 1 — Today Dashboard | No | No |
+| 2 — Workout Logging | No | No |
+| 3 — Meal Scanner | No | No |
+| 4 — Biology / Bio Age | **Yes** | **Yes — `Atlas Pro — subscription required`** |
+| 5 — Nutrition Targets | No | No |
+| 6 — Habits | No | No |
+| 7 — Protocols | No (free up to 3) | No |
+| 8 — Paywall | n/a — is the paywall | No |
+
+Free features: workout logging (rest timer, PR detection), barcode + photo
+meal scanning, four base biomarkers (weight, HRV, RHR, sleep), habit
+tracking, up to 3 active protocols, dose logging, local reminders,
+peptide library.
+
+Pro features (badge required on screenshots): full Biology tab, body
+composition + lab panels, AI Research assistant, cloud sync, Apple Watch,
+all Home Screen widgets, Live Activities, CSV/JSON export, unlimited
+protocols.
 
 ---
 
