@@ -146,34 +146,6 @@ struct TodayOverviewCard: View {
         return nil
     }
 
-    private var heroEyebrow: String {
-        if snapshot.nextDose != nil { return String(localized: "NEXT DOSE") }
-        if snapshot.dosesTotalToday > 0 { return String(localized: "ALL DONE") }
-        return String(localized: "PROTOCOL") }
-
-    private var heroTitle: String {
-        if let dose = snapshot.nextDose {
-            return dose.peptide.name
-        }
-        if snapshot.dosesTotalToday > 0 {
-            return String(localized: "You're set for today")
-        }
-        return String(localized: "Add a protocol to get started")
-    }
-
-    private var heroSubtitle: String? {
-        if let dose = snapshot.nextDose {
-            let time = Self.timeFormatter.string(from: dose.date)
-            return "\(dose.dose) · \(time)"
-        }
-        if snapshot.dosesTotalToday > 0 {
-            return snapshot.doseStreak > 1
-                ? String(format: String(localized: "%d-day streak"), snapshot.doseStreak)
-                : String(localized: "Great job staying consistent")
-        }
-        return nil
-    }
-
     // MARK: - Stats grid (2×2)
 
     private var statsGrid: some View {
