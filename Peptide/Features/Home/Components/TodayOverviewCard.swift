@@ -387,7 +387,8 @@ private struct OverviewTile: View {
                 bottomInsight: .nudge(
                     title: "Set a calorie target",
                     body: "Unlocks the macro rings and Watch glance.",
-                    icon: "target"
+                    icon: "target",
+                    action: .setCalorieTarget
                 )
             ),
             hapticsEnabled: false,

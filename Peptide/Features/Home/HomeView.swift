@@ -13,6 +13,10 @@ struct HomeView: View {
     /// the View on its own.
     @State private var notificationService = NotificationService.shared
     @State private var showProfileCustomization = false
+    /// Drives the calorie/macro targets editor presented from the
+    /// Today overview card's "Set a calorie target" nudge — previously
+    /// the nudge was tappable but wired to nothing.
+    @State private var showTargetsEditor = false
     /// Phase D demoted Profile from the tab bar to a top-right
     /// avatar entry on Today. Tap routes through this sheet so the
     /// user reaches their full Profile screen in one hop without
@@ -246,19 +250,27 @@ struct HomeView: View {
                                 selectedEntry = dose
                             },
                             onTapInsight: { insight in
-                                if case .latestLab = insight {
+                                switch insight {
+                                case .latestLab:
                                     appState.pendingLabsOpen = true
                                     appState.selectedTab = .biology
+                                case .nudge(_, _, _, .setCalorieTarget):
+                                    showTargetsEditor = true
+                                case .nudge(_, _, _, .logMeal):
+                                    appState.selectedTab = .meals
+                                case .protocolInsight, .nudge:
+                                    break
                                 }
                             }
                         )
                         .sectionAppear(index: 0)
                     }
 
-                    if dataStore.protocols.isEmpty {
-                        gettingStartedCard
-                            .sectionAppear(index: 1)
-                    } else {
+                    // Protocol creation now lives on the Library tab —
+                    // Today no longer shows the full-screen "Create your
+                    // first protocol" card for new users. Once a protocol
+                    // exists, the score card surfaces here as before.
+                    if !dataStore.protocols.isEmpty {
                         ProtocolScoreCard(
                             score: stats.score,
                             completed: stats.completed,
@@ -415,6 +427,16 @@ struct HomeView: View {
                     .environment(dataStore)
                     .environment(appState)
                     .liquidGlassPresentation()
+            }
+            .sheet(isPresented: $showTargetsEditor) {
+                NutritionTargetsEditor(
+                    initial: dataStore.profile.nutritionTargets ?? .zero,
+                    onSave: { targets in
+                        dataStore.updateNutritionTargets(targets)
+                        showTargetsEditor = false
+                    },
+                    onCancel: { showTargetsEditor = false }
+                )
             }
             .sheet(isPresented: $showProfileSheet) {
                 ProfileView()
@@ -944,24 +966,10 @@ struct HomeView: View {
         var id: String { "\(proto.id.uuidString):\(milestone.rawValue)" }
     }
 
-    private var gettingStartedCard: some View {
-        EmptyStateView(
-            icon: "flask.fill",
-            title: "Create your first protocol",
-            message: "Set up a peptide protocol to start tracking doses, streaks, and compliance.",
-            action: .init(title: "Get started", icon: "plus") {
-                withAnimation(AppAnimation.springSnappy) {
-                    appState.pendingProtocolList = true
-                    appState.selectedTab = .library
-                }
-            },
-            secondary: .init(title: "Browse the library", icon: "magnifyingglass") {
-                withAnimation(AppAnimation.springSnappy) {
-                    appState.selectedTab = .library
-                }
-            }
-        )
-    }
+    // The "Create your first protocol" empty state moved to the
+    // Library tab (PeptideListView) — protocol creation now lives
+    // alongside the peptide database there, so Today stays focused
+    // on the day's signals rather than onboarding chrome.
 
     // Stack-warning + stack-adjustment helpers moved to
     // ProtocolsStackHealthSection in Phase 34 alongside the cards

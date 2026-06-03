@@ -81,14 +81,22 @@ struct TodayOverviewSnapshot: Equatable, Sendable {
         case protocolInsight(title: String, body: String, icon: String)
         /// Latest lab draw — "Total T up 24 ng/dL since Apr 12".
         case latestLab(title: String, body: String, icon: String)
-        /// Fallback nudge when no other signal is available.
-        case nudge(title: String, body: String, icon: String)
+        /// Fallback nudge when no other signal is available. Carries
+        /// the destination the row should open when tapped so the host
+        /// routes it without matching on the (localized) title.
+        case nudge(title: String, body: String, icon: String, action: NudgeAction)
+
+        /// Where a tapped nudge takes the user.
+        enum NudgeAction: Equatable, Sendable {
+            case setCalorieTarget
+            case logMeal
+        }
 
         var icon: String {
             switch self {
             case .protocolInsight(_, _, let icon),
                  .latestLab(_, _, let icon),
-                 .nudge(_, _, let icon):
+                 .nudge(_, _, let icon, _):
                 return icon
             }
         }
@@ -97,7 +105,7 @@ struct TodayOverviewSnapshot: Equatable, Sendable {
             switch self {
             case .protocolInsight(let title, _, _),
                  .latestLab(let title, _, _),
-                 .nudge(let title, _, _):
+                 .nudge(let title, _, _, _):
                 return title
             }
         }
@@ -106,7 +114,7 @@ struct TodayOverviewSnapshot: Equatable, Sendable {
             switch self {
             case .protocolInsight(_, let body, _),
                  .latestLab(_, let body, _),
-                 .nudge(_, let body, _):
+                 .nudge(_, let body, _, _):
                 return body
             }
         }
@@ -225,14 +233,16 @@ extension TodayOverviewSnapshot {
             return .nudge(
                 title: String(localized: "Set a calorie target"),
                 body: String(localized: "Unlocks the macro rings and Watch glance."),
-                icon: "target"
+                icon: "target",
+                action: .setCalorieTarget
             )
         }
         if mealStreak == 0 {
             return .nudge(
                 title: String(localized: "Log a meal to start a streak"),
                 body: String(localized: "Scan a barcode or pick from your saved foods."),
-                icon: "fork.knife"
+                icon: "fork.knife",
+                action: .logMeal
             )
         }
         return nil
