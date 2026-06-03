@@ -80,7 +80,7 @@ struct PeptideListView: View {
     private var iPadSplitLayout: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             sidebarContent(useNavigationLinks: false)
-                .navigationTitle("Peptides")
+                .navigationTitle("Library")
                 .toolbar { sidebarToolbar }
                 .sheet(isPresented: $showCustomForm) {
                     CustomPeptideForm { peptide in
@@ -122,7 +122,7 @@ struct PeptideListView: View {
     private var iPhoneStackLayout: some View {
         NavigationStack {
             sidebarContent(useNavigationLinks: true)
-                .navigationTitle("Peptides")
+                .navigationTitle("Library")
                 .toolbar { sidebarToolbar }
                 .navigationDestination(for: Peptide.self) { peptide in
                     PeptideDetailView(peptide: peptide)

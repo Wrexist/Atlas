@@ -508,8 +508,7 @@ struct ProtocolBuilderView: View {
                             cadenceMode: $cadenceMode,
                             intervalDays: $intervalDays,
                             preferredTimes: $preferredTimes,
-                            dayNames: dayNames,
-                            hapticEnabled: dataStore.profile.hapticFeedbackEnabled
+                            dayNames: dayNames
                         )
 
                         WashoutPicker(washoutWeeks: $washoutWeeks)
