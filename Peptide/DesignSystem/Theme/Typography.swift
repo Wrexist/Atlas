@@ -30,4 +30,12 @@ enum AppFont {
     static let badge          = Font.system(size: 11, weight: .bold)
     static let badgeSmall     = Font.system(size: 10, weight: .semibold)
     static let chipText       = Font.system(size: 12, weight: .semibold)
+
+    /// Tiny heavy uppercase-style eyebrow label used above stats and in
+    /// dense list rows. Fixed size so it stays a crisp glyph at the
+    /// standard ramp.
+    static let eyebrow        = Font.system(size: 11, weight: .heavy)
+    /// Section/stat header that sits between `title2` and `statValueSmall`
+    /// — used for the headline number on detail screens.
+    static let statHeader     = Font.system(size: 28, weight: .bold, design: .rounded)
 }

@@ -115,7 +115,7 @@ struct ExerciseDetailView: View {
     }
 
     private func metadataPill(icon: String, label: String) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: Spacing.xs) {
             Image(systemName: icon)
                 .font(.system(size: 11, weight: .semibold))
             Text(label)
@@ -183,7 +183,7 @@ struct ExerciseDetailView: View {
     }
 
     private func muscleLegendCluster(title: String, muscles: [String], swatch: Color) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack(spacing: 6) {
                 Circle()
                     .fill(swatch)

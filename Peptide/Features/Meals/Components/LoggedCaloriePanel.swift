@@ -33,7 +33,7 @@ struct LoggedCaloriePanel: View {
                         style: StrokeStyle(lineWidth: 8, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
-                VStack(spacing: 2) {
+                VStack(spacing: Spacing.xxs) {
                     Text("\(Int(displayed))")
                         .font(.system(size: 22, weight: .heavy))
                         .monospacedDigit()
@@ -50,7 +50,7 @@ struct LoggedCaloriePanel: View {
             .accessibilityLabel("Today's calories: \(totalCalories) of \(targetCalories)")
             .accessibilityValue("\(Int(ringTrim * 100)) percent")
 
-            HStack(spacing: 4) {
+            HStack(spacing: Spacing.xs) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)

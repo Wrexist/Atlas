@@ -102,7 +102,7 @@ struct MealEntryEditorSheet: View {
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(initial.category.tint)
                 }
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(initial.name)
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
