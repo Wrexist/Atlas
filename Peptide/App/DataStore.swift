@@ -184,6 +184,12 @@ final class DataStore: DataServiceProtocol {
     @MainActor
     private func handleIdentityChange() {
         AppLog.persistence.error("iCloud identity changed; clearing + reloading from new store")
+        // Cancel any debounced save still in flight — it captured the
+        // previous identity's in-memory state and, if it fired after
+        // the container swap, would either be dropped silently or
+        // written against the new account's store.
+        pendingSaveTask?.cancel()
+        pendingSaveTask = nil
         // Drop pending writes — they belong to the previous identity
         // and the next save's diff would otherwise commit them against
         // the new container.
@@ -530,7 +536,7 @@ final class DataStore: DataServiceProtocol {
             }
             pendingEntryDeletions.formUnion(toRemove.map(\.id))
             let completedToday = toRemove.filter { entry in
-                entry.completed || entry.actualDose != nil || entry.notes != nil
+                entry.completed || entry.actualDose != nil || !entry.notes.isEmpty
             }
             entries.removeAll { entry in
                 entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
@@ -636,6 +642,16 @@ final class DataStore: DataServiceProtocol {
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: todayStart) else { break }
             let dayEntries = grouped[date] ?? []
 
+            // A streak-frozen day counts as covered. Without this the
+            // freeze feature is non-functional for dose streaks —
+            // a frozen missed day still consumed the empty-gap budget
+            // or broke the streak outright.
+            if StreakFreezeService.isFrozen(date, in: profile) {
+                consecutiveEmptyDays = 0
+                streak += 1
+                continue
+            }
+
             if dayEntries.isEmpty {
                 consecutiveEmptyDays += 1
                 if consecutiveEmptyDays > 2 { break }
@@ -683,7 +699,12 @@ final class DataStore: DataServiceProtocol {
         var day = earliest
         while day <= todayStart {
             let dayEntries = grouped[day] ?? []
-            if dayEntries.isEmpty {
+            if StreakFreezeService.isFrozen(day, in: profile) {
+                // Frozen day counts as covered — mirrors currentStreak.
+                consecutiveEmptyDays = 0
+                current += 1
+                best = max(best, current)
+            } else if dayEntries.isEmpty {
                 consecutiveEmptyDays += 1
                 if consecutiveEmptyDays > 2 {
                     current = 0
@@ -1181,7 +1202,13 @@ final class DataStore: DataServiceProtocol {
     @discardableResult
     func applyStreakFreeze(for date: Date = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()) -> Bool {
         let applied = StreakFreezeService.applyFreeze(in: &profile, for: date)
-        if applied { save() }
+        if applied {
+            // currentStreak / bestStreak now consult the freeze set —
+            // bump the cache version so they recompute (profile
+            // mutations don't auto-bump it the way protocols/entries do).
+            cacheVersion &+= 1
+            save()
+        }
         return applied
     }
 
@@ -1389,9 +1416,13 @@ final class DataStore: DataServiceProtocol {
             perceivedEffort: nil
         )
         repo.upsertWorkoutSession(session)
-        // Bump the day-version so workoutSummary's cache invalidates
-        // and the Today scroll refreshes its count.
-        bumpVersionIfDayChanged()
+        // Invalidate caches and refresh the widget/Watch surfaces.
+        // `bumpVersionIfDayChanged()` was a no-op on the common
+        // same-day path, so the Today widget's workout count went
+        // stale until an unrelated mutation happened to bump it.
+        cacheVersion &+= 1
+        updateWidgetData()
+        updateWatchData()
     }
 
     /// Deletes a workout by ID from the structured store. Same plumbing
@@ -1399,7 +1430,9 @@ final class DataStore: DataServiceProtocol {
     /// here it targets the historical row directly.
     func deleteWorkout(id: UUID) {
         repo.deleteWorkoutSession(id: id)
-        bumpVersionIfDayChanged()
+        cacheVersion &+= 1
+        updateWidgetData()
+        updateWatchData()
     }
 
     /// (count, totalMinutes) for workout sessions logged on `date`'s
@@ -1708,6 +1741,7 @@ final class DataStore: DataServiceProtocol {
         // propagated back to CloudKit). Explicit deletion tracking
         // closes that window: only IDs that DataStore actually
         // intended to remove are deleted.
+        repo.beginSaveBatch()
         repo.upsertProtocols(protocols)
         repo.upsertEntries(entries)
         if !pendingProtocolDeletions.isEmpty {
@@ -1721,9 +1755,26 @@ final class DataStore: DataServiceProtocol {
             pendingEntryDeletions.removeAll()
         }
         repo.saveProfile(profile)
+
+        // Surface a banner if any commit in this batch failed — a
+        // disk-full / locked-store save would otherwise drop the
+        // user's latest change with no visible signal. Clear the
+        // banner once a save succeeds, but never clobber the more
+        // serious init-time "Storage unavailable" messages.
+        if repo.commitDidFail {
+            lastError = Self.saveFailureMessage
+        } else if lastError == Self.saveFailureMessage {
+            lastError = nil
+        }
+
         updateWidgetData()
         updateWatchData()
     }
+
+    /// Banner copy for a transient live-save failure. Kept as a
+    /// constant so `performSaveNow` can both set and clear exactly
+    /// this message without disturbing other `lastError` states.
+    static let saveFailureMessage = "Couldn't save your latest changes — your device may be low on storage."
 
     // MARK: - Ephemeral / screenshot mode
 
@@ -2019,7 +2070,17 @@ final class DataStore: DataServiceProtocol {
             guard let time = timeStringParser.date(from: timeString) else { return nil }
             let hour = calendar.component(.hour, from: time)
             let minute = calendar.component(.minute, from: time)
-            let entryDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
+            let entryDate: Date
+            if let resolved = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) {
+                entryDate = resolved
+            } else {
+                // The wall-clock time doesn't exist today (DST gap) —
+                // fall back to a deterministic offset from start-of-day
+                // rather than `Date()`, which would mis-time the dose
+                // to the current moment.
+                entryDate = calendar.startOfDay(for: Date())
+                    .addingTimeInterval(TimeInterval(hour * 3600 + minute * 60))
+            }
             return ProtocolEntry(
                 id: UUID(),
                 protocolId: proto.id,

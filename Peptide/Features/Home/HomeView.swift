@@ -513,12 +513,6 @@ struct HomeView: View {
                 if let newId, let achievement = achievementService.achievements.first(where: { $0.id == newId }) {
                     toastAchievement = achievement
                     withAnimation(AppAnimation.springBouncy) { showAchievementToast = true }
-                    // Drain so the next check pass can write a fresh
-                    // unlock without the observer seeing the same id
-                    // re-fire. `checkAchievements` and
-                    // `checkLifestyleAchievements` no longer reset
-                    // this themselves.
-                    achievementService.acknowledgeLatestUnlock()
                     if Self.reviewWorthyAchievements.contains(newId) {
                         Task { @MainActor in
                             try? await Task.sleep(for: .seconds(2))
@@ -527,7 +521,20 @@ struct HomeView: View {
                     }
                 }
             }
+            .onChange(of: showAchievementToast) { _, isShowing in
+                // Drain one queued unlock when its toast finishes —
+                // this surfaces the next pending unlock (if a single
+                // save crossed several milestones) instead of all but
+                // the last being dropped.
+                if !isShowing { achievementService.acknowledgeLatestUnlock() }
+            }
+            // Single handler for adherence-ratio changes: refresh the
+            // hero trio so the Adherence ring reflects a logged/unlogged
+            // dose immediately, and fire the review prompt when the day
+            // first hits 100%. Previously two separate `onChange(of:
+            // stats.score)` modifiers spawned two async tasks per toggle.
             .onChange(of: stats.score) { oldScore, newScore in
+                Task { await refreshHeroSnapshot() }
                 if oldScore < 1.0, newScore >= 1.0, stats.total > 0 {
                     Task { @MainActor in
                         try? await Task.sleep(for: .seconds(1))
@@ -546,13 +553,6 @@ struct HomeView: View {
             .onChange(of: appState.pendingDoseLogEntryId) { _, _ in
                 consumePendingDoseDeepLink()
             }
-            // Re-fetch the hero trio whenever today's adherence ratio
-            // shifts (a dose was logged/unlogged) so the Adherence
-            // ring reflects the action without waiting for a scene-
-            // phase round-trip.
-            .onChange(of: stats.score) { _, _ in
-                Task { await refreshHeroSnapshot() }
-            }
             .onChange(of: appState.pendingWeeklyRecap) { _, _ in
                 consumeWeeklyDeepLink()
             }
@@ -561,6 +561,15 @@ struct HomeView: View {
                     WeeklySummaryDetailView(
                         summary: binding,
                         onRefresh: { await loadWeeklySummary(forceRefresh: true) }
+                    )
+                } else {
+                    // The summary was deleted between push and render —
+                    // show a real empty state instead of a blank
+                    // pushed screen with only a back button.
+                    EmptyStateView(
+                        icon: "calendar.badge.exclamationmark",
+                        title: "Recap unavailable",
+                        message: "This weekly recap is no longer available."
                     )
                 }
             }
@@ -749,7 +758,16 @@ struct HomeView: View {
                 }
                 .liquidGlassPresentation()
             } else {
-                EmptyView()
+                // `nextDose` can go nil between the dialog tap and the
+                // sheet mounting (e.g. logged on the Watch). Show a
+                // real "nothing to log" state, not a blank modal.
+                EmptyStateView(
+                    icon: "checkmark.circle",
+                    title: "Nothing to log",
+                    message: "All of today's doses are already logged."
+                )
+                .padding(Spacing.screenPadding)
+                .liquidGlassPresentation()
             }
         }
     }

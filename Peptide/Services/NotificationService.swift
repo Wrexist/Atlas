@@ -45,6 +45,13 @@ final class NotificationService {
     /// iOS limit on pending notification requests per app.
     static let pendingRequestLimit = 64
 
+    /// Slice of `pendingRequestLimit` reserved for habit reminders.
+    /// Habit reminders and dose reminders share iOS's global 64-slot
+    /// budget; capping habits here (and reserving the remainder for
+    /// doses in `scheduleNotifications`) stops a habit-heavy user from
+    /// silently evicting dose reminders past the limit.
+    static let habitRequestLimit = 32
+
     /// Prefix used by user-initiated snoozes. scheduleNotifications preserves
     /// IDs starting with this prefix when computing stale-dose removal.
     /// `nonisolated` so the delegate's nonisolated callback can read it without
@@ -159,8 +166,18 @@ final class NotificationService {
         // doses; over-the-limit requests fall off the tail.
         pendingRequests.sort { $0.nextFireDate < $1.nextFireDate }
 
-        let kept = Array(pendingRequests.prefix(Self.pendingRequestLimit))
-        let dropped = Array(pendingRequests.dropFirst(Self.pendingRequestLimit))
+        // Reserve room for habit reminders + active snoozes already in
+        // iOS's global 64-slot budget. Dose reminders are the priority
+        // (a missed dose reminder matters more than a missed habit
+        // check-in), but they must not be scheduled past the slots the
+        // habit/snooze namespaces already occupy or iOS silently drops
+        // whichever requests are added last.
+        let reservedSlots = currentIDs.filter {
+            $0.hasPrefix(Self.habitIDPrefix) || $0.hasPrefix(Self.snoozeIDPrefix)
+        }.count
+        let doseLimit = max(0, Self.pendingRequestLimit - reservedSlots)
+        let kept = Array(pendingRequests.prefix(doseLimit))
+        let dropped = Array(pendingRequests.dropFirst(doseLimit))
         let droppedProtocolIDs = Set(dropped.map(\.protocolID))
 
         let newIDs = Set(kept.map(\.request.identifier))
@@ -236,6 +253,7 @@ final class NotificationService {
         let calendar = Calendar.current
 
         for habit in habits where !habit.archived {
+            if scheduled >= Self.habitRequestLimit { break }
             guard let reminderTime = habit.reminderTime else { continue }
             let hour = calendar.component(.hour, from: reminderTime)
             let minute = calendar.component(.minute, from: reminderTime)
@@ -260,6 +278,7 @@ final class NotificationService {
             }
 
             for weekday in weekdays {
+                if scheduled >= Self.habitRequestLimit { break }
                 var components = DateComponents()
                 components.hour = hour
                 components.minute = minute

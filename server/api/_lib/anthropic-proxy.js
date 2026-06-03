@@ -206,6 +206,17 @@ export async function forwardToAnthropic(req, res, {
     });
     return;
   }
+  // Enforce the cap on the actual parsed body too — a client can omit
+  // or understate `content-length` (chunked transfer), which would
+  // otherwise let a route-specific tighter cap be bypassed up to the
+  // global 7 MB bodyParser limit.
+  const parsedBytes = Buffer.byteLength(JSON.stringify(req.body ?? ''), 'utf8');
+  if (parsedBytes > bodyCap) {
+    res.status(413).json({
+      error: { message: 'Request too large; resize before retrying' }
+    });
+    return;
+  }
 
   const clean = sanitiseBody(req.body, { systemPrefix, allowClientSystem });
   if (!clean) {
@@ -213,6 +224,8 @@ export async function forwardToAnthropic(req, res, {
     return;
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25_000);
   try {
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -222,16 +235,17 @@ export async function forwardToAnthropic(req, res, {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify(clean),
+      signal: controller.signal,
     });
 
     if (!upstream.ok) {
-      // Don't echo Anthropic's response body — it can carry org IDs,
-      // model availability hints, and request metadata useful for
-      // reconnaissance.
+      // Don't echo Anthropic's response body or status — the body can
+      // carry org IDs / model hints, and the exact status (401/429/
+      // 529) leaks server-side key state useful for reconnaissance.
+      // Collapse every upstream failure into a generic 502; the real
+      // status is logged server-side only.
       console.error(`[${logLabel}] upstream non-2xx`, upstream.status);
-      res.status(upstream.status).json({
-        error: { message: 'Upstream error', status: upstream.status }
-      });
+      res.status(502).json({ error: { message: 'Upstream error' } });
       return;
     }
 
@@ -240,8 +254,15 @@ export async function forwardToAnthropic(req, res, {
     res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
     res.send(text);
   } catch (err) {
+    if (err && err.name === 'AbortError') {
+      console.error(`[${logLabel}] upstream timeout`);
+      res.status(504).json({ error: { message: 'Upstream timeout' } });
+      return;
+    }
     console.error(`[${logLabel}] fetch failure`, err);
     res.status(502).json({ error: { message: 'Proxy failure' } });
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

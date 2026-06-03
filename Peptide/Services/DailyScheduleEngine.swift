@@ -82,7 +82,11 @@ enum DailyScheduleEngine {
         /// to the timing knowledge base.
         static func from(hour: Int) -> DaySlot {
             switch hour {
-            case 0..<5:    return .evening   // late-night dose, treat as evening continuation
+            // A 0–5 AM dose maps to `.preBed`, not `.evening` — mapping
+            // it to `.evening` collided with the 16–20 band, so a 2 AM
+            // and a 6 PM dose landed in the same slot and got analysed
+            // as co-administered (spurious conflict/combination hints).
+            case 0..<5:    return .preBed
             case 5..<10:   return .morningFasted
             case 10..<12:  return .morningWithFood
             case 12..<16:  return .midday

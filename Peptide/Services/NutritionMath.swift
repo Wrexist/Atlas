@@ -51,10 +51,16 @@ enum NutritionMath {
         // "your macros sum to 2,051 but your target is 2,054" mismatch
         // confuses users who notice the numbers don't add up
         // (audit Meals L11).
-        let proteinGRaw = weightKg * proteinPerKg
         let fatCalories = tdee * fatCalorieFraction
         let fatGRaw = fatCalories / kcalPerGramFat
-        let proteinCalories = proteinGRaw * kcalPerGramProtein
+        // Clamp protein so it can never exceed 40% of TDEE. For a
+        // heavy, sedentary user `weightKg * proteinPerKg` could push
+        // protein calories past `tdee - fatCalories`, flooring carbs
+        // at 0 and leaving a protein-only target that badly undershoots
+        // TDEE. The cap keeps the macro split realistic.
+        let proteinCalorieCeiling = tdee * 0.40
+        let proteinCalories = min(weightKg * proteinPerKg * kcalPerGramProtein, proteinCalorieCeiling)
+        let proteinGRaw = proteinCalories / kcalPerGramProtein
         let carbCalories = max(0, tdee - proteinCalories - fatCalories)
         let carbsGRaw = carbCalories / kcalPerGramCarbs
 

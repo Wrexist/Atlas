@@ -34,10 +34,9 @@ final class StoreService {
         }
     }
 
-    deinit {
-        updateTask?.cancel()
-        productsTask?.cancel()
-    }
+    // No `deinit` — `StoreService` is a process-lifetime `shared`
+    // singleton, so it never deallocates. A cancellation `deinit`
+    // would be dead code that falsely implied lifecycle management.
 
     // MARK: - Products
 
@@ -187,6 +186,14 @@ final class StoreService {
         for await result in Transaction.currentEntitlements {
             do {
                 let transaction = try checkVerified(result)
+                // Honour only entitlements that are still valid: a
+                // refunded/family-removed IAP carries a revocationDate,
+                // and a lapsed subscription an expired expirationDate.
+                // Without these checks a refunded purchase keeps Pro
+                // access indefinitely.
+                if transaction.revocationDate != nil { continue }
+                if let expiration = transaction.expirationDate,
+                   expiration < Date() { continue }
                 purchased.insert(transaction.productID)
             } catch {
                 AppLog.storeKit.error("Entitlement verification failed: \(error.localizedDescription, privacy: .public)")

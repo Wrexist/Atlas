@@ -25,7 +25,10 @@ final class ExerciseLibrary {
     private(set) var custom: [CustomExercise] = []
 
     private var byID: [String: Exercise] = [:]
-    private var isLoaded = false
+    /// `private(set)` so views can distinguish "still loading" from
+    /// "loaded, genuinely no match" instead of flashing a false
+    /// not-found state before `load()` completes.
+    private(set) var isLoaded = false
 
     private init() {}
 

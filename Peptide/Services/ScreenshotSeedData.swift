@@ -133,6 +133,7 @@ enum ScreenshotSeedData {
             guard let day = stdCalendar.date(byAdding: .day, value: -dayOffset, to: referenceDate)
             else { continue }
             for proto in protocols where proto.schedule.isActive(on: day) {
+                guard let firstPeptide = proto.peptides.first else { continue }
                 for (slotIndex, time) in proto.schedule.preferredTimes.enumerated() {
                     let entryTime = scheduledDate(for: day, time: time)
                         ?? day.addingTimeInterval(TimeInterval(8 + slotIndex) * 3600)
@@ -153,7 +154,7 @@ enum ScreenshotSeedData {
                         ProtocolEntry(
                             id: UUID(),
                             protocolId: proto.id,
-                            peptide: proto.peptides.first!,
+                            peptide: firstPeptide,
                             date: entryTime,
                             dose: dose.trimmingCharacters(in: .whitespaces),
                             notes: "",

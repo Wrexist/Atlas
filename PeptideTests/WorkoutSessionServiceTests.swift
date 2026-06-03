@@ -199,8 +199,13 @@ final class WorkoutSessionServiceTests: XCTestCase {
     }
 }
 
+// Renamed from `PRDetectionEngineTests` — that name is already taken
+// by the dedicated `PRDetectionEngineTests.swift` (bodyweight-rep PR
+// coverage). Two classes with the same name failed the test build with
+// "invalid redeclaration". These ingest-focused tests keep a distinct
+// name so both suites compile and run.
 @MainActor
-final class PRDetectionEngineTests: XCTestCase {
+final class PRDetectionEngineIngestTests: XCTestCase {
 
     private var repo: SwiftDataRepository!
 

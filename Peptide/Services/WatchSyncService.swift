@@ -62,7 +62,15 @@ final class WatchSyncService: NSObject {
                 completed: entry.completed
             )
         }
-        .sorted { !$0.completed && $1.completed }
+        // Strict-weak-ordering comparator: incomplete doses first,
+        // then by scheduled time within each group. The old
+        // `!$0.completed && $1.completed` predicate isn't a valid
+        // ordering and left same-group entries in arbitrary order.
+        .sorted { lhs, rhs in
+            lhs.completed == rhs.completed
+                ? lhs.scheduledTime < rhs.scheduledTime
+                : !lhs.completed
+        }
 
         let completed = watchEntries.filter(\.completed).count
         let data = WatchData(
@@ -122,6 +130,15 @@ extension WatchSyncService: WCSessionDelegate {
 
     nonisolated func sessionDidDeactivate(_ session: WCSession) {
         WCSession.default.activate()
+    }
+
+    nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        // The Watch falls back to `transferUserInfo` when the phone is
+        // unreachable at tap time. Same payload shape as a live
+        // message, so route it through the identical handler.
+        // `self.` is required — the `session` parameter shadows the
+        // method name in local lookup.
+        self.session(session, didReceiveMessage: userInfo)
     }
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {

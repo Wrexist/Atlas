@@ -46,6 +46,7 @@ final class AIResearchService: Sendable {
     enum ChatError: Error, LocalizedError {
         case proxyNotConfigured
         case unauthorised
+        case offline
         case rateLimited
         case serviceUnavailable
         case requestFailed(String)
@@ -55,11 +56,29 @@ final class AIResearchService: Sendable {
             switch self {
             case .proxyNotConfigured:   "AI research isn't configured for this build. Set AI_RESEARCH_ENDPOINT and AI_RESEARCH_SECRET in Secrets.xcconfig and rebuild."
             case .unauthorised:         "Couldn't sign in to the research assistant. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
+            case .offline:              "You're offline — the research assistant needs an internet connection. Reconnect and try again."
             case .rateLimited:          "You're sending questions faster than the assistant can answer. Wait a minute and try again."
             case .serviceUnavailable:   "The research assistant is temporarily offline. Try again in a few minutes."
             case .requestFailed(let m): m
             case .invalidResponse:      "The assistant returned an unexpected response."
             }
+        }
+    }
+
+    /// Maps a transport-layer `URLError` to a typed `ChatError`:
+    /// offline codes become `.offline` (actionable copy), transient
+    /// connection failures become `.serviceUnavailable`; anything
+    /// else is returned unchanged.
+    private func mapTransport(_ error: Error) -> Error {
+        guard let urlError = error as? URLError else { return error }
+        switch urlError.code {
+        case .notConnectedToInternet, .dataNotAllowed, .internationalRoamingOff:
+            return ChatError.offline
+        case .timedOut, .networkConnectionLost, .cannotConnectToHost,
+             .cannotFindHost, .dnsLookupFailed:
+            return ChatError.serviceUnavailable
+        default:
+            return error
         }
     }
 
@@ -128,7 +147,13 @@ final class AIResearchService: Sendable {
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
         request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
 
-        let (bytes, response) = try await session.bytes(for: request)
+        let bytes: URLSession.AsyncBytes
+        let response: URLResponse
+        do {
+            (bytes, response) = try await session.bytes(for: request)
+        } catch {
+            throw mapTransport(error)
+        }
         guard let http = response as? HTTPURLResponse else { throw ChatError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
             if http.statusCode == 401 { throw ChatError.unauthorised }
@@ -222,7 +247,13 @@ final class AIResearchService: Sendable {
             options: []
         )
 
-        let (data, response) = try await session.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw mapTransport(error)
+        }
         guard let http = response as? HTTPURLResponse else { throw ChatError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
             // Don't echo upstream body — Anthropic auth-failure responses
@@ -362,8 +393,19 @@ final class AIResearchService: Sendable {
     }
 
     private func parseAssistantText(from data: Data) throws -> String {
+        let envelopeObject: Any
+        do {
+            envelopeObject = try JSONSerialization.jsonObject(with: data)
+        } catch {
+            // Log before collapsing to a generic error so a server-side
+            // response-shape regression is diagnosable from a device.
+            AppLog.persistence.error(
+                "AI research envelope decode failed: \(error.localizedDescription, privacy: .private)"
+            )
+            throw ChatError.invalidResponse
+        }
         guard
-            let envelope = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let envelope = envelopeObject as? [String: Any],
             let content = envelope["content"] as? [[String: Any]],
             let text = content.first(where: { ($0["type"] as? String) == "text" })?["text"] as? String
         else {

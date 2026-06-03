@@ -66,6 +66,12 @@ final class FoodSpotlightService: Sendable {
             items.append(searchableItem(forRecipe: recipe, customFoods: profile.customFoods))
         }
 
+        // Bail if a newer reindex has superseded this one. DataStore
+        // cancels the prior `reindexTask` before scheduling a new one;
+        // these checkpoints stop a cancelled run from landing a stale
+        // delete/write over the newer run's authoritative result.
+        if Task.isCancelled { return }
+
         guard !items.isEmpty else {
             // Nothing to index — clear out any stale entries so the
             // Spotlight surface doesn't outlive the data.
@@ -80,6 +86,7 @@ final class FoodSpotlightService: Sendable {
             // would handle re-adds, but stale custom foods (deleted
             // in-app, still in the index) would linger.
             try await index.deleteSearchableItems(withDomainIdentifiers: [Self.domainIdentifier])
+            if Task.isCancelled { return }
             try await index.indexSearchableItems(items)
         } catch {
             AppLog.persistence.error(

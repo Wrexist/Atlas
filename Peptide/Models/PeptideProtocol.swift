@@ -191,9 +191,12 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         peptideSchedules[peptideId] != nil
     }
 
-    var endDate: Date {
-        Calendar.current.date(byAdding: .weekOfYear, value: cycleLengthWeeks, to: startDate) ?? startDate
-    }
+    /// Cycle-end is defined once on `cycleEndDay`; `endDate` is an
+    /// alias so the two can never drift (they previously used
+    /// `.weekOfYear`-add on the raw start date vs `.day`-add on the
+    /// start-of-day, disagreeing by an hour across DST and by the
+    /// time-of-day component always).
+    var endDate: Date { cycleEndDay }
 
     /// Canonical "cycle is over" boundary used by `CycleCompletionService`
     /// and `daysRemaining`. Normalised to `startOfDay(of: startDate)`
@@ -204,6 +207,20 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         let cal = Calendar.current
         let dayStart = cal.startOfDay(for: startDate)
         return cal.date(byAdding: .day, value: safeCycleLengthWeeks * 7, to: dayStart) ?? dayStart
+    }
+
+    /// Whole 7-day periods elapsed since `startDate`, using day-delta
+    /// math. `weekOfYear` counts calendar-week boundaries crossed — a
+    /// Friday start ticks to "week 2" after only 2 days — so it's
+    /// wrong for cycle math. Consistent with `CyclePhaseEngine`.
+    private var elapsedWeeksSinceStart: Int {
+        let cal = Calendar.current
+        let days = cal.dateComponents(
+            [.day],
+            from: cal.startOfDay(for: startDate),
+            to: cal.startOfDay(for: Date())
+        ).day ?? 0
+        return max(0, days) / 7
     }
 
     var cycleProgress: Double {
@@ -219,7 +236,7 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
     }
 
     var weekNumber: Int {
-        let weeks = Calendar.current.dateComponents([.weekOfYear], from: startDate, to: Date()).weekOfYear ?? 0
+        let weeks = elapsedWeeksSinceStart
         let totalCycleWeeks = cycleLengthWeeks + washoutWeeks
         guard cycleLengthWeeks > 0 else { return 1 }
         if totalCycleWeeks > 0 {
@@ -242,7 +259,7 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         guard cycleLengthWeeks > 0 else { return 1 }
         let totalCycleWeeks = cycleLengthWeeks + washoutWeeks
         guard totalCycleWeeks > 0 else { return 1 }
-        let weeks = Calendar.current.dateComponents([.weekOfYear], from: startDate, to: Date()).weekOfYear ?? 0
+        let weeks = elapsedWeeksSinceStart
         return max(1, (weeks / totalCycleWeeks) + 1)
     }
 

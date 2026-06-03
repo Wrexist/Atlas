@@ -101,7 +101,7 @@ struct BiologyView: View {
                 .liquidGlassPresentation()
             }
             .sheet(isPresented: $showLabs) {
-                LabsView()
+                LabsView(presentedModally: true)
                     .environment(dataStore)
             }
             .onAppear { consumePendingLabsDeepLink() }
@@ -109,13 +109,20 @@ struct BiologyView: View {
                 consumePendingLabsDeepLink()
             }
         }
-        .task { await refreshState() }
-        .onChange(of: storeService.isProUser) { _, _ in
-            Task { await refreshState() }
+        // Single `.task(id:)` keyed on the inputs `refreshState` reads.
+        // It auto-cancels the prior run when either input changes, so
+        // two near-simultaneous changes can't land out of order and
+        // leave `resolved` reflecting stale inputs.
+        .task(id: RefreshKey(isPro: storeService.isProUser,
+                             age: dataStore.profile.bodyMetrics.age)) {
+            await refreshState()
         }
-        .onChange(of: dataStore.profile.bodyMetrics.age) { _, _ in
-            Task { await refreshState() }
-        }
+    }
+
+    /// Equatable key for the Bio Age refresh `.task(id:)`.
+    private struct RefreshKey: Equatable {
+        let isPro: Bool
+        let age: Int?
     }
 
     /// Consumes the cross-tab "open Labs" deep-link flag set by the

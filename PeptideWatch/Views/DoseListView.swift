@@ -18,10 +18,13 @@ struct DoseListView: View {
             }
             .navigationTitle("Today")
             .navigationBarTitleDisplayMode(.inline)
-        }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                complianceRing
+            // Toolbar must be attached to a view *inside* the
+            // NavigationStack — when chained onto the stack's result
+            // it silently never renders.
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    complianceRing
+                }
             }
         }
     }

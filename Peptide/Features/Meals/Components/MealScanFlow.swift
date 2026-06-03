@@ -183,7 +183,7 @@ struct MealScanFlow: View {
     private enum PickerButtonStyle { case primary, secondary }
 
     @ViewBuilder
-    private func pickerButtonLabel(icon: String, title: LocalizedStringKey, style: PickerButtonStyle) -> some View {
+    nonisolated private func pickerButtonLabel(icon: String, title: LocalizedStringKey, style: PickerButtonStyle) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .bold))
@@ -328,11 +328,18 @@ struct MealScanFlow: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
-            Button("Try again") {
-                image = nil
-                selectedItem = nil
+            Button(image == nil ? "Try again" : "Retry") {
                 errorText = nil
-                phase = .pickImage
+                if let image {
+                    // Re-run analysis on the photo already loaded —
+                    // no need to make the user re-pick and re-upload
+                    // from scratch after a transient failure.
+                    phase = .analyzing
+                    inFlightTask = Task { await runAnalysis(on: image) }
+                } else {
+                    selectedItem = nil
+                    phase = .pickImage
+                }
             }
             .buttonStyle(.borderedProminent)
             .tint(AppColor.accentPrimary)

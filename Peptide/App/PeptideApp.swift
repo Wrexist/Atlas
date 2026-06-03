@@ -360,6 +360,15 @@ struct PeptideApp: App {
 
     private var mainContent: some View {
         tabViewWithAccessory
+        .safeAreaInset(edge: .top, spacing: 0) {
+            // Persistent data-loss banner. Previously the only
+            // `lastError` surfaces were inside Onboarding and the
+            // Profile account section, so a user who landed on Today
+            // never saw a "changes won't be saved" warning.
+            PersistenceErrorBanner(message: dataStore.lastError)
+                .animation(.spring(response: 0.4, dampingFraction: 0.85),
+                           value: dataStore.lastError)
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             // Floating "you're in screenshot mode" reminder sits
             // above the tab bar while ScreenshotMode is on. Self-
@@ -454,5 +463,32 @@ struct NextDoseAccessoryView: View {
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.xs)
         .animation(AppAnimation.springSnappy, value: allDone)
+    }
+}
+
+/// App-wide banner for persistence failures (fallback store at launch
+/// or a failed live save). Renders nothing when `message` is nil.
+struct PersistenceErrorBanner: View {
+    let message: String?
+
+    var body: some View {
+        if let message {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                Text(message)
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.sm)
+            .frame(maxWidth: .infinity)
+            .background(.orange.opacity(0.15))
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Warning: \(message)")
+        }
     }
 }

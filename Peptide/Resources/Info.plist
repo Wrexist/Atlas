@@ -33,6 +33,11 @@
 	<string>Atlas can save your generated share cards (cycle summaries, achievement cards) to your Photo Library when you tap Save. Only the images you choose to save are written — Atlas never reads from your library.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+	</dict>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

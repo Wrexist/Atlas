@@ -6,7 +6,11 @@ struct ProtocolListView: View {
     @State private var showingBuilder = false
     @State private var showingPaywall = false
     @State private var preselectedPeptide: Peptide?
-    @State private var path: [PeptideProtocol] = []
+    // Type-erased — this stack pushes three distinct value types
+    // (PeptideProtocol, CommunityStack, StackLibraryRoute). A typed
+    // `[PeptideProtocol]` binding couldn't represent the other two,
+    // desyncing navigation state once a stack/library route was pushed.
+    @State private var path = NavigationPath()
     @State private var sharingProtocol: PeptideProtocol?
 
     var body: some View {
@@ -154,16 +158,16 @@ struct ProtocolListView: View {
         }
     }
 
-    /// Pushes the deep-linked protocol onto the navigation path if the user
-    /// has it. Cleared immediately so a re-tap of the same row navigates
-    /// again (otherwise the value would be a no-op on the second tap).
+    /// Pushes the deep-linked protocol onto the navigation path if the
+    /// user has it. The pending id is cleared immediately, so the two
+    /// callers (`onAppear` + `onChange`) can't both consume the same
+    /// value — no separate last-element dedup is needed (and
+    /// `NavigationPath` is opaque, so element inspection isn't possible).
     private func consumePendingDeepLink() {
         guard let id = appState.pendingProtocolDeepLink,
               let target = dataStore.protocols.first(where: { $0.id == id })
         else { return }
-        if path.last?.id != target.id {
-            path.append(target)
-        }
+        path.append(target)
         appState.pendingProtocolDeepLink = nil
     }
 }

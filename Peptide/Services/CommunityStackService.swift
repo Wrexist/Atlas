@@ -72,9 +72,9 @@ final class CommunityStackService {
 
     private static func defaultTimes(for count: Int) -> [String] {
         switch max(1, count) {
-        case 1: ["8:00 AM"]
-        case 2: ["8:00 AM", "8:00 PM"]
-        case 3: ["8:00 AM", "1:00 PM", "8:00 PM"]
+        case 1: return ["8:00 AM"]
+        case 2: return ["8:00 AM", "8:00 PM"]
+        case 3: return ["8:00 AM", "1:00 PM", "8:00 PM"]
         // ≥4: spread across the waking window instead of returning
         // N identical "8:00 AM" entries, which would render as
         // overlapping morning slots in the schedule editor.

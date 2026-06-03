@@ -82,6 +82,11 @@ struct OnboardingView: View {
     /// (audit code-review #6 — unstructured task survived page exit and
     /// could double-advance on re-entry).
     @State private var buildingTask: Task<Void, Never>?
+    /// Incremented every time the building-plan animation starts. The
+    /// auto-advance task captures the value and re-checks it after its
+    /// sleep — `cancel()` alone can lose a race against a fast
+    /// back-then-forward navigation, letting a stale task advance.
+    @State private var buildingGeneration: Int = 0
     // Email-capture step state. Validated against `looksLikeEmail` on
     // primary-action; opt-in is genuinely optional — leaving it blank
     // advances without persisting an EmailSubscription.
@@ -324,6 +329,13 @@ struct OnboardingView: View {
         .onChange(of: page) { _, newPage in
             OnboardingFunnelTracker.recordStepEntered(stepName(for: newPage), index: newPage)
             updateBuildingPlanForPage(newPage)
+            // Focus the name field only when the name page is actually
+            // the current one. Driving this from the sub-view's
+            // `.onAppear` summoned the keyboard early — TabView mounts
+            // adjacent pages, so `.onAppear` fired on the prior page.
+            if newPage == Page.name {
+                nameFocused = true
+            }
         }
         .task(id: scenePhase) {
             // Re-check OS permission state when the user returns from
@@ -967,7 +979,11 @@ struct OnboardingView: View {
             Spacer()
         }
         .onAppear {
-            nameFocused = true
+            // Focus is driven from the root `.onChange(of: page)` —
+            // setting it here fired while the page was still off-screen
+            // (TabView pre-mounts neighbours) and summoned the keyboard
+            // over the previous step.
+            //
             // Pre-fill from the Apple-relayed full name if the user
             // signed in on step 1. AppleSignInButton only forwards the
             // name on the very first authorization — once we have it,
@@ -1354,6 +1370,13 @@ struct OnboardingView: View {
                 .padding(.horizontal, Spacing.lg)
                 .padding(.bottom, Spacing.xxxxl)
             }
+        }
+        .onAppear {
+            // `.other` has no card in the grid — if a re-hydrated
+            // profile carries it in the set, it can't be deselected
+            // and skews the "keep at least one selected" count. Strip
+            // it so the step only ever holds card-backed kinds.
+            equipment.remove(.other)
         }
     }
 
@@ -1998,9 +2021,16 @@ struct OnboardingView: View {
         // could be advanced from an unrelated step seconds after
         // they swiped back (audit code-review #6).
         buildingTask?.cancel()
+        buildingGeneration += 1
+        let generation = buildingGeneration
         buildingTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(1400))
-            guard !Task.isCancelled, page == Page.buildingPlan else { return }
+            // Re-check the generation as well as cancellation/page: a
+            // fast back-then-forward nav can leave a stale task that
+            // cancel() didn't catch in time.
+            guard !Task.isCancelled,
+                  generation == buildingGeneration,
+                  page == Page.buildingPlan else { return }
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             advance()
         }

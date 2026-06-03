@@ -576,7 +576,15 @@ final class HealthKitService {
                 }
             }
             let totalSeconds = merged.reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) }
-            return totalSeconds / 3600.0 / Double(days)
+            // Average over the nights that actually had sleep data, not
+            // the full requested window — dividing by `days` understated
+            // the average ~2x for a user who logs sleep only some nights.
+            // Each night is keyed by its wake-up (interval end) day so a
+            // midnight-crossing sleep counts once.
+            let nightsWithSleep = Set(
+                merged.map { Calendar.current.startOfDay(for: $0.end) }
+            ).count
+            return totalSeconds / 3600.0 / Double(max(1, nightsWithSleep))
         } catch {
             AppLog.healthKit.error("averageSleepHours query failed: \(error.localizedDescription, privacy: .private)")
             return nil

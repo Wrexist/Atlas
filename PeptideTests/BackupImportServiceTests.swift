@@ -147,9 +147,24 @@ final class BackupImportServiceTests: XCTestCase {
         dataStore.addProtocol(shared)
 
         // Build a "backup" that contains the same ID with a different
-        // name — merge should keep the existing one.
-        var conflictingProto = shared
-        conflictingProto.name = "Backup version"
+        // name — merge should keep the existing one. `PeptideProtocol`
+        // is immutable (`let name`), so reconstruct rather than mutate.
+        let conflictingProto = PeptideProtocol(
+            id: shared.id,
+            name: "Backup version",
+            peptides: shared.peptides,
+            schedule: shared.schedule,
+            peptideSchedules: shared.peptideSchedules,
+            cycleLengthWeeks: shared.cycleLengthWeeks,
+            washoutWeeks: shared.washoutWeeks,
+            startDate: shared.startDate,
+            status: shared.status,
+            notes: shared.notes,
+            authorName: shared.authorName,
+            authorHandle: shared.authorHandle,
+            forkedFromStackId: shared.forkedFromStackId,
+            createdAt: shared.createdAt
+        )
         let unique = makeProtocol(named: "Backup-only")
 
         let backup = AppBackup(

@@ -30,19 +30,7 @@ struct GlassTextField: View {
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.md)
-        .background {
-            Capsule()
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    Capsule()
-                        .fill(AppColor.cardOverlay)
-                }
-                .overlay {
-                    Capsule()
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.capsule)
+        .glassSurfaceCapsule()
     }
 }
 

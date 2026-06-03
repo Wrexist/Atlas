@@ -11,6 +11,11 @@ import SwiftUI
 /// matters when the feature has zero data on a fresh install.
 struct LabsView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.dismiss) private var dismiss
+    /// True when presented as a sheet (e.g. from Biology) — adds an
+    /// explicit Done button so the user isn't left to discover the
+    /// swipe-to-dismiss gesture.
+    var presentedModally: Bool = false
     @State private var editingEntry: LabValue?
     @State private var creatingEntry: Bool = false
     @State private var detailPanel: LabPanel?
@@ -48,6 +53,11 @@ struct LabsView: View {
             .background(AppColor.background)
             .navigationTitle("Labs")
             .toolbar {
+                if presentedModally {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") { dismiss() }
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         creatingEntry = true
