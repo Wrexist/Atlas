@@ -351,9 +351,7 @@ struct LiquidGlassSegmentedControl<Option: Hashable>: View {
         let isSelected = option == selection
         return Button {
             guard option != selection else { return }
-            if hapticEnabled {
-                Haptics.impact(.light)
-            }
+            Haptics.impact(.light)
             withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
                 selection = option
             }
@@ -489,9 +487,7 @@ private struct TimeSlotRow: View {
         Button {
             pickerDate = Self.formatter.date(from: timeString) ?? Date()
             isShowingPicker = true
-            if hapticEnabled {
-                Haptics.impact(.light)
-            }
+            Haptics.impact(.light)
         } label: {
             HStack(spacing: Spacing.md) {
                 ZStack {

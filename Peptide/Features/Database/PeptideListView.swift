@@ -179,7 +179,6 @@ struct PeptideListView: View {
                 CategoryFilterChips(
                     categories: viewModel.categories,
                     selected: viewModel.selectedCategory,
-                    hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                     onSelect: viewModel.selectCategory
                 )
 

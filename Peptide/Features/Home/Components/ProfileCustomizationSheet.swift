@@ -265,7 +265,6 @@ struct ProfileCustomizationSheet: View {
         }
         .sheet(isPresented: $isShowingPresetPicker) {
             AvatarPresetPickerSheet(
-                hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                 onPick: { preset in
                     isShowingPresetPicker = false
                     Task { await ingestPreset(preset) }

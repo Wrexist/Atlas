@@ -168,8 +168,7 @@ struct HomeView: View {
                         activeAnchor: activeJumpAnchor,
                         showsDoses: !dataStore.protocols.isEmpty,
                         onSelect: { anchor in handleJump(to: anchor, proxy: proxy) },
-                        onQuickLog: { showQuickLogMenu() },
-                        hapticsEnabled: dataStore.profile.hapticFeedbackEnabled
+                        onQuickLog: { showQuickLogMenu() }
                     )
                     .sectionAppear(index: 0)
 
@@ -244,7 +243,6 @@ struct HomeView: View {
                     if overview.hasAnySignal {
                         TodayOverviewCard(
                             snapshot: overview,
-                            hapticsEnabled: dataStore.profile.hapticFeedbackEnabled,
                             onTapHero: { dose in
                                 guard let dose else { return }
                                 selectedEntry = dose

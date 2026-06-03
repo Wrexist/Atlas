@@ -21,7 +21,6 @@ struct StackAdjustmentSheet: View {
     let candidateProtocols: [PeptideProtocol]
     let allActiveProtocols: [PeptideProtocol]
     let peptideDatabase: [Peptide]
-    let hapticEnabled: Bool
     let onApply: (StackAdjustmentResult) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -36,14 +35,12 @@ struct StackAdjustmentSheet: View {
         candidateProtocols: [PeptideProtocol],
         allActiveProtocols: [PeptideProtocol],
         peptideDatabase: [Peptide],
-        hapticEnabled: Bool,
         onApply: @escaping (StackAdjustmentResult) -> Void
     ) {
         self.warning = warning
         self.candidateProtocols = candidateProtocols
         self.allActiveProtocols = allActiveProtocols
         self.peptideDatabase = peptideDatabase
-        self.hapticEnabled = hapticEnabled
         self.onApply = onApply
 
         let initial = candidateProtocols.first ?? allActiveProtocols.first
@@ -160,9 +157,7 @@ struct StackAdjustmentSheet: View {
             VStack(spacing: Spacing.xs) {
                 ForEach(candidateProtocols, id: \.id) { proto in
                     Button {
-                        if hapticEnabled {
-                            Haptics.impact(.light)
-                        }
+                        Haptics.impact(.light)
                         selectedProtocolId = proto.id
                     } label: {
                         stackPickerRow(proto)
@@ -296,9 +291,7 @@ struct StackAdjustmentSheet: View {
                 }
 
                 Button {
-                    if hapticEnabled {
-                        Haptics.impact(.light)
-                    }
+                    Haptics.impact(.light)
                     showingPicker = true
                 } label: {
                     HStack(spacing: Spacing.xs) {
@@ -333,9 +326,7 @@ struct StackAdjustmentSheet: View {
         let isIncluded = selectedPeptideIds.contains(peptide.id)
         let color = isIncluded ? AppColor.accentPrimary : AppColor.destructive
         return Button {
-            if hapticEnabled {
-                Haptics.impact(.light)
-            }
+            Haptics.impact(.light)
             withAnimation(AppAnimation.springSnappy) {
                 if isIncluded {
                     selectedPeptideIds.remove(peptide.id)
@@ -400,9 +391,7 @@ struct StackAdjustmentSheet: View {
                 Menu {
                     ForEach(relocation.options) { option in
                         Button {
-                            if hapticEnabled {
-                                Haptics.impact(.light)
-                            }
+                            Haptics.impact(.light)
                             moveChoices[relocation.peptide.id] = option
                         } label: {
                             if let subtitle = option.subtitle {
@@ -458,9 +447,7 @@ struct StackAdjustmentSheet: View {
                 isFullWidth: true
             ) {
                 guard diff.hasChanges, let source = sourceProtocol else { return }
-                if hapticEnabled {
-                    Haptics.success()
-                }
+                Haptics.success()
                 let moves = relocations.map { relocation in
                     StackAdjustmentResult.Move(
                         peptide: relocation.peptide,

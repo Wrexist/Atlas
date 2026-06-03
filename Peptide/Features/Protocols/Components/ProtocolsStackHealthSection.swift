@@ -99,7 +99,6 @@ struct ProtocolsStackHealthSection: View {
                     candidateProtocols: candidates,
                     allActiveProtocols: dataStore.activeProtocols,
                     peptideDatabase: dataStore.peptideDatabase,
-                    hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                     onApply: applyStackAdjustment
                 )
             }

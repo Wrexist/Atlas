@@ -291,9 +291,7 @@ struct StackAlertDetailSheet: View {
                 style: primaryButtonStyle,
                 isFullWidth: true
             ) {
-                if hapticEnabled {
-                    Haptics.success()
-                }
+                Haptics.success()
                 dismiss()
                 onPrimaryAction()
             }

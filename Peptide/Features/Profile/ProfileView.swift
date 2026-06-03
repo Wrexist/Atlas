@@ -53,7 +53,6 @@ struct ProfileView: View {
                     GoalsSectionCard(
                         goalCatalog: goalCatalog,
                         selectedKeys: Set(dataStore.profile.goals),
-                        hapticEnabled: dataStore.profile.hapticFeedbackEnabled,
                         onToggle: toggleGoal
                     )
                     .sectionAppear(index: 4)

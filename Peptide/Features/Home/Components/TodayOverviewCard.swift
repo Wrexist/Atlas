@@ -15,7 +15,6 @@ import SwiftUI
 /// labs or dismisses the nudge via `onTapInsight`.
 struct TodayOverviewCard: View {
     let snapshot: TodayOverviewSnapshot
-    let hapticsEnabled: Bool
     /// Called when the user taps the hero. Receives the next
     /// pending dose if there is one, else nil — the host decides
     /// whether to open the logging sheet or no-op.
@@ -63,9 +62,7 @@ struct TodayOverviewCard: View {
 
     private var nextDoseStrip: some View {
         Button {
-            if hapticsEnabled {
-                Haptics.impact(.light)
-            }
+            Haptics.impact(.light)
             onTapHero(snapshot.nextDose)
         } label: {
             HStack(spacing: Spacing.md) {
@@ -236,9 +233,7 @@ struct TodayOverviewCard: View {
 
     private func bottomInsight(_ insight: TodayOverviewSnapshot.BottomInsight) -> some View {
         Button {
-            if hapticsEnabled {
-                Haptics.impact(.soft)
-            }
+            Haptics.impact(.soft)
             onTapInsight(insight)
         } label: {
             HStack(spacing: Spacing.md) {
@@ -391,7 +386,6 @@ private struct OverviewTile: View {
                     action: .setCalorieTarget
                 )
             ),
-            hapticsEnabled: false,
             onTapHero: { _ in },
             onTapInsight: { _ in }
         )
@@ -418,7 +412,6 @@ private struct OverviewTile: View {
                 latestLab: nil,
                 bottomInsight: nil
             ),
-            hapticsEnabled: false,
             onTapHero: { _ in },
             onTapInsight: { _ in }
         )
