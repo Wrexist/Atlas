@@ -88,6 +88,7 @@ struct WorkoutLogSheet: View {
             }
             .navigationTitle("Log workout")
             .navigationBarTitleDisplayMode(.inline)
+            .glassFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", action: onClose)

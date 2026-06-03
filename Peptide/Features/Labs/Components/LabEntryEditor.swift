@@ -162,6 +162,7 @@ struct LabEntryEditor: View {
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle(isEditing ? "Edit lab" : "New lab")
             .navigationBarTitleDisplayMode(.inline)
+            .glassFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel", action: onCancel)

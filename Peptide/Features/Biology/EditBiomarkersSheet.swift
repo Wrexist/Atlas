@@ -77,8 +77,7 @@ struct EditBiomarkersSheet: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .background(AppColor.background)
+            .glassFormStyle()
             .environment(\.editMode, $editMode)
             .navigationTitle("Edit Biomarkers")
             .navigationBarTitleDisplayMode(.inline)

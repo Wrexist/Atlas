@@ -348,6 +348,7 @@ struct RecipeFoodPickerSheet: View {
             }
             .navigationTitle("Add ingredient")
             .navigationBarTitleDisplayMode(.inline)
+            .glassFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel", action: onCancel)
@@ -384,6 +385,7 @@ struct RecipeComponentEditorSheet: View {
             }
             .navigationTitle("Ingredient")
             .navigationBarTitleDisplayMode(.inline)
+            .glassFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel", action: onCancel)

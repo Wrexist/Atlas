@@ -150,6 +150,7 @@ struct ProtocolListView: View {
             }
             .sheet(item: $sharingProtocol) { proto in
                 ShareCardSheet(subject: .singleProtocol(proto))
+                    .liquidGlassPresentation()
             }
         }
     }

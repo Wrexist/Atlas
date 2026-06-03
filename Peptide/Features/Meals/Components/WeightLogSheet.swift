@@ -55,6 +55,7 @@ struct WeightLogSheet: View {
             }
             .navigationTitle("Log weight")
             .navigationBarTitleDisplayMode(.inline)
+            .glassFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", action: onClose)

@@ -501,6 +501,7 @@ struct HomeView: View {
             .sheet(item: $milestoneShareProtocol) { proto in
                 ShareCardSheet(subject: .singleProtocol(proto))
                     .environment(dataStore)
+                    .liquidGlassPresentation()
             }
             .navigationDestination(for: Peptide.self) { peptide in
                 PeptideDetailView(peptide: peptide)

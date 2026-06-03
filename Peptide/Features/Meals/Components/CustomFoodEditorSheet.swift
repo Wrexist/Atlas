@@ -118,6 +118,7 @@ struct CustomFoodEditorSheet: View {
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle(isEditing ? "Edit food" : "New food")
             .navigationBarTitleDisplayMode(.inline)
+            .glassFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel", action: onCancel)

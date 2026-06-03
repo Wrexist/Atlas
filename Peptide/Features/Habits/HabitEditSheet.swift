@@ -195,6 +195,7 @@ struct HabitEditSheet: View {
             }
             .navigationTitle(editing == nil ? "New Habit" : "Edit Habit")
             .navigationBarTitleDisplayMode(.inline)
+            .glassFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -209,6 +210,7 @@ struct HabitEditSheet: View {
                 if editing == nil { nameFocused = true }
             }
         }
+        .preferredColorScheme(.dark)
     }
 
     private var iconGrid: some View {
