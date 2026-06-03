@@ -28,9 +28,7 @@ struct ProtocolListView: View {
                                 title: "No Protocols Yet",
                                 message: "Create your first peptide protocol to start tracking your regimen.",
                                 action: .init(title: "Create Protocol", icon: "plus") {
-                                    if dataStore.profile.hapticFeedbackEnabled {
-                                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                    }
+                                    Haptics.impact(.medium)
                                     showingBuilder = true
                                 }
                             )
@@ -108,12 +106,10 @@ struct ProtocolListView: View {
                     let blocked = StoreService.shared.requiresPro(
                         activeProtocolCount: dataStore.activeProtocols.count
                     )
-                    if dataStore.profile.hapticFeedbackEnabled {
-                        if blocked {
-                            UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                        } else {
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        }
+                    if blocked {
+                        Haptics.warning()
+                    } else {
+                        Haptics.impact(.medium)
                     }
                     if blocked {
                         showingPaywall = true

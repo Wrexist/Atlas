@@ -1,14 +1,10 @@
-import UIKit
 @preconcurrency import AVFoundation
 
-/// Single source of truth for the barcode-scan flow's haptic vocabulary.
-/// Centralised so the feel stays consistent as the flow grows and so a
-/// future "reduce haptics" preference only needs to flip one switch.
-///
-/// Each call is cheap — `UIFeedbackGenerator` instances allocate a
-/// system resource on first use and Apple recommends not holding them
-/// across UI events, so we construct per-call. Wrapping in
-/// `@MainActor` because all UIKit feedback APIs require the main thread.
+/// Names the barcode-scan flow's haptic vocabulary so the feel stays
+/// consistent as the flow grows. The actual firing delegates to
+/// `Haptics`, which honours the global "Haptic Feedback" setting in one
+/// place — so the "reduce haptics" preference these calls used to need
+/// a manual guard for is now respected automatically.
 @MainActor
 enum BarcodeHaptics {
 
@@ -16,12 +12,12 @@ enum BarcodeHaptics {
     /// barcode, before the lookup fires. Distinct from the lookup-
     /// result haptics so the user can feel the pipeline staging.
     static func detected() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        Haptics.impact(.light)
     }
 
     /// Resolved a product against Open Food Facts.
     static func lookupSuccess() {
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.success()
     }
 
     /// Lookup failed (not found, network, decode). The .error
@@ -29,22 +25,22 @@ enum BarcodeHaptics {
     /// "something didn't work" pattern users already recognize from
     /// iOS system flows.
     static func lookupFailure() {
-        UINotificationFeedbackGenerator().notificationOccurred(.error)
+        Haptics.error()
     }
 
     /// Meal was successfully written to today's bucket. A heavier
     /// impact than `detected()` so the user feels the "commit"
     /// distinctly from the "scan" earlier in the flow.
     static func logCommitted() {
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        Haptics.success()
+        Haptics.impact(.medium)
     }
 
     /// Undo invoked — `.warning` reads as "I'm undoing what I just
     /// did", less jarring than `.error` would be for a user-initiated
     /// action.
     static func logUndone() {
-        UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        Haptics.warning()
     }
 }
 

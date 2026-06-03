@@ -198,7 +198,7 @@ struct LabEntryEditor: View {
 
     private func commit() {
         guard let value = parsedValue else { return }
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.success()
         let trimmedSource = source.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
         let entry = LabValue(

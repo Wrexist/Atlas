@@ -436,17 +436,13 @@ struct MealScanFlow: View {
                 // (audit Meals M1).
                 category = MealCategory.auto(for: capturedAtDate)
                 phase = .review
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                }
+                Haptics.success()
             }
         } catch {
             await MainActor.run {
                 errorText = error.localizedDescription
                 phase = .error
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.error)
-                }
+                Haptics.error()
             }
         }
     }
@@ -469,9 +465,7 @@ struct MealScanFlow: View {
             source: .photo
         )
         dataStore.logMealEntry(entry)
-        if dataStore.profile.hapticFeedbackEnabled {
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-        }
+        Haptics.success()
         onClose()
     }
 }

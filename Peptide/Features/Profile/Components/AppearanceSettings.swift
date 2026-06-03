@@ -203,7 +203,7 @@ private struct ThemePickerRow: View {
                 selection = theme
             }
             if hapticEnabled {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
             }
         } label: {
             Circle()

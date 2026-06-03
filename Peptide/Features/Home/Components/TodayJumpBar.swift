@@ -83,7 +83,7 @@ struct TodayJumpBar: View {
         let isActive = (anchor == activeAnchor)
         return Button {
             if hapticsEnabled {
-                UISelectionFeedbackGenerator().selectionChanged()
+                Haptics.selection()
             }
             onSelect(anchor)
         } label: {
@@ -128,7 +128,7 @@ struct TodayJumpBar: View {
     private var quickLogButton: some View {
         Button {
             if hapticsEnabled {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                Haptics.impact(.medium)
             }
             onQuickLog()
         } label: {

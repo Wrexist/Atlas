@@ -64,9 +64,7 @@ struct AchievementToastView: View {
                 // bounce + haptic — landing them simultaneously feels jittery.
                 try? await Task.sleep(for: .milliseconds(120))
                 iconBounce &+= 1
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                }
+                Haptics.success()
                 try? await Task.sleep(for: .seconds(4))
                 withAnimation(AppAnimation.springSmooth) { isShowing = false }
             }

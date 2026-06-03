@@ -1078,9 +1078,7 @@ struct FoodLibraryFlow: View {
             date: now
         )
         dataStore.logMealEntry(entry)
-        if dataStore.profile.hapticFeedbackEnabled {
-            BarcodeHaptics.logCommitted()
-        }
+        BarcodeHaptics.logCommitted()
         let barcode = product.barcode
         let chosen = product.defaultPortion
         if !barcode.hasPrefix("custom:") {
@@ -1116,9 +1114,7 @@ struct FoodLibraryFlow: View {
     private func favoriteToggle(foodID: String, isFavorite: Bool) -> some View {
         Button {
             dataStore.toggleFavoriteFood(id: foodID)
-            if dataStore.profile.hapticFeedbackEnabled {
-                BarcodeHaptics.lookupSuccess()
-            }
+            BarcodeHaptics.lookupSuccess()
         } label: {
             Image(systemName: isFavorite ? "star.fill" : "star")
                 .font(.system(size: 16, weight: .semibold))
@@ -1533,9 +1529,7 @@ struct FoodLibraryFlow: View {
         category = MealCategory.auto(for: Date())
         phase = .review
         searchFieldFocused = false
-        if dataStore.profile.hapticFeedbackEnabled {
-            BarcodeHaptics.lookupSuccess()
-        }
+        BarcodeHaptics.lookupSuccess()
     }
 
     private func backToBrowse() {
@@ -1557,9 +1551,7 @@ struct FoodLibraryFlow: View {
             date: now
         )
         dataStore.logMealEntry(entry)
-        if dataStore.profile.hapticFeedbackEnabled {
-            BarcodeHaptics.logCommitted()
-        }
+        BarcodeHaptics.logCommitted()
         loggedSnapshot = LoggedSnapshot(
             foodName: product.name,
             entryID: entry.id,
@@ -1605,9 +1597,7 @@ struct FoodLibraryFlow: View {
         // so we don't need to keep the macro values around for an
         // explicit `unlogMeal` call.
         dataStore.unlogMealEntry(id: snapshot.entryID)
-        if dataStore.profile.hapticFeedbackEnabled {
-            BarcodeHaptics.logUndone()
-        }
+        BarcodeHaptics.logUndone()
         onClose()
     }
 

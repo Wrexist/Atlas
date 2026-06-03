@@ -292,7 +292,7 @@ struct StackAlertDetailSheet: View {
                 isFullWidth: true
             ) {
                 if hapticEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    Haptics.success()
                 }
                 dismiss()
                 onPrimaryAction()
@@ -348,7 +348,7 @@ private struct ChipPressStyle: ButtonStyle {
             .animation(AppAnimation.springSnappy, value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
                 if pressed && hapticEnabled {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    Haptics.impact(.light)
                 }
             }
     }

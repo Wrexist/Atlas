@@ -64,7 +64,7 @@ struct TodayOverviewCard: View {
     private var nextDoseStrip: some View {
         Button {
             if hapticsEnabled {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
             }
             onTapHero(snapshot.nextDose)
         } label: {
@@ -237,7 +237,7 @@ struct TodayOverviewCard: View {
     private func bottomInsight(_ insight: TodayOverviewSnapshot.BottomInsight) -> some View {
         Button {
             if hapticsEnabled {
-                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                Haptics.impact(.soft)
             }
             onTapInsight(insight)
         } label: {

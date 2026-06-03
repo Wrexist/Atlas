@@ -664,7 +664,7 @@ struct OnboardingView: View {
         }
         guard trimmed.looksLikeEmail else {
             withAnimation { emailError = "That doesn't look like an email address." }
-            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            Haptics.error()
             return false
         }
         emailError = nil
@@ -697,11 +697,11 @@ struct OnboardingView: View {
             // Flush sync — see goalDate comment.
             dataStore.flushPendingSave()
             OnboardingFunnelTracker.recordEvent("creator_code_applied")
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            Haptics.success()
         } else {
             withAnimation { creatorError = "Code not found — double-check and try again." }
             OnboardingFunnelTracker.recordEvent("creator_code_invalid")
-            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            Haptics.error()
         }
     }
 
@@ -730,9 +730,7 @@ struct OnboardingView: View {
     }
 
     private func haptic() {
-        if dataStore.profile.hapticFeedbackEnabled {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        }
+        Haptics.impact(.light)
     }
 
     // MARK: - Welcome
@@ -801,7 +799,7 @@ struct OnboardingView: View {
                     .frame(height: 50)
                 } else {
                     AppleSignInButton {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        Haptics.impact(.medium)
                         OnboardingFunnelTracker.recordEvent("sign_in_initiated")
                         authService.signIn()
                     }
@@ -906,7 +904,7 @@ struct OnboardingView: View {
     private func attributionChip(_ channel: AttributionChannel) -> some View {
         let isSelected = attributionChannel == channel
         return Button {
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            Haptics.impact(.soft)
             withAnimation(AppAnimation.springSnappy) { attributionChannel = channel }
             OnboardingFunnelTracker.recordEvent("attribution_\(channel.rawValue)")
         } label: { chipLabel(channel: channel, isSelected: isSelected) }
@@ -1098,7 +1096,7 @@ struct OnboardingView: View {
         let candidate = Calendar.current.date(byAdding: .weekOfYear, value: weeks, to: Date()) ?? Date()
         let isSelected = Calendar.current.isDate(goalDate, inSameDayAs: candidate)
         return Button {
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            Haptics.impact(.soft)
             withAnimation(AppAnimation.springSnappy) { goalDate = candidate }
         } label: {
             Text(label)
@@ -1480,7 +1478,7 @@ struct OnboardingView: View {
                     if completed && !demoCelebrate {
                         withAnimation(.spring(response: 0.4)) { demoCelebrate = true }
                         if !UIAccessibility.isReduceMotionEnabled {
-                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            Haptics.success()
                         }
                     }
                 }
@@ -2031,7 +2029,7 @@ struct OnboardingView: View {
             guard !Task.isCancelled,
                   generation == buildingGeneration,
                   page == Page.buildingPlan else { return }
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            Haptics.success()
             advance()
         }
     }
@@ -2325,7 +2323,7 @@ struct OnboardingView: View {
     /// LOW: affiliate CTA was competing visually with the primary).
     private var affiliateApplyButton: some View {
         Button {
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            Haptics.impact(.soft)
             OnboardingFunnelTracker.recordEvent("creator_program_apply_opened")
             showingAffiliateApply = true
         } label: {
@@ -2558,7 +2556,7 @@ private struct ThemePickerCover: View {
                         .padding(.top, Spacing.xxl)
                 }
                 Button(action: {
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    Haptics.impact(.medium)
                     onContinue()
                 }) {
                     Text("Enter Atlas")

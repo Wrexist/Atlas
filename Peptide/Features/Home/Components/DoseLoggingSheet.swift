@@ -103,9 +103,7 @@ struct DoseLoggingSheet: View {
                                             withAnimation(AppAnimation.springBouncy) {
                                                 selectedSite = isSelected ? nil : site.rawValue
                                             }
-                                            if dataStore.profile.hapticFeedbackEnabled {
-                                                UISelectionFeedbackGenerator().selectionChanged()
-                                            }
+                                            Haptics.selection()
                                         } label: {
                                             Text(site.rawValue)
                                                 .font(AppFont.caption)

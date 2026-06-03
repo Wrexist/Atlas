@@ -46,9 +46,7 @@ struct ProfileStacksCard: View {
                     }
 
                     Button {
-                        if dataStore.profile.hapticFeedbackEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        }
+                        Haptics.impact(.light)
                         appState.pendingProtocolList = true
                         appState.selectedTab = .library
                         dismiss()
@@ -125,9 +123,7 @@ struct ProfileStacksCard: View {
 
     private func stackRow(_ stack: PeptideProtocol) -> some View {
         Button {
-            if dataStore.profile.hapticFeedbackEnabled {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            }
+            Haptics.impact(.light)
             appState.pendingProtocolDeepLink = stack.id
             appState.pendingProtocolList = true
             appState.selectedTab = .library

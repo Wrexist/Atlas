@@ -118,7 +118,7 @@ struct TrackCalendarSection: View {
         let isSelected = displayMode == mode
         return Button {
             withAnimation(AppAnimation.springSnappy) { displayMode = mode }
-            UISelectionFeedbackGenerator().selectionChanged()
+            Haptics.selection()
         } label: {
             Text(mode.label)
                 .font(AppFont.subheadline)
@@ -162,7 +162,7 @@ struct TrackCalendarSection: View {
         let isActive = filterPeptideID == nil
         return Button {
             withAnimation(AppAnimation.springSnappy) { filterPeptideID = nil }
-            UISelectionFeedbackGenerator().selectionChanged()
+            Haptics.selection()
         } label: {
             Text("All")
                 .font(AppFont.subheadline)
@@ -190,7 +190,7 @@ struct TrackCalendarSection: View {
             withAnimation(AppAnimation.springSnappy) {
                 filterPeptideID = isActive ? nil : peptide.id
             }
-            UISelectionFeedbackGenerator().selectionChanged()
+            Haptics.selection()
         } label: {
             VStack(spacing: 2) {
                 CompoundVial(
@@ -276,7 +276,7 @@ struct TrackCalendarSection: View {
                 monthDate = Calendar.current.startOfMonth(for: now)
                 selectedDay = Calendar.current.startOfDay(for: now)
             }
-            UISelectionFeedbackGenerator().selectionChanged()
+            Haptics.selection()
         } label: {
             Text("Today")
                 .font(.system(size: 12, weight: .semibold))
@@ -323,7 +323,7 @@ struct TrackCalendarSection: View {
         withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
             monthDate = Calendar.current.startOfMonth(for: next)
         }
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        Haptics.impact(.light)
     }
 }
 

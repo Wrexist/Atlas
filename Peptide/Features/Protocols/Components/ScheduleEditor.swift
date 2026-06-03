@@ -268,7 +268,7 @@ struct ScheduleEditor: View {
 
     private func triggerSelectionHaptic() {
         guard hapticEnabled else { return }
-        UISelectionFeedbackGenerator().selectionChanged()
+        Haptics.selection()
     }
 }
 
@@ -352,7 +352,7 @@ struct LiquidGlassSegmentedControl<Option: Hashable>: View {
         return Button {
             guard option != selection else { return }
             if hapticEnabled {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
             }
             withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
                 selection = option
@@ -455,7 +455,7 @@ struct LiquidGlassStepper: View {
 
     private func tick() {
         guard hapticEnabled else { return }
-        UISelectionFeedbackGenerator().selectionChanged()
+        Haptics.selection()
     }
 }
 
@@ -490,7 +490,7 @@ private struct TimeSlotRow: View {
             pickerDate = Self.formatter.date(from: timeString) ?? Date()
             isShowingPicker = true
             if hapticEnabled {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
             }
         } label: {
             HStack(spacing: Spacing.md) {

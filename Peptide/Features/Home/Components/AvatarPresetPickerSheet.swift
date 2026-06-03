@@ -20,7 +20,7 @@ struct AvatarPresetPickerSheet: View {
                     ForEach(AvatarPreset.all) { preset in
                         Button {
                             if hapticEnabled {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                Haptics.impact(.light)
                             }
                             onPick(preset)
                         } label: {

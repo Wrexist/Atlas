@@ -23,11 +23,12 @@ import UIKit
 /// `UserProfile.hapticFeedbackEnabled` is reflected on the very next
 /// haptic without a separate "keep the mirror in sync" code path.
 ///
-/// `@MainActor` because every UIKit feedback API must run on the main
-/// thread. Generators allocate a system resource on first use and
-/// Apple advises against holding them across events, so each call
-/// constructs its own — cheap, and the documented usage.
-@MainActor
+/// Generators allocate a system resource on first use and Apple
+/// advises against holding them across events, so each call constructs
+/// its own — cheap, and the documented usage. Left non-isolated so it
+/// is a drop-in for the raw `UIFeedbackGenerator` calls it replaces
+/// (which carry no actor isolation) and stays callable from any
+/// context; in practice every call site is already on the main thread.
 enum Haptics {
     /// Resolves the user's current Haptic Feedback preference. Defaults
     /// to `true` to match `UserProfile`'s default, so a haptic fired

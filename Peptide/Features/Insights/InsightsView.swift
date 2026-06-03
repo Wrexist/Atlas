@@ -74,9 +74,7 @@ struct InsightsView: View {
                                     if newRange != .week && !storeService.isProUser {
                                         showPaywall = true
                                     } else if newRange != selectedRange {
-                                        if dataStore.profile.hapticFeedbackEnabled {
-                                            UISelectionFeedbackGenerator().selectionChanged()
-                                        }
+                                        Haptics.selection()
                                         selectedRange = newRange
                                     }
                                 }

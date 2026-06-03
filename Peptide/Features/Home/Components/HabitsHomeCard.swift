@@ -32,7 +32,7 @@ struct HabitsHomeCard: View {
 
     private var emptyCard: some View {
         Button {
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            Haptics.impact(.soft)
             addingNew = true
         } label: {
             HStack(spacing: Spacing.md) {
@@ -117,7 +117,7 @@ struct HabitsHomeCard: View {
                 )
             Spacer()
             Button {
-                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                Haptics.impact(.soft)
                 showingFullView = true
             } label: {
                 Text("View all")
@@ -164,7 +164,7 @@ struct HabitsHomeCard: View {
         )
         let done = summary.isCompletedToday
         return Button {
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            Haptics.impact(.soft)
             withAnimation(AppAnimation.springSnappy) {
                 dataStore.toggleHabitEntry(habitId: habit.id)
             }

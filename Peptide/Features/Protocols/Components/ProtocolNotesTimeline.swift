@@ -318,7 +318,7 @@ struct ProtocolNoteEditorSheet: View {
             // a number. Wider tap target than the digits since
             // it's also the "deselect" path.
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
                 mood = nil
             } label: {
                 Image(systemName: "xmark.circle")
@@ -335,7 +335,7 @@ struct ProtocolNoteEditorSheet: View {
     private func moodButton(rating: Int) -> some View {
         let active = mood == rating
         return Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Haptics.impact(.light)
             mood = rating
         } label: {
             Text("\(rating)")
@@ -362,7 +362,7 @@ struct ProtocolNoteEditorSheet: View {
     }
 
     private func commit() {
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.success()
         let trimmed = noteBody.trimmingCharacters(in: .whitespacesAndNewlines)
         let saved = ProtocolNote(
             id: initial.id,

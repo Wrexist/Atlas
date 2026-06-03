@@ -310,9 +310,7 @@ struct WorkoutDetailView: View {
         }
         .contextMenu {
             Button(role: .destructive) {
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                }
+                Haptics.warning()
                 dataStore.deleteWorkout(id: entry.id)
                 refresh()
             } label: {

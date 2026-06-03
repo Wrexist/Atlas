@@ -34,7 +34,7 @@ struct GoalsSectionCard: View {
 
                         Button {
                             if hapticEnabled {
-                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                Haptics.impact(.soft)
                             }
                             withAnimation(AppAnimation.springSnappy) {
                                 onToggle(entry.key)

@@ -348,7 +348,7 @@ struct PaywallView: View {
     ) -> some View {
         let isSelected = selectedProductID == product.id
         return Button {
-            UISelectionFeedbackGenerator().selectionChanged()
+            Haptics.selection()
             withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
                 selectedProductID = product.id
             }

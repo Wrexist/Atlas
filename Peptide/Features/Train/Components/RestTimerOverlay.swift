@@ -117,18 +117,18 @@ struct RestTimerOverlay: View {
             state.completeNow()
             // Haptic when the timer hits zero — the user typically
             // isn't looking at the screen at the end of a rest.
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            Haptics.success()
         }
     }
 
     private func adjust(by seconds: Int) {
         state.adjustRemaining(by: TimeInterval(seconds))
-        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        Haptics.impact(.soft)
     }
 
     private func end() {
         state.cancel()
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        Haptics.impact(.light)
     }
 }
 

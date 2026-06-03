@@ -161,7 +161,7 @@ struct StackAdjustmentSheet: View {
                 ForEach(candidateProtocols, id: \.id) { proto in
                     Button {
                         if hapticEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            Haptics.impact(.light)
                         }
                         selectedProtocolId = proto.id
                     } label: {
@@ -297,7 +297,7 @@ struct StackAdjustmentSheet: View {
 
                 Button {
                     if hapticEnabled {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        Haptics.impact(.light)
                     }
                     showingPicker = true
                 } label: {
@@ -334,7 +334,7 @@ struct StackAdjustmentSheet: View {
         let color = isIncluded ? AppColor.accentPrimary : AppColor.destructive
         return Button {
             if hapticEnabled {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
             }
             withAnimation(AppAnimation.springSnappy) {
                 if isIncluded {
@@ -401,7 +401,7 @@ struct StackAdjustmentSheet: View {
                     ForEach(relocation.options) { option in
                         Button {
                             if hapticEnabled {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                Haptics.impact(.light)
                             }
                             moveChoices[relocation.peptide.id] = option
                         } label: {
@@ -459,7 +459,7 @@ struct StackAdjustmentSheet: View {
             ) {
                 guard diff.hasChanges, let source = sourceProtocol else { return }
                 if hapticEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    Haptics.success()
                 }
                 let moves = relocations.map { relocation in
                     StackAdjustmentResult.Move(

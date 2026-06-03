@@ -220,7 +220,7 @@ struct HabitEditSheet: View {
                   spacing: Spacing.sm) {
             ForEach(HabitIconCatalog.all, id: \.self) { symbol in
                 Button {
-                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    Haptics.impact(.soft)
                     iconSymbol = symbol
                 } label: {
                     Image(systemName: symbol)
@@ -253,7 +253,7 @@ struct HabitEditSheet: View {
                   spacing: Spacing.sm) {
             ForEach(HabitTintCatalog.all, id: \.self) { hex in
                 Button {
-                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    Haptics.impact(.soft)
                     tintHex = hex
                 } label: {
                     ZStack {
@@ -292,7 +292,7 @@ struct HabitEditSheet: View {
                 // daily (audit Habits H6).
                 let isLastSelected = isSelected && weekdays.count == 1
                 Button {
-                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    Haptics.impact(.soft)
                     if isSelected { weekdays.remove(day) } else { weekdays.insert(day) }
                 } label: {
                     Text(day.shortName)

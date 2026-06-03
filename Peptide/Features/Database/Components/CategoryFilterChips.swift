@@ -9,7 +9,7 @@ struct CategoryFilterChips: View {
     private func handleSelect(_ category: PeptideCategory?) {
         guard category != selected else { return }
         if hapticEnabled {
-            UISelectionFeedbackGenerator().selectionChanged()
+            Haptics.selection()
         }
         onSelect(category)
     }

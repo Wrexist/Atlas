@@ -121,7 +121,7 @@ private struct WarningRowPressStyle: ButtonStyle {
             .animation(AppAnimation.springSnappy, value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
                 if pressed && hapticEnabled {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    Haptics.impact(.light)
                 }
             }
     }

@@ -79,7 +79,7 @@ struct HeroMetricTrio: View {
                     guard kind == .adherence,
                           oldValue < 1.0, newValue >= 1.0,
                           hapticsEnabled else { return }
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    Haptics.success()
                 }
 
                 Text(kind.label)

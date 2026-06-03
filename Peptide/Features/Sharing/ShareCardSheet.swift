@@ -335,14 +335,10 @@ struct ShareCardSheet: View {
                     maskCompoundNames: maskCompoundNames
                 )
                 renderedURL = url
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                }
+                Haptics.impact(.medium)
                 showShareSheet = true
             } catch {
-                if dataStore.profile.hapticFeedbackEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.error)
-                }
+                Haptics.error()
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             }
         }

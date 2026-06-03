@@ -63,14 +63,10 @@ struct LockScreenView: View {
         defer { isAuthenticating = false }
 
         if await biometricService.authenticate() {
-            if dataStore.profile.hapticFeedbackEnabled {
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-            }
+            Haptics.success()
             onUnlock()
         } else {
-            if dataStore.profile.hapticFeedbackEnabled {
-                UINotificationFeedbackGenerator().notificationOccurred(.error)
-            }
+            Haptics.error()
             iconBounce &+= 1
             await shakeIcon()
         }

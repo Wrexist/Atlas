@@ -877,27 +877,21 @@ struct BarcodeScanFlow: View {
                 category = MealCategory.auto(for: Date())
                 phase = .review
                 ocrPickerItem = nil
-                if dataStore.profile.hapticFeedbackEnabled {
-                    BarcodeHaptics.lookupSuccess()
-                }
+                BarcodeHaptics.lookupSuccess()
             }
         } catch let ocrError as NutritionLabelOCR.OCRError {
             await MainActor.run {
                 errorText = ocrError.errorDescription
                 phase = .error
                 ocrPickerItem = nil
-                if dataStore.profile.hapticFeedbackEnabled {
-                    BarcodeHaptics.lookupFailure()
-                }
+                BarcodeHaptics.lookupFailure()
             }
         } catch {
             await MainActor.run {
                 errorText = error.localizedDescription
                 phase = .error
                 ocrPickerItem = nil
-                if dataStore.profile.hapticFeedbackEnabled {
-                    BarcodeHaptics.lookupFailure()
-                }
+                BarcodeHaptics.lookupFailure()
             }
         }
     }
@@ -916,25 +910,19 @@ struct BarcodeScanFlow: View {
                 portion = remembered ?? result.defaultPortion
                 category = MealCategory.auto(for: Date())
                 phase = .review
-                if dataStore.profile.hapticFeedbackEnabled {
-                    BarcodeHaptics.lookupSuccess()
-                }
+                BarcodeHaptics.lookupSuccess()
             }
         } catch let lookupError as OpenFoodFactsService.LookupError {
             await MainActor.run {
                 errorText = lookupError.errorDescription
                 phase = (lookupError == .notFound) ? .notFound : .error
-                if dataStore.profile.hapticFeedbackEnabled {
-                    BarcodeHaptics.lookupFailure()
-                }
+                BarcodeHaptics.lookupFailure()
             }
         } catch {
             await MainActor.run {
                 errorText = error.localizedDescription
                 phase = .error
-                if dataStore.profile.hapticFeedbackEnabled {
-                    BarcodeHaptics.lookupFailure()
-                }
+                BarcodeHaptics.lookupFailure()
             }
         }
     }
@@ -990,12 +978,10 @@ struct BarcodeScanFlow: View {
             date: now
         )
         dataStore.logMealEntry(entry)
-        if dataStore.profile.hapticFeedbackEnabled {
-            // .logCommitted carries a heavier impact than the lookup
-            // success — the user feels "I just logged a meal" as a
-            // distinct beat from "I just scanned a barcode".
-            BarcodeHaptics.logCommitted()
-        }
+        // .logCommitted carries a heavier impact than the lookup
+        // success — the user feels "I just logged a meal" as a
+        // distinct beat from "I just scanned a barcode".
+        BarcodeHaptics.logCommitted()
         loggedSnapshot = LoggedSnapshot(
             productName: product.name,
             entryID: entry.id,
@@ -1034,9 +1020,7 @@ struct BarcodeScanFlow: View {
         // portion next time. Fire-and-forget — UI is closing anyway.
         let undoneBarcode = snapshot.barcode
         Task { await BarcodeScanHistory.shared.undoLog(barcode: undoneBarcode) }
-        if dataStore.profile.hapticFeedbackEnabled {
-            BarcodeHaptics.logUndone()
-        }
+        BarcodeHaptics.logUndone()
         onClose()
     }
 

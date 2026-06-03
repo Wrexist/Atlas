@@ -124,7 +124,7 @@ struct ReconstitutionCalculator: View {
             HStack(spacing: Spacing.xs) {
                 ForEach(quickPicks, id: \.self) { pick in
                     Button("\(formatted(pick))") {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        Haptics.impact(.light)
                         bind.wrappedValue = pick
                     }
                     .font(.system(size: 11, weight: .semibold))
