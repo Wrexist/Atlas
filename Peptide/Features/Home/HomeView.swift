@@ -196,6 +196,13 @@ struct HomeView: View {
                         .sectionAppear(index: 0)
                     }
 
+                    // Labeled section, mirroring the headered Wellness /
+                    // Movement / Timeline / Health blocks further down so
+                    // the whole scroll reads as consistent, navigable
+                    // chunks instead of an unlabeled wall of cards.
+                    HomeSectionHeader(eyebrow: "Today", title: "At a glance")
+                        .sectionAppear(index: 0)
+
                     // Bevel-style hero trio — Adherence / Recovery /
                     // Sleep. Replaces the single-ring "score" model
                     // with three at-a-glance numbers that map to the
@@ -215,6 +222,13 @@ struct HomeView: View {
                     // today" / "Short sleep, cap intensity"), tuned
                     // for Atlas's peptide-protocol context.
                     CoachingCard(message: coachingMessage)
+                        .sectionAppear(index: 0)
+
+                    // Momentum block — the user's goal projection, daily
+                    // habits, and any surfaced insights, grouped under one
+                    // header. Habits always renders, so the header never
+                    // sits alone over empty space.
+                    HomeSectionHeader(eyebrow: "Momentum", title: "Goals & habits")
                         .sectionAppear(index: 0)
 
                     // Goal countdown from the onboarding "By when?"
@@ -265,6 +279,9 @@ struct HomeView: View {
                     // first protocol" card for new users. Once a protocol
                     // exists, the score card surfaces here as before.
                     if !dataStore.protocols.isEmpty {
+                        HomeSectionHeader(eyebrow: "Protocols", title: "Today's doses")
+                            .sectionAppear(index: 1)
+
                         ProtocolScoreCard(
                             score: stats.score,
                             completed: stats.completed,
