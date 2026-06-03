@@ -213,6 +213,7 @@ struct InsightsView: View {
             .sheet(isPresented: $showLabs) {
                 LabsView()
                     .environment(dataStore)
+                    .liquidGlassPresentation()
             }
             .sheet(isPresented: $showWeightLog) {
                 WeightLogSheet(
@@ -222,6 +223,7 @@ struct InsightsView: View {
                     onDelete: { id in dataStore.deleteWeight(id: id) },
                     onClose: { showWeightLog = false }
                 )
+                .liquidGlassPresentation()
             }
             .task(id: dataStore.profile.healthConnected) {
                 guard dataStore.profile.healthConnected else {

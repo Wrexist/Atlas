@@ -132,6 +132,7 @@ struct HomeMealsSection: View {
                 initialDeepLink: pendingFoodLogID
             )
             .environment(dataStore)
+            .liquidGlassPresentation()
             .onDisappear {
                 // Single-use deep link — once the library sheet has
                 // either consumed it or been dismissed, clear so a
