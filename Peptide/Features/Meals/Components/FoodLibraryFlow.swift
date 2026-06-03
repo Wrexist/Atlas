@@ -429,11 +429,19 @@ struct FoodLibraryFlow: View {
     }
 
     private var tabSegments: some View {
-        HStack(spacing: Spacing.xs) {
-            ForEach(LibraryTab.allCases) { entry in
-                segmentChip(entry)
+        // Horizontal scroller keeps each chip on a single line at its
+        // natural width, so "Favorites" / "My Foods" never wrap to two
+        // lines on narrower phones. On wide devices the four chips fit
+        // without scrolling; on an SE they scroll instead of squashing.
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Spacing.sm) {
+                ForEach(LibraryTab.allCases) { entry in
+                    segmentChip(entry)
+                }
             }
+            .padding(.horizontal, 2)
         }
+        .scrollClipDisabled()
     }
 
     private func segmentChip(_ entry: LibraryTab) -> some View {
@@ -446,10 +454,12 @@ struct FoodLibraryFlow: View {
                     .font(.system(size: 12, weight: .semibold))
                 Text(entry.rawValue)
                     .font(.system(size: 13, weight: active ? .semibold : .medium))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
             .foregroundStyle(active ? AppColor.textPrimary : AppColor.textSecondary)
             .padding(.horizontal, Spacing.md)
-            .frame(minHeight: 36)
+            .frame(height: 36)
             .background {
                 Capsule()
                     .fill(active ? AppColor.accentPrimary.opacity(0.22) : Color.clear)
@@ -463,7 +473,7 @@ struct FoodLibraryFlow: View {
             // Extend the hit region to the 44pt HIG minimum without
             // resizing the visible pill — invisible padding around
             // the chip catches fat-finger taps.
-            .contentShape(Rectangle())
+            .contentShape(Capsule())
             .frame(minHeight: 44)
         }
         .buttonStyle(.plain)
