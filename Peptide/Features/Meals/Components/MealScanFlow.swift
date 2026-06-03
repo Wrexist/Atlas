@@ -495,6 +495,19 @@ struct EditableFoodItem: Identifiable, Hashable {
     var quantityLabel: String
     var include: Bool
     var savedToLibrary: Bool
+    /// Whether the portion controls step in whole servings or raw grams.
+    /// Defaults to servings — most people think "1 sandwich", not "180 g".
+    var portionMode: PortionMode = .serving
+
+    enum PortionMode: String, CaseIterable, Identifiable {
+        case serving, grams
+        var id: Self { self }
+        var label: String { self == .serving ? "Servings" : "Grams" }
+    }
+
+    /// Current portion expressed in servings, where one serving is the
+    /// model's depicted-portion estimate (`aiGrams`).
+    var servings: Double { aiGrams > 0 ? grams / aiGrams : 1 }
 
     init(from item: MealScannerService.ScannedFoodItem) {
         id = item.id
@@ -535,14 +548,16 @@ private struct FoodItemEditCard: View {
     @Binding var item: EditableFoodItem
     let onSave: () -> Void
 
-    /// Common portion presets (grams) shown as quick-pick chips.
+    /// Quick-pick portion presets for each mode.
     private static let gramPresets: [Double] = [50, 100, 150, 200, 300]
+    private static let servingPresets: [Double] = [0.5, 1, 1.5, 2, 3]
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             header
             if item.include {
                 Divider().overlay(AppColor.glassBorder)
+                modePicker
                 portionStepper
                 presetChips
                 macroSummary
@@ -603,46 +618,104 @@ private struct FoodItemEditCard: View {
         }
     }
 
+    private var modePicker: some View {
+        Picker("Portion mode", selection: $item.portionMode) {
+            ForEach(EditableFoodItem.PortionMode.allCases) { mode in
+                Text(mode.label).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
+    @ViewBuilder
     private var portionStepper: some View {
+        switch item.portionMode {
+        case .serving: servingStepper
+        case .grams:   gramStepper
+        }
+    }
+
+    private var servingStepper: some View {
         HStack {
-            Text("Portion")
+            Text("Amount")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
-            Button {
-                item.grams = max(5, (item.grams - 10).rounded())
-            } label: {
-                Image(systemName: "minus.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(AppColor.accentLight)
+            stepperButton(icon: "minus.circle.fill", label: "Fewer servings") {
+                setServings(item.servings - 0.5)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Decrease portion")
+            VStack(spacing: 0) {
+                Text(servingsLabel)
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .monospacedDigit()
+                Text("≈ \(Int(item.grams.rounded())) g")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+            .frame(minWidth: 80)
+            stepperButton(icon: "plus.circle.fill", label: "More servings") {
+                setServings(item.servings + 0.5)
+            }
+        }
+    }
 
+    private var gramStepper: some View {
+        HStack {
+            Text("Amount")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+            Spacer()
+            stepperButton(icon: "minus.circle.fill", label: "Decrease grams") {
+                item.grams = max(5, (item.grams - 10).rounded())
+            }
             Text("\(Int(item.grams.rounded())) g")
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
                 .frame(minWidth: 64)
-
-            Button {
+            stepperButton(icon: "plus.circle.fill", label: "Increase grams") {
                 item.grams = min(2000, (item.grams + 10).rounded())
-            } label: {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(AppColor.accentLight)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Increase portion")
         }
+    }
+
+    private func stepperButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 24))
+                .foregroundStyle(AppColor.accentLight)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+
+    /// Snaps to the nearest half-serving and writes it back as grams,
+    /// keeping `grams` the single source of truth for macro scaling.
+    private func setServings(_ value: Double) {
+        let snapped = max(0.5, (value * 2).rounded() / 2)
+        item.grams = (snapped * item.aiGrams).rounded()
+    }
+
+    private var servingsLabel: String { "\(formatCount(item.servings))×" }
+
+    private func formatCount(_ value: Double) -> String {
+        value == value.rounded() ? String(Int(value)) : String(format: "%.1f", value)
     }
 
     private var presetChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.xs) {
-                chip(label: "Serving", grams: item.aiGrams)
-                ForEach(Self.gramPresets, id: \.self) { grams in
-                    chip(label: "\(Int(grams)) g", grams: grams)
+                switch item.portionMode {
+                case .serving:
+                    ForEach(Self.servingPresets, id: \.self) { count in
+                        chip(label: "\(formatCount(count))×", grams: count * item.aiGrams)
+                    }
+                case .grams:
+                    chip(label: "1 serving", grams: item.aiGrams)
+                    ForEach(Self.gramPresets, id: \.self) { grams in
+                        chip(label: "\(Int(grams)) g", grams: grams)
+                    }
                 }
             }
         }
