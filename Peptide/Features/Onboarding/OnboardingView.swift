@@ -42,7 +42,14 @@ struct OnboardingView: View {
 
     @State private var page: Int = 0
     @State private var name: String = ""
+    /// The headline goal — drives the projection chart, the goal-date
+    /// tint, and the nutrition recommendation. Always one of
+    /// `selectedGoals` once the user has picked anything.
     @State private var primaryGoal: PrimaryGoal = .buildMuscle
+    /// Every goal the user tapped. The step is multi-select — most
+    /// people want more than one outcome (build muscle *and* lose fat).
+    /// `primaryGoal` is the first one they chose and stays the anchor.
+    @State private var selectedGoals: Set<PrimaryGoal> = []
     @State private var bodyMetrics: BodyMetrics = .unspecified
     @State private var daysPerWeek: Int = 3
     @State private var preferredDays: Set<Weekday> = []
@@ -325,6 +332,16 @@ struct OnboardingView: View {
                 primaryGoal = parsed
                 goalHasBeenSelected = true
             }
+            // Re-hydrate the full multi-select set from the saved
+            // goals so a returning user sees every chip they'd picked
+            // still lit, not just the primary.
+            let savedGoals = dataStore.profile.goals.compactMap(PrimaryGoal.init(rawValue:))
+            if !savedGoals.isEmpty {
+                selectedGoals = Set(savedGoals)
+                goalHasBeenSelected = true
+            } else if goalHasBeenSelected {
+                selectedGoals = [primaryGoal]
+            }
         }
         .onChange(of: page) { _, newPage in
             OnboardingFunnelTracker.recordStepEntered(stepName(for: newPage), index: newPage)
@@ -333,8 +350,16 @@ struct OnboardingView: View {
             // the current one. Driving this from the sub-view's
             // `.onAppear` summoned the keyboard early — TabView mounts
             // adjacent pages, so `.onAppear` fired on the prior page.
+            //
+            // Leaving any text-entry step must put the keyboard away —
+            // otherwise the name keyboard rode along onto the goal grid
+            // (and the email / creator-code keyboards onto their
+            // neighbours), covering the lower half of the next card.
             if newPage == Page.name {
                 nameFocused = true
+            } else {
+                nameFocused = false
+                dismissKeyboard()
             }
         }
         .task(id: scenePhase) {
@@ -511,7 +536,24 @@ struct OnboardingView: View {
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
+        .padding(.top, Spacing.lg)
         .padding(.bottom, Spacing.xl)
+        // The footer floats over the paged content. A clear-to-background
+        // fade keeps the CTA legible and stops a scrolling step's last
+        // row (e.g. the goal grid) from colliding with the button.
+        .background {
+            LinearGradient(
+                colors: [
+                    AppColor.background.opacity(0),
+                    AppColor.background.opacity(0.9),
+                    AppColor.background,
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+        }
     }
 
     /// Skip is shown only on optional informational pages. Data-input
@@ -598,6 +640,7 @@ struct OnboardingView: View {
             // 350ms debounce doesn't lose either field.
             let raw = primaryGoal.rawValue
             var goalSet = Set(dataStore.profile.goals)
+            goalSet.formUnion(selectedGoals.map(\.rawValue))
             goalSet.insert(raw)
             dataStore.updateGoals(goalSet)
             dataStore.setPrimaryGoal(raw)
@@ -726,7 +769,24 @@ struct OnboardingView: View {
     }
 
     private func advance() {
+        // Tear down the keyboard before the page transition so it can't
+        // linger over the next card mid-animation.
+        dismissKeyboard()
         withAnimation { page = min(totalPages - 1, page + 1) }
+    }
+
+    /// Resigns the first responder app-wide. Covers the text fields that
+    /// live inside sub-views (email, creator code) where the parent has
+    /// no `FocusState` binding to flip.
+    private func dismissKeyboard() {
+        #if canImport(UIKit)
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil,
+            from: nil,
+            for: nil
+        )
+        #endif
     }
 
     private func haptic() {
@@ -738,11 +798,9 @@ struct OnboardingView: View {
     private var welcome: some View {
         VStack(spacing: Spacing.xl) {
             Spacer()
-            HeroIcon(
-                symbol: "figure.strengthtraining.traditional",
+            HeroLogo(
                 color: AppColor.accentPrimary,
-                accent: AppColor.accentLight,
-                size: 140,
+                size: 148,
                 bounceTrigger: bounceTrigger
             )
             VStack(spacing: Spacing.md) {
@@ -1002,10 +1060,16 @@ struct OnboardingView: View {
     /// commitment without burning a full page on date-picking.
     private var goalStep: some View {
         VStack(spacing: 0) {
-            VStack(spacing: Spacing.sm) {
+            VStack(spacing: Spacing.xs) {
                 Text(goalHeadline)
                     .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .contentTransition(.opacity)
+                    .animation(.easeInOut(duration: 0.25), value: goalHasBeenSelected)
+                Text(goalSubheadline)
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
                     .contentTransition(.opacity)
                     .animation(.easeInOut(duration: 0.25), value: goalHasBeenSelected)
@@ -1051,7 +1115,17 @@ struct OnboardingView: View {
     private static let goalDateAnchorID = "onboarding.goal.dateSection"
 
     private var goalHeadline: String {
-        goalHasBeenSelected ? "Hit it by when?" : "What's your goal?"
+        goalHasBeenSelected ? "Hit it by when?" : "What are your goals?"
+    }
+
+    private var goalSubheadline: String {
+        if !goalHasBeenSelected {
+            return "Pick all that apply"
+        }
+        let count = selectedGoals.count
+        return count <= 1
+            ? "Set a target date to commit"
+            : "\(count) goals · set a target date to commit"
     }
 
     /// True after the user has tapped a goal card at least once.
@@ -1119,11 +1193,10 @@ struct OnboardingView: View {
     }
 
     private func goalCard(_ goal: PrimaryGoal) -> some View {
-        let selected = primaryGoal == goal
+        let selected = selectedGoals.contains(goal)
         return Button {
             haptic()
-            primaryGoal = goal
-            withAnimation(AppAnimation.springSmooth) { goalHasBeenSelected = true }
+            withAnimation(AppAnimation.springSmooth) { toggleGoal(goal) }
         } label: {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: goal.icon)
@@ -1144,10 +1217,38 @@ struct OnboardingView: View {
                 RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                     .stroke(selected ? goal.tint : AppColor.glassBorder, lineWidth: selected ? 1.5 : 0.5)
             )
+            .overlay(alignment: .topTrailing) {
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(goal.tint)
+                        .background(Circle().fill(AppColor.background).padding(2))
+                        .padding(Spacing.sm)
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(goal.displayName)
         .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
+    }
+
+    /// Toggles a goal in/out of the multi-select set and keeps
+    /// `primaryGoal` pointing at a still-selected goal. The first goal
+    /// the user picks becomes primary; removing the primary promotes the
+    /// next selected goal (in stable `allCases` order) so the projection
+    /// and date tint never reference a deselected goal.
+    private func toggleGoal(_ goal: PrimaryGoal) {
+        if selectedGoals.contains(goal) {
+            selectedGoals.remove(goal)
+            if primaryGoal == goal {
+                primaryGoal = PrimaryGoal.allCases.first { selectedGoals.contains($0) } ?? primaryGoal
+            }
+        } else {
+            if selectedGoals.isEmpty { primaryGoal = goal }
+            selectedGoals.insert(goal)
+        }
+        goalHasBeenSelected = !selectedGoals.isEmpty
     }
 
     /// Human-readable "8 weeks to commit" summary for the merged

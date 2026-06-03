@@ -80,6 +80,119 @@ enum NutritionMath {
         )
     }
 
+    /// Calorie strategy implied by the user's primary goal. Build /
+    /// strength goals lean into a lean surplus, fat loss into a moderate
+    /// deficit, and everything else holds at maintenance. Recomp is a
+    /// deliberate slight deficit — the body-recomposition sweet spot for
+    /// trained lifters eating at-or-just-below maintenance with high
+    /// protein.
+    enum GoalIntent {
+        case surplus
+        case deficit
+        case recomp
+        case maintenance
+
+        /// Maps a persisted `primaryGoal` raw value (the `PrimaryGoal`
+        /// rawValues from onboarding) to a calorie strategy. Unknown or
+        /// nil goals fall back to maintenance.
+        init(goalRaw: String?) {
+            switch goalRaw {
+            case "buildMuscle", "getStronger", "athletic":
+                self = .surplus
+            case "loseFat":
+                self = .deficit
+            case "recomp":
+                self = .recomp
+            default:
+                self = .maintenance
+            }
+        }
+
+        /// Multiplier applied to maintenance TDEE.
+        var calorieMultiplier: Double {
+            switch self {
+            case .surplus:     return 1.10   // ~+10% lean bulk
+            case .deficit:     return 0.80   // ~-20% sustainable cut
+            case .recomp:      return 0.95   // slight deficit, high protein
+            case .maintenance: return 1.0
+            }
+        }
+
+        /// Protein target in g/kg. Bumped above the maintenance default
+        /// in a deficit (protein preserves lean mass when calories are
+        /// low) and for muscle-building goals.
+        var proteinPerKg: Double {
+            switch self {
+            case .surplus:     return 2.0
+            case .deficit:     return 2.2
+            case .recomp:      return 2.2
+            case .maintenance: return 1.8
+            }
+        }
+
+        var shortLabel: String {
+            switch self {
+            case .surplus:     return "lean gain"
+            case .deficit:     return "fat loss"
+            case .recomp:      return "recomposition"
+            case .maintenance: return "maintenance"
+            }
+        }
+    }
+
+    /// Goal-aware daily targets. Computes maintenance TDEE, applies the
+    /// goal's calorie strategy, then sets protein from bodyweight (goal-
+    /// adjusted), fat at 25% of the adjusted calories, and fills the
+    /// remainder with carbs. Returns nil when body metrics are
+    /// incomplete — the caller should fall back to manual entry.
+    ///
+    /// This is the value behind the editor's "Recommended for you" card:
+    /// it folds in everything the profile knows (weight, height, age,
+    /// sex, activity level) plus the user's stated goal.
+    static func recommendedTargets(
+        for metrics: BodyMetrics,
+        goalRaw: String?
+    ) -> NutritionTargets? {
+        guard
+            let weightKg = metrics.weightKg, weightKg > 0,
+            let heightCm = metrics.heightCm, heightCm > 0,
+            let age = metrics.age, age > 0
+        else {
+            return nil
+        }
+
+        let intent = GoalIntent(goalRaw: goalRaw)
+        let bmr = mifflinStJeor(weightKg: weightKg, heightCm: heightCm, age: age, sex: metrics.sex)
+        let tdee = bmr * metrics.activityLevel.tdeeMultiplier
+        let targetCalories = tdee * intent.calorieMultiplier
+
+        let fatCalories = targetCalories * fatCalorieFraction
+        let fatGRaw = fatCalories / kcalPerGramFat
+
+        // Cap protein at 45% of target calories so an aggressive g/kg on
+        // a heavy, low-calorie cut can't crowd out carbs entirely.
+        let proteinCalorieCeiling = targetCalories * 0.45
+        let proteinCalories = min(weightKg * intent.proteinPerKg * kcalPerGramProtein, proteinCalorieCeiling)
+        let proteinGRaw = proteinCalories / kcalPerGramProtein
+        let carbCalories = max(0, targetCalories - proteinCalories - fatCalories)
+        let carbsGRaw = carbCalories / kcalPerGramCarbs
+
+        let proteinG = Int(proteinGRaw.rounded())
+        let fatG = Int(fatGRaw.rounded())
+        let carbsG = Int(carbsGRaw.rounded())
+        let derivedCalories = proteinG * Int(kcalPerGramProtein)
+            + carbsG * Int(kcalPerGramCarbs)
+            + fatG * Int(kcalPerGramFat)
+
+        return NutritionTargets(
+            calories: derivedCalories,
+            proteinG: proteinG,
+            carbsG: carbsG,
+            fatG: fatG,
+            fiberG: fiberDefaultG
+        )
+    }
+
     /// Mifflin-St Jeor BMR in kilocalories. The `.other` and `.unspecified`
     /// cases use the average of the male/female constants (-78) so a
     /// non-binary user still gets a reasonable estimate without forcing

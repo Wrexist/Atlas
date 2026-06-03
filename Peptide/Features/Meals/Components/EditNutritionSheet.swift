@@ -44,6 +44,7 @@ struct EditNutritionSheet: View {
             }
             .navigationTitle("Edit nutrition")
             .navigationBarTitleDisplayMode(.inline)
+            .glassFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel", action: onCancel)

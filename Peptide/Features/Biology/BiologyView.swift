@@ -106,6 +106,7 @@ struct BiologyView: View {
             .sheet(isPresented: $showLabs) {
                 LabsView(presentedModally: true)
                     .environment(dataStore)
+                    .liquidGlassPresentation()
             }
             .onAppear { consumePendingLabsDeepLink() }
             .onChange(of: appState.pendingLabsOpen) { _, _ in
@@ -132,7 +133,7 @@ struct BiologyView: View {
     /// Home overview card's latest-lab insight tap. Cleared the
     /// moment we present the sheet so re-appearing the tab doesn't
     /// re-fire. Mirrors the consumer that lived on the retired
-    /// `InsightsView` so the deep-link from `HomeView.onTapInsight`
+    /// Insights tab so the deep-link from `HomeView.onTapInsight`
     /// still lands on the right surface after the Insights → Biology
     /// rename.
     private func consumePendingLabsDeepLink() {

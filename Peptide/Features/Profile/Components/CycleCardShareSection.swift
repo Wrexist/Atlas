@@ -15,6 +15,7 @@ struct CycleCardShareSection: View {
                 .sheet(isPresented: $showShareSheet) {
                     ShareCardSheet(subject: .fullStack)
                         .environment(dataStore)
+                        .liquidGlassPresentation()
                 }
         }
     }

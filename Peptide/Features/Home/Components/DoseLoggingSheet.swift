@@ -176,5 +176,6 @@ struct DoseLoggingSheet: View {
                 }
             }
         }
+        .preferredColorScheme(.dark)
     }
 }

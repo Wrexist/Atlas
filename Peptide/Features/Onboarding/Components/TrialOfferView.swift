@@ -19,6 +19,12 @@ struct TrialOfferView: View {
     @State private var sparklePhase = 0.0
     @State private var ctaPulse = false
     @State private var didReveal = false
+    /// Soft urgency deadline for the welcome offer. A 10-minute window
+    /// is long enough to read the screen without feeling like a scam,
+    /// short enough to nudge a decision now rather than "later" (which
+    /// converts far worse). Set once on first render so it counts down
+    /// from when the user actually lands on the paywall.
+    @State private var offerDeadline = Date().addingTimeInterval(10 * 60)
     /// Selected billing cadence. Initialised to `.annual` then re-assigned
     /// from `OnboardingExperiment.variant(for: .paywallTierOrder)` inside
     /// the view's `.task` modifier — the experiment service is
@@ -105,7 +111,9 @@ struct TrialOfferView: View {
 
                     heroBadge
                     headline
+                    countdownBanner
                     benefitsCard
+                    socialProof
                     tierPicker
 
                     Spacer(minLength: Spacing.md)
@@ -116,8 +124,23 @@ struct TrialOfferView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 footer
                     .padding(.horizontal, Spacing.screenPadding)
-                    .padding(.top, Spacing.md)
+                    .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.md)
+                    // Opaque-to-clear backdrop so the scrolling tier
+                    // cards fade out behind the pinned CTA instead of
+                    // bleeding through and colliding with the legal copy.
+                    .background {
+                        LinearGradient(
+                            colors: [
+                                AppColor.background.opacity(0),
+                                AppColor.background.opacity(0.85),
+                                AppColor.background,
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .ignoresSafeArea()
+                    }
             }
         }
         .task {
@@ -232,11 +255,85 @@ struct TrialOfferView: View {
     }
 
     private let benefits: [(String, LocalizedStringKey)] = [
-        ("infinity", "Unlimited protocols & stacks"),
-        ("chart.xyaxis.line", "Full analytics + HealthKit correlation"),
-        ("brain.head.profile.fill", "AI insights & smart recommendations"),
+        ("figure.strengthtraining.traditional", "Unlimited training plans & auto-progression"),
+        ("camera.viewfinder", "AI photo + barcode meal scanner"),
+        ("heart.text.square.fill", "Recovery, HRV & Performance Age"),
+        ("brain.head.profile.fill", "AI coach with cited research"),
         ("icloud.fill", "Cloud sync across all your devices"),
     ]
+
+    // MARK: - Urgency countdown
+
+    /// Live "offer ends in mm:ss" banner. Drives conversion by giving the
+    /// decision a deadline. `TimelineView` re-renders every second without
+    /// any timer plumbing; once the window elapses it flips to a calmer
+    /// "best value — today only" line rather than showing 00:00.
+    private var countdownBanner: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let remaining = max(0, offerDeadline.timeIntervalSince(context.date))
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "bolt.fill")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(AppColor.warning)
+                if remaining > 0 {
+                    Text("Welcome offer ends in")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(AppColor.textSecondary)
+                    Text(timeString(remaining))
+                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(AppColor.textPrimary)
+                        .contentTransition(.numericText())
+                } else {
+                    Text("Best value — claim it today")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(AppColor.textPrimary)
+                }
+            }
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.sm)
+            .background {
+                Capsule()
+                    .fill(AppColor.warning.opacity(0.14))
+                    .overlay {
+                        Capsule().strokeBorder(AppColor.warning.opacity(0.35), lineWidth: 1)
+                    }
+            }
+        }
+        .opacity(didReveal ? 1 : 0)
+        .offset(y: didReveal ? 0 : 10)
+        .animation(AppAnimation.springSmooth.delay(0.1), value: didReveal)
+    }
+
+    private func timeString(_ seconds: TimeInterval) -> String {
+        let total = Int(seconds.rounded())
+        return String(format: "%d:%02d", total / 60, total % 60)
+    }
+
+    // MARK: - Social proof
+
+    /// Star rating + athlete count directly under the feature list. Trust
+    /// signal right where the user is weighing the price — mirrors the
+    /// welcome screen's `SocialProofPill` so the claim is consistent.
+    private var socialProof: some View {
+        HStack(spacing: Spacing.sm) {
+            HStack(spacing: 1) {
+                ForEach(0..<5, id: \.self) { _ in
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(AppColor.achievement)
+                }
+            }
+            Text("4.9")
+                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                .foregroundStyle(AppColor.textPrimary)
+            Text("· Loved by 12k+ athletes")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(AppColor.textSecondary)
+        }
+        .opacity(didReveal ? 1 : 0)
+        .animation(AppAnimation.springSmooth.delay(0.45), value: didReveal)
+    }
 
     private func benefitRow(icon: String, title: LocalizedStringKey, index: Int) -> some View {
         HStack(spacing: Spacing.md) {
@@ -343,6 +440,18 @@ struct TrialOfferView: View {
                         lineWidth: isSelected ? 1.5 : 0.5
                     )
             )
+            .overlay(alignment: .topTrailing) {
+                if isAnnual {
+                    Text("MOST POPULAR")
+                        .font(.system(size: 9, weight: .heavy))
+                        .tracking(0.8)
+                        .foregroundStyle(AppColor.background)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(AppColor.accentPrimary))
+                        .offset(x: -Spacing.sm, y: -9)
+                }
+            }
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
@@ -408,6 +517,15 @@ struct TrialOfferView: View {
             .buttonStyle(.plain)
             .disabled(isPurchasing)
             .accessibilityLabel(ctaTitle)
+
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: "checkmark.shield.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
+                Text(reassuranceCopy)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(AppColor.textSecondary)
+            }
 
             Button(action: declineTrial) {
                 Text("Maybe later")
@@ -476,6 +594,16 @@ struct TrialOfferView: View {
             return "Start Yearly Plan"
         case .monthly:
             return "Start My \(trialDays)-Day Free Trial"
+        }
+    }
+
+    /// Friction-reducing line under the CTA. Accurate per tier — only
+    /// the monthly trial means "no charge today"; the annual plan bills
+    /// immediately, so it leans on the cancel-anytime guarantee.
+    private var reassuranceCopy: String {
+        switch selectedTier {
+        case .annual:  return "Cancel anytime · Secured by the App Store"
+        case .monthly: return "No charge today · Cancel anytime"
         }
     }
 

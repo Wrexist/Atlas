@@ -72,8 +72,7 @@ final class DataStore: DataServiceProtocol {
     }
 
     /// Entries keyed by start-of-day. Cached against `cacheVersion`, so all
-    /// the per-day stats (currentStreak, totalDaysLogged, weeklyCompletion,
-    /// the retired-but-still-compiled `InsightsView` compliance helpers)
+    /// the per-day stats (currentStreak, totalDaysLogged, weeklyCompletion)
     /// share one O(n) group pass per mutation instead of re-filtering the
     /// entries array per day.
     var entriesByDay: [Date: [ProtocolEntry]] {

@@ -31,9 +31,8 @@ enum AppTab: String, CaseIterable {
     /// baselines, lab markers, body composition. Replaces the
     /// prior `.insights` slot in the tab bar with a Bevel-style
     /// premium surface. The analytical / correlation content
-    /// (compliance trends, HealthKit correlation, labs) still
-    /// lives on `InsightsView`; future commits fold its surfaces
-    /// into Biology's sections.
+    /// (compliance trends, HealthKit correlation, labs) now lives
+    /// on the Biology and Today surfaces.
     case biology
     /// Profile + settings. Demoted from the bottom tab bar to a
     /// top-right avatar entry on the Today header during the

@@ -269,6 +269,7 @@ struct ProtocolNoteEditorSheet: View {
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle(protocolName)
             .navigationBarTitleDisplayMode(.inline)
+            .glassFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel", action: onCancel)

@@ -425,12 +425,15 @@ struct HomeView: View {
             .sheet(isPresented: $showTargetsEditor) {
                 NutritionTargetsEditor(
                     initial: dataStore.profile.nutritionTargets ?? .zero,
+                    bodyMetrics: dataStore.profile.bodyMetrics,
+                    goalRaw: dataStore.profile.primaryGoal,
                     onSave: { targets in
                         dataStore.updateNutritionTargets(targets)
                         showTargetsEditor = false
                     },
                     onCancel: { showTargetsEditor = false }
                 )
+                .liquidGlassPresentation()
             }
             .sheet(item: $milestonePrompt) { item in
                 CycleMilestonePromptSheet(
@@ -498,6 +501,7 @@ struct HomeView: View {
             .sheet(item: $milestoneShareProtocol) { proto in
                 ShareCardSheet(subject: .singleProtocol(proto))
                     .environment(dataStore)
+                    .liquidGlassPresentation()
             }
             .navigationDestination(for: Peptide.self) { peptide in
                 PeptideDetailView(peptide: peptide)

@@ -85,6 +85,7 @@ struct CustomExerciseEditorSheet: View {
             }
             .navigationTitle(editing == nil ? "New exercise" : "Edit exercise")
             .navigationBarTitleDisplayMode(.inline)
+            .glassFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -99,6 +100,7 @@ struct CustomExerciseEditorSheet: View {
                 if editing == nil { nameFocused = true }
             }
         }
+        .preferredColorScheme(.dark)
     }
 
     private func commit() {

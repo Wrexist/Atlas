@@ -123,18 +123,21 @@ struct HabitsView: View {
                 }
             }
             .sheet(item: $editing) { target in
-                switch target {
-                case .new:
-                    HabitEditSheet(editing: nil) { habit in
-                        dataStore.addHabit(habit)
-                    } onDelete: { _ in }
-                case .existing(let habit):
-                    HabitEditSheet(editing: habit) { updated in
-                        dataStore.updateHabit(updated)
-                    } onDelete: { id in
-                        dataStore.archiveHabit(id: id)
+                Group {
+                    switch target {
+                    case .new:
+                        HabitEditSheet(editing: nil) { habit in
+                            dataStore.addHabit(habit)
+                        } onDelete: { _ in }
+                    case .existing(let habit):
+                        HabitEditSheet(editing: habit) { updated in
+                            dataStore.updateHabit(updated)
+                        } onDelete: { id in
+                            dataStore.archiveHabit(id: id)
+                        }
                     }
                 }
+                .liquidGlassPresentation()
             }
         }
     }

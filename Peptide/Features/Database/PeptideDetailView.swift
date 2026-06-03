@@ -199,7 +199,7 @@ struct PeptideDetailView: View {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             HStack(spacing: Spacing.sm) {
                                 Image(systemName: "hand.raised.fill")
-                                    .foregroundStyle(Color.red.opacity(0.9))
+                                    .foregroundStyle(AppColor.destructive.opacity(0.9))
                                     .accessibilityHidden(true)
                                 Text("Contraindications")
                                     .font(AppFont.headline)
@@ -211,8 +211,8 @@ struct PeptideDetailView: View {
                                     HStack(alignment: .top, spacing: Spacing.sm) {
                                         Image(systemName: "xmark.circle.fill")
                                             .font(.system(size: 12))
-                                            .foregroundStyle(Color.red.opacity(0.7))
-                                            .shadow(color: Color.red.opacity(0.3), radius: 3)
+                                            .foregroundStyle(AppColor.destructive.opacity(0.7))
+                                            .shadow(color: AppColor.destructive.opacity(0.3), radius: 3)
                                             .padding(.top, 3)
 
                                         Text(item)

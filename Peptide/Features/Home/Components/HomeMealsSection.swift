@@ -132,6 +132,7 @@ struct HomeMealsSection: View {
                 initialDeepLink: pendingFoodLogID
             )
             .environment(dataStore)
+            .liquidGlassPresentation()
             .onDisappear {
                 // Single-use deep link — once the library sheet has
                 // either consumed it or been dismissed, clear so a
@@ -142,12 +143,15 @@ struct HomeMealsSection: View {
         .sheet(isPresented: $showTargetsEditor) {
             NutritionTargetsEditor(
                 initial: dataStore.profile.nutritionTargets ?? .zero,
+                bodyMetrics: dataStore.profile.bodyMetrics,
+                goalRaw: dataStore.profile.primaryGoal,
                 onSave: { targets in
                     dataStore.updateNutritionTargets(targets)
                     showTargetsEditor = false
                 },
                 onCancel: { showTargetsEditor = false }
             )
+            .liquidGlassPresentation()
         }
         .sheet(item: $editingMealEntry) { entry in
             MealEntryEditorSheet(
