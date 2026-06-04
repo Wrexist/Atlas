@@ -267,15 +267,33 @@ Decision needed up front:
 
 ---
 
-## 10. Immediate next steps I can do in-repo (no art needed)
+## 10. In-repo prep — DONE ✅
 
-1. Add `tools/anatomy_render.py` (full Blender script + the complete 24-row
-   `GROUPS` mapping stub) so an artist/you can render to spec.
-2. Add a DEBUG **muscle-cycler** preview + the launch-time **coverage
-   assertion** so the moment masks drop in, alignment is verifiable.
-3. Add the 26 empty `.imageset` folders with `Contents.json` so importing
-   art is drag-and-drop.
-4. Tune `primaryColor` / `secondaryColor` / `heatmapHotColor` once a base
-   render exists.
+1. ✅ `tools/anatomy_render.py` — full Blender render script with the
+   complete 24-region `GROUPS` mapping (substring match), per-region
+   `FACING`, and left/right `SIDE` split. Renders base + all masks from a
+   locked camera.
+2. ✅ DEBUG **alignment harness** `AnatomyDebugView` (cycles all 24
+   muscles, intensity slider, lists missing masks) + launch-time
+   **coverage assertion** (`AnatomyAssets.auditCoverage()` called in
+   `PeptideApp.init()` under `#if DEBUG`).
+3. ✅ All 26 `.imageset` folders created under
+   `Assets.xcassets/Anatomy/` with `Contents.json` — importing art is now
+   drag-and-drop (the imageset names already match `AnatomyAssets`).
+4. ⏳ Tune `primaryColor` / `secondaryColor` / `heatmapHotColor` once a
+   real base render exists (P2).
 
-Say the word and I'll land 1–3 now.
+### How to produce the art now
+1. Decide **build vs commission** (Option A vs B) and **source model**
+   (Z-Anatomy recommended).
+2. Set `OUTPUT_DIR` in `tools/anatomy_render.py`, open the model in
+   Blender, add `Cam_Front` / `Cam_Back`, run the script.
+3. Drop each rendered PNG into the matching
+   `Assets.xcassets/Anatomy/anatomy_<name>.imageset/` (or set it as the
+   3x slot).
+4. Run the app in DEBUG → open `AnatomyDebugView` to verify every mask
+   aligns; the launch audit will flag any missing one.
+5. Tune the tint colours (step 4 above) and ship.
+
+The app flips to the photoreal renderer automatically the moment
+`anatomy_body_front` + `anatomy_body_back` are present.

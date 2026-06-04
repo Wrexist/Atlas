@@ -36,6 +36,13 @@ struct PeptideApp: App {
             diskPath:       "peptidex-imagecache"
         )
 
+        #if DEBUG
+        // Fail loudly if a photoreal anatomy pack ships with any muscle
+        // mask missing — see docs/PHOTOREAL_ANATOMY_PLAN.md. No-op until
+        // the base body images are bundled.
+        AnatomyAssets.auditCoverage()
+        #endif
+
         // App.init() may be nonisolated in strict Swift 6 mode; assumeIsolated
         // bridges to @MainActor safely since @main always runs on the main thread.
         _dataStore = State(wrappedValue: MainActor.assumeIsolated {

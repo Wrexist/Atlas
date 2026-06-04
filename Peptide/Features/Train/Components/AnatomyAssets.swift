@@ -42,4 +42,25 @@ enum AnatomyAssets {
         return false
         #endif
     }
+
+    #if DEBUG
+    /// Muscles whose mask image is missing from the bundle. Empty when the
+    /// pack is complete — or absent entirely. Drives the launch-time audit
+    /// and the `AnatomyDebugView` alignment harness.
+    static func missingMasks() -> [AnatomicalMuscle] {
+        guard isAvailable else { return [] }
+        return AnatomicalMuscle.allCases.filter { !imageExists(mask(for: $0)) }
+    }
+
+    /// Asserts loudly if a shipped anatomy pack is missing any muscle
+    /// mask, so a half-imported set is caught at launch rather than
+    /// rendering silent gaps. No-op when the pack isn't bundled. Call once
+    /// from `PeptideApp.init()`.
+    static func auditCoverage() {
+        let missing = missingMasks()
+        guard !missing.isEmpty else { return }
+        let names = missing.map { mask(for: $0) }.joined(separator: ", ")
+        assertionFailure("AnatomyAssets: base bodies present but masks missing: \(names)")
+    }
+    #endif
 }
