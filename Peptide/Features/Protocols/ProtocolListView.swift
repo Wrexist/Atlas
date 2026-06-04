@@ -3,6 +3,10 @@ import SwiftUI
 struct ProtocolListView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
+    /// Set when presented as a sheet (its only call site today) so the
+    /// root can offer a native Done button instead of a hand-rolled one
+    /// on an enclosing stack.
+    @Environment(\.dismiss) private var dismiss
     @State private var showingBuilder = false
     @State private var showingPaywall = false
     @State private var preselectedPeptide: Peptide?
@@ -128,6 +132,12 @@ struct ProtocolListView: View {
                 dataStore.reloadFromDisk()
             }
             .navigationTitle("Protocols")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
             .navigationDestination(for: PeptideProtocol.self) { protocol_ in
                 ProtocolDetailView(protocol_: protocol_)
             }
