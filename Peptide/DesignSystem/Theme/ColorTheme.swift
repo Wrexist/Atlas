@@ -1,5 +1,19 @@
 import SwiftUI
 
+/// The single source of truth for colour in the app.
+///
+/// **Rule:** feature views must use `AppColor` tokens — never a raw
+/// `Color(red:…)` / `Color(hex:…)` literal — so the whole app stays on one
+/// theme and a palette change is one edit. See
+/// `docs/PREMIUM_CONSISTENCY_PLAN.md`.
+///
+/// **Whitelisted domain colours** (intentionally literal, do NOT tokenize):
+/// the macro-ring colours (`macro*`), HealthKit metric colours (`metric*`),
+/// `streak` / `achievement`, the anatomy primary/secondary tints in
+/// `MuscleMapView`, the notes mood-rating scale in `ProtocolNotesTimeline`,
+/// the multi-colour onboarding showcase in `WhatsNewPage`, and the
+/// deliberately-distinct Screenshot-mode dev row. These encode a real-world
+/// concept, not the brand, and stay constant across themes.
 enum AppColor {
     static let background = Color(hex: 0x0A0A0A)
     static let surfaceElevated = Color(hex: 0x1A1A1A)
