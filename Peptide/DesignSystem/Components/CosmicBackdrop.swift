@@ -1,19 +1,22 @@
 import SwiftUI
 
-/// Reusable "premium / aspirational" backdrop. A deep-purple
-/// gradient plus a deterministic starfield drawn into Canvas —
-/// the exact same recipe `PremiumPromoCard` uses for its upsell
-/// surfaces, lifted into its own component so other premium
-/// surfaces (notably the Biology tab) can sit on it without
-/// re-implementing the math.
+/// Reusable "premium / aspirational" backdrop. The app's near-black
+/// background plus a soft accent glow and a deterministic starfield —
+/// the same recipe `PremiumPromoCard` uses for its upsell surfaces,
+/// lifted into its own component so other premium surfaces (notably the
+/// Biology tab) can sit on it without re-implementing the math.
+///
+/// Re-skinned from the original deep-purple gradient to the brand palette
+/// (`AppColor.background` + themed accent glow) so the Biology tab and
+/// premium cards read as the *same* app as every other near-black screen,
+/// instead of a separate purple world.
 ///
 /// Two knobs:
-///   • `intensity` (0…1) scales gradient brightness and star
-///     density. 1.0 = the original promo-card look; 0.6 = a
-///     softer full-screen backdrop (Bevel-style tab background).
-///   • `seed` lets a host pin a specific star arrangement so the
-///     same screen renders identically across launches without
-///     shimmer between body re-evaluations.
+///   • `intensity` (0…1) scales glow brightness and star density. 1.0 =
+///     the original promo-card look; 0.6 = a softer full-screen backdrop.
+///   • `seed` lets a host pin a specific star arrangement so the same
+///     screen renders identically across launches without shimmer between
+///     body re-evaluations.
 struct CosmicBackdrop: View {
     var intensity: Double = 1.0
     var seed: UInt64 = 0xA770_C175_DA75
@@ -24,29 +27,27 @@ struct CosmicBackdrop: View {
 
     var body: some View {
         ZStack {
-            gradient
+            AppColor.background
+            glow
             starfield
         }
     }
 
-    private var gradient: some View {
-        LinearGradient(
-            colors: gradientStops,
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
+    /// Soft accent glow from the top — the brand's premium shimmer,
+    /// replacing the old off-brand purple gradient so this backdrop sits
+    /// in the same near-black palette as the rest of the app.
+    private var glow: some View {
+        let i = max(0, min(1, intensity))
+        return RadialGradient(
+            colors: [
+                AppColor.accentPrimary.opacity(0.18 * i),
+                AppColor.accentPrimary.opacity(0.05 * i),
+                .clear,
+            ],
+            center: .top,
+            startRadius: 0,
+            endRadius: 560
         )
-    }
-
-    private var gradientStops: [Color] {
-        let intensityScale = max(0, min(1, intensity))
-        // Three deep-purple stops; intensity reduces brightness
-        // toward near-black so a full-screen variant doesn't fight
-        // foreground content.
-        return [
-            Color(red: 0.10 * intensityScale, green: 0.08 * intensityScale, blue: 0.22 * intensityScale),
-            Color(red: 0.18 * intensityScale, green: 0.13 * intensityScale, blue: 0.36 * intensityScale),
-            Color(red: 0.32 * intensityScale, green: 0.20 * intensityScale, blue: 0.48 * intensityScale),
-        ]
     }
 
     /// Deterministic starfield. Star count scales with the
@@ -57,13 +58,16 @@ struct CosmicBackdrop: View {
             let area = size.width * size.height
             let starCount = max(8, Int(starDensityPer10k * area / 10_000))
             var generator = SplitMix64(seed: seed)
-            for _ in 0..<starCount {
+            for i in 0..<starCount {
                 let x = Double.random(in: 0...1, using: &generator) * size.width
                 let y = Double.random(in: 0...1, using: &generator) * size.height
                 let r = Double.random(in: 0.5...1.6, using: &generator)
-                let opacity = Double.random(in: 0.25...0.7, using: &generator) * intensity
+                let opacity = Double.random(in: 0.2...0.6, using: &generator) * intensity
+                // Most stars are neutral white; a few pick up the accent so
+                // the field feels on-brand without reading as coloured noise.
+                let tint: Color = (i % 6 == 0) ? AppColor.accentLight : .white
                 let rect = CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)
-                ctx.fill(Path(ellipseIn: rect), with: .color(.white.opacity(opacity)))
+                ctx.fill(Path(ellipseIn: rect), with: .color(tint.opacity(opacity)))
             }
         }
         .allowsHitTesting(false)
