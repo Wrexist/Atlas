@@ -327,13 +327,10 @@ struct HomeView: View {
                         )
                         .sectionAppear(index: 3)
 
-                        QuickStatsRow(
-                            activeProtocols: dataStore.activeProtocols.count,
-                            daysLogged: dataStore.totalDaysLogged,
-                            compliance: Int(dataStore.averageCompliance * 100),
-                            nextDose: dataStore.nextDose
-                        )
-                        .sectionAppear(index: 4)
+                        // QuickStatsRow removed in the declutter pass —
+                        // its compliance figure duplicated ProtocolScoreCard
+                        // and its "next dose" duplicated the tab-bar bottom
+                        // accessory, so it was noise rather than signal.
                     }
 
                     HomeWellnessSection()
