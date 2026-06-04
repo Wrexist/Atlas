@@ -391,6 +391,67 @@ enum BodyAnatomy {
         return p
     }
 
+    // MARK: - Definition grooves
+
+    /// Thin muscle-separation lines drawn over the fills to give the
+    /// sculpted, defined read of an anatomy chart — linea alba + ab
+    /// inscriptions, pec and deltoid borders, quad/calf/biceps splits on
+    /// the front; spinal furrow, erector columns, glute creases and
+    /// hamstring/triceps splits on the back. Returned as one strokable
+    /// path so the view can lay it down in a single shadowed pass.
+    static func grooves(front: Bool) -> Path {
+        var p = Path()
+
+        func seg(_ a: CGPoint, _ b: CGPoint) {
+            p.move(to: a); p.addLine(to: b)
+            p.move(to: a.applying(mirror)); p.addLine(to: b.applying(mirror))
+        }
+        func curve(_ a: CGPoint, _ b: CGPoint, _ c: CGPoint) {
+            p.move(to: a); p.addQuadCurve(to: b, control: c)
+        }
+
+        if front {
+            // Linea alba (centre line of the abs)
+            p.move(to: CGPoint(x: 0.5, y: 0.474)); p.addLine(to: CGPoint(x: 0.5, y: 1.090))
+            // Tendinous inscriptions across the six-pack
+            for i in 0..<3 {
+                let y = 0.752 + Double(i) * 0.092
+                curve(CGPoint(x: 0.436, y: y), CGPoint(x: 0.564, y: y), CGPoint(x: 0.5, y: y + 0.012))
+            }
+            // Pectoral lower folds
+            curve(CGPoint(x: 0.300, y: 0.598), CGPoint(x: 0.487, y: 0.628), CGPoint(x: 0.392, y: 0.662))
+            curve(CGPoint(x: 0.700, y: 0.598), CGPoint(x: 0.513, y: 0.628), CGPoint(x: 0.608, y: 0.662))
+            // Deltoid striations
+            seg(CGPoint(x: 0.214, y: 0.456), CGPoint(x: 0.205, y: 0.556))
+            // Biceps groove
+            seg(CGPoint(x: 0.156, y: 0.520), CGPoint(x: 0.156, y: 0.700))
+            // Quad separations — rectus femoris + vastus lateralis sweep
+            seg(CGPoint(x: 0.404, y: 1.540), CGPoint(x: 0.402, y: 1.852))
+            seg(CGPoint(x: 0.356, y: 1.586), CGPoint(x: 0.366, y: 1.842))
+            // Calf split
+            seg(CGPoint(x: 0.392, y: 1.992), CGPoint(x: 0.392, y: 2.224))
+        } else {
+            // Spinal furrow
+            p.move(to: CGPoint(x: 0.5, y: 0.398)); p.addLine(to: CGPoint(x: 0.5, y: 1.236))
+            // Lower-trapezius edges
+            seg(CGPoint(x: 0.500, y: 0.624), CGPoint(x: 0.340, y: 0.548))
+            // Teres / infraspinatus hint under the rear delts
+            seg(CGPoint(x: 0.330, y: 0.612), CGPoint(x: 0.402, y: 0.658))
+            // Erector-spinae columns
+            seg(CGPoint(x: 0.470, y: 1.058), CGPoint(x: 0.470, y: 1.222))
+            // Glute creases
+            curve(CGPoint(x: 0.398, y: 1.300), CGPoint(x: 0.330, y: 1.452), CGPoint(x: 0.338, y: 1.342))
+            curve(CGPoint(x: 0.602, y: 1.300), CGPoint(x: 0.670, y: 1.452), CGPoint(x: 0.662, y: 1.342))
+            // Hamstring split
+            seg(CGPoint(x: 0.392, y: 1.580), CGPoint(x: 0.392, y: 1.880))
+            // Triceps groove
+            seg(CGPoint(x: 0.156, y: 0.552), CGPoint(x: 0.156, y: 0.740))
+            // Calf split
+            seg(CGPoint(x: 0.392, y: 1.992), CGPoint(x: 0.392, y: 2.224))
+        }
+        return p
+    }
+
     // MARK: - Path dispatch
 
     /// Returns the path for a muscle case, dispatching to the right

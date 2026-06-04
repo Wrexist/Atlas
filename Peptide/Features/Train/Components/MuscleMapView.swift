@@ -46,6 +46,13 @@ struct MuscleMapView: View {
     /// reads as an anatomy chart rather than a flat blob.
     var showsSkeleton: Bool = true
     var skeletonColor: Color = Color.white.opacity(0.14)
+    /// Resting tint for an untrained muscle. Kept visible (not near-
+    /// invisible) so the whole figure always reads as a sculpted body
+    /// the way an anatomy chart does; training then warms each muscle.
+    var muscleBaseline: Color = Color.white.opacity(0.13)
+    /// Shadow colour for the muscle-separation grooves that give the
+    /// figure its defined, three-dimensional read.
+    var grooveColor: Color = Color.black.opacity(0.32)
 
     enum Orientation {
         case front, back, both
@@ -131,21 +138,34 @@ struct MuscleMapView: View {
                 let highlight = highlights[muscle]
                 let base = self.fill(for: highlight)
                 let rect = path.boundingRect
+                // Top-lit volume: full tint at the top falling to a deeper
+                // shade at the bottom reads as a rounded muscle belly.
                 context.fill(
                     path,
                     with: .linearGradient(
-                        Gradient(colors: [base, base.opacity(0.62)]),
+                        Gradient(colors: [base, base.opacity(0.45)]),
                         startPoint: CGPoint(x: rect.midX, y: rect.minY),
                         endPoint: CGPoint(x: rect.midX, y: rect.maxY)
                     )
                 )
                 context.stroke(
                     path,
-                    with: .color(silhouetteStroke.opacity(highlight == nil ? 0.5 : 0.9)),
-                    style: StrokeStyle(lineWidth: highlight == nil ? 0.5 : 1.0,
+                    with: .color(silhouetteStroke.opacity(highlight == nil ? 0.55 : 0.9)),
+                    style: StrokeStyle(lineWidth: highlight == nil ? 0.6 : 1.0,
                                        lineJoin: .round)
                 )
             }
+
+            // Definition grooves — muscle separations laid over the fills
+            // as soft shadow lines, clipped to the body so they never
+            // bleed past the silhouette.
+            var grooveContext = context
+            grooveContext.clip(to: body)
+            grooveContext.stroke(
+                BodyAnatomy.grooves(front: facing == .front).applying(scale),
+                with: .color(grooveColor),
+                style: StrokeStyle(lineWidth: 0.7, lineCap: .round, lineJoin: .round)
+            )
         }
     }
 
@@ -163,7 +183,7 @@ struct MuscleMapView: View {
     }
 
     private func fill(for highlight: MuscleHighlight?) -> Color {
-        guard let highlight else { return Color.white.opacity(0.04) }
+        guard let highlight else { return muscleBaseline }
         switch highlight {
         case .primary:
             return primaryColor.opacity(0.85)
