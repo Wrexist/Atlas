@@ -428,6 +428,78 @@ jobs:
             });
           "
 
+  # ───────────────────────────────────── Test-target compile (non-gating)
+  #
+  # Surfaces PeptideTests / PeptideUITests compile errors so the backlog can
+  # be worked through. build-check uses `build` (run-context targets only);
+  # this runs `build-for-testing` so the test targets are actually compiled.
+  # `continue-on-error` at job level + absence from the `pr-checks` aggregate
+  # below means it NEVER gates a merge. Once the test targets compile clean,
+  # fold this into build-check and re-enable the Unit Tests step.
+  test-compile:
+    needs: filter
+    if: needs.filter.outputs.ios == 'true' && github.event.pull_request.draft == false
+    runs-on: macos-15
+    timeout-minutes: 25
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install XcodeGen
+        run: brew install xcodegen || brew reinstall xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Generate app icon (fallback)
+        run: |
+          ICON="Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
+          [ -f "$ICON" ] && exit 0
+          python3 - << 'EOF'
+          import struct, zlib, os
+          def make_png(w, h, r, g, b):
+              def chunk(n, d):
+                  c = zlib.crc32(n + d) & 0xffffffff
+                  return struct.pack('>I', len(d)) + n + d + struct.pack('>I', c)
+              ihdr = struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)
+              raw = (b'\x00' + bytes([r, g, b]) * w) * h
+              return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
+          out = 'Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png'
+          os.makedirs(os.path.dirname(out), exist_ok=True)
+          open(out, 'wb').write(make_png(1024, 1024, 0, 102, 204))
+          print("generated", out)
+          EOF
+
+      - name: Build for testing (capture errors)
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project Peptide.xcodeproj \
+            -scheme Peptide \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee testbuild.log || true
+          echo "## Test-target compile errors (unique)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -E "error:" testbuild.log | sed 's#/Users/runner/work/Peptide-ai/Peptide-ai/##' | sort -u | head -300 >> "$GITHUB_STEP_SUMMARY" || echo "(no error: lines — target may compile clean)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload test build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testbuild-log-${{ github.run_number }}
+          path: testbuild.log
+          if-no-files-found: warn
+          retention-days: 7
+
   # ───────────────────────────────────────────────────────── Aggregate
   #
   # A no-op job that depends on all real jobs. Lets the branch-protection
