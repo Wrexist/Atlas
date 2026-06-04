@@ -119,20 +119,53 @@ struct MuscleMapView: View {
             ? AnatomicalMuscle.allCases.filter { !$0.isBack }
             : AnatomicalMuscle.allCases.filter { $0.isBack }
         return ZStack {
+            // The grayscale, fully-shaded body. Untrained muscles read
+            // straight off this layer.
             Image(base)
                 .resizable()
                 .scaledToFit()
+            // For each trained muscle, re-tint a COPY of the shaded base
+            // and clip it to that muscle's mask. `colorMultiply` keeps the
+            // body's photoreal shadows/highlights while pushing the hue to
+            // the training-intensity colour — so the muscle looks lit, not
+            // painted with a flat blob.
             ForEach(muscles, id: \.self) { muscle in
                 if let highlight = highlights[muscle] {
-                    Image(AnatomyAssets.mask(for: muscle))
+                    Image(base)
                         .resizable()
-                        .renderingMode(.template)
                         .scaledToFit()
-                        .foregroundStyle(fill(for: highlight))
+                        .colorMultiply(tintColor(for: highlight))
+                        .opacity(tintStrength(for: highlight))
+                        .mask(
+                            Image(AnatomyAssets.mask(for: muscle))
+                                .resizable()
+                                .scaledToFit()
+                        )
                 }
             }
         }
         .animation(AppAnimation.springSmooth, value: highlights)
+    }
+
+    /// Hue a trained muscle takes on in the asset renderer.
+    private func tintColor(for highlight: MuscleHighlight) -> Color {
+        switch highlight {
+        case .primary:   return primaryColor
+        case .secondary: return secondaryColor
+        case .intensity: return heatmapHotColor
+        }
+    }
+
+    /// How strongly the tint reads over the shaded base — full for an
+    /// exercise's primary mover, softer for assisting muscles, and ramped
+    /// by frequency for the weekly heatmap so a lightly-trained muscle is
+    /// a faint wash and a hammered one is saturated.
+    private func tintStrength(for highlight: MuscleHighlight) -> Double {
+        switch highlight {
+        case .primary:           return 1.0
+        case .secondary:         return 0.75
+        case .intensity(let v):  return 0.3 + min(max(v, 0), 1) * 0.7
+        }
     }
 
     // MARK: - Figure
