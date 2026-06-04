@@ -42,7 +42,8 @@ import bpy
 import os
 
 # ---------------------------------------------------------------- config
-OUTPUT_DIR = "/tmp/atlas_anatomy"     # <- set me
+# Output dir: env override (used by the CI workflow) or the default below.
+OUTPUT_DIR = os.environ.get("ATLAS_ANATOMY_OUT", "/tmp/atlas_anatomy")
 RES = 1200                             # px on the short (width) axis; height scales
 SAMPLES = 256                          # Cycles samples for the base render
 CAM_FRONT = "Cam_Front"

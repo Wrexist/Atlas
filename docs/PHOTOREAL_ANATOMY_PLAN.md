@@ -10,6 +10,71 @@ and drop in the art.
 
 ---
 
+## Ownership: how this actually gets fixed (no artist required)
+
+**The honest boundary.** A reference-quality photoreal figure is a *3D
+render*. Producing it needs three things this coding sandbox does not have:
+a muscle-separated 3D model, a GPU/Blender to render it, and a clean
+license to ship the result. I can't fabricate that art here, and faking it
+(AI images, hand-traced raster) would look worse than the clean vector map
+that already ships — so I won't.
+
+**What I've done so the "art" step is the *only* thing left** — all of it
+is engineering I own and have completed:
+
+| Piece | Status | Where |
+|---|---|---|
+| Asset contract + auto-switch (no call-site changes) | ✅ | `AnatomyAssets.swift`, `MuscleMapView.swift` |
+| Shading-preserving tint (muscle keeps shadows) | ✅ | `MuscleMapView.assetFigure` |
+| 26 pre-named `.imageset` slots (drag-and-drop import) | ✅ | `Assets.xcassets/Anatomy/` |
+| Render script: base + 24 masks from one locked camera | ✅ | `tools/anatomy_render.py` |
+| **Headless render automation (no human in Blender)** | ✅ | `.github/workflows/anatomy-render.yml` |
+| Alignment harness + launch-time coverage assertion | ✅ | `AnatomyDebugView.swift`, `PeptideApp.init` |
+| Vector fallback so the screen is never blank meanwhile | ✅ | `MuscleMapView.vectorMap` |
+
+So the render no longer needs a person at a workstation: the CI job does
+it. The single remaining input is **a licensed muscle-separated `.blend`
+model** (a procurement/legal choice only you can make) — everything
+downstream is automated.
+
+### The owned, end-to-end path (do this once)
+
+1. **Pick a model + license** *(you — 30 min):* Z-Anatomy (open-source,
+   CC-BY-SA — free, add an acknowledgement) is the recommended default;
+   or buy an écorché model with an app/editorial license. Put it somewhere
+   the CI can download (a release asset, signed S3 URL, etc.).
+2. **Run the render** *(automated — me/CI):* GitHub → Actions → **Anatomy
+   Render** → Run workflow → paste the model URL. The job installs Blender,
+   runs `tools/anatomy_render.py`, and uploads `anatomy-pngs` (2 bodies +
+   24 masks) as an artifact. No local setup, no Blender skills needed.
+3. **Tune the mapping if needed** *(me):* if the coverage step warns that a
+   region matched no meshes, I adjust the `GROUPS`/`SIDE` tables in
+   `tools/anatomy_render.py` to your model's mesh names and re-run. (This is
+   the only step that may take a couple of iterations — it's just string
+   matching against the model's object names.)
+4. **Import** *(me, or drag-and-drop):* drop each PNG into the matching
+   `Assets.xcassets/Anatomy/anatomy_<name>.imageset/`. The app flips to the
+   photoreal renderer automatically.
+5. **Verify** *(me):* `AnatomyDebugView` cycles all 24 masks to confirm
+   alignment; the launch audit fails loudly on any missing mask.
+6. **Tune tints** *(me):* dial `primaryColor` / `heatmapHotColor` against
+   the real grayscale base for best contrast.
+
+**Net:** the only thing I can't do from here is *choose and pay for a
+model*. Hand me a model URL (or a few rendered PNGs) and I take it the rest
+of the way — mapping, import, alignment QA, colour tuning.
+
+### If you want it to look better *today*, with zero procurement
+
+I can ship an **illustrated** (not photoreal) asset pack I generate
+procedurally — high-res base + 24 masks rendered from the same geometry,
+perfectly aligned. It's a stylistic upgrade option, but it's close to what
+the vector fallback already draws, so I recommend **keeping the vector map
+until real photoreal art lands** rather than shipping near-duplicate raster
+weight. Say the word if you'd rather have the illustrated pack now.
+
+---
+
 ## 0. Where we are today
 
 - `MuscleMapView` renders a detailed **vector** figure (skeleton + sculpted
