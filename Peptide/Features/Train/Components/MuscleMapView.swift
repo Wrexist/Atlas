@@ -42,6 +42,10 @@ struct MuscleMapView: View {
     var heatmapHotColor: Color = Color(red: 0.95, green: 0.40, blue: 0.30)
     var silhouetteFill: Color = Color.white.opacity(0.06)
     var silhouetteStroke: Color = Color.white.opacity(0.18)
+    /// Faint skeletal scaffold drawn under the muscles so the figure
+    /// reads as an anatomy chart rather than a flat blob.
+    var showsSkeleton: Bool = true
+    var skeletonColor: Color = Color.white.opacity(0.14)
 
     enum Orientation {
         case front, back, both
@@ -83,29 +87,61 @@ struct MuscleMapView: View {
 
         Canvas(rendersAsynchronously: false) { context, size in
             let scale = transform(for: size)
-            // Silhouette layer — soft fill + thin stroke, so the
-            // body reads even when no muscles are highlighted.
+            let body = silhouette.applying(scale)
+
+            // Silhouette layer — a soft vertical gradient + thin stroke
+            // gives the body a little depth so it reads even when no
+            // muscle is highlighted.
+            let bounds = body.boundingRect
             context.fill(
-                silhouette.applying(scale),
-                with: .color(silhouetteFill)
+                body,
+                with: .linearGradient(
+                    Gradient(colors: [
+                        silhouetteFill.opacity(1.5),
+                        silhouetteFill.opacity(0.7),
+                    ]),
+                    startPoint: CGPoint(x: bounds.midX, y: bounds.minY),
+                    endPoint: CGPoint(x: bounds.midX, y: bounds.maxY)
+                )
             )
             context.stroke(
-                silhouette.applying(scale),
+                body,
                 with: .color(silhouetteStroke),
                 style: StrokeStyle(lineWidth: 1, lineJoin: .round)
             )
 
+            // Skeleton scaffold — clipped to the body so bones never
+            // poke past the silhouette, drawn faint under the muscles.
+            if showsSkeleton {
+                var boneContext = context
+                boneContext.clip(to: body)
+                boneContext.stroke(
+                    BodyAnatomy.skeleton(facing: facing == .front).applying(scale),
+                    with: .color(skeletonColor),
+                    style: StrokeStyle(lineWidth: 0.8, lineJoin: .round, lineCap: .round)
+                )
+            }
+
             // Each muscle drawn either at its highlighted tint or
             // at a faint baseline so the user reads the muscle map
-            // even when nothing's lit up.
+            // even when nothing's lit up. A top-to-bottom gradient on
+            // the fill adds a subtle rounded, three-dimensional read.
             for muscle in muscles {
                 let path = BodyAnatomy.path(for: muscle).applying(scale)
                 let highlight = highlights[muscle]
-                let fill = self.fill(for: highlight)
-                context.fill(path, with: .color(fill))
+                let base = self.fill(for: highlight)
+                let rect = path.boundingRect
+                context.fill(
+                    path,
+                    with: .linearGradient(
+                        Gradient(colors: [base, base.opacity(0.62)]),
+                        startPoint: CGPoint(x: rect.midX, y: rect.minY),
+                        endPoint: CGPoint(x: rect.midX, y: rect.maxY)
+                    )
+                )
                 context.stroke(
                     path,
-                    with: .color(silhouetteStroke.opacity(highlight == nil ? 0.6 : 0.9)),
+                    with: .color(silhouetteStroke.opacity(highlight == nil ? 0.5 : 0.9)),
                     style: StrokeStyle(lineWidth: highlight == nil ? 0.5 : 1.0,
                                        lineJoin: .round)
                 )
