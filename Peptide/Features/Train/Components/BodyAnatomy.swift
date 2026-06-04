@@ -177,8 +177,8 @@ enum BodyAnatomy {
     static func bicepsRight() -> Path { bicepsLeft().applying(mirror) }
 
     static func forearmsFront() -> Path {
-        let left = limbTaper(top: CGPoint(x: 0.148, y: 0.760), topWidth: 0.092,
-                             bottom: CGPoint(x: 0.130, y: 1.180), bottomWidth: 0.046)
+        let left = limbTaper(top: CGPoint(x: 0.144, y: 0.970), topWidth: 0.082,
+                             bottom: CGPoint(x: 0.176, y: 1.270), bottomWidth: 0.050)
         var p = left
         p.addPath(left.applying(mirror))
         return p
@@ -260,16 +260,16 @@ enum BodyAnatomy {
         // Wing — broad under the armpit, sweeping in to the waist along
         // the spine.
         var p = Path()
-        p.move(to: CGPoint(x: 0.300, y: 0.560))             // top, under rear delt
-        p.addCurve(to: CGPoint(x: 0.456, y: 1.040),         // taper to waist (spine)
-                   control1: CGPoint(x: 0.244, y: 0.760),
-                   control2: CGPoint(x: 0.392, y: 0.940))
-        p.addCurve(to: CGPoint(x: 0.486, y: 0.700),         // up the spine line
-                   control1: CGPoint(x: 0.482, y: 0.900),
-                   control2: CGPoint(x: 0.486, y: 0.800))
-        p.addCurve(to: CGPoint(x: 0.300, y: 0.560),         // back to the armpit
-                   control1: CGPoint(x: 0.486, y: 0.628),
-                   control2: CGPoint(x: 0.392, y: 0.572))
+        p.move(to: CGPoint(x: 0.312, y: 0.582))             // top, under rear delt
+        p.addCurve(to: CGPoint(x: 0.470, y: 1.020),         // outer sweep to waist
+                   control1: CGPoint(x: 0.258, y: 0.770),
+                   control2: CGPoint(x: 0.388, y: 0.965))
+        p.addCurve(to: CGPoint(x: 0.490, y: 0.700),         // up the spine edge
+                   control1: CGPoint(x: 0.486, y: 0.910),
+                   control2: CGPoint(x: 0.490, y: 0.800))
+        p.addCurve(to: CGPoint(x: 0.312, y: 0.582),         // back to the armpit
+                   control1: CGPoint(x: 0.470, y: 0.624),
+                   control2: CGPoint(x: 0.392, y: 0.586))
         p.closeSubpath()
         return p
     }
