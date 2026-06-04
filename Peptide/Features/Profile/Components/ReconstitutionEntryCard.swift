@@ -38,6 +38,7 @@ struct ReconstitutionEntryCard: View {
                         .font(.system(size: 12))
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
 
                 Spacer(minLength: 0)

@@ -17,8 +17,8 @@ struct LabsEntryCard: View {
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color(red: 0.92, green: 0.45, blue: 0.62).opacity(0.55),
-                                    Color(red: 0.48, green: 0.50, blue: 0.92).opacity(0.35),
+                                    AppColor.accentPrimary.opacity(0.45),
+                                    AppColor.accentLight.opacity(0.25),
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -38,6 +38,7 @@ struct LabsEntryCard: View {
                         .font(.system(size: 12))
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
 
                 Spacer(minLength: 0)
