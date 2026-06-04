@@ -114,7 +114,35 @@ struct TrainOverviewView: View {
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 320)
                 .animation(.easeInOut(duration: 0.4), value: frequencies)
+
+                if weekHasTraining {
+                    intensityLegend
+                }
             }
+        }
+    }
+
+    /// Tells the user what the heatmap colours mean — dim = trained a
+    /// little this week, bright = trained a lot — so the figure isn't a
+    /// mystery on first glance.
+    private var intensityLegend: some View {
+        HStack(spacing: Spacing.sm) {
+            Text("Less")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+            Capsule()
+                .fill(LinearGradient(
+                    colors: [
+                        Color(red: 0.95, green: 0.40, blue: 0.30).opacity(0.14),
+                        Color(red: 0.95, green: 0.40, blue: 0.30).opacity(0.90),
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ))
+                .frame(height: 6)
+            Text("More")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
         }
     }
 

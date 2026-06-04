@@ -54,15 +54,14 @@ struct PeptideListView: View {
         .onChange(of: appState.pendingProtocolList) { _, newValue in
             if newValue { consumePendingProtocolList() }
         }
-        .fullScreenCover(isPresented: $showProtocols) {
-            NavigationStack {
-                ProtocolListView()
-                    .toolbar {
-                        ToolbarItem(placement: .topBarLeading) {
-                            Button("Close") { showProtocols = false }
-                        }
-                    }
-            }
+        // ProtocolListView owns its own NavigationStack, so it's
+        // presented as a plain sheet — wrapping it in another stack (the
+        // old fullScreenCover) nested two stacks and forced a hand-rolled
+        // "Close". A sheet gives native swipe-to-dismiss + a Done button
+        // and matches how every other surface is presented.
+        .sheet(isPresented: $showProtocols) {
+            ProtocolListView()
+                .liquidGlassPresentation()
         }
     }
 

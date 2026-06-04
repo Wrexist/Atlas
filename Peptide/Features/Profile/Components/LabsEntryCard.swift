@@ -10,54 +10,12 @@ struct LabsEntryCard: View {
     let onTap: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: Spacing.sm) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color(red: 0.92, green: 0.45, blue: 0.62).opacity(0.55),
-                                    Color(red: 0.48, green: 0.50, blue: 0.92).opacity(0.35),
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 38, height: 38)
-                    Image(systemName: "testtube.2")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Lab work")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text(subtitleCopy)
-                        .font(.system(size: 12))
-                        .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(AppColor.textSecondary)
-            }
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.md)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.55))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
-            }
-        }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        GlassEntryRow(
+            icon: "testtube.2",
+            title: "Lab work",
+            subtitle: Text(subtitleCopy),
+            action: onTap
+        )
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint("Opens the lab-work view to log or review biomarker values over time.")
     }

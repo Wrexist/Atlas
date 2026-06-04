@@ -1,0 +1,85 @@
+name: Anatomy Render
+
+# Manual, opt-in pipeline that produces the photoreal muscle-map assets
+# without anyone sitting in Blender. Given a muscle-separated .blend model
+# (you supply the URL — keep the license clean, e.g. Z-Anatomy), it runs
+# tools/anatomy_render.py headless on a CI runner and uploads the rendered
+# base bodies + 24 muscle masks as a downloadable artifact. Drop those PNGs
+# into Peptide/Resources/Assets.xcassets/Anatomy/<name>.imageset/ and the
+# app switches to the photoreal renderer automatically.
+#
+# It NEVER runs on its own (workflow_dispatch only) and NEVER commits — it
+# just renders and hands you the artifact to review before importing.
+on:
+  workflow_dispatch:
+    inputs:
+      model_url:
+        description: "Direct download URL to the muscle-separated .blend model"
+        required: true
+        type: string
+      blender_version:
+        description: "Blender version to install"
+        required: false
+        default: "4.2.3"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Blender
+        run: |
+          set -euo pipefail
+          V="${{ inputs.blender_version }}"
+          MAJOR="${V%.*}"
+          URL="https://download.blender.org/release/Blender${MAJOR}/blender-${V}-linux-x64.tar.xz"
+          echo "Fetching $URL"
+          curl -fsSL "$URL" -o blender.tar.xz
+          mkdir -p "$HOME/blender"
+          tar -xf blender.tar.xz -C "$HOME/blender" --strip-components=1
+          echo "$HOME/blender" >> "$GITHUB_PATH"
+
+      - name: Verify Blender
+        run: blender --version
+
+      - name: Fetch model
+        env:
+          MODEL_URL: ${{ inputs.model_url }}
+        run: |
+          set -euo pipefail
+          curl -fsSL "$MODEL_URL" -o model.blend
+          ls -lh model.blend
+
+      - name: Render anatomy assets
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          # OUTPUT_DIR is read from the env by the script's os.environ
+          # fallback (see tools/anatomy_render.py).
+          ATLAS_ANATOMY_OUT="$PWD/out" \
+            blender model.blend --background --python tools/anatomy_render.py
+
+      - name: Check coverage (26 PNGs expected)
+        run: |
+          set -euo pipefail
+          cd out
+          count=$(ls -1 anatomy_*.png 2>/dev/null | wc -l)
+          echo "Rendered $count PNGs"
+          ls -1 anatomy_*.png || true
+          if [ "$count" -lt 26 ]; then
+            echo "::warning::Expected 26 PNGs (2 bodies + 24 masks); got $count. Check the GROUPS mapping in tools/anatomy_render.py against your model's mesh names."
+          fi
+
+      - name: Upload rendered assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: anatomy-pngs
+          path: out/anatomy_*.png
+          if-no-files-found: error

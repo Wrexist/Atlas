@@ -135,4 +135,57 @@ final class NutritionMathTests: XCTestCase {
         XCTAssertGreaterThan(heavier!.calories, lighter!.calories)
         XCTAssertGreaterThan(heavier!.proteinG, lighter!.proteinG)
     }
+
+    // MARK: - Goal presets
+
+    /// With full body stats, a preset must equal the personalised
+    /// recommendation for that preset's goal — the preset is just a
+    /// labelled shortcut into `recommendedTargets`.
+    func test_presetTargets_withStats_matchesRecommendation() {
+        let metrics = BodyMetrics(
+            weightKg: 80, heightCm: 182, age: 28,
+            sex: .male, activityLevel: .active, unit: .metric
+        )
+        for preset in NutritionMath.Preset.allCases {
+            let viaPreset = NutritionMath.presetTargets(preset, for: metrics)
+            let direct = NutritionMath.recommendedTargets(for: metrics, goalRaw: preset.goalRaw)
+            XCTAssertEqual(viaPreset, direct, "preset \(preset) diverged from its recommendation")
+        }
+    }
+
+    /// With incomplete stats the preset falls back to its fixed default
+    /// rather than returning nil — the editor always has something to apply.
+    func test_presetTargets_withoutStats_usesFallback() {
+        for preset in NutritionMath.Preset.allCases {
+            let targets = NutritionMath.presetTargets(preset, for: .unspecified)
+            XCTAssertEqual(targets, preset.fallback)
+        }
+    }
+
+    /// Every fallback preset keeps the calories-equal-macro-sum invariant so
+    /// the editor's hero number never disagrees with the macro breakdown.
+    func test_presetFallback_caloriesEqualMacroSum() {
+        for preset in NutritionMath.Preset.allCases {
+            let t = preset.fallback
+            XCTAssertEqual(t.calories, t.proteinG * 4 + t.carbsG * 4 + t.fatG * 9)
+        }
+    }
+
+    /// More aggressive goals carry more calories: lose < maintain < build.
+    func test_presetFallback_caloriesOrderedByGoal() {
+        XCTAssertLessThan(NutritionMath.Preset.loseFat.fallback.calories,
+                          NutritionMath.Preset.maintain.fallback.calories)
+        XCTAssertLessThan(NutritionMath.Preset.maintain.fallback.calories,
+                          NutritionMath.Preset.buildMuscle.fallback.calories)
+    }
+
+    /// A stored goal maps to the matching preset chip; unknown / recomp
+    /// goals land on maintain.
+    func test_presetMatching_mapsGoalRaw() {
+        XCTAssertEqual(NutritionMath.Preset.matching(goalRaw: "loseFat"), .loseFat)
+        XCTAssertEqual(NutritionMath.Preset.matching(goalRaw: "buildMuscle"), .buildMuscle)
+        XCTAssertEqual(NutritionMath.Preset.matching(goalRaw: "getStronger"), .buildMuscle)
+        XCTAssertEqual(NutritionMath.Preset.matching(goalRaw: "recomp"), .maintain)
+        XCTAssertEqual(NutritionMath.Preset.matching(goalRaw: nil), .maintain)
+    }
 }

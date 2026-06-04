@@ -6,11 +6,14 @@ import SwiftUI
 ///
 /// The editor folds in everything the profile knows — body metrics +
 /// the user's stated goal — to surface a one-tap "Recommended for you"
-/// target via `NutritionMath.recommendedTargets`. When the user has no
-/// targets yet, those values auto-fill on first open so the screen is
-/// never a wall of zeros. The whole surface uses the app's Liquid Glass
-/// language: a live calorie hero, a proportional macro bar, and glass
-/// input cards.
+/// target via `NutritionMath.recommendedTargets`, plus three goal presets
+/// (Lose fat / Maintain / Build muscle) for users who'd rather just pick a
+/// goal than reason about numbers. The recommendation always renders — when
+/// body stats are missing it falls back to the matching preset's sensible
+/// default, so the screen is never a wall of zeros and never hides the help.
+/// On first open with no saved targets the recommendation auto-fills. The
+/// whole surface uses the app's Liquid Glass language: a live calorie hero,
+/// a proportional macro bar, and glass input cards.
 ///
 /// Two preset extensions on `NutritionTargets` live alongside this view
 /// because they're its closest collaborators — `.placeholder` for "user
@@ -38,8 +41,21 @@ struct NutritionTargetsEditor: View {
     /// Calories per gram, for the live macro→calorie readout.
     private static let kcalProtein = 4, kcalCarbs = 4, kcalFat = 9
 
-    private var recommended: NutritionTargets? {
+    /// Personalised recommendation for the user's stated goal. Falls back to
+    /// the matching preset's fixed default when body metrics are incomplete,
+    /// so the editor always leads with a usable target instead of zeros.
+    private var recommended: NutritionTargets {
         NutritionMath.recommendedTargets(for: bodyMetrics, goalRaw: goalRaw)
+            ?? NutritionMath.Preset.matching(goalRaw: goalRaw).fallback
+    }
+
+    /// True once full body stats exist — decides whether the recommendation
+    /// is personalised or a generic starting point.
+    private var hasPersonalStats: Bool { bodyMetrics.isComplete }
+
+    /// Preset that matches the user's stated goal, flagged in the chip row.
+    private var recommendedPreset: NutritionMath.Preset {
+        NutritionMath.Preset.matching(goalRaw: goalRaw)
     }
 
     private var goalLabel: String {
@@ -53,9 +69,8 @@ struct NutritionTargetsEditor: View {
                 ScrollView {
                     VStack(spacing: Spacing.lg) {
                         summaryCard
-                        if let recommended {
-                            recommendedCard(recommended)
-                        }
+                        recommendedCard(recommended)
+                        presetsCard
                         caloriesCard
                         macrosCard
                     }
@@ -172,7 +187,9 @@ struct NutritionTargetsEditor: View {
                         Text("Recommended for you")
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
-                        Text("Based on your stats + \(goalLabel) goal")
+                        Text(hasPersonalStats
+                             ? "Based on your stats + \(goalLabel) goal"
+                             : "A \(goalLabel) starting point — add stats in Profile to personalise")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                     }
@@ -227,6 +244,73 @@ struct NutritionTargetsEditor: View {
             RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                 .fill(tint.opacity(0.12))
         }
+    }
+
+    // MARK: - Goal presets
+
+    /// Three one-tap goal presets. Each applies a ready-made calorie + macro
+    /// split so a user who doesn't want to think about numbers can pick a
+    /// goal and be done. The chip matching their stated goal is marked.
+    private var presetsCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                Text("Or pick a goal")
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+
+                HStack(spacing: Spacing.sm) {
+                    ForEach(NutritionMath.Preset.allCases) { preset in
+                        presetChip(preset)
+                    }
+                }
+            }
+        }
+    }
+
+    private func presetChip(_ preset: NutritionMath.Preset) -> some View {
+        let targets = NutritionMath.presetTargets(preset, for: bodyMetrics)
+        let isSelected = matchesDraft(targets)
+        let isRecommended = preset == recommendedPreset
+        return Button {
+            Haptics.impact(.soft)
+            apply(targets)
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: preset.icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(isSelected ? AppColor.background : AppColor.accentLight)
+                Text(preset.title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(isSelected ? AppColor.background : AppColor.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Text("\(targets.calories)")
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(isSelected ? AppColor.background.opacity(0.8) : AppColor.textSecondary)
+                if isRecommended {
+                    Text("Recommended")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(isSelected ? AppColor.background.opacity(0.8) : AppColor.accentLight)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.md)
+            .background {
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .fill(isSelected ? AppColor.accentPrimary : AppColor.accentPrimary.opacity(0.10))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                            .strokeBorder(
+                                isRecommended && !isSelected
+                                    ? AppColor.accentLight.opacity(0.5)
+                                    : .clear,
+                                lineWidth: 1
+                            )
+                    }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Input cards
@@ -308,8 +392,8 @@ struct NutritionTargetsEditor: View {
     private func hydrate() {
         // First open with no targets yet → seed the recommendation so the
         // screen opens pre-filled instead of all zeros.
-        if initial == .zero, let rec = recommended {
-            apply(rec)
+        if initial == .zero {
+            apply(recommended)
             return
         }
         calories = String(initial.calories)

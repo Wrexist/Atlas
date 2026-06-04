@@ -114,6 +114,8 @@ struct AchievementsSection: View {
                 .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(unlocked ? AppColor.textPrimary : AppColor.textTertiary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .multilineTextAlignment(.center)
         }
         .frame(width: 64)
     }

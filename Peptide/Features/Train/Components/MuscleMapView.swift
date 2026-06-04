@@ -42,12 +42,35 @@ struct MuscleMapView: View {
     var heatmapHotColor: Color = Color(red: 0.95, green: 0.40, blue: 0.30)
     var silhouetteFill: Color = Color.white.opacity(0.06)
     var silhouetteStroke: Color = Color.white.opacity(0.18)
+    /// Faint skeletal scaffold drawn under the muscles so the figure
+    /// reads as an anatomy chart rather than a flat blob.
+    var showsSkeleton: Bool = true
+    var skeletonColor: Color = Color.white.opacity(0.14)
+    /// Resting tint for an untrained muscle. Kept visible (not near-
+    /// invisible) so the whole figure always reads as a sculpted body
+    /// the way an anatomy chart does; training then warms each muscle.
+    var muscleBaseline: Color = Color.white.opacity(0.13)
+    /// Shadow colour for the muscle-separation grooves that give the
+    /// figure its defined, three-dimensional read.
+    var grooveColor: Color = Color.black.opacity(0.32)
 
     enum Orientation {
         case front, back, both
     }
 
     var body: some View {
+        // Prefer the photoreal asset pack when it's bundled; otherwise
+        // draw the vector figure. Same API either way — see AnatomyAssets.
+        if AnatomyAssets.isAvailable {
+            assetMap
+        } else {
+            vectorMap
+        }
+    }
+
+    // MARK: - Vector map
+
+    private var vectorMap: some View {
         GeometryReader { proxy in
             HStack(spacing: 0) {
                 if orientation == .front || orientation == .both {
@@ -68,6 +91,83 @@ struct MuscleMapView: View {
                      contentMode: .fit)
     }
 
+    // MARK: - Asset map
+
+    /// Photoreal rendering: a base body image with each trained muscle's
+    /// mask tinted on top. Untrained muscles simply show the base image's
+    /// own shading. Active only when `AnatomyAssets.isAvailable`.
+    private var assetMap: some View {
+        HStack(spacing: 0) {
+            if orientation == .front || orientation == .both {
+                assetFigure(facing: .front)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityElement()
+                    .accessibilityLabel(accessibilityLabel(for: .front))
+            }
+            if orientation == .back || orientation == .both {
+                assetFigure(facing: .back)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityElement()
+                    .accessibilityLabel(accessibilityLabel(for: .back))
+            }
+        }
+    }
+
+    private func assetFigure(facing: Facing) -> some View {
+        let base = facing == .front ? AnatomyAssets.bodyFront : AnatomyAssets.bodyBack
+        let muscles = facing == .front
+            ? AnatomicalMuscle.allCases.filter { !$0.isBack }
+            : AnatomicalMuscle.allCases.filter { $0.isBack }
+        return ZStack {
+            // The grayscale, fully-shaded body. Untrained muscles read
+            // straight off this layer.
+            Image(base)
+                .resizable()
+                .scaledToFit()
+            // For each trained muscle, re-tint a COPY of the shaded base
+            // and clip it to that muscle's mask. `colorMultiply` keeps the
+            // body's photoreal shadows/highlights while pushing the hue to
+            // the training-intensity colour — so the muscle looks lit, not
+            // painted with a flat blob.
+            ForEach(muscles, id: \.self) { muscle in
+                if let highlight = highlights[muscle] {
+                    Image(base)
+                        .resizable()
+                        .scaledToFit()
+                        .colorMultiply(tintColor(for: highlight))
+                        .opacity(tintStrength(for: highlight))
+                        .mask(
+                            Image(AnatomyAssets.mask(for: muscle))
+                                .resizable()
+                                .scaledToFit()
+                        )
+                }
+            }
+        }
+        .animation(AppAnimation.springSmooth, value: highlights)
+    }
+
+    /// Hue a trained muscle takes on in the asset renderer.
+    private func tintColor(for highlight: MuscleHighlight) -> Color {
+        switch highlight {
+        case .primary:   return primaryColor
+        case .secondary: return secondaryColor
+        case .intensity: return heatmapHotColor
+        }
+    }
+
+    /// How strongly the tint reads over the shaded base — full for an
+    /// exercise's primary mover, softer for assisting muscles, and ramped
+    /// by frequency for the weekly heatmap so a lightly-trained muscle is
+    /// a faint wash and a hammered one is saturated.
+    private func tintStrength(for highlight: MuscleHighlight) -> Double {
+        switch highlight {
+        case .primary:           return 1.0
+        case .secondary:         return 0.75
+        case .intensity(let v):  return 0.3 + min(max(v, 0), 1) * 0.7
+        }
+    }
+
     // MARK: - Figure
 
     private enum Facing { case front, back }
@@ -83,33 +183,78 @@ struct MuscleMapView: View {
 
         Canvas(rendersAsynchronously: false) { context, size in
             let scale = transform(for: size)
-            // Silhouette layer — soft fill + thin stroke, so the
-            // body reads even when no muscles are highlighted.
+            let body = silhouette.applying(scale)
+
+            // Silhouette layer — a soft vertical gradient + thin stroke
+            // gives the body a little depth so it reads even when no
+            // muscle is highlighted.
+            let bounds = body.boundingRect
             context.fill(
-                silhouette.applying(scale),
-                with: .color(silhouetteFill)
+                body,
+                with: .linearGradient(
+                    Gradient(colors: [
+                        silhouetteFill.opacity(1.5),
+                        silhouetteFill.opacity(0.7),
+                    ]),
+                    startPoint: CGPoint(x: bounds.midX, y: bounds.minY),
+                    endPoint: CGPoint(x: bounds.midX, y: bounds.maxY)
+                )
             )
             context.stroke(
-                silhouette.applying(scale),
+                body,
                 with: .color(silhouetteStroke),
                 style: StrokeStyle(lineWidth: 1, lineJoin: .round)
             )
 
+            // Skeleton scaffold — clipped to the body so bones never
+            // poke past the silhouette, drawn faint under the muscles.
+            if showsSkeleton {
+                var boneContext = context
+                boneContext.clip(to: body)
+                boneContext.stroke(
+                    BodyAnatomy.skeleton(facing: facing == .front).applying(scale),
+                    with: .color(skeletonColor),
+                    style: StrokeStyle(lineWidth: 0.8, lineCap: .round, lineJoin: .round)
+                )
+            }
+
             // Each muscle drawn either at its highlighted tint or
             // at a faint baseline so the user reads the muscle map
-            // even when nothing's lit up.
+            // even when nothing's lit up. A top-to-bottom gradient on
+            // the fill adds a subtle rounded, three-dimensional read.
             for muscle in muscles {
                 let path = BodyAnatomy.path(for: muscle).applying(scale)
                 let highlight = highlights[muscle]
-                let fill = self.fill(for: highlight)
-                context.fill(path, with: .color(fill))
+                let base = self.fill(for: highlight)
+                let rect = path.boundingRect
+                // Top-lit volume: full tint at the top falling to a deeper
+                // shade at the bottom reads as a rounded muscle belly.
+                context.fill(
+                    path,
+                    with: .linearGradient(
+                        Gradient(colors: [base, base.opacity(0.45)]),
+                        startPoint: CGPoint(x: rect.midX, y: rect.minY),
+                        endPoint: CGPoint(x: rect.midX, y: rect.maxY)
+                    )
+                )
                 context.stroke(
                     path,
-                    with: .color(silhouetteStroke.opacity(highlight == nil ? 0.6 : 0.9)),
-                    style: StrokeStyle(lineWidth: highlight == nil ? 0.5 : 1.0,
+                    with: .color(silhouetteStroke.opacity(highlight == nil ? 0.55 : 0.9)),
+                    style: StrokeStyle(lineWidth: highlight == nil ? 0.6 : 1.0,
                                        lineJoin: .round)
                 )
             }
+
+            // Definition grooves — muscle separations laid over the fills
+            // as soft shadow lines, clipped to the body so they never
+            // bleed past the silhouette.
+            var grooveContext = context
+            grooveContext.clip(to: body)
+            grooveContext.stroke(
+                BodyAnatomy.grooves(front: facing == .front).applying(scale),
+                with: .color(grooveColor),
+                style: StrokeStyle(lineWidth: 0.7, lineCap: .round, lineJoin: .round)
+            )
         }
     }
 
@@ -127,7 +272,7 @@ struct MuscleMapView: View {
     }
 
     private func fill(for highlight: MuscleHighlight?) -> Color {
-        guard let highlight else { return Color.white.opacity(0.04) }
+        guard let highlight else { return muscleBaseline }
         switch highlight {
         case .primary:
             return primaryColor.opacity(0.85)
