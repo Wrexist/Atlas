@@ -59,6 +59,18 @@ struct MuscleMapView: View {
     }
 
     var body: some View {
+        // Prefer the photoreal asset pack when it's bundled; otherwise
+        // draw the vector figure. Same API either way — see AnatomyAssets.
+        if AnatomyAssets.isAvailable {
+            assetMap
+        } else {
+            vectorMap
+        }
+    }
+
+    // MARK: - Vector map
+
+    private var vectorMap: some View {
         GeometryReader { proxy in
             HStack(spacing: 0) {
                 if orientation == .front || orientation == .both {
@@ -77,6 +89,50 @@ struct MuscleMapView: View {
         }
         .aspectRatio(orientation == .both ? BodyAnatomy.aspect * 2 : BodyAnatomy.aspect,
                      contentMode: .fit)
+    }
+
+    // MARK: - Asset map
+
+    /// Photoreal rendering: a base body image with each trained muscle's
+    /// mask tinted on top. Untrained muscles simply show the base image's
+    /// own shading. Active only when `AnatomyAssets.isAvailable`.
+    private var assetMap: some View {
+        HStack(spacing: 0) {
+            if orientation == .front || orientation == .both {
+                assetFigure(facing: .front)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityElement()
+                    .accessibilityLabel(accessibilityLabel(for: .front))
+            }
+            if orientation == .back || orientation == .both {
+                assetFigure(facing: .back)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityElement()
+                    .accessibilityLabel(accessibilityLabel(for: .back))
+            }
+        }
+    }
+
+    private func assetFigure(facing: Facing) -> some View {
+        let base = facing == .front ? AnatomyAssets.bodyFront : AnatomyAssets.bodyBack
+        let muscles = facing == .front
+            ? AnatomicalMuscle.allCases.filter { !$0.isBack }
+            : AnatomicalMuscle.allCases.filter { $0.isBack }
+        return ZStack {
+            Image(base)
+                .resizable()
+                .scaledToFit()
+            ForEach(muscles, id: \.self) { muscle in
+                if let highlight = highlights[muscle] {
+                    Image(AnatomyAssets.mask(for: muscle))
+                        .resizable()
+                        .renderingMode(.template)
+                        .scaledToFit()
+                        .foregroundStyle(fill(for: highlight))
+                }
+            }
+        }
+        .animation(AppAnimation.springSmooth, value: highlights)
     }
 
     // MARK: - Figure
