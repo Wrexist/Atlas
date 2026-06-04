@@ -214,7 +214,7 @@ struct MuscleMapView: View {
                 boneContext.stroke(
                     BodyAnatomy.skeleton(facing: facing == .front).applying(scale),
                     with: .color(skeletonColor),
-                    style: StrokeStyle(lineWidth: 0.8, lineJoin: .round, lineCap: .round)
+                    style: StrokeStyle(lineWidth: 0.8, lineCap: .round, lineJoin: .round)
                 )
             }
 
