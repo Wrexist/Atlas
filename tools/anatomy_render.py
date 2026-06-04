@@ -153,10 +153,26 @@ def white_material():
     return m
 
 
+def use_camera(name):
+    cam = bpy.data.objects.get(name)
+    if cam is None:
+        raise RuntimeError(f"Camera '{name}' not found — create it first.")
+    bpy.context.scene.camera = cam
+
+
 def setup_render():
     s = bpy.context.scene
-    s.render.engine = "CYCLES"
-    s.cycles.samples = SAMPLES
+    # EEVEE renders the stylised grey figure far faster/cheaper than
+    # Cycles on a CI runner. Fall back across engine ids by Blender
+    # version, then Cycles as a last resort.
+    for eng in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE", "CYCLES"):
+        try:
+            s.render.engine = eng
+            break
+        except Exception:
+            continue
+    if s.render.engine == "CYCLES":
+        s.cycles.samples = SAMPLES
     s.render.film_transparent = True            # transparent background
     s.render.image_settings.file_format = "PNG"
     s.render.image_settings.color_mode = "RGBA"
@@ -165,11 +181,64 @@ def setup_render():
     s.render.resolution_percentage = 100
 
 
-def use_camera(name):
-    cam = bpy.data.objects.get(name)
-    if cam is None:
-        raise RuntimeError(f"Camera '{name}' not found — create it first.")
-    bpy.context.scene.camera = cam
+def dump_scene_info():
+    """Reconnaissance: write every collection + mesh-object name to the
+    output dir so the GROUPS mapping can be built from the real model
+    without opening Blender locally. Always runs first."""
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    cols = sorted(c.name for c in bpy.data.collections)
+    with open(os.path.join(OUTPUT_DIR, "collections.txt"), "w") as f:
+        f.write("\n".join(cols))
+
+    meshes = sorted(o.name for o in bpy.data.objects if o.type == "MESH")
+    with open(os.path.join(OUTPUT_DIR, "object_names.txt"), "w") as f:
+        f.write("\n".join(meshes))
+
+    cams = [o.name for o in bpy.data.objects if o.type == "CAMERA"]
+    print(f"[recon] collections: {len(cols)}  mesh objects: {len(meshes)}  cameras: {cams}")
+    print("[recon] first 40 mesh names:")
+    for n in meshes[:40]:
+        print("   ", n)
+
+
+def scene_bounds():
+    import mathutils
+    mins = [1e9] * 3
+    maxs = [-1e9] * 3
+    for o in all_meshes():
+        if o.hide_render:
+            continue
+        for corner in o.bound_box:
+            w = o.matrix_world @ mathutils.Vector(corner)
+            for i in range(3):
+                mins[i] = min(mins[i], w[i])
+                maxs[i] = max(maxs[i], w[i])
+    return mins, maxs
+
+
+def ensure_cameras():
+    """Use the scene's CAM_FRONT/CAM_BACK if present; otherwise build
+    orthographic front/back cameras framing the model."""
+    if bpy.data.objects.get(CAM_FRONT) and bpy.data.objects.get(CAM_BACK):
+        return
+    import math
+    mins, maxs = scene_bounds()
+    center = [(mins[i] + maxs[i]) / 2 for i in range(3)]
+    height = max(0.1, maxs[2] - mins[2])
+    dist = height * 3 + 1
+
+    def make_cam(name, y, flip):
+        cam_data = bpy.data.cameras.new(name)
+        cam_data.type = "ORTHO"
+        cam_data.ortho_scale = height * 1.15
+        cam = bpy.data.objects.new(name, cam_data)
+        bpy.context.scene.collection.objects.link(cam)
+        cam.location = (center[0], y, center[2])
+        cam.rotation_euler = (math.radians(90), 0, math.radians(180) if flip else 0)
+
+    make_cam(CAM_FRONT, mins[1] - dist, flip=False)
+    make_cam(CAM_BACK, maxs[1] + dist, flip=True)
 
 
 def render_to(path):
@@ -181,49 +250,61 @@ def render_to(path):
 # ------------------------------------------------------------------ main
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    setup_render()
 
-    # 1) base renders — every muscle visible, original materials
-    print("Base renders…")
-    show_all()
-    use_camera(CAM_FRONT)
-    render_to(os.path.join(OUTPUT_DIR, "anatomy_body_front.png"))
-    use_camera(CAM_BACK)
-    render_to(os.path.join(OUTPUT_DIR, "anatomy_body_back.png"))
+    # Always dump the model's structure first — this is the recon output
+    # that lets the GROUPS mapping be built from the real Z-Anatomy names.
+    dump_scene_info()
 
-    # 2) mask passes — one muscle, flat white, same camera
-    print("Mask renders…")
-    white = white_material()
-    saved = {o.name: [s.material for s in o.material_slots] for o in all_meshes()}
-    missing = []
-    for raw in GROUPS:
-        objs = meshes_for(raw)
-        if not objs:
-            missing.append(raw)
-            print(f"  !! no meshes matched for '{raw}' — check GROUPS")
-            continue
-        show_only(objs)
-        for o in objs:
-            if not o.material_slots:
-                o.data.materials.append(white)
-            for s in o.material_slots:
-                s.material = white
-        use_camera(CAM_FRONT if FACING[raw] == "front" else CAM_BACK)
-        render_to(os.path.join(OUTPUT_DIR, f"anatomy_{raw}.png"))
-        # restore this region's materials before the next pass
-        for o in objs:
-            for i, s in enumerate(o.material_slots):
-                if i < len(saved[o.name]):
-                    s.material = saved[o.name][i]
+    # First runs are recon-only (just the name dump) so a fragile camera
+    # or a heavy render can't lose the reconnaissance. Once GROUPS +
+    # cameras are configured, set ATLAS_ANATOMY_RECON=0 to render.
+    if os.environ.get("ATLAS_ANATOMY_RECON", "1") == "1":
+        print("[recon] dump complete; skipping render "
+              "(set ATLAS_ANATOMY_RECON=0 to render).")
+        return
 
-    show_all()
-    print("\nDone.")
-    print(f"Rendered to {OUTPUT_DIR}")
-    if missing:
-        print("MISSING (fix GROUPS for these):", ", ".join(missing))
-    print("Next: drop each PNG into "
-          "Peptide/Resources/Assets.xcassets/Anatomy/<name>.imageset/")
+    try:
+        setup_render()
+        ensure_cameras()
+
+        print("Base renders…")
+        show_all()
+        use_camera(CAM_FRONT)
+        render_to(os.path.join(OUTPUT_DIR, "anatomy_body_front.png"))
+        use_camera(CAM_BACK)
+        render_to(os.path.join(OUTPUT_DIR, "anatomy_body_back.png"))
+
+        print("Mask renders…")
+        white = white_material()
+        saved = {o.name: [s.material for s in o.material_slots] for o in all_meshes()}
+        missing = []
+        for raw in GROUPS:
+            objs = meshes_for(raw)
+            if not objs:
+                missing.append(raw)
+                print(f"  !! no meshes matched for '{raw}' — check GROUPS")
+                continue
+            show_only(objs)
+            for o in objs:
+                if not o.material_slots:
+                    o.data.materials.append(white)
+                for s in o.material_slots:
+                    s.material = white
+            use_camera(CAM_FRONT if FACING[raw] == "front" else CAM_BACK)
+            render_to(os.path.join(OUTPUT_DIR, f"anatomy_{raw}.png"))
+            for o in objs:
+                for i, s in enumerate(o.material_slots):
+                    if i < len(saved[o.name]):
+                        s.material = saved[o.name][i]
+
+        show_all()
+        print("\nDone. Rendered to", OUTPUT_DIR)
+        if missing:
+            print("MISSING (fix GROUPS for these):", ", ".join(missing))
+    except Exception as exc:  # recon dump already written — don't lose it
+        print("::warning:: render step failed (recon dump preserved):", exc)
 
 
 if __name__ == "__main__":
     main()
+
