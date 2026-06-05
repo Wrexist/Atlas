@@ -79,22 +79,20 @@ struct MuscleMapView: View {
     // MARK: - Vector map
 
     private var vectorMap: some View {
-        GeometryReader { proxy in
-            HStack(spacing: 0) {
-                if orientation == .front || orientation == .both {
-                    figure(facing: .front, in: proxy.size)
-                        .frame(maxWidth: .infinity)
-                        .overlay { tapLayer(facing: .front) }
-                        .accessibilityElement()
-                        .accessibilityLabel(accessibilityLabel(for: .front))
-                }
-                if orientation == .back || orientation == .both {
-                    figure(facing: .back, in: proxy.size)
-                        .frame(maxWidth: .infinity)
-                        .overlay { tapLayer(facing: .back) }
-                        .accessibilityElement()
-                        .accessibilityLabel(accessibilityLabel(for: .back))
-                }
+        HStack(spacing: 0) {
+            if orientation == .front || orientation == .both {
+                figure(facing: .front)
+                    .frame(maxWidth: .infinity)
+                    .overlay { tapLayer(facing: .front) }
+                    .accessibilityElement()
+                    .accessibilityLabel(accessibilityLabel(for: .front))
+            }
+            if orientation == .back || orientation == .both {
+                figure(facing: .back)
+                    .frame(maxWidth: .infinity)
+                    .overlay { tapLayer(facing: .back) }
+                    .accessibilityElement()
+                    .accessibilityLabel(accessibilityLabel(for: .back))
             }
         }
         .aspectRatio(orientation == .both ? BodyAnatomy.aspect * 2 : BodyAnatomy.aspect,
@@ -237,7 +235,7 @@ struct MuscleMapView: View {
     private enum Facing { case front, back }
 
     @ViewBuilder
-    private func figure(facing: Facing, in containerSize: CGSize) -> some View {
+    private func figure(facing: Facing) -> some View {
         let muscles = facing == .front
             ? AnatomicalMuscle.allCases.filter { !$0.isBack }
             : AnatomicalMuscle.allCases.filter { $0.isBack }
