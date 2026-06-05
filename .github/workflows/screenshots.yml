@@ -1,0 +1,75 @@
+name: Screenshots
+
+# Manual, opt-in job that captures real app screenshots for PR review.
+# Runs the ScreenshotTests UI test (which boots the app in demo mode and
+# grabs each tab), then exports the screenshots from the .xcresult and
+# uploads them as a downloadable `app-screenshots` artifact.
+#
+# workflow_dispatch only — never gates a PR, so it can't block merges.
+#
+# NOTE: this builds the test bundle, which currently also compiles the
+# PeptideTests target. If that target has outstanding compile errors (see
+# the Unit Tests note in pr-checks.yml), this job fails at build until
+# those are fixed. The capture logic itself is independent of that.
+on:
+  workflow_dispatch:
+    inputs:
+      simulator:
+        description: "Simulator device to capture on"
+        required: false
+        default: "iPhone 16"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install XcodeGen
+        run: brew install xcodegen || brew reinstall xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Run screenshot UI test
+        run: |
+          xcodebuild test \
+            -project Peptide.xcodeproj \
+            -scheme Peptide \
+            -destination "platform=iOS Simulator,name=${{ inputs.simulator }},OS=latest" \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -only-testing:PeptideUITests/ScreenshotTests \
+            -resultBundlePath Screenshots.xcresult
+
+      - name: Export screenshots from xcresult
+        if: always()
+        run: |
+          set -x
+          mkdir -p screenshots
+          # Export every attachment (the captures are .keepAlways) plus a
+          # manifest mapping the exported files back to their names.
+          xcrun xcresulttool export attachments \
+            --path Screenshots.xcresult \
+            --output-path screenshots || true
+          ls -laR screenshots || true
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-screenshots
+          path: screenshots/**
+          if-no-files-found: warn
+          retention-days: 14

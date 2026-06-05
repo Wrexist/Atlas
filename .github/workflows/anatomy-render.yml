@@ -1,26 +1,39 @@
 name: Anatomy Render
 
-# Manual, opt-in pipeline that produces the photoreal muscle-map assets
-# without anyone sitting in Blender. Given a muscle-separated .blend model
-# (you supply the URL — keep the license clean, e.g. Z-Anatomy), it runs
-# tools/anatomy_render.py headless on a CI runner and uploads the rendered
-# base bodies + 24 muscle masks as a downloadable artifact. Drop those PNGs
-# into Peptide/Resources/Assets.xcassets/Anatomy/<name>.imageset/ and the
-# app switches to the photoreal renderer automatically.
+# Renders the photoreal muscle-map assets from the open-source Z-Anatomy
+# model (CC-BY-SA 4.0). The model is fetched automatically — no manual
+# hosting. The job installs Blender, opens the model headless, and runs
+# tools/anatomy_render.py.
 #
-# It NEVER runs on its own (workflow_dispatch only) and NEVER commits — it
-# just renders and hands you the artifact to review before importing.
+# Two phases (controlled by `recon`):
+#   recon = true  (default): just dumps the model's collection + object
+#       names (object_names.txt / collections.txt) so the GROUPS mapping
+#       can be built from the real names. No render.
+#   recon = false: renders the base bodies + 24 muscle masks once GROUPS,
+#       cameras, and the muscular-system isolation are configured.
+#
+# Output is uploaded as the `anatomy-out` artifact. workflow_dispatch only.
+#
+# Attribution (required by CC-BY-SA): the muscle assets derive from
+# Z-Anatomy (https://www.z-anatomy.com), CC-BY-SA 4.0 — credited in
+# docs/PHOTOREAL_ANATOMY_PLAN.md and surfaced in-app before the assets ship.
 on:
   workflow_dispatch:
     inputs:
-      model_url:
-        description: "Direct download URL to the muscle-separated .blend model"
-        required: true
-        type: string
+      recon:
+        description: "Recon only (dump names, no render)?"
+        required: false
+        default: true
+        type: boolean
       blender_version:
-        description: "Blender version to install"
+        description: "Blender version"
         required: false
         default: "4.2.3"
+        type: string
+      model_url:
+        description: "Override model URL (blank = fetch Z-Anatomy)"
+        required: false
+        default: ""
         type: string
 
 permissions:
@@ -50,36 +63,56 @@ jobs:
         run: blender --version
 
       - name: Fetch model
-        env:
-          MODEL_URL: ${{ inputs.model_url }}
         run: |
           set -euo pipefail
-          curl -fsSL "$MODEL_URL" -o model.blend
-          ls -lh model.blend
+          mkdir -p model
+          OVERRIDE="${{ inputs.model_url }}"
+          if [ -n "$OVERRIDE" ]; then
+            echo "Using override model URL"
+            curl -fsSL "$OVERRIDE" -o model/model.blend
+          else
+            echo "Fetching Z-Anatomy template (CC-BY-SA 4.0)"
+            # HEAD resolves the repo's default branch, so this works
+            # regardless of main/master.
+            curl -fL "https://github.com/Z-Anatomy/The-blend/raw/HEAD/Z-Anatomy.zip" -o model/zanatomy.zip
+            ls -lh model/zanatomy.zip
+            unzip -q model/zanatomy.zip -d model/unzipped || true
+            # Some distributions nest another zip — unzip any we find.
+            for z in $(find model/unzipped -name '*.zip'); do
+              echo "Unzipping nested $z"; unzip -q "$z" -d "$(dirname "$z")" || true
+            done
+          fi
+          echo "=== .blend files found ==="
+          find model -name '*.blend' -printf '%s\t%p\n' || true
 
-      - name: Render anatomy assets
+      - name: Render / recon
         run: |
           set -euo pipefail
           mkdir -p out
-          # OUTPUT_DIR is read from the env by the script's os.environ
-          # fallback (see tools/anatomy_render.py).
-          ATLAS_ANATOMY_OUT="$PWD/out" \
-            blender model.blend --background --python tools/anatomy_render.py
-
-      - name: Check coverage (26 PNGs expected)
-        run: |
-          set -euo pipefail
-          cd out
-          count=$(ls -1 anatomy_*.png 2>/dev/null | wc -l)
-          echo "Rendered $count PNGs"
-          ls -1 anatomy_*.png || true
-          if [ "$count" -lt 26 ]; then
-            echo "::warning::Expected 26 PNGs (2 bodies + 24 masks); got $count. Check the GROUPS mapping in tools/anatomy_render.py against your model's mesh names."
+          OVERRIDE="${{ inputs.model_url }}"
+          if [ -n "$OVERRIDE" ]; then
+            BLEND="model/model.blend"
+          else
+            # Prefer the template's startup.blend (the actual model scene),
+            # not userpref.blend; fall back to the largest .blend.
+            BLEND="$(find model -name 'startup.blend' | head -1)"
+            if [ -z "$BLEND" ]; then
+              BLEND="$(find model -name '*.blend' -printf '%s\t%p\n' | sort -rn | head -1 | cut -f2)"
+            fi
           fi
+          echo "Opening: $BLEND"
+          if [ -z "$BLEND" ]; then echo "::error::No .blend found"; exit 1; fi
 
-      - name: Upload rendered assets
+          RECON=0; [ "${{ inputs.recon }}" = "true" ] && RECON=1
+          ATLAS_ANATOMY_OUT="$PWD/out" ATLAS_ANATOMY_RECON="$RECON" \
+            blender "$BLEND" --background --python tools/anatomy_render.py
+          echo "=== out/ ==="; ls -laR out || true
+
+      - name: Upload output
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: anatomy-pngs
-          path: out/anatomy_*.png
-          if-no-files-found: error
+          name: anatomy-out
+          path: out/**
+          if-no-files-found: warn
+          retention-days: 14
