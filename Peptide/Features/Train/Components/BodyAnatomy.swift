@@ -176,6 +176,11 @@ enum BodyAnatomy {
         CGPoint(x: 0.198, y: 0.728), CGPoint(x: 0.204, y: 0.640),
     ])) }
 
+    static func rhomboids() -> Path { mirrorPair(smoothClosed([
+        CGPoint(x: 0.495, y: 0.580), CGPoint(x: 0.448, y: 0.598), CGPoint(x: 0.442, y: 0.690),
+        CGPoint(x: 0.478, y: 0.722), CGPoint(x: 0.495, y: 0.688),
+    ])) }
+
     static func lats() -> Path { mirrorPair(smoothClosed([
         CGPoint(x: 0.336, y: 0.582), CGPoint(x: 0.300, y: 0.760), CGPoint(x: 0.344, y: 0.948),
         CGPoint(x: 0.456, y: 1.046), CGPoint(x: 0.492, y: 0.900), CGPoint(x: 0.492, y: 0.700),
@@ -192,10 +197,19 @@ enum BodyAnatomy {
         CGPoint(x: 0.330, y: 1.460), CGPoint(x: 0.356, y: 1.344), CGPoint(x: 0.440, y: 1.292),
     ])) }
 
-    static func hamstrings() -> Path { mirrorPair(smoothClosed([
-        CGPoint(x: 0.396, y: 1.556), CGPoint(x: 0.460, y: 1.566), CGPoint(x: 0.452, y: 1.740),
-        CGPoint(x: 0.438, y: 1.892), CGPoint(x: 0.396, y: 1.924), CGPoint(x: 0.352, y: 1.882),
-        CGPoint(x: 0.348, y: 1.700), CGPoint(x: 0.360, y: 1.578),
+    static func gluteMedius() -> Path { mirrorPair(smoothClosed([
+        CGPoint(x: 0.404, y: 1.298), CGPoint(x: 0.352, y: 1.318), CGPoint(x: 0.330, y: 1.388),
+        CGPoint(x: 0.362, y: 1.420), CGPoint(x: 0.402, y: 1.388),
+    ])) }
+
+    static func hamstringLateral() -> Path { mirrorPair(smoothClosed([
+        CGPoint(x: 0.358, y: 1.566), CGPoint(x: 0.398, y: 1.574), CGPoint(x: 0.394, y: 1.740),
+        CGPoint(x: 0.380, y: 1.892), CGPoint(x: 0.352, y: 1.878), CGPoint(x: 0.346, y: 1.700),
+    ])) }
+
+    static func hamstringMedial() -> Path { mirrorPair(smoothClosed([
+        CGPoint(x: 0.400, y: 1.574), CGPoint(x: 0.458, y: 1.566), CGPoint(x: 0.452, y: 1.740),
+        CGPoint(x: 0.436, y: 1.900), CGPoint(x: 0.400, y: 1.908), CGPoint(x: 0.398, y: 1.730),
     ])) }
 
     static func gastrocnemius() -> Path {
@@ -305,6 +319,7 @@ enum BodyAnatomy {
 
         case .trapsUpper:       return trapsUpper()
         case .trapsLower:       return trapsLower()
+        case .rhomboids:        return rhomboids()
         case .deltPosterior:    return deltPosterior()
         case .deltLateralBack:  return deltLateralBack()
         case .tricepsLong:      return tricepsLong()
@@ -313,7 +328,9 @@ enum BodyAnatomy {
         case .lowerBack:        return lowerBack()
         case .forearmBack:      return forearmBack()
         case .glutes:           return glutes()
-        case .hamstrings:       return hamstrings()
+        case .gluteMedius:      return gluteMedius()
+        case .hamstringLateral: return hamstringLateral()
+        case .hamstringMedial:  return hamstringMedial()
         case .gastrocnemius:    return gastrocnemius()
         case .soleus:           return soleus()
         }

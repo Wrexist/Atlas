@@ -49,10 +49,18 @@ struct MuscleMapView: View {
     /// Resting tint for an untrained muscle. Kept visible (not near-
     /// invisible) so the whole figure always reads as a sculpted body
     /// the way an anatomy chart does; training then warms each muscle.
-    var muscleBaseline: Color = Color.white.opacity(0.13)
+    var muscleBaseline: Color = Color.white.opacity(0.15)
     /// Shadow colour for the muscle-separation grooves that give the
     /// figure its defined, three-dimensional read.
     var grooveColor: Color = Color.black.opacity(0.32)
+    /// When true the user can tap a muscle to identify it — the tapped
+    /// head's name floats over the figure and `onIdentify` fires.
+    var identifiesOnTap: Bool = true
+    /// Called with the head the user tapped (e.g. to drive a detail sheet).
+    var onIdentify: ((AnatomicalMuscle) -> Void)? = nil
+
+    /// The head the user last tapped, surfaced as a floating label.
+    @State private var identified: AnatomicalMuscle? = nil
 
     enum Orientation {
         case front, back, both
@@ -76,12 +84,14 @@ struct MuscleMapView: View {
                 if orientation == .front || orientation == .both {
                     figure(facing: .front, in: proxy.size)
                         .frame(maxWidth: .infinity)
+                        .overlay { tapLayer(facing: .front) }
                         .accessibilityElement()
                         .accessibilityLabel(accessibilityLabel(for: .front))
                 }
                 if orientation == .back || orientation == .both {
                     figure(facing: .back, in: proxy.size)
                         .frame(maxWidth: .infinity)
+                        .overlay { tapLayer(facing: .back) }
                         .accessibilityElement()
                         .accessibilityLabel(accessibilityLabel(for: .back))
                 }
@@ -89,6 +99,55 @@ struct MuscleMapView: View {
         }
         .aspectRatio(orientation == .both ? BodyAnatomy.aspect * 2 : BodyAnatomy.aspect,
                      contentMode: .fit)
+        .overlay(alignment: .top) { identifyLabel }
+    }
+
+    // MARK: - Tap to identify
+
+    /// Transparent hit-test layer over one figure. Maps the tap location
+    /// back into the figure's normalized space and finds the topmost muscle
+    /// head whose path contains it.
+    @ViewBuilder
+    private func tapLayer(facing: Facing) -> some View {
+        if identifiesOnTap {
+            GeometryReader { geo in
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture(coordinateSpace: .local) { location in
+                        identify(at: location, facing: facing, size: geo.size)
+                    }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var identifyLabel: some View {
+        if let identified {
+            Text(identified.displayName)
+                .font(AppFont.caption.weight(.semibold))
+                .foregroundStyle(AppColor.textPrimary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(AppColor.surfaceElevated))
+                .overlay(Capsule().stroke(Color.white.opacity(0.12)))
+                .padding(.top, 6)
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
+        }
+    }
+
+    private func identify(at point: CGPoint, facing: Facing, size: CGSize) {
+        let scale = min(size.width, size.height / 2.4)
+        guard scale > 0 else { return }
+        let xOffset = (size.width - scale) / 2
+        let yOffset = (size.height - scale * 2.4) / 2
+        let p = CGPoint(x: (point.x - xOffset) / scale, y: (point.y - yOffset) / scale)
+        let muscles = facing == .front
+            ? AnatomicalMuscle.allCases.filter { !$0.isBack }
+            : AnatomicalMuscle.allCases.filter { $0.isBack }
+        // Last match = the head drawn on top where heads overlap.
+        let hit = muscles.last { BodyAnatomy.path(for: $0).contains(p) }
+        withAnimation(.easeOut(duration: 0.2)) { identified = hit }
+        if let hit { onIdentify?(hit) }
     }
 
     // MARK: - Asset map

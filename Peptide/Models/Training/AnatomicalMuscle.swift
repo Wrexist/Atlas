@@ -33,6 +33,7 @@ enum AnatomicalMuscle: String, CaseIterable, Codable, Hashable, Sendable {
     // Back
     case trapsUpper
     case trapsLower
+    case rhomboids
     case deltPosterior
     case deltLateralBack
     case tricepsLong
@@ -41,7 +42,9 @@ enum AnatomicalMuscle: String, CaseIterable, Codable, Hashable, Sendable {
     case lowerBack
     case forearmBack
     case glutes
-    case hamstrings
+    case gluteMedius
+    case hamstringLateral
+    case hamstringMedial
     case gastrocnemius
     case soleus
 
@@ -49,12 +52,50 @@ enum AnatomicalMuscle: String, CaseIterable, Codable, Hashable, Sendable {
     /// `MuscleMapView`. Drives which figure a highlight lights up.
     var isBack: Bool {
         switch self {
-        case .trapsUpper, .trapsLower, .deltPosterior, .deltLateralBack,
+        case .trapsUpper, .trapsLower, .rhomboids, .deltPosterior, .deltLateralBack,
              .tricepsLong, .tricepsLateral, .lats, .lowerBack, .forearmBack,
-             .glutes, .hamstrings, .gastrocnemius, .soleus:
+             .glutes, .gluteMedius, .hamstringLateral, .hamstringMedial,
+             .gastrocnemius, .soleus:
             return true
         default:
             return false
+        }
+    }
+
+    /// Friendly, user-facing name for the head — shown on the top-muscles
+    /// row and the tap-to-identify label. A few heads share a group label
+    /// (the two triceps heads both read "Triceps") where the distinction
+    /// only matters for the map's tint, not the callout.
+    var displayName: String {
+        switch self {
+        case .pecClavicular:    return "Upper chest"
+        case .pecSternal:       return "Chest"
+        case .deltAnterior:     return "Front delts"
+        case .deltLateralFront, .deltLateralBack: return "Side delts"
+        case .deltPosterior:    return "Rear delts"
+        case .biceps:           return "Biceps"
+        case .forearmFront, .forearmBack: return "Forearms"
+        case .abdominals:       return "Abs"
+        case .obliques:         return "Obliques"
+        case .quadRectus:       return "Quads · rectus femoris"
+        case .quadLateralis:    return "Quads · outer sweep"
+        case .quadMedialis:     return "Quads · inner (teardrop)"
+        case .adductors:        return "Adductors"
+        case .tibialis:         return "Shins"
+        case .neck:             return "Neck"
+        case .trapsUpper:       return "Upper traps"
+        case .trapsLower:       return "Lower traps"
+        case .rhomboids:        return "Rhomboids"
+        case .tricepsLong:      return "Triceps · long head"
+        case .tricepsLateral:   return "Triceps · lateral head"
+        case .lats:             return "Lats"
+        case .lowerBack:        return "Lower back"
+        case .glutes:           return "Glutes"
+        case .gluteMedius:      return "Glute medius"
+        case .hamstringLateral: return "Hamstrings · outer"
+        case .hamstringMedial:  return "Hamstrings · inner"
+        case .gastrocnemius:    return "Calves · gastrocnemius"
+        case .soleus:           return "Calves · soleus"
         }
     }
 
@@ -115,8 +156,8 @@ enum AnatomicalMuscle: String, CaseIterable, Codable, Hashable, Sendable {
             return [.trapsUpper: 0.90, .trapsLower: 0.70]
 
         case "middle back":
-            // Rhomboids / mid-traps mass with a lat contribution.
-            return [.trapsLower: 1.0, .lats: 0.60]
+            // Rhomboids between the scapulae, plus lower-trap and lat help.
+            return [.rhomboids: 1.0, .trapsLower: 0.50, .lats: 0.40]
 
         case "quadriceps":
             if has("hack", "front squat", "sissy", "leg extension") {
@@ -124,14 +165,16 @@ enum AnatomicalMuscle: String, CaseIterable, Codable, Hashable, Sendable {
             }
             return [.quadRectus: 1.0, .quadLateralis: 1.0, .quadMedialis: 1.0]
 
+        case "hamstrings":
+            return [.hamstringLateral: 1.0, .hamstringMedial: 1.0]
+
         case "abdominals":   return [.abdominals: 1.0]
         case "obliques":     return [.obliques: 1.0]
         case "neck":         return [.neck: 1.0]
         case "biceps":       return [.biceps: 1.0]
         case "forearms":     return [.forearmFront: 1.0, .forearmBack: 1.0]
-        case "hamstrings":   return [.hamstrings: 1.0]
         case "glutes":       return [.glutes: 1.0]
-        case "abductors":    return [.glutes: 1.0]   // gluteus medius shares the region
+        case "abductors":    return [.gluteMedius: 1.0]   // hip abductor / gluteus medius
         case "adductors":    return [.adductors: 1.0]
         case "lats":         return [.lats: 1.0]
         case "lower back":   return [.lowerBack: 1.0]

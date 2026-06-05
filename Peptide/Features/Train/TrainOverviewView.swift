@@ -161,7 +161,7 @@ struct TrainOverviewView: View {
     private func topMusclePill(for muscle: AnatomicalMuscle, count: Double) -> some View {
         let setCount = Int(count.rounded())
         return VStack(spacing: 4) {
-            Text(displayName(for: muscle))
+            Text(muscle.displayName)
                 .font(AppFont.chipText)
                 .foregroundStyle(AppColor.textPrimary)
             Text("\(setCount) \(setCount == 1 ? "set" : "sets")")
@@ -281,33 +281,6 @@ struct TrainOverviewView: View {
 
     // MARK: - Display helpers
 
-    private func displayName(for muscle: AnatomicalMuscle) -> String {
-        // Surface friendlier labels on the top-muscles row than the
-        // raw enum case names (which are split into muscle heads for the map).
-        switch muscle {
-        case .pecClavicular:                  return "Upper chest"
-        case .pecSternal:                     return "Chest"
-        case .abdominals:                     return "Abs"
-        case .obliques:                       return "Obliques"
-        case .deltAnterior:                   return "Front delts"
-        case .deltLateralFront, .deltLateralBack: return "Side delts"
-        case .deltPosterior:                  return "Rear delts"
-        case .neck:                           return "Neck"
-        case .biceps:                         return "Biceps"
-        case .tricepsLong, .tricepsLateral:   return "Triceps"
-        case .forearmFront, .forearmBack:     return "Forearms"
-        case .quadRectus, .quadLateralis, .quadMedialis: return "Quads"
-        case .hamstrings:                     return "Hamstrings"
-        case .tibialis:                       return "Shins"
-        case .gastrocnemius, .soleus:         return "Calves"
-        case .glutes:                         return "Glutes"
-        case .adductors:                      return "Adductors"
-        case .trapsUpper:                     return "Upper traps"
-        case .trapsLower:                     return "Traps"
-        case .lats:                           return "Lats"
-        case .lowerBack:                      return "Lower back"
-        }
-    }
 }
 
 // MARK: - Calendar grid
