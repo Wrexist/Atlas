@@ -146,8 +146,13 @@ struct MuscleMapView: View {
             : AnatomicalMuscle.allCases.filter { $0.isBack }
         // Last match = the head drawn on top where heads overlap.
         let hit = muscles.last { BodyAnatomy.path(for: $0).contains(p) }
-        withAnimation(.easeOut(duration: 0.2)) { identified = hit }
-        if let hit { onIdentify?(hit) }
+        // When a caller handles identification (e.g. to present a detail
+        // sheet) defer to it; otherwise float the name label in-place.
+        if let onIdentify {
+            if let hit { onIdentify(hit) }
+        } else {
+            withAnimation(.easeOut(duration: 0.2)) { identified = hit }
+        }
     }
 
     // MARK: - Asset map

@@ -28,6 +28,9 @@ struct TrainOverviewView: View {
     /// both touched the computed property. Recomputed only when
     /// `refresh()` runs (i.e. when sessions actually change).
     @State private var frequencies: [AnatomicalMuscle: Double] = [:]
+    /// The muscle the user tapped on the map, presented as a detail sheet
+    /// of the exercises they've logged for it.
+    @State private var inspectedMuscle: AnatomicalMuscle?
 
     private var weekHasTraining: Bool {
         !frequencies.isEmpty
@@ -51,6 +54,14 @@ struct TrainOverviewView: View {
         .task { @MainActor in
             await library.load()
             refresh()
+        }
+        .sheet(item: $inspectedMuscle) { muscle in
+            MuscleHistorySheet(
+                muscle: muscle,
+                history: WeeklyMuscleHeatmap.history(
+                    for: muscle, from: sessions, library: library
+                )
+            )
         }
     }
 
@@ -109,11 +120,16 @@ struct TrainOverviewView: View {
                 }
 
                 MuscleMapView(
-                    highlights: MuscleMapView.intensityHighlights(from: frequencies)
+                    highlights: MuscleMapView.intensityHighlights(from: frequencies),
+                    onIdentify: { inspectedMuscle = $0 }
                 )
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 320)
                 .animation(.easeInOut(duration: 0.4), value: frequencies)
+
+                Text("Tap a muscle to see what you've trained it with.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textTertiary)
 
                 if weekHasTraining {
                     intensityLegend

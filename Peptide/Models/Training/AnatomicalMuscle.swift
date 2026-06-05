@@ -198,3 +198,8 @@ enum AnatomicalMuscle: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 }
+
+extension AnatomicalMuscle: Identifiable {
+    /// Stable identity for `.sheet(item:)` and `ForEach` — the raw case name.
+    var id: String { rawValue }
+}
