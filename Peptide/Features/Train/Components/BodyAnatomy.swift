@@ -1,19 +1,20 @@
 import SwiftUI
 
 /// Geometric definitions for the anatomical figure used by
-/// `MuscleMapView`. Each muscle is a `Path` drawn in a normalized
+/// `MuscleMapView`. Everything is drawn in a normalized
 /// `[0…1] × [0…2.4]` coordinate space (1.0 wide, 2.4 tall — the
 /// roughly 8-head canonical figure ratio). The view scales these up
 /// to fit whatever pixel rect it receives through `GeometryReader`.
 ///
-/// The shapes are hand-built from smooth Bézier curves rather than
-/// rounded rectangles so the body reads as real anatomy — fanned
-/// pectorals, capped deltoids, spindle biceps, teardrop quads,
-/// winged lats. Left/right pairs are derived from a single drawn
-/// side through `mirror`, so the figure is always perfectly
-/// symmetric. A faint `skeleton` layer (skull, ribcage, spine,
-/// pelvis, long bones, joints) sits under the muscles to ground the
-/// figure as an anatomical chart.
+/// Both the body outline and every muscle are authored as a short list
+/// of perimeter points run through `smoothClosed` (a closed
+/// Catmull-Rom spline), so the shapes read as organic anatomy —
+/// capped deltoids, fanned pectorals, teardrop quads, diamond calves,
+/// winged lats — rather than geometric blobs, and stay easy to tune by
+/// nudging a single point. Left/right pairs are derived from one drawn
+/// side through `mirror`, so the figure is always perfectly symmetric.
+/// A faint `skeleton` layer (skull, ribcage, spine, pelvis, long bones,
+/// joints) sits under the muscles to ground the figure as a chart.
 ///
 /// Keeping the geometry in one place means the muscle map can be
 /// re-skinned (different stroke weights, palette, eventually
@@ -30,50 +31,33 @@ enum BodyAnatomy {
 
     // MARK: - Silhouette
 
-    /// One smooth, continuous humanoid outline — head, neck, shoulders,
-    /// arms (with armpit notches), tapered torso, hips, and legs. Built
-    /// by tracing the right half from crown to crotch, then mirroring
-    /// that trace back up the left half, so the two sides match exactly.
+    /// Right-half perimeter of the body, crown → crotch, traced down the
+    /// outside of a broad-shouldered, V-tapered athletic figure (head,
+    /// neck, deltoid, arm with a bicep/forearm swell, hand, armpit notch,
+    /// lat, waist, hip, thigh, calf, foot). The left half is the mirror
+    /// of these points, so the outline is exactly symmetric.
+    private static let rightHalf: [CGPoint] = [
+        CGPoint(x: 0.500, y: 0.045), CGPoint(x: 0.598, y: 0.135), CGPoint(x: 0.585, y: 0.238),
+        CGPoint(x: 0.545, y: 0.300), CGPoint(x: 0.540, y: 0.356), CGPoint(x: 0.616, y: 0.392),
+        CGPoint(x: 0.726, y: 0.416), CGPoint(x: 0.850, y: 0.476), CGPoint(x: 0.878, y: 0.620),
+        CGPoint(x: 0.868, y: 0.762), CGPoint(x: 0.848, y: 0.965), CGPoint(x: 0.866, y: 1.075),
+        CGPoint(x: 0.820, y: 1.300), CGPoint(x: 0.814, y: 1.374), CGPoint(x: 0.762, y: 1.374),
+        CGPoint(x: 0.756, y: 1.298), CGPoint(x: 0.726, y: 1.040), CGPoint(x: 0.704, y: 0.962),
+        CGPoint(x: 0.662, y: 0.586), CGPoint(x: 0.640, y: 0.842), CGPoint(x: 0.626, y: 1.046),
+        CGPoint(x: 0.694, y: 1.300), CGPoint(x: 0.706, y: 1.472), CGPoint(x: 0.636, y: 1.860),
+        CGPoint(x: 0.648, y: 2.022), CGPoint(x: 0.582, y: 2.252), CGPoint(x: 0.556, y: 2.306),
+        CGPoint(x: 0.602, y: 2.366), CGPoint(x: 0.516, y: 2.366), CGPoint(x: 0.512, y: 2.308),
+        CGPoint(x: 0.512, y: 1.890), CGPoint(x: 0.506, y: 1.760), CGPoint(x: 0.500, y: 1.430),
+    ]
+
+    /// One smooth, continuous humanoid outline built by smoothing the
+    /// right-half perimeter together with its mirror.
     static func frontSilhouette() -> Path {
-        symmetricBody(
-            top: CGPoint(x: 0.50, y: 0.040),
-            rightSide: [
-                // Crown → right temple
-                Cubic(to: CGPoint(x: 0.610, y: 0.150), c1: CGPoint(x: 0.582, y: 0.040), c2: CGPoint(x: 0.610, y: 0.090)),
-                // Temple → jaw
-                Cubic(to: CGPoint(x: 0.556, y: 0.300), c1: CGPoint(x: 0.610, y: 0.225), c2: CGPoint(x: 0.598, y: 0.272)),
-                // Jaw → base of neck
-                Cubic(to: CGPoint(x: 0.560, y: 0.355), c1: CGPoint(x: 0.556, y: 0.322), c2: CGPoint(x: 0.558, y: 0.338)),
-                // Trapezius / clavicle slope → outer deltoid
-                Cubic(to: CGPoint(x: 0.826, y: 0.476), c1: CGPoint(x: 0.648, y: 0.382), c2: CGPoint(x: 0.762, y: 0.420)),
-                // Deltoid cap → upper arm
-                Cubic(to: CGPoint(x: 0.872, y: 0.660), c1: CGPoint(x: 0.884, y: 0.524), c2: CGPoint(x: 0.886, y: 0.592)),
-                // Upper arm → elbow
-                Cubic(to: CGPoint(x: 0.858, y: 0.952), c1: CGPoint(x: 0.876, y: 0.770), c2: CGPoint(x: 0.870, y: 0.876)),
-                // Forearm → outer wrist
-                Cubic(to: CGPoint(x: 0.832, y: 1.298), c1: CGPoint(x: 0.858, y: 1.090), c2: CGPoint(x: 0.848, y: 1.220)),
-                // Around the wrist → inner wrist
-                Cubic(to: CGPoint(x: 0.792, y: 1.302), c1: CGPoint(x: 0.826, y: 1.330), c2: CGPoint(x: 0.812, y: 1.330)),
-                // Inner arm up → armpit
-                Cubic(to: CGPoint(x: 0.662, y: 0.566), c1: CGPoint(x: 0.762, y: 1.030), c2: CGPoint(x: 0.694, y: 0.648)),
-                // Lat / ribs down → waist
-                Cubic(to: CGPoint(x: 0.634, y: 1.010), c1: CGPoint(x: 0.672, y: 0.762), c2: CGPoint(x: 0.642, y: 0.884)),
-                // Waist → hip
-                Cubic(to: CGPoint(x: 0.690, y: 1.298), c1: CGPoint(x: 0.642, y: 1.150), c2: CGPoint(x: 0.684, y: 1.232)),
-                // Hip / outer thigh → knee
-                Cubic(to: CGPoint(x: 0.628, y: 1.842), c1: CGPoint(x: 0.706, y: 1.470), c2: CGPoint(x: 0.660, y: 1.700)),
-                // Knee → outer calf
-                Cubic(to: CGPoint(x: 0.602, y: 2.066), c1: CGPoint(x: 0.628, y: 1.934), c2: CGPoint(x: 0.626, y: 1.988)),
-                // Calf → outer ankle
-                Cubic(to: CGPoint(x: 0.548, y: 2.318), c1: CGPoint(x: 0.586, y: 2.182), c2: CGPoint(x: 0.566, y: 2.278)),
-                // Across the foot → inner ankle
-                Cubic(to: CGPoint(x: 0.520, y: 2.324), c1: CGPoint(x: 0.540, y: 2.336), c2: CGPoint(x: 0.530, y: 2.336)),
-                // Inner lower leg up → inner knee
-                Cubic(to: CGPoint(x: 0.514, y: 1.872), c1: CGPoint(x: 0.522, y: 2.150), c2: CGPoint(x: 0.514, y: 1.984)),
-                // Inner thigh up → crotch (centre line)
-                Cubic(to: CGPoint(x: 0.500, y: 1.432), c1: CGPoint(x: 0.514, y: 1.702), c2: CGPoint(x: 0.506, y: 1.520)),
-            ]
-        )
+        var pts = rightHalf
+        pts += rightHalf.dropFirst().dropLast().reversed().map {
+            CGPoint(x: 1 - $0.x, y: $0.y)
+        }
+        return smoothClosed(pts)
     }
 
     /// The back outline matches the front silhouette; the back-only
@@ -82,245 +66,195 @@ enum BodyAnatomy {
 
     // MARK: - Front muscles
 
-    static func chest() -> Path {
-        // Two fanned pectoral shields meeting at the sternum, swept up
-        // toward the deltoid and rounded along the lower border.
-        let left = pecLobe()
-        var p = left
-        p.addPath(left.applying(mirror))
-        return p
-    }
+    static func chest() -> Path { mirrorPair(pecLobe()) }
 
     private static func pecLobe() -> Path {
-        var p = Path()
-        p.move(to: CGPoint(x: 0.487, y: 0.452))            // sternum, top
-        p.addCurve(to: CGPoint(x: 0.276, y: 0.498),         // outer-top, under delt
-                   control1: CGPoint(x: 0.392, y: 0.444),
-                   control2: CGPoint(x: 0.312, y: 0.456))
-        p.addCurve(to: CGPoint(x: 0.318, y: 0.642),         // lower-outer border
-                   control1: CGPoint(x: 0.250, y: 0.556),
-                   control2: CGPoint(x: 0.268, y: 0.616))
-        p.addCurve(to: CGPoint(x: 0.487, y: 0.628),         // sternum, bottom
-                   control1: CGPoint(x: 0.380, y: 0.664),
-                   control2: CGPoint(x: 0.440, y: 0.652))
-        p.addCurve(to: CGPoint(x: 0.487, y: 0.452),         // up the sternum
-                   control1: CGPoint(x: 0.487, y: 0.566),
-                   control2: CGPoint(x: 0.487, y: 0.500))
-        p.closeSubpath()
-        return p
+        // Fanned pectoral shield, leaving a thin sternum gap at the
+        // mid-line where it meets its mirror.
+        smoothClosed([
+            CGPoint(x: 0.495, y: 0.452), CGPoint(x: 0.392, y: 0.456), CGPoint(x: 0.318, y: 0.486),
+            CGPoint(x: 0.300, y: 0.560), CGPoint(x: 0.336, y: 0.636), CGPoint(x: 0.430, y: 0.654),
+            CGPoint(x: 0.495, y: 0.620),
+        ])
     }
 
     static func abdominals() -> Path {
         // Rectus abdominis: a 4×2 grid of softly-rounded cells split by
         // the linea alba, narrowing toward the navel.
         var p = Path()
-        let rows = 4
-        for row in 0..<rows {
-            let y = 0.706 + Double(row) * 0.092
-            // Lower cells tuck in slightly for a tapered six-pack read.
-            let inset = 0.004 * Double(row)
-            let w = 0.066 - inset
-            p.addPath(roundedShape(at: CGRect(x: 0.432 + inset, y: y, width: w, height: 0.078),
-                                   cornerRadius: 0.018))
-            p.addPath(roundedShape(at: CGRect(x: 0.502, y: y, width: w, height: 0.078),
-                                   cornerRadius: 0.018))
+        for row in 0..<4 {
+            let y = 0.700 + Double(row) * 0.094
+            let inset = 0.005 * Double(row)
+            let w = 0.070 - inset
+            p.addPath(roundedShape(at: CGRect(x: 0.430 + inset, y: y, width: w, height: 0.080),
+                                   cornerRadius: 0.020))
+            p.addPath(roundedShape(at: CGRect(x: 0.500, y: y, width: w, height: 0.080),
+                                   cornerRadius: 0.020))
         }
         return p
     }
 
-    static func obliques() -> Path {
-        let left = slantedShape(at: CGRect(x: 0.348, y: 0.724, width: 0.082, height: 0.330),
-                                leanRight: true)
-        var p = left
-        p.addPath(left.applying(mirror))
-        return p
+    static func obliques() -> Path { mirrorPair(obliqueSlab()) }
+
+    private static func obliqueSlab() -> Path {
+        smoothClosed([
+            CGPoint(x: 0.404, y: 0.726), CGPoint(x: 0.412, y: 0.880), CGPoint(x: 0.402, y: 1.030),
+            CGPoint(x: 0.356, y: 1.048), CGPoint(x: 0.334, y: 0.900), CGPoint(x: 0.346, y: 0.760),
+        ])
     }
 
-    static func shouldersFront() -> Path {
-        let left = deltoidCap()
-        var p = left
-        p.addPath(left.applying(mirror))
-        return p
-    }
+    static func shouldersFront() -> Path { mirrorPair(deltoidCap()) }
 
     private static func deltoidCap() -> Path {
-        // Rounded cap that wraps the shoulder joint — wide over the top,
-        // tapering to a point where it meets the biceps.
-        var p = Path()
-        p.move(to: CGPoint(x: 0.312, y: 0.432))             // inner, at trap junction
-        p.addCurve(to: CGPoint(x: 0.158, y: 0.500),         // over the top, outer
-                   control1: CGPoint(x: 0.244, y: 0.404),
-                   control2: CGPoint(x: 0.184, y: 0.436))
-        p.addCurve(to: CGPoint(x: 0.236, y: 0.586),         // lower outer
-                   control1: CGPoint(x: 0.142, y: 0.548),
-                   control2: CGPoint(x: 0.178, y: 0.582))
-        p.addCurve(to: CGPoint(x: 0.312, y: 0.432),         // back up to the junction
-                   control1: CGPoint(x: 0.296, y: 0.560),
-                   control2: CGPoint(x: 0.318, y: 0.486))
-        p.closeSubpath()
-        return p
+        // Rounded cap wrapping the shoulder joint — wide over the top,
+        // tapering where it meets the pec and biceps.
+        smoothClosed([
+            CGPoint(x: 0.300, y: 0.428), CGPoint(x: 0.214, y: 0.412), CGPoint(x: 0.150, y: 0.470),
+            CGPoint(x: 0.146, y: 0.556), CGPoint(x: 0.196, y: 0.612), CGPoint(x: 0.268, y: 0.582),
+            CGPoint(x: 0.300, y: 0.508),
+        ])
     }
 
-    static func neckFront() -> Path {
-        // Sternocleidomastoid pair — two soft straps converging from the
-        // jaw to the sternal notch.
-        let left = spindle(center: CGPoint(x: 0.470, y: 0.345), width: 0.034, height: 0.090)
-        var p = left
-        p.addPath(left.applying(mirror))
-        return p
+    static func neckFront() -> Path { mirrorPair(neckStrap()) }
+
+    private static func neckStrap() -> Path {
+        // Sternocleidomastoid — a soft strap from the jaw to the
+        // sternal notch.
+        smoothClosed([
+            CGPoint(x: 0.476, y: 0.302), CGPoint(x: 0.492, y: 0.300), CGPoint(x: 0.490, y: 0.356),
+            CGPoint(x: 0.470, y: 0.362), CGPoint(x: 0.460, y: 0.330),
+        ])
     }
 
-    static func bicepsLeft() -> Path {
-        spindle(center: CGPoint(x: 0.156, y: 0.612), width: 0.078, height: 0.250)
+    static func bicepsLeft() -> Path { bicepsLobe() }
+    static func bicepsRight() -> Path { bicepsLobe().applying(mirror) }
+
+    private static func bicepsLobe() -> Path {
+        smoothClosed([
+            CGPoint(x: 0.205, y: 0.500), CGPoint(x: 0.256, y: 0.606), CGPoint(x: 0.232, y: 0.730),
+            CGPoint(x: 0.172, y: 0.734), CGPoint(x: 0.156, y: 0.612),
+        ])
     }
 
-    static func bicepsRight() -> Path { bicepsLeft().applying(mirror) }
+    static func forearmsFront() -> Path { mirrorPair(forearmLobe()) }
 
-    static func forearmsFront() -> Path {
-        let left = limbTaper(top: CGPoint(x: 0.144, y: 0.970), topWidth: 0.082,
-                             bottom: CGPoint(x: 0.176, y: 1.270), bottomWidth: 0.050)
-        var p = left
-        p.addPath(left.applying(mirror))
-        return p
+    private static func forearmLobe() -> Path {
+        smoothClosed([
+            CGPoint(x: 0.150, y: 0.962), CGPoint(x: 0.208, y: 0.992), CGPoint(x: 0.214, y: 1.110),
+            CGPoint(x: 0.190, y: 1.272), CGPoint(x: 0.156, y: 1.272), CGPoint(x: 0.146, y: 1.108),
+        ])
     }
 
-    static func quadricepsLeft() -> Path {
-        // Teardrop quad with an outer (vastus lateralis) sweep, tapering
-        // to the knee.
-        var p = Path()
-        p.move(to: CGPoint(x: 0.404, y: 1.476))             // inner top
-        p.addCurve(to: CGPoint(x: 0.470, y: 1.500),         // top, under hip
-                   control1: CGPoint(x: 0.430, y: 1.470),
-                   control2: CGPoint(x: 0.452, y: 1.482))
-        p.addCurve(to: CGPoint(x: 0.446, y: 1.880),         // down to inner knee
-                   control1: CGPoint(x: 0.476, y: 1.640),
-                   control2: CGPoint(x: 0.458, y: 1.780))
-        p.addCurve(to: CGPoint(x: 0.336, y: 1.860),         // across the knee
-                   control1: CGPoint(x: 0.410, y: 1.912),
-                   control2: CGPoint(x: 0.366, y: 1.904))
-        p.addCurve(to: CGPoint(x: 0.348, y: 1.560),         // up the outer sweep
-                   control1: CGPoint(x: 0.318, y: 1.730),
-                   control2: CGPoint(x: 0.322, y: 1.640))
-        p.addCurve(to: CGPoint(x: 0.404, y: 1.476),         // back to inner top
-                   control1: CGPoint(x: 0.362, y: 1.512),
-                   control2: CGPoint(x: 0.380, y: 1.484))
-        p.closeSubpath()
-        return p
+    static func quadricepsLeft() -> Path { quadLobe() }
+    static func quadricepsRight() -> Path { quadLobe().applying(mirror) }
+
+    private static func quadLobe() -> Path {
+        // Teardrop quad with an outer vastus-lateralis sweep and an inner
+        // vastus-medialis bulge just above the knee.
+        smoothClosed([
+            CGPoint(x: 0.404, y: 1.474), CGPoint(x: 0.470, y: 1.494), CGPoint(x: 0.460, y: 1.660),
+            CGPoint(x: 0.452, y: 1.840), CGPoint(x: 0.404, y: 1.902), CGPoint(x: 0.346, y: 1.852),
+            CGPoint(x: 0.336, y: 1.640), CGPoint(x: 0.356, y: 1.500),
+        ])
     }
 
-    static func quadricepsRight() -> Path { quadricepsLeft().applying(mirror) }
+    static func adductors() -> Path { mirrorPair(adductorStrap()) }
 
-    static func adductors() -> Path {
-        // Inner-thigh straps on each side of the mid-line.
-        let left = limbTaper(top: CGPoint(x: 0.470, y: 1.486), topWidth: 0.044,
-                             bottom: CGPoint(x: 0.484, y: 1.790), bottomWidth: 0.028)
-        var p = left
-        p.addPath(left.applying(mirror))
-        return p
+    private static func adductorStrap() -> Path {
+        smoothClosed([
+            CGPoint(x: 0.474, y: 1.498), CGPoint(x: 0.492, y: 1.502), CGPoint(x: 0.488, y: 1.660),
+            CGPoint(x: 0.466, y: 1.804), CGPoint(x: 0.452, y: 1.640), CGPoint(x: 0.458, y: 1.520),
+        ])
     }
 
-    static func calvesFront() -> Path {
-        let left = calfBelly(centerX: 0.392)
-        var p = left
-        p.addPath(left.applying(mirror))
-        return p
+    static func calvesFront() -> Path { mirrorPair(tibialisLobe()) }
+
+    private static func tibialisLobe() -> Path {
+        smoothClosed([
+            CGPoint(x: 0.400, y: 1.952), CGPoint(x: 0.432, y: 1.992), CGPoint(x: 0.426, y: 2.110),
+            CGPoint(x: 0.402, y: 2.214), CGPoint(x: 0.380, y: 2.090), CGPoint(x: 0.384, y: 1.984),
+        ])
     }
 
     // MARK: - Back muscles
 
     static func traps() -> Path {
-        // Kite from the neck, flaring over the shoulders, tapering down
-        // the spine — softened with curves rather than straight edges.
-        var p = Path()
-        p.move(to: CGPoint(x: 0.500, y: 0.352))
-        p.addCurve(to: CGPoint(x: 0.300, y: 0.512),
-                   control1: CGPoint(x: 0.408, y: 0.372),
-                   control2: CGPoint(x: 0.336, y: 0.444))
-        p.addCurve(to: CGPoint(x: 0.500, y: 0.690),
-                   control1: CGPoint(x: 0.392, y: 0.566),
-                   control2: CGPoint(x: 0.452, y: 0.628))
-        p.addCurve(to: CGPoint(x: 0.700, y: 0.512),
-                   control1: CGPoint(x: 0.548, y: 0.628),
-                   control2: CGPoint(x: 0.608, y: 0.566))
-        p.addCurve(to: CGPoint(x: 0.500, y: 0.352),
-                   control1: CGPoint(x: 0.664, y: 0.444),
-                   control2: CGPoint(x: 0.592, y: 0.372))
-        p.closeSubpath()
-        return p
+        // Upper-trap kite flaring over the shoulders, tapering to a
+        // lower-trap point down the spine.
+        smoothClosed([
+            CGPoint(x: 0.500, y: 0.350), CGPoint(x: 0.360, y: 0.452), CGPoint(x: 0.318, y: 0.520),
+            CGPoint(x: 0.430, y: 0.612), CGPoint(x: 0.470, y: 0.880), CGPoint(x: 0.500, y: 0.940),
+            CGPoint(x: 0.530, y: 0.880), CGPoint(x: 0.570, y: 0.612), CGPoint(x: 0.682, y: 0.520),
+            CGPoint(x: 0.640, y: 0.452),
+        ])
     }
 
-    static func lats() -> Path {
-        let left = latWing()
-        var p = left
-        p.addPath(left.applying(mirror))
-        return p
-    }
+    static func lats() -> Path { mirrorPair(latWing()) }
 
     private static func latWing() -> Path {
-        // Wing — broad under the armpit, sweeping in to the waist along
-        // the spine.
-        var p = Path()
-        p.move(to: CGPoint(x: 0.312, y: 0.582))             // top, under rear delt
-        p.addCurve(to: CGPoint(x: 0.470, y: 1.020),         // outer sweep to waist
-                   control1: CGPoint(x: 0.258, y: 0.770),
-                   control2: CGPoint(x: 0.388, y: 0.965))
-        p.addCurve(to: CGPoint(x: 0.490, y: 0.700),         // up the spine edge
-                   control1: CGPoint(x: 0.486, y: 0.910),
-                   control2: CGPoint(x: 0.490, y: 0.800))
-        p.addCurve(to: CGPoint(x: 0.312, y: 0.582),         // back to the armpit
-                   control1: CGPoint(x: 0.470, y: 0.624),
-                   control2: CGPoint(x: 0.392, y: 0.586))
-        p.closeSubpath()
-        return p
+        // Broad wing — wide under the armpit, sweeping in to the waist
+        // along the spine.
+        smoothClosed([
+            CGPoint(x: 0.336, y: 0.582), CGPoint(x: 0.300, y: 0.760), CGPoint(x: 0.344, y: 0.948),
+            CGPoint(x: 0.456, y: 1.046), CGPoint(x: 0.492, y: 0.900), CGPoint(x: 0.492, y: 0.700),
+            CGPoint(x: 0.430, y: 0.610),
+        ])
     }
 
-    static func lowerBack() -> Path {
-        // Erector / lumbar mass — a rounded shield over the lower spine.
-        roundedShape(at: CGRect(x: 0.418, y: 1.030, width: 0.164, height: 0.210),
-                     cornerRadius: 0.06)
+    static func lowerBack() -> Path { mirrorPair(erectorColumn()) }
+
+    private static func erectorColumn() -> Path {
+        // One erector-spinae column beside the lumbar spine.
+        smoothClosed([
+            CGPoint(x: 0.448, y: 1.040), CGPoint(x: 0.492, y: 1.048), CGPoint(x: 0.492, y: 1.222),
+            CGPoint(x: 0.452, y: 1.236), CGPoint(x: 0.428, y: 1.140),
+        ])
     }
 
     static func shouldersBack() -> Path { shouldersFront() }
 
-    static func tricepsLeft() -> Path {
-        spindle(center: CGPoint(x: 0.156, y: 0.636), width: 0.080, height: 0.260)
-    }
+    static func tricepsLeft() -> Path { tricepsLobe() }
+    static func tricepsRight() -> Path { tricepsLobe().applying(mirror) }
 
-    static func tricepsRight() -> Path { tricepsLeft().applying(mirror) }
+    private static func tricepsLobe() -> Path {
+        smoothClosed([
+            CGPoint(x: 0.200, y: 0.504), CGPoint(x: 0.254, y: 0.618), CGPoint(x: 0.230, y: 0.758),
+            CGPoint(x: 0.166, y: 0.752), CGPoint(x: 0.152, y: 0.600),
+        ])
+    }
 
     static func forearmsBack() -> Path { forearmsFront() }
 
-    static func glutesLeft() -> Path {
-        // Rounded buttock that tucks toward the mid-line at the top.
-        var p = Path()
-        p.move(to: CGPoint(x: 0.498, y: 1.286))
-        p.addCurve(to: CGPoint(x: 0.498, y: 1.516),
-                   control1: CGPoint(x: 0.498, y: 1.400),
-                   control2: CGPoint(x: 0.498, y: 1.470))
-        p.addCurve(to: CGPoint(x: 0.330, y: 1.452),
-                   control1: CGPoint(x: 0.420, y: 1.540),
-                   control2: CGPoint(x: 0.356, y: 1.520))
-        p.addCurve(to: CGPoint(x: 0.498, y: 1.286),
-                   control1: CGPoint(x: 0.306, y: 1.376),
-                   control2: CGPoint(x: 0.392, y: 1.296))
-        p.closeSubpath()
-        return p
+    static func glutesLeft() -> Path { gluteLobe() }
+    static func glutesRight() -> Path { gluteLobe().applying(mirror) }
+
+    private static func gluteLobe() -> Path {
+        smoothClosed([
+            CGPoint(x: 0.496, y: 1.288), CGPoint(x: 0.496, y: 1.520), CGPoint(x: 0.404, y: 1.556),
+            CGPoint(x: 0.330, y: 1.460), CGPoint(x: 0.356, y: 1.344), CGPoint(x: 0.440, y: 1.292),
+        ])
     }
 
-    static func glutesRight() -> Path { glutesLeft().applying(mirror) }
+    static func hamstringsLeft() -> Path { hamstringLobe() }
+    static func hamstringsRight() -> Path { hamstringLobe().applying(mirror) }
 
-    static func hamstringsLeft() -> Path {
-        limbTaper(top: CGPoint(x: 0.392, y: 1.540), topWidth: 0.140,
-                  bottom: CGPoint(x: 0.392, y: 1.900), bottomWidth: 0.092)
+    private static func hamstringLobe() -> Path {
+        smoothClosed([
+            CGPoint(x: 0.396, y: 1.556), CGPoint(x: 0.460, y: 1.566), CGPoint(x: 0.452, y: 1.740),
+            CGPoint(x: 0.438, y: 1.892), CGPoint(x: 0.396, y: 1.924), CGPoint(x: 0.352, y: 1.882),
+            CGPoint(x: 0.348, y: 1.700), CGPoint(x: 0.360, y: 1.578),
+        ])
     }
 
-    static func hamstringsRight() -> Path { hamstringsLeft().applying(mirror) }
+    static func calvesBack() -> Path { mirrorPair(gastrocLobe()) }
 
-    static func calvesBack() -> Path {
-        let left = calfBelly(centerX: 0.392)
-        var p = left
-        p.addPath(left.applying(mirror))
-        return p
+    private static func gastrocLobe() -> Path {
+        // Gastrocnemius diamond — two heads bulging from the back of the
+        // lower leg.
+        smoothClosed([
+            CGPoint(x: 0.392, y: 1.946), CGPoint(x: 0.452, y: 2.040), CGPoint(x: 0.436, y: 2.180),
+            CGPoint(x: 0.392, y: 2.262), CGPoint(x: 0.348, y: 2.180), CGPoint(x: 0.332, y: 2.040),
+        ])
     }
 
     // MARK: - Skeleton underlay
@@ -332,25 +266,18 @@ enum BodyAnatomy {
         var p = Path()
 
         // Skull
-        p.addEllipse(in: CGRect(x: 0.428, y: 0.070, width: 0.144, height: 0.196))
-        // Jaw line
-        p.move(to: CGPoint(x: 0.452, y: 0.250))
-        p.addQuadCurve(to: CGPoint(x: 0.548, y: 0.250), control: CGPoint(x: 0.500, y: 0.300))
-
+        p.addEllipse(in: CGRect(x: 0.430, y: 0.066, width: 0.140, height: 0.200))
         // Cervical → lumbar spine
         p.move(to: CGPoint(x: 0.500, y: 0.300))
-        p.addLine(to: CGPoint(x: 0.500, y: 1.300))
-
+        p.addLine(to: CGPoint(x: 0.500, y: 1.290))
         // Clavicles
-        p.move(to: CGPoint(x: 0.500, y: 0.430))
-        p.addLine(to: CGPoint(x: 0.300, y: 0.470))
-        p.move(to: CGPoint(x: 0.500, y: 0.430))
-        p.addLine(to: CGPoint(x: 0.700, y: 0.470))
+        p.move(to: CGPoint(x: 0.500, y: 0.430)); p.addLine(to: CGPoint(x: 0.318, y: 0.470))
+        p.move(to: CGPoint(x: 0.500, y: 0.430)); p.addLine(to: CGPoint(x: 0.682, y: 0.470))
 
         // Ribcage — a tapered cage of paired arcs
         for i in 0..<4 {
-            let y = 0.500 + Double(i) * 0.066
-            let halfW = 0.150 - Double(i) * 0.018
+            let y = 0.500 + Double(i) * 0.070
+            let halfW = 0.150 - Double(i) * 0.020
             p.move(to: CGPoint(x: 0.500, y: y))
             p.addQuadCurve(to: CGPoint(x: 0.500 - halfW, y: y + 0.030),
                            control: CGPoint(x: 0.500 - halfW, y: y - 0.020))
@@ -360,32 +287,27 @@ enum BodyAnatomy {
         }
 
         // Pelvis
-        p.addEllipse(in: CGRect(x: 0.372, y: 1.220, width: 0.256, height: 0.180))
+        p.addEllipse(in: CGRect(x: 0.374, y: 1.220, width: 0.252, height: 0.180))
 
         // Long bones — humerus + forearm, femur + tibia (each side)
         for s in [CGFloat(1), CGFloat(-1)] {
             func x(_ v: CGFloat) -> CGFloat { 0.5 + s * (v - 0.5) }
-            // Arm
-            p.move(to: CGPoint(x: x(0.760), y: 0.500))
-            p.addLine(to: CGPoint(x: x(0.842), y: 0.940))      // humerus
-            p.addLine(to: CGPoint(x: x(0.812), y: 1.290))      // ulna/radius
-            // Leg
+            p.move(to: CGPoint(x: x(0.770), y: 0.500))
+            p.addLine(to: CGPoint(x: x(0.846), y: 0.945))
+            p.addLine(to: CGPoint(x: x(0.812), y: 1.290))
             p.move(to: CGPoint(x: x(0.560), y: 1.360))
-            p.addLine(to: CGPoint(x: x(0.560), y: 1.850))      // femur
-            p.addLine(to: CGPoint(x: x(0.556), y: 2.300))      // tibia
+            p.addLine(to: CGPoint(x: x(0.560), y: 1.850))
+            p.addLine(to: CGPoint(x: x(0.556), y: 2.300))
         }
 
         // Joint rings — shoulders, elbows, wrists, hips, knees, ankles
         let joints: [(CGFloat, CGFloat)] = [
-            (0.760, 0.500), (0.240, 0.500),   // shoulders
-            (0.842, 0.940), (0.158, 0.940),   // elbows
-            (0.812, 1.290), (0.188, 1.290),   // wrists
-            (0.560, 1.360), (0.440, 1.360),   // hips
-            (0.560, 1.850), (0.440, 1.850),   // knees
-            (0.556, 2.300), (0.444, 2.300),   // ankles
+            (0.770, 0.500), (0.230, 0.500), (0.846, 0.945), (0.154, 0.945),
+            (0.812, 1.290), (0.188, 1.290), (0.560, 1.360), (0.440, 1.360),
+            (0.560, 1.850), (0.440, 1.850), (0.556, 2.300), (0.444, 2.300),
         ]
         for (jx, jy) in joints {
-            p.addEllipse(in: CGRect(x: jx - 0.018, y: jy - 0.018, width: 0.036, height: 0.036))
+            p.addEllipse(in: CGRect(x: jx - 0.016, y: jy - 0.016, width: 0.032, height: 0.032))
         }
 
         return p
@@ -394,11 +316,10 @@ enum BodyAnatomy {
     // MARK: - Definition grooves
 
     /// Thin muscle-separation lines drawn over the fills to give the
-    /// sculpted, defined read of an anatomy chart — linea alba + ab
-    /// inscriptions, pec and deltoid borders, quad/calf/biceps splits on
-    /// the front; spinal furrow, erector columns, glute creases and
-    /// hamstring/triceps splits on the back. Returned as one strokable
-    /// path so the view can lay it down in a single shadowed pass.
+    /// sculpted read of an anatomy chart — linea alba + ab inscriptions
+    /// and the quad / calf splits on the front; spinal furrow and
+    /// hamstring / calf splits on the back. Returned as one strokable
+    /// path so the view lays it down in a single shadowed pass.
     static func grooves(front: Bool) -> Path {
         var p = Path()
 
@@ -406,48 +327,25 @@ enum BodyAnatomy {
             p.move(to: a); p.addLine(to: b)
             p.move(to: a.applying(mirror)); p.addLine(to: b.applying(mirror))
         }
-        func curve(_ a: CGPoint, _ b: CGPoint, _ c: CGPoint) {
-            p.move(to: a); p.addQuadCurve(to: b, control: c)
-        }
 
         if front {
             // Linea alba (centre line of the abs)
-            p.move(to: CGPoint(x: 0.5, y: 0.474)); p.addLine(to: CGPoint(x: 0.5, y: 1.090))
+            p.move(to: CGPoint(x: 0.5, y: 0.470)); p.addLine(to: CGPoint(x: 0.5, y: 1.060))
             // Tendinous inscriptions across the six-pack
             for i in 0..<3 {
-                let y = 0.752 + Double(i) * 0.092
-                curve(CGPoint(x: 0.436, y: y), CGPoint(x: 0.564, y: y), CGPoint(x: 0.5, y: y + 0.012))
+                let y = 0.748 + Double(i) * 0.094
+                p.move(to: CGPoint(x: 0.436, y: y))
+                p.addQuadCurve(to: CGPoint(x: 0.564, y: y), control: CGPoint(x: 0.5, y: y + 0.012))
             }
-            // Pectoral lower folds
-            curve(CGPoint(x: 0.300, y: 0.598), CGPoint(x: 0.487, y: 0.628), CGPoint(x: 0.392, y: 0.662))
-            curve(CGPoint(x: 0.700, y: 0.598), CGPoint(x: 0.513, y: 0.628), CGPoint(x: 0.608, y: 0.662))
-            // Deltoid striations
-            seg(CGPoint(x: 0.214, y: 0.456), CGPoint(x: 0.205, y: 0.556))
-            // Biceps groove
-            seg(CGPoint(x: 0.156, y: 0.520), CGPoint(x: 0.156, y: 0.700))
-            // Quad separations — rectus femoris + vastus lateralis sweep
-            seg(CGPoint(x: 0.404, y: 1.540), CGPoint(x: 0.402, y: 1.852))
-            seg(CGPoint(x: 0.356, y: 1.586), CGPoint(x: 0.366, y: 1.842))
-            // Calf split
-            seg(CGPoint(x: 0.392, y: 1.992), CGPoint(x: 0.392, y: 2.224))
+            // Quad sweep + calf split
+            seg(CGPoint(x: 0.404, y: 1.520), CGPoint(x: 0.402, y: 1.840))
+            seg(CGPoint(x: 0.392, y: 1.992), CGPoint(x: 0.392, y: 2.200))
         } else {
             // Spinal furrow
-            p.move(to: CGPoint(x: 0.5, y: 0.398)); p.addLine(to: CGPoint(x: 0.5, y: 1.236))
-            // Lower-trapezius edges
-            seg(CGPoint(x: 0.500, y: 0.624), CGPoint(x: 0.340, y: 0.548))
-            // Teres / infraspinatus hint under the rear delts
-            seg(CGPoint(x: 0.330, y: 0.612), CGPoint(x: 0.402, y: 0.658))
-            // Erector-spinae columns
-            seg(CGPoint(x: 0.470, y: 1.058), CGPoint(x: 0.470, y: 1.222))
-            // Glute creases
-            curve(CGPoint(x: 0.398, y: 1.300), CGPoint(x: 0.330, y: 1.452), CGPoint(x: 0.338, y: 1.342))
-            curve(CGPoint(x: 0.602, y: 1.300), CGPoint(x: 0.670, y: 1.452), CGPoint(x: 0.662, y: 1.342))
-            // Hamstring split
+            p.move(to: CGPoint(x: 0.5, y: 0.360)); p.addLine(to: CGPoint(x: 0.5, y: 1.230))
+            // Hamstring + calf splits
             seg(CGPoint(x: 0.392, y: 1.580), CGPoint(x: 0.392, y: 1.880))
-            // Triceps groove
-            seg(CGPoint(x: 0.156, y: 0.552), CGPoint(x: 0.156, y: 0.740))
-            // Calf split
-            seg(CGPoint(x: 0.392, y: 1.992), CGPoint(x: 0.392, y: 2.224))
+            seg(CGPoint(x: 0.392, y: 1.992), CGPoint(x: 0.392, y: 2.220))
         }
         return p
     }
@@ -489,111 +387,38 @@ enum BodyAnatomy {
 
     // MARK: - Shape primitives
 
-    /// One cubic Bézier segment: its end point and two control points.
-    private struct Cubic {
-        let to: CGPoint
-        let c1: CGPoint
-        let c2: CGPoint
-    }
-
-    /// Builds a closed, vertically-symmetric outline. `rightSide` traces
-    /// from `top` down the right half to a point on the mid-line; the
-    /// left half is the mirror of that trace, walked back up, so the
-    /// two halves match exactly.
-    private static func symmetricBody(top: CGPoint, rightSide: [Cubic]) -> Path {
+    /// Builds a closed, smooth outline through `points` using a uniform
+    /// Catmull-Rom spline converted to cubic Béziers. The curve passes
+    /// through every point and wraps back to the first, so a handful of
+    /// perimeter points yields an organic muscle belly.
+    private static func smoothClosed(_ points: [CGPoint], tension: CGFloat = 0) -> Path {
         var p = Path()
-        p.move(to: top)
-        for seg in rightSide {
-            p.addCurve(to: seg.to, control1: seg.c1, control2: seg.c2)
-        }
-        // Start points of each right-side segment, for the reversed walk.
-        var starts: [CGPoint] = [top]
-        for seg in rightSide.dropLast() { starts.append(seg.to) }
-        for i in stride(from: rightSide.count - 1, through: 0, by: -1) {
-            let seg = rightSide[i]
-            // Reversed cubic: swap the control points and mirror them.
-            p.addCurve(to: starts[i].applying(mirror),
-                       control1: seg.c2.applying(mirror),
-                       control2: seg.c1.applying(mirror))
+        let n = points.count
+        guard n > 2 else { return p }
+        let s = (1 - tension) / 6
+        p.move(to: points[0])
+        for i in 0..<n {
+            let p0 = points[(i - 1 + n) % n]
+            let p1 = points[i]
+            let p2 = points[(i + 1) % n]
+            let p3 = points[(i + 2) % n]
+            let c1 = CGPoint(x: p1.x + (p2.x - p0.x) * s, y: p1.y + (p2.y - p0.y) * s)
+            let c2 = CGPoint(x: p2.x - (p3.x - p1.x) * s, y: p2.y - (p3.y - p1.y) * s)
+            p.addCurve(to: p2, control1: c1, control2: c2)
         }
         p.closeSubpath()
+        return p
+    }
+
+    /// Mirrors a single drawn side across the mid-line and unions it with
+    /// the original, giving a perfectly symmetric left+right pair.
+    private static func mirrorPair(_ left: Path) -> Path {
+        var p = left
+        p.addPath(left.applying(mirror))
         return p
     }
 
     private static func roundedShape(at rect: CGRect, cornerRadius: CGFloat = 0.04) -> Path {
         Path(roundedRect: rect, cornerRadius: cornerRadius, style: .continuous)
-    }
-
-    /// Vertical lens / spindle — the belly of a long muscle (biceps,
-    /// triceps, neck strap). Widest in the middle, tapering to points.
-    private static func spindle(center: CGPoint, width: CGFloat, height: CGFloat) -> Path {
-        let hw = width / 2, hh = height / 2
-        var p = Path()
-        p.move(to: CGPoint(x: center.x, y: center.y - hh))
-        p.addCurve(to: CGPoint(x: center.x, y: center.y + hh),
-                   control1: CGPoint(x: center.x + hw, y: center.y - hh * 0.3),
-                   control2: CGPoint(x: center.x + hw, y: center.y + hh * 0.3))
-        p.addCurve(to: CGPoint(x: center.x, y: center.y - hh),
-                   control1: CGPoint(x: center.x - hw, y: center.y + hh * 0.3),
-                   control2: CGPoint(x: center.x - hw, y: center.y - hh * 0.3))
-        p.closeSubpath()
-        return p
-    }
-
-    /// Tapered limb segment — a rounded trapezoid that's wider at the
-    /// top than the bottom (forearm, hamstring, adductor).
-    private static func limbTaper(top: CGPoint, topWidth: CGFloat,
-                                  bottom: CGPoint, bottomWidth: CGFloat) -> Path {
-        let tw = topWidth / 2, bw = bottomWidth / 2
-        var p = Path()
-        p.move(to: CGPoint(x: top.x - tw, y: top.y))
-        p.addQuadCurve(to: CGPoint(x: top.x + tw, y: top.y),
-                       control: CGPoint(x: top.x, y: top.y - 0.03))
-        p.addCurve(to: CGPoint(x: bottom.x + bw, y: bottom.y),
-                   control1: CGPoint(x: top.x + tw, y: (top.y + bottom.y) / 2),
-                   control2: CGPoint(x: bottom.x + bw, y: (top.y + bottom.y) / 2))
-        p.addQuadCurve(to: CGPoint(x: bottom.x - bw, y: bottom.y),
-                       control: CGPoint(x: bottom.x, y: bottom.y + 0.03))
-        p.addCurve(to: CGPoint(x: top.x - tw, y: top.y),
-                   control1: CGPoint(x: bottom.x - bw, y: (top.y + bottom.y) / 2),
-                   control2: CGPoint(x: top.x - tw, y: (top.y + bottom.y) / 2))
-        p.closeSubpath()
-        return p
-    }
-
-    /// Gastrocnemius — two stacked bulges (medial higher than lateral)
-    /// for a recognisable calf read.
-    private static func calfBelly(centerX: CGFloat) -> Path {
-        var p = Path()
-        p.move(to: CGPoint(x: centerX, y: 1.950))
-        p.addCurve(to: CGPoint(x: centerX + 0.064, y: 2.110),
-                   control1: CGPoint(x: centerX + 0.060, y: 1.992),
-                   control2: CGPoint(x: centerX + 0.070, y: 2.050))
-        p.addCurve(to: CGPoint(x: centerX, y: 2.250),
-                   control1: CGPoint(x: centerX + 0.052, y: 2.180),
-                   control2: CGPoint(x: centerX + 0.028, y: 2.230))
-        p.addCurve(to: CGPoint(x: centerX - 0.066, y: 2.090),
-                   control1: CGPoint(x: centerX - 0.030, y: 2.230),
-                   control2: CGPoint(x: centerX - 0.058, y: 2.170))
-        p.addCurve(to: CGPoint(x: centerX, y: 1.950),
-                   control1: CGPoint(x: centerX - 0.072, y: 2.030),
-                   control2: CGPoint(x: centerX - 0.060, y: 1.984))
-        p.closeSubpath()
-        return p
-    }
-
-    /// Slanted parallelogram with rounded feel — used for the obliques.
-    private static func slantedShape(at rect: CGRect, leanRight: Bool) -> Path {
-        var p = Path()
-        let topShift = leanRight ? rect.width * 0.18 : -rect.width * 0.18
-        let bottomShift = leanRight ? -rect.width * 0.18 : rect.width * 0.18
-        p.move(to: CGPoint(x: rect.minX + topShift, y: rect.minY))
-        p.addQuadCurve(to: CGPoint(x: rect.maxX + topShift, y: rect.minY),
-                       control: CGPoint(x: rect.midX + topShift, y: rect.minY - 0.02))
-        p.addLine(to: CGPoint(x: rect.maxX + bottomShift, y: rect.maxY))
-        p.addQuadCurve(to: CGPoint(x: rect.minX + bottomShift, y: rect.maxY),
-                       control: CGPoint(x: rect.midX + bottomShift, y: rect.maxY + 0.02))
-        p.closeSubpath()
-        return p
     }
 }
