@@ -149,12 +149,7 @@ struct ExerciseDetailView: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
-                MuscleMapView(
-                    highlights: MuscleMapView.highlights(
-                        primaryRawMuscles: exercise.primaryMuscles,
-                        secondaryRawMuscles: exercise.secondaryMuscles
-                    )
-                )
+                MuscleMapView(highlights: MuscleMapView.highlights(for: exercise))
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 280)
 

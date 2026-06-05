@@ -59,15 +59,34 @@ enum WeeklyMuscleHeatmap {
                 guard !workingSets.isEmpty else { continue }
                 let setCount = Double(workingSets.count)
 
-                let primary = AnatomicalMuscle.regions(forRawMuscles: exercise.primaryMuscles)
-                let secondary = AnatomicalMuscle.regions(forRawMuscles: exercise.secondaryMuscles)
-                    .subtracting(primary)
-
-                for muscle in primary {
-                    counts[muscle, default: 0] += setCount
+                // Resolve each raw muscle to its weighted heads, biased by
+                // the exercise name (an incline press favours the clavicular
+                // pec, a pushdown the lateral triceps, a seated calf raise
+                // the soleus…). Primary heads count full × their weight;
+                // secondary heads count half, and primary wins when a head
+                // appears in both lists.
+                var primaryHeads: [AnatomicalMuscle: Double] = [:]
+                for raw in exercise.primaryMuscles {
+                    for (muscle, weight) in AnatomicalMuscle.headWeights(
+                        forRawMuscle: raw, exerciseName: exercise.name
+                    ) {
+                        primaryHeads[muscle] = max(primaryHeads[muscle] ?? 0, weight)
+                    }
                 }
-                for muscle in secondary {
-                    counts[muscle, default: 0] += setCount * 0.5
+                var secondaryHeads: [AnatomicalMuscle: Double] = [:]
+                for raw in exercise.secondaryMuscles {
+                    for (muscle, weight) in AnatomicalMuscle.headWeights(
+                        forRawMuscle: raw, exerciseName: exercise.name
+                    ) {
+                        secondaryHeads[muscle] = max(secondaryHeads[muscle] ?? 0, weight)
+                    }
+                }
+
+                for (muscle, weight) in primaryHeads {
+                    counts[muscle, default: 0] += setCount * weight
+                }
+                for (muscle, weight) in secondaryHeads where primaryHeads[muscle] == nil {
+                    counts[muscle, default: 0] += setCount * 0.5 * weight
                 }
             }
         }

@@ -330,6 +330,50 @@ extension MuscleMapView {
         return map
     }
 
+    /// Build the highlight payload for a single exercise, using the
+    /// exercise name to bias each muscle group toward the heads it
+    /// actually emphasises (incline → clavicular pec, lateral raise →
+    /// side delt, pushdown → lateral triceps…). A head is `.primary` when
+    /// it's a strongly-weighted primary mover and `.secondary` otherwise.
+    static func highlights(for exercise: Exercise) -> [AnatomicalMuscle: MuscleHighlight] {
+        var map: [AnatomicalMuscle: MuscleHighlight] = [:]
+        for raw in exercise.secondaryMuscles {
+            for (muscle, weight) in AnatomicalMuscle.headWeights(
+                forRawMuscle: raw, exerciseName: exercise.name
+            ) where weight >= 0.5 {
+                map[muscle] = .secondary
+            }
+        }
+        for raw in exercise.primaryMuscles {
+            for (muscle, weight) in AnatomicalMuscle.headWeights(
+                forRawMuscle: raw, exerciseName: exercise.name
+            ) {
+                if weight >= 0.75 {
+                    map[muscle] = .primary
+                } else if weight >= 0.4, map[muscle] == nil {
+                    map[muscle] = .secondary
+                }
+            }
+        }
+        return map
+    }
+
+    /// Merge the per-exercise highlights for a whole session — primary
+    /// wins over secondary for any head touched by more than one lift.
+    static func highlights(forExercises exercises: [Exercise]) -> [AnatomicalMuscle: MuscleHighlight] {
+        var map: [AnatomicalMuscle: MuscleHighlight] = [:]
+        for exercise in exercises {
+            for (muscle, highlight) in highlights(for: exercise) {
+                if highlight == .primary {
+                    map[muscle] = .primary
+                } else if map[muscle] == nil {
+                    map[muscle] = .secondary
+                }
+            }
+        }
+        return map
+    }
+
     /// Build the highlight payload for a `[muscle: frequency]` map
     /// (typically from `WeeklyMuscleHeatmap`). Frequencies are
     /// normalised against the max frequency so the most-trained
@@ -364,15 +408,18 @@ extension MuscleMapView {
 
 #Preview("Weekly heatmap") {
     MuscleMapView(highlights: MuscleMapView.intensityHighlights(from: [
-        .chest:           1.0,
-        .shouldersFront:  0.7,
-        .shouldersBack:   0.7,
-        .tricepsLeft:     0.5,
-        .tricepsRight:    0.5,
-        .quadricepsLeft:  0.9,
-        .quadricepsRight: 0.9,
-        .glutesLeft:      0.6,
-        .glutesRight:     0.6,
+        .pecSternal:      1.0,
+        .pecClavicular:   0.7,
+        .deltAnterior:    0.7,
+        .deltLateralFront: 0.7,
+        .deltLateralBack: 0.7,
+        .deltPosterior:   0.6,
+        .tricepsLong:     0.5,
+        .tricepsLateral:  0.5,
+        .quadRectus:      0.9,
+        .quadLateralis:   0.9,
+        .quadMedialis:    0.9,
+        .glutes:          0.6,
     ]))
     .padding()
     .background(AppColor.background)

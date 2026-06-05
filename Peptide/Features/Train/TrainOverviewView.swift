@@ -283,24 +283,29 @@ struct TrainOverviewView: View {
 
     private func displayName(for muscle: AnatomicalMuscle) -> String {
         // Surface friendlier labels on the top-muscles row than the
-        // raw enum case names (which are split by side for the map).
+        // raw enum case names (which are split into muscle heads for the map).
         switch muscle {
-        case .chest:                                  return "Chest"
-        case .abdominals:                             return "Abs"
-        case .obliques:                               return "Obliques"
-        case .shouldersFront, .shouldersBack:         return "Shoulders"
-        case .neckFront:                              return "Neck"
-        case .bicepsLeft, .bicepsRight:               return "Biceps"
-        case .tricepsLeft, .tricepsRight:             return "Triceps"
-        case .forearmsFront, .forearmsBack:           return "Forearms"
-        case .quadricepsLeft, .quadricepsRight:       return "Quads"
-        case .hamstringsLeft, .hamstringsRight:       return "Hamstrings"
-        case .calvesFront, .calvesBack:               return "Calves"
-        case .glutesLeft, .glutesRight:               return "Glutes"
-        case .adductors:                              return "Adductors"
-        case .traps:                                  return "Traps"
-        case .lats:                                   return "Lats"
-        case .lowerBack:                              return "Lower back"
+        case .pecClavicular:                  return "Upper chest"
+        case .pecSternal:                     return "Chest"
+        case .abdominals:                     return "Abs"
+        case .obliques:                       return "Obliques"
+        case .deltAnterior:                   return "Front delts"
+        case .deltLateralFront, .deltLateralBack: return "Side delts"
+        case .deltPosterior:                  return "Rear delts"
+        case .neck:                           return "Neck"
+        case .biceps:                         return "Biceps"
+        case .tricepsLong, .tricepsLateral:   return "Triceps"
+        case .forearmFront, .forearmBack:     return "Forearms"
+        case .quadRectus, .quadLateralis, .quadMedialis: return "Quads"
+        case .hamstrings:                     return "Hamstrings"
+        case .tibialis:                       return "Shins"
+        case .gastrocnemius, .soleus:         return "Calves"
+        case .glutes:                         return "Glutes"
+        case .adductors:                      return "Adductors"
+        case .trapsUpper:                     return "Upper traps"
+        case .trapsLower:                     return "Traps"
+        case .lats:                           return "Lats"
+        case .lowerBack:                      return "Lower back"
         }
     }
 }
