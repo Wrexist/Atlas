@@ -62,10 +62,10 @@ enum AnatomicalMuscle: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
-    /// Friendly, user-facing name for the head — shown on the top-muscles
-    /// row and the tap-to-identify label. A few heads share a group label
-    /// (the two triceps heads both read "Triceps") where the distinction
-    /// only matters for the map's tint, not the callout.
+    /// Concise, user-facing name for the head — shown on the top-muscles
+    /// pills, the tap-to-identify label, and the history sheet title. Heads
+    /// that read the same to a user collapse to one group label (the three
+    /// quad heads are all "Quads"); the map's tint still distinguishes them.
     var displayName: String {
         switch self {
         case .pecClavicular:    return "Upper chest"
@@ -77,25 +77,20 @@ enum AnatomicalMuscle: String, CaseIterable, Codable, Hashable, Sendable {
         case .forearmFront, .forearmBack: return "Forearms"
         case .abdominals:       return "Abs"
         case .obliques:         return "Obliques"
-        case .quadRectus:       return "Quads · rectus femoris"
-        case .quadLateralis:    return "Quads · outer sweep"
-        case .quadMedialis:     return "Quads · inner (teardrop)"
+        case .quadRectus, .quadLateralis, .quadMedialis: return "Quads"
         case .adductors:        return "Adductors"
         case .tibialis:         return "Shins"
         case .neck:             return "Neck"
         case .trapsUpper:       return "Upper traps"
         case .trapsLower:       return "Lower traps"
         case .rhomboids:        return "Rhomboids"
-        case .tricepsLong:      return "Triceps · long head"
-        case .tricepsLateral:   return "Triceps · lateral head"
+        case .tricepsLong, .tricepsLateral: return "Triceps"
         case .lats:             return "Lats"
         case .lowerBack:        return "Lower back"
         case .glutes:           return "Glutes"
         case .gluteMedius:      return "Glute medius"
-        case .hamstringLateral: return "Hamstrings · outer"
-        case .hamstringMedial:  return "Hamstrings · inner"
-        case .gastrocnemius:    return "Calves · gastrocnemius"
-        case .soleus:           return "Calves · soleus"
+        case .hamstringLateral, .hamstringMedial: return "Hamstrings"
+        case .gastrocnemius, .soleus: return "Calves"
         }
     }
 
@@ -127,9 +122,14 @@ enum AnatomicalMuscle: String, CaseIterable, Codable, Hashable, Sendable {
                 return [.deltPosterior: 1.0, .deltLateralBack: 0.50,
                         .deltLateralFront: 0.20, .deltAnterior: 0.10]
             }
-            if has("front raise", "press", "overhead", "military", "arnold", "push press") {
+            if has("front raise", "overhead", "military", "arnold", "push press", "shoulder press") {
                 return [.deltAnterior: 1.0, .deltLateralFront: 0.60,
                         .deltLateralBack: 0.30, .deltPosterior: 0.20]
+            }
+            if has("press") {
+                // Horizontal / incline press — the front delt only assists.
+                return [.deltAnterior: 0.60, .deltLateralFront: 0.40,
+                        .deltLateralBack: 0.25, .deltPosterior: 0.15]
             }
             return [.deltAnterior: 0.80, .deltLateralFront: 0.80,
                     .deltLateralBack: 0.70, .deltPosterior: 0.60]

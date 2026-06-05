@@ -165,13 +165,34 @@ struct TrainOverviewView: View {
     // MARK: - Top muscles row
 
     private var topMusclesRow: some View {
-        let top = WeeklyMuscleHeatmap.topMuscles(from: frequencies)
+        let top = topMuscleGroups()
         return HStack(spacing: Spacing.sm) {
             ForEach(top, id: \.muscle) { item in
                 topMusclePill(for: item.muscle, count: item.count)
             }
             Spacer(minLength: 0)
         }
+    }
+
+    /// Collapse the per-head frequency map into per-group totals — so the
+    /// row shows one "Quads" pill summing all three heads rather than three
+    /// identical pills — and return the three most-trained groups.
+    private func topMuscleGroups() -> [(muscle: AnatomicalMuscle, count: Double)] {
+        var byGroup: [String: (muscle: AnatomicalMuscle, count: Double)] = [:]
+        for (muscle, count) in frequencies {
+            if let existing = byGroup[muscle.displayName] {
+                byGroup[muscle.displayName] = (existing.muscle, existing.count + count)
+            } else {
+                byGroup[muscle.displayName] = (muscle, count)
+            }
+        }
+        return byGroup.values
+            .sorted { lhs, rhs in
+                lhs.count != rhs.count ? lhs.count > rhs.count
+                                       : lhs.muscle.displayName < rhs.muscle.displayName
+            }
+            .prefix(3)
+            .map { (muscle: $0.muscle, count: $0.count) }
     }
 
     private func topMusclePill(for muscle: AnatomicalMuscle, count: Double) -> some View {

@@ -4,10 +4,11 @@ import XCTest
 @MainActor
 final class WeeklyMuscleHeatmapTests: XCTestCase {
 
-    private var library: ExerciseLibrary {
-        let lib = ExerciseLibrary.shared
-        lib.load()
-        return lib
+    private var library: ExerciseLibrary { ExerciseLibrary.shared }
+
+    override func setUp() async throws {
+        try await super.setUp()
+        await ExerciseLibrary.shared.load()
     }
 
     override func tearDown() {
