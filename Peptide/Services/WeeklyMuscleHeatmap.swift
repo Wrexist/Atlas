@@ -59,15 +59,34 @@ enum WeeklyMuscleHeatmap {
                 guard !workingSets.isEmpty else { continue }
                 let setCount = Double(workingSets.count)
 
-                let primary = AnatomicalMuscle.regions(forRawMuscles: exercise.primaryMuscles)
-                let secondary = AnatomicalMuscle.regions(forRawMuscles: exercise.secondaryMuscles)
-                    .subtracting(primary)
-
-                for muscle in primary {
-                    counts[muscle, default: 0] += setCount
+                // Resolve each raw muscle to its weighted heads, biased by
+                // the exercise name (an incline press favours the clavicular
+                // pec, a pushdown the lateral triceps, a seated calf raise
+                // the soleus…). Primary heads count full × their weight;
+                // secondary heads count half, and primary wins when a head
+                // appears in both lists.
+                var primaryHeads: [AnatomicalMuscle: Double] = [:]
+                for raw in exercise.primaryMuscles {
+                    for (muscle, weight) in AnatomicalMuscle.headWeights(
+                        forRawMuscle: raw, exerciseName: exercise.name
+                    ) {
+                        primaryHeads[muscle] = max(primaryHeads[muscle] ?? 0, weight)
+                    }
                 }
-                for muscle in secondary {
-                    counts[muscle, default: 0] += setCount * 0.5
+                var secondaryHeads: [AnatomicalMuscle: Double] = [:]
+                for raw in exercise.secondaryMuscles {
+                    for (muscle, weight) in AnatomicalMuscle.headWeights(
+                        forRawMuscle: raw, exerciseName: exercise.name
+                    ) {
+                        secondaryHeads[muscle] = max(secondaryHeads[muscle] ?? 0, weight)
+                    }
+                }
+
+                for (muscle, weight) in primaryHeads {
+                    counts[muscle, default: 0] += setCount * weight
+                }
+                for (muscle, weight) in secondaryHeads where primaryHeads[muscle] == nil {
+                    counts[muscle, default: 0] += setCount * 0.5 * weight
                 }
             }
         }
@@ -90,4 +109,61 @@ enum WeeklyMuscleHeatmap {
             .prefix(limit)
             .map { (muscle: $0.key, count: $0.value) }
     }
+
+    /// The exercises the user actually logged that worked a given muscle
+    /// head over the past `days`, newest first — drives the tap-to-inspect
+    /// sheet on the muscle map. A movement counts when its name-weighted
+    /// heads put any real stimulus on the tapped head, so tapping the side
+    /// delt surfaces lateral raises rather than every shoulder press.
+    @MainActor
+    static func history(
+        for muscle: AnatomicalMuscle,
+        from sessions: [WorkoutSession],
+        library: ExerciseLibrary,
+        days: Int = 30,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [MuscleExerciseHistory] {
+        let today = calendar.startOfDay(for: now)
+        let cutoff = calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
+        var byExercise: [String: MuscleExerciseHistory] = [:]
+
+        for session in sessions where session.startedAt >= cutoff {
+            for entry in session.exercises {
+                guard let exercise = library.lookup(id: entry.exerciseID) else { continue }
+                let touchesMuscle = (exercise.primaryMuscles + exercise.secondaryMuscles).contains { raw in
+                    (AnatomicalMuscle.headWeights(forRawMuscle: raw, exerciseName: exercise.name)[muscle] ?? 0) > 0.15
+                }
+                guard touchesMuscle else { continue }
+                let workingSets = entry.sets.filter { $0.completed && !$0.isWarmup }.count
+                guard workingSets > 0 else { continue }
+
+                if let existing = byExercise[entry.exerciseID] {
+                    byExercise[entry.exerciseID] = MuscleExerciseHistory(
+                        id: entry.exerciseID,
+                        name: exercise.name,
+                        sets: existing.sets + workingSets,
+                        lastPerformed: max(existing.lastPerformed, session.startedAt)
+                    )
+                } else {
+                    byExercise[entry.exerciseID] = MuscleExerciseHistory(
+                        id: entry.exerciseID,
+                        name: exercise.name,
+                        sets: workingSets,
+                        lastPerformed: session.startedAt
+                    )
+                }
+            }
+        }
+        return byExercise.values.sorted { $0.lastPerformed > $1.lastPerformed }
+    }
+}
+
+/// One exercise the user has logged for a muscle, aggregated for the
+/// tap-to-inspect sheet on the muscle map.
+struct MuscleExerciseHistory: Identifiable, Hashable, Sendable {
+    let id: String
+    let name: String
+    let sets: Int
+    let lastPerformed: Date
 }

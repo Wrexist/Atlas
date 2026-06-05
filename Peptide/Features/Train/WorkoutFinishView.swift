@@ -18,18 +18,8 @@ struct WorkoutFinishView: View {
     @State private var library = ExerciseLibrary.shared
 
     private var muscleHighlights: [AnatomicalMuscle: MuscleHighlight] {
-        var primary = Set<AnatomicalMuscle>()
-        var secondary = Set<AnatomicalMuscle>()
-        for entry in session.exercises {
-            guard let ex = library.lookup(id: entry.exerciseID) else { continue }
-            primary.formUnion(AnatomicalMuscle.regions(forRawMuscles: ex.primaryMuscles))
-            secondary.formUnion(AnatomicalMuscle.regions(forRawMuscles: ex.secondaryMuscles))
-        }
-        secondary.subtract(primary)
-        var map: [AnatomicalMuscle: MuscleHighlight] = [:]
-        for m in secondary { map[m] = .secondary }
-        for m in primary   { map[m] = .primary }
-        return map
+        let exercises = session.exercises.compactMap { library.lookup(id: $0.exerciseID) }
+        return MuscleMapView.highlights(forExercises: exercises)
     }
 
     var body: some View {

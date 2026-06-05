@@ -3,7 +3,7 @@ import SwiftUI
 
 /// DEBUG-only alignment harness for the photoreal anatomy pack.
 ///
-/// Cycles each of the 24 muscle regions highlighted so every mask can be
+/// Cycles each muscle-head region highlighted so every mask can be
 /// eyeballed against the base body (look for halos, gaps, or a muscle that
 /// lights the wrong area), and surfaces any masks missing from the bundle.
 /// Also doubles as a live preview of the vector fallback when no asset

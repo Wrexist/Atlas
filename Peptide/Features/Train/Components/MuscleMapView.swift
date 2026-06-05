@@ -49,10 +49,18 @@ struct MuscleMapView: View {
     /// Resting tint for an untrained muscle. Kept visible (not near-
     /// invisible) so the whole figure always reads as a sculpted body
     /// the way an anatomy chart does; training then warms each muscle.
-    var muscleBaseline: Color = Color.white.opacity(0.13)
+    var muscleBaseline: Color = Color.white.opacity(0.15)
     /// Shadow colour for the muscle-separation grooves that give the
     /// figure its defined, three-dimensional read.
     var grooveColor: Color = Color.black.opacity(0.32)
+    /// When true the user can tap a muscle to identify it — the tapped
+    /// head's name floats over the figure and `onIdentify` fires.
+    var identifiesOnTap: Bool = true
+    /// Called with the head the user tapped (e.g. to drive a detail sheet).
+    var onIdentify: ((AnatomicalMuscle) -> Void)? = nil
+
+    /// The head the user last tapped, surfaced as a floating label.
+    @State private var identified: AnatomicalMuscle? = nil
 
     enum Orientation {
         case front, back, both
@@ -76,12 +84,14 @@ struct MuscleMapView: View {
                 if orientation == .front || orientation == .both {
                     figure(facing: .front, in: proxy.size)
                         .frame(maxWidth: .infinity)
+                        .overlay { tapLayer(facing: .front) }
                         .accessibilityElement()
                         .accessibilityLabel(accessibilityLabel(for: .front))
                 }
                 if orientation == .back || orientation == .both {
                     figure(facing: .back, in: proxy.size)
                         .frame(maxWidth: .infinity)
+                        .overlay { tapLayer(facing: .back) }
                         .accessibilityElement()
                         .accessibilityLabel(accessibilityLabel(for: .back))
                 }
@@ -89,6 +99,60 @@ struct MuscleMapView: View {
         }
         .aspectRatio(orientation == .both ? BodyAnatomy.aspect * 2 : BodyAnatomy.aspect,
                      contentMode: .fit)
+        .overlay(alignment: .top) { identifyLabel }
+    }
+
+    // MARK: - Tap to identify
+
+    /// Transparent hit-test layer over one figure. Maps the tap location
+    /// back into the figure's normalized space and finds the topmost muscle
+    /// head whose path contains it.
+    @ViewBuilder
+    private func tapLayer(facing: Facing) -> some View {
+        if identifiesOnTap {
+            GeometryReader { geo in
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture(coordinateSpace: .local) { location in
+                        identify(at: location, facing: facing, size: geo.size)
+                    }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var identifyLabel: some View {
+        if let identified {
+            Text(identified.displayName)
+                .font(AppFont.caption.weight(.semibold))
+                .foregroundStyle(AppColor.textPrimary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(AppColor.surfaceElevated))
+                .overlay(Capsule().stroke(Color.white.opacity(0.12)))
+                .padding(.top, 6)
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
+        }
+    }
+
+    private func identify(at point: CGPoint, facing: Facing, size: CGSize) {
+        let scale = min(size.width, size.height / 2.4)
+        guard scale > 0 else { return }
+        let xOffset = (size.width - scale) / 2
+        let yOffset = (size.height - scale * 2.4) / 2
+        let p = CGPoint(x: (point.x - xOffset) / scale, y: (point.y - yOffset) / scale)
+        let muscles = facing == .front
+            ? AnatomicalMuscle.allCases.filter { !$0.isBack }
+            : AnatomicalMuscle.allCases.filter { $0.isBack }
+        // Last match = the head drawn on top where heads overlap.
+        let hit = muscles.last { BodyAnatomy.path(for: $0).contains(p) }
+        // When a caller handles identification (e.g. to present a detail
+        // sheet) defer to it; otherwise float the name label in-place.
+        if let onIdentify {
+            if let hit { onIdentify(hit) }
+        } else {
+            withAnimation(.easeOut(duration: 0.2)) { identified = hit }
+        }
     }
 
     // MARK: - Asset map
@@ -330,6 +394,50 @@ extension MuscleMapView {
         return map
     }
 
+    /// Build the highlight payload for a single exercise, using the
+    /// exercise name to bias each muscle group toward the heads it
+    /// actually emphasises (incline → clavicular pec, lateral raise →
+    /// side delt, pushdown → lateral triceps…). A head is `.primary` when
+    /// it's a strongly-weighted primary mover and `.secondary` otherwise.
+    static func highlights(for exercise: Exercise) -> [AnatomicalMuscle: MuscleHighlight] {
+        var map: [AnatomicalMuscle: MuscleHighlight] = [:]
+        for raw in exercise.secondaryMuscles {
+            for (muscle, weight) in AnatomicalMuscle.headWeights(
+                forRawMuscle: raw, exerciseName: exercise.name
+            ) where weight >= 0.5 {
+                map[muscle] = .secondary
+            }
+        }
+        for raw in exercise.primaryMuscles {
+            for (muscle, weight) in AnatomicalMuscle.headWeights(
+                forRawMuscle: raw, exerciseName: exercise.name
+            ) {
+                if weight >= 0.75 {
+                    map[muscle] = .primary
+                } else if weight >= 0.4, map[muscle] == nil {
+                    map[muscle] = .secondary
+                }
+            }
+        }
+        return map
+    }
+
+    /// Merge the per-exercise highlights for a whole session — primary
+    /// wins over secondary for any head touched by more than one lift.
+    static func highlights(forExercises exercises: [Exercise]) -> [AnatomicalMuscle: MuscleHighlight] {
+        var map: [AnatomicalMuscle: MuscleHighlight] = [:]
+        for exercise in exercises {
+            for (muscle, highlight) in highlights(for: exercise) {
+                if highlight == .primary {
+                    map[muscle] = .primary
+                } else if map[muscle] == nil {
+                    map[muscle] = .secondary
+                }
+            }
+        }
+        return map
+    }
+
     /// Build the highlight payload for a `[muscle: frequency]` map
     /// (typically from `WeeklyMuscleHeatmap`). Frequencies are
     /// normalised against the max frequency so the most-trained
@@ -364,15 +472,18 @@ extension MuscleMapView {
 
 #Preview("Weekly heatmap") {
     MuscleMapView(highlights: MuscleMapView.intensityHighlights(from: [
-        .chest:           1.0,
-        .shouldersFront:  0.7,
-        .shouldersBack:   0.7,
-        .tricepsLeft:     0.5,
-        .tricepsRight:    0.5,
-        .quadricepsLeft:  0.9,
-        .quadricepsRight: 0.9,
-        .glutesLeft:      0.6,
-        .glutesRight:     0.6,
+        .pecSternal:      1.0,
+        .pecClavicular:   0.7,
+        .deltAnterior:    0.7,
+        .deltLateralFront: 0.7,
+        .deltLateralBack: 0.7,
+        .deltPosterior:   0.6,
+        .tricepsLong:     0.5,
+        .tricepsLateral:  0.5,
+        .quadRectus:      0.9,
+        .quadLateralis:   0.9,
+        .quadMedialis:    0.9,
+        .glutes:          0.6,
     ]))
     .padding()
     .background(AppColor.background)

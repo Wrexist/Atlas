@@ -28,6 +28,9 @@ struct TrainOverviewView: View {
     /// both touched the computed property. Recomputed only when
     /// `refresh()` runs (i.e. when sessions actually change).
     @State private var frequencies: [AnatomicalMuscle: Double] = [:]
+    /// The muscle the user tapped on the map, presented as a detail sheet
+    /// of the exercises they've logged for it.
+    @State private var inspectedMuscle: AnatomicalMuscle?
 
     private var weekHasTraining: Bool {
         !frequencies.isEmpty
@@ -51,6 +54,14 @@ struct TrainOverviewView: View {
         .task { @MainActor in
             await library.load()
             refresh()
+        }
+        .sheet(item: $inspectedMuscle) { muscle in
+            MuscleHistorySheet(
+                muscle: muscle,
+                history: WeeklyMuscleHeatmap.history(
+                    for: muscle, from: sessions, library: library
+                )
+            )
         }
     }
 
@@ -109,11 +120,16 @@ struct TrainOverviewView: View {
                 }
 
                 MuscleMapView(
-                    highlights: MuscleMapView.intensityHighlights(from: frequencies)
+                    highlights: MuscleMapView.intensityHighlights(from: frequencies),
+                    onIdentify: { inspectedMuscle = $0 }
                 )
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 320)
                 .animation(.easeInOut(duration: 0.4), value: frequencies)
+
+                Text("Tap a muscle to see what you've trained it with.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textTertiary)
 
                 if weekHasTraining {
                     intensityLegend
@@ -161,7 +177,7 @@ struct TrainOverviewView: View {
     private func topMusclePill(for muscle: AnatomicalMuscle, count: Double) -> some View {
         let setCount = Int(count.rounded())
         return VStack(spacing: 4) {
-            Text(displayName(for: muscle))
+            Text(muscle.displayName)
                 .font(AppFont.chipText)
                 .foregroundStyle(AppColor.textPrimary)
             Text("\(setCount) \(setCount == 1 ? "set" : "sets")")
@@ -281,28 +297,6 @@ struct TrainOverviewView: View {
 
     // MARK: - Display helpers
 
-    private func displayName(for muscle: AnatomicalMuscle) -> String {
-        // Surface friendlier labels on the top-muscles row than the
-        // raw enum case names (which are split by side for the map).
-        switch muscle {
-        case .chest:                                  return "Chest"
-        case .abdominals:                             return "Abs"
-        case .obliques:                               return "Obliques"
-        case .shouldersFront, .shouldersBack:         return "Shoulders"
-        case .neckFront:                              return "Neck"
-        case .bicepsLeft, .bicepsRight:               return "Biceps"
-        case .tricepsLeft, .tricepsRight:             return "Triceps"
-        case .forearmsFront, .forearmsBack:           return "Forearms"
-        case .quadricepsLeft, .quadricepsRight:       return "Quads"
-        case .hamstringsLeft, .hamstringsRight:       return "Hamstrings"
-        case .calvesFront, .calvesBack:               return "Calves"
-        case .glutesLeft, .glutesRight:               return "Glutes"
-        case .adductors:                              return "Adductors"
-        case .traps:                                  return "Traps"
-        case .lats:                                   return "Lats"
-        case .lowerBack:                              return "Lower back"
-        }
-    }
 }
 
 // MARK: - Calendar grid
