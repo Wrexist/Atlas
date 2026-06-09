@@ -85,8 +85,14 @@ enum OnboardingFunnelTracker {
     /// entry / empty string disables the drain entirely. Configured
     /// per build by the operator so a TestFlight cohort can target a
     /// staging URL without baking it into App Store binaries.
-    /// Required: `https://` scheme. Any other scheme is rejected.
+    /// Must pass `DrainEndpoint` validation: HTTPS scheme AND an
+    /// Atlas-controlled host — anything else is rejected.
     private static let endpointInfoKey = "OnboardingFunnelEndpoint"
+
+    /// Info.plist key holding the optional rotatable drain secret,
+    /// echoed as `X-Peptide-Proxy` so the analytics backend can
+    /// reject anonymous POSTs.
+    private static let secretInfoKey = "OnboardingFunnelSecret"
 
     /// Marks the most recent successful drain timestamp so a fast
     /// relaunch loop doesn't hammer the endpoint with the same
@@ -114,6 +120,9 @@ enum OnboardingFunnelTracker {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let secret = DrainEndpoint.secret(infoKey: secretInfoKey) {
+            request.setValue(secret, forHTTPHeaderField: DrainEndpoint.authHeaderField)
+        }
         request.httpBody = payload
         request.timeoutInterval = 10
 
@@ -133,13 +142,7 @@ enum OnboardingFunnelTracker {
     }
 
     private static var destinationURL: URL? {
-        guard let raw = Bundle.main.object(forInfoDictionaryKey: endpointInfoKey) as? String,
-              !raw.isEmpty,
-              let url = URL(string: raw),
-              url.scheme?.lowercased() == "https" else {
-            return nil
-        }
-        return url
+        DrainEndpoint.url(infoKey: endpointInfoKey)
     }
 
     /// Clears step + event arrays so a subsequent drain doesn't
