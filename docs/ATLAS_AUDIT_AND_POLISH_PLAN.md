@@ -133,7 +133,7 @@ relay to Anthropic on your key.
 - [ ] Treat the shared secret as defense-in-depth only; rotate on a schedule
   (the dual-slot design already supports rotation).
 
-### 2.2 Rate limiter is per-warm-instance and bypassable — `[ ]`
+### 2.2 Rate limiter is per-warm-instance and bypassable — `[x]`
 **File:** `server/api/_lib/anthropic-proxy.js:32,70-82`,
 `server/api/weekly-summary.js:68-86`
 

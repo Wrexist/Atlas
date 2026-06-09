@@ -34,7 +34,19 @@ body sanitisation, model allowlist, and forward to
    - Optional:
      - `ALLOWED_MODELS` — comma-separated Anthropic model IDs.
        Defaults to `claude-sonnet-4-6`.
-     - `RATE_LIMIT_RPM` — per-IP request cap per minute. Default 20.
+     - `RATE_LIMIT_RPM` — per-IP request cap per minute per route.
+       Default 20 (`WEEKLY_RPM`, default 6, for weekly-summary).
+     - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` — add the
+       Upstash Redis integration from the Vercel Marketplace and these
+       are injected automatically; rate limits and the daily budget
+       then hold across all instances instead of per warm lambda.
+       The legacy `KV_REST_API_URL` / `KV_REST_API_TOKEN` names work
+       too. Unset → per-instance in-memory limiting (the old behavior).
+     - `ANTHROPIC_DAILY_REQUEST_BUDGET` — hard cap on upstream
+       Anthropic requests per UTC day across **all** routes combined.
+       Once spent, routes return 503 until midnight UTC. Unset → no
+       budget. Size it from real traffic, e.g. DAU × expected
+       calls/user × safety factor.
 4. Note the deploy URL (e.g. `https://peptidex-proxy.vercel.app`).
 
 ## Wire the iOS app
@@ -64,8 +76,12 @@ endpoint.
 
 - **Shared-secret auth**, constant-time compared, fails closed when
   the env var is unset.
-- **Per-IP token bucket**, 20 req/min default, in-memory across warm
-  invocations. Cold-start resets are acceptable for a soft cap.
+- **Per-IP rate limit**, 20 req/min default per route, backed by
+  Upstash Redis when configured (global across instances); falls back
+  to in-memory per warm instance otherwise.
+- **Daily request budget** (`ANTHROPIC_DAILY_REQUEST_BUDGET`) across
+  all routes — fails closed with 503 once spent, the hard ceiling on
+  spend if a secret leaks.
 - **Body sanitisation**: only `model`, `max_tokens`, `messages`, and
   optional `system` are forwarded; everything else is stripped so a
   compromised client can't smuggle alternate prompts or `tools`.
@@ -81,8 +97,12 @@ endpoint.
 - **App Attest / DeviceCheck** assertion verification per request (so
   even a leaked shared secret isn't enough — the request also has to
   come from a real, current build).
-- **Vercel KV** or Upstash-backed rate limit (cross-instance, durable).
 - **CORS / Origin** allowlist as defense in depth.
+
+## Tests
+
+`npm test` (Node 18+, no dependencies) runs the limiter and
+handler-wiring suites under `test/`.
 
 ## Body shape
 
