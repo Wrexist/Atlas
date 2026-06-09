@@ -172,7 +172,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
   (`Buffer.byteLength`), not the `content-length` header.
 - [ ] Add an `AbortController` (~25s) to each upstream `fetch`.
 
-### 2.5 Logging & secret-commit hygiene — `[~]`
+### 2.5 Logging & secret-commit hygiene — `[x]` (all verified: `.private` logging shipped; funnel events are fixed identifiers; secret-commit guard lives in `pr-checks.yml`; ATS dict present; creator codes apply no client-side price math — the PaywallView banner is attribution-only, so Apple-signed offers only become relevant if a real discount is ever wired. Deliberately skipped: a host allowlist on the proxy endpoints — they're CI-secret-injected, not user-editable config, and an allowlist would hardcode the Vercel deploy host)
 - [ ] `WeeklySummaryService.swift:134-136` — change error log `privacy: .public`
   → `.private` (URL/response fragments leak otherwise).
 - [ ] `OnboardingFunnelTracker` — never put emails/codes into event-name
@@ -242,7 +242,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
   Screen "Log Dose" writes succeed while the device is locked.
 - [ ] Log write failures rather than swallowing them with `try?`.
 
-### 3.6 Build-integrity & minor fallbacks — `[~]`
+### 3.6 Build-integrity & minor fallbacks — `[x]` (peptide-count CI check in `pr-checks.yml`; `weekStartString` fallback fixed. `compress` uses `UIGraphicsImageRenderer` rather than `CGImageSourceCreateThumbnailAtIndex` — full-size decode of one camera JPEG is an accepted transient, revisit only if memory reports say otherwise)
 - [ ] Add a CI check asserting `PeptideDatabase.shared.count == 208` so a build
   that drops `peptides.json` (silently falling back to `MockPeptides`) fails.
 - [ ] `MealScannerService.compress` — use `CGImageSourceCreateThumbnailAtIndex`
