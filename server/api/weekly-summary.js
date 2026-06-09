@@ -22,6 +22,9 @@ import { allowRate, withinDailyBudget } from './_lib/rate-limit.js';
 const MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 360; // ~280 words; 150 ideal, 200 hard ceiling
 const PROXY_HEADER = 'x-peptide-proxy';
+// Mirrors the bodyParser sizeLimit below; re-checked on the parsed
+// body like `_lib/anthropic-proxy.js` does.
+const MAX_BODY_BYTES = 64 * 1024;
 
 const SYSTEM_PROMPT = [
   "You are Atlas's weekly coach. Summarize the user's last 7 days in 2-3 short paragraphs, ~150 words total.",
@@ -203,6 +206,15 @@ export default async function handler(req, res) {
   if (!apiKey) {
     console.error('[weekly-summary] ANTHROPIC_API_KEY missing on this deployment');
     res.status(503).json({ error: { message: 'Service unavailable' } });
+    return;
+  }
+
+  // bodyParser's sizeLimit guards the wire; re-check the parsed body
+  // so a chunked request that understates content-length can't slip
+  // past it either.
+  const parsedBytes = Buffer.byteLength(JSON.stringify(req.body ?? ''), 'utf8');
+  if (parsedBytes > MAX_BODY_BYTES) {
+    res.status(413).json({ error: { message: 'Request too large' } });
     return;
   }
 

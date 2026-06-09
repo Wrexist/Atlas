@@ -92,3 +92,21 @@ test('over-RPM weekly-summary request is rejected 429', async (t) => {
 
   assert.equal(upstream.length, 1);
 });
+
+test('oversized parsed body is rejected 413 regardless of content-length', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+
+  const req = makeReq('10.1.0.2', {
+    aggregate: {
+      weekStart: '2026-06-01',
+      compliance: { completed: 5, total: 7 },
+      topInsightCategory: 'x'.repeat(70_000),
+    },
+  });
+  const res = makeRes();
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 413);
+  assert.equal(upstream.length, 0);
+});
