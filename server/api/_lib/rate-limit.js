@@ -18,45 +18,18 @@
  * hold per warm instance until Redis recovers.
  */
 
-const memory = new Map();
+import { redisPipeline } from './redis.js';
 
-function redisConfig() {
-  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-  if (!url || !token) return null;
-  return { url, token };
-}
+const memory = new Map();
 
 // INCR + EXPIRE in one pipeline round trip. The key embeds the window
 // index, so refreshing the TTL on every hit is harmless — the key
 // itself rotates each window. Returns the post-increment count, or
 // null when Redis is unconfigured/unreachable (caller falls back).
 async function redisCount(key, ttlSeconds) {
-  const config = redisConfig();
-  if (!config) return null;
-  const controller = new AbortController();
-  // A limiter check must never add meaningful latency to the request
-  // it guards — give Redis 2s, then fall back.
-  const timer = setTimeout(() => controller.abort(), 2_000);
-  try {
-    const res = await fetch(`${config.url}/pipeline`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${config.token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify([['INCR', key], ['EXPIRE', key, String(ttlSeconds)]]),
-      signal: controller.signal,
-    });
-    if (!res.ok) return null;
-    const results = await res.json();
-    const count = results?.[0]?.result;
-    return typeof count === 'number' ? count : null;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
+  const results = await redisPipeline([['INCR', key], ['EXPIRE', key, String(ttlSeconds)]]);
+  const count = results?.[0]?.result;
+  return typeof count === 'number' ? count : null;
 }
 
 function memoryAllow(key, limit, windowMs) {
