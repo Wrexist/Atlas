@@ -62,6 +62,7 @@ struct ProfileHeader: View {
                 .clipShape(Circle())
                 .overlay(avatarBorder)
                 .liquidGlass(.circle)
+                .accessibilityLabel(Text("Profile photo"))
         } else {
             ZStack {
                 Circle()
@@ -80,6 +81,9 @@ struct ProfileHeader: View {
                 }
             }
             .liquidGlass(.circle)
+            // Decorative — the name is shown as text in the header, so
+            // the initial/placeholder glyph is redundant to VoiceOver.
+            .accessibilityHidden(true)
         }
     }
 

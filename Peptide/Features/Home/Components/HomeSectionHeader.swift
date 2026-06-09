@@ -32,6 +32,9 @@ struct HomeSectionHeader<Trailing: View>: View {
         .padding(.top, Spacing.xs)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+        // Header trait so VoiceOver's heading rotor can jump between
+        // Today sections on the long merged scroll (Deep Audit II C15).
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
