@@ -1,8 +1,12 @@
 /**
  * Shared-secret client auth used by every proxy route. The iOS app
- * echoes `PROXY_SHARED_SECRET` as the `X-Peptide-Proxy` header; the
- * compare is constant-time and fails closed when the env var is
- * unset.
+ * echoes the secret as the `X-Peptide-Proxy` header; the compare is
+ * constant-time and fails closed when no secret is configured.
+ *
+ * Zero-downtime rotation: set `PROXY_SHARED_SECRET_NEXT` to the new
+ * value (both are now accepted), ship client builds carrying it,
+ * and once old builds have aged out promote it to
+ * `PROXY_SHARED_SECRET` and clear the `_NEXT` slot.
  */
 import { timingSafeEqual } from 'node:crypto';
 
@@ -20,9 +24,11 @@ function constantTimeEquals(a, b) {
 }
 
 export function authorize(req) {
-  const expected = process.env.PROXY_SHARED_SECRET;
-  if (!expected) return false; // fail closed when env is missing
   const provided = req.headers['x-peptide-proxy'];
   if (typeof provided !== 'string' || provided.length === 0) return false;
-  return constantTimeEquals(provided, expected);
+  const current = process.env.PROXY_SHARED_SECRET;
+  if (!current) return false; // fail closed when env is missing
+  if (constantTimeEquals(provided, current)) return true;
+  const next = process.env.PROXY_SHARED_SECRET_NEXT;
+  return typeof next === 'string' && next.length > 0 && constantTimeEquals(provided, next);
 }
