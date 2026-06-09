@@ -145,6 +145,13 @@ final class AIResearchService: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
+        // App Attest assertion — see AppAttestService; absence falls
+        // back to secret-only auth.
+        if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
+            for (field, value) in attestHeaders {
+                request.setValue(value, forHTTPHeaderField: field)
+            }
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
 
         let bytes: URLSession.AsyncBytes
@@ -242,6 +249,13 @@ final class AIResearchService: Sendable {
         request.timeoutInterval = 60
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
+        // App Attest assertion — see AppAttestService; absence falls
+        // back to secret-only auth.
+        if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
+            for (field, value) in attestHeaders {
+                request.setValue(value, forHTTPHeaderField: field)
+            }
+        }
         request.httpBody = try JSONSerialization.data(
             withJSONObject: payload(history: history, newPrompt: prompt, ragContext: context),
             options: []
