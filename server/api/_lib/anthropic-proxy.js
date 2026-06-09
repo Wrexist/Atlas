@@ -29,7 +29,7 @@
  * `AI_RESEARCH_SECRET`. The same `PROXY_SHARED_SECRET` server-side
  * value goes into both client secrets.
  */
-import { timingSafeEqual } from 'node:crypto';
+import { authorize } from './auth.js';
 import { allowRate, withinDailyBudget } from './rate-limit.js';
 
 const DEFAULT_ALLOWED_MODEL = 'claude-sonnet-4-6';
@@ -133,27 +133,6 @@ function sanitiseBody(raw, options) {
     : (pinnedPrefix || clientSystem);
   if (composed) out.system = composed;
   return out;
-}
-
-function constantTimeEquals(a, b) {
-  // Pad to equal length first — timingSafeEqual throws on mismatched
-  // lengths, which is itself a timing leak. The padded compare runs
-  // for the same time as a real one, then we reject the mismatch.
-  const aBuf = Buffer.from(a, 'utf8');
-  const bBuf = Buffer.from(b, 'utf8');
-  if (aBuf.length !== bBuf.length) {
-    timingSafeEqual(aBuf, aBuf);
-    return false;
-  }
-  return timingSafeEqual(aBuf, bBuf);
-}
-
-function authorize(req) {
-  const expected = process.env.PROXY_SHARED_SECRET;
-  if (!expected) return false; // fail closed when env is missing
-  const provided = req.headers['x-peptide-proxy'];
-  if (typeof provided !== 'string' || provided.length === 0) return false;
-  return constantTimeEquals(provided, expected);
 }
 
 export async function forwardToAnthropic(req, res, {

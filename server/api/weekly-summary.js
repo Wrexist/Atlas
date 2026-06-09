@@ -15,13 +15,12 @@
  *
  * Returns: `{ text: string, generatedAt: ISOString }`.
  */
-import { timingSafeEqual } from 'node:crypto';
 import { clientKey } from './_lib/anthropic-proxy.js';
+import { authorize } from './_lib/auth.js';
 import { allowRate, withinDailyBudget } from './_lib/rate-limit.js';
 
 const MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 360; // ~280 words; 150 ideal, 200 hard ceiling
-const PROXY_HEADER = 'x-peptide-proxy';
 // Mirrors the bodyParser sizeLimit below; re-checked on the parsed
 // body like `_lib/anthropic-proxy.js` does.
 const MAX_BODY_BYTES = 64 * 1024;
@@ -45,26 +44,6 @@ const SYSTEM_PROMPT = [
   "",
   "Output: plain text, no markdown, no bullet points, no headings. The iOS card renders the paragraphs as-is."
 ].join("\n");
-
-function constantTimeEquals(a, b) {
-  const aBuf = Buffer.from(a, 'utf8');
-  const bBuf = Buffer.from(b, 'utf8');
-  if (aBuf.length !== bBuf.length) {
-    // Run a same-length compare on a self-pair so the timing cost
-    // doesn't telegraph "wrong length". Then reject the mismatch.
-    timingSafeEqual(aBuf, aBuf);
-    return false;
-  }
-  return timingSafeEqual(aBuf, bBuf);
-}
-
-function authorize(req) {
-  const expected = process.env.PROXY_SHARED_SECRET;
-  if (!expected) return false; // fail closed when env is missing
-  const provided = req.headers[PROXY_HEADER];
-  if (typeof provided !== 'string' || provided.length === 0) return false;
-  return constantTimeEquals(provided, expected);
-}
 
 // Per-IP cap via the shared limiter (Redis-backed when configured,
 // per-instance memory otherwise). Weekly summaries fire at most once
