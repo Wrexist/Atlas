@@ -145,7 +145,7 @@ not enforced globally.
 - [ ] Add a hard daily/monthly Anthropic request budget that fails closed
   (503) when exceeded.
 
-### 2.3 Analytics drains exfiltrate PII with no auth/consent — `[ ]`
+### 2.3 Analytics drains exfiltrate PII with no auth/consent — `[~]` (client side done: host allowlist, consent gate, auth header, label checklist in `APP_STORE_METADATA.md`; server-side intake auth + rate limiting land with the backend)
 **Files:** `Peptide/Services/AffiliateIntakeService.swift:22-62`,
 `Peptide/Services/OnboardingFunnelTracker.swift:105-143`
 
