@@ -17,6 +17,7 @@
  */
 import { timingSafeEqual } from 'node:crypto';
 import { clientKey } from './_lib/anthropic-proxy.js';
+import { allowRate, withinDailyBudget } from './_lib/rate-limit.js';
 
 const MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 360; // ~280 words; 150 ideal, 200 hard ceiling
@@ -62,27 +63,15 @@ function authorize(req) {
   return constantTimeEquals(provided, expected);
 }
 
-// Per-IP token bucket. Weekly summaries fire at most once per week
-// per user, so 4/min is generous — anything higher than a handful is
-// retry-loop noise or abuse.
-const buckets = new Map();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const RATE_LIMIT_RPM = parseInt(process.env.WEEKLY_RPM || '6', 10);
-
-// `clientKey` lives in `_lib/anthropic-proxy.js` so all three routes share
-// the same Vercel-aware (un-spoofable) IP derivation.
-
+// Per-IP cap via the shared limiter (Redis-backed when configured,
+// per-instance memory otherwise). Weekly summaries fire at most once
+// per week per user, so 6/min is generous — anything higher is
+// retry-loop noise or abuse. `clientKey` lives in
+// `_lib/anthropic-proxy.js` so all three routes share the same
+// Vercel-aware (un-spoofable) IP derivation.
 function checkRateLimit(req) {
-  if (!Number.isFinite(RATE_LIMIT_RPM) || RATE_LIMIT_RPM <= 0) return true;
-  const key = clientKey(req);
-  const now = Date.now();
-  const bucket = buckets.get(key);
-  if (!bucket || now - bucket.start > RATE_LIMIT_WINDOW_MS) {
-    buckets.set(key, { start: now, count: 1 });
-    return true;
-  }
-  bucket.count += 1;
-  return bucket.count <= RATE_LIMIT_RPM;
+  const limit = parseInt(process.env.WEEKLY_RPM || '6', 10);
+  return allowRate({ name: 'weekly-summary', key: clientKey(req), limit, windowSeconds: 60 });
 }
 
 /**
@@ -205,7 +194,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (!checkRateLimit(req)) {
+  if (!(await checkRateLimit(req))) {
     res.status(429).json({ error: { message: 'Too many requests' } });
     return;
   }
@@ -220,6 +209,16 @@ export default async function handler(req, res) {
   const aggregate = sanitiseAggregate(req.body?.aggregate);
   if (!aggregate) {
     res.status(400).json({ error: { message: 'Malformed aggregate' } });
+    return;
+  }
+
+  // Shared daily spend ceiling across all proxy routes, checked last
+  // so only requests that would actually reach Anthropic consume it.
+  // Same generic 503 as the missing-key path — reason stays
+  // server-side, and the iOS client already falls back deterministically.
+  if (!(await withinDailyBudget())) {
+    console.error('[weekly-summary] daily Anthropic request budget exhausted');
+    res.status(503).json({ error: { message: 'Service unavailable' } });
     return;
   }
 
