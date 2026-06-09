@@ -214,7 +214,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
   `try?` on the envelope `JSONSerialization` with `do/catch` that logs the
   decode error before throwing `.invalidResponse`.
 
-### 3.3 Watch reliability — `[~]`
+### 3.3 Watch reliability — `[x]` (transferUserInfo fallback shipped; the dead water-reconstruction block was removed — a real optimistic water update needs `waterToday` on the snapshot, deferred as feature work)
 **Files:** `PeptideWatch/Services/WatchStore.swift:90-153`,
 `Peptide/Services/WatchSyncService.swift:93-113`
 
