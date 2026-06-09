@@ -22,6 +22,9 @@
  *   ANTHROPIC_DAILY_REQUEST_BUDGET
  *                        — optional hard cap on upstream requests per
  *                          UTC day across all routes; 503 once spent.
+ *   APP_ATTEST_MODE / APP_ATTEST_APP_ID
+ *                        — App Attest assertion gate; see
+ *                          _lib/app-attest.js for modes and rollout.
  *
  * iOS clients pull the proxy URL and the matching secret from
  * Info.plist (or scheme env): `MEAL_SCANNER_ENDPOINT` +
@@ -29,6 +32,7 @@
  * `AI_RESEARCH_SECRET`. The same `PROXY_SHARED_SECRET` server-side
  * value goes into both client secrets.
  */
+import { checkAppAttest } from './app-attest.js';
 import { authorize } from './auth.js';
 import { allowRate, withinDailyBudget } from './rate-limit.js';
 
@@ -155,6 +159,17 @@ export async function forwardToAnthropic(req, res, {
 
   if (!(await checkRateLimit(req, logLabel))) {
     res.status(429).json({ error: { message: 'Too many requests' } });
+    return;
+  }
+
+  // App Attest gate (see _lib/app-attest.js). Only rejects in
+  // enforce mode; report mode verifies + logs so the rollout can be
+  // validated from production logs before anything is blocked. The
+  // `attest_required` code tells a genuine client to (re-)register
+  // its key rather than treat this as a secret failure.
+  const attest = await checkAppAttest(req, { logLabel });
+  if (!attest.ok) {
+    res.status(401).json({ error: { message: 'Unauthorised', code: 'attest_required' } });
     return;
   }
 

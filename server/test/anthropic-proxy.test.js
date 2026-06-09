@@ -31,6 +31,8 @@ const BASE_ENV = {
   KV_REST_API_TOKEN: undefined,
   ANTHROPIC_DAILY_REQUEST_BUDGET: undefined,
   RATE_LIMIT_RPM: undefined,
+  APP_ATTEST_MODE: 'off',
+  APP_ATTEST_APP_ID: undefined,
 };
 
 function stubUpstream(t) {
@@ -101,6 +103,25 @@ test('over-RPM request is rejected 429 before reaching Anthropic', async (t) => 
   assert.equal(second.statusCode, 429);
 
   assert.equal(upstream.length, 1);
+});
+
+test('enforce mode rejects requests without assertion headers', async (t) => {
+  setEnv(t, {
+    ...BASE_ENV,
+    APP_ATTEST_MODE: 'enforce',
+    APP_ATTEST_APP_ID: 'TEAM12345.com.peptidesai.app',
+  });
+  const upstream = stubUpstream(t);
+
+  const denied = await forward(makeReq('10.0.0.9'), 'test-attest');
+  assert.equal(denied.statusCode, 401);
+  assert.equal(denied.body.error.code, 'attest_required');
+  assert.equal(upstream.length, 0);
+
+  // Report mode (the default) must not block the same request.
+  setEnv(t, { APP_ATTEST_MODE: 'report' });
+  const reported = await forward(makeReq('10.0.0.10'), 'test-attest');
+  assert.equal(reported.statusCode, 200);
 });
 
 test('daily budget fails closed and only upstream-bound requests spend it', async (t) => {

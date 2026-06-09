@@ -26,6 +26,8 @@ const BASE_ENV = {
   KV_REST_API_TOKEN: undefined,
   ANTHROPIC_DAILY_REQUEST_BUDGET: undefined,
   WEEKLY_RPM: undefined,
+  APP_ATTEST_MODE: 'off',
+  APP_ATTEST_APP_ID: undefined,
 };
 
 function stubUpstream(t) {

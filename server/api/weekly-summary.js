@@ -16,6 +16,7 @@
  * Returns: `{ text: string, generatedAt: ISOString }`.
  */
 import { clientKey } from './_lib/anthropic-proxy.js';
+import { checkAppAttest } from './_lib/app-attest.js';
 import { authorize } from './_lib/auth.js';
 import { allowRate, withinDailyBudget } from './_lib/rate-limit.js';
 
@@ -178,6 +179,13 @@ export default async function handler(req, res) {
 
   if (!(await checkRateLimit(req))) {
     res.status(429).json({ error: { message: 'Too many requests' } });
+    return;
+  }
+
+  // App Attest gate — same semantics as the main proxy routes.
+  const attest = await checkAppAttest(req, { logLabel: 'weekly-summary' });
+  if (!attest.ok) {
+    res.status(401).json({ error: { message: 'Unauthorised', code: 'attest_required' } });
     return;
   }
 
