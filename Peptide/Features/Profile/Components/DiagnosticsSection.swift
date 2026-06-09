@@ -12,6 +12,7 @@ import SwiftUI
 struct DiagnosticsSection: View {
     @State private var diagnosticsService = DiagnosticsService.shared
     @State private var showDetail = false
+    @AppStorage(OnboardingFunnelTracker.consentKey) private var shareOnboardingFunnel = false
 
     var body: some View {
         GlassCard {
@@ -40,6 +41,27 @@ struct DiagnosticsSection: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(diagnosticsService.records.isEmpty)
+
+                // Consent gate for the onboarding-funnel drain. Only
+                // rendered when the build actually carries a drain
+                // endpoint — current builds don't, so this stays
+                // invisible and the Privacy screen's claims hold.
+                if OnboardingFunnelTracker.drainConfigured {
+                    Divider().foregroundStyle(AppColor.glassBorder)
+                    Toggle(isOn: $shareOnboardingFunnel) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Share onboarding diagnostics")
+                                .font(AppFont.subheadline)
+                                .foregroundStyle(AppColor.textPrimary)
+                            Text("Off by default. When on, setup-flow step timings upload once under a random ID — never your name, email, or health data.")
+                                .font(AppFont.caption)
+                                .foregroundStyle(AppColor.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .tint(AppColor.accentPrimary)
+                    .accessibilityLabel("Share onboarding diagnostics")
+                }
             }
         }
         .sheet(isPresented: $showDetail) {

@@ -120,9 +120,9 @@ struct PeptideApp: App {
             .task {
                 // Drain any completed onboarding funnel snapshot to the
                 // analytics endpoint configured via Info.plist. No-op
-                // unless the endpoint is configured AND the user
-                // finished onboarding — partial in-flight runs stay
-                // local until completion.
+                // unless the endpoint is configured, the user opted in
+                // via the Profile diagnostics toggle, AND onboarding
+                // finished — partial in-flight runs stay local.
                 await OnboardingFunnelTracker.drainIfReady()
             }
             .task {

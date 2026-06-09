@@ -5,9 +5,11 @@ import Foundation
 /// run can be reconstructed after the fact, and emits an `AppLog.onboarding`
 /// signpost so Console.app sessions show the flow in real time.
 ///
-/// Intentionally no PII, no network — when a backend lands this can be
-/// drained into Supabase + amplitude/posthog 1:1 from the snapshot. Until
-/// then the data is local diagnostic only and never leaves the device.
+/// Intentionally no PII — event names are fixed identifiers, never user
+/// content. The snapshot stays on-device unless BOTH a drain endpoint is
+/// configured (Info.plist, Atlas hosts only) AND the user has explicitly
+/// opted in via the Profile diagnostics toggle; either missing keeps it
+/// local.
 @MainActor
 enum OnboardingFunnelTracker {
     private static let snapshotKey  = "onboarding.funnel.snapshot.v1"
@@ -99,6 +101,21 @@ enum OnboardingFunnelTracker {
     /// snapshot. Resets when the snapshot is cleared after a drain.
     private static let drainedAtKey = "onboarding.funnel.drainedAt.v1"
 
+    /// Explicit user opt-in for uploading the funnel snapshot.
+    /// Defaults to false — without consent the drain is a no-op even
+    /// when an endpoint is configured (audit 2.3). Internal so the
+    /// Profile toggle can bind the same key via `@AppStorage`.
+    static let consentKey = "onboarding.funnel.consent.v1"
+
+    /// True when this build carries a valid drain endpoint. Gates the
+    /// consent toggle in Profile so builds without an endpoint (all
+    /// current ones) never show a sharing control that does nothing.
+    static var drainConfigured: Bool { destinationURL != nil }
+
+    static var sharingConsentGranted: Bool {
+        UserDefaults.standard.bool(forKey: consentKey)
+    }
+
     /// Drains a completed onboarding snapshot to the configured
     /// endpoint, then resets the events array so a relaunch doesn't
     /// re-upload them. In-flight runs (those that haven't called
@@ -109,6 +126,7 @@ enum OnboardingFunnelTracker {
     /// surface to the user. The local snapshot stays on disk on
     /// failure so the next launch retries.
     static func drainIfReady() async {
+        guard sharingConsentGranted else { return }
         let snap = currentSnapshot
         guard snap.completedAt != nil else { return }
         guard let url = destinationURL else { return }
