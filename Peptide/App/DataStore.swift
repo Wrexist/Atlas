@@ -56,6 +56,7 @@ final class DataStore: DataServiceProtocol {
     @ObservationIgnored private var _nextDose: (version: Int, value: ProtocolEntry?)?
     @ObservationIgnored private var _weeklyCompletion: (version: Int, value: [WeekDayStatus])?
     @ObservationIgnored private var _entriesByDay: (version: Int, value: [Date: [ProtocolEntry]])?
+    @ObservationIgnored private var _activeEntriesByDay: (version: Int, value: [Date: [ProtocolEntry]])?
     @ObservationIgnored private var _stackPeptides: (version: Int, value: [Peptide])?
     @ObservationIgnored private var _stackWarnings: (version: Int, value: [StackRecommendationEngine.Warning])?
     @ObservationIgnored private var _stackRecommendations: (version: Int, value: [StackRecommendationEngine.Recommendation])?
@@ -88,11 +89,20 @@ final class DataStore: DataServiceProtocol {
     /// and historical views (e.g. `weeklyCompletion`) keep using the full
     /// `entriesByDay`.
     var activeEntriesByDay: [Date: [ProtocolEntry]] {
+        // Cached against cacheVersion like `entriesByDay` — both
+        // `currentStreak` and `bestStreak` call this, and they're
+        // reached from view bodies, so the unfiltered version re-ran
+        // the group + filter on every body pass. Protocol status
+        // changes bump cacheVersion (same invariant the stack caches
+        // rely on), so the key stays correct.
+        if let cached = _activeEntriesByDay, cached.version == cacheVersion { return cached.value }
         let activeIds = Set(activeProtocols.map(\.id))
-        return entriesByDay.compactMapValues { dayEntries -> [ProtocolEntry]? in
-            let filtered = dayEntries.filter { activeIds.contains($0.protocolId) }
-            return filtered.isEmpty ? nil : filtered
+        let filtered = entriesByDay.compactMapValues { dayEntries -> [ProtocolEntry]? in
+            let dayFiltered = dayEntries.filter { activeIds.contains($0.protocolId) }
+            return dayFiltered.isEmpty ? nil : dayFiltered
         }
+        _activeEntriesByDay = (cacheVersion, filtered)
+        return filtered
     }
 
     init(seedSampleData: Bool = false) {
