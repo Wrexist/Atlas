@@ -24,12 +24,55 @@ the app being unusable with assistive tech. **High** = broken feature
 
 ---
 
+## Execution log — pass 1
+
+Fixes landed on `claude/gracious-allen-p2iopy` (none compiled locally —
+CI is the gate; health-data, onboarding-flow, and IAP touches are the
+fragile-category changes):
+
+- **Landed:** A1 (disclaimer hard gate), A2 (reconstitution reframed as
+  a converter, "AI" dropped), A3 (creator copy → attribution-only, all
+  three sites), A5 + C11 (sleep `.asleepUnspecified` + steps
+  days-with-data), A7 (`activeEntriesByDay` cache), C17 (degenerate
+  range guard), C15 (header rotor trait), C18 (avatar a11y), B4
+  (paywall close 44pt), B12 (App Attest re-registration — the one real
+  concurrency bug).
+- **Already satisfied (audit was stale):** B3's paywall close button is
+  in fact labelled — only its hit target needed fixing (B4). Paywall
+  creator banner was already guarded behind the nil `appliedDiscount`.
+- **Deferred — needs a compile-capable / simulator session (reasons):**
+  - **A4** (imperial units): 5-6 file unit-threading through health
+    render code, and the detail-sheet delta has a °C→°F offset trap
+    (deltas must scale without +32). A blind partial fix would show the
+    row in lb but the detail hero in kg — worse than today's
+    consistent-metric state. Do it whole, compiled.
+  - **A6** (HomeView `body` refactor): highest blind CI-break risk;
+    structural `@State` migration of a 997-line view — wants simulator
+    profiling.
+  - **A8 / B9** (`@MainActor` on PersistenceService / ThemeManager /
+    LocalizationManager): ripples across widget/intent/watch targets;
+    needs a cross-target compile.
+  - **A9 / A10 / B5 / C16** (mass Dynamic Type, decorative-icon hiding,
+    reduce-motion, on-glass contrast): Liquid Glass design pass; needs
+    on-device VoiceOver / visual verification.
+  - **B16 / B17** (BioAge mean→median): changes everyone's health-age
+    number; wants deliberate validation.
+  - **C7** (PendingDoseLogStore cross-process lock), **B13 / B14 / C2 /
+    C8 / C9 / C10** (IAP management, ASC offer confirm, egress confirm):
+    IAP/multi-process changes want StoreKit-test / device runs, or are
+    App Store Connect / business confirmations, not code.
+- **Not worth blind churn:** B10, B11, C6 — re-analysed as already-safe
+  defensive patterns (implicit MainActor isolation; single-instance
+  serial actors; init-time closures), not live races.
+
+---
+
 ## Section A — Ship-blockers (Critical)
 
 These gate App Store submission or show users wrong/lost data. Do
 these first.
 
-- [ ] **A1 · [Compliance] Medical disclaimer is never enforced and is swipe-bypassable.**
+- [x] **A1 · [Compliance] Medical disclaimer is never enforced and is swipe-bypassable.**
   `OnboardingView.swift:36, 268-299, 674-678`. It's one page of a
   swipeable `TabView(.page)`; `disclaimerAcknowledgedAt` is only ever
   *written* (`:677`), never *read* anywhere, and no surface gates
@@ -40,7 +83,7 @@ these first.
   `disclaimerAcknowledgedAt > 0`. (Supersedes the Phase 4.2
   swipe-bypass bullet — now confirmed end-to-end.)
 
-- [ ] **A2 · [Compliance] `ReconstitutionCalculator` computes an injection draw volume.**
+- [x] **A2 · [Compliance] `ReconstitutionCalculator` computes an injection draw volume.**
   `ReconstitutionCalculator.swift:156-185`; marketed as the paywalled
   "AI reconstitution calculator" (`PaywallView.swift:142`). It outputs
   "Draw to N units" on a U-100 syringe for largely unapproved
@@ -51,7 +94,7 @@ these first.
   imperative "Draw to" and the "AI" label), and gate it behind the
   enforced disclaimer.
 
-- [ ] **A3 · [StoreKit] Onboarding promises a creator-code discount that checkout never applies.**
+- [x] **A3 · [StoreKit] Onboarding promises a creator-code discount that checkout never applies.**
   `CreatorAttributionPage.swift:92`, `OnboardingView.swift:2401` say
   "Code applied — you get X% off"; `PaywallView.appliedDiscount()`
   returns `nil` and `product.purchase()` is called with no
@@ -71,7 +114,7 @@ these first.
   `BiomarkerSeriesService` + `BiomarkerDetailSheet`, convert via the
   existing helpers before formatting.
 
-- [ ] **A5 · [HealthKit] Sleep filter drops `.asleepUnspecified`, zeroing sleep for many trackers.**
+- [x] **A5 · [HealthKit] Sleep filter drops `.asleepUnspecified`, zeroing sleep for many trackers.**
   `HealthKitService.swift:470-473, 557-559` keep only
   `.asleepCore/.asleepDeep/.asleepREM`. Most third-party sleep apps and
   older watchOS write `.asleepUnspecified` → those users get zero /
@@ -89,7 +132,7 @@ these first.
   `@State`, populate from `.task` + `.onChange(of: dataStore.cacheVersion)`.
   (Sharpens the deferred Phase 4.2 item.)
 
-- [ ] **A7 · [Performance] `DataStore.activeEntriesByDay` is uncached; streaks re-filter all entries on every read.**
+- [x] **A7 · [Performance] `DataStore.activeEntriesByDay` is uncached; streaks re-filter all entries on every read.**
   `DataStore.swift:90-96` (no `_activeEntriesByDay` cache unlike its
   sibling), read by `currentStreak`/`bestStreak` (`:618, :670`) which
   are reached from `body`. **Fix:** add the same versioned-cache tuple
@@ -268,7 +311,7 @@ these first.
   non-shareability match business intent. No code change.
 
 ### HealthKit
-- [ ] **C11** `averageSteps` divides by the requested window, not days-with-data
+- [x] **C11** `averageSteps` divides by the requested window, not days-with-data
   (`HealthKitService.swift:516-537`) — the sleep fix wasn't propagated to
   steps; 3-of-7 synced days halves the reported average. **Fix:** mirror
   the `nightsWithSleep` approach.
@@ -285,7 +328,7 @@ these first.
   younger/older by **color only** with no `accessibilityValue` (WCAG
   1.4.1). **Fix:** add label/value + a non-color cue. *(A11y/HealthKit
   overlap.)*
-- [ ] **C15** Section headers (`HomeSectionHeader`, score eyebrows) lack
+- [x] **C15** Section headers (`HomeSectionHeader`, score eyebrows) lack
   `.accessibilityAddTraits(.isHeader)` — VoiceOver heading rotor can't
   jump sections. **Fix:** add the trait to the shared header components.
 - [ ] **C16** `textTertiary` (#888888, 263×) and `white.opacity(≤0.6)` text (57×)
@@ -293,10 +336,10 @@ these first.
   Glass where the backdrop lightens unpredictably. **Fix:** use
   `AppColor.text*` tokens, nudge `textTertiary` lighter, add a scrim
   under text on glass. *Verify on-device with Accessibility Inspector.*
-- [ ] **C17** `HealthRangeService.positionInRange`/`status` (`:44-57`) flip to
+- [x] **C17** `HealthRangeService.positionInRange`/`status` (`:44-57`) flip to
   Higher/Lower off noise when the personal IQR is degenerate (flat
   data). **Fix:** force `.normal` when `p75-p25` is below an epsilon.
-- [ ] **C18** Avatar placeholder glyph not hidden / photo unlabeled
+- [x] **C18** Avatar placeholder glyph not hidden / photo unlabeled
   (`ProfileHeader.swift:56-84`). **Fix:** label the photo, hide the
   silhouette.
 
