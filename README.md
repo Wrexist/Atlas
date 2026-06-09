@@ -24,12 +24,7 @@ Peptide/                 iOS app (SwiftUI)
   Features/               UI by tab: Home (Today), Train, Meals,
                           Biology, Library — plus secondary surfaces
                           Profile, AIResearch, Onboarding, Auth,
-                          Sharing, Database. Lifestyle/ and Insights/
-                          are retired namespaces: Lifestyle/ holds only
-                          WorkoutDetailView; Insights/ keeps the still-
-                          live WeeklySummaryDetailView + PastWeeksSection
-                          (the rest of Insights/ is unreferenced and
-                          slated for deletion).
+                          Sharing, Database, WeeklySummary.
   Intents/                Siri shortcuts (AppIntents)
   Resources/              Info.plist, Localizable.xcstrings, .storekit
 
