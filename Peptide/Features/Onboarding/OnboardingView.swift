@@ -255,6 +255,29 @@ struct OnboardingView: View {
         }
     }
 
+    /// Gates forward navigation out of the medical-disclaimer page
+    /// until it is explicitly acknowledged. The footer "Continue"
+    /// button sets `disclaimerAcknowledgedAt` *before* it advances, so
+    /// button-driven advance passes; only an un-acknowledged swipe is
+    /// blocked. Backward navigation is always allowed. Without this a
+    /// user could swipe straight past the disclaimer — the
+    /// acknowledgment is a hard gate for a regulated-substance app
+    /// (Deep Audit II A1).
+    private var gatedPage: Binding<Int> {
+        Binding(
+            get: { page },
+            set: { newValue in
+                if page == Page.disclaimer,
+                   newValue > Page.disclaimer,
+                   disclaimerAcknowledgedAt == 0 {
+                    Haptics.warning()
+                    return
+                }
+                page = newValue
+            }
+        )
+    }
+
     var body: some View {
         ZStack {
             OnboardingBackground(step: page)
@@ -265,7 +288,7 @@ struct OnboardingView: View {
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.sm)
 
-                TabView(selection: $page) {
+                TabView(selection: gatedPage) {
                     // Note: page-resume + bookmark wiring lives on the
                     // ZStack below — `.onAppear` restores from
                     // `lastPage`, `.onChange(of: page)` writes it
