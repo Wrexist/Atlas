@@ -66,7 +66,9 @@ actor AppAttestService {
             ]
         } catch let error as DCError where error.code == .invalidKey {
             // The key lost Apple's trust (e.g. restore onto a new
-            // device). Forget it; the next launch re-registers.
+            // device). Forget it; clearStoredKey resets the
+            // attempt guard so the next assertionHeaders() call
+            // re-registers without waiting for a relaunch.
             AppLog.auth.warning("app-attest key invalid; clearing for re-registration")
             clearStoredKey()
             return nil
@@ -157,5 +159,9 @@ actor AppAttestService {
     private func clearStoredKey() {
         UserDefaults.standard.removeObject(forKey: keyIdDefaultsKey)
         UserDefaults.standard.removeObject(forKey: registeredDefaultsKey)
+        // Reset the per-launch guard too — otherwise a key invalidated
+        // mid-session would never re-register until the next cold
+        // launch, silently dropping App Attest for the rest of the run.
+        registrationAttemptedThisLaunch = false
     }
 }
