@@ -121,7 +121,7 @@ Two destinations for the same type on one stack → undefined behaviour; the
 
 ## Phase 2 — Security hardening
 
-### 2.1 Proxy auth: static shared secret ships in the binary — `[ ]`
+### 2.1 Proxy auth: static shared secret ships in the binary — `[~]` (App Attest shipped end-to-end in report-only mode — client `AppAttestService` + `/api/attest-register` + assertion gate on all routes; dual-slot secret rotation via `PROXY_SHARED_SECRET_NEXT`. Flip `APP_ATTEST_MODE=enforce` only per the rollout gates in `server/README.md`: byte-diff the embedded Apple root, provision Redis, and see real-device registrations + valid assertions in TestFlight logs first)
 **Files:** `server/api/_lib/anthropic-proxy.js:157-163`,
 `.github/workflows/ios-testflight.yml:210-260`, `Peptide/Resources/Info.plist`
 
