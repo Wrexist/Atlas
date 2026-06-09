@@ -15,6 +15,15 @@ The authoritative in-flight work and remediation plan now lives in
 security hardening, error handling, the Liquid Glass design pass, and
 code cleanup.
 
+A second-wave hardening audit lives in
+[`docs/ATLAS_DEEP_AUDIT_II.md`](docs/ATLAS_DEEP_AUDIT_II.md) — six
+parallel deep-audits (App Store / medical-safety compliance,
+accessibility, performance, Swift 6 concurrency, StoreKit, HealthKit)
+with ten Critical ship-blockers. The two existential ones for a
+peptide app: the medical disclaimer is never enforced, and the
+reconstitution calculator computes an injection dose volume — both
+App Store rejection risks. Read Section A before submission.
+
 ## Project basics
 
 - Product: **Atlas** (iOS health & fitness). Repo / Xcode targets are
