@@ -536,8 +536,10 @@ Liquid Glass is fundamentally an adaptive system.
 
 ## Phase 9 — Tests & verification
 
-- [ ] Add unit tests for untested pure engines first (cheapest wins):
-  `CyclePhaseEngine`, `OutcomeCorrelationEngine`, `DoseLiveActivityService`.
+- [x] Add unit tests for untested pure engines first (cheapest wins):
+  `CyclePhaseEngine`, `OutcomeCorrelationEngine`, `DoseLiveActivityService`
+  (window math + hex packing made internal static for testability;
+  ActivityKit side effects remain untestable in a unit host).
 - [ ] Add regression tests for every Phase 1 fix: CloudKit model defaults,
   the `notes` regenerate-guard, StoreKit entitlement filtering, save-failure
   surfacing, streak-freeze in dose streaks.
