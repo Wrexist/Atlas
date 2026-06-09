@@ -476,7 +476,7 @@ Liquid Glass is fundamentally an adaptive system.
 
 ## Phase 8 — Code cleanup
 
-### 8.1 Dead code — `[ ]`
+### 8.1 Dead code — `[x]` (InsightsView + dead components were already gone; survivors relocated to `Features/WeeklySummary/`, `OnboardingColors` deleted, `AppTab.protocols/.profile` removed — every call site had already migrated — and `Lifestyle/` folded into `Train/`)
 - [ ] Delete `Features/Insights/InsightsView.swift` and the 8 dead
   `Insights/Components/` files (~2,000 lines, used only by their own previews).
 - [ ] Relocate the two live survivors `WeeklySummaryDetailView.swift` and
@@ -488,7 +488,7 @@ Liquid Glass is fundamentally an adaptive system.
 - [ ] Move `Features/Lifestyle/WorkoutDetailView.swift` into `Features/Train/`;
   delete the `Lifestyle/` folder.
 
-### 8.2 Naming & docs — `[~]` (doc fixes done; folder renames need a build)
+### 8.2 Naming & docs — `[~]` (doc fixes + planning-doc archive done; remaining: `Home→Today` / `Database→Library` folder renames in a build session, and the peptidex.site vs peptidesai.com marketing-domain pick — a product decision)
 - [ ] Add an authoritative "Naming" section to `README.md`: product = Atlas;
   Xcode targets/repo = Peptide (frozen); bundle ID / URL scheme / Spotlight
   prefixes = `peptidex`/`peptidesai` (frozen for install compatibility).
@@ -521,7 +521,7 @@ Liquid Glass is fundamentally an adaptive system.
 - [ ] Flatten one-file subfolders (`Home/Components/Adjustment/`).
 - [ ] Move the pure-logic `*Logic` files out of `App/` into `Services/`.
 
-### 8.4 Constants & config — `[~]` (App Group + swiftlint done)
+### 8.4 Constants & config — `[x]` (App Group + swiftlint done earlier; service convention now codified in `README.md` + `CLAUDE.md`)
 - [ ] Define the App Group identifier `"group.com.peptidesai.app"` once in
   `Shared/` (it's duplicated in `WidgetData.swift:4` and
   `PendingDoseLogStore.swift:24`); consolidate the cross-process notification

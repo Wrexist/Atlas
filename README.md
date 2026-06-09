@@ -52,6 +52,11 @@ Build the `Peptide` scheme for an iOS simulator or device.
 StoreKit testing is wired to `Peptide/Resources/Products.storekit`
 for both Run and Test actions.
 
+Service convention (`Peptide/Services/`): stateful services are
+`final class` singletons (`.shared`); stateless namespaces are
+caseless `enum`s with static members; pure-computation types are
+named `*Engine`.
+
 ## Secrets
 
 The iOS app does **not** embed an Anthropic key. `MealScannerService`,
