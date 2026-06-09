@@ -467,10 +467,7 @@ final class HealthKitService {
 
         do {
             let samples = try await descriptor.result(for: store)
-            let asleep = samples.filter { sample in
-                let value = HKCategoryValueSleepAnalysis(rawValue: sample.value)
-                return value == .asleepCore || value == .asleepDeep || value == .asleepREM
-            }
+            let asleep = samples.filter(Self.isAsleep)
             // Merge overlapping intervals before bucketing so a
             // night with two trackers doesn't double-count.
             let intervals = asleep
@@ -516,27 +513,38 @@ final class HealthKitService {
     func averageSteps(days: Int) async -> Double? {
         guard isAvailable, days > 0 else { return nil }
 
-        let calendar = Calendar.current
-        let endDate = Date()
-        guard let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { return nil }
-
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
-        let descriptor = HKStatisticsQueryDescriptor(
-            predicate: .quantitySample(type: HKQuantityType(.stepCount), predicate: predicate),
-            options: .cumulativeSum
+        // Average over days that actually have step data, not the full
+        // window — a user who synced steps on 3 of 7 days shouldn't see
+        // their daily average halved by dividing the total by 7.
+        // `dailyQuantity` buckets per day and skips empty days.
+        let daily = await dailyQuantity(
+            type: .stepCount,
+            unit: .count(),
+            days: days,
+            options: .cumulativeSum,
+            extract: { $0.sumQuantity() }
         )
-
-        do {
-            let result = try await descriptor.result(for: store)
-            guard let total = result?.sumQuantity()?.doubleValue(for: .count()) else { return nil }
-            return total / Double(days)
-        } catch {
-            AppLog.healthKit.error("averageSteps query failed: \(error.localizedDescription, privacy: .private)")
-            return nil
-        }
+        guard !daily.isEmpty else { return nil }
+        let total = daily.reduce(0.0) { $0 + $1.value }
+        return total / Double(daily.count)
     }
 
     // MARK: - Sleep
+
+    /// True for any "asleep" sleep-analysis sample. Includes
+    /// `.asleepUnspecified` (raw value 1, shared with the deprecated
+    /// `.asleep`), which most third-party sleep apps and pre-iOS-16
+    /// data write instead of the staged values — excluding it zeroed
+    /// sleep for those users and poisoned Recovery/Bio-Age downstream.
+    /// Excludes `.inBed` and `.awake`.
+    private static func isAsleep(_ sample: HKCategorySample) -> Bool {
+        switch HKCategoryValueSleepAnalysis(rawValue: sample.value) {
+        case .asleepCore, .asleepDeep, .asleepREM, .asleepUnspecified:
+            return true
+        default:
+            return false
+        }
+    }
 
     func averageSleepHours(days: Int) async -> Double? {
         guard isAvailable else { return nil }
@@ -553,10 +561,7 @@ final class HealthKitService {
 
         do {
             let samples = try await descriptor.result(for: store)
-            let asleepSamples = samples.filter { sample in
-                let value = HKCategoryValueSleepAnalysis(rawValue: sample.value)
-                return value == .asleepCore || value == .asleepDeep || value == .asleepREM
-            }
+            let asleepSamples = samples.filter(Self.isAsleep)
             guard !asleepSamples.isEmpty else { return nil }
             // Merge overlapping intervals before summing — Apple Watch
             // plus a third-party tracker (Pillow, AutoSleep) both write
