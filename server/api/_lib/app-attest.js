@@ -71,6 +71,11 @@ const NONCE_EXTENSION_OID_DER = Buffer.from([
 
 const sha256 = (data) => createHash('sha256').update(data).digest();
 
+// Trust anchor for attestation chains. `APP_ATTEST_ROOT_CA_PEM`
+// exists for integration tests and staging only — production
+// deployments must leave it unset so the pinned Apple root applies.
+const defaultRootCA = () => process.env.APP_ATTEST_ROOT_CA_PEM || APPLE_APP_ATTEST_ROOT_CA_PEM;
+
 function fail(reason) {
   const err = new Error(reason);
   err.appAttest = true;
@@ -118,7 +123,7 @@ export function verifyAttestation({
   keyId,
   challenge,
   appId,
-  rootCAPem = APPLE_APP_ATTEST_ROOT_CA_PEM,
+  rootCAPem = defaultRootCA(),
 }) {
   const decoded = decodeCBOR(attestation);
   if (!(decoded instanceof Map) || decoded.get('fmt') !== 'apple-appattest') {
