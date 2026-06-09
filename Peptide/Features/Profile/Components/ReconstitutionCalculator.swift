@@ -1,22 +1,21 @@
 import SwiftUI
 
-/// Visual reconstitution calculator — the single biggest friction
-/// point for newcomers to research peptides. Powder comes in a
-/// vial (mg), gets reconstituted with bacteriostatic water (mL),
-/// and the user has to draw out an exact volume on a U-100 insulin
-/// syringe (units, where 100 units = 1 mL).
+/// Concentration / unit-conversion reference for reconstituted
+/// powder. Powder comes in a vial (mg), is reconstituted with
+/// bacteriostatic water (mL); the tool converts a target amount into
+/// the equivalent volume on a U-100 syringe (units, where 100 units =
+/// 1 mL) and surfaces the resulting concentration (mg/mL).
 ///
-/// The math itself is trivial: `units = (targetDose / (vialMg /
-/// waterMl)) × 100`. But getting the units right is where
-/// newcomers slip — units vs. mL vs. mcg vs. mg — and a visual
-/// syringe with the answer highlighted removes the doubt that
-/// otherwise sends them to YouTube or Reddit. Premium-feel touch:
-/// the syringe diagram animates the plunger position to the
-/// computed unit mark.
+/// The math is trivial: `units = (target / (vialMg / waterMl)) × 100`.
+/// The value is getting the units straight — units vs. mL vs. mcg vs.
+/// mg — which is a pure arithmetic conversion of the user's own
+/// inputs.
 ///
-/// This is a calculator, not a recommendation engine — the inputs
-/// are user-supplied, the disclaimer is explicit. The view stays
-/// agnostic about whether the user *should* take that dose.
+/// This is a converter, not a recommendation engine and not an
+/// administration instruction: inputs are user-supplied, the output
+/// is stated as an equivalence ("that amount equals N units"), never
+/// as a directive to inject, and the disclaimer is explicit. The view
+/// stays agnostic about whether the user should take anything.
 struct ReconstitutionCalculator: View {
     @State private var vialMilligrams: Double = 5
     @State private var bacWaterMilliliters: Double = 2
@@ -155,7 +154,10 @@ struct ReconstitutionCalculator: View {
 
     private var resultHeadline: some View {
         VStack(spacing: 4) {
-            Text("Draw to")
+            // Declarative equivalence, not an imperative "draw to" —
+            // the tool states what the user's inputs convert to, it
+            // does not instruct administration.
+            Text("Equivalent volume")
                 .font(.system(size: 12, weight: .semibold))
                 .tracking(0.6)
                 .textCase(.uppercase)
@@ -324,7 +326,7 @@ struct SyringeDiagram: View {
     private var accessibilityLabel: String {
         let units = Int(unitsToFill.rounded())
         return String(
-            localized: "Syringe diagram. Draw plunger to \(units) units on a 100-unit syringe.",
+            localized: "Syringe diagram. Equivalent volume: \(units) units on a 100-unit syringe.",
             comment: "VoiceOver readout for the reconstitution calculator's syringe diagram."
         )
     }

@@ -139,7 +139,7 @@ struct PaywallView: View {
         VStack(spacing: Spacing.md) {
             featureRow("Unlimited peptide stacks & cycles")
             featureRow("Half-life decay overlays for any stack")
-            featureRow("AI reconstitution calculator for every vial")
+            featureRow("Reconstitution calculator for every vial")
             featureRow("Protocol insights & shareable cycle cards")
         }
     }
