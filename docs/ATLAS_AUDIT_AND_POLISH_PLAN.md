@@ -193,7 +193,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
 
 ## Phase 3 — Error handling & resilience
 
-### 3.1 CloudKit sync status surface — `[ ]`
+### 3.1 CloudKit sync status surface — `[x]`
 **Files:** `Peptide/Services/SwiftDataRepository.swift:135-151`, Profile settings
 
 - [ ] Track whether the cloud or local container was used; expose a passive

@@ -1,5 +1,17 @@
+import CloudKit
 import Foundation
 import SwiftData
+
+/// User-facing iCloud sync condition, derived at container creation
+/// and refined on demand via `CKAccountStatus`. `.unavailable` covers
+/// container-open failures with an account present (quota, network,
+/// CloudKit outage); `.restricted` is parental controls / MDM.
+enum CloudSyncState: Sendable {
+    case active
+    case noAccount
+    case restricted
+    case unavailable
+}
 
 /// SwiftData-backed persistence for protocols, entries, and profile.
 /// Widget data stays in PersistenceService (requires App Groups / shared container).
@@ -35,17 +47,21 @@ final class SwiftDataRepository {
         let token = FileManager.default.ubiquityIdentityToken
         lastObservedIdentityToken = token
         let iCloudAvailable = token != nil
+        let cloudFailureState: CloudSyncState = iCloudAvailable ? .unavailable : .noAccount
         if iCloudAvailable, let ck = Self.makeCloudContainer() {
             container = ck
-            isCloudSyncEnabled = true
+            cloudSyncState = .active
         } else if let local = Self.makeLocalContainer() {
             container = local
+            cloudSyncState = cloudFailureState
         } else if let inMemory = Self.makeInMemoryContainer() {
             container = inMemory
             isUsingFallbackStore = true
+            cloudSyncState = cloudFailureState
         } else {
             container = nil
             isInoperable = true
+            cloudSyncState = cloudFailureState
             assertionFailure("SwiftDataRepository: both on-disk and in-memory ModelContainer creation failed")
         }
 
@@ -94,13 +110,14 @@ final class SwiftDataRepository {
         // doesn't see a half-initialised container.
         isInoperable = true
         container = nil
-        isCloudSyncEnabled = false
         isUsingFallbackStore = false
+        let cloudFailureState: CloudSyncState = current != nil ? .unavailable : .noAccount
+        cloudSyncState = cloudFailureState
 
         // Rebuild — same fallback chain as `init`.
         if current != nil, let ck = Self.makeCloudContainer() {
             container = ck
-            isCloudSyncEnabled = true
+            cloudSyncState = .active
             isInoperable = false
         } else if let local = Self.makeLocalContainer() {
             container = local
@@ -122,7 +139,30 @@ final class SwiftDataRepository {
         NotificationCenter.default.post(name: .peptideXiCloudIdentityChanged, object: nil)
     }
 
-    private(set) var isCloudSyncEnabled = false
+    private(set) var cloudSyncState: CloudSyncState = .unavailable
+
+    /// Kept for existing call sites (DataStore) — derived from
+    /// `cloudSyncState` so the two can't disagree.
+    var isCloudSyncEnabled: Bool { cloudSyncState == .active }
+
+    /// Container identifier — shared with `refinedCloudSyncState()`
+    /// so the account check looks at the same container the store
+    /// syncs to.
+    private static let cloudContainerID = "iCloud.com.peptidesai.app"
+
+    /// Refines a non-active state via `CKAccountStatus` so the
+    /// Profile indicator can tell "no iCloud account" apart from
+    /// "iCloud restricted" and from a genuine container failure
+    /// (quota, network, CloudKit outage) — audit 3.1.
+    func refinedCloudSyncState() async -> CloudSyncState {
+        guard cloudSyncState != .active else { return .active }
+        let status = try? await CKContainer(identifier: Self.cloudContainerID).accountStatus()
+        switch status {
+        case .noAccount: return .noAccount
+        case .restricted: return .restricted
+        default: return cloudSyncState
+        }
+    }
 
     /// Versioned schema declaration used by every container path
     /// below. Plan D scaffold — see `PeptideAtlasSchema.swift` for
@@ -134,7 +174,7 @@ final class SwiftDataRepository {
 
     private static func makeCloudContainer() -> ModelContainer? {
         do {
-            let config = ModelConfiguration(cloudKitDatabase: .private("iCloud.com.peptidesai.app"))
+            let config = ModelConfiguration(cloudKitDatabase: .private(cloudContainerID))
             let container = try ModelContainer(
                 for: versionedSchema,
                 migrationPlan: PeptideAtlasMigrationPlan.self,
