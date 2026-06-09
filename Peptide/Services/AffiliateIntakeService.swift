@@ -27,6 +27,12 @@ enum AffiliateIntakeService {
     /// treated as a fresh row and drained again.
     private static let lastDrainedAtKey = "affiliate.intake.drainedAt.v1"
 
+    /// True when this build carries a valid intake endpoint. The
+    /// apply sheet keys its transmission disclosure on this so users
+    /// are told their application leaves the device before they
+    /// submit — and aren't told so when it doesn't.
+    static var drainConfigured: Bool { destinationURL != nil }
+
     static func drainIfReady(_ application: AffiliateApplication?) async {
         guard let application else { return }
         guard let url = destinationURL else { return }

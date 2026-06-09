@@ -7,9 +7,10 @@ import SwiftUI
 /// (handle + channel + audience band + optional URL + optional
 /// notes) — a long form here would kill the conversion.
 ///
-/// Submission persists to `profile.affiliateApplication`. A future
-/// backend drain replays the row 1:1 to the application-intake
-/// endpoint; until then it's local-only.
+/// Submission persists to `profile.affiliateApplication`. When the
+/// build carries an intake endpoint, `AffiliateIntakeService` drains
+/// the row to it on next launch and the disclosure above Submit says
+/// so explicitly; in builds without one it stays local-only.
 struct AffiliateApplySheet: View {
     /// Pre-filled from the onboarding profile so the user doesn't
     /// re-type what we already have.
@@ -141,20 +142,32 @@ struct AffiliateApplySheet: View {
     }
 
     /// Small disclosure row above Submit so the user explicitly sees
-    /// that the form will piggy-back their onboarding name + email.
-    /// Originally the prefill happened silently inside submit() and
-    /// the security audit flagged it as a hidden-PII issue.
+    /// that the form will piggy-back their onboarding name + email —
+    /// and, when this build carries an intake endpoint, that
+    /// submitting transmits the application to Atlas. Submission with
+    /// that line visible is the informed-consent act the privacy
+    /// audit requires (2.3); without an endpoint the data stays
+    /// local, so the copy must not claim otherwise.
     private var prefillDisclosure: some View {
         let nameLine = userName.isEmpty ? nil : "Name: \(userName)"
         let emailLine = userEmail.map { "Email: \($0)" }
+        let hasPrefill = nameLine != nil || emailLine != nil
+        let lead = AffiliateIntakeService.drainConfigured
+            ? (hasPrefill
+                ? "Submitting sends your application to Atlas for review, including:"
+                : "Submitting sends your application to Atlas for review.")
+            : "We'll include:"
         return Group {
-            if nameLine != nil || emailLine != nil {
+            // With a live intake endpoint the disclosure must always
+            // render — the handle/channel/notes transmit even when
+            // there's no name/email prefill to itemise.
+            if AffiliateIntakeService.drainConfigured || hasPrefill {
                 HStack(alignment: .top, spacing: Spacing.sm) {
                     Image(systemName: "info.circle.fill")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("We'll include:")
+                        Text(lead)
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(AppColor.textSecondary)
                         if let nameLine {
