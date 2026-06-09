@@ -2239,9 +2239,11 @@ struct OnboardingView: View {
                     summaryRow(label: "Schedule", value: "\(daysPerWeek)× per week, \(timeOfDay.displayName.lowercased())")
                     summaryRow(label: "Program", value: recommendedProgramName)
                     if let attribution = creatorAttribution {
+                        // Attribution only — no percentage; the checkout
+                        // applies no discount (see CreatorCodeService).
                         summaryRow(
-                            label: "Discount",
-                            value: "\(attribution.discountPercent)% — via \(attribution.creatorName)"
+                            label: "Referral",
+                            value: "via \(attribution.creatorName)"
                         )
                     }
                 }
@@ -2398,7 +2400,9 @@ struct OnboardingView: View {
                 Text("Code applied")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("\(attribution.creatorName) gets credit — you get \(attribution.discountPercent)% off.")
+                // Attribution only — the checkout applies no discount,
+                // so promising "X% off" here would charge full price.
+                Text("\(attribution.creatorName) gets credit for bringing you to Atlas.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

@@ -89,7 +89,10 @@ struct CreatorAttributionPage: View {
     }
 
     private func successMessage(for attribution: CreatorAttribution) -> String {
-        "\(attribution.creatorName) gets credit + you get \(attribution.discountPercent)% off."
+        // Attribution only — do NOT promise a percentage off. The
+        // checkout applies no PromotionalOffer, so claiming a discount
+        // here charges full price and breaks trust post-purchase.
+        "\(attribution.creatorName) gets credit for bringing you to Atlas."
     }
 }
 
