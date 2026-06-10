@@ -26,7 +26,7 @@ agents report.
 | 5 | Services A | 40 | ✅ 40/40 |
 | 6 | Services B | ~37 | ⏳ |
 | 7 | Features/Home | 48 | ⏳ |
-| 8 | Features/Meals | 33 | ⏳ |
+| 8 | Features/Meals | 33 | ✅ 33/33 |
 | 9 | Features/Profile | 28 | ⏳ |
 | 10 | Features/Train | 24 | ⏳ |
 | 11 | Features/Protocols | 22 | ⏳ |
@@ -181,6 +181,37 @@ FoodSpotlightService, Logger, MealScannerService (prior fixes confirmed in place
 - `BackupImportService.swift:241` unreachable `.dryRun` `fatalError` arm is refactor-fragile.
 - `DoseLiveActivityService.swift:121` redundant `await MainActor.run` (already on the actor).
 - `AppAttestService.swift:108-144` GET-challenge and POST-register share one endpoint URL — fine if the server dispatches by method; **flagged uncertain**.
+
+---
+
+## Section 8 — Features/Meals (33/33 files)
+
+Clean: MealsContainerView, BarcodeScannerView, TodaysMealsCard, MealEntryRow,
+LogMealEntryPicker, the picker/category presentational cards, scanner
+feedback/overlay, the check-in cards, MealStreakBadge, SegmentedCalorieRing,
+LoggedCaloriePanel.
+
+**High**
+- **`BarcodeScanFlow.swift:971, 999` — OCR scans mis-attributed and may corrupt scan history.** An OCR-derived product (barcode prefixed `"ocr:"`) is tagged `.openFoodFacts` (it came from on-device Vision, not OFF), and `BarcodeScanHistory.recordLog` is then called with the `ocr:<uuid>` barcode — `normalize` expects 8-14 digit codes, so this can throw/corrupt the history actor. *Fix:* guard `ocr:` like `custom:` is guarded — tag `.manual` and skip `recordLog`.
+- **`FoodLibraryFlow.swift:1413-1469` — zero-calorie OFF product logs silently despite the warning.** `reviewMacros` shows a `zeroCaloriesPer100g` banner, but the "Add to today" button only disables on `loggable(for:) == nil`, which returns non-nil for a 0-kcal product → user logs a 0-macro entry into today's totals/rings. *Fix:* also gate the button on `!zeroCaloriesPer100g` (or return nil from `loggable` when all macros are 0).
+- **`RecipeLogConfirmSheet.swift:125` — recipe with deleted ingredients is unloggable with no recovery.** All-zero `totals` (ingredients since deleted) disables "Log to today" with no message; the only exit is Cancel. *Fix:* show an inline "ingredients missing — edit the recipe" warning and allow dismissal.
+
+**Medium**
+- **`MealScanFlow.swift:469-498` — duplicate library foods on multi-word names.** Dedup normalizes to `lowercased()` but stores the `.capitalized` name; a re-scan returning different casing for a multi-word food ("Banana Bread" vs "banana bread") fails the match and silently creates a duplicate. *Fix:* dedup and store against the same normalized key.
+- **`FoodLibraryFlow.swift:188-199, 399` — double OFF network call on submit.** Pressing Submit while the debounce sleep is in-flight fires both the debounced and the direct search; the result-guard dedupes display but still hits OFF's rate limit twice. *Fix:* cancel the in-flight debounce task on submit.
+- **`FoodLibraryFlow.swift:1632-1663` — search spinner flickers during rapid typing** because `defer { isSearching = false }` clears it for cancelled (replaced) tasks. *Fix:* only clear on the guard-passing completion path.
+- **`FoodLibraryFlow.swift:755-769` — evicted OFF favorites silently vanish** on the Favorites tab when there's no active search to repopulate the cache. *Fix:* surface "N favorites couldn't load."
+- **`ProgressPhotosCard.swift:61-63` — double-write race** stores two copies of one photo if the picker fires twice before `loadAndPersist` clears `pickerItem`. *Fix:* an `inFlightTask` guard like MealScanFlow.
+- **`BarcodeScanFlow.swift:104-111, 706-711` — auto-close double-`onClose()` window** (Undo at the timer boundary) and untracked concurrent OCR tasks on rapid photo picks (phase flash). *Fix:* add a `loggedSnapshot == nil` guard; store/cancel the OCR task.
+- **`NutritionTargetsEditor.swift:392-447` — `.zero` overloaded as "unset" sentinel** can auto-apply the recommendation over a user's real 0-calorie target, and Save is enabled at `calories: 0` (flat rings). *Fix:* use `Optional<NutritionTargets>` for "unset"; disable Save at 0 kcal.
+- `EditNutritionSheet.swift:67` / `CustomFoodEditorSheet.swift:53-59` — `.numberPad` blocks decimal correction; locale comma-decimal parse only works by accident of fallback ordering (try `Double(trimmed)` first).
+- `MealEntryEditorSheet.swift:88` delete dialog says "today's totals" even after a date edit to another day; no lower date bound (a 1900 entry pollutes all-time aggregates).
+- `RecipeEditorSheet.swift:263` / `RecipeComponentEditorSheet.swift:406` — deleted recipe ingredients silently undercount the live macro preview with no "(1 missing)" cue; `.wholePackage` components have no edit-to-grams affordance.
+
+**Low / Consider**
+- `OutcomeCorrelationCard.swift:23` hardcodes a `+` prefix so a negative delta renders "+−0.8" — adopt `BiometricCorrelationCard`'s signed formatting.
+- `MacroSummaryRow.swift:31` water target hardcoded 100oz (≈3L, excessive for a 60kg user) — future NutritionTargets expansion.
+- `WeightLogSheet.swift:72` whitespace-stripping parse turns "7 0 5" into 705kg; `WeightTrackingCard.swift:204` "this week" delta spans two weeks when the last entry is stale.
 
 ---
 
