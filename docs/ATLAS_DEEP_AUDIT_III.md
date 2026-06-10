@@ -28,10 +28,10 @@ agents report.
 | 7 | Features/Home | 48 | ✅ 48/48 |
 | 8 | Features/Meals | 33 | ✅ 33/33 |
 | 9 | Features/Profile | 28 | ✅ 28/28 |
-| 10 | Features/Train | 24 | ⏳ |
-| 11 | Features/Protocols | 22 | ⏳ |
-| 12 | Features/Biology+Labs+Library+Database | 26 | ⏳ |
-| 13 | Features/Onboarding+Habits+AIResearch+Auth+Sharing+WeeklySummary | 32 | ⏳ |
+| 10 | Features/Train | 24 | ✅ 24/24 |
+| 11 | Features/Protocols | 22 | ✅ 22/22 |
+| 12 | Features/Biology+Labs+Library+Database | 26 | ✅ 26/26 |
+| 13 | Features/Onboarding+Habits+AIResearch+Auth+Sharing+WeeklySummary | 32 | ✅ 32/32 |
 | — | server/ | 9 | ✅ covered by Deep Audit I & II |
 
 ---
@@ -274,6 +274,100 @@ PrivacySummaryView (claims-vs-drains now resolved), TravelModePromptSheet.
 - `ScreenshotModeRow.swift:26` + `WeeklySummaryToggleRow.swift:29-88` — Toggle-inside-Button dual mutation paths are structurally redundant (don't double-fire today, fragile under a press-style wrapper); consolidate to the Toggle binding.
 - `ExportSection.swift:5` reads `StoreService.shared.isProUser` unobserved (works via paywall-dismiss re-render; make `@State` explicit).
 - `AppearanceSettings.swift:72` hardcodes "Dark" appearance value; `ReconstitutionCalculator.swift:240` integer test via `truncatingRemainder` is float-fragile; `DiagnosticsSection.swift:79` use `.first` not `[0]`; `AccountSection.swift:20` cloud-sync row is a one-shot snapshot (document).
+
+---
+
+## Section 10 — Features/Train (24/24 files)
+
+Clean: BodyAnatomy, TrainNavigation, ExerciseRow, the chip rows, MuscleHistorySheet.
+
+**High**
+- **`WorkoutExerciseCard.swift:72` — SwiftData fetch up to 10×/sec per exercise.** `previousSetLookup()` runs in a `@ViewBuilder` evaluated every render; with the rest timer at 10Hz and N exercise cards, that's 10·N `loadWorkoutSessions()` fetches/second (amplifies B6). *Fix:* parent precomputes a `[exerciseID: SetEntry]` once and passes it in; or cache in `@State` keyed on `entry.id`.
+- **`TrainOverviewView.swift:54-57` — overview goes stale after finishing a workout.** `refresh()` only runs on mount/pull; the promised post-finish broadcast was never added, so "Recent workouts" and the muscle heatmap don't update until you leave and return. *Fix:* `.onChange(of: sessionService.activeSession?.id)` → `refresh()` on the non-nil→nil transition.
+
+**Medium**
+- **`WorkoutHistoryView.swift:27` — nested `NavigationStack`** inside TrainContainerView's stack → double back button / broken hierarchy on iOS 18. *Fix:* drop the inner stack (outer already registers the destination). *(Same nested-stack class as ProtocolBuilder §11.)*
+- **`ExerciseImageView.swift:114 — `guard image == nil` blocks reload** when the view instance is recycled for a new `url`, showing the previous exercise's image. *Fix:* reset `image = nil` at the top of `load()`.
+- **`RestTimerOverlay.swift:160 — ring jumps backward on +15** because `totalSeconds` isn't extended when `targetEnd` is pushed out. *Fix:* extend `totalSeconds` by the delta.
+- **`ActiveWorkoutView.swift:113 — stranded on nil finish.** If `finishWorkout()` returns nil the alert dismisses with no active session and no finish screen. *Fix:* `else { dismiss() }`.
+- **`WorkoutDetailView.swift:43-53 — misleading legacy label.** `entryFromSession` renders "9×6" (total-sets × avg-reps) which reads as "9 sets of 6"; integer-division avg also lossy. (Legacy adapter, now under Train.)
+- Per-render recompute (memoize via `@State`/`.task`): `WorkoutHistoryView.swift:108` (`Dictionary(grouping:)`+sorts), `WorkoutFinishView.swift:20` / `WorkoutSessionDetailView.swift:16` / `ExerciseDetailView.swift:13` (`library.lookup` per exercise, re-fires on any `@Observable` library change), `TrainingCalendarGrid.swift:332`; `TrainContainerView.swift:153` full fetch on every NavigationLink resolve (pass the value through the enum).
+- `ExercisePickerSheet.swift:53` fire-and-forget `library.load()` race shows raw exercise ID until reload; `CustomExerciseEditorSheet.swift:110` double-tap Save mints two IDs (memoize in `@State`).
+
+**Low**
+- `WorkoutSessionDetailView.swift:146` "X sets" header counts warmups (wrong number vs the working-set-filtered finish screen); `RestTimerState` `completeNow()`==`cancel()` (one is redundant/comment wrong); `ExerciseImageView.swift:80` dead `didStart`; `SetEditorRow.swift:139` raw color literal; `WeeklyMuscleHeatmap.swift:45` includes unfinished sessions; `SetEntry.swift:72` Epley vs Brzycki for low-rep PRs (document); `ActiveWorkoutView`/`RestTimerOverlay` stored-`let` `Timer.publish` is fragile if SwiftUI re-creates struct fields (prefer `@State`/`.task`).
+
+---
+
+## Section 11 — Features/Protocols (22/22 files)
+
+**High — data loss (corroborates §1)**
+- **`setPeptideSchedule` (`DataStore.swift:596-604`, called from `ProtocolDetailView.swift:291`) permanently erases logged doses.** Editing a peptide's schedule strips today's entries and regenerates *without* the `completedToday` preservation `updateProtocol` has — losing `completed`/`actualDose`/`actualTime`/`injectionSite`/`notes`. Worse, the removed entries are added to `pendingEntryDeletions`, so the CloudKit copy is deleted too and a restore can't recover them. *Fix:* extract `updateProtocol`'s preservation merge into a shared helper, call it here, and exclude logged IDs from the deletion set. *(Two agents converged on this — §1 found the omission, §11 found the call site + CloudKit angle. Upgraded to High.)*
+
+**Medium**
+- **`DoseDayMap.swift:85,105 — calendar ignores per-peptide schedule overrides.** Uses `proto.schedule` (protocol default) for every peptide, so a custom-scheduled peptide shows dots on the wrong days and the wrong dose/time. *Fix:* `proto.schedule(for: peptide.id)`.
+- **`DoseDayMap.swift:130` + `CycleBands.swift:77 — washout weeks shown as active.** `isDayInCycle`/`isProtocolActive` use only the on-cycle length, so an 8-on/4-off protocol shows scheduled dots and a continuous band through washout weeks 9-12. *Fix:* window = `(cycle+washout)*7` with an on-cycle-portion check.
+- **`ProtocolBuilderView.swift:136,166 — nested `NavigationStack` + duplicate destinations** inside a sheet → community-stack push lands in a modal with no Back/Cancel. *Fix:* drop the inner stack (outer ProtocolListView already registers both) or use separate sheets.
+- **`ProtocolListView.swift:136 — unconditional "Done"** is a no-op when the view is a tab root rather than a sheet. *Fix:* gate on an `isModal` flag.
+- **`ProtocolsStackHealthSection.swift:75 — uncancelled `Task.sleep` chain** opens the adjustment sheet on a stale warning if the user navigates away first.
+- **`ScheduleEditor` — `intervalAnchor` not user-editable**; "Every N days" always anchors to `Date()` at builder-open with no correction path. *Fix:* expose a `DatePicker` or default to `startDate`.
+- **`ProtocolBuilderView.swift:46 — silent dismiss** when every appended peptide already exists (no feedback); **`:709` `generateDefaultTimes` is dead code.**
+
+**Low / Consider**
+- `ProtocolDetailView.swift:277` registers `navigationDestination(for: Peptide.self)` on a pushed view (shadow hazard); `:192/:206` duplicate `.sectionAppear(index: 4)`; `PeptideScheduleSheet.swift:240` duplicate `accessibilityLabel`; `ProtocolNotesTimeline.swift:176` context-menu delete has no confirmation (the edit-sheet path does); `TrackCalendarSection.swift:30` recomputes `DoseDayMap.build` + bands every body pass (memoize).
+
+---
+
+## Section 12 — Biology + Labs + Library + Database (26/26 files)
+
+Clean: BiologyConfig, EditBiomarkersSheet, BioAgeParticleCluster,
+BiomarkerSparkline, CommunityStackCard, AddToStackSheet, DosageInfoSection,
+PeptideRow, CategoryFilterChips. **Verified resolved:** LabsView modal now has
+a Done button; PeptideListView iPad stale detail pane is fixed; `Biomarker`'s
+conversion helpers are correct (the gap is in consumers — see below).
+
+**High**
+- **`BioAgeHeroSection.swift:169` — building-state shows a wrong "N of 3 signals connected" count.** `buildingLabel` multiplies `progress` by 3 treating it as a signal-fraction, but the resolver now emits `dataDays / 7` (a days fraction) — two comments in the file directly contradict each other. A user with 4/7 days sees "2 of 3 signals connected" regardless of which HealthKit types actually responded. *Fix:* render "N of 7 days of data" from `BioAgeStateResolver.minBaselineDays`.
+- **A4 render sites pinned (extends the deferred A4).** `BiomarkerRow` subtitle via `BiomarkerSeriesService.changeText` (`:229` uses `biomarker.unit`, metric-only) and `BiomarkerDetailSheet.swift:79,313` (hero number + delta) both render metric for imperial users ("72.0 kg" not "158.7 lb"). This is exactly the multi-file unit-threading I flagged A4 needs — thread `MeasurementUnit` through `BiomarkerSeriesService.snapshots`→`changeText`/`formatValue` and into the detail sheet, applying `displayValue`/`displayUnit`. (Watch the temperature-delta offset noted in A4.)
+
+**Medium**
+- `BioAgeHeroSection.swift:116 — unlocked bio-age number has no `accessibilityValue`** for younger/older (confirms C14); VoiceOver gives only the number.
+- `LabsView.swift:153 — context-menu "Delete latest" has no confirmation** unlike every other delete path (the edit-sheet path confirms). *Fix:* `.confirmationDialog`.
+- `BiomarkerDetailSheet.swift:176-252 — 90-day chart axis labels** render as raw "76d/62d" for most 14-day-stride ticks (`dayLabel` only special-cases 6 offsets); and `:56` `.task` guard `historicalSnapshot == nil` blocks re-fetch on re-present (use `.task(id: biomarker)`).
+- `LabPanelDetailView.swift:201 — `chartXStride` uses `.weekOfYear` for all spans ≤180 days** → near-empty axis for users with a couple of draws; add a `≤14 → .day` case.
+- `BiomarkerListSection.swift:65 — `.task(id: visibleBiomarkers.hashValue)`** relies on non-contractual hash stability; key on the values directly.
+- `StackLibraryView.swift:8 — per-keystroke filter** scans `peptideAbbreviations` inline in computed vars; move to an `@Observable` VM with `didSet` (like `PeptideListViewModel`).
+- `CommunityStackDetailView.swift:63 — peptides resolved twice** (cache + inside `buildPreviewProtocol`) so the preview card and peptide list can diverge.
+- `PeptideDetailView.swift:296 — `navigationDestination(for: PeptideProtocol.self)` declared deep inside a `ScrollView`** rather than at the stack root (undefined if a sibling destination exists).
+
+**Low / Consider**
+- `BioAgeDial.swift:151` / (and `LabEntryEditor.swift:41` `String(value)` scientific-notation risk) — formatter allocations / number formatting; `PeptideListViewModel.swift:50` `localizedCaseInsensitiveContains` per keystroke (pre-lowercase index); `ResearchLinksSection.swift:23` divider keyed on possibly-duplicate `id`; `CommunityStackDetailView.swift:288` auto-dismiss `Task.sleep` on a possibly-dismissed view; `LabsView.swift:137` `.preferredColorScheme(.dark)` on a section rather than the stack root.
+
+---
+
+## Section 13 — Onboarding + Habits + AIResearch + Auth + Sharing + WeeklySummary (32/32 files)
+
+Clean: WhatsNewPage, HabitRowCard, CycleMilestonePromptSheet, EmailCapturePage,
+ConsistencyChart, HeroIcon/HeroLogo, NotificationPreviewCard, OnboardingBackground,
+ReadyHero, ThemeChoicePage, DailyTargetsPage (logic).
+
+**Dead code — verified (6 files, 0 external refs; instantiated only in their own `#Preview`)**
+`CreatorAttributionPage`, `RecommendationsPage`, `OnboardingProgressBar`,
+`WelcomeFeatureBadge`, `AddMedicationPreviewPage`, `DailyTargetsPage` under
+`Features/Onboarding/Components/` — the live onboarding uses inline equivalents.
+Same pattern as the Insights cluster deleted in Phase 8.1. *Fix:* delete all six.
+
+**Medium**
+- **`CycleCardView.swift:356 — force-unwrap `UnicodeScalar(65 + idx)!` over the unbounded peptide list** in the accessibility label (the visual row is `.prefix(4)`-capped, the a11y loop isn't); semantically wrong past 26 compounds, invalid scalars past ~191. *Fix:* cap to 26, drop the force-unwrap.
+- **`OnboardingView.swift:331/343 + 339/369 — duplicate `.onAppear` and `.onChange(of: page)`** on the root ZStack; framework-undefined ordering means the funnel can log the wrong step name on a resumed cold launch. *Fix:* merge each pair.
+- **`OnboardingView.swift:2206 — `requestHealth()` `Task` lacks `@MainActor`** (the sibling `requestNotifications()` has it) — Swift 6 isolation gap. *Fix:* `Task { @MainActor in … }`.
+- **`AIResearchView.swift:257 — verify the `replyStream(history:newUserPrompt:)` contract** — `priorHistory` drops the just-appended user turn on the assumption the service re-adds it; if it doesn't, the user's question is silently omitted from context every turn. *Flagged uncertain — needs a test.*
+- **`HabitHeatmap.swift:63 — `DateFormatter` allocated per render** in `monthLabels`; **`HabitEditSheet.swift:346`** empty `weekdays` silently expands to all days on save (data-inconsistency masked).
+- **`CycleCardModel.swift:97 — `forStack` doesn't normalize `earliestStart` to start-of-day** (unlike `forProtocol`), so cycle-day can be off by one across timezones.
+- **`ShareCardSheet.swift:171 — `try?` swallows render failure** → "Rendering…" spinner stuck forever; **`CycleCardView.swift:374`** rebuilds `CIContext`+QR every render (QR is a constant — hoist to `static let`).
+
+**Low / Consider**
+- `WeeklySummaryDetailView.swift:40` + `ShareCardSheet`/`refreshPreview` + `WhatsNewTourSheet:313` + `TrialOfferView:175` — uncancelled `Task`s/animations on dismiss (cosmetic, pattern-wide); `AIResearchView.swift:282` O(n) `lastIndex` per streaming chunk; `LockScreenView.swift:57` immediate biometric prompt before render; `BodyMetricsPage.swift:237` imperial-inches `% 12` truncation (round); `OnboardingView.swift:1604` uses `UIAccessibility.isReduceMotionEnabled` directly instead of the environment; `ShareCardRenderer.swift:39` writes PNG to `temporaryDirectory` (prefer caches); `PastWeeksSection.swift:92` deleted-summary placeholder renders empty with no "no longer available" state; `AffiliateApplySheet.swift:159` hides the data-egress disclosure entirely when no prefill.
 
 ---
 
