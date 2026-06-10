@@ -372,3 +372,77 @@ Same pattern as the Insights cluster deleted in Phase 8.1. *Fix:* delete all six
 ---
 
 _Sections are appended below as each agent completes._
+
+---
+
+## Cross-section synthesis & priorities
+
+12 of 13 sections complete (~472 files; Section 6 / Services B pending and
+will be folded in). This pass was a coverage sweep, so most findings are
+Medium/Low; the list below is the net-new signal worth acting on, ranked.
+
+### Net-new ship-blockers (ranked)
+
+1. **Logged-dose data loss on schedule edit** (§1+§11, two agents converged)
+   — **FIXED this session.** `setPeptideSchedule` erased completions and
+   queued them for CloudKit deletion.
+2. **Paywall charges an ineligible user full price** (§9) — trial
+   eligibility defaults `true`, so "Get started for free" can show before
+   products load and the tap bills full annual. Plus the Lifetime plan
+   shows subscription auto-renew copy (App Store 3.1.2(a)). Money +
+   compliance — fix before submission.
+3. **OCR scans corrupt scan-history** (§8) — `ocr:` barcodes flow into
+   `BarcodeScanHistory.recordLog`, which expects numeric codes; also
+   mis-attributed as OpenFoodFacts.
+4. **Zero-calorie products log past their own warning** (§8) — wrong
+   macros enter today's totals.
+5. **Wrong Bio-Age "N of 3 signals" label** (§12) — a days-fraction is
+   rendered as a signal count.
+6. **Silent export failure** (§9) — CSV/JSON write failures give the user
+   no feedback.
+7. **Imperial users see metric numbers/labels** (§12 pinned the exact A4
+   render sites: `BiomarkerSeriesService.changeText` + `BiomarkerDetailSheet`).
+
+### Cross-cutting patterns (fix the cause, not each instance)
+
+- **Work in `body`** — formatter allocations and O(n) scans/sorts on every
+  render across Home/Profile/Biology/Train/Protocols (extends A6 well
+  beyond HomeView). Pattern fix: hoist formatters to `static let`; compute
+  snapshots into `@State`/`let` once.
+- **Uncancelled `Task`/animations on dismiss** — pervasive (Home, Train,
+  Onboarding, Sharing, WeeklySummary); cosmetic individually, systemic in
+  aggregate. Adopt a stored-task cancel-on-`onDisappear` idiom or `.task(id:)`.
+- **Nested `NavigationStack`s** — WorkoutHistoryView (§10) and
+  ProtocolBuilderView (§11) nest inside an outer stack → double back button
+  / modal dead-ends on iOS 18.
+- **`Toggle`-inside-`Button` dual mutation paths** — ScreenshotModeRow,
+  WeeklySummaryToggleRow (§9); consolidate to the Toggle binding.
+- **Hardcoded `"HH:mm"` / `DateFormatter` formats** ignore the 12/24-hour
+  locale (§7, others).
+- **Imperial-unit gap (A4)** is broader than weight — height (§9), temp,
+  waist; all the render sites are now enumerated.
+- **Dead code** — 6 onboarding components (**deleted this session**), plus
+  dead DesignSystem primitives (§4: GlassCardModifier, GlassStatPill) and
+  service helpers.
+
+### Fixed from the sweep this session
+
+- Logged-dose preservation in `setPeptideSchedule` (+ the CloudKit-deletion
+  gap that also affected `updateProtocol`).
+- Deleted 6 verified-dead onboarding components.
+- `flag.checkered` SF Symbol (blank icon) + negative reminder-count guard.
+
+### Correction to a prior finding
+
+§1's "`updateProtocol` dedup matches `peptide.id` alone → loses the second
+`timesPerDay:2` dose" was a **misread** — the dedup also matches minute
+granularity (`DataStore.swift:550`), so it's correct. The real bug was the
+missing preservation in `setPeptideSchedule` (now fixed).
+
+### Recommendation
+
+The branch is now very large and entirely unreviewed. The highest-leverage
+move remains: **open the PR, get CI green, and work the ranked ship-blockers
+above** (paywall + OCR/zero-cal data + Bio-Age label) — not another audit
+pass. The per-render and uncancelled-task patterns are best handled as
+focused refactors in a compile-capable session, not blind.
