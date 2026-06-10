@@ -25,9 +25,9 @@ agents report.
 | 4 | DesignSystem | 40 | ✅ 40/40 |
 | 5 | Services A | 40 | ✅ 40/40 |
 | 6 | Services B | ~37 | ⏳ |
-| 7 | Features/Home | 48 | ⏳ |
+| 7 | Features/Home | 48 | ✅ 48/48 |
 | 8 | Features/Meals | 33 | ✅ 33/33 |
-| 9 | Features/Profile | 28 | ⏳ |
+| 9 | Features/Profile | 28 | ✅ 28/28 |
 | 10 | Features/Train | 24 | ⏳ |
 | 11 | Features/Protocols | 22 | ⏳ |
 | 12 | Features/Biology+Labs+Library+Database | 26 | ⏳ |
@@ -212,6 +212,68 @@ LoggedCaloriePanel.
 - `OutcomeCorrelationCard.swift:23` hardcodes a `+` prefix so a negative delta renders "+−0.8" — adopt `BiometricCorrelationCard`'s signed formatting.
 - `MacroSummaryRow.swift:31` water target hardcoded 100oz (≈3L, excessive for a 60kg user) — future NutritionTargets expansion.
 - `WeightLogSheet.swift:72` whitespace-stripping parse turns "7 0 5" into 705kg; `WeightTrackingCard.swift:204` "this week" delta spans two weeks when the last entry is stale.
+
+---
+
+## Section 7 — Features/Home (48/48 files)
+
+Many files clean (HomeContainerView, the picker/grid presentational cards,
+PersonalRangeIndicator, ProtocolScoreCard, StackCompletenessCard,
+TodayScheduleCard, SectionAnchorTracker). The findings cluster into four
+themes; the HomeView `body`-work itself is already A6.
+
+**Real bugs**
+- **`SmartCyclePlannerCard.swift:74` — invalid SF Symbol renders blank.** `"checkered.flag"` isn't a symbol; it's `"flag.checkered"` (used correctly in GoalCountdownCard). *Fix:* rename.
+- **`TodayTimelineCard.swift:108` (and `WeeklySummaryHeroCard`, others) — hardcoded `"HH:mm"` ignores the 12/24-hour locale setting.** *Fix:* `.dateTime.hour().minute()` / `timeStyle = .short`.
+- **`NotificationIssueBanner.swift:32` — negative reminder count string** when `scheduled > requested`. *Fix:* `max(0, …)`.
+- **`CycleTransitionCard.swift:17` — `Divider().foregroundStyle(…)` is a no-op** (Divider ignores it); the intended hairline never tints.
+- **`BiometricCard.swift:108` — possibly-dead `.neutral` direction arm** — verify against `HealthRangeService.Direction`.
+
+**Medium — per-render cost (extends A6 beyond HomeView)**
+Formatters allocated inside render/build paths: **`TodayOverviewSnapshot.swift:183`** (`NumberFormatter()` every `build`, called per HomeView body pass), **`WeeklySummaryHeroCard.swift:329`** (two formatter pairs per ready-card render). O(n) scans / sorts in `body`: **`HomeMealsSection.swift:87`** (`mealsByCategory()`+`mealEntries()`), **`HomeWellnessSection.swift:21`** (`outcomeHistory` filter, 700+ entries), **`AchievementsPreviewCard.swift:14`** (sort), **`ProfileStacksCard.swift:19`** (sort), **`HabitsHomeCard.swift:160`** (`chip(for:)` re-runs `summary`+`weeklyProgress` per chip, ignoring the cached `todaySummaries` — ~16 scans/render), **`HomeMovementSection.swift:15`** (`workoutSummary()` called twice). *Fix pattern:* hoist formatters to `static let`; compute snapshots into `@State`/`let` once.
+
+**Medium — unstructured tasks & stale state**
+- **`HomeView.swift:568, 559` — `onAppear`/`onChange` spawn unstored `Task`s** (hero/health/summary loads, score-change); tab re-entry stacks up to 6 concurrent HealthKit queries. *Fix:* one stored cancel-and-replace `Task`/`.task(id:)`.
+- **`DoseLoggingSheet.swift:17` — state seeded from `entry` at `init`** is stale if the sheet is reused for a different entry without `.id(entry.id)` (latent; today it's one-at-a-time).
+- **`TodayContextRow.swift:68`, `WeeklyProgressCircles.swift:26` — `Date()` called inside `body`** → "Day N"/today-highlight lag across midnight; thread the parent's `date` down instead.
+- **`HealthSummaryCard.swift:50` — `.task` with no `id:`** never re-fires after a HealthKit grant on re-appear.
+- `HeroMetricTrio.swift:68` empty→full snapshot flicker could fire the adherence-crossing haptic spuriously; `StackAdjustmentSheet.swift:122` `onChange(of: diff.removed…)` recomputes the full diff in the comparator; assorted cosmetic uncancelled animation tasks (StreakCounterView, WelcomeHeader, AchievementToastView).
+
+**Should Fix — organizational: 10 components misfiled under `Features/Home/Components/`** but rendered only by other tabs — `HealthSummaryCard`, `StackWarningCard`, `StackCompletenessCard`, `CycleTransitionCard`, `StackAdjustmentSheet`, `StackAlertDetailSheet`, `SmartCyclePlannerCard`, `RecommendedPeptidesCard` (Protocols), `HomeMealsSection` (Meals), `VialShelfCard` (ProtocolList). A dev looking under `Features/Protocols/` misses all of them. *Fix:* migrate to their host feature dirs.
+
+**Low / Consider**
+- Dead injected deps: `AchievementToastView.swift:7` (`DataStore`), `CycleCompletionPromptSheet.swift:19` (`dismiss`), `AvatarPreset.swift:94` (`_ = rect`).
+- `TodayJumpBar.swift:142` hardcoded RGB gradient bypasses the theme; `StackAlertDetailSheet.swift:26` button label by `title.contains(...)` string-matching is localization-hostile; `RecommendedPeptidesCard.swift:97` `ForEach` keyed by `\.offset`.
+- `ProfileCustomizationSheet.swift:281` `isSourceTypeAvailable(.camera)` in a ViewBuilder (precompute in `@State`); `:768` parameter shadowed by same-name `store`.
+- `HomeStickyHeader.swift:90` re-hashes raw JPEG bytes per render via `AvatarImageCache` (ties to §5's High avatar-cache key finding).
+
+---
+
+## Section 9 — Features/Profile (28/28 files)
+
+Clean: GoalsSectionCard, AboutSection, AchievementsSection, CycleCardShareSection,
+HealthConnectionCard, LabsEntryCard, the badge/mockup/toolbar/entry tiles,
+PrivacySummaryView (claims-vs-drains now resolved), TravelModePromptSheet.
+
+**High — money & data**
+- **`PaywallView.swift:64-69` + `StoreService.swift:18-19` — trial eligibility defaults `true`, so an ineligible user can be charged full price.** Before `loadProducts()` resolves, the CTA reads "Get started for free"; a user who already used their trial and taps in that window is charged the full annual price immediately. *Fix:* default both flags `false`, set true only after `isEligibleForIntroOffer`; show "Continue"/skeleton until products load.
+- **`PaywallView.swift:587-635` — auto-renew disclosure wrongly applied to the Lifetime (one-time) plan** — "Subscription auto-renews… cancel in Settings" is factually wrong for a non-subscription and is an App Store 3.1.2(a) accuracy/rejection risk. *Fix:* make the disclosure (and the "Cancel any time" subCTA at `:533`) conditional on the selected product being a subscription.
+- **`PaywallView.swift:686-696` — `restore()` has no in-flight guard**; the footer button and the error-banner retry can both fire concurrent `AppStore.sync()` + `updatePurchasedProducts()`. *Fix:* an `isRestoring` flag symmetric with `isPurchasing`.
+- **`ExportSection.swift:78-90, 152-178` — silent export failure.** When `writeCSV`/`writeJSON` return `nil` (disk full / sandbox error) the `if let url` simply no-ops, no error set, no share sheet — the user believes the export worked. (Only the PDF path has a `do/catch`.) *Fix:* add the `else { exportError = … }` to every write block.
+
+**Medium**
+- **`PaywallView.swift:64-69` — no auto-dismiss when already Pro.** A user who upgraded on another device still sees the paywall; after `loadProducts()` check `isProUser` and `dismiss()`.
+- **`ReconstitutionCalculator.swift:88-93` — dose can exceed one syringe with no warning.** The 50-10,000mcg range allows >100 U-100 units; the diagram silently pegs at full and `dosesPerVialString` shows "0 doses/vial". *Fix:* warn when `unitsOnSyringe > 100`. (Also reinforces the A2 framing — keep it a converter with honest bounds.)
+- **`BodyMetricsCard.swift:77` — imperial height shown as decimal inches** ("71 in") instead of `5'11"`. *Fix:* feet+inches for imperial. (Same units family as A4.)
+- **`AppearanceSettings.swift:111-130` — denial path double-persists and double-cancels** via the `onChange` chain plus inline calls; consolidate to one mutation path.
+- **`RestoreBackupSheet.swift:249-272` — bare `Task`+`try?` sleep runs against a dismissed sheet**; `BackupImportService.apply` can fire post-dismiss. *Fix:* cancellation check / `.task` lifecycle.
+- **`AccountSection.swift:38-39` — "Try Again" re-launches the Apple ID sheet even on user-canceled sign-in.** Suppress retry for `.canceled`.
+- **`ProfileView.swift:142` — `memberDuration` shows "1 month" for a future `memberSince`** (mis-dated restore); `max(0, …)`.
+
+**Low / Consider**
+- `ScreenshotModeRow.swift:26` + `WeeklySummaryToggleRow.swift:29-88` — Toggle-inside-Button dual mutation paths are structurally redundant (don't double-fire today, fragile under a press-style wrapper); consolidate to the Toggle binding.
+- `ExportSection.swift:5` reads `StoreService.shared.isProUser` unobserved (works via paywall-dismiss re-render; make `@State` explicit).
+- `AppearanceSettings.swift:72` hardcodes "Dark" appearance value; `ReconstitutionCalculator.swift:240` integer test via `truncatingRemainder` is float-fragile; `DiagnosticsSection.swift:79` use `.first` not `[0]`; `AccountSection.swift:20` cloud-sync row is a one-shot snapshot (document).
 
 ---
 
