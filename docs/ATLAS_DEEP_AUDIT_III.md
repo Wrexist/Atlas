@@ -23,7 +23,7 @@ agents report.
 | 2 | Models | 28 | ✅ 28/28 |
 | 3 | Data + Shared + Watch/Widgets | 25 | ✅ 25/25 |
 | 4 | DesignSystem | 40 | ✅ 40/40 |
-| 5 | Services A | ~38 | ⏳ |
+| 5 | Services A | 40 | ✅ 40/40 |
 | 6 | Services B | ~37 | ⏳ |
 | 7 | Features/Home | 48 | ⏳ |
 | 8 | Features/Meals | 33 | ⏳ |
@@ -149,6 +149,38 @@ deduped out below. New, distinct findings:
 - `GlassEffectCompat.swift:17` two `liquidGlass` overloads → consolidate with defaults.
 - Reduce-motion guards missing on `GlassPressStyle`, `FadeSlideModifier`, `PulseModifier` (fold into B5); raw `system(size:)` in `GlassEntryRow`/`GlassTextField`/`EmptyStateView`/`PremiumPromoCard` (fold into A9). `PremiumPromoCard` BrandGlyphMark placeholder already Phase 7.
 - `AppTheme.swift` `DisplayMode.light` carries dead surface area behind the force-clamp (already Phase 5.2).
+
+---
+
+## Section 5 — Services A (40/40 files)
+
+Clean: Affiliate, BarcodeProductCache, BioAgeStateResolver, BiometricService,
+CreatorCodeService, DataServiceProtocol, DrainEndpoint, EntryGrouping,
+FoodSpotlightService, Logger, MealScannerService (prior fixes confirmed in place).
+
+**High**
+- **`AvatarImageCache.swift:25` — wrong avatar can be returned.** The NSCache key is `data.hashValue`, which is per-process randomized *and* not collision-resistant — two different images can collide and the cache returns the wrong one. *Fix:* key an `NSCache<NSData, UIImage>` on the `Data` itself, or hash with a stable collision-resistant digest (e.g. SHA-256 prefix).
+
+**Medium**
+- **`HealthKitService.swift:638` — DST off-by-one in `dailyQuantity`.** End date is `startOfDay + 86_400` (hardcoded seconds); on a 23h/25h DST day the window is wrong. *Fix:* `calendar.date(byAdding: .day, value: 1, to: startOfToday)`.
+- **`ExerciseLibrary.swift:65` — fatal trap on duplicate exercise IDs.** `Dictionary(uniqueKeysWithValues:)` crashes if `exercises.json` ever has a dup id (bad OTA/edit). *Fix:* `uniquingKeysWith: { first, _ in first }`.
+- **`CommunityStackService.swift:64` — synchronous bundle load on `@MainActor init`** blocks startup decoding a few-hundred-KB JSON. *Fix:* move to `Task.detached`/lazy like `ExerciseLibrary` does.
+- **`NotificationService.swift:175-179` — cold-start notification budget undercount.** `reservedSlots` reads the in-memory `currentIDs` tracker, empty before `reconcilePendingState`, so dose reminders can consume all 64 slots and habit reminders silently fail. *Fix:* call `reconcilePendingState()` before the first `scheduleNotifications`, or count live pending requests.
+- **`NutritionLabelOCR.swift:281` — regex recompiled per line.** `NSRegularExpression(pattern:)` is built fresh in `firstNumber`, called 30-50× per label scan. *Fix:* cache as `private static let`.
+- **`ExportService.swift:41` — `DateFormatter` allocated every `monthlyBuckets` call.** Hoist to `private static let`.
+- **`BiometricCorrelationEngine.swift:113` — mean for on/off-dose HRV** lets one sick-day outlier flip a finding's direction. *Fix:* median (matches the rest of the pipeline). (Related to B16/B17.)
+- **`LocalizationManager.swift:5` — `@unchecked Sendable` + `didSet` writes UserDefaults** with no isolation (already B9); confirm all write sites are `@MainActor`, then annotate `@MainActor`.
+
+**Low / Consider**
+- `AIResearchService.swift:211` redundant `?? nil` on a double-optional (use `.flatMap`); `:358` `maxHistoryTurns=39` sends 40 total — confirm the server cap is inclusive.
+- `AchievementService.swift:36` saves the whole array on every check even when nothing unlocked — gate on a dirty flag (hot path via DataStore.save).
+- `BiomarkerSeriesService.swift:116` `weightSnapshot` uses count-based `.suffix(days)` not date-window (doc says "within the window" — inaccurate, differs from HealthKit paths).
+- `BarcodeScanHistory.swift:197` encode failure dropped silently — log it.
+- `ExerciseLibrary`-style: `CycleCompletionService:54` / `CycleMilestoneService` have public `init` alongside `.shared` (CLAUDE.md says singleton) — make `init` private/DEBUG.
+- `InsightEngine.swift:33` weekday-name array with index-0 placeholder is crash-adjacent (guarded today); `:211` low-median off-by-one on even arrays (immaterial at the 30-min gate).
+- `BackupImportService.swift:241` unreachable `.dryRun` `fatalError` arm is refactor-fragile.
+- `DoseLiveActivityService.swift:121` redundant `await MainActor.run` (already on the actor).
+- `AppAttestService.swift:108-144` GET-challenge and POST-register share one endpoint URL — fine if the server dispatches by method; **flagged uncertain**.
 
 ---
 
