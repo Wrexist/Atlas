@@ -215,7 +215,7 @@ struct OnboardingView: View {
         var tint: Color {
             switch self {
             case .buildMuscle:    return Color(hex: 0xCF7272)
-            case .loseFat:        return OnboardingTint.fatLoss
+            case .loseFat:        return Color(hex: 0xE88D4F)
             case .getStronger:    return Color(hex: 0xD4A844)
             case .stayConsistent: return AppColor.accentPrimary
             case .athletic:       return Color(hex: 0x5B8FB9)
