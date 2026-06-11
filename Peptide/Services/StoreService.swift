@@ -15,8 +15,15 @@ final class StoreService {
     ///
     /// Note: monthly and annual share a subscription group, so eligibility
     /// is shared — once a user redeems either trial, both flags go false.
-    private(set) var isEligibleForMonthlyTrial = true
-    private(set) var isEligibleForAnnualTrial = true
+    ///
+    /// Default `false` (pessimistic): until `refreshTrialEligibility` resolves
+    /// we must NOT advertise a free trial, or an ineligible user could tap a
+    /// "free" CTA during the load window and be charged full price. StoreKit
+    /// still applies the intro offer at purchase for genuinely-eligible users
+    /// regardless of the button copy, so a false→true flip only upgrades the
+    /// displayed text — it never changes what's charged.
+    private(set) var isEligibleForMonthlyTrial = false
+    private(set) var isEligibleForAnnualTrial = false
 
     static let monthlyID = "com.peptidesai.app.pro.monthly"
     static let annualID = "com.peptidesai.app.pro.annual"
