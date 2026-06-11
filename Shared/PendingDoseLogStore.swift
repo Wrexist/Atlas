@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// Tiny App-Group-backed inbox the widget extension drops "user
 /// tapped Log on the live activity" markers into, and the main app
@@ -75,18 +76,33 @@ enum PendingDoseLogStore {
 
     // MARK: - Internals
 
+    /// Local logger — `AppLog` lives in the main app target and this
+    /// file also compiles into the widget/Watch extensions, so it
+    /// mirrors the same subsystem/category convention directly.
+    private static let log = Logger(subsystem: "com.peptidesai.app", category: "PendingDoseLog")
+
     private static var sharedDefaults: UserDefaults {
         UserDefaults(suiteName: appGroupSuiteName) ?? .standard
     }
 
     private static func readPending(defaults: UserDefaults) -> [PendingLog] {
         guard let data = defaults.data(forKey: inboxKey) else { return [] }
-        return (try? JSONDecoder().decode([PendingLog].self, from: data)) ?? []
+        do {
+            return try JSONDecoder().decode([PendingLog].self, from: data)
+        } catch {
+            // A corrupted inbox means queued dose taps are about to be
+            // dropped — that must be visible in Console, not silent.
+            log.error("inbox decode failed; dropping queued logs: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
     }
 
     private static func write(_ logs: [PendingLog], defaults: UserDefaults) {
-        guard let data = try? JSONEncoder().encode(logs) else { return }
-        defaults.set(data, forKey: inboxKey)
+        do {
+            defaults.set(try JSONEncoder().encode(logs), forKey: inboxKey)
+        } catch {
+            log.error("inbox encode failed; dose tap not queued: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     /// Posts a Darwin notification on the inbox name so observers in

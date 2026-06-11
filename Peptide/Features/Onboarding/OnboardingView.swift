@@ -215,7 +215,7 @@ struct OnboardingView: View {
         var tint: Color {
             switch self {
             case .buildMuscle:    return Color(hex: 0xCF7272)
-            case .loseFat:        return OnboardingTint.fatLoss
+            case .loseFat:        return Color(hex: 0xE88D4F)
             case .getStronger:    return Color(hex: 0xD4A844)
             case .stayConsistent: return AppColor.accentPrimary
             case .athletic:       return Color(hex: 0x5B8FB9)
@@ -255,6 +255,29 @@ struct OnboardingView: View {
         }
     }
 
+    /// Gates forward navigation out of the medical-disclaimer page
+    /// until it is explicitly acknowledged. The footer "Continue"
+    /// button sets `disclaimerAcknowledgedAt` *before* it advances, so
+    /// button-driven advance passes; only an un-acknowledged swipe is
+    /// blocked. Backward navigation is always allowed. Without this a
+    /// user could swipe straight past the disclaimer — the
+    /// acknowledgment is a hard gate for a regulated-substance app
+    /// (Deep Audit II A1).
+    private var gatedPage: Binding<Int> {
+        Binding(
+            get: { page },
+            set: { newValue in
+                if page == Page.disclaimer,
+                   newValue > Page.disclaimer,
+                   disclaimerAcknowledgedAt == 0 {
+                    Haptics.warning()
+                    return
+                }
+                page = newValue
+            }
+        )
+    }
+
     var body: some View {
         ZStack {
             OnboardingBackground(step: page)
@@ -265,7 +288,7 @@ struct OnboardingView: View {
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.sm)
 
-                TabView(selection: $page) {
+                TabView(selection: gatedPage) {
                     // Note: page-resume + bookmark wiring lives on the
                     // ZStack below — `.onAppear` restores from
                     // `lastPage`, `.onChange(of: page)` writes it
@@ -2239,9 +2262,11 @@ struct OnboardingView: View {
                     summaryRow(label: "Schedule", value: "\(daysPerWeek)× per week, \(timeOfDay.displayName.lowercased())")
                     summaryRow(label: "Program", value: recommendedProgramName)
                     if let attribution = creatorAttribution {
+                        // Attribution only — no percentage; the checkout
+                        // applies no discount (see CreatorCodeService).
                         summaryRow(
-                            label: "Discount",
-                            value: "\(attribution.discountPercent)% — via \(attribution.creatorName)"
+                            label: "Referral",
+                            value: "via \(attribution.creatorName)"
                         )
                     }
                 }
@@ -2398,7 +2423,9 @@ struct OnboardingView: View {
                 Text("Code applied")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("\(attribution.creatorName) gets credit — you get \(attribution.discountPercent)% off.")
+                // Attribution only — the checkout applies no discount,
+                // so promising "X% off" here would charge full price.
+                Text("\(attribution.creatorName) gets credit for bringing you to Atlas.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

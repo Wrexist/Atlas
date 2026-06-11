@@ -75,7 +75,7 @@ struct SmartCyclePlannerCard: View {
         switch kind {
         case .shortenNextCycle:  "scissors"
         case .shiftDoseTime:     "clock.arrow.circlepath"
-        case .cycleWrappingUp:   "checkered.flag"
+        case .cycleWrappingUp:   "flag.checkered"
         case .offCycleReady:     "arrow.clockwise.circle.fill"
         case .considerPausing:   "pause.circle.fill"
         }

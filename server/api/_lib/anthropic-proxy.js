@@ -6,8 +6,7 @@
  * upstream Anthropic key.
  *
  * Routes (meal-scan, ai-research) thin-wrap `forwardToAnthropic` so
- * adding the next defense (App Attest, Vercel KV-backed limits) is a
- * one-place change.
+ * adding the next defense (App Attest) is a one-place change.
  *
  * Env vars (set on the Vercel deployment):
  *   ANTHROPIC_API_KEY    — server-side Anthropic key.
@@ -15,7 +14,17 @@
  *                          echoes as `X-Peptide-Proxy`.
  *   ALLOWED_MODELS       — comma-separated Anthropic model IDs.
  *                          Default: claude-sonnet-4-6.
- *   RATE_LIMIT_RPM       — per-IP requests per minute. Default 20.
+ *   RATE_LIMIT_RPM       — per-IP requests per minute per route.
+ *                          Default 20.
+ *   UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN
+ *                        — optional Redis backing so the limits hold
+ *                          across all instances (see _lib/rate-limit.js).
+ *   ANTHROPIC_DAILY_REQUEST_BUDGET
+ *                        — optional hard cap on upstream requests per
+ *                          UTC day across all routes; 503 once spent.
+ *   APP_ATTEST_MODE / APP_ATTEST_APP_ID
+ *                        — App Attest assertion gate; see
+ *                          _lib/app-attest.js for modes and rollout.
  *
  * iOS clients pull the proxy URL and the matching secret from
  * Info.plist (or scheme env): `MEAL_SCANNER_ENDPOINT` +
@@ -23,14 +32,9 @@
  * `AI_RESEARCH_SECRET`. The same `PROXY_SHARED_SECRET` server-side
  * value goes into both client secrets.
  */
-import { timingSafeEqual } from 'node:crypto';
-
-// In-memory token bucket keyed by client IP. Persists across warm
-// invocations of the same Vercel instance; cold starts reset state,
-// which is acceptable for a soft cap. For a hard cap, swap in Upstash
-// / Edge Config.
-const buckets = new Map();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+import { checkAppAttest } from './app-attest.js';
+import { authorize } from './auth.js';
+import { allowRate, withinDailyBudget } from './rate-limit.js';
 
 const DEFAULT_ALLOWED_MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS_HARDCAP = 800;
@@ -67,18 +71,12 @@ export function clientKey(req) {
   return req.socket?.remoteAddress || 'unknown';
 }
 
-function checkRateLimit(req) {
+// Scoped per route (logLabel) so a meal-scan burst can't starve
+// ai-research — the same isolation the old per-lambda Maps had by
+// accident of deployment topology.
+function checkRateLimit(req, logLabel) {
   const limit = parseInt(process.env.RATE_LIMIT_RPM || '20', 10);
-  if (!Number.isFinite(limit) || limit <= 0) return true;
-  const key = clientKey(req);
-  const now = Date.now();
-  const bucket = buckets.get(key);
-  if (!bucket || now - bucket.start > RATE_LIMIT_WINDOW_MS) {
-    buckets.set(key, { start: now, count: 1 });
-    return true;
-  }
-  bucket.count += 1;
-  return bucket.count <= limit;
+  return allowRate({ name: logLabel, key: clientKey(req), limit, windowSeconds: 60 });
 }
 
 // Anthropic accepts content parts of these typed shapes. Anything else
@@ -141,27 +139,6 @@ function sanitiseBody(raw, options) {
   return out;
 }
 
-function constantTimeEquals(a, b) {
-  // Pad to equal length first — timingSafeEqual throws on mismatched
-  // lengths, which is itself a timing leak. The padded compare runs
-  // for the same time as a real one, then we reject the mismatch.
-  const aBuf = Buffer.from(a, 'utf8');
-  const bBuf = Buffer.from(b, 'utf8');
-  if (aBuf.length !== bBuf.length) {
-    timingSafeEqual(aBuf, aBuf);
-    return false;
-  }
-  return timingSafeEqual(aBuf, bBuf);
-}
-
-function authorize(req) {
-  const expected = process.env.PROXY_SHARED_SECRET;
-  if (!expected) return false; // fail closed when env is missing
-  const provided = req.headers['x-peptide-proxy'];
-  if (typeof provided !== 'string' || provided.length === 0) return false;
-  return constantTimeEquals(provided, expected);
-}
-
 export async function forwardToAnthropic(req, res, {
   logLabel,
   systemPrefix,
@@ -180,8 +157,19 @@ export async function forwardToAnthropic(req, res, {
     return;
   }
 
-  if (!checkRateLimit(req)) {
+  if (!(await checkRateLimit(req, logLabel))) {
     res.status(429).json({ error: { message: 'Too many requests' } });
+    return;
+  }
+
+  // App Attest gate (see _lib/app-attest.js). Only rejects in
+  // enforce mode; report mode verifies + logs so the rollout can be
+  // validated from production logs before anything is blocked. The
+  // `attest_required` code tells a genuine client to (re-)register
+  // its key rather than treat this as a secret failure.
+  const attest = await checkAppAttest(req, { logLabel });
+  if (!attest.ok) {
+    res.status(401).json({ error: { message: 'Unauthorised', code: 'attest_required' } });
     return;
   }
 
@@ -221,6 +209,16 @@ export async function forwardToAnthropic(req, res, {
   const clean = sanitiseBody(req.body, { systemPrefix, allowClientSystem });
   if (!clean) {
     res.status(400).json({ error: { message: 'Malformed request body' } });
+    return;
+  }
+
+  // Hard spend ceiling, checked last so only requests that would
+  // actually reach Anthropic consume budget. Fail closed with the
+  // same generic 503 the missing-key path uses — the client treats
+  // both as "try later", and the reason stays server-side.
+  if (!(await withinDailyBudget())) {
+    console.error(`[${logLabel}] daily Anthropic request budget exhausted`);
+    res.status(503).json({ error: { message: 'Service unavailable' } });
     return;
   }
 

@@ -17,16 +17,10 @@ enum AppTab: String, CaseIterable {
     case meals
     /// Peptide reference + AI research. Was `.database`. Now also
     /// hosts the Protocols list (folded in during the training
-    /// pivot — Protocols lost its dedicated tab slot to make
-    /// room for Train + Meals).
+    /// pivot — Protocols lost its dedicated tab slot to make room
+    /// for Train + Meals; `selectedTab = .library` together with
+    /// `pendingProtocolList` routes "open protocols" intents here).
     case library
-    /// Stays in the enum for deep-link compatibility — the
-    /// case isn't bound to a tab slot any more (Library hosts
-    /// the protocol list now) but call sites that historically
-    /// switched to `.protocols` still compile, and the
-    /// `pendingProtocolList` flag below routes them into the
-    /// Library tab cleanly.
-    case protocols
     /// Biology hub — biological-age estimate, HRV/RHR/Sleep
     /// baselines, lab markers, body composition. Replaces the
     /// prior `.insights` slot in the tab bar with a Bevel-style
@@ -34,11 +28,6 @@ enum AppTab: String, CaseIterable {
     /// (compliance trends, HealthKit correlation, labs) now lives
     /// on the Biology and Today surfaces.
     case biology
-    /// Profile + settings. Demoted from the bottom tab bar to a
-    /// top-right avatar entry on the Today header during the
-    /// training pivot, but the case stays so deep-link / state-
-    /// restoration code paths keep compiling.
-    case profile
 }
 
 @MainActor @Observable

@@ -5,9 +5,11 @@ import Foundation
 /// run can be reconstructed after the fact, and emits an `AppLog.onboarding`
 /// signpost so Console.app sessions show the flow in real time.
 ///
-/// Intentionally no PII, no network — when a backend lands this can be
-/// drained into Supabase + amplitude/posthog 1:1 from the snapshot. Until
-/// then the data is local diagnostic only and never leaves the device.
+/// Intentionally no PII — event names are fixed identifiers, never user
+/// content. The snapshot stays on-device unless BOTH a drain endpoint is
+/// configured (Info.plist, Atlas hosts only) AND the user has explicitly
+/// opted in via the Profile diagnostics toggle; either missing keeps it
+/// local.
 @MainActor
 enum OnboardingFunnelTracker {
     private static let snapshotKey  = "onboarding.funnel.snapshot.v1"
@@ -85,13 +87,34 @@ enum OnboardingFunnelTracker {
     /// entry / empty string disables the drain entirely. Configured
     /// per build by the operator so a TestFlight cohort can target a
     /// staging URL without baking it into App Store binaries.
-    /// Required: `https://` scheme. Any other scheme is rejected.
+    /// Must pass `DrainEndpoint` validation: HTTPS scheme AND an
+    /// Atlas-controlled host — anything else is rejected.
     private static let endpointInfoKey = "OnboardingFunnelEndpoint"
+
+    /// Info.plist key holding the optional rotatable drain secret,
+    /// echoed as `X-Peptide-Proxy` so the analytics backend can
+    /// reject anonymous POSTs.
+    private static let secretInfoKey = "OnboardingFunnelSecret"
 
     /// Marks the most recent successful drain timestamp so a fast
     /// relaunch loop doesn't hammer the endpoint with the same
     /// snapshot. Resets when the snapshot is cleared after a drain.
     private static let drainedAtKey = "onboarding.funnel.drainedAt.v1"
+
+    /// Explicit user opt-in for uploading the funnel snapshot.
+    /// Defaults to false — without consent the drain is a no-op even
+    /// when an endpoint is configured (audit 2.3). Internal so the
+    /// Profile toggle can bind the same key via `@AppStorage`.
+    static let consentKey = "onboarding.funnel.consent.v1"
+
+    /// True when this build carries a valid drain endpoint. Gates the
+    /// consent toggle in Profile so builds without an endpoint (all
+    /// current ones) never show a sharing control that does nothing.
+    static var drainConfigured: Bool { destinationURL != nil }
+
+    static var sharingConsentGranted: Bool {
+        UserDefaults.standard.bool(forKey: consentKey)
+    }
 
     /// Drains a completed onboarding snapshot to the configured
     /// endpoint, then resets the events array so a relaunch doesn't
@@ -103,6 +126,7 @@ enum OnboardingFunnelTracker {
     /// surface to the user. The local snapshot stays on disk on
     /// failure so the next launch retries.
     static func drainIfReady() async {
+        guard sharingConsentGranted else { return }
         let snap = currentSnapshot
         guard snap.completedAt != nil else { return }
         guard let url = destinationURL else { return }
@@ -114,6 +138,9 @@ enum OnboardingFunnelTracker {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let secret = DrainEndpoint.secret(infoKey: secretInfoKey) {
+            request.setValue(secret, forHTTPHeaderField: DrainEndpoint.authHeaderField)
+        }
         request.httpBody = payload
         request.timeoutInterval = 10
 
@@ -133,13 +160,7 @@ enum OnboardingFunnelTracker {
     }
 
     private static var destinationURL: URL? {
-        guard let raw = Bundle.main.object(forInfoDictionaryKey: endpointInfoKey) as? String,
-              !raw.isEmpty,
-              let url = URL(string: raw),
-              url.scheme?.lowercased() == "https" else {
-            return nil
-        }
-        return url
+        DrainEndpoint.url(infoKey: endpointInfoKey)
     }
 
     /// Clears step + event arrays so a subsequent drain doesn't

@@ -121,7 +121,7 @@ Two destinations for the same type on one stack → undefined behaviour; the
 
 ## Phase 2 — Security hardening
 
-### 2.1 Proxy auth: static shared secret ships in the binary — `[ ]`
+### 2.1 Proxy auth: static shared secret ships in the binary — `[~]` (App Attest shipped end-to-end in report-only mode — client `AppAttestService` + `/api/attest-register` + assertion gate on all routes; dual-slot secret rotation via `PROXY_SHARED_SECRET_NEXT`. Flip `APP_ATTEST_MODE=enforce` only per the rollout gates in `server/README.md`: byte-diff the embedded Apple root, provision Redis, and see real-device registrations + valid assertions in TestFlight logs first)
 **Files:** `server/api/_lib/anthropic-proxy.js:157-163`,
 `.github/workflows/ios-testflight.yml:210-260`, `Peptide/Resources/Info.plist`
 
@@ -133,7 +133,7 @@ relay to Anthropic on your key.
 - [ ] Treat the shared secret as defense-in-depth only; rotate on a schedule
   (the dual-slot design already supports rotation).
 
-### 2.2 Rate limiter is per-warm-instance and bypassable — `[ ]`
+### 2.2 Rate limiter is per-warm-instance and bypassable — `[x]`
 **File:** `server/api/_lib/anthropic-proxy.js:32,70-82`,
 `server/api/weekly-summary.js:68-86`
 
@@ -145,7 +145,7 @@ not enforced globally.
 - [ ] Add a hard daily/monthly Anthropic request budget that fails closed
   (503) when exceeded.
 
-### 2.3 Analytics drains exfiltrate PII with no auth/consent — `[ ]`
+### 2.3 Analytics drains exfiltrate PII with no auth/consent — `[~]` (client side done: host allowlist, consent gate, auth header, label checklist in `APP_STORE_METADATA.md`; server-side intake auth + rate limiting land with the backend)
 **Files:** `Peptide/Services/AffiliateIntakeService.swift:22-62`,
 `Peptide/Services/OnboardingFunnelTracker.swift:105-143`
 
@@ -172,7 +172,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
   (`Buffer.byteLength`), not the `content-length` header.
 - [ ] Add an `AbortController` (~25s) to each upstream `fetch`.
 
-### 2.5 Logging & secret-commit hygiene — `[~]`
+### 2.5 Logging & secret-commit hygiene — `[x]` (all verified: `.private` logging shipped; funnel events are fixed identifiers; secret-commit guard lives in `pr-checks.yml`; ATS dict present; creator codes apply no client-side price math — the PaywallView banner is attribution-only, so Apple-signed offers only become relevant if a real discount is ever wired. Deliberately skipped: a host allowlist on the proxy endpoints — they're CI-secret-injected, not user-editable config, and an allowlist would hardcode the Vercel deploy host)
 - [ ] `WeeklySummaryService.swift:134-136` — change error log `privacy: .public`
   → `.private` (URL/response fragments leak otherwise).
 - [ ] `OnboardingFunnelTracker` — never put emails/codes into event-name
@@ -193,7 +193,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
 
 ## Phase 3 — Error handling & resilience
 
-### 3.1 CloudKit sync status surface — `[ ]`
+### 3.1 CloudKit sync status surface — `[x]`
 **Files:** `Peptide/Services/SwiftDataRepository.swift:135-151`, Profile settings
 
 - [ ] Track whether the cloud or local container was used; expose a passive
@@ -214,7 +214,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
   `try?` on the envelope `JSONSerialization` with `do/catch` that logs the
   decode error before throwing `.invalidResponse`.
 
-### 3.3 Watch reliability — `[~]`
+### 3.3 Watch reliability — `[x]` (transferUserInfo fallback shipped; the dead water-reconstruction block was removed — a real optimistic water update needs `waterToday` on the snapshot, deferred as feature work)
 **Files:** `PeptideWatch/Services/WatchStore.swift:90-153`,
 `Peptide/Services/WatchSyncService.swift:93-113`
 
@@ -242,7 +242,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
   Screen "Log Dose" writes succeed while the device is locked.
 - [ ] Log write failures rather than swallowing them with `try?`.
 
-### 3.6 Build-integrity & minor fallbacks — `[~]`
+### 3.6 Build-integrity & minor fallbacks — `[x]` (peptide-count CI check in `pr-checks.yml`; `weekStartString` fallback fixed. `compress` uses `UIGraphicsImageRenderer` rather than `CGImageSourceCreateThumbnailAtIndex` — full-size decode of one camera JPEG is an accepted transient, revisit only if memory reports say otherwise)
 - [ ] Add a CI check asserting `PeptideDatabase.shared.count == 208` so a build
   that drops `peptides.json` (silently falling back to `MockPeptides`) fails.
 - [ ] `MealScannerService.compress` — use `CGImageSourceCreateThumbnailAtIndex`
@@ -476,7 +476,7 @@ Liquid Glass is fundamentally an adaptive system.
 
 ## Phase 8 — Code cleanup
 
-### 8.1 Dead code — `[ ]`
+### 8.1 Dead code — `[x]` (InsightsView + dead components were already gone; survivors relocated to `Features/WeeklySummary/`, `OnboardingColors` deleted, `AppTab.protocols/.profile` removed — every call site had already migrated — and `Lifestyle/` folded into `Train/`)
 - [ ] Delete `Features/Insights/InsightsView.swift` and the 8 dead
   `Insights/Components/` files (~2,000 lines, used only by their own previews).
 - [ ] Relocate the two live survivors `WeeklySummaryDetailView.swift` and
@@ -488,7 +488,7 @@ Liquid Glass is fundamentally an adaptive system.
 - [ ] Move `Features/Lifestyle/WorkoutDetailView.swift` into `Features/Train/`;
   delete the `Lifestyle/` folder.
 
-### 8.2 Naming & docs — `[~]` (doc fixes done; folder renames need a build)
+### 8.2 Naming & docs — `[~]` (doc fixes + planning-doc archive done; remaining: `Home→Today` / `Database→Library` folder renames in a build session, and the peptidex.site vs peptidesai.com marketing-domain pick — a product decision)
 - [ ] Add an authoritative "Naming" section to `README.md`: product = Atlas;
   Xcode targets/repo = Peptide (frozen); bundle ID / URL scheme / Spotlight
   prefixes = `peptidex`/`peptidesai` (frozen for install compatibility).
@@ -521,7 +521,7 @@ Liquid Glass is fundamentally an adaptive system.
 - [ ] Flatten one-file subfolders (`Home/Components/Adjustment/`).
 - [ ] Move the pure-logic `*Logic` files out of `App/` into `Services/`.
 
-### 8.4 Constants & config — `[~]` (App Group + swiftlint done)
+### 8.4 Constants & config — `[x]` (App Group + swiftlint done earlier; service convention now codified in `README.md` + `CLAUDE.md`)
 - [ ] Define the App Group identifier `"group.com.peptidesai.app"` once in
   `Shared/` (it's duplicated in `WidgetData.swift:4` and
   `PendingDoseLogStore.swift:24`); consolidate the cross-process notification
@@ -536,8 +536,10 @@ Liquid Glass is fundamentally an adaptive system.
 
 ## Phase 9 — Tests & verification
 
-- [ ] Add unit tests for untested pure engines first (cheapest wins):
-  `CyclePhaseEngine`, `OutcomeCorrelationEngine`, `DoseLiveActivityService`.
+- [x] Add unit tests for untested pure engines first (cheapest wins):
+  `CyclePhaseEngine`, `OutcomeCorrelationEngine`, `DoseLiveActivityService`
+  (window math + hex packing made internal static for testability;
+  ActivityKit side effects remain untestable in a unit host).
 - [ ] Add regression tests for every Phase 1 fix: CloudKit model defaults,
   the `notes` regenerate-guard, StoreKit entitlement filtering, save-failure
   surfacing, streak-freeze in dose streaks.

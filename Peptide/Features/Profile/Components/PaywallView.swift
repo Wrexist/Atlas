@@ -129,6 +129,10 @@ struct PaywallView: View {
                             Circle().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                         }
                 }
+                // 44pt tap target while the visible circle stays 32pt
+                // (Deep Audit II B4 — the dismiss control was sub-HIG).
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .accessibilityLabel("Close")
     }
@@ -139,7 +143,7 @@ struct PaywallView: View {
         VStack(spacing: Spacing.md) {
             featureRow("Unlimited peptide stacks & cycles")
             featureRow("Half-life decay overlays for any stack")
-            featureRow("AI reconstitution calculator for every vial")
+            featureRow("Reconstitution calculator for every vial")
             featureRow("Protocol insights & shareable cycle cards")
         }
     }

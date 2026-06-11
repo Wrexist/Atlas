@@ -161,6 +161,13 @@ final class WeeklySummaryService {
         request.timeoutInterval = 30
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(secret, forHTTPHeaderField: "X-Peptide-Proxy")
+        // App Attest assertion — see AppAttestService; absence falls
+        // back to secret-only auth.
+        if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
+            for (field, value) in attestHeaders {
+                request.setValue(value, forHTTPHeaderField: field)
+            }
+        }
         request.httpBody = try JSONEncoder().encode(RequestEnvelope(aggregate: aggregate))
 
         let (data, response) = try await session.data(for: request)

@@ -306,6 +306,22 @@ No data categories need to be disclosed. If App Review questions the
 HealthKit entitlement: HealthKit data is read and used on-device only —
 not transmitted, not linked to an identity, not used for tracking.
 
+### Before configuring any data drain in a shipped build
+
+The dormant drains (`AffiliateIntakeEndpoint`, `OnboardingFunnelEndpoint`
+in Info.plist) are host-allowlisted and consent-gated in code, but the
+"No data collected" answers above are only true while those keys stay
+unset. A build that sets either key MUST first:
+
+1. Update this nutrition label — affiliate intake collects **Name,
+   Email Address, Other User Content** (linked to user, App
+   Functionality); the funnel drain collects **Product Interaction**
+   (not linked, Analytics).
+2. Update the `PrivacyInfo.xcprivacy` collected-data-types arrays.
+3. Update `PrivacySummaryView` ("no backend / data never leaves your
+   phone" claims) and the screenshot deck slot that renders it.
+4. Update `docs/privacy.html`.
+
 ### Privacy manifest coverage
 
 | Target | File | Declared Required-Reason API |

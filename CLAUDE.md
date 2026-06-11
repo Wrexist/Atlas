@@ -23,6 +23,7 @@ This file configures Claude Code for the codebase's conventions.
 - Prefer composition over inheritance.
 - Functions should do one thing. If a function needs a comment explaining what it does, split it.
 - No unused imports, variables, or dead code. Delete, don't comment out.
+- Service convention: stateful services are `final class` singletons (`.shared`); stateless namespaces are caseless `enum`s with static members; pure-computation types are named `*Engine`.
 - Error handling at system boundaries only (user input, external APIs, file I/O). Trust internal code.
 - IMPORTANT: Never commit secrets, API keys, or credentials. Use environment variables.
 

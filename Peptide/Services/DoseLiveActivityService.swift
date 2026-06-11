@@ -52,7 +52,7 @@ final class DoseLiveActivityService {
         guard #available(iOS 16.1, *), areLiveActivitiesEnabled else { return }
         let now = Date()
         let inWindow = entries.filter { entry in
-            isInActiveWindow(entry, at: now)
+            Self.isInActiveWindow(entry, at: now)
         }
 
         let inWindowIDs = Set(inWindow.map(\.id))
@@ -154,7 +154,7 @@ final class DoseLiveActivityService {
             peptideAbbreviation: entry.peptide.abbreviation,
             peptideName: entry.peptide.name,
             doseDisplay: entry.dose,
-            tintHex: hex(of: palette.fill)
+            tintHex: Self.hex(of: palette.fill)
         )
         let windowStart = Calendar.current.date(
             byAdding: .minute,
@@ -181,10 +181,12 @@ final class DoseLiveActivityService {
         }
     }
 
-    private func isInActiveWindow(_ entry: ProtocolEntry, at now: Date) -> Bool {
+    /// Pure window math — internal (not private) so the unit tests
+    /// can pin the boundaries without ActivityKit in the loop.
+    static func isInActiveWindow(_ entry: ProtocolEntry, at now: Date) -> Bool {
         guard !entry.completed else { return false }
-        let windowStart = Calendar.current.date(byAdding: .minute, value: -Self.startLeadMinutes, to: entry.date) ?? entry.date
-        let windowEnd = Calendar.current.date(byAdding: .minute, value: Self.stalenessMinutes, to: entry.date) ?? entry.date
+        let windowStart = Calendar.current.date(byAdding: .minute, value: -startLeadMinutes, to: entry.date) ?? entry.date
+        let windowEnd = Calendar.current.date(byAdding: .minute, value: stalenessMinutes, to: entry.date) ?? entry.date
         return now >= windowStart && now <= windowEnd
     }
 
@@ -192,7 +194,7 @@ final class DoseLiveActivityService {
     /// (which can't depend on VialPalette) can rebuild it. The widget
     /// only ever consumes the bytes — no further math — so this is a
     /// safe round-trip on the basic sRGB range we use.
-    private func hex(of color: SwiftUI.Color) -> UInt {
+    static func hex(of color: SwiftUI.Color) -> UInt {
         // SwiftUI.Color.cgColor returns nil for asset-catalog colors
         // and any color resolved through a dynamic trait — including
         // most of the brand palette that `VialPalette` may return.

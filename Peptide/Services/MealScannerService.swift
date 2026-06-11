@@ -189,6 +189,14 @@ final class MealScannerService: Sendable {
         request.timeoutInterval = 30
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
+        // App Attest assertion headers when available — the proxy
+        // verifies them (report mode today, enforce later). Absence
+        // is fine: the shared secret still authenticates this build.
+        if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
+            for (field, value) in attestHeaders {
+                request.setValue(value, forHTTPHeaderField: field)
+            }
+        }
         request.httpBody = try JSONSerialization.data(
             withJSONObject: requestPayload(base64: base64, prompt: prompt),
             options: []

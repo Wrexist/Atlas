@@ -3,11 +3,13 @@ import SwiftUI
 struct AccountSection: View {
     @State private var authService = AuthService.shared
     @State private var isConfirmingDeletion = false
+    @State private var cloudSyncState: CloudSyncState?
 
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 header
+                syncStatusRow
                 if authService.isSignedIn {
                     signedInContent
                 } else {
@@ -15,6 +17,7 @@ struct AccountSection: View {
                 }
             }
         }
+        .task { cloudSyncState = await SwiftDataRepository.shared.refinedCloudSyncState() }
         .alert("Delete Account?", isPresented: $isConfirmingDeletion) {
             Button("Delete Account", role: .destructive) {
                 authService.deleteAccount()
@@ -66,6 +69,49 @@ struct AccountSection: View {
                     .font(AppFont.caption)
                     .foregroundStyle(authService.isSignedIn ? AppColor.accentLight : AppColor.textTertiary)
             }
+        }
+    }
+
+    // MARK: - iCloud sync status
+
+    /// Passive iCloud sync indicator (audit 3.1). Reflects whether
+    /// the SwiftData store actually opened CloudKit-backed, refined
+    /// by CKAccountStatus so "no account" reads differently from a
+    /// real failure. Driven by the repository, not AuthService —
+    /// Sign in with Apple and iCloud sync are independent.
+    @ViewBuilder
+    private var syncStatusRow: some View {
+        if let state = cloudSyncState {
+            HStack(alignment: .top, spacing: Spacing.md) {
+                Image(systemName: state == .active ? "icloud.fill" : "icloud.slash.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(state == .active ? AppColor.accentLight : AppColor.textTertiary)
+                    .frame(width: 20)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("iCloud Sync")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(syncCaption(for: state))
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    private func syncCaption(for state: CloudSyncState) -> String {
+        switch state {
+        case .active:
+            return String(localized: "On — syncing through your private iCloud database.")
+        case .noAccount:
+            return String(localized: "Off — sign in to iCloud in Settings to sync across devices.")
+        case .restricted:
+            return String(localized: "Unavailable — iCloud is restricted on this device.")
+        case .unavailable:
+            return String(localized: "Unavailable right now — your data stays safe on this device.")
         }
     }
 

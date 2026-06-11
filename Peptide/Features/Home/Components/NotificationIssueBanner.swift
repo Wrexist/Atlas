@@ -29,7 +29,7 @@ struct NotificationIssueBanner: View {
 
     private var headline: String {
         if !report.droppedProtocolIDs.isEmpty {
-            let count = report.requested - report.scheduled
+            let count = max(0, report.requested - report.scheduled)
             return "\(count) reminder\(count == 1 ? "" : "s") couldn't be scheduled"
         }
         if !report.invalidTimes.isEmpty {

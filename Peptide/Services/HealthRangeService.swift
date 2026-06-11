@@ -42,6 +42,12 @@ enum HealthRangeService {
         /// p25–p75 interquartile band. Anything inside the IQR is
         /// "normal"; below p25 is "lower"; above p75 is "higher".
         var status: Status {
+            // Guard a degenerate IQR: with near-identical readings
+            // p25 == p75, so any tiny deviation would otherwise flip
+            // the pill to Lower/Higher off pure noise. A collapsed
+            // band reads as Normal. (positionInRange already guards
+            // its own p10–p90 span.)
+            guard p75 - p25 > 0.0001 else { return .normal }
             if latest < p25 { return .lower }
             if latest > p75 { return .higher }
             return .normal

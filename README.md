@@ -24,12 +24,7 @@ Peptide/                 iOS app (SwiftUI)
   Features/               UI by tab: Home (Today), Train, Meals,
                           Biology, Library — plus secondary surfaces
                           Profile, AIResearch, Onboarding, Auth,
-                          Sharing, Database. Lifestyle/ and Insights/
-                          are retired namespaces: Lifestyle/ holds only
-                          WorkoutDetailView; Insights/ keeps the still-
-                          live WeeklySummaryDetailView + PastWeeksSection
-                          (the rest of Insights/ is unreferenced and
-                          slated for deletion).
+                          Sharing, Database, WeeklySummary.
   Intents/                Siri shortcuts (AppIntents)
   Resources/              Info.plist, Localizable.xcstrings, .storekit
 
@@ -56,6 +51,11 @@ open Peptide.xcodeproj
 Build the `Peptide` scheme for an iOS simulator or device.
 StoreKit testing is wired to `Peptide/Resources/Products.storekit`
 for both Run and Test actions.
+
+Service convention (`Peptide/Services/`): stateful services are
+`final class` singletons (`.shared`); stateless namespaces are
+caseless `enum`s with static members; pure-computation types are
+named `*Engine`.
 
 ## Secrets
 

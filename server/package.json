@@ -4,6 +4,9 @@
   "private": true,
   "description": "Vercel serverless proxy that holds the Anthropic API key for the Atlas iOS meal scanner.",
   "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
   "engines": {
     "node": ">=18"
   }

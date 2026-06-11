@@ -56,6 +56,7 @@ final class DataStore: DataServiceProtocol {
     @ObservationIgnored private var _nextDose: (version: Int, value: ProtocolEntry?)?
     @ObservationIgnored private var _weeklyCompletion: (version: Int, value: [WeekDayStatus])?
     @ObservationIgnored private var _entriesByDay: (version: Int, value: [Date: [ProtocolEntry]])?
+    @ObservationIgnored private var _activeEntriesByDay: (version: Int, value: [Date: [ProtocolEntry]])?
     @ObservationIgnored private var _stackPeptides: (version: Int, value: [Peptide])?
     @ObservationIgnored private var _stackWarnings: (version: Int, value: [StackRecommendationEngine.Warning])?
     @ObservationIgnored private var _stackRecommendations: (version: Int, value: [StackRecommendationEngine.Recommendation])?
@@ -88,11 +89,20 @@ final class DataStore: DataServiceProtocol {
     /// and historical views (e.g. `weeklyCompletion`) keep using the full
     /// `entriesByDay`.
     var activeEntriesByDay: [Date: [ProtocolEntry]] {
+        // Cached against cacheVersion like `entriesByDay` — both
+        // `currentStreak` and `bestStreak` call this, and they're
+        // reached from view bodies, so the unfiltered version re-ran
+        // the group + filter on every body pass. Protocol status
+        // changes bump cacheVersion (same invariant the stack caches
+        // rely on), so the key stays correct.
+        if let cached = _activeEntriesByDay, cached.version == cacheVersion { return cached.value }
         let activeIds = Set(activeProtocols.map(\.id))
-        return entriesByDay.compactMapValues { dayEntries -> [ProtocolEntry]? in
-            let filtered = dayEntries.filter { activeIds.contains($0.protocolId) }
-            return filtered.isEmpty ? nil : filtered
+        let filtered = entriesByDay.compactMapValues { dayEntries -> [ProtocolEntry]? in
+            let dayFiltered = dayEntries.filter { activeIds.contains($0.protocolId) }
+            return dayFiltered.isEmpty ? nil : dayFiltered
         }
+        _activeEntriesByDay = (cacheVersion, filtered)
+        return filtered
     }
 
     init(seedSampleData: Bool = false) {
@@ -505,50 +515,58 @@ final class DataStore: DataServiceProtocol {
         )
         protocols[index] = updated
 
-        // Regenerate today's entries to reflect the new schedule. We
-        // preserve any entries the user has already completed or
-        // explicitly logged earlier today — re-generating without
-        // this guard would silently erase logged doses, which the
-        // audit (Library P0.2) flagged as real data loss for active
-        // protocols too, not just paused ones.
-        if updated.status == .active {
-            // Capture both: (a) all entries we're about to remove so
-            // CloudKit can mirror the deletion server-side, and
-            // (b) the user-logged ones we want to preserve through
-            // regenerate (audit Library P0.2 — silent erase of
-            // completed doses). The two sets are inputs to different
-            // downstream code paths and must both survive the merge.
-            let toRemove = entries.filter { entry in
-                entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
-            }
-            pendingEntryDeletions.formUnion(toRemove.map(\.id))
-            let completedToday = toRemove.filter { entry in
-                entry.completed || entry.actualDose != nil || !entry.notes.isEmpty
-            }
-            entries.removeAll { entry in
-                entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
-            }
-            // Append regenerated entries first, then re-insert the
-            // user-logged ones. If the regenerated schedule already
-            // covers the same (peptide, time) pair, the user's
-            // completion wins via the dedup pass below.
-            let fresh = Self.generateTodayEntries(for: updated)
-            var merged = fresh
-            for logged in completedToday {
-                if let dupeIdx = merged.firstIndex(where: {
-                    $0.peptide.id == logged.peptide.id
-                        && Calendar.current.isDate($0.date, equalTo: logged.date, toGranularity: .minute)
-                }) {
-                    merged[dupeIdx] = logged
-                } else {
-                    merged.append(logged)
-                }
-            }
-            entries.append(contentsOf: merged)
-        }
+        // Regenerate today's entries, preserving any the user already
+        // logged — see regenerateTodayEntriesPreservingLogs.
+        regenerateTodayEntriesPreservingLogs(for: updated)
 
         save()
         rescheduleNotificationsIfEnabled()
+    }
+
+    /// Regenerates today's entries for `proto` after a schedule change,
+    /// preserving any the user already completed or explicitly logged
+    /// earlier today. Shared by `updateProtocol` and `setPeptideSchedule`.
+    ///
+    /// Without it, regenerating silently erased logged doses (completion,
+    /// `actualDose`/`actualTime`, injection site, notes) AND added them to
+    /// `pendingEntryDeletions` — so a CloudKit restore couldn't recover
+    /// them either (Deep Audit III §1 + §11; `setPeptideSchedule` had the
+    /// raw, unguarded version). Only the genuinely-discarded entries are
+    /// marked for server-side deletion; the preserved ones are re-inserted
+    /// and explicitly removed from the deletion set. A non-active protocol
+    /// is left untouched — nothing to regenerate, nothing to delete.
+    private func regenerateTodayEntriesPreservingLogs(for proto: PeptideProtocol) {
+        guard proto.status == .active else { return }
+        let id = proto.id
+        let isToday: (ProtocolEntry) -> Bool = { entry in
+            entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
+        }
+        let toRemove = entries.filter(isToday)
+        let completedToday = toRemove.filter { entry in
+            entry.completed || entry.actualDose != nil || !entry.notes.isEmpty
+        }
+        let preservedIds = Set(completedToday.map(\.id))
+        pendingEntryDeletions.formUnion(toRemove.filter { !preservedIds.contains($0.id) }.map(\.id))
+        // A preserved entry is being kept in `entries`; it must never be
+        // server-deleted, even if a prior pass queued its id.
+        pendingEntryDeletions.subtract(preservedIds)
+        entries.removeAll(where: isToday)
+
+        // Append the regenerated schedule, then re-insert the user-logged
+        // entries. When the new schedule already covers the same
+        // (peptide, minute) slot, the user's logged entry wins.
+        var merged = Self.generateTodayEntries(for: proto)
+        for logged in completedToday {
+            if let dupeIdx = merged.firstIndex(where: {
+                $0.peptide.id == logged.peptide.id
+                    && Calendar.current.isDate($0.date, equalTo: logged.date, toGranularity: .minute)
+            }) {
+                merged[dupeIdx] = logged
+            } else {
+                merged.append(logged)
+            }
+        }
+        entries.append(contentsOf: merged)
     }
 
     /// Sets a per-peptide schedule override. Pass `nil` to remove it (peptide reverts to the
@@ -582,17 +600,11 @@ final class DataStore: DataServiceProtocol {
         )
         protocols[index] = updated
 
-        // Regenerate today's entries for this protocol so the change takes effect immediately.
-        let removedForRegen = entries.filter { entry in
-            entry.protocolId == protocolId && Calendar.current.isDateInToday(entry.date)
-        }
-        pendingEntryDeletions.formUnion(removedForRegen.map(\.id))
-        entries.removeAll { entry in
-            entry.protocolId == protocolId && Calendar.current.isDateInToday(entry.date)
-        }
-        if updated.status == .active {
-            entries.append(contentsOf: Self.generateTodayEntries(for: updated))
-        }
+        // Regenerate today's entries for this protocol so the change
+        // takes effect immediately — preserving any the user already
+        // logged (this path previously erased them, including from
+        // CloudKit; Deep Audit III §1 + §11).
+        regenerateTodayEntriesPreservingLogs(for: updated)
 
         save()
         rescheduleNotificationsIfEnabled()

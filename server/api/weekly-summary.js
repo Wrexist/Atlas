@@ -15,12 +15,16 @@
  *
  * Returns: `{ text: string, generatedAt: ISOString }`.
  */
-import { timingSafeEqual } from 'node:crypto';
 import { clientKey } from './_lib/anthropic-proxy.js';
+import { checkAppAttest } from './_lib/app-attest.js';
+import { authorize } from './_lib/auth.js';
+import { allowRate, withinDailyBudget } from './_lib/rate-limit.js';
 
 const MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 360; // ~280 words; 150 ideal, 200 hard ceiling
-const PROXY_HEADER = 'x-peptide-proxy';
+// Mirrors the bodyParser sizeLimit below; re-checked on the parsed
+// body like `_lib/anthropic-proxy.js` does.
+const MAX_BODY_BYTES = 64 * 1024;
 
 const SYSTEM_PROMPT = [
   "You are Atlas's weekly coach. Summarize the user's last 7 days in 2-3 short paragraphs, ~150 words total.",
@@ -42,47 +46,15 @@ const SYSTEM_PROMPT = [
   "Output: plain text, no markdown, no bullet points, no headings. The iOS card renders the paragraphs as-is."
 ].join("\n");
 
-function constantTimeEquals(a, b) {
-  const aBuf = Buffer.from(a, 'utf8');
-  const bBuf = Buffer.from(b, 'utf8');
-  if (aBuf.length !== bBuf.length) {
-    // Run a same-length compare on a self-pair so the timing cost
-    // doesn't telegraph "wrong length". Then reject the mismatch.
-    timingSafeEqual(aBuf, aBuf);
-    return false;
-  }
-  return timingSafeEqual(aBuf, bBuf);
-}
-
-function authorize(req) {
-  const expected = process.env.PROXY_SHARED_SECRET;
-  if (!expected) return false; // fail closed when env is missing
-  const provided = req.headers[PROXY_HEADER];
-  if (typeof provided !== 'string' || provided.length === 0) return false;
-  return constantTimeEquals(provided, expected);
-}
-
-// Per-IP token bucket. Weekly summaries fire at most once per week
-// per user, so 4/min is generous — anything higher than a handful is
-// retry-loop noise or abuse.
-const buckets = new Map();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const RATE_LIMIT_RPM = parseInt(process.env.WEEKLY_RPM || '6', 10);
-
-// `clientKey` lives in `_lib/anthropic-proxy.js` so all three routes share
-// the same Vercel-aware (un-spoofable) IP derivation.
-
+// Per-IP cap via the shared limiter (Redis-backed when configured,
+// per-instance memory otherwise). Weekly summaries fire at most once
+// per week per user, so 6/min is generous — anything higher is
+// retry-loop noise or abuse. `clientKey` lives in
+// `_lib/anthropic-proxy.js` so all three routes share the same
+// Vercel-aware (un-spoofable) IP derivation.
 function checkRateLimit(req) {
-  if (!Number.isFinite(RATE_LIMIT_RPM) || RATE_LIMIT_RPM <= 0) return true;
-  const key = clientKey(req);
-  const now = Date.now();
-  const bucket = buckets.get(key);
-  if (!bucket || now - bucket.start > RATE_LIMIT_WINDOW_MS) {
-    buckets.set(key, { start: now, count: 1 });
-    return true;
-  }
-  bucket.count += 1;
-  return bucket.count <= RATE_LIMIT_RPM;
+  const limit = parseInt(process.env.WEEKLY_RPM || '6', 10);
+  return allowRate({ name: 'weekly-summary', key: clientKey(req), limit, windowSeconds: 60 });
 }
 
 /**
@@ -205,8 +177,15 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (!checkRateLimit(req)) {
+  if (!(await checkRateLimit(req))) {
     res.status(429).json({ error: { message: 'Too many requests' } });
+    return;
+  }
+
+  // App Attest gate — same semantics as the main proxy routes.
+  const attest = await checkAppAttest(req, { logLabel: 'weekly-summary' });
+  if (!attest.ok) {
+    res.status(401).json({ error: { message: 'Unauthorised', code: 'attest_required' } });
     return;
   }
 
@@ -217,9 +196,28 @@ export default async function handler(req, res) {
     return;
   }
 
+  // bodyParser's sizeLimit guards the wire; re-check the parsed body
+  // so a chunked request that understates content-length can't slip
+  // past it either.
+  const parsedBytes = Buffer.byteLength(JSON.stringify(req.body ?? ''), 'utf8');
+  if (parsedBytes > MAX_BODY_BYTES) {
+    res.status(413).json({ error: { message: 'Request too large' } });
+    return;
+  }
+
   const aggregate = sanitiseAggregate(req.body?.aggregate);
   if (!aggregate) {
     res.status(400).json({ error: { message: 'Malformed aggregate' } });
+    return;
+  }
+
+  // Shared daily spend ceiling across all proxy routes, checked last
+  // so only requests that would actually reach Anthropic consume it.
+  // Same generic 503 as the missing-key path — reason stays
+  // server-side, and the iOS client already falls back deterministically.
+  if (!(await withinDailyBudget())) {
+    console.error('[weekly-summary] daily Anthropic request budget exhausted');
+    res.status(503).json({ error: { message: 'Service unavailable' } });
     return;
   }
 
