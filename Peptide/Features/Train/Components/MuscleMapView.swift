@@ -47,13 +47,10 @@ struct MuscleMapView: View {
     /// reads as an anatomy chart rather than a flat blob.
     var showsSkeleton: Bool = true
     var skeletonColor: Color = Color.white.opacity(0.14)
-    /// Flesh tone every muscle is rendered in — the whole figure reads
-    /// as an écorché anatomy model at rest, and the load ramp overlays
-    /// on top of this without replacing the anatomical texture.
-    var muscleBaseline: Color = Color(red: 0.78, green: 0.34, blue: 0.30).opacity(0.90)
-    /// Ivory tone for the connective-tissue zones (patellae, hands,
-    /// feet, skull, thoracolumbar fascia) drawn under the muscles.
-    var fasciaTone: Color = Color(red: 0.92, green: 0.88, blue: 0.82)
+    /// Resting tint for an untrained muscle — a flesh red so the whole
+    /// figure reads as an écorché anatomy model even before anything is
+    /// trained; the load ramp then re-paints each muscle it touches.
+    var muscleBaseline: Color = Color(red: 0.78, green: 0.34, blue: 0.30).opacity(0.80)
     /// Light tendon-coloured edge line around resting muscles, standing
     /// in for the pale connective tissue between bellies on a real
     /// anatomical model.
@@ -288,33 +285,17 @@ struct MuscleMapView: View {
                 )
             }
 
-            // Fascia: pale connective-tissue zones (patellae, hands, feet,
-            // skull, thoracolumbar diamond) under the muscles — the white
-            // regions that make the figure read as a real écorché model.
-            let fascia = BodyAnatomy.fascia(front: facing == .front).applying(scale)
-            let fasciaBounds = fascia.boundingRect
-            context.fill(
-                fascia,
-                with: .linearGradient(
-                    Gradient(colors: [fasciaTone.opacity(0.38), fasciaTone.opacity(0.20)]),
-                    startPoint: CGPoint(x: fasciaBounds.midX, y: fasciaBounds.minY),
-                    endPoint: CGPoint(x: fasciaBounds.midX, y: fasciaBounds.maxY)
-                )
-            )
-            context.stroke(
-                fascia,
-                with: .color(fasciaTone.opacity(0.22)),
-                style: StrokeStyle(lineWidth: 0.7, lineJoin: .round)
-            )
-
-            // Every muscle is always rendered as realistic flesh — shaded
-            // belly, ambient-occlusion rim, wet specular streak and fiber
-            // striations. Training colour then OVERLAYS the flesh, so a
-            // lit muscle keeps its anatomical texture under the tint.
+            // Each muscle drawn either at its highlighted tint or at a
+            // faint baseline so the user reads the muscle map even when
+            // nothing's lit up. Lit muscles get a soft glow halo behind a
+            // top-lit gradient fill plus a thin specular sheen, so the
+            // belly reads as a rounded, illuminated volume rather than a
+            // flat paint blob.
             let unit = min(size.width, size.height / 2.4)
             for muscle in muscles {
                 let path = BodyAnatomy.path(for: muscle).applying(scale)
                 let highlight = highlights[muscle]
+                let base = self.fill(for: highlight)
                 let rect = path.boundingRect
 
                 if let highlight {
@@ -335,62 +316,30 @@ struct MuscleMapView: View {
                     with: .color(Color.black.opacity(0.50)),
                     style: StrokeStyle(lineWidth: 2.0, lineJoin: .round)
                 )
-                // Top-lit flesh: full tone at the top falling to a deeper
+                // Top-lit volume: full tint at the top falling to a deeper
                 // shade at the bottom reads as a rounded muscle belly.
                 context.fill(
                     path,
                     with: .linearGradient(
-                        Gradient(colors: [muscleBaseline, muscleBaseline.opacity(0.69)]),
+                        Gradient(colors: [base, base.opacity(0.40)]),
                         startPoint: CGPoint(x: rect.midX, y: rect.minY),
                         endPoint: CGPoint(x: rect.midX, y: rect.maxY)
                     )
                 )
-                // Ambient occlusion: a dark blurred rim just inside the
-                // edge curves the belly away from its neighbours.
-                var occlusion = context
-                occlusion.clip(to: path)
-                occlusion.addFilter(.blur(radius: unit * 0.008))
-                occlusion.stroke(
-                    path,
-                    with: .color(Color.black.opacity(0.28)),
-                    style: StrokeStyle(lineWidth: unit * 0.010, lineJoin: .round)
-                )
-                // Wet specular streak along the belly's vertical axis.
-                var streak = context
-                streak.clip(to: path)
-                streak.addFilter(.blur(radius: unit * 0.012))
-                var axis = Path()
-                axis.move(to: CGPoint(x: rect.midX, y: rect.minY + rect.height * 0.20))
-                axis.addLine(to: CGPoint(x: rect.midX, y: rect.maxY - rect.height * 0.30))
-                streak.stroke(
-                    axis,
-                    with: .color(Color.white.opacity(0.14)),
-                    style: StrokeStyle(lineWidth: max(rect.width * 0.22, 1), lineCap: .round)
-                )
-                // Sheen across the upper third of the belly.
+                // Specular sheen across the upper third of the belly.
                 context.fill(
                     path,
                     with: .linearGradient(
-                        Gradient(colors: [Color.white.opacity(0.12), .clear]),
+                        Gradient(colors: [
+                            Color.white.opacity(highlight == nil ? 0.10 : 0.16),
+                            .clear,
+                        ]),
                         startPoint: CGPoint(x: rect.midX, y: rect.minY),
                         endPoint: CGPoint(x: rect.midX, y: rect.minY + rect.height * 0.6)
                     )
                 )
                 drawFibers(for: muscle, path: path, highlighted: highlight != nil,
                            in: context, transform: scale)
-                // Training colour overlays the finished flesh render, so
-                // the striations and shading ghost through the tint.
-                if let highlight {
-                    let tint = overlayTint(for: highlight)
-                    context.fill(
-                        path,
-                        with: .linearGradient(
-                            Gradient(colors: [tint, tint.opacity(0.75)]),
-                            startPoint: CGPoint(x: rect.midX, y: rect.minY),
-                            endPoint: CGPoint(x: rect.midX, y: rect.maxY)
-                        )
-                    )
-                }
                 let edge = highlight.map { glowTint(for: $0).opacity(0.85) }
                     ?? tendonStroke
                 context.stroke(
@@ -458,19 +407,19 @@ struct MuscleMapView: View {
             .scaledBy(x: scale, y: scale)
     }
 
-    /// Colour overlaid on the flesh render of a trained muscle. The hue
-    /// carries the training load (green → … → purple); the alpha stays
-    /// translucent enough that the striations and shading underneath
-    /// ghost through, so the muscle looks lit rather than repainted.
-    private func overlayTint(for highlight: MuscleHighlight) -> Color {
+    private func fill(for highlight: MuscleHighlight?) -> Color {
+        guard let highlight else { return muscleBaseline }
         switch highlight {
         case .primary:
-            return primaryColor.opacity(0.62)
+            return primaryColor.opacity(0.85)
         case .secondary:
-            return secondaryColor.opacity(0.45)
+            return secondaryColor.opacity(0.65)
         case .intensity(let value):
+            // The hue carries the training load (green → … → purple), so
+            // opacity only ramps gently — a lightly-trained muscle must
+            // still read clearly green, not as a dark wash.
             let clamped = max(0, min(1, value))
-            return Self.heatColor(for: clamped).opacity(0.50 + pow(clamped, 0.7) * 0.30)
+            return Self.heatColor(for: clamped).opacity(0.72 + pow(clamped, 0.7) * 0.24)
         }
     }
 
