@@ -329,6 +329,81 @@ enum BodyAnatomy {
         return p
     }
 
+    // MARK: - Fiber striations
+
+    /// Fiber direction per muscle head, in degrees from vertical for the
+    /// RIGHT side of the body; the renderer mirrors the angle for the
+    /// left half. Fan-shaped muscles (pecs, delts, traps, lats, glutes)
+    /// tilt strongly; limb muscles run close to vertical — matching how
+    /// the fibers actually lie, which is what sells the écorché read.
+    static func fiberAngle(for muscle: AnatomicalMuscle) -> CGFloat {
+        switch muscle {
+        case .neck:             return 15
+        case .pecClavicular:    return 70
+        case .pecSternal:       return 80
+        case .deltAnterior:     return 12
+        case .deltLateralFront: return 8
+        case .biceps:           return 4
+        case .forearmFront:     return 6
+        case .abdominals:       return 0
+        case .obliques:         return 20
+        case .quadRectus:       return 4
+        case .quadLateralis:    return 8
+        case .quadMedialis:     return 25
+        case .adductors:        return 12
+        case .tibialis:         return 4
+        case .trapsUpper:       return 40
+        case .trapsLower:       return 15
+        case .rhomboids:        return 30
+        case .deltPosterior:    return 12
+        case .deltLateralBack:  return 8
+        case .tricepsLong:      return 4
+        case .tricepsLateral:   return 6
+        case .forearmBack:      return 6
+        case .lats:             return 32
+        case .lowerBack:        return 2
+        case .glutes:           return 35
+        case .gluteMedius:      return 18
+        case .hamstringLateral: return 3
+        case .hamstringMedial:  return 3
+        case .gastrocnemius:    return 5
+        case .soleus:           return 5
+        }
+    }
+
+    /// Parallel, slightly bowed striation lines crossing `rect` at
+    /// `angleDegrees` from vertical, in normalized body space. The
+    /// renderer clips the result to the muscle's path (per body half,
+    /// with the angle mirrored) so each belly reads as fibrous tissue
+    /// rather than a flat fill. Lines bow outward most at the centre of
+    /// the belly, wrapping the volume.
+    static func fibers(in rect: CGRect, angleDegrees: CGFloat,
+                       spacing: CGFloat = 0.016) -> Path {
+        var p = Path()
+        guard rect.width > 0, rect.height > 0 else { return p }
+        let theta = angleDegrees * .pi / 180
+        let dir = CGPoint(x: sin(theta), y: cos(theta))
+        let perp = CGPoint(x: cos(theta), y: -sin(theta))
+        let halfSpan = (abs(rect.width * perp.x) + abs(rect.height * perp.y)) / 2
+        let length = abs(rect.width * dir.x) + abs(rect.height * dir.y)
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        var offset = -halfSpan
+        while offset <= halfSpan {
+            let mid = CGPoint(x: center.x + perp.x * offset,
+                              y: center.y + perp.y * offset)
+            let start = CGPoint(x: mid.x - dir.x * length / 2,
+                                y: mid.y - dir.y * length / 2)
+            let end = CGPoint(x: mid.x + dir.x * length / 2,
+                              y: mid.y + dir.y * length / 2)
+            let bow = spacing * 0.9 * (1 - abs(offset) / max(halfSpan, 0.0001))
+            let control = CGPoint(x: mid.x + perp.x * bow, y: mid.y + perp.y * bow)
+            p.move(to: start)
+            p.addQuadCurve(to: end, control: control)
+            offset += spacing
+        }
+        return p
+    }
+
     // MARK: - Path dispatch
 
     /// Returns the path for a muscle head, dispatching to its builder so

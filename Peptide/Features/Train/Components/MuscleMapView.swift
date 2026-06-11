@@ -47,10 +47,14 @@ struct MuscleMapView: View {
     /// reads as an anatomy chart rather than a flat blob.
     var showsSkeleton: Bool = true
     var skeletonColor: Color = Color.white.opacity(0.14)
-    /// Resting tint for an untrained muscle. Kept visible (not near-
-    /// invisible) so the whole figure always reads as a sculpted body
-    /// the way an anatomy chart does; training then warms each muscle.
-    var muscleBaseline: Color = Color.white.opacity(0.15)
+    /// Resting tint for an untrained muscle — a flesh red so the whole
+    /// figure reads as an écorché anatomy model even before anything is
+    /// trained; the load ramp then re-paints each muscle it touches.
+    var muscleBaseline: Color = Color(red: 0.78, green: 0.34, blue: 0.30).opacity(0.80)
+    /// Light tendon-coloured edge line around resting muscles, standing
+    /// in for the pale connective tissue between bellies on a real
+    /// anatomical model.
+    var tendonStroke: Color = Color(red: 0.95, green: 0.58, blue: 0.52).opacity(0.38)
     /// Shadow colour for the muscle-separation grooves that give the
     /// figure its defined, three-dimensional read.
     var grooveColor: Color = Color.black.opacity(0.32)
@@ -305,6 +309,13 @@ struct MuscleMapView: View {
                     halo.fill(path, with: .color(glow.opacity(0.22 * strength)))
                 }
 
+                // Separation shadow under the belly's outline so adjacent
+                // muscles read carved apart, like an anatomical model.
+                context.stroke(
+                    path,
+                    with: .color(Color.black.opacity(0.50)),
+                    style: StrokeStyle(lineWidth: 2.0, lineJoin: .round)
+                )
                 // Top-lit volume: full tint at the top falling to a deeper
                 // shade at the bottom reads as a rounded muscle belly.
                 context.fill(
@@ -320,19 +331,21 @@ struct MuscleMapView: View {
                     path,
                     with: .linearGradient(
                         Gradient(colors: [
-                            Color.white.opacity(highlight == nil ? 0.06 : 0.16),
+                            Color.white.opacity(highlight == nil ? 0.10 : 0.16),
                             .clear,
                         ]),
                         startPoint: CGPoint(x: rect.midX, y: rect.minY),
                         endPoint: CGPoint(x: rect.midX, y: rect.minY + rect.height * 0.6)
                     )
                 )
+                drawFibers(for: muscle, path: path, highlighted: highlight != nil,
+                           in: context, transform: scale)
                 let edge = highlight.map { glowTint(for: $0).opacity(0.85) }
-                    ?? silhouetteStroke.opacity(0.55)
+                    ?? tendonStroke
                 context.stroke(
                     path,
                     with: .color(edge),
-                    style: StrokeStyle(lineWidth: highlight == nil ? 0.6 : 1.0,
+                    style: StrokeStyle(lineWidth: highlight == nil ? 0.7 : 1.0,
                                        lineJoin: .round)
                 )
             }
@@ -346,6 +359,37 @@ struct MuscleMapView: View {
                 BodyAnatomy.grooves(front: facing == .front).applying(scale),
                 with: .color(grooveColor),
                 style: StrokeStyle(lineWidth: 0.7, lineCap: .round, lineJoin: .round)
+            )
+        }
+    }
+
+    /// Strokes fiber striations clipped inside a muscle's (already
+    /// transformed) path. The body is split at the mid-line and the fiber
+    /// angle mirrored per half so fan-shaped muscles (pecs, traps, lats,
+    /// glutes) tilt symmetrically the way real fibers lie.
+    private func drawFibers(
+        for muscle: AnatomicalMuscle,
+        path: Path,
+        highlighted: Bool,
+        in context: GraphicsContext,
+        transform: CGAffineTransform
+    ) {
+        let angle = BodyAnatomy.fiberAngle(for: muscle)
+        let normRect = BodyAnatomy.path(for: muscle).boundingRect
+        let color = Color.black.opacity(highlighted ? 0.22 : 0.20)
+        let halves: [(CGRect, CGFloat)] = [
+            (CGRect(x: 0.5, y: 0, width: 0.5, height: 2.4), angle),
+            (CGRect(x: 0.0, y: 0, width: 0.5, height: 2.4), -angle),
+        ]
+        for (half, sideAngle) in halves {
+            var fiberContext = context
+            fiberContext.clip(to: path)
+            fiberContext.clip(to: Path(half.applying(transform)))
+            fiberContext.stroke(
+                BodyAnatomy.fibers(in: normRect, angleDegrees: sideAngle)
+                    .applying(transform),
+                with: .color(color),
+                style: StrokeStyle(lineWidth: 0.5)
             )
         }
     }
