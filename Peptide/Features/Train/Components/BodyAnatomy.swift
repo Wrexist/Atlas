@@ -79,7 +79,7 @@ enum BodyAnatomy {
     // MARK: - Front heads
 
     static func neck() -> Path { mirrorPair(smoothClosed([
-        CGPoint(x: 0.503, y: 0.305), CGPoint(x: 0.530, y: 0.320), CGPoint(x: 0.534, y: 0.380),
+        CGPoint(x: 0.503, y: 0.305), CGPoint(x: 0.516, y: 0.317), CGPoint(x: 0.531, y: 0.383),
         CGPoint(x: 0.596, y: 0.418), CGPoint(x: 0.566, y: 0.444), CGPoint(x: 0.504, y: 0.436),
     ])) }
 
@@ -90,7 +90,7 @@ enum BodyAnatomy {
 
     static func pecSternal() -> Path { mirrorPair(smoothClosed([
         CGPoint(x: 0.502, y: 0.518), CGPoint(x: 0.610, y: 0.524), CGPoint(x: 0.706, y: 0.514),
-        CGPoint(x: 0.726, y: 0.585), CGPoint(x: 0.698, y: 0.655), CGPoint(x: 0.618, y: 0.700),
+        CGPoint(x: 0.716, y: 0.585), CGPoint(x: 0.691, y: 0.653), CGPoint(x: 0.618, y: 0.700),
         CGPoint(x: 0.540, y: 0.690), CGPoint(x: 0.504, y: 0.662),
     ])) }
 
@@ -102,22 +102,22 @@ enum BodyAnatomy {
     /// Lateral deltoid cap — the same head is visible from front and back;
     /// `deltLateralFront`/`deltLateralBack` share this geometry.
     private static func deltLateralCap() -> Path { smoothClosed([
-        CGPoint(x: 0.776, y: 0.462), CGPoint(x: 0.820, y: 0.488), CGPoint(x: 0.838, y: 0.560),
+        CGPoint(x: 0.775, y: 0.465), CGPoint(x: 0.808, y: 0.496), CGPoint(x: 0.832, y: 0.560),
         CGPoint(x: 0.820, y: 0.622), CGPoint(x: 0.790, y: 0.602), CGPoint(x: 0.778, y: 0.530),
     ]) }
     static func deltLateralFront() -> Path { mirrorPair(deltLateralCap()) }
     static func deltLateralBack() -> Path { mirrorPair(deltLateralCap()) }
 
     static func biceps() -> Path { mirrorPair(smoothClosed([
-        CGPoint(x: 0.760, y: 0.596), CGPoint(x: 0.810, y: 0.622), CGPoint(x: 0.830, y: 0.730),
-        CGPoint(x: 0.812, y: 0.848), CGPoint(x: 0.774, y: 0.858), CGPoint(x: 0.750, y: 0.742),
-        CGPoint(x: 0.748, y: 0.648),
+        CGPoint(x: 0.760, y: 0.596), CGPoint(x: 0.810, y: 0.622), CGPoint(x: 0.828, y: 0.730),
+        CGPoint(x: 0.812, y: 0.848), CGPoint(x: 0.782, y: 0.857), CGPoint(x: 0.767, y: 0.740),
+        CGPoint(x: 0.753, y: 0.647),
     ])) }
 
     private static func forearmLobe() -> Path { smoothClosed([
-        CGPoint(x: 0.776, y: 0.872), CGPoint(x: 0.836, y: 0.906), CGPoint(x: 0.872, y: 1.016),
-        CGPoint(x: 0.876, y: 1.130), CGPoint(x: 0.852, y: 1.226), CGPoint(x: 0.820, y: 1.230),
-        CGPoint(x: 0.804, y: 1.090), CGPoint(x: 0.784, y: 0.960),
+        CGPoint(x: 0.784, y: 0.870), CGPoint(x: 0.836, y: 0.906), CGPoint(x: 0.872, y: 1.016),
+        CGPoint(x: 0.876, y: 1.130), CGPoint(x: 0.852, y: 1.226), CGPoint(x: 0.846, y: 1.232),
+        CGPoint(x: 0.834, y: 1.085), CGPoint(x: 0.806, y: 0.954),
     ]) }
     static func forearmFront() -> Path { mirrorPair(forearmLobe()) }
     static func forearmBack() -> Path { mirrorPair(forearmLobe()) }
@@ -142,8 +142,8 @@ enum BodyAnatomy {
     }
 
     static func obliques() -> Path { mirrorPair(smoothClosed([
-        CGPoint(x: 0.602, y: 0.700), CGPoint(x: 0.648, y: 0.746), CGPoint(x: 0.668, y: 0.900),
-        CGPoint(x: 0.684, y: 1.060), CGPoint(x: 0.660, y: 1.130), CGPoint(x: 0.616, y: 1.090),
+        CGPoint(x: 0.602, y: 0.700), CGPoint(x: 0.648, y: 0.746), CGPoint(x: 0.652, y: 0.898),
+        CGPoint(x: 0.678, y: 1.061), CGPoint(x: 0.660, y: 1.130), CGPoint(x: 0.616, y: 1.090),
         CGPoint(x: 0.600, y: 0.900),
     ])) }
 
@@ -154,34 +154,34 @@ enum BodyAnatomy {
     ])) }
 
     static func quadLateralis() -> Path { mirrorPair(smoothClosed([
-        CGPoint(x: 0.648, y: 1.290), CGPoint(x: 0.694, y: 1.400), CGPoint(x: 0.698, y: 1.560),
-        CGPoint(x: 0.676, y: 1.710), CGPoint(x: 0.648, y: 1.738), CGPoint(x: 0.642, y: 1.620),
+        CGPoint(x: 0.648, y: 1.290), CGPoint(x: 0.680, y: 1.399), CGPoint(x: 0.659, y: 1.554),
+        CGPoint(x: 0.631, y: 1.702), CGPoint(x: 0.625, y: 1.735), CGPoint(x: 0.642, y: 1.620),
         CGPoint(x: 0.650, y: 1.450),
     ])) }
 
     static func quadMedialis() -> Path { mirrorPair(smoothClosed([
         CGPoint(x: 0.572, y: 1.560), CGPoint(x: 0.598, y: 1.620), CGPoint(x: 0.602, y: 1.740),
-        CGPoint(x: 0.578, y: 1.802), CGPoint(x: 0.552, y: 1.760), CGPoint(x: 0.548, y: 1.650),
+        CGPoint(x: 0.578, y: 1.802), CGPoint(x: 0.552, y: 1.760), CGPoint(x: 0.553, y: 1.651),
     ])) }
 
     static func adductors() -> Path { mirrorPair(smoothClosed([
-        CGPoint(x: 0.518, y: 1.272), CGPoint(x: 0.566, y: 1.296), CGPoint(x: 0.584, y: 1.420),
-        CGPoint(x: 0.572, y: 1.580), CGPoint(x: 0.548, y: 1.566), CGPoint(x: 0.528, y: 1.430),
-        CGPoint(x: 0.516, y: 1.322),
+        CGPoint(x: 0.520, y: 1.270), CGPoint(x: 0.566, y: 1.296), CGPoint(x: 0.584, y: 1.420),
+        CGPoint(x: 0.572, y: 1.580), CGPoint(x: 0.561, y: 1.567), CGPoint(x: 0.569, y: 1.427),
+        CGPoint(x: 0.543, y: 1.310),
     ])) }
 
     static func tibialis() -> Path { mirrorPair(smoothClosed([
-        CGPoint(x: 0.578, y: 1.872), CGPoint(x: 0.622, y: 1.940), CGPoint(x: 0.630, y: 2.070),
-        CGPoint(x: 0.610, y: 2.210), CGPoint(x: 0.586, y: 2.250), CGPoint(x: 0.570, y: 2.100),
+        CGPoint(x: 0.578, y: 1.872), CGPoint(x: 0.622, y: 1.940), CGPoint(x: 0.624, y: 2.068),
+        CGPoint(x: 0.585, y: 2.203), CGPoint(x: 0.573, y: 2.247), CGPoint(x: 0.570, y: 2.100),
         CGPoint(x: 0.570, y: 1.960),
     ])) }
 
     // MARK: - Back heads
 
     static func trapsUpper() -> Path { smoothClosed([
-        CGPoint(x: 0.500, y: 0.355), CGPoint(x: 0.640, y: 0.428), CGPoint(x: 0.758, y: 0.460),
-        CGPoint(x: 0.620, y: 0.555), CGPoint(x: 0.500, y: 0.618),
-        CGPoint(x: 0.380, y: 0.555), CGPoint(x: 0.242, y: 0.460), CGPoint(x: 0.360, y: 0.428),
+        CGPoint(x: 0.500, y: 0.360), CGPoint(x: 0.620, y: 0.432), CGPoint(x: 0.720, y: 0.468),
+        CGPoint(x: 0.610, y: 0.556), CGPoint(x: 0.500, y: 0.618),
+        CGPoint(x: 0.390, y: 0.556), CGPoint(x: 0.280, y: 0.468), CGPoint(x: 0.380, y: 0.432),
     ]) }
 
     static func trapsLower() -> Path { smoothClosed([
@@ -197,23 +197,24 @@ enum BodyAnatomy {
 
     static func deltPosterior() -> Path { mirrorPair(smoothClosed([
         CGPoint(x: 0.712, y: 0.470), CGPoint(x: 0.762, y: 0.480), CGPoint(x: 0.790, y: 0.540),
-        CGPoint(x: 0.766, y: 0.610), CGPoint(x: 0.726, y: 0.600), CGPoint(x: 0.706, y: 0.520),
+        CGPoint(x: 0.766, y: 0.610), CGPoint(x: 0.744, y: 0.596), CGPoint(x: 0.706, y: 0.520),
     ])) }
 
     static func tricepsLong() -> Path { mirrorPair(smoothClosed([
         CGPoint(x: 0.748, y: 0.605), CGPoint(x: 0.788, y: 0.638), CGPoint(x: 0.795, y: 0.760),
-        CGPoint(x: 0.776, y: 0.862), CGPoint(x: 0.748, y: 0.860), CGPoint(x: 0.740, y: 0.720),
+        CGPoint(x: 0.783, y: 0.861), CGPoint(x: 0.782, y: 0.855), CGPoint(x: 0.764, y: 0.717),
     ])) }
 
     static func tricepsLateral() -> Path { mirrorPair(smoothClosed([
-        CGPoint(x: 0.790, y: 0.618), CGPoint(x: 0.830, y: 0.650), CGPoint(x: 0.840, y: 0.760),
+        CGPoint(x: 0.790, y: 0.618), CGPoint(x: 0.829, y: 0.650), CGPoint(x: 0.832, y: 0.761),
         CGPoint(x: 0.824, y: 0.852), CGPoint(x: 0.798, y: 0.846), CGPoint(x: 0.798, y: 0.722),
     ])) }
 
     static func lats() -> Path { mirrorPair(smoothClosed([
-        CGPoint(x: 0.700, y: 0.560), CGPoint(x: 0.726, y: 0.600), CGPoint(x: 0.702, y: 0.770),
-        CGPoint(x: 0.648, y: 0.930), CGPoint(x: 0.564, y: 1.050), CGPoint(x: 0.516, y: 1.080),
-        CGPoint(x: 0.516, y: 0.870), CGPoint(x: 0.560, y: 0.700), CGPoint(x: 0.640, y: 0.600),
+        CGPoint(x: 0.692, y: 0.582), CGPoint(x: 0.700, y: 0.640), CGPoint(x: 0.678, y: 0.730),
+        CGPoint(x: 0.658, y: 0.840), CGPoint(x: 0.616, y: 0.950), CGPoint(x: 0.560, y: 1.040),
+        CGPoint(x: 0.516, y: 1.072), CGPoint(x: 0.516, y: 0.880), CGPoint(x: 0.554, y: 0.716),
+        CGPoint(x: 0.628, y: 0.616),
     ])) }
 
     static func lowerBack() -> Path { mirrorPair(smoothClosed([
@@ -223,8 +224,8 @@ enum BodyAnatomy {
 
     static func glutes() -> Path { mirrorPair(smoothClosed([
         CGPoint(x: 0.506, y: 1.170), CGPoint(x: 0.560, y: 1.192), CGPoint(x: 0.640, y: 1.272),
-        CGPoint(x: 0.660, y: 1.360), CGPoint(x: 0.620, y: 1.430), CGPoint(x: 0.540, y: 1.442),
-        CGPoint(x: 0.506, y: 1.400),
+        CGPoint(x: 0.660, y: 1.360), CGPoint(x: 0.620, y: 1.430), CGPoint(x: 0.570, y: 1.441),
+        CGPoint(x: 0.565, y: 1.390),
     ])) }
 
     static func gluteMedius() -> Path { mirrorPair(smoothClosed([
@@ -233,34 +234,34 @@ enum BodyAnatomy {
     ])) }
 
     static func hamstringLateral() -> Path { mirrorPair(smoothClosed([
-        CGPoint(x: 0.606, y: 1.456), CGPoint(x: 0.662, y: 1.484), CGPoint(x: 0.670, y: 1.620),
-        CGPoint(x: 0.644, y: 1.770), CGPoint(x: 0.614, y: 1.806), CGPoint(x: 0.596, y: 1.640),
+        CGPoint(x: 0.606, y: 1.456), CGPoint(x: 0.662, y: 1.484), CGPoint(x: 0.648, y: 1.616),
+        CGPoint(x: 0.621, y: 1.767), CGPoint(x: 0.614, y: 1.806), CGPoint(x: 0.596, y: 1.640),
         CGPoint(x: 0.598, y: 1.520),
     ])) }
 
     static func hamstringMedial() -> Path { mirrorPair(smoothClosed([
-        CGPoint(x: 0.536, y: 1.448), CGPoint(x: 0.594, y: 1.468), CGPoint(x: 0.600, y: 1.640),
-        CGPoint(x: 0.586, y: 1.794), CGPoint(x: 0.554, y: 1.824), CGPoint(x: 0.536, y: 1.650),
-        CGPoint(x: 0.530, y: 1.520),
+        CGPoint(x: 0.570, y: 1.448), CGPoint(x: 0.594, y: 1.468), CGPoint(x: 0.600, y: 1.640),
+        CGPoint(x: 0.586, y: 1.794), CGPoint(x: 0.554, y: 1.824), CGPoint(x: 0.553, y: 1.652),
+        CGPoint(x: 0.566, y: 1.523),
     ])) }
 
     static func gastrocnemius() -> Path {
         // Medial + lateral heads of the calf.
         let medial = smoothClosed([
             CGPoint(x: 0.560, y: 1.880), CGPoint(x: 0.592, y: 1.900), CGPoint(x: 0.602, y: 2.000),
-            CGPoint(x: 0.590, y: 2.090), CGPoint(x: 0.562, y: 2.130), CGPoint(x: 0.544, y: 2.030),
-            CGPoint(x: 0.544, y: 1.940),
+            CGPoint(x: 0.590, y: 2.090), CGPoint(x: 0.562, y: 2.130), CGPoint(x: 0.548, y: 2.030),
+            CGPoint(x: 0.546, y: 1.940),
         ])
         let lateral = smoothClosed([
-            CGPoint(x: 0.598, y: 1.890), CGPoint(x: 0.634, y: 1.922), CGPoint(x: 0.644, y: 2.010),
-            CGPoint(x: 0.630, y: 2.100), CGPoint(x: 0.606, y: 2.082), CGPoint(x: 0.598, y: 1.990),
+            CGPoint(x: 0.598, y: 1.890), CGPoint(x: 0.634, y: 1.922), CGPoint(x: 0.636, y: 2.009),
+            CGPoint(x: 0.616, y: 2.096), CGPoint(x: 0.606, y: 2.082), CGPoint(x: 0.598, y: 1.990),
         ])
         return mirrorPair(union([medial, lateral]))
     }
 
     static func soleus() -> Path { mirrorPair(smoothClosed([
-        CGPoint(x: 0.566, y: 2.120), CGPoint(x: 0.610, y: 2.112), CGPoint(x: 0.620, y: 2.162),
-        CGPoint(x: 0.602, y: 2.262), CGPoint(x: 0.574, y: 2.272), CGPoint(x: 0.556, y: 2.180),
+        CGPoint(x: 0.566, y: 2.120), CGPoint(x: 0.610, y: 2.112), CGPoint(x: 0.598, y: 2.155),
+        CGPoint(x: 0.571, y: 2.256), CGPoint(x: 0.568, y: 2.271), CGPoint(x: 0.556, y: 2.180),
     ])) }
 
     // MARK: - Skeleton underlay
