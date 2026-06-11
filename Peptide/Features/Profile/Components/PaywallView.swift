@@ -552,6 +552,11 @@ struct PaywallView: View {
 
     private var subCTAText: String {
         guard let product = selectedProduct else { return "Cancel any time" }
+        // Lifetime is a one-time non-consumable — never claim it can be
+        // cancelled or that it auto-renews (App Store 3.1.2(a)).
+        guard product.type == .autoRenewable else {
+            return "One-time purchase · no subscription"
+        }
         if product.id == StoreService.annualID,
            storeService.isEligibleForAnnualTrial,
            let trial = storeService.annualTrialDisplay {
@@ -581,23 +586,34 @@ struct PaywallView: View {
         .foregroundStyle(AppColor.textSecondary)
     }
 
-    /// Required by App Store guideline 3.1.2(a) — the user must see length,
-    /// auto-renewal, and where to cancel before they tap purchase. Tap
-    /// expands the full term details into a sheet.
+    /// Required by App Store guideline 3.1.2(a) — for a subscription the user
+    /// must see length, auto-renewal, and where to cancel before they tap
+    /// purchase. The Lifetime plan is a one-time non-consumable, so the
+    /// auto-renew/cancel copy must NOT apply to it (showing it on a one-time
+    /// purchase is itself a 3.1.2(a) accuracy problem).
+    @ViewBuilder
     private var autoRenewDisclosure: some View {
-        Button {
-            isShowingDisclosure = true
-        } label: {
-            (
-                Text("Auto-renews unless cancelled. ")
-                + Text("Details").foregroundColor(AppColor.accentLight)
-            )
-            .font(.system(size: 11))
-            .foregroundStyle(AppColor.textTertiary)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
+        if let product = selectedProduct, product.type != .autoRenewable {
+            Text("One-time purchase, charged to your Apple ID. No subscription — nothing to renew or cancel.")
+                .font(.system(size: 11))
+                .foregroundStyle(AppColor.textTertiary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+        } else {
+            Button {
+                isShowingDisclosure = true
+            } label: {
+                (
+                    Text("Auto-renews unless cancelled. ")
+                    + Text("Details").foregroundColor(AppColor.accentLight)
+                )
+                .font(.system(size: 11))
+                .foregroundStyle(AppColor.textTertiary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
     }
 
     private var disclosureSheet: some View {
