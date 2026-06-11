@@ -11,8 +11,9 @@ enum MuscleHighlight: Hashable, Sendable {
     /// Soft secondary tint — assisting muscles that get worked but
     /// aren't the focus.
     case secondary
-    /// Frequency-driven shade for the weekly heatmap.
-    /// `0.0` is dim, `1.0` is fully lit.
+    /// Frequency-driven shade for the weekly heatmap, rendered on the
+    /// green → yellow → orange → red → purple load ramp. `0.0` is a
+    /// just-started green, `1.0` the most-trained purple.
     case intensity(Double)
 }
 
@@ -24,8 +25,9 @@ enum MuscleHighlight: Hashable, Sendable {
 ///   secondary muscles in cool blue, matching the screenshots from
 ///   the Lyfta reference.
 /// - **Weekly heatmap** — pass `[muscle: .intensity(0…1)]`. Renders
-///   a single-colour gradient where well-trained muscles light up
-///   warmer.
+///   each muscle on the load ramp: green for freshly-started work
+///   climbing through yellow, orange and red to purple for the
+///   most-trained muscle.
 /// - **Empty** — pass `[:]` (or omit). Renders the silhouette as a
 ///   calm baseline so the surface still reads as the user's body
 ///   even before they've logged anything.
@@ -39,7 +41,6 @@ struct MuscleMapView: View {
     var orientation: Orientation = .both
     var primaryColor: Color = Color(red: 0.93, green: 0.27, blue: 0.30)
     var secondaryColor: Color = Color(red: 0.42, green: 0.58, blue: 0.95)
-    var heatmapHotColor: Color = Color(red: 0.95, green: 0.40, blue: 0.30)
     var silhouetteFill: Color = Color.white.opacity(0.06)
     var silhouetteStroke: Color = Color.white.opacity(0.18)
     /// Faint skeletal scaffold drawn under the muscles so the figure
@@ -212,9 +213,9 @@ struct MuscleMapView: View {
     /// Hue a trained muscle takes on in the asset renderer.
     private func tintColor(for highlight: MuscleHighlight) -> Color {
         switch highlight {
-        case .primary:   return primaryColor
-        case .secondary: return secondaryColor
-        case .intensity: return heatmapHotColor
+        case .primary:          return primaryColor
+        case .secondary:        return secondaryColor
+        case .intensity(let v): return Self.heatColor(for: v)
         }
     }
 
@@ -280,28 +281,57 @@ struct MuscleMapView: View {
                 )
             }
 
-            // Each muscle drawn either at its highlighted tint or
-            // at a faint baseline so the user reads the muscle map
-            // even when nothing's lit up. A top-to-bottom gradient on
-            // the fill adds a subtle rounded, three-dimensional read.
+            // Each muscle drawn either at its highlighted tint or at a
+            // faint baseline so the user reads the muscle map even when
+            // nothing's lit up. Lit muscles get a soft glow halo behind a
+            // top-lit gradient fill plus a thin specular sheen, so the
+            // belly reads as a rounded, illuminated volume rather than a
+            // flat paint blob.
+            let unit = min(size.width, size.height / 2.4)
             for muscle in muscles {
                 let path = BodyAnatomy.path(for: muscle).applying(scale)
                 let highlight = highlights[muscle]
                 let base = self.fill(for: highlight)
                 let rect = path.boundingRect
+
+                if let highlight {
+                    let glow = glowTint(for: highlight)
+                    let strength = glowStrength(for: highlight)
+                    var halo = context
+                    halo.addFilter(.shadow(
+                        color: glow.opacity(0.55 * strength),
+                        radius: unit * 0.020 * strength
+                    ))
+                    halo.fill(path, with: .color(glow.opacity(0.22 * strength)))
+                }
+
                 // Top-lit volume: full tint at the top falling to a deeper
                 // shade at the bottom reads as a rounded muscle belly.
                 context.fill(
                     path,
                     with: .linearGradient(
-                        Gradient(colors: [base, base.opacity(0.45)]),
+                        Gradient(colors: [base, base.opacity(0.40)]),
                         startPoint: CGPoint(x: rect.midX, y: rect.minY),
                         endPoint: CGPoint(x: rect.midX, y: rect.maxY)
                     )
                 )
+                // Specular sheen across the upper third of the belly.
+                context.fill(
+                    path,
+                    with: .linearGradient(
+                        Gradient(colors: [
+                            Color.white.opacity(highlight == nil ? 0.06 : 0.16),
+                            .clear,
+                        ]),
+                        startPoint: CGPoint(x: rect.midX, y: rect.minY),
+                        endPoint: CGPoint(x: rect.midX, y: rect.minY + rect.height * 0.6)
+                    )
+                )
+                let edge = highlight.map { glowTint(for: $0).opacity(0.85) }
+                    ?? silhouetteStroke.opacity(0.55)
                 context.stroke(
                     path,
-                    with: .color(silhouetteStroke.opacity(highlight == nil ? 0.55 : 0.9)),
+                    with: .color(edge),
                     style: StrokeStyle(lineWidth: highlight == nil ? 0.6 : 1.0,
                                        lineJoin: .round)
                 )
@@ -341,11 +371,30 @@ struct MuscleMapView: View {
         case .secondary:
             return secondaryColor.opacity(0.65)
         case .intensity(let value):
-            // Clamp + gamma-curve so low-frequency muscles stay
-            // visible without dominating: 0 → 8% opacity, 1 → 90%.
+            // The hue carries the training load (green → … → purple), so
+            // opacity only ramps gently — a lightly-trained muscle must
+            // still read clearly green, not as a dark wash.
             let clamped = max(0, min(1, value))
-            let curve = pow(clamped, 0.6)
-            return heatmapHotColor.opacity(0.08 + curve * 0.82)
+            return Self.heatColor(for: clamped).opacity(0.72 + pow(clamped, 0.7) * 0.24)
+        }
+    }
+
+    /// Hue a lit muscle's glow halo and edge stroke take on.
+    private func glowTint(for highlight: MuscleHighlight) -> Color {
+        switch highlight {
+        case .primary:          return primaryColor
+        case .secondary:        return secondaryColor
+        case .intensity(let v): return Self.heatColor(for: max(0, min(1, v)))
+        }
+    }
+
+    /// How strongly a lit muscle glows — full for a primary mover,
+    /// softer for assist work, ramped by frequency on the heatmap.
+    private func glowStrength(for highlight: MuscleHighlight) -> Double {
+        switch highlight {
+        case .primary:          return 1.0
+        case .secondary:        return 0.5
+        case .intensity(let v): return 0.35 + max(0, min(1, v)) * 0.65
         }
     }
 
@@ -368,6 +417,47 @@ struct MuscleMapView: View {
         } else {
             return Text("\(view), highlighted: " + lit.joined(separator: ", "))
         }
+    }
+}
+
+// MARK: - Heat scale
+
+extension MuscleMapView {
+    /// Training-load colour ramp for `.intensity` highlights: green for a
+    /// muscle the user has only just started hitting, through yellow,
+    /// orange and red, to purple for the absolute most-trained muscle.
+    private static let heatStops: [(position: Double, r: Double, g: Double, b: Double)] = [
+        (0.00, 0.20, 0.78, 0.35),  // green
+        (0.25, 0.95, 0.80, 0.20),  // yellow
+        (0.50, 0.97, 0.55, 0.15),  // orange
+        (0.75, 0.93, 0.23, 0.23),  // red
+        (1.00, 0.62, 0.27, 0.90),  // purple
+    ]
+
+    /// Colour on the load ramp for a normalised intensity (0…1),
+    /// linearly interpolated between the five stops.
+    static func heatColor(for intensity: Double) -> Color {
+        let v = max(0, min(1, intensity))
+        for i in 0..<(heatStops.count - 1) {
+            let a = heatStops[i]
+            let b = heatStops[i + 1]
+            guard v <= b.position else { continue }
+            let t = (v - a.position) / (b.position - a.position)
+            return Color(
+                red: a.r + (b.r - a.r) * t,
+                green: a.g + (b.g - a.g) * t,
+                blue: a.b + (b.b - a.b) * t
+            )
+        }
+        let last = heatStops[heatStops.count - 1]
+        return Color(red: last.r, green: last.g, blue: last.b)
+    }
+
+    /// The full ramp as a gradient, for legend capsules under heatmaps.
+    static var heatLegendGradient: Gradient {
+        Gradient(stops: heatStops.map {
+            .init(color: Color(red: $0.r, green: $0.g, blue: $0.b), location: $0.position)
+        })
     }
 }
 
@@ -447,6 +537,34 @@ extension MuscleMapView {
         guard maxFrequency > 0 else { return [:] }
         return frequencies.reduce(into: [:]) { acc, pair in
             acc[pair.key] = .intensity(pair.value / maxFrequency)
+        }
+    }
+}
+
+// MARK: - Legend
+
+/// Compact legend strip explaining the load ramp under a heatmap
+/// figure: a green → yellow → orange → red → purple capsule between
+/// two extreme labels.
+struct MuscleHeatLegend: View {
+    var lowLabel: String = "Less"
+    var highLabel: String = "Most"
+
+    var body: some View {
+        HStack(spacing: Spacing.sm) {
+            Text(lowLabel)
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+            Capsule()
+                .fill(LinearGradient(
+                    gradient: MuscleMapView.heatLegendGradient,
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ))
+                .frame(height: 6)
+            Text(highLabel)
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
         }
     }
 }
