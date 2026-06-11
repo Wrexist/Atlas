@@ -330,6 +330,41 @@ enum BodyAnatomy {
         return p
     }
 
+    // MARK: - Fascia / tendon zones
+
+    /// Pale connective-tissue regions — patellae, hands, feet, the skull
+    /// cap, and (on the back) the thoracolumbar fascia diamond between
+    /// lats and glutes. Filled in an ivory tone under the muscles, these
+    /// are the signature white zones that make an écorché figure read as
+    /// flesh-over-tendon rather than shapes on a silhouette.
+    static func fascia(front: Bool) -> Path {
+        var p = Path()
+        let ellipses: [(cx: CGFloat, cy: CGFloat, rx: CGFloat, ry: CGFloat, mirrored: Bool)] = [
+            (0.604, 1.842, front ? 0.034 : 0.030, front ? 0.044 : 0.040, true),  // patella
+            (0.872, 1.300, 0.038, 0.062, true),                                  // hand
+            (0.566, 2.330, 0.052, 0.044, true),                                  // foot
+            (0.500, 0.170, 0.072, 0.105, false),                                 // skull
+        ]
+        for e in ellipses {
+            p.addEllipse(in: CGRect(x: e.cx - e.rx, y: e.cy - e.ry,
+                                    width: e.rx * 2, height: e.ry * 2))
+            if e.mirrored {
+                p.addEllipse(in: CGRect(x: (1 - e.cx) - e.rx, y: e.cy - e.ry,
+                                        width: e.rx * 2, height: e.ry * 2))
+            }
+        }
+        if !front {
+            // Thoracolumbar fascia diamond.
+            p.move(to: CGPoint(x: 0.500, y: 1.020))
+            p.addQuadCurve(to: CGPoint(x: 0.500, y: 1.262),
+                           control: CGPoint(x: 0.572, y: 1.105))
+            p.addQuadCurve(to: CGPoint(x: 0.500, y: 1.020),
+                           control: CGPoint(x: 0.428, y: 1.105))
+            p.closeSubpath()
+        }
+        return p
+    }
+
     // MARK: - Fiber striations
 
     /// Fiber direction per muscle head, in degrees from vertical for the
