@@ -168,16 +168,21 @@ struct MuscleMapView: View {
             if orientation == .front || orientation == .both {
                 assetFigure(facing: .front)
                     .frame(maxWidth: .infinity)
+                    .overlay { tapLayer(facing: .front) }
                     .accessibilityElement()
                     .accessibilityLabel(accessibilityLabel(for: .front))
             }
             if orientation == .back || orientation == .both {
                 assetFigure(facing: .back)
                     .frame(maxWidth: .infinity)
+                    .overlay { tapLayer(facing: .back) }
                     .accessibilityElement()
                     .accessibilityLabel(accessibilityLabel(for: .back))
             }
         }
+        .aspectRatio(orientation == .both ? BodyAnatomy.aspect * 2 : BodyAnatomy.aspect,
+                     contentMode: .fit)
+        .overlay(alignment: .top) { identifyLabel }
     }
 
     private func assetFigure(facing: Facing) -> some View {

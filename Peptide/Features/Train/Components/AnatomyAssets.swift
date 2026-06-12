@@ -25,10 +25,11 @@ enum AnatomyAssets {
     static let bodyFront = "anatomy_body_front"
     static let bodyBack = "anatomy_body_back"
 
-    /// Required attribution when the Z-Anatomy-derived pack ships
-    /// (CC-BY-SA 4.0). Surface this in Settings → Acknowledgements before
-    /// release. Only meaningful once `isAvailable`.
-    static let attribution = "Anatomy model derived from Z-Anatomy (z-anatomy.com), CC-BY-SA 4.0."
+    /// Provenance note for the bundled pack: rendered in-house with
+    /// Blender from this app's own `BodyAnatomy` geometry (see
+    /// `tools/anatomy/` for the generator). No third-party attribution
+    /// is required.
+    static let attribution = "Anatomy renders generated from Atlas's own body geometry."
 
     /// Asset name for a muscle's tintable mask.
     static func mask(for muscle: AnatomicalMuscle) -> String {
