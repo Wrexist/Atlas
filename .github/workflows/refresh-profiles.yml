@@ -1,0 +1,52 @@
+name: Refresh signing profiles
+
+# Manual one-off. Run this after enabling or disabling a capability on an
+# App ID in the Apple Developer portal (e.g. App Attest on
+# com.peptidesai.app). It force-regenerates the App Store provisioning
+# profiles via match so the new entitlement is committed to the match repo
+# and picked up by the next "iOS TestFlight" build. The beta lane reuses
+# existing profiles and won't absorb a capability change on its own.
+#
+# PREREQUISITE: enable the capability on the App ID first — match only
+# bakes into the profile what the App ID already has enabled.
+on:
+  workflow_dispatch:
+
+concurrency:
+  # Serialize anything that writes to the match git repo so two runs can't
+  # race and corrupt it. Don't cancel a half-finished signing write.
+  group: ios-signing
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    # macos for the keychain / security tooling match relies on. No Xcode
+    # build happens here, so there's nothing to pin beyond the OS image.
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
+
+      - name: Trust GitHub SSH host key
+        run: ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Force-regenerate App Store provisioning profiles
+        env:
+          ASC_KEY_ID:     ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID:  ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8:     ${{ secrets.ASC_KEY_P8 }}
+          MATCH_GIT_URL:  ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        run: bundle exec fastlane ios refresh_profiles
