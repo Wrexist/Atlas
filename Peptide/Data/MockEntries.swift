@@ -17,7 +17,11 @@ enum MockEntries {
     static func generateEntries(for protocol_: PeptideProtocol, days: Int = 30) -> [ProtocolEntry] {
         var entries: [ProtocolEntry] = []
         let calendar = Calendar.current
-        var rng = SeededGenerator(seed: UInt64(bitPattern: Int64(protocol_.name.hashValue &+ days)))
+        // Stable FNV-style hash, not String.hashValue: Swift randomizes
+        // hashValue per process, so the "seeded" generator produced
+        // different mock/screenshot data every launch — defeating the seed.
+        let stableSeed = protocol_.name.utf8.reduce(UInt64(5381)) { ($0 &* 31) &+ UInt64($1) } &+ UInt64(days)
+        var rng = SeededGenerator(seed: stableSeed)
         let startOfProtocol = calendar.startOfDay(for: protocol_.startDate)
         let endOfProtocol = calendar.startOfDay(for: protocol_.endDate)
 
