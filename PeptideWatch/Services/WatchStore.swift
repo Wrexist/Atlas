@@ -9,6 +9,10 @@ final class WatchStore: NSObject, ObservableObject {
     @Published var watchData: WatchData = .empty
     @Published var isSending = false
 
+    /// Bumped on every send so a stale watchdog from a prior send can't
+    /// clear `isSending` out from under a newer in-flight send.
+    private var sendToken = 0
+
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
         d.dateDecodingStrategy = .iso8601
@@ -113,6 +117,17 @@ final class WatchStore: NSObject, ObservableObject {
     /// phone meant the tap was dropped entirely and the optimistic
     /// Watch state was silently overwritten on the next sync.
     private func sendOrQueue(_ message: [String: Any]) {
+        // Watchdog: WCSession can hang if the phone deactivates mid-flight
+        // and neither the reply nor the error handler fires, which would
+        // leave `isSending` true and disable every further Watch tap. Force
+        // it back after 10s — the token guard makes a newer send immune.
+        sendToken &+= 1
+        let token = sendToken
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            if self.sendToken == token, self.isSending { self.isSending = false }
+        }
+
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(message, replyHandler: { [weak self] _ in
                 Task { @MainActor in self?.isSending = false }
