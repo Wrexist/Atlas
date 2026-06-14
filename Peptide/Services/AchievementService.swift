@@ -37,6 +37,7 @@ final class AchievementService {
         // Don't reset latestUnlock here — see `acknowledgeLatestUnlock`.
         // Resetting clobbers any unlock another check method just wrote
         // when the two methods run back-to-back on the same save.
+        let unlocksBefore = pendingUnlocks.count
         unlock("first_dose", if: totalDoses >= 1)
         unlock("ten_doses", if: totalDoses >= 10)
         unlock("fifty_doses", if: totalDoses >= 50)
@@ -55,7 +56,10 @@ final class AchievementService {
         unlock("week_logged", if: daysLogged >= 7)
         unlock("month_logged", if: daysLogged >= 30)
 
-        saveAchievements()
+        // Only persist when something actually unlocked — this runs on
+        // every DataStore.save, and re-encoding the whole array each time
+        // was wasted work on the hot path.
+        if pendingUnlocks.count != unlocksBefore { saveAchievements() }
     }
 
     /// Lifestyle-side milestones. Surfaced when the user crosses
@@ -73,6 +77,7 @@ final class AchievementService {
         checkInsLogged: Int
     ) {
         // No reset — the consumer drains via `acknowledgeLatestUnlock`.
+        let unlocksBefore = pendingUnlocks.count
         unlock("first_meal", if: mealsLogged >= 1)
         unlock("fifty_meals", if: mealsLogged >= 50)
         unlock("five_hundred_meals", if: mealsLogged >= 500)
@@ -92,7 +97,7 @@ final class AchievementService {
         unlock("checkin_streak_14", if: checkInsLogged >= 14)
         unlock("checkin_streak_60", if: checkInsLogged >= 60)
 
-        saveAchievements()
+        if pendingUnlocks.count != unlocksBefore { saveAchievements() }
     }
 
     /// Clears the celebration slot. Call after the toast has been

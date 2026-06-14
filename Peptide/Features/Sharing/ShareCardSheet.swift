@@ -36,6 +36,7 @@ struct ShareCardSheet: View {
     @State private var errorMessage: String?
     @State private var previewImage: UIImage?
     @State private var previewToken: UUID = UUID()
+    @State private var previewRenderFailed = false
 
     /// 9:16 aspect ratio matching the 1080×1920 export. The preview is
     /// width-constrained by its container, so we only need the aspect
@@ -147,11 +148,21 @@ struct ShareCardSheet: View {
                     endPoint: .bottom
                 )
                 VStack(spacing: Spacing.sm) {
-                    ProgressView()
-                        .tint(AppColor.accentLight)
-                    Text("Rendering share card…")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textTertiary)
+                    if previewRenderFailed {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(AppColor.textTertiary)
+                        Text("Couldn't render the card. Adjust an option to retry.")
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textTertiary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, Spacing.md)
+                    } else {
+                        ProgressView()
+                            .tint(AppColor.accentLight)
+                        Text("Rendering share card…")
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textTertiary)
+                    }
                 }
                 .accessibilityElement(children: .combine)
             }
@@ -176,12 +187,22 @@ struct ShareCardSheet: View {
             // flushed before the (synchronous) ImageRenderer captures.
             await Task.yield()
             guard previewToken == token else { return }
-            let image = try? ShareCardRenderer.renderImage(
-                for: modelForRender,
-                maskCompoundNames: maskCompoundNames
-            )
-            guard previewToken == token else { return }
-            previewImage = image
+            do {
+                let image = try ShareCardRenderer.renderImage(
+                    for: modelForRender,
+                    maskCompoundNames: maskCompoundNames
+                )
+                guard previewToken == token else { return }
+                previewImage = image
+                previewRenderFailed = false
+            } catch {
+                // Surface the failure instead of an infinite "Rendering…"
+                // spinner — a stuck spinner reads as a hang.
+                AppLog.export.error("Share card render failed: \(error.localizedDescription, privacy: .public)")
+                guard previewToken == token else { return }
+                previewImage = nil
+                previewRenderFailed = true
+            }
         }
     }
 

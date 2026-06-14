@@ -8,6 +8,9 @@ import SwiftUI
 /// category as supporting context.
 struct LabEntryEditor: View {
     let initial: LabValue?
+    /// User's sex so the reference-range footer and sanity bounds use
+    /// the correct interval for sex-specific panels.
+    let sex: BiologicalSex
     let onSave: (LabValue) -> Void
     let onDelete: ((UUID) -> Void)?
     let onCancel: () -> Void
@@ -23,11 +26,13 @@ struct LabEntryEditor: View {
 
     init(
         initial: LabValue?,
+        sex: BiologicalSex,
         onSave: @escaping (LabValue) -> Void,
         onDelete: ((UUID) -> Void)?,
         onCancel: @escaping () -> Void
     ) {
         self.initial = initial
+        self.sex = sex
         self.onSave = onSave
         self.onDelete = onDelete
         self.onCancel = onCancel
@@ -70,7 +75,7 @@ struct LabEntryEditor: View {
     /// motivate users to track in the first place (audit Biology
     /// MED 12).
     private var rangeError: String? {
-        guard let value = parsedValue, let range = panel.typicalRange else { return nil }
+        guard let value = parsedValue, let range = panel.typicalRange(for: sex) else { return nil }
         let floor = range.lowerBound * 0.1
         let ceiling = range.upperBound * 10
         if value < floor {
@@ -128,7 +133,7 @@ struct LabEntryEditor: View {
                 } header: {
                     Text("Result")
                 } footer: {
-                    if let range = panel.typicalRange {
+                    if let range = panel.typicalRange(for: sex) {
                         Text(rangeFooter(range: range))
                     } else {
                         Text("Reported in \(panel.canonicalUnit). Convert from your lab's unit before entering.")

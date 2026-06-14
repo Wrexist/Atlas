@@ -456,8 +456,12 @@ final class HealthKitService {
     func dailySleepHours(days: Int) async -> [(date: Date, value: Double)] {
         guard isAvailable, days > 0 else { return [] }
         let calendar = Calendar.current
-        let endDate = calendar.startOfDay(for: Date()).addingTimeInterval(86_400)
-        guard let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { return [] }
+        // Use calendar day arithmetic, not a hardcoded 86_400s: on a DST
+        // transition day (23h or 25h) startOfToday + 86_400 lands an hour
+        // off the next midnight and skews the window.
+        let startOfToday = calendar.startOfDay(for: Date())
+        guard let endDate = calendar.date(byAdding: .day, value: 1, to: startOfToday),
+              let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { return [] }
 
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
         let descriptor = HKSampleQueryDescriptor(
@@ -635,8 +639,12 @@ final class HealthKitService {
         guard isAvailable, days > 0 else { return [] }
 
         let calendar = Calendar.current
-        let endDate = calendar.startOfDay(for: Date()).addingTimeInterval(86_400)
-        guard let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { return [] }
+        // Use calendar day arithmetic, not a hardcoded 86_400s: on a DST
+        // transition day (23h or 25h) startOfToday + 86_400 lands an hour
+        // off the next midnight and skews the window.
+        let startOfToday = calendar.startOfDay(for: Date())
+        guard let endDate = calendar.date(byAdding: .day, value: 1, to: startOfToday),
+              let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { return [] }
 
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
         let descriptor = HKStatisticsCollectionQueryDescriptor(

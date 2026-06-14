@@ -369,10 +369,15 @@ struct CycleCardView: View {
 
     // MARK: - QR generation
 
+    /// Shared CIContext — constructing one is expensive and it's documented
+    /// thread-safe, so we don't rebuild it on every render. `nonisolated(unsafe)`
+    /// because `qrCode` runs under ImageRenderer off the main actor.
+    nonisolated(unsafe) private static let ciContext = CIContext()
+
     /// Static so `ImageRenderer` doesn't trip over view-instance-bound state
     /// while it walks the tree to capture pixels.
     private static func qrCode(from string: String) -> UIImage? {
-        let context = CIContext()
+        let context = Self.ciContext
         let filter = CIFilter.qrCodeGenerator()
         filter.message = Data(string.utf8)
         filter.correctionLevel = "H"

@@ -101,8 +101,10 @@ enum HabitSchedule: Codable, Hashable, Sendable {
         case .daily:
             return true
         case .weekdays(let days):
+            // Fail closed: an unresolvable weekday should not mark a
+            // weekday-scheduled habit due every day.
             return HabitWeekday.from(date: date, calendar: calendar)
-                .map { days.contains($0) } ?? true
+                .map { days.contains($0) } ?? false
         case .timesPerWeek:
             return true
         }
@@ -206,7 +208,9 @@ struct HabitEntry: Codable, Identifiable, Hashable, Sendable {
     ) {
         self.id = id
         self.habitId = habitId
-        self.date = date
+        // Honor the documented start-of-day contract so a caller that
+        // forgets to normalize can't create duplicate same-day entries.
+        self.date = Calendar.current.startOfDay(for: date)
         self.value = value
         self.notes = notes
     }

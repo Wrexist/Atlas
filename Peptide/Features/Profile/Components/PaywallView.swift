@@ -16,6 +16,7 @@ struct PaywallView: View {
 
     @State private var selectedProductID: String?
     @State private var isPurchasing = false
+    @State private var isRestoring = false
     @State private var errorMessage: String?
     @State private var isShowingDisclosure = false
 
@@ -62,6 +63,13 @@ struct PaywallView: View {
         }
         .preferredColorScheme(.dark)
         .task {
+            // Re-check entitlements first: a user who upgraded on another
+            // device (or just restored) shouldn't be stranded on the paywall.
+            await storeService.checkProAccess()
+            if storeService.isProUser {
+                dismiss()
+                return
+            }
             await storeService.loadProducts()
             if selectedProductID == nil {
                 selectedProductID = storeService.annualProduct?.id
@@ -575,6 +583,7 @@ struct PaywallView: View {
     private var footerLinks: some View {
         HStack(spacing: Spacing.xl) {
             Button("Restore Purchases", action: restore)
+                .disabled(isRestoring)
 
             Link("Terms",
                  destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"))
@@ -688,7 +697,10 @@ struct PaywallView: View {
             let outcome = try await storeService.purchaseWithOutcome(product)
             switch outcome {
             case .success:
-                if storeService.isProUser { dismiss() }
+                // A verified, finished transaction means the user paid —
+                // dismiss even if the entitlement snapshot lags a beat
+                // (C8: gating on isProUser could strand them on the paywall).
+                dismiss()
             case .pending:
                 errorMessage = "Purchase pending approval. We'll unlock Pro automatically when it's approved."
             case .userCancelled:
@@ -700,7 +712,12 @@ struct PaywallView: View {
     }
 
     private func restore() {
+        // Guard against concurrent restores: the footer button and the
+        // error-banner "Restore purchases" shortcut can both fire AppStore.sync().
+        guard !isRestoring else { return }
+        isRestoring = true
         Task {
+            defer { isRestoring = false }
             do {
                 try await storeService.restorePurchases()
                 if storeService.isProUser { dismiss() }

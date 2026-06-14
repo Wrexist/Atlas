@@ -75,16 +75,26 @@ struct ExportSection: View {
         }
     }
 
+    /// Routes a freshly-written export file to the share sheet, or raises
+    /// the failure alert when the write returned nil (disk full / sandbox
+    /// error). Previously these failures no-op'd silently and the user
+    /// believed the export had succeeded.
+    private func share(_ url: URL?) {
+        guard let url else {
+            exportError = "Couldn't write the export file. Check your available storage and try again."
+            return
+        }
+        exportURL = url
+        showShareSheet = true
+    }
+
     private func exportCSV() {
         let csv = ExportService.shared.exportProtocolsCSV(
             protocols: dataStore.protocols,
             entries: dataStore.entries
         )
         let dateStr = Date().formatted(.iso8601.year().month().day())
-        if let url = ExportService.shared.writeCSV(csv, filename: "atlas-export-\(dateStr).csv") {
-            exportURL = url
-            showShareSheet = true
-        }
+        share(ExportService.shared.writeCSV(csv, filename: "atlas-export-\(dateStr).csv"))
     }
 
     /// Three text buttons stacked beneath the primary export row
@@ -152,42 +162,32 @@ struct ExportSection: View {
     private func exportLabsCSV() {
         let csv = ExportService.shared.exportLabsCSV(labs: dataStore.profile.labHistory)
         let dateStr = Date().formatted(.iso8601.year().month().day())
-        if let url = ExportService.shared.writeCSV(csv, filename: "atlas-labs-\(dateStr).csv") {
-            exportURL = url
-            showShareSheet = true
-        }
+        share(ExportService.shared.writeCSV(csv, filename: "atlas-labs-\(dateStr).csv"))
     }
 
     private func exportMealsCSV() {
         let csv = ExportService.shared.exportMealsCSV(meals: dataStore.profile.mealHistory)
         let dateStr = Date().formatted(.iso8601.year().month().day())
-        if let url = ExportService.shared.writeCSV(csv, filename: "atlas-meals-\(dateStr).csv") {
-            exportURL = url
-            showShareSheet = true
-        }
+        share(ExportService.shared.writeCSV(csv, filename: "atlas-meals-\(dateStr).csv"))
     }
 
     private func exportOutcomesCSV() {
         let csv = ExportService.shared.exportOutcomesCSV(outcomes: dataStore.profile.outcomeHistory)
         let dateStr = Date().formatted(.iso8601.year().month().day())
-        if let url = ExportService.shared.writeCSV(csv, filename: "atlas-checkins-\(dateStr).csv") {
-            exportURL = url
-            showShareSheet = true
-        }
+        share(ExportService.shared.writeCSV(csv, filename: "atlas-checkins-\(dateStr).csv"))
     }
 
     private func exportJSON() {
-        if let data = ExportService.shared.exportFullBackup(
+        guard let data = ExportService.shared.exportFullBackup(
             protocols: dataStore.protocols,
             entries: dataStore.entries,
             profile: dataStore.profile
-        ) {
-            let dateStr = Date().formatted(.iso8601.year().month().day())
-            if let url = ExportService.shared.writeJSON(data, filename: "atlas-backup-\(dateStr).json") {
-                exportURL = url
-                showShareSheet = true
-            }
+        ) else {
+            exportError = "Couldn't prepare the backup. Please try again."
+            return
         }
+        let dateStr = Date().formatted(.iso8601.year().month().day())
+        share(ExportService.shared.writeJSON(data, filename: "atlas-backup-\(dateStr).json"))
     }
 
     private func exportPDF() {

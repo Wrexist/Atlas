@@ -18,6 +18,14 @@ final class ExportService {
     /// covers the missing window.
     static let pdfRecentEntryLimit: Int = 30
 
+    /// Hoisted out of `monthlyBuckets` — allocating a DateFormatter per
+    /// call is the expensive part of an otherwise cheap reduce.
+    private static let monthFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "LLLL yyyy"
+        return f
+    }()
+
     /// Returns one row per month covered by `entries`, newest-first.
     /// Months with zero activity are suppressed. Used by the PDF
     /// monthly-summary block to give the reader a trend view that
@@ -38,11 +46,6 @@ final class ExportService {
         }
         let grouped = Dictionary(grouping: bucketable, by: \.0)
             .mapValues { $0.map(\.1) }
-        let monthFormatter: DateFormatter = {
-            let f = DateFormatter()
-            f.dateFormat = "LLLL yyyy"
-            return f
-        }()
         return grouped
             .map { monthStart, group -> PDFMonthlyBucket in
                 let logged = group.filter(\.completed).count
@@ -50,7 +53,7 @@ final class ExportService {
                 let pct = total > 0 ? Int(Double(logged) / Double(total) * 100) : 0
                 return PDFMonthlyBucket(
                     monthStart: monthStart,
-                    label: monthFormatter.string(from: monthStart),
+                    label: Self.monthFormatter.string(from: monthStart),
                     logged: logged,
                     missed: total - logged,
                     compliancePct: pct

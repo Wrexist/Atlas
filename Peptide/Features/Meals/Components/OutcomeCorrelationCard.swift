@@ -22,7 +22,9 @@ struct OutcomeCorrelationCard: View {
     private var delta: Double { headline.delta ?? 0 }
     private var deltaPhrase: String {
         let value = (delta * 10).rounded() / 10  // one decimal
-        return String(format: "+%.1f", value)
+        // %+ signs both directions — a hardcoded "+" rendered a negative
+        // delta as "+-0.8".
+        return String(format: "%+.1f", value)
     }
 
     var body: some View {

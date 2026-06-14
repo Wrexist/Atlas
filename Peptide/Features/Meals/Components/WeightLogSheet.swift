@@ -70,9 +70,13 @@ struct WeightLogSheet: View {
     }
 
     private func parsedKg() -> Double? {
+        // Trim the ends and normalize the decimal separator, but DON'T
+        // strip interior characters: filtering non-digits silently turned
+        // a fat-fingered "7 0 5" into 705 kg. Double() rejects stray
+        // whitespace/letters, so an ambiguous entry disables Save instead.
         let cleaned = input
+            .trimmingCharacters(in: .whitespaces)
             .replacingOccurrences(of: ",", with: ".")
-            .filter { $0.isNumber || $0 == "." }
         guard let value = Double(cleaned), value > 0 else { return nil }
         switch unit {
         case .metric:   return value

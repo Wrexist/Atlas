@@ -100,7 +100,8 @@ struct BiomarkerListSection: View {
         let fresh = await BiomarkerSeriesService.snapshots(
             for: visibleBiomarkers,
             weightHistory: dataStore.profile.weightHistory,
-            latestLab: latestLab
+            latestLab: latestLab,
+            unit: dataStore.profile.bodyMetrics.unit
         )
         snapshots = fresh
     }

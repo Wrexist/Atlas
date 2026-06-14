@@ -12,6 +12,13 @@ struct ProtocolEntry: Identifiable, Hashable, Codable, Sendable {
     var actualTime: Date?
     var injectionSite: String?
 
+    // Equality and hash intentionally fold in the mutable `completed`
+    // flag so value-equality reflects completion state (SwiftUI sees a
+    // toggle as a change). HAZARD: because `completed` is a `var` that
+    // participates in `hash(into:)`, a ProtocolEntry must never be stored
+    // in a `Set` or used as a dictionary key — mutating `completed` would
+    // change its hash and orphan it in the bucket. Today every use site
+    // holds `[ProtocolEntry]` arrays, which is safe; keep it that way.
     static func == (lhs: ProtocolEntry, rhs: ProtocolEntry) -> Bool {
         lhs.id == rhs.id && lhs.completed == rhs.completed
     }

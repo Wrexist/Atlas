@@ -1409,15 +1409,18 @@ struct FoodLibraryFlow: View {
         .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
     }
 
+    /// OFF entries with incomplete data report 0 kcal/100g for the whole
+    /// product — distinct from a legitimate zero-calorie item like black
+    /// coffee, which a user saves as a custom food. We surface the
+    /// ambiguity (and block the log) instead of silently logging zeros
+    /// into the user's rings.
+    private func zeroCaloriesPer100g(_ product: ScannedProduct) -> Bool {
+        product.per100g.calories <= 0 && !product.barcode.hasPrefix("custom:")
+    }
+
     private func reviewMacros(_ product: ScannedProduct) -> some View {
         let meal = product.loggable(for: portion)
-        // OFF entries with incomplete data report 0 kcal/100g for the
-        // whole product — distinct from a legitimate zero-calorie
-        // item like black coffee. Surface the ambiguity instead of
-        // silently logging zeros: a user expecting macros to land
-        // would otherwise wonder why their rings didn't move.
-        let zeroCaloriesPer100g = product.per100g.calories <= 0
-            && !product.barcode.hasPrefix("custom:")
+        let isZeroCalorieOFF = zeroCaloriesPer100g(product)
         return VStack(spacing: Spacing.sm) {
             GlassCard(tinted: true, padding: Spacing.md) {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -1431,7 +1434,7 @@ struct FoodLibraryFlow: View {
                     macroRow(label: "Fat",      value: "\(meal?.fatG ?? 0) g")
                 }
             }
-            if zeroCaloriesPer100g {
+            if isZeroCalorieOFF {
                 inlineMessage(
                     icon: "exclamationmark.triangle.fill",
                     text: "This product has no calorie data in Open Food Facts. Snap the nutrition label or save it as a custom food."
@@ -1466,7 +1469,9 @@ struct FoodLibraryFlow: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(AppColor.accentPrimary)
-            .disabled(product.loggable(for: portion) == nil)
+            // Block logging a 0-kcal OFF product despite the warning above —
+            // it would push an all-zero entry into today's totals/rings.
+            .disabled(product.loggable(for: portion) == nil || zeroCaloriesPer100g(product))
         }
     }
 

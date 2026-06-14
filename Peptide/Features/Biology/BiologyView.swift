@@ -91,7 +91,8 @@ struct BiologyView: View {
                 EditBiomarkersSheet(
                     config: editConfigBinding,
                     isPro: storeService.isProUser,
-                    onDismiss: persistConfigChanges
+                    onDismiss: persistConfigChanges,
+                    unit: dataStore.profile.bodyMetrics.unit
                 )
                 .liquidGlassPresentation()
             }
@@ -99,7 +100,8 @@ struct BiologyView: View {
                 BiomarkerDetailSheet(
                     biomarker: item.biomarker,
                     initialSnapshot: item.snapshot,
-                    historicalFetcher: { await fetchHistorical(for: item.biomarker) }
+                    historicalFetcher: { await fetchHistorical(for: item.biomarker) },
+                    unit: dataStore.profile.bodyMetrics.unit
                 )
                 .liquidGlassPresentation()
             }
@@ -222,7 +224,8 @@ struct BiologyView: View {
             for: [biomarker],
             weightHistory: dataStore.profile.weightHistory,
             latestLab: latestLab,
-            days: days
+            days: days,
+            unit: dataStore.profile.bodyMetrics.unit
         )
         return snapshots.first ?? .empty(biomarker)
     }

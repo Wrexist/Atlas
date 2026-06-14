@@ -194,8 +194,11 @@ actor BarcodeScanHistory {
     }
 
     private func save(_ store: [String: Entry]) {
-        guard let data = try? Self.encoder.encode(store) else { return }
-        defaults.set(data, forKey: Self.storeKey)
+        do {
+            defaults.set(try Self.encoder.encode(store), forKey: Self.storeKey)
+        } catch {
+            AppLog.persistence.error("BarcodeScanHistory encode failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     /// LRU prune to `maxEntries`. Same shape as BarcodeProductCache —

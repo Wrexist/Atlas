@@ -177,12 +177,21 @@ extension TodayOverviewSnapshot {
         )
     }
 
+    /// Shared lab-value formatter. MainActor-isolated because it's mutated
+    /// per call (fraction digits) and only ever used from `latestLab`.
+    @MainActor private static let labValueFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.minimumFractionDigits = 0
+        return f
+    }()
+
     @MainActor
     private static func latestLab(in dataStore: DataStore, now: Date) -> LatestLabSummary? {
         guard let newest = dataStore.profile.labHistory.max(by: { $0.date < $1.date })
         else { return nil }
-        let formatter = NumberFormatter()
-        formatter.minimumFractionDigits = 0
+        // Reuse a MainActor-isolated formatter (build runs per HomeView body
+        // pass); only the dynamic fraction-digit setting changes per call.
+        let formatter = Self.labValueFormatter
         formatter.maximumFractionDigits = newest.value < 10 ? 1 : 0
         let valueDisplay: String = {
             let number = formatter.string(from: newest.value as NSNumber) ?? "\(newest.value)"

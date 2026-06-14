@@ -74,7 +74,11 @@ struct BodyMetricsCard: View {
         if metrics.unit == .metric {
             return "\(formatNumber(cm)) cm"
         }
-        return "\(formatNumber(cm / 2.54)) in"
+        // Imperial reads as feet + inches ("5'11\"") — decimal inches
+        // ("71 in") is technically correct but nobody states height that
+        // way. Round total inches first so we never render "5'12\"".
+        let totalInches = Int((cm / 2.54).rounded())
+        return "\(totalInches / 12)'\(totalInches % 12)\""
     }
 
     private var ageText: String {
