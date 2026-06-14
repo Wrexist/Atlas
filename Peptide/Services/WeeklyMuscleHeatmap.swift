@@ -59,38 +59,46 @@ enum WeeklyMuscleHeatmap {
                 guard !workingSets.isEmpty else { continue }
                 let setCount = Double(workingSets.count)
 
-                // Resolve each raw muscle to its weighted heads, biased by
-                // the exercise name (an incline press favours the clavicular
-                // pec, a pushdown the lateral triceps, a seated calf raise
-                // the soleus…). Primary heads count full × their weight;
-                // secondary heads count half, and primary wins when a head
-                // appears in both lists.
-                var primaryHeads: [AnatomicalMuscle: Double] = [:]
-                for raw in exercise.primaryMuscles {
-                    for (muscle, weight) in AnatomicalMuscle.headWeights(
-                        forRawMuscle: raw, exerciseName: exercise.name
-                    ) {
-                        primaryHeads[muscle] = max(primaryHeads[muscle] ?? 0, weight)
-                    }
-                }
-                var secondaryHeads: [AnatomicalMuscle: Double] = [:]
-                for raw in exercise.secondaryMuscles {
-                    for (muscle, weight) in AnatomicalMuscle.headWeights(
-                        forRawMuscle: raw, exerciseName: exercise.name
-                    ) {
-                        secondaryHeads[muscle] = max(secondaryHeads[muscle] ?? 0, weight)
-                    }
-                }
-
-                for (muscle, weight) in primaryHeads {
+                // Primary heads count full × their weight; secondary heads
+                // count half, and primary wins when a head appears in both
+                // lists.
+                let heads = stimulusHeads(for: exercise)
+                for (muscle, weight) in heads.primary {
                     counts[muscle, default: 0] += setCount * weight
                 }
-                for (muscle, weight) in secondaryHeads where primaryHeads[muscle] == nil {
+                for (muscle, weight) in heads.secondary where heads.primary[muscle] == nil {
                     counts[muscle, default: 0] += setCount * 0.5 * weight
                 }
             }
         }
         return counts
+    }
+
+    /// Resolves an exercise's raw muscle strings to weighted anatomical
+    /// heads, biased by the exercise name (an incline press favours the
+    /// clavicular pec, a pushdown the lateral triceps, a seated calf
+    /// raise the soleus…). Shared by the weekly heatmap and the
+    /// long-term gains aggregation so both light the same heads.
+    static func stimulusHeads(
+        for exercise: Exercise
+    ) -> (primary: [AnatomicalMuscle: Double], secondary: [AnatomicalMuscle: Double]) {
+        var primary: [AnatomicalMuscle: Double] = [:]
+        for raw in exercise.primaryMuscles {
+            for (muscle, weight) in AnatomicalMuscle.headWeights(
+                forRawMuscle: raw, exerciseName: exercise.name
+            ) {
+                primary[muscle] = max(primary[muscle] ?? 0, weight)
+            }
+        }
+        var secondary: [AnatomicalMuscle: Double] = [:]
+        for raw in exercise.secondaryMuscles {
+            for (muscle, weight) in AnatomicalMuscle.headWeights(
+                forRawMuscle: raw, exerciseName: exercise.name
+            ) {
+                secondary[muscle] = max(secondary[muscle] ?? 0, weight)
+            }
+        }
+        return (primary, secondary)
     }
 
     /// Convenience: list the top N muscles by frequency for the

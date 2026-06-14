@@ -11,8 +11,9 @@ enum MuscleHighlight: Hashable, Sendable {
     /// Soft secondary tint — assisting muscles that get worked but
     /// aren't the focus.
     case secondary
-    /// Frequency-driven shade for the weekly heatmap.
-    /// `0.0` is dim, `1.0` is fully lit.
+    /// Frequency-driven shade for the weekly heatmap, rendered on the
+    /// green → yellow → orange → red → purple load ramp. `0.0` is a
+    /// just-started green, `1.0` the most-trained purple.
     case intensity(Double)
 }
 
@@ -24,8 +25,9 @@ enum MuscleHighlight: Hashable, Sendable {
 ///   secondary muscles in cool blue, matching the screenshots from
 ///   the Lyfta reference.
 /// - **Weekly heatmap** — pass `[muscle: .intensity(0…1)]`. Renders
-///   a single-colour gradient where well-trained muscles light up
-///   warmer.
+///   each muscle on the load ramp: green for freshly-started work
+///   climbing through yellow, orange and red to purple for the
+///   most-trained muscle.
 /// - **Empty** — pass `[:]` (or omit). Renders the silhouette as a
 ///   calm baseline so the surface still reads as the user's body
 ///   even before they've logged anything.
@@ -39,17 +41,20 @@ struct MuscleMapView: View {
     var orientation: Orientation = .both
     var primaryColor: Color = Color(red: 0.93, green: 0.27, blue: 0.30)
     var secondaryColor: Color = Color(red: 0.42, green: 0.58, blue: 0.95)
-    var heatmapHotColor: Color = Color(red: 0.95, green: 0.40, blue: 0.30)
     var silhouetteFill: Color = Color.white.opacity(0.06)
     var silhouetteStroke: Color = Color.white.opacity(0.18)
     /// Faint skeletal scaffold drawn under the muscles so the figure
     /// reads as an anatomy chart rather than a flat blob.
     var showsSkeleton: Bool = true
     var skeletonColor: Color = Color.white.opacity(0.14)
-    /// Resting tint for an untrained muscle. Kept visible (not near-
-    /// invisible) so the whole figure always reads as a sculpted body
-    /// the way an anatomy chart does; training then warms each muscle.
-    var muscleBaseline: Color = Color.white.opacity(0.15)
+    /// Resting tint for an untrained muscle — a flesh red so the whole
+    /// figure reads as an écorché anatomy model even before anything is
+    /// trained; the load ramp then re-paints each muscle it touches.
+    var muscleBaseline: Color = Color(red: 0.78, green: 0.34, blue: 0.30).opacity(0.80)
+    /// Light tendon-coloured edge line around resting muscles, standing
+    /// in for the pale connective tissue between bellies on a real
+    /// anatomical model.
+    var tendonStroke: Color = Color(red: 0.95, green: 0.58, blue: 0.52).opacity(0.38)
     /// Shadow colour for the muscle-separation grooves that give the
     /// figure its defined, three-dimensional read.
     var grooveColor: Color = Color.black.opacity(0.32)
@@ -163,16 +168,21 @@ struct MuscleMapView: View {
             if orientation == .front || orientation == .both {
                 assetFigure(facing: .front)
                     .frame(maxWidth: .infinity)
+                    .overlay { tapLayer(facing: .front) }
                     .accessibilityElement()
                     .accessibilityLabel(accessibilityLabel(for: .front))
             }
             if orientation == .back || orientation == .both {
                 assetFigure(facing: .back)
                     .frame(maxWidth: .infinity)
+                    .overlay { tapLayer(facing: .back) }
                     .accessibilityElement()
                     .accessibilityLabel(accessibilityLabel(for: .back))
             }
         }
+        .aspectRatio(orientation == .both ? BodyAnatomy.aspect * 2 : BodyAnatomy.aspect,
+                     contentMode: .fit)
+        .overlay(alignment: .top) { identifyLabel }
     }
 
     private func assetFigure(facing: Facing) -> some View {
@@ -212,9 +222,9 @@ struct MuscleMapView: View {
     /// Hue a trained muscle takes on in the asset renderer.
     private func tintColor(for highlight: MuscleHighlight) -> Color {
         switch highlight {
-        case .primary:   return primaryColor
-        case .secondary: return secondaryColor
-        case .intensity: return heatmapHotColor
+        case .primary:          return primaryColor
+        case .secondary:        return secondaryColor
+        case .intensity(let v): return Self.heatColor(for: v)
         }
     }
 
@@ -280,29 +290,67 @@ struct MuscleMapView: View {
                 )
             }
 
-            // Each muscle drawn either at its highlighted tint or
-            // at a faint baseline so the user reads the muscle map
-            // even when nothing's lit up. A top-to-bottom gradient on
-            // the fill adds a subtle rounded, three-dimensional read.
+            // Each muscle drawn either at its highlighted tint or at a
+            // faint baseline so the user reads the muscle map even when
+            // nothing's lit up. Lit muscles get a soft glow halo behind a
+            // top-lit gradient fill plus a thin specular sheen, so the
+            // belly reads as a rounded, illuminated volume rather than a
+            // flat paint blob.
+            let unit = min(size.width, size.height / 2.4)
             for muscle in muscles {
                 let path = BodyAnatomy.path(for: muscle).applying(scale)
                 let highlight = highlights[muscle]
                 let base = self.fill(for: highlight)
                 let rect = path.boundingRect
+
+                if let highlight {
+                    let glow = glowTint(for: highlight)
+                    let strength = glowStrength(for: highlight)
+                    var halo = context
+                    halo.addFilter(.shadow(
+                        color: glow.opacity(0.55 * strength),
+                        radius: unit * 0.020 * strength
+                    ))
+                    halo.fill(path, with: .color(glow.opacity(0.22 * strength)))
+                }
+
+                // Separation shadow under the belly's outline so adjacent
+                // muscles read carved apart, like an anatomical model.
+                context.stroke(
+                    path,
+                    with: .color(Color.black.opacity(0.50)),
+                    style: StrokeStyle(lineWidth: 2.0, lineJoin: .round)
+                )
                 // Top-lit volume: full tint at the top falling to a deeper
                 // shade at the bottom reads as a rounded muscle belly.
                 context.fill(
                     path,
                     with: .linearGradient(
-                        Gradient(colors: [base, base.opacity(0.45)]),
+                        Gradient(colors: [base, base.opacity(0.40)]),
                         startPoint: CGPoint(x: rect.midX, y: rect.minY),
                         endPoint: CGPoint(x: rect.midX, y: rect.maxY)
                     )
                 )
+                // Specular sheen across the upper third of the belly.
+                context.fill(
+                    path,
+                    with: .linearGradient(
+                        Gradient(colors: [
+                            Color.white.opacity(highlight == nil ? 0.10 : 0.16),
+                            .clear,
+                        ]),
+                        startPoint: CGPoint(x: rect.midX, y: rect.minY),
+                        endPoint: CGPoint(x: rect.midX, y: rect.minY + rect.height * 0.6)
+                    )
+                )
+                drawFibers(for: muscle, path: path, highlighted: highlight != nil,
+                           in: context, transform: scale)
+                let edge = highlight.map { glowTint(for: $0).opacity(0.85) }
+                    ?? tendonStroke
                 context.stroke(
                     path,
-                    with: .color(silhouetteStroke.opacity(highlight == nil ? 0.55 : 0.9)),
-                    style: StrokeStyle(lineWidth: highlight == nil ? 0.6 : 1.0,
+                    with: .color(edge),
+                    style: StrokeStyle(lineWidth: highlight == nil ? 0.7 : 1.0,
                                        lineJoin: .round)
                 )
             }
@@ -316,6 +364,37 @@ struct MuscleMapView: View {
                 BodyAnatomy.grooves(front: facing == .front).applying(scale),
                 with: .color(grooveColor),
                 style: StrokeStyle(lineWidth: 0.7, lineCap: .round, lineJoin: .round)
+            )
+        }
+    }
+
+    /// Strokes fiber striations clipped inside a muscle's (already
+    /// transformed) path. The body is split at the mid-line and the fiber
+    /// angle mirrored per half so fan-shaped muscles (pecs, traps, lats,
+    /// glutes) tilt symmetrically the way real fibers lie.
+    private func drawFibers(
+        for muscle: AnatomicalMuscle,
+        path: Path,
+        highlighted: Bool,
+        in context: GraphicsContext,
+        transform: CGAffineTransform
+    ) {
+        let angle = BodyAnatomy.fiberAngle(for: muscle)
+        let normRect = BodyAnatomy.path(for: muscle).boundingRect
+        let color = Color.black.opacity(highlighted ? 0.22 : 0.20)
+        let halves: [(CGRect, CGFloat)] = [
+            (CGRect(x: 0.5, y: 0, width: 0.5, height: 2.4), angle),
+            (CGRect(x: 0.0, y: 0, width: 0.5, height: 2.4), -angle),
+        ]
+        for (half, sideAngle) in halves {
+            var fiberContext = context
+            fiberContext.clip(to: path)
+            fiberContext.clip(to: Path(half.applying(transform)))
+            fiberContext.stroke(
+                BodyAnatomy.fibers(in: normRect, angleDegrees: sideAngle)
+                    .applying(transform),
+                with: .color(color),
+                style: StrokeStyle(lineWidth: 0.5)
             )
         }
     }
@@ -341,11 +420,30 @@ struct MuscleMapView: View {
         case .secondary:
             return secondaryColor.opacity(0.65)
         case .intensity(let value):
-            // Clamp + gamma-curve so low-frequency muscles stay
-            // visible without dominating: 0 → 8% opacity, 1 → 90%.
+            // The hue carries the training load (green → … → purple), so
+            // opacity only ramps gently — a lightly-trained muscle must
+            // still read clearly green, not as a dark wash.
             let clamped = max(0, min(1, value))
-            let curve = pow(clamped, 0.6)
-            return heatmapHotColor.opacity(0.08 + curve * 0.82)
+            return Self.heatColor(for: clamped).opacity(0.72 + pow(clamped, 0.7) * 0.24)
+        }
+    }
+
+    /// Hue a lit muscle's glow halo and edge stroke take on.
+    private func glowTint(for highlight: MuscleHighlight) -> Color {
+        switch highlight {
+        case .primary:          return primaryColor
+        case .secondary:        return secondaryColor
+        case .intensity(let v): return Self.heatColor(for: max(0, min(1, v)))
+        }
+    }
+
+    /// How strongly a lit muscle glows — full for a primary mover,
+    /// softer for assist work, ramped by frequency on the heatmap.
+    private func glowStrength(for highlight: MuscleHighlight) -> Double {
+        switch highlight {
+        case .primary:          return 1.0
+        case .secondary:        return 0.5
+        case .intensity(let v): return 0.35 + max(0, min(1, v)) * 0.65
         }
     }
 
@@ -368,6 +466,47 @@ struct MuscleMapView: View {
         } else {
             return Text("\(view), highlighted: " + lit.joined(separator: ", "))
         }
+    }
+}
+
+// MARK: - Heat scale
+
+extension MuscleMapView {
+    /// Training-load colour ramp for `.intensity` highlights: green for a
+    /// muscle the user has only just started hitting, through yellow,
+    /// orange and red, to purple for the absolute most-trained muscle.
+    private static let heatStops: [(position: Double, r: Double, g: Double, b: Double)] = [
+        (0.00, 0.20, 0.78, 0.35),  // green
+        (0.25, 0.95, 0.80, 0.20),  // yellow
+        (0.50, 0.97, 0.55, 0.15),  // orange
+        (0.75, 0.93, 0.23, 0.23),  // red
+        (1.00, 0.62, 0.27, 0.90),  // purple
+    ]
+
+    /// Colour on the load ramp for a normalised intensity (0…1),
+    /// linearly interpolated between the five stops.
+    static func heatColor(for intensity: Double) -> Color {
+        let v = max(0, min(1, intensity))
+        for i in 0..<(heatStops.count - 1) {
+            let a = heatStops[i]
+            let b = heatStops[i + 1]
+            guard v <= b.position else { continue }
+            let t = (v - a.position) / (b.position - a.position)
+            return Color(
+                red: a.r + (b.r - a.r) * t,
+                green: a.g + (b.g - a.g) * t,
+                blue: a.b + (b.b - a.b) * t
+            )
+        }
+        let last = heatStops[heatStops.count - 1]
+        return Color(red: last.r, green: last.g, blue: last.b)
+    }
+
+    /// The full ramp as a gradient, for legend capsules under heatmaps.
+    static var heatLegendGradient: Gradient {
+        Gradient(stops: heatStops.map {
+            .init(color: Color(red: $0.r, green: $0.g, blue: $0.b), location: $0.position)
+        })
     }
 }
 
@@ -447,6 +586,34 @@ extension MuscleMapView {
         guard maxFrequency > 0 else { return [:] }
         return frequencies.reduce(into: [:]) { acc, pair in
             acc[pair.key] = .intensity(pair.value / maxFrequency)
+        }
+    }
+}
+
+// MARK: - Legend
+
+/// Compact legend strip explaining the load ramp under a heatmap
+/// figure: a green → yellow → orange → red → purple capsule between
+/// two extreme labels.
+struct MuscleHeatLegend: View {
+    var lowLabel: String = "Less"
+    var highLabel: String = "Most"
+
+    var body: some View {
+        HStack(spacing: Spacing.sm) {
+            Text(lowLabel)
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+            Capsule()
+                .fill(LinearGradient(
+                    gradient: MuscleMapView.heatLegendGradient,
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ))
+                .frame(height: 6)
+            Text(highLabel)
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
         }
     }
 }

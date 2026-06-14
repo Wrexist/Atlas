@@ -28,6 +28,11 @@ struct TrainOverviewView: View {
     /// both touched the computed property. Recomputed only when
     /// `refresh()` runs (i.e. when sessions actually change).
     @State private var frequencies: [AnatomicalMuscle: Double] = [:]
+    /// All-time per-muscle volume + 12-week training regularity for the
+    /// "Muscle gains" card. Memoised alongside `frequencies` — same
+    /// O(sessions × exercises × muscles) scan, same refresh cadence.
+    @State private var totalFrequencies: [AnatomicalMuscle: Double] = [:]
+    @State private var regularity: [AnatomicalMuscle: Double] = [:]
     /// The muscle the user tapped on the map, presented as a detail sheet
     /// of the exercises they've logged for it.
     @State private var inspectedMuscle: AnatomicalMuscle?
@@ -44,6 +49,11 @@ struct TrainOverviewView: View {
                 if weekHasTraining {
                     topMusclesRow
                 }
+                MuscleGainsCard(
+                    totals: totalFrequencies,
+                    regularity: regularity,
+                    onIdentify: { inspectedMuscle = $0 }
+                )
                 recentWorkoutsCard
                 calendarCard
             }
@@ -101,6 +111,14 @@ struct TrainOverviewView: View {
             from: sessions,
             library: library
         )
+        totalFrequencies = MuscleGainsEngine.totalFrequencies(
+            from: sessions,
+            library: library
+        )
+        regularity = MuscleGainsEngine.weeklyRegularity(
+            from: sessions,
+            library: library
+        )
     }
 
     // MARK: - Weekly muscle map
@@ -138,28 +156,12 @@ struct TrainOverviewView: View {
         }
     }
 
-    /// Tells the user what the heatmap colours mean — dim = trained a
-    /// little this week, bright = trained a lot — so the figure isn't a
+    /// Tells the user what the heatmap colours mean — green = trained a
+    /// little this week, climbing through yellow, orange and red to
+    /// purple for the most-trained muscle — so the figure isn't a
     /// mystery on first glance.
     private var intensityLegend: some View {
-        HStack(spacing: Spacing.sm) {
-            Text("Less")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textSecondary)
-            Capsule()
-                .fill(LinearGradient(
-                    colors: [
-                        Color(red: 0.95, green: 0.40, blue: 0.30).opacity(0.14),
-                        Color(red: 0.95, green: 0.40, blue: 0.30).opacity(0.90),
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                ))
-                .frame(height: 6)
-            Text("More")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textSecondary)
-        }
+        MuscleHeatLegend(lowLabel: "Less", highLabel: "Most")
     }
 
     // MARK: - Top muscles row
