@@ -74,6 +74,7 @@ struct LabsView: View {
             .sheet(isPresented: $creatingEntry) {
                 LabEntryEditor(
                     initial: nil,
+                    sex: dataStore.profile.bodyMetrics.sex,
                     onSave: { value in
                         dataStore.saveLabValue(value)
                         creatingEntry = false
@@ -85,6 +86,7 @@ struct LabsView: View {
             .sheet(item: $editingEntry) { entry in
                 LabEntryEditor(
                     initial: entry,
+                    sex: dataStore.profile.bodyMetrics.sex,
                     onSave: { value in
                         dataStore.saveLabValue(value)
                         editingEntry = nil

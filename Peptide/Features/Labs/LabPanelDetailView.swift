@@ -24,6 +24,11 @@ struct LabPanelDetailView: View {
 
     private var latest: LabValue? { entries.last }
 
+    /// The reference-range overlay is sex-specific for hormone /
+    /// hematology panels — read the user's sex so women don't see
+    /// male bands.
+    private var userSex: BiologicalSex { dataStore.profile.bodyMetrics.sex }
+
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
@@ -46,6 +51,7 @@ struct LabPanelDetailView: View {
         .sheet(item: $editingEntry) { entry in
             LabEntryEditor(
                 initial: entry,
+                sex: userSex,
                 onSave: { value in
                     dataStore.saveLabValue(value)
                     editingEntry = nil
@@ -95,7 +101,7 @@ struct LabPanelDetailView: View {
                         }
                     }
                     Spacer(minLength: 0)
-                    if let range = panel.typicalRange {
+                    if let range = panel.typicalRange(for: userSex) {
                         rangePill(range: range, value: latest?.value)
                     }
                 }
@@ -145,7 +151,7 @@ struct LabPanelDetailView: View {
 
     private var chart: some View {
         Chart {
-            if let range = panel.typicalRange {
+            if let range = panel.typicalRange(for: userSex) {
                 // Subtle band for the typical adult reference range.
                 // RuleMark + AreaMark would require axis bounds we
                 // don't know in advance; RectangleMark in a chart

@@ -217,20 +217,85 @@ enum LabPanel: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Generic adult reference range. Used as a guideline overlay
-    /// on the chart — the user's actual lab will list their lab's
-    /// own ranges, which may differ. Ranges drawn from broad
-    /// LabCorp / Quest adult reference intervals; they're a
-    /// starting point, not a clinical recommendation.
-    var typicalRange: ClosedRange<Double>? {
+    /// Generic adult reference range for the user's sex. Used as a
+    /// guideline overlay on the chart — the user's actual lab will
+    /// list their own ranges, which may differ. Ranges drawn from
+    /// broad LabCorp / Quest adult reference intervals; a starting
+    /// point, not a clinical recommendation.
+    ///
+    /// Sex-specific panels (the androgens, estradiol, SHBG,
+    /// gonadotropins, hematocrit, ferritin, creatinine) differ
+    /// materially between men and women, so applying one band to
+    /// everyone shows the wrong "in range" state. The female
+    /// gonadotropin / estradiol bands are premenopausal envelopes —
+    /// those markers genuinely vary across the menstrual cycle, so
+    /// treat the overlay as orientation, not a target. When the
+    /// user's sex is unknown (`.other` / `.unspecified`) we draw no
+    /// overlay on a sex-specific panel rather than guess.
+    func typicalRange(for sex: BiologicalSex) -> ClosedRange<Double>? {
         switch self {
-        case .totalTestosterone:  return 264...916
-        case .freeTestosterone:   return 8.7...25.1
-        case .estradiol:          return 7.6...42.6
-        case .shbg:               return 16.5...55.9
-        case .lh:                 return 1.7...8.6
-        case .fsh:                return 1.5...12.4
-        case .prolactin:          return 4.0...15.2
+        case .totalTestosterone:
+            switch sex {
+            case .male:   return 264...916
+            case .female: return 8...60
+            default:      return nil
+            }
+        case .freeTestosterone:
+            switch sex {
+            case .male:   return 8.7...25.1
+            case .female: return 0.3...1.9
+            default:      return nil
+            }
+        case .estradiol:
+            switch sex {
+            case .male:   return 7.6...42.6
+            case .female: return 15...350    // premenopausal, varies by cycle phase
+            default:      return nil
+            }
+        case .shbg:
+            switch sex {
+            case .male:   return 16.5...55.9
+            case .female: return 24.6...122
+            default:      return nil
+            }
+        case .lh:
+            switch sex {
+            case .male:   return 1.7...8.6
+            case .female: return 1.7...15.0  // premenopausal, excludes the mid-cycle surge
+            default:      return nil
+            }
+        case .fsh:
+            switch sex {
+            case .male:   return 1.5...12.4
+            case .female: return 1.7...21.5  // premenopausal
+            default:      return nil
+            }
+        case .prolactin:
+            switch sex {
+            case .male:   return 4.0...15.2
+            case .female: return 4.8...23.3
+            default:      return nil
+            }
+        case .hematocrit:
+            switch sex {
+            case .male:   return 38.3...48.6
+            case .female: return 35.5...44.9
+            default:      return nil
+            }
+        case .ferritin:
+            switch sex {
+            case .male:   return 30...400
+            case .female: return 13...150
+            default:      return nil
+            }
+        case .creatinine:
+            switch sex {
+            case .male:   return 0.7...1.3
+            case .female: return 0.6...1.1
+            default:      return nil
+            }
+
+        // Sex-neutral panels — the same band for everyone.
         case .igf1:               return 78...258
         case .tsh:                return 0.45...4.5
         case .freeT3:             return 2.0...4.4
@@ -244,11 +309,8 @@ enum LabPanel: String, Codable, CaseIterable, Identifiable, Sendable {
         case .triglycerides:      return 0...149
         case .alt:                return 7...56
         case .ast:                return 10...40
-        case .creatinine:         return 0.7...1.3
         case .crp:                return 0...3
         case .vitaminD:           return 30...100
-        case .ferritin:           return 30...400
-        case .hematocrit:         return 38.3...48.6
         case .cortisolMorning:    return 6.2...19.4
         case .other:              return nil
         }
