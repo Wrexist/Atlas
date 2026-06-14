@@ -118,8 +118,7 @@ struct TodayHabitsHero: View {
                     .foregroundStyle(AppColor.textPrimary)
                 streakLine
             }
-            Spacer(minLength: Spacing.sm)
-            atlasScoreChip
+            Spacer(minLength: 0)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(summaryAccessibilityLabel)
@@ -172,34 +171,6 @@ struct TodayHabitsHero: View {
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
         }
-    }
-
-    private var atlasScoreChip: some View {
-        let momentum = dataStore.momentum
-        return VStack(alignment: .trailing, spacing: 2) {
-            HStack(spacing: 4) {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 10, weight: .bold))
-                Text("LV \(momentum.level)")
-                    .font(.system(size: 12, weight: .heavy, design: .rounded))
-            }
-            .foregroundStyle(AppColor.accentLight)
-            if momentum.todayEarned > 0 {
-                Text("+\(momentum.todayEarned) today")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(AppColor.streak)
-                    .contentTransition(.numericText())
-            } else {
-                Text("\(momentum.score) pts")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(AppColor.textTertiary)
-            }
-        }
-        .padding(.horizontal, Spacing.sm)
-        .padding(.vertical, 6)
-        .background(Capsule().fill(AppColor.accentPrimary.opacity(0.12)))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Atlas Score level \(momentum.level), \(momentum.score) points")
     }
 
     private var chipsRow: some View {

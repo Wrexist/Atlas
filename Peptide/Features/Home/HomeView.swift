@@ -173,6 +173,12 @@ struct HomeView: View {
                     TodayHabitsHero()
                         .sectionAppear(index: 0)
 
+                    // Earned "Atlas Score" — the level / tier / progress
+                    // showcase, sitting right under the habits that feed it
+                    // so the user sees their momentum compounding.
+                    AtlasScoreCard()
+                        .sectionAppear(index: 0)
+
                     // Observed via the @State notificationService so the banner
                     // re-renders when a reschedule writes a fresh report. Reading
                     // through DataStore's passthrough wouldn't trigger redraw.
