@@ -964,11 +964,14 @@ struct BarcodeScanFlow: View {
     /// call it directly when the user picks "Log again".
     private func commitMealEntry(product: ScannedProduct, meal: LoggableMeal) {
         let now = Date()
-        // OCR-synthesised products and manual-override edits share the
-        // OFF flow but aren't strictly Open Food Facts data; tag them
-        // as `manual` so the meal-history list reflects what the user
-        // actually did.
-        let source: MealSource = (manualOverride != nil) ? .manual : .openFoodFacts
+        // OCR-synthesised products carry an `ocr:<uuid>` barcode and come
+        // from on-device Vision, not Open Food Facts — tagging them
+        // `.openFoodFacts` mis-attributes the source, and feeding that
+        // synthetic barcode to scan history corrupts the actor (recordLog
+        // expects an 8-14 digit code). Manual-override edits are likewise
+        // not OFF data. Tag both `.manual` and skip history.
+        let isOCR = product.barcode.hasPrefix("ocr:")
+        let source: MealSource = (manualOverride != nil || isOCR) ? .manual : .openFoodFacts
         let entry = MealEntry(
             loggable: meal,
             name: product.name,
@@ -993,14 +996,18 @@ struct BarcodeScanFlow: View {
         // Record the scan + portion choice in history so the recents
         // row re-ranks and the next re-scan of this product preselects
         // the same portion. Fire-and-forget — UI doesn't need to wait.
-        let recordedBarcode = product.barcode
-        let recordedPortion = portion
-        Task {
-            await BarcodeScanHistory.shared.recordLog(
-                barcode: recordedBarcode,
-                portion: recordedPortion,
-                at: now
-            )
+        // Skip OCR scans: each carries a unique synthetic barcode, so a
+        // history record would never re-match and would corrupt the actor.
+        if !isOCR {
+            let recordedBarcode = product.barcode
+            let recordedPortion = portion
+            Task {
+                await BarcodeScanHistory.shared.recordLog(
+                    barcode: recordedBarcode,
+                    portion: recordedPortion,
+                    at: now
+                )
+            }
         }
         phase = .logged                                  // .task(id: phase) above starts the 5-s auto-close
     }
