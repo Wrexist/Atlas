@@ -224,8 +224,14 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
     }
 
     var cycleProgress: Double {
-        let total = endDate.timeIntervalSince(startDate)
-        let elapsed = Date().timeIntervalSince(startDate)
+        // Normalize to start-of-day on both ends: `endDate` (cycleEndDay)
+        // is already day-aligned, so measuring elapsed/total from the raw
+        // startDate + current time made a protocol started at 11pm read
+        // ~95% on its final day until midnight.
+        let cal = Calendar.current
+        let start = cal.startOfDay(for: startDate)
+        let total = endDate.timeIntervalSince(start)
+        let elapsed = cal.startOfDay(for: Date()).timeIntervalSince(start)
         guard total > 0 else { return 0 }
         return min(max(elapsed / total, 0), 1)
     }
