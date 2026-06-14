@@ -7,6 +7,7 @@ struct HomeView: View {
     @State private var showAchievementToast = false
     @State private var toastAchievement: Achievement?
     @State private var achievementService = AchievementService.shared
+    @State private var showProgress = false
     /// Observed directly so the notification banner reacts to a fresh
     /// schedule report. DataStore exposes `notificationReport` as a passthrough,
     /// but a computed read from a non-observed singleton wouldn't re-render
@@ -176,7 +177,7 @@ struct HomeView: View {
                     // Earned "Atlas Score" — the level / tier / progress
                     // showcase, sitting right under the habits that feed it
                     // so the user sees their momentum compounding.
-                    AtlasScoreCard()
+                    AtlasScoreCard(onTap: { showProgress = true })
                         .sectionAppear(index: 0)
 
                     // Observed via the @State notificationService so the banner
@@ -423,6 +424,10 @@ struct HomeView: View {
                     )
                 }
                 .liquidGlassPresentation()
+            }
+            .sheet(isPresented: $showProgress) {
+                AtlasProgressView()
+                    .environment(dataStore)
             }
             // Stack-warning / stack-adjustment / paywall sheets
             // moved to ProtocolsStackHealthSection in Phase 34 —

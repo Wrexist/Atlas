@@ -289,4 +289,56 @@ enum HabitsService {
             .count
         return (count: min(count, target), target: max(target, 0))
     }
+
+    // MARK: - Consistency
+
+    /// Overall completion rate across `habits` over the trailing `days`
+    /// window ending on `endDate`: (completed due-days) / (total due-days),
+    /// where a due-day is one (habit, day) pair the schedule marked due and
+    /// "completed" means the day's max entry value reached the target.
+    /// `.timesPerWeek` habits are excluded — their `isDue` is true every
+    /// day, so per-day completion would misrepresent a weekly cadence.
+    /// Returns nil when the window had no due-days (avoids a 0/0 reading);
+    /// the progress surface treats nil as "not enough data yet".
+    static func completionRate(
+        habits: [Habit],
+        entries: [HabitEntry],
+        days: Int,
+        endingOn endDate: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Double? {
+        guard days > 0 else { return nil }
+        let scheduled = habits.filter {
+            if case .timesPerWeek = $0.schedule { return false }
+            return true
+        }
+        guard !scheduled.isEmpty else { return nil }
+
+        // Pre-index the best value per (habit, day) so the window scan
+        // doesn't re-filter the entries array for every cell.
+        var bestValue: [ConsistencyKey: Int] = [:]
+        for entry in entries where entry.value > 0 {
+            let key = ConsistencyKey(habitId: entry.habitId, day: calendar.startOfDay(for: entry.date))
+            bestValue[key] = max(bestValue[key] ?? 0, entry.value)
+        }
+
+        let end = calendar.startOfDay(for: endDate)
+        var due = 0
+        var done = 0
+        for offset in 0..<days {
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: end) else { continue }
+            for habit in scheduled where habit.schedule.isDue(on: day, calendar: calendar) {
+                due += 1
+                let target = habit.targetValue ?? 1
+                if (bestValue[ConsistencyKey(habitId: habit.id, day: day)] ?? 0) >= target { done += 1 }
+            }
+        }
+        guard due > 0 else { return nil }
+        return Double(done) / Double(due)
+    }
+
+    private struct ConsistencyKey: Hashable {
+        let habitId: UUID
+        let day: Date
+    }
 }

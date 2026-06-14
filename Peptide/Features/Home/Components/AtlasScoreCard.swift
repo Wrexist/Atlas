@@ -7,8 +7,21 @@ import SwiftUI
 /// rest of the motivation system feeds.
 struct AtlasScoreCard: View {
     @Environment(DataStore.self) private var dataStore
+    /// When set, the card becomes tappable (opens the progress surface)
+    /// and shows a trailing chevron.
+    var onTap: (() -> Void)? = nil
 
     var body: some View {
+        if let onTap {
+            Button(action: onTap) { card }
+                .buttonStyle(ScalePressStyle())
+                .accessibilityHint("Opens your progress")
+        } else {
+            card
+        }
+    }
+
+    private var card: some View {
         let momentum = dataStore.momentum
         let tint = Color(hex: UInt(momentum.tier.tintHex))
 
@@ -52,6 +65,12 @@ struct AtlasScoreCard: View {
             }
 
             Spacer(minLength: 0)
+
+            if onTap != nil {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+            }
         }
         .padding(Spacing.md)
         .background(
