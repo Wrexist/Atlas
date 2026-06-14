@@ -329,9 +329,22 @@ final class StoredProfile {
     func toUserProfile() throws -> UserProfile {
         let goals = try sdDecoder.decode([String].self, from: goalsData)
         let metrics: BodyMetrics
-        if let data = bodyMetricsData,
-           let decoded = try? sdDecoder.decode(BodyMetrics.self, from: data) {
-            metrics = decoded
+        if let data = bodyMetricsData {
+            do {
+                metrics = try sdDecoder.decode(BodyMetrics.self, from: data)
+            } catch DecodingError.keyNotFound {
+                // Legacy payload missing a field added since — expected
+                // during migration, so fall back silently.
+                metrics = .unspecified
+            } catch {
+                // Genuine corruption: log so it's diagnosable instead of a
+                // silent reset (mirrors the ProfileExtension path below),
+                // then fall back so the rest of the profile still loads.
+                AppLog.swiftData.error(
+                    "BodyMetrics decode failed; falling back to unspecified: \(error.localizedDescription, privacy: .public)"
+                )
+                metrics = .unspecified
+            }
         } else {
             metrics = .unspecified
         }
