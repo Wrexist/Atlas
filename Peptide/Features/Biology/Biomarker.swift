@@ -59,12 +59,6 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
-    /// Default unit string in metric. Kept for back-compat with
-    /// any caller that doesn't have a `MeasurementUnit` to hand.
-    /// New code should call `displayUnit(for:)` so US users see
-    /// pounds / inches / °F (audit Biology MED 10).
-    var unit: String? { displayUnit(for: .metric) }
-
     /// Locale-aware unit string. `MeasurementUnit.imperial` swaps
     /// kg → lb, cm → in, °C → °F. The numeric value itself is
     /// converted at the render site (BiomarkerRow uses the

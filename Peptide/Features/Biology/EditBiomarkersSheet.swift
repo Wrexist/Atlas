@@ -15,6 +15,9 @@ struct EditBiomarkersSheet: View {
     @Binding var config: BiologyConfig
     let isPro: Bool
     var onDismiss: () -> Void
+    /// User's preferred unit so the per-row unit caption matches the rest
+    /// of the Biology tab (lb / in / °F for imperial users).
+    var unit: MeasurementUnit = .metric
 
     @Environment(\.dismiss) private var dismiss
     @State private var editMode: EditMode = .active
@@ -118,8 +121,8 @@ struct EditBiomarkersSheet: View {
                         proBadge
                     }
                 }
-                if let unit = biomarker.unit {
-                    Text(unit)
+                if let unitString = biomarker.displayUnit(for: unit) {
+                    Text(unitString)
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
                 }

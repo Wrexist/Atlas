@@ -22,6 +22,10 @@ struct BiomarkerDetailSheet: View {
     /// chart and "vs recent average" surfaces have more history.
     /// Nil → the sheet renders from `initialSnapshot` only.
     var historicalFetcher: (() async -> BiomarkerSnapshot?)?
+    /// The user's preferred measurement unit. Snapshots store canonical
+    /// metric; the hero number, chart, and delta convert at render so
+    /// imperial users see lb / in / °F (audit Biology A4).
+    var unit: MeasurementUnit = .metric
 
     @State private var historicalSnapshot: BiomarkerSnapshot?
     @Environment(\.dismiss) private var dismiss
@@ -76,8 +80,8 @@ struct BiomarkerDetailSheet: View {
                 .font(.system(size: 48, weight: .heavy, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
-            if let unit = biomarker.unit {
-                Text(unit)
+            if let unitString = biomarker.displayUnit(for: unit) {
+                Text(unitString)
                     .font(.system(size: 18, weight: .heavy))
                     .foregroundStyle(AppColor.textSecondary)
             }
@@ -88,7 +92,7 @@ struct BiomarkerDetailSheet: View {
 
     private var latestValueString: String {
         guard let latest = snapshot.latest else { return "—" }
-        return BiomarkerSeriesService.formatValue(latest, for: biomarker)
+        return BiomarkerSeriesService.formatValue(biomarker.displayValue(latest, for: unit), for: biomarker)
     }
 
     private var trendChip: some View {
@@ -216,9 +220,12 @@ struct BiomarkerDetailSheet: View {
     @ChartContentBuilder
     private func trendMarks(idx: Int, value: Double) -> some ChartContent {
         let day = -snapshot.sparkline.count + idx + 1
+        // Sparkline values are canonical metric — convert so the chart's
+        // Y axis matches the imperial hero number above it.
+        let displayValue = biomarker.displayValue(value, for: unit)
         LineMark(
             x: .value("Day", day),
-            y: .value(biomarker.displayName, value)
+            y: .value(biomarker.displayName, displayValue)
         )
         .interpolationMethod(.monotone)
         .lineStyle(.init(lineWidth: 2, lineCap: .round, lineJoin: .round))
@@ -226,7 +233,7 @@ struct BiomarkerDetailSheet: View {
 
         AreaMark(
             x: .value("Day", day),
-            y: .value(biomarker.displayName, value)
+            y: .value(biomarker.displayName, displayValue)
         )
         .interpolationMethod(.monotone)
         .foregroundStyle(
@@ -308,9 +315,12 @@ struct BiomarkerDetailSheet: View {
             return String(localized: "Log more data to see a comparison.")
         }
         let avg = snapshot.sparkline.reduce(0, +) / Double(snapshot.sparkline.count)
-        let delta = latest - avg
+        // Convert both endpoints to the display unit *before* subtracting so
+        // the temperature offset (°C→°F adds 32) cancels — the delta is a
+        // true difference, not an inflated one.
+        let delta = biomarker.displayValue(latest, for: unit) - biomarker.displayValue(avg, for: unit)
         let absDelta = BiomarkerSeriesService.formatValue(abs(delta), for: biomarker)
-        let unit = biomarker.unit ?? ""
+        let unitString = biomarker.displayUnit(for: unit) ?? ""
         if abs(delta) < 0.01 {
             return String(localized: "Right at your recent average.")
         }
@@ -319,7 +329,7 @@ struct BiomarkerDetailSheet: View {
             : String(localized: "below")
         return String(
             format: String(localized: "%@ %@ %@ your recent average."),
-            absDelta, unit, direction
+            absDelta, unitString, direction
         )
     }
 

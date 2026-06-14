@@ -48,7 +48,8 @@ enum BiomarkerSeriesService {
         for biomarkers: [Biomarker],
         weightHistory: [WeightEntry],
         latestLab: LabValue?,
-        days: Int = windowDays
+        days: Int = windowDays,
+        unit: MeasurementUnit = .metric
     ) async -> [BiomarkerSnapshot] {
         await withTaskGroup(of: (Int, BiomarkerSnapshot).self) { group in
             for (index, biomarker) in biomarkers.enumerated() {
@@ -57,7 +58,8 @@ enum BiomarkerSeriesService {
                         for: biomarker,
                         weightHistory: weightHistory,
                         latestLab: latestLab,
-                        days: days
+                        days: days,
+                        unit: unit
                     )
                     return (index, snap)
                 }
@@ -76,20 +78,21 @@ enum BiomarkerSeriesService {
         for biomarker: Biomarker,
         weightHistory: [WeightEntry],
         latestLab: LabValue?,
-        days: Int
+        days: Int,
+        unit: MeasurementUnit
     ) async -> BiomarkerSnapshot {
         switch biomarker {
         case .weight:
-            return weightSnapshot(weightHistory: weightHistory, days: days)
+            return weightSnapshot(weightHistory: weightHistory, days: days, unit: unit)
         case .hrvBaseline:
             let series = await HealthKitService.shared.dailyHRV(days: days)
-            return seriesSnapshot(.hrvBaseline, series: series.map(\.value))
+            return seriesSnapshot(.hrvBaseline, series: series.map(\.value), unit: unit)
         case .rhrBaseline:
             let series = await HealthKitService.shared.dailyRestingHeartRate(days: days)
-            return seriesSnapshot(.rhrBaseline, series: series.map(\.value))
+            return seriesSnapshot(.rhrBaseline, series: series.map(\.value), unit: unit)
         case .sleepBaseline:
             let series = await HealthKitService.shared.dailySleepHours(days: days)
-            return seriesSnapshot(.sleepBaseline, series: series.map(\.value))
+            return seriesSnapshot(.sleepBaseline, series: series.map(\.value), unit: unit)
         case .stepsBaseline:
             // No daily-steps helper today — surfaces as "no data"
             // until a future commit adds `dailySteps(days:)` to
@@ -115,7 +118,8 @@ enum BiomarkerSeriesService {
     /// the direction.
     static func weightSnapshot(
         weightHistory: [WeightEntry],
-        days: Int = windowDays
+        days: Int = windowDays,
+        unit: MeasurementUnit = .metric
     ) -> BiomarkerSnapshot {
         let recent = weightHistory
             .sorted { $0.date < $1.date }
@@ -128,7 +132,7 @@ enum BiomarkerSeriesService {
             latest: latest,
             trend: trend,
             sparkline: recent.count >= sparklineMinSamples ? recent : [],
-            changeText: changeText(for: .weight, trend: trend, latest: latest)
+            changeText: changeText(for: .weight, trend: trend, latest: latest, unit: unit)
         )
     }
 
@@ -136,7 +140,7 @@ enum BiomarkerSeriesService {
     /// biomarkers (HRV / RHR / sleep). All three follow the same
     /// shape: 14 daily values, latest is the most recent, trend
     /// reads from the whole series.
-    static func seriesSnapshot(_ biomarker: Biomarker, series: [Double]) -> BiomarkerSnapshot {
+    static func seriesSnapshot(_ biomarker: Biomarker, series: [Double], unit: MeasurementUnit = .metric) -> BiomarkerSnapshot {
         guard let latest = series.last else { return .empty(biomarker) }
         let trend = inferTrend(samples: series)
         return BiomarkerSnapshot(
@@ -144,7 +148,7 @@ enum BiomarkerSeriesService {
             latest: latest,
             trend: trend,
             sparkline: series.count >= sparklineMinSamples ? series : [],
-            changeText: changeText(for: biomarker, trend: trend, latest: latest)
+            changeText: changeText(for: biomarker, trend: trend, latest: latest, unit: unit)
         )
     }
 
@@ -207,9 +211,13 @@ enum BiomarkerSeriesService {
     static func changeText(
         for biomarker: Biomarker,
         trend: BiomarkerSnapshot.Trend,
-        latest: Double
+        latest: Double,
+        unit: MeasurementUnit = .metric
     ) -> String {
-        let formatted = formatValue(latest, for: biomarker)
+        // `latest` is stored canonical metric; convert to the user's unit
+        // for display (kg→lb, cm→in, °C→°F). HRV/RHR/sleep/steps are
+        // unit-agnostic, so displayValue returns them unchanged.
+        let formatted = formatValue(biomarker.displayValue(latest, for: unit), for: biomarker)
         let verb: String
         switch (biomarker, trend) {
         case (.weight, .up):           verb = String(localized: "Increasing")
@@ -226,8 +234,8 @@ enum BiomarkerSeriesService {
         case (.sleepBaseline, .flat):  verb = String(localized: "Consistent")
         default:                        verb = String(localized: "Latest")
         }
-        if let unit = biomarker.unit {
-            return "\(verb) · \(formatted) \(unit)"
+        if let unitString = biomarker.displayUnit(for: unit) {
+            return "\(verb) · \(formatted) \(unitString)"
         }
         return "\(verb) · \(formatted)"
     }
