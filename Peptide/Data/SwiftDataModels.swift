@@ -406,7 +406,12 @@ final class StoredProfile {
             trainingPreferences: ext.trainingPreferences,
             goalDate: ext.goalDate,
             habits: ext.habits,
-            habitEntries: ext.habitEntries
+            habitEntries: ext.habitEntries,
+            atlasScore: ext.atlasScore,
+            atlasLevel: ext.atlasLevel,
+            momentumAwardedToday: ext.momentumAwardedToday,
+            lastMomentumAwardDay: ext.lastMomentumAwardDay,
+            momentumHistory: ext.momentumHistory
         )
     }
 }
@@ -465,6 +470,14 @@ private struct ProfileExtension: Codable {
     /// (defaults to empty) so legacy sidecar blobs decode cleanly.
     var habits: [Habit] = []
     var habitEntries: [HabitEntry] = []
+    /// Atlas Score / momentum state. Zero-defaulted (level 1) so older
+    /// sidecar blobs decode cleanly — an existing user simply starts the
+    /// score at 0 and earns from their next logged action.
+    var atlasScore: Int = 0
+    var atlasLevel: Int = 1
+    var momentumAwardedToday: Int = 0
+    var lastMomentumAwardDay: Date? = nil
+    var momentumHistory: [MomentumDayPoint] = []
 
     static let empty = ProfileExtension()
 
@@ -494,7 +507,12 @@ private struct ProfileExtension: Codable {
             weeklySummaries: profile.weeklySummaries,
             goalDate: profile.goalDate,
             habits: profile.habits,
-            habitEntries: profile.habitEntries
+            habitEntries: profile.habitEntries,
+            atlasScore: profile.atlasScore,
+            atlasLevel: profile.atlasLevel,
+            momentumAwardedToday: profile.momentumAwardedToday,
+            lastMomentumAwardDay: profile.lastMomentumAwardDay,
+            momentumHistory: profile.momentumHistory
         )
     }
 }

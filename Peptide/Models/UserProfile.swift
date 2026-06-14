@@ -453,6 +453,26 @@ struct UserProfile: Codable, Sendable {
     /// `habits` so a heavy log (years of daily entries) doesn't bloat
     /// the habit array's diffing cost.
     var habitEntries: [HabitEntry]
+    /// Cumulative lifetime "Atlas Score" — earned only from real logged
+    /// behavior (see `MomentumEngine`). Ratcheted upward by
+    /// `DataStore.accrueMomentumIfNeeded`; never decreases. CloudKit-
+    /// synced so the level travels with the user across devices.
+    var atlasScore: Int
+    /// Cached level for `atlasScore`. Derivable from the score, but stored
+    /// so a fresh profile starts at level 1 (not a false "Level 1" unlock)
+    /// and so level-up detection has a stable baseline across save passes.
+    var atlasLevel: Int
+    /// Points already banked toward `atlasScore` for `lastMomentumAwardDay`.
+    /// Lets accrual be idempotent per day — re-running on the same day only
+    /// banks the *increase* over what today already earned, so toggling a
+    /// habit off and on can't double-count.
+    var momentumAwardedToday: Int
+    /// Start-of-day the `momentumAwardedToday` ledger applies to. A new day
+    /// resets the ledger to zero before accruing.
+    var lastMomentumAwardDay: Date?
+    /// Rolling per-day Atlas Score history for the progress trend chart.
+    /// Capped to a recent window on write so the profile blob stays small.
+    var momentumHistory: [MomentumDayPoint]
 
     init(
         name: String,
@@ -491,7 +511,12 @@ struct UserProfile: Codable, Sendable {
         trainingPreferences: TrainingPreferences? = nil,
         goalDate: Date? = nil,
         habits: [Habit] = [],
-        habitEntries: [HabitEntry] = []
+        habitEntries: [HabitEntry] = [],
+        atlasScore: Int = 0,
+        atlasLevel: Int = 1,
+        momentumAwardedToday: Int = 0,
+        lastMomentumAwardDay: Date? = nil,
+        momentumHistory: [MomentumDayPoint] = []
     ) {
         self.name = name
         self.goals = goals
@@ -530,6 +555,11 @@ struct UserProfile: Codable, Sendable {
         self.goalDate = goalDate
         self.habits = habits
         self.habitEntries = habitEntries
+        self.atlasScore = atlasScore
+        self.atlasLevel = atlasLevel
+        self.momentumAwardedToday = momentumAwardedToday
+        self.lastMomentumAwardDay = lastMomentumAwardDay
+        self.momentumHistory = momentumHistory
     }
 
     init(from decoder: Decoder) throws {
@@ -575,6 +605,11 @@ struct UserProfile: Codable, Sendable {
         goalDate = try container.decodeIfPresent(Date.self, forKey: .goalDate)
         habits = try container.decodeIfPresent([Habit].self, forKey: .habits) ?? []
         habitEntries = try container.decodeIfPresent([HabitEntry].self, forKey: .habitEntries) ?? []
+        atlasScore = try container.decodeIfPresent(Int.self, forKey: .atlasScore) ?? 0
+        atlasLevel = try container.decodeIfPresent(Int.self, forKey: .atlasLevel) ?? 1
+        momentumAwardedToday = try container.decodeIfPresent(Int.self, forKey: .momentumAwardedToday) ?? 0
+        lastMomentumAwardDay = try container.decodeIfPresent(Date.self, forKey: .lastMomentumAwardDay)
+        momentumHistory = try container.decodeIfPresent([MomentumDayPoint].self, forKey: .momentumHistory) ?? []
     }
 
     static var fresh: UserProfile {

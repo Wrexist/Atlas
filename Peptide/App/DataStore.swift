@@ -1568,6 +1568,9 @@ final class DataStore: DataServiceProtocol {
     func toggleHabitEntry(habitId: UUID, on date: Date = Date()) {
         guard let habit = profile.habits.first(where: { $0.id == habitId }) else { return }
         let day = Calendar.current.startOfDay(for: date)
+        // Capture completion state BEFORE the mutation so the celebration
+        // fires only on the not-complete → complete transition.
+        let wasCompleted = HabitsService.summary(for: habit, entries: profile.habitEntries, on: date).isCompletedToday
         let target = habit.targetValue ?? 1
         let existingIdx = profile.habitEntries.firstIndex {
             $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: day)
@@ -1600,6 +1603,7 @@ final class DataStore: DataServiceProtocol {
             }
         }
         save()
+        registerHabitCompletionCelebration(habit: habit, wasCompleted: wasCompleted, on: date)
     }
 
     /// Set the exact value for a given day. Use for countable habits
@@ -1608,6 +1612,10 @@ final class DataStore: DataServiceProtocol {
     /// the storage compact).
     func setHabitEntry(habitId: UUID, date: Date, value: Int) {
         let day = Calendar.current.startOfDay(for: date)
+        let habit = profile.habits.first { $0.id == habitId }
+        let wasCompleted = habit.map {
+            HabitsService.summary(for: $0, entries: profile.habitEntries, on: date).isCompletedToday
+        } ?? false
         let existingIdx = profile.habitEntries.firstIndex {
             $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: day)
         }
@@ -1619,6 +1627,141 @@ final class DataStore: DataServiceProtocol {
             profile.habitEntries.append(HabitEntry(habitId: habitId, date: day, value: value))
         }
         save()
+        if let habit {
+            registerHabitCompletionCelebration(habit: habit, wasCompleted: wasCompleted, on: date)
+        }
+    }
+
+    // MARK: - Momentum / Atlas Score
+
+    /// Transient guard so the "perfect day" burst fires once per day per
+    /// app session, not every time the user re-taps the last habit. Resets
+    /// on relaunch — deliberately "you can be celebrated again tomorrow".
+    @ObservationIgnored private var lastPerfectDayCelebratedKey: String?
+
+    /// The user's current Atlas Score / level, derived from stored profile
+    /// state. Cheap arithmetic, safe to read from a view body.
+    var momentum: MomentumEngine.Snapshot {
+        let earnedToday = (profile.lastMomentumAwardDay.map { Calendar.current.isDateInToday($0) } ?? false)
+            ? profile.momentumAwardedToday
+            : 0
+        return MomentumEngine.snapshot(score: profile.atlasScore, todayEarned: earnedToday)
+    }
+
+    /// Best all-time streak across active habits — feeds the habit-streak
+    /// achievements (which unlock once, so the all-time best is what counts).
+    var bestHabitStreak: Int {
+        activeHabits.reduce(0) { best, habit in
+            max(best, HabitsService.summary(for: habit, entries: profile.habitEntries).bestStreak)
+        }
+    }
+
+    /// Count of completed habit-days across all habits (value > 0).
+    var totalHabitCompletions: Int {
+        profile.habitEntries.filter { $0.value > 0 }.count
+    }
+
+    /// True when every habit due today is completed (and at least one was
+    /// due). Drives the "perfect day" celebration + achievement.
+    func allHabitsDoneToday(on date: Date = Date()) -> Bool {
+        let due = activeHabits.filter { $0.schedule.isDue(on: date) }
+        guard !due.isEmpty else { return false }
+        return due.allSatisfy {
+            HabitsService.summary(for: $0, entries: profile.habitEntries, on: date).isCompletedToday
+        }
+    }
+
+    /// Fires the habit-completion celebration on the not-complete → complete
+    /// transition only. The bigger "perfect day" burst fires the first time
+    /// a day's full slate is cleared (guarded so re-toggling doesn't spam it).
+    private func registerHabitCompletionCelebration(habit: Habit, wasCompleted: Bool, on date: Date) {
+        guard !isEphemeral else { return }
+        let nowCompleted = HabitsService.summary(for: habit, entries: profile.habitEntries, on: date).isCompletedToday
+        guard !wasCompleted, nowCompleted else { return }
+
+        let comps = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        let dayKey = "\(comps.year ?? 0)-\(comps.month ?? 0)-\(comps.day ?? 0)"
+        let isFreshPerfectDay = allHabitsDoneToday(on: date) && lastPerfectDayCelebratedKey != dayKey
+        if isFreshPerfectDay { lastPerfectDayCelebratedKey = dayKey }
+
+        Haptics.success()
+        CelebrationCenter.shared.celebrate(
+            .habitComplete(tintHex: habit.tintHex, allHabitsDone: isFreshPerfectDay)
+        )
+    }
+
+    /// Banks today's earned Atlas Score points, idempotently. Recomputes
+    /// today's points and banks only the increase over what today already
+    /// earned, so a CloudKit pull or a habit toggled off/on can't
+    /// double-count or roll the score back. Routes a level-up to
+    /// `CelebrationCenter`. Never calls `save()` — the in-flight debounced
+    /// save persists these mutations (calling save would recurse through
+    /// `scheduleAchievementCheck`).
+    private func accrueMomentumIfNeeded() {
+        guard !isEphemeral else { return }
+        let today = Calendar.current.startOfDay(for: Date())
+
+        let ledgerIsToday = profile.lastMomentumAwardDay.map {
+            Calendar.current.isDate($0, inSameDayAs: today)
+        } ?? false
+        if !ledgerIsToday {
+            profile.lastMomentumAwardDay = today
+            profile.momentumAwardedToday = 0
+        }
+
+        let earnedToday = MomentumEngine.dailyPoints(momentumInputs())
+        guard earnedToday > profile.momentumAwardedToday else {
+            recordMomentumHistory(on: today)
+            return
+        }
+
+        let delta = earnedToday - profile.momentumAwardedToday
+        let previousLevel = MomentumEngine.level(for: profile.atlasScore)
+        profile.momentumAwardedToday = earnedToday
+        profile.atlasScore += delta
+        let newLevel = MomentumEngine.level(for: profile.atlasScore)
+        if newLevel > previousLevel {
+            profile.atlasLevel = newLevel
+            let tier = MomentumEngine.Tier.forLevel(newLevel)
+            CelebrationCenter.shared.celebrate(
+                .levelUp(level: newLevel, tierName: tier.name, tierSymbol: tier.symbol, tintHex: tier.tintHex)
+            )
+        } else {
+            profile.atlasLevel = max(profile.atlasLevel, newLevel)
+        }
+        recordMomentumHistory(on: today)
+    }
+
+    private func momentumInputs() -> MomentumEngine.Inputs {
+        let dueHabits = activeHabits.filter { $0.schedule.isDue(on: Date()) }
+        let doneHabits = dueHabits.filter {
+            HabitsService.summary(for: $0, entries: profile.habitEntries).isCompletedToday
+        }
+        let today = todayEntries
+        return MomentumEngine.Inputs(
+            habitsDone: doneHabits.count,
+            habitsDue: dueHabits.count,
+            doseEntriesToday: today.count,
+            doseCompletedToday: today.filter(\.completed).count,
+            hasNutritionTargets: profile.nutritionTargets != nil,
+            mealLoggedToday: !mealEntries().isEmpty
+        )
+    }
+
+    private func recordMomentumHistory(on day: Date) {
+        let point = MomentumDayPoint(date: day, score: profile.atlasScore, earned: profile.momentumAwardedToday)
+        if let idx = profile.momentumHistory.firstIndex(where: {
+            Calendar.current.isDate($0.date, inSameDayAs: day)
+        }) {
+            if profile.momentumHistory[idx] != point {
+                profile.momentumHistory[idx] = point
+            }
+        } else {
+            profile.momentumHistory.append(point)
+            if profile.momentumHistory.count > 120 {
+                profile.momentumHistory.removeFirst(profile.momentumHistory.count - 120)
+            }
+        }
     }
 
     /// One-tap adoption of an onboarding-recommended starter stack. Creates a
@@ -1909,6 +2052,15 @@ final class DataStore: DataServiceProtocol {
                 recipesCount: self.profile.recipes.count,
                 checkInsLogged: self.profile.outcomeHistory.count
             )
+            AchievementService.shared.checkHabitAchievements(
+                habitCount: self.activeHabits.count,
+                bestHabitStreak: self.bestHabitStreak,
+                totalCompletions: self.totalHabitCompletions,
+                perfectDayToday: self.allHabitsDoneToday()
+            )
+            // Bank today's Atlas Score from the same coalesced hook. Mutates
+            // the profile in memory; the debounced save persists it.
+            self.accrueMomentumIfNeeded()
         }
     }
 

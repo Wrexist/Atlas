@@ -393,6 +393,12 @@ struct PeptideApp: App {
         .environment(dataStore)
         .preferredColorScheme(themeManager.displayMode.preferredScheme)
         .tint(AppColor.accentPrimary)
+        .overlay {
+            // App-wide celebration presenter — confetti for habit
+            // completions, the level-up overlay for the Atlas Score — so a
+            // win celebrates on whichever tab the user is on.
+            CelebrationHostView()
+        }
         // Single Profile sheet shared by every tab's avatar button, so
         // settings/account are reachable without returning to Today.
         .sheet(isPresented: Bindable(appState).showProfile) {

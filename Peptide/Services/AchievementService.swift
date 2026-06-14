@@ -100,6 +100,31 @@ final class AchievementService {
         if pendingUnlocks.count != unlocksBefore { saveAchievements() }
     }
 
+    /// Habit-side milestones. Surfaced as the user builds the daily-habit
+    /// streaks the app now leads with. Kept as its own entry point — like
+    /// `checkLifestyleAchievements` — so `DataStore.scheduleAchievementCheck`
+    /// can pass habit-specific counts without one omnibus signature.
+    func checkHabitAchievements(
+        habitCount: Int,
+        bestHabitStreak: Int,
+        totalCompletions: Int,
+        perfectDayToday: Bool
+    ) {
+        let unlocksBefore = pendingUnlocks.count
+        unlock("first_habit", if: habitCount >= 1)
+
+        unlock("habit_streak_7", if: bestHabitStreak >= 7)
+        unlock("habit_streak_30", if: bestHabitStreak >= 30)
+        unlock("habit_streak_90", if: bestHabitStreak >= 90)
+
+        unlock("habit_days_50", if: totalCompletions >= 50)
+        unlock("habit_days_250", if: totalCompletions >= 250)
+
+        unlock("perfect_day", if: perfectDayToday)
+
+        if pendingUnlocks.count != unlocksBefore { saveAchievements() }
+    }
+
     /// Clears the celebration slot. Call after the toast has been
     /// presented so the next check can write a fresh unlock without
     /// the observer seeing a redundant change.
@@ -197,5 +222,17 @@ final class AchievementService {
         Achievement(id: "first_checkin", title: "Tuning In", description: "Complete your first daily check-in", icon: "heart.text.square"),
         Achievement(id: "checkin_streak_14", title: "Self-Aware", description: "14 daily check-ins logged", icon: "heart.text.square.fill"),
         Achievement(id: "checkin_streak_60", title: "Insight Engine", description: "60 daily check-ins logged", icon: "sparkles"),
+
+        // Habit achievements — the daily-consistency engine the app now
+        // leads with. Streaks reward sticking with a habit; "days" reward
+        // breadth of completion; Perfect Day rewards clearing everything
+        // due in a single day.
+        Achievement(id: "first_habit", title: "First Habit", description: "Create your first habit", icon: "checkmark.seal.fill"),
+        Achievement(id: "habit_streak_7", title: "Habit Spark", description: "7-day habit streak", icon: "flame.fill"),
+        Achievement(id: "habit_streak_30", title: "Habit Forged", description: "30-day habit streak", icon: "bolt.fill"),
+        Achievement(id: "habit_streak_90", title: "Habit Mastery", description: "90-day habit streak", icon: "trophy.fill"),
+        Achievement(id: "habit_days_50", title: "Fifty Strong", description: "Complete 50 habits", icon: "checkmark.circle.fill"),
+        Achievement(id: "habit_days_250", title: "Relentless", description: "Complete 250 habits", icon: "star.circle.fill"),
+        Achievement(id: "perfect_day", title: "Perfect Day", description: "Complete every habit due in a day", icon: "sparkles"),
     ]
 }

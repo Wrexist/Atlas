@@ -169,6 +169,14 @@ struct HomeView: View {
                     )
                     .sectionAppear(index: 0)
 
+                    // Habit-first hero — today's habits, the daily completion
+                    // ring, the active streak, and the Atlas Score lead the
+                    // screen so the user's daily wins are the first thing they
+                    // see and act on. Per-habit summary work is snapshotted
+                    // off-body inside the component (audit A6).
+                    TodayHabitsHero()
+                        .sectionAppear(index: 0)
+
                     // Observed via the @State notificationService so the banner
                     // re-renders when a reschedule writes a fresh report. Reading
                     // through DataStore's passthrough wouldn't trigger redraw.
@@ -224,31 +232,20 @@ struct HomeView: View {
                     CoachingCard(message: coachingMessage)
                         .sectionAppear(index: 0)
 
-                    // Momentum block — the user's goal projection, daily
-                    // habits, and any surfaced insights, grouped under one
-                    // header. Habits always renders, so the header never
-                    // sits alone over empty space.
-                    HomeSectionHeader(eyebrow: "Momentum", title: "Goals & habits")
-                        .sectionAppear(index: 0)
+                    // Momentum — goal projection. Habits now lead the screen
+                    // in TodayHabitsHero above; the goal countdown stays here
+                    // for users who committed to a target date. Guarded so the
+                    // header never sits alone when no goal date is set.
+                    if dataStore.profile.goalDate != nil {
+                        HomeSectionHeader(eyebrow: "Momentum", title: "Your goal")
+                            .sectionAppear(index: 0)
 
-                    // Goal countdown from the onboarding "By when?"
-                    // step. Renders only when the user committed to a
-                    // future date; older accounts and skipped users
-                    // see nothing. Reads from dataStore so the card
-                    // updates the moment the user edits the date in
-                    // Profile.
-                    GoalCountdownCard(
-                        goalDate: dataStore.profile.goalDate,
-                        primaryGoal: dataStore.profile.primaryGoal
-                    )
-                    .sectionAppear(index: 0)
-
-                    // Habits — compact / expandable / "View all" sheet.
-                    // Sits just under the goal countdown so the user's
-                    // daily-action surface (single check-tap per habit)
-                    // is right under the projection that motivates it.
-                    HabitsHomeCard()
+                        GoalCountdownCard(
+                            goalDate: dataStore.profile.goalDate,
+                            primaryGoal: dataStore.profile.primaryGoal
+                        )
                         .sectionAppear(index: 0)
+                    }
 
                     if overview.hasAnySignal {
                         TodayOverviewCard(

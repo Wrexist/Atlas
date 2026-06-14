@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Full-screen habits list — one HabitRowCard per active habit, with
 /// an "Add habit" toolbar action and per-row swipe to edit/delete.
-/// Opens from the HabitsHomeCard's "View all" button as a sheet, or
+/// Opens from the Today habits hero's "View all" button as a sheet, or
 /// can be navigated to as a destination.
 struct HabitsView: View {
     @Environment(DataStore.self) private var dataStore
