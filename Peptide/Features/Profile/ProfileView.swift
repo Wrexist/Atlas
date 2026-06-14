@@ -73,6 +73,11 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 6)
 
+                    // Peptide Library (database + Protocols + AI research) —
+                    // its home now that Habits took the tab-bar slot.
+                    PeptideLibraryEntryCard()
+                        .sectionAppear(index: 7)
+
                     // Labs entry lives on the Biology tab (renamed
                     // from Insights in Phase 33). It's a high-
                     // engagement analytical feature, not a settings-

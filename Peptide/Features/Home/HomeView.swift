@@ -141,15 +141,11 @@ struct HomeView: View {
                         activeProtocol: dataStore.activeProtocols.first,
                         date: Date(),
                         onTapCycle: {
-                            withAnimation(AppAnimation.springSnappy) {
-                                // Phase D: Protocols is no longer a
-                                // top-level tab — route through the
-                                // pending-flag pattern so the user
-                                // lands on the protocol list inside
-                                // Library in one navigation hop.
-                                appState.pendingProtocolList = true
-                                appState.selectedTab = .library
-                            }
+                            // Library is no longer a tab — open it as a
+                            // modal with the protocol list pending so the
+                            // cycle pill still lands on Protocols in one hop.
+                            appState.pendingProtocolList = true
+                            appState.showLibrary = true
                         }
                     )
                     .sectionAppear(index: 0)

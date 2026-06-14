@@ -61,8 +61,8 @@ struct HabitsHeroSnapshot: Equatable {
 /// user sees and acts on.
 struct TodayHabitsHero: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(AppState.self) private var appState
     @State private var snapshot: HabitsHeroSnapshot = .empty
-    @State private var showingFullView = false
     @State private var addingNew = false
 
     var body: some View {
@@ -76,9 +76,6 @@ struct TodayHabitsHero: View {
         .task { rebuild() }
         .onChange(of: dataStore.profile.habitEntries) { _, _ in rebuild() }
         .onChange(of: dataStore.activeHabits) { _, _ in rebuild() }
-        .sheet(isPresented: $showingFullView) {
-            HabitsView().environment(dataStore)
-        }
         .sheet(isPresented: $addingNew) {
             HabitEditSheet(editing: nil) { habit in
                 dataStore.addHabit(habit)
@@ -226,7 +223,7 @@ struct TodayHabitsHero: View {
     private var viewAllButton: some View {
         Button {
             Haptics.impact(.soft)
-            showingFullView = true
+            appState.selectedTab = .habits
         } label: {
             HStack(spacing: 4) {
                 Text("View all habits")

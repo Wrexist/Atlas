@@ -15,12 +15,6 @@ enum AppTab: String, CaseIterable {
     /// section in the training pivot so food gets its own
     /// top-level surface alongside training.
     case meals
-    /// Peptide reference + AI research. Was `.database`. Now also
-    /// hosts the Protocols list (folded in during the training
-    /// pivot — Protocols lost its dedicated tab slot to make room
-    /// for Train + Meals; `selectedTab = .library` together with
-    /// `pendingProtocolList` routes "open protocols" intents here).
-    case library
     /// Biology hub — biological-age estimate, HRV/RHR/Sleep
     /// baselines, lab markers, body composition. Replaces the
     /// prior `.insights` slot in the tab bar with a Bevel-style
@@ -28,6 +22,12 @@ enum AppTab: String, CaseIterable {
     /// (compliance trends, HealthKit correlation, labs) now lives
     /// on the Biology and Today surfaces.
     case biology
+
+    /// User-defined habits, streaks, and the Atlas Score. Promoted into
+    /// the main tab bar (replacing the demoted Library) so daily habits
+    /// lead the app. The peptide reference + Protocols now open as a modal
+    /// (`showLibrary`) rather than a tab.
+    case habits
 }
 
 @MainActor @Observable
@@ -38,6 +38,13 @@ final class AppState {
     /// it through a shared flag lets every tab open it from a top-right
     /// avatar button instead of forcing the user back to Today.
     var showProfile = false
+    /// Presents the demoted peptide Library (database + Protocols + AI
+    /// research) as an app-level modal over whichever tab is active.
+    /// Library lost its tab slot when Habits was promoted; call sites that
+    /// historically did `selectedTab = .library` now set this (together
+    /// with `pendingProtocolList` / `pendingProtocolDeepLink`, which
+    /// `PeptideListView` still consumes on appear).
+    var showLibrary = false
     /// When set, the Protocols tab pushes the matching protocol's detail view
     /// onto its navigation stack and then clears this value. Used by the
     /// profile customization sheet to deep-link from a stack row to that
@@ -72,13 +79,12 @@ final class AppState {
     /// onOpenURL closure doesn't need a reference to HomeView's
     /// navigation path.
     var pendingWeeklyRecap: Bool = false
-    /// When true, the Library tab pushes `ProtocolListView` onto its
-    /// navigation stack on next appear and clears the flag.
-    /// Populated by call sites that historically switched directly to
-    /// the (now demoted) `.protocols` tab — Home cards, Biology
-    /// shortcuts, and the profile-stacks tap — so the user lands on
-    /// the protocol list in one navigation hop instead of being
-    /// dumped on the peptide reference root.
+    /// When true, `PeptideListView` (the Library modal) presents
+    /// `ProtocolListView` on next appear and clears the flag. Set
+    /// alongside `showLibrary` by call sites that historically switched
+    /// to the Library/Protocols tab — Home's cycle pill and the
+    /// profile-stacks taps — so the user lands on the protocol list in
+    /// one hop instead of the peptide reference root.
     var pendingProtocolList: Bool = false
 }
 

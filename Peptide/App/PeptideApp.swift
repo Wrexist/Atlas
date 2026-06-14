@@ -351,8 +351,8 @@ struct PeptideApp: App {
             Tab("Biology", systemImage: "heart.fill", value: .biology) {
                 BiologyView()
             }
-            Tab("Library", systemImage: "books.vertical.fill", value: .library) {
-                PeptideListView()
+            Tab("Habits", systemImage: "checkmark.seal.fill", value: .habits) {
+                HabitsView()
             }
         }
         .onChange(of: appState.selectedTab) { _, _ in
@@ -403,6 +403,14 @@ struct PeptideApp: App {
         // settings/account are reachable without returning to Today.
         .sheet(isPresented: Bindable(appState).showProfile) {
             ProfileView()
+                .environment(dataStore)
+                .environment(appState)
+        }
+        // Demoted peptide Library (database + Protocols + AI research) —
+        // promoted Habits took its tab slot, so it opens as a full-screen
+        // modal from Today's cycle pill and the Profile entries.
+        .fullScreenCover(isPresented: Bindable(appState).showLibrary) {
+            PeptideListView(presentedModally: true)
                 .environment(dataStore)
                 .environment(appState)
         }
