@@ -62,7 +62,10 @@ final class ExerciseLibrary {
         }.value
         guard let decoded = parsed else { return }
         bundled = decoded
-        byID = Dictionary(uniqueKeysWithValues: decoded.map { ($0.id, $0) })
+        // uniquingKeysWith (keep first) instead of uniqueKeysWithValues:
+        // a duplicate id in a bad exercises.json edit/OTA would otherwise
+        // trap and crash the app on launch.
+        byID = Dictionary(decoded.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         isLoaded = true
         AppLog.training.info(
             "ExerciseLibrary loaded \(decoded.count, privacy: .public) exercises in \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public)ms"
