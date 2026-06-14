@@ -140,10 +140,19 @@ struct MealEntryEditorSheet: View {
                 macroStepper(label: "Carbs",    unit: "g",   value: $carbsG,   step: 1,  range: 0...1000)
                 macroStepper(label: "Fat",      unit: "g",   value: $fatG,     step: 1,  range: 0...500)
                 Divider().background(AppColor.glassBorder)
-                DatePicker("Logged at", selection: $date, in: ...Date(), displayedComponents: [.date, .hourAndMinute])
+                DatePicker("Logged at", selection: $date, in: dateRange, displayedComponents: [.date, .hourAndMinute])
                     .font(AppFont.subheadline)
             }
         }
+    }
+
+    /// Bounds the date picker so a fat-fingered scroll can't backdate an
+    /// entry to 1900 and pollute all-time aggregates. Floors at one year
+    /// ago, or the entry's own date if it's somehow older (so editing an
+    /// old entry doesn't clamp its selection out of range).
+    private var dateRange: ClosedRange<Date> {
+        let oneYearAgo = Calendar.current.date(byAdding: .year, value: -1, to: Date()) ?? initial.date
+        return min(oneYearAgo, initial.date)...Date()
     }
 
     private func macroStepper(
