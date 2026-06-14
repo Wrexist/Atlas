@@ -5,14 +5,20 @@ import UIKit
 /// the WelcomeHeader (every HomeView render) and the ProfileHeader (every
 /// ProfileView render). Decoding the JPEG every time costs 5–20ms and runs
 /// synchronously on the main thread, so we keep the last few decoded images
-/// around keyed by the SHA-style hash of the source `Data`.
+/// around keyed by the source `Data` itself.
+///
+/// The key is the `Data` (bridged to `NSData`), not its `hashValue`:
+/// `Data.hashValue` is per-process randomized and not collision-resistant,
+/// so two different avatars could collide and the cache would hand back the
+/// wrong image. `NSData` keys compare by full content, so a hash collision
+/// just shares a bucket — it never returns the wrong avatar.
 ///
 /// This is `final class @unchecked Sendable` because `NSCache` is internally
 /// thread-safe and we never mutate `Cache` instance properties after init.
 final class AvatarImageCache: @unchecked Sendable {
     static let shared = AvatarImageCache()
 
-    private let cache = NSCache<NSNumber, UIImage>()
+    private let cache = NSCache<NSData, UIImage>()
 
     private init() {
         cache.countLimit = 6
@@ -22,7 +28,7 @@ final class AvatarImageCache: @unchecked Sendable {
     /// first time. Returns `nil` if the data isn't a valid image.
     func image(for data: Data?) -> UIImage? {
         guard let data, !data.isEmpty else { return nil }
-        let key = NSNumber(value: data.hashValue)
+        let key = data as NSData
         if let cached = cache.object(forKey: key) { return cached }
         guard let decoded = UIImage(data: data) else { return nil }
         cache.setObject(decoded, forKey: key)
