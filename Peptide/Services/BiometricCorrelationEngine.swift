@@ -110,15 +110,15 @@ enum BiometricCorrelationEngine {
             let (on, off) = series.partition { sample in
                 dosedDays.contains(calendar.startOfDay(for: sample.date))
             }
-            guard let onAvg = average(on.map(\.value)),
-                  let offAvg = average(off.map(\.value)),
+            guard let onMedian = median(on.map(\.value)),
+                  let offMedian = median(off.map(\.value)),
                   on.count >= minimumSamplesPerBucket,
                   off.count >= minimumSamplesPerBucket
             else { return nil }
             return Finding(
                 metric: metric,
-                onDoseDays: onAvg,
-                offDoseDays: offAvg,
+                onDoseDays: onMedian,
+                offDoseDays: offMedian,
                 doseDayCount: on.count,
                 offDayCount: off.count
             )
@@ -137,9 +137,14 @@ enum BiometricCorrelationEngine {
         return qualified.max { $0.absoluteEffect < $1.absoluteEffect }
     }
 
-    private static func average(_ values: [Double]) -> Double? {
+    /// Median, not mean: a single sick-day / travel-day outlier in HRV or
+    /// RHR shouldn't flip an on-vs-off-dose finding's direction. Matches
+    /// the rest of the correlation pipeline.
+    private static func median(_ values: [Double]) -> Double? {
         guard !values.isEmpty else { return nil }
-        return values.reduce(0, +) / Double(values.count)
+        let sorted = values.sorted()
+        let mid = sorted.count / 2
+        return sorted.count % 2 == 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
     }
 }
 
