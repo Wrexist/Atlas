@@ -756,7 +756,10 @@ struct ProfileCustomizationSheet: View {
     private func heightString(_ m: BodyMetrics) -> String {
         guard let cm = m.heightCm else { return "—" }
         if m.unit == .metric { return "\(Int(cm.rounded())) cm" }
-        return "\(Int((cm / 2.54).rounded())) in"
+        // Feet + inches reads naturally ("5'11\""); round total inches
+        // first so we never produce "5'12\"".
+        let totalInches = Int((cm / 2.54).rounded())
+        return "\(totalInches / 12)'\(totalInches % 12)\""
     }
 
     // MARK: - Stacks
