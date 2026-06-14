@@ -269,9 +269,12 @@ enum NutritionLabelParser {
     // MARK: - Number extraction
 
     /// Pre-compiled number regexes — the patterns are constant, so we
-    /// build each once instead of per `firstNumber` call.
-    private static let decimalNumberRegex = try? NSRegularExpression(pattern: "[0-9]+([.,][0-9]+)?")
-    private static let integerNumberRegex = try? NSRegularExpression(pattern: "[0-9]+")
+    /// build each once instead of per `firstNumber` call. `nonisolated(unsafe)`
+    /// because `firstNumber` runs off the main actor during OCR and
+    /// NSRegularExpression is thread-safe (matches the codebase's pattern
+    /// for non-MainActor service statics).
+    nonisolated(unsafe) private static let decimalNumberRegex = try? NSRegularExpression(pattern: "[0-9]+([.,][0-9]+)?")
+    nonisolated(unsafe) private static let integerNumberRegex = try? NSRegularExpression(pattern: "[0-9]+")
 
     /// First numeric value in a line, optionally preferring the last
     /// match (for "1050 kJ / 250 kcal" we want 250, not 1050).
