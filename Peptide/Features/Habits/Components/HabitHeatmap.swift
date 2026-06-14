@@ -80,13 +80,20 @@ struct HabitHeatmap: View {
     /// parent GeometryReader. Previously used a hard-coded 14pt
     /// which drifted from the real cell layout on narrow screens
     /// and iPad split-screen (audit M5).
+    /// Hoisted out of `monthLabels` — it runs on every render of the
+    /// heatmap, and a per-render DateFormatter allocation is the costly part.
+    private static let monthAbbrevFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM"
+        return f
+    }()
+
     private func monthLabels(perColumnWidth: CGFloat) -> [MonthLabel] {
         guard let firstDate = firstColumnStart, !columns.isEmpty else {
             return []
         }
         let calendar = Calendar.current
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM"
+        let formatter = Self.monthAbbrevFormatter
 
         var labels: [MonthLabel] = []
         var lastMonth: Int = -1
