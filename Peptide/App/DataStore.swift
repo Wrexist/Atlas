@@ -1667,7 +1667,7 @@ final class DataStore: DataServiceProtocol {
     /// achievements (which unlock once, so the all-time best is what counts).
     var bestHabitStreak: Int {
         activeHabits.reduce(0) { best, habit in
-            max(best, HabitsService.summary(for: habit, entries: profile.habitEntries).bestStreak)
+            max(best, HabitsService.summary(for: habit, entries: profile.habitEntries, frozenDayKeys: profile.streakFreezeDays).bestStreak)
         }
     }
 

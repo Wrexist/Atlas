@@ -31,6 +31,7 @@ enum HabitsService {
     static func summary(
         for habit: Habit,
         entries: [HabitEntry],
+        frozenDayKeys: Set<String> = [],
         on date: Date = Date(),
         calendar: Calendar = .current
     ) -> Summary {
@@ -55,8 +56,8 @@ enum HabitsService {
 
         return Summary(
             habitId: habit.id,
-            currentStreak: currentStreak(for: habit, entries: habitEntries, on: today, calendar: calendar),
-            bestStreak: bestStreak(for: habit, entries: habitEntries, calendar: calendar),
+            currentStreak: currentStreak(for: habit, entries: habitEntries, frozenDayKeys: frozenDayKeys, on: today, calendar: calendar),
+            bestStreak: bestStreak(for: habit, entries: habitEntries, frozenDayKeys: frozenDayKeys, calendar: calendar),
             totalCompletedDays: completedDays(habit: habit, entries: habitEntries).count,
             isDueToday: habit.schedule.isDue(on: today, calendar: calendar),
             isCompletedToday: isCompletedToday,
@@ -150,6 +151,7 @@ enum HabitsService {
     private static func currentStreak(
         for habit: Habit,
         entries: [HabitEntry],
+        frozenDayKeys: Set<String>,
         on today: Date,
         calendar: Calendar
     ) -> Int {
@@ -176,10 +178,14 @@ enum HabitsService {
             if completedDays.contains(cursor) {
                 streak += 1
             } else if isDue {
-                // Today is allowed to be missing without breaking — a
-                // user opening the app at 09:00 hasn't necessarily
-                // logged their daily habit yet.
-                if !calendar.isDate(cursor, inSameDayAs: today) {
+                if !frozenDayKeys.isEmpty, frozenDayKeys.contains(StreakFreezeService.dayKey(for: cursor)) {
+                    // A used streak-freeze shields this missed due day — it
+                    // counts as covered, matching the dose-streak behavior.
+                    streak += 1
+                } else if !calendar.isDate(cursor, inSameDayAs: today) {
+                    // Today is allowed to be missing without breaking — a
+                    // user opening the app at 09:00 hasn't necessarily
+                    // logged their daily habit yet.
                     break
                 }
             }
@@ -193,6 +199,7 @@ enum HabitsService {
     private static func bestStreak(
         for habit: Habit,
         entries: [HabitEntry],
+        frozenDayKeys: Set<String>,
         calendar: Calendar
     ) -> Int {
         let target = habit.targetValue ?? 1
@@ -214,7 +221,8 @@ enum HabitsService {
             // Bounded loop so a corrupted blob can't spin forever.
             for _ in 0..<3650 {
                 guard let next = nextDueDay(after: cursor, schedule: habit.schedule, calendar: calendar) else { break }
-                if completed.contains(next) {
+                if completed.contains(next)
+                    || (!frozenDayKeys.isEmpty && frozenDayKeys.contains(StreakFreezeService.dayKey(for: next))) {
                     run += 1
                     cursor = next
                 } else {

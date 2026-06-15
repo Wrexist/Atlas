@@ -27,13 +27,13 @@ struct HabitsHeroSnapshot: Equatable {
         return min(1, Double(doneCount) / Double(dueCount))
     }
 
-    static func build(activeHabits: [Habit], entries: [HabitEntry]) -> HabitsHeroSnapshot {
+    static func build(activeHabits: [Habit], entries: [HabitEntry], frozenDayKeys: Set<String> = []) -> HabitsHeroSnapshot {
         var items: [Item] = []
         var due = 0
         var done = 0
         var best = 0
         for habit in activeHabits {
-            let summary = HabitsService.summary(for: habit, entries: entries)
+            let summary = HabitsService.summary(for: habit, entries: entries, frozenDayKeys: frozenDayKeys)
             let weekly = HabitsService.weeklyProgress(for: habit, entries: entries)
             items.append(
                 Item(
@@ -86,7 +86,8 @@ struct TodayHabitsHero: View {
     private func rebuild() {
         snapshot = HabitsHeroSnapshot.build(
             activeHabits: dataStore.activeHabits,
-            entries: dataStore.profile.habitEntries
+            entries: dataStore.profile.habitEntries,
+            frozenDayKeys: dataStore.profile.streakFreezeDays
         )
     }
 

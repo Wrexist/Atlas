@@ -351,4 +351,39 @@ final class HabitsServiceTests: XCTestCase {
         let rate = HabitsService.completionRate(habits: [daily, weekly], entries: entries, days: 5)
         XCTAssertEqual(rate ?? 0, 1.0, accuracy: 0.0001)
     }
+
+    // MARK: - Streak freeze
+
+    func test_currentStreak_frozenDayBridgesMissedDueDay() {
+        let habit = makeHabit() // daily
+        let entries = [
+            HabitEntry(habitId: habit.id, date: day(0)),
+            HabitEntry(habitId: habit.id, date: day(1)),
+            // day 2 missed
+            HabitEntry(habitId: habit.id, date: day(3)),
+        ]
+        // Without a freeze, the day-2 gap breaks the chain at 2.
+        XCTAssertEqual(HabitsService.summary(for: habit, entries: entries).currentStreak, 2)
+
+        // Freezing day 2 shields the gap → 4 (days 0, 1, [frozen 2], 3).
+        let frozen: Set<String> = [StreakFreezeService.dayKey(for: day(2))]
+        let shielded = HabitsService.summary(for: habit, entries: entries, frozenDayKeys: frozen)
+        XCTAssertEqual(shielded.currentStreak, 4)
+    }
+
+    func test_bestStreak_frozenDayBridgesMissedDueDay() {
+        let habit = makeHabit()
+        let entries = [
+            HabitEntry(habitId: habit.id, date: day(0)),
+            HabitEntry(habitId: habit.id, date: day(1)),
+            HabitEntry(habitId: habit.id, date: day(3)),
+        ]
+        XCTAssertEqual(HabitsService.summary(for: habit, entries: entries).bestStreak, 2)
+
+        let frozen: Set<String> = [StreakFreezeService.dayKey(for: day(2))]
+        XCTAssertEqual(
+            HabitsService.summary(for: habit, entries: entries, frozenDayKeys: frozen).bestStreak,
+            4
+        )
+    }
 }

@@ -157,7 +157,7 @@ struct HabitsView: View {
     private func rebuildRows() {
         let entries = dataStore.profile.habitEntries
         rows = habits.map { habit in
-            let summary = HabitsService.summary(for: habit, entries: entries)
+            let summary = HabitsService.summary(for: habit, entries: entries, frozenDayKeys: dataStore.profile.streakFreezeDays)
             let days = HabitsService.heatmap(for: habit, entries: entries, dayCount: 182)
             let columns = HabitsService.heatmapColumns(from: days)
             return Row(habit: habit, summary: summary, columns: columns, heatmapStart: days.first?.date)
