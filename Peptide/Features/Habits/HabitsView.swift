@@ -272,6 +272,14 @@ struct HabitsView: View {
                 .background(Capsule().fill(Color.white))
             }
             .buttonStyle(.plain)
+
+            StarterHabitSuggestions(onPick: addStarter)
+                .padding(.top, Spacing.sm)
         }
+    }
+
+    private func addStarter(_ template: HabitTemplate) {
+        Haptics.success()
+        dataStore.addHabit(template.makeHabit())
     }
 }

@@ -220,43 +220,52 @@ struct TodayHabitsHero: View {
     // MARK: - Empty
 
     private var emptyCard: some View {
-        Button {
-            Haptics.impact(.soft)
-            addingNew = true
-        } label: {
-            HStack(spacing: Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(AppColor.accentPrimary.opacity(0.15))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 18, weight: .semibold))
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Button {
+                Haptics.impact(.soft)
+                addingNew = true
+            } label: {
+                HStack(spacing: Spacing.md) {
+                    ZStack {
+                        Circle()
+                            .fill(AppColor.accentPrimary.opacity(0.15))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(AppColor.accentPrimary)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Start a daily habit")
+                            .font(AppFont.headline)
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text("Small wins, every day. Watch your streak — and your Atlas Score — climb.")
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                            .lineLimit(2)
+                    }
+                    Spacer()
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 24))
                         .foregroundStyle(AppColor.accentPrimary)
                 }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Start a daily habit")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text("Small wins, every day. Watch your streak — and your Atlas Score — climb.")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(2)
-                }
-                Spacer()
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(AppColor.accentPrimary)
             }
-            .padding(Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.6))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .stroke(AppColor.glassBorder, lineWidth: 0.5)
-            )
+            .buttonStyle(.plain)
+
+            StarterHabitSuggestions(onPick: addStarter)
         }
-        .buttonStyle(.plain)
+        .padding(Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .stroke(AppColor.glassBorder, lineWidth: 0.5)
+        )
+    }
+
+    private func addStarter(_ template: HabitTemplate) {
+        Haptics.success()
+        dataStore.addHabit(template.makeHabit())
     }
 }
