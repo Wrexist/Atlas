@@ -16,6 +16,7 @@ struct HabitsView: View {
     /// (scroll, color-scheme flicker, environment change) re-walks
     /// summary + heatmap + columns for every habit (audit Habits P2).
     @State private var rows: [Row] = []
+    @State private var showProgress = false
 
     /// One state for both the "add" sheet and the "edit existing" sheet.
     /// Single source of truth so the same sheet binding works for both.
@@ -70,6 +71,7 @@ struct HabitsView: View {
                             .padding(.top, Spacing.xxxxl)
                     } else {
                         habitsSummaryHeader(rows: visibleRows)
+                        progressLink
                         ForEach(visibleRows) { row in
                             HabitRowCard(
                                 habit: row.habit,
@@ -127,6 +129,10 @@ struct HabitsView: View {
                         Button("Done") { dismiss() }
                     }
                 }
+            }
+            .sheet(isPresented: $showProgress) {
+                AtlasProgressView()
+                    .environment(dataStore)
             }
             .sheet(item: $editing) { target in
                 Group {
@@ -236,6 +242,29 @@ struct HabitsView: View {
             + (best > 0 ? ", \(best) day streak" : "")
             + ", Atlas level \(momentum.level)"
         )
+    }
+
+    private var progressLink: some View {
+        Button { showProgress = true } label: {
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 12, weight: .semibold))
+                Text("See your progress")
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            .font(AppFont.subheadline.weight(.semibold))
+            .foregroundStyle(AppColor.accentLight)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                    .fill(AppColor.surfaceSecondary.opacity(0.4))
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Opens your progress")
     }
 
     private var emptyState: some View {
