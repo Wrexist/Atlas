@@ -125,6 +125,23 @@ final class AchievementService {
         if pendingUnlocks.count != unlocksBefore { saveAchievements() }
     }
 
+    /// Training-side milestones. Fired from the workout-finish chokepoints
+    /// (`WorkoutSessionService.finishWorkout` + `DataStore.logWorkout`) via
+    /// `DataStore.recordWorkoutFinished`, not the generic save hook —
+    /// workout data lives in SwiftData and would otherwise need a per-save
+    /// fetch. `prDetected` comes from `PRDetectionEngine.ingest`.
+    func checkTrainingAchievements(workoutCount: Int, prDetected: Bool) {
+        let unlocksBefore = pendingUnlocks.count
+        unlock("first_workout", if: workoutCount >= 1)
+        unlock("ten_workouts", if: workoutCount >= 10)
+        unlock("fifty_workouts", if: workoutCount >= 50)
+        unlock("hundred_workouts", if: workoutCount >= 100)
+
+        unlock("first_pr", if: prDetected)
+
+        if pendingUnlocks.count != unlocksBefore { saveAchievements() }
+    }
+
     /// Clears the celebration slot. Call after the toast has been
     /// presented so the next check can write a fresh unlock without
     /// the observer seeing a redundant change.
@@ -234,5 +251,12 @@ final class AchievementService {
         Achievement(id: "habit_days_50", title: "Fifty Strong", description: "Complete 50 habits", icon: "checkmark.circle.fill"),
         Achievement(id: "habit_days_250", title: "Relentless", description: "Complete 250 habits", icon: "star.circle.fill"),
         Achievement(id: "perfect_day", title: "Perfect Day", description: "Complete every habit due in a day", icon: "sparkles"),
+
+        // Training achievements — workouts now feed the rewards layer.
+        Achievement(id: "first_workout", title: "First Workout", description: "Finish your first workout", icon: "figure.strengthtraining.traditional"),
+        Achievement(id: "ten_workouts", title: "Getting Stronger", description: "Finish 10 workouts", icon: "dumbbell.fill"),
+        Achievement(id: "fifty_workouts", title: "Seasoned Lifter", description: "Finish 50 workouts", icon: "figure.run"),
+        Achievement(id: "hundred_workouts", title: "Iron Discipline", description: "Finish 100 workouts", icon: "trophy.fill"),
+        Achievement(id: "first_pr", title: "Personal Best", description: "Set your first personal record", icon: "medal.fill"),
     ]
 }

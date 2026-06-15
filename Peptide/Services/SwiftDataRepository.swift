@@ -579,6 +579,19 @@ final class SwiftDataRepository {
         }
     }
 
+    /// Cheap lifetime count of workout sessions via `fetchCount` (no row
+    /// materialization). Used by the training-achievement check so it
+    /// doesn't load the whole session table on a workout finish.
+    func workoutSessionCount() -> Int {
+        guard let context else { return 0 }
+        do {
+            return try context.fetchCount(FetchDescriptor<StoredWorkoutSession>())
+        } catch {
+            AppLog.swiftData.error("workoutSessionCount failed: \(error.localizedDescription, privacy: .public)")
+            return 0
+        }
+    }
+
     /// Fetches workout sessions whose `startedAt` falls in the given
     /// half-open range. Used by `DataStore.workoutSummary` so the
     /// Today scroll's "movement" card doesn't fault the whole

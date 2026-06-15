@@ -1420,6 +1420,8 @@ final class DataStore: DataServiceProtocol {
         cacheVersion &+= 1
         updateWidgetData()
         updateWatchData()
+        // Quick-log sessions have no exercises, so no PRs are possible.
+        recordWorkoutFinished(detectedPRCount: 0)
     }
 
     /// Deletes a workout by ID from the structured store. Same plumbing
@@ -1430,6 +1432,19 @@ final class DataStore: DataServiceProtocol {
         cacheVersion &+= 1
         updateWidgetData()
         updateWatchData()
+    }
+
+    /// Fired when a workout is finalized (structured finish via
+    /// `WorkoutSessionService.finishWorkout`, or quick-log via
+    /// `logWorkout`). Checks training achievements off a cheap session
+    /// count + the PR signal — runs only on this workout event, never on
+    /// the generic save hot-path.
+    func recordWorkoutFinished(detectedPRCount: Int) {
+        guard !isEphemeral else { return }
+        AchievementService.shared.checkTrainingAchievements(
+            workoutCount: repo.workoutSessionCount(),
+            prDetected: detectedPRCount > 0
+        )
     }
 
     /// (count, totalMinutes) for workout sessions logged on `date`'s
