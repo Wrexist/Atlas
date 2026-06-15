@@ -111,6 +111,14 @@ struct HomeView: View {
         notificationService.lastReport.hasAnyIssue
     }
 
+    /// The "At a glance" trio (adherence / recovery / sleep) only has
+    /// meaning once there's a data source — an active protocol or a Health
+    /// connection. Hidden otherwise so a day-0 user isn't met with zero
+    /// rings that read as failure.
+    private var showsAtAGlance: Bool {
+        !dataStore.activeProtocols.isEmpty || dataStore.profile.healthConnected
+    }
+
     var body: some View {
         let stats = todayStats
         let overview = TodayOverviewSnapshot.build(from: dataStore)
@@ -211,21 +219,27 @@ struct HomeView: View {
                     // Movement / Timeline / Health blocks further down so
                     // the whole scroll reads as consistent, navigable
                     // chunks instead of an unlabeled wall of cards.
-                    HomeSectionHeader(eyebrow: "Today", title: "At a glance")
-                        .sectionAppear(index: 0)
+                    // Hide the adherence/recovery/sleep trio for a brand-new
+                    // user with no protocols and no Health connection — all
+                    // zeros read as failure (roadmap day-0). They lead with
+                    // the habit hero + Atlas Score above; the coaching card
+                    // below still nudges them to connect Health.
+                    if showsAtAGlance {
+                        HomeSectionHeader(eyebrow: "Today", title: "At a glance")
+                            .sectionAppear(index: 0)
 
-                    // Bevel-style hero trio — Adherence / Recovery /
-                    // Sleep. Replaces the single-ring "score" model
-                    // with three at-a-glance numbers that map to the
-                    // user's mental model from Whoop / Oura / Bevel.
-                    HeroMetricTrio(
-                        snapshot: heroSnapshot,
-                        onTapRing: { kind in
-                            Haptics.impact(.light)
-                            heroDetailKind = HeroDetailItem(kind: kind)
-                        }
-                    )
-                    .sectionAppear(index: 0)
+                        // Bevel-style hero trio — Adherence / Recovery /
+                        // Sleep. Three at-a-glance numbers mapping to the
+                        // user's mental model from Whoop / Oura / Bevel.
+                        HeroMetricTrio(
+                            snapshot: heroSnapshot,
+                            onTapRing: { kind in
+                                Haptics.impact(.light)
+                                heroDetailKind = HeroDetailItem(kind: kind)
+                            }
+                        )
+                        .sectionAppear(index: 0)
+                    }
 
                     // Coaching line — turns the trio's three numbers
                     // into a single recommendation. Same priority
