@@ -70,6 +70,9 @@ struct HabitsView: View {
                         emptyState
                             .padding(.top, Spacing.xxxxl)
                     } else {
+                        if dataStore.habitStreakAtRisk {
+                            streakFreezeBanner
+                        }
                         habitsSummaryHeader(rows: visibleRows)
                         progressLink
                         ForEach(visibleRows) { row in
@@ -242,6 +245,52 @@ struct HabitsView: View {
             + (best > 0 ? ", \(best) day streak" : "")
             + ", Atlas level \(momentum.level)"
         )
+    }
+
+    /// Shown when a streak is at risk and a monthly freeze is available —
+    /// one tap shields yesterday so the streak survives. Reuses the existing
+    /// `DataStore.applyStreakFreeze` (defaults to yesterday).
+    private var streakFreezeBanner: some View {
+        HStack(spacing: Spacing.md) {
+            Image(systemName: "snowflake")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(AppColor.macroWater)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Streak at risk")
+                    .font(AppFont.subheadline.weight(.semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("You missed yesterday — use your monthly freeze to keep your streak alive.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+            Button {
+                Haptics.success()
+                withAnimation(AppAnimation.springSmooth) {
+                    dataStore.applyStreakFreeze()
+                }
+            } label: {
+                Text("Freeze")
+                    .font(AppFont.subheadline.weight(.bold))
+                    .foregroundStyle(AppColor.background)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.sm)
+                    .background(Capsule().fill(AppColor.macroWater))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.macroWater.opacity(0.12))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .strokeBorder(AppColor.macroWater.opacity(0.35), lineWidth: 0.5)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Streak at risk. You missed yesterday. Use your monthly freeze to keep your streak.")
     }
 
     private var progressLink: some View {

@@ -1209,6 +1209,41 @@ final class DataStore: DataServiceProtocol {
         return applied
     }
 
+    /// True when a freeze is available AND a meaningful habit streak would be
+    /// lost because yesterday (a due day) was missed and isn't already
+    /// frozen — so spending a freeze on yesterday would save it. Drives the
+    /// Habits tab's "Streak at risk" prompt. The per-habit walk runs only
+    /// when a freeze is actually available (at most once a month), so it
+    /// stays off the common render path.
+    var habitStreakAtRisk: Bool {
+        guard streakFreezeAvailable else { return false }
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: today),
+              let dayBefore = calendar.date(byAdding: .day, value: -2, to: today)
+        else { return false }
+        if StreakFreezeService.isFrozen(yesterday, in: profile) { return false }
+
+        let entries = profile.habitEntries
+        let frozen = profile.streakFreezeDays
+        return activeHabits.contains { habit in
+            guard habit.schedule.isDue(on: yesterday, calendar: calendar) else { return false }
+            let target = habit.targetValue ?? 1
+            let doneYesterday = entries.contains {
+                $0.habitId == habit.id
+                    && calendar.isDate($0.date, inSameDayAs: yesterday)
+                    && $0.value >= target
+            }
+            if doneYesterday { return false }
+            // Only prompt when there was a real streak (≥2) running into the
+            // gap, computed as of the day before yesterday.
+            let priorStreak = HabitsService.summary(
+                for: habit, entries: entries, frozenDayKeys: frozen, on: dayBefore
+            ).currentStreak
+            return priorStreak >= 2
+        }
+    }
+
     // MARK: - Recipes
 
     /// Saves a new recipe or replaces an existing one (matched by
