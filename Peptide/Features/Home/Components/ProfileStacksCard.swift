@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// Profile-screen card showing the user's protocol "stacks". Each row
-/// is tappable and deep-links into the Protocols tab via
-/// `AppState.pendingProtocolDeepLink`. The "Manage Stacks" footer
-/// button and the empty-state CTA also route to that tab.
+/// is tappable and deep-links into the Protocols list (opened as the
+/// Library modal) via `AppState.pendingProtocolDeepLink`. The "Manage
+/// Stacks" footer button and the empty-state CTA route there too.
 ///
 /// Split out of `ProfileCustomizationSheet` — the stacks rendering,
 /// ordering, accessibility-label assembly, and the progress bar are
@@ -47,9 +47,8 @@ struct ProfileStacksCard: View {
 
                     Button {
                         Haptics.impact(.light)
-                        appState.pendingProtocolList = true
-                        appState.selectedTab = .library
                         dismiss()
+                        openLibraryAfterDismiss()
                     } label: {
                         HStack(spacing: Spacing.xs) {
                             Text("Manage Stacks")
@@ -68,6 +67,21 @@ struct ProfileStacksCard: View {
         }
     }
 
+    /// Closes the Profile sheet, then opens the demoted Library modal after
+    /// the dismiss animation. Presenting a cover while the sheet is still up
+    /// gets silently dropped — this mirrors the app's `sheetDismissDelay`
+    /// sheet-handoff convention. `appState` is captured into a local now (a
+    /// valid view context) rather than read inside the detached Task.
+    private func openLibraryAfterDismiss(deepLink: UUID? = nil) {
+        let app = appState
+        Task { @MainActor in
+            try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
+            if let deepLink { app.pendingProtocolDeepLink = deepLink }
+            app.pendingProtocolList = true
+            app.showLibrary = true
+        }
+    }
+
     private var emptyStacksView: some View {
         VStack(spacing: Spacing.md) {
             Image(systemName: "square.stack.3d.up.slash")
@@ -79,16 +93,15 @@ struct ProfileStacksCard: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textSecondary)
 
-            Text("Create your first protocol from the Library tab to start tracking doses, streaks, and compliance.")
+            Text("Create your first protocol from your Peptide Library to start tracking doses, streaks, and compliance.")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
             Button {
-                appState.pendingProtocolList = true
-                appState.selectedTab = .library
                 dismiss()
+                openLibraryAfterDismiss()
             } label: {
                 Label("Create Stack", systemImage: "plus")
                     .font(AppFont.subheadline)
@@ -124,10 +137,8 @@ struct ProfileStacksCard: View {
     private func stackRow(_ stack: PeptideProtocol) -> some View {
         Button {
             Haptics.impact(.light)
-            appState.pendingProtocolDeepLink = stack.id
-            appState.pendingProtocolList = true
-            appState.selectedTab = .library
             dismiss()
+            openLibraryAfterDismiss(deepLink: stack.id)
         } label: {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 HStack(spacing: Spacing.md) {

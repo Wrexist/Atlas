@@ -31,6 +31,7 @@ enum HabitsService {
     static func summary(
         for habit: Habit,
         entries: [HabitEntry],
+        frozenDayKeys: Set<String> = [],
         on date: Date = Date(),
         calendar: Calendar = .current
     ) -> Summary {
@@ -55,8 +56,8 @@ enum HabitsService {
 
         return Summary(
             habitId: habit.id,
-            currentStreak: currentStreak(for: habit, entries: habitEntries, on: today, calendar: calendar),
-            bestStreak: bestStreak(for: habit, entries: habitEntries, calendar: calendar),
+            currentStreak: currentStreak(for: habit, entries: habitEntries, frozenDayKeys: frozenDayKeys, on: today, calendar: calendar),
+            bestStreak: bestStreak(for: habit, entries: habitEntries, frozenDayKeys: frozenDayKeys, calendar: calendar),
             totalCompletedDays: completedDays(habit: habit, entries: habitEntries).count,
             isDueToday: habit.schedule.isDue(on: today, calendar: calendar),
             isCompletedToday: isCompletedToday,
@@ -150,6 +151,7 @@ enum HabitsService {
     private static func currentStreak(
         for habit: Habit,
         entries: [HabitEntry],
+        frozenDayKeys: Set<String>,
         on today: Date,
         calendar: Calendar
     ) -> Int {
@@ -176,10 +178,14 @@ enum HabitsService {
             if completedDays.contains(cursor) {
                 streak += 1
             } else if isDue {
-                // Today is allowed to be missing without breaking — a
-                // user opening the app at 09:00 hasn't necessarily
-                // logged their daily habit yet.
-                if !calendar.isDate(cursor, inSameDayAs: today) {
+                if !frozenDayKeys.isEmpty, frozenDayKeys.contains(StreakFreezeService.dayKey(for: cursor)) {
+                    // A used streak-freeze shields this missed due day — it
+                    // counts as covered, matching the dose-streak behavior.
+                    streak += 1
+                } else if !calendar.isDate(cursor, inSameDayAs: today) {
+                    // Today is allowed to be missing without breaking — a
+                    // user opening the app at 09:00 hasn't necessarily
+                    // logged their daily habit yet.
                     break
                 }
             }
@@ -193,6 +199,7 @@ enum HabitsService {
     private static func bestStreak(
         for habit: Habit,
         entries: [HabitEntry],
+        frozenDayKeys: Set<String>,
         calendar: Calendar
     ) -> Int {
         let target = habit.targetValue ?? 1
@@ -214,7 +221,8 @@ enum HabitsService {
             // Bounded loop so a corrupted blob can't spin forever.
             for _ in 0..<3650 {
                 guard let next = nextDueDay(after: cursor, schedule: habit.schedule, calendar: calendar) else { break }
-                if completed.contains(next) {
+                if completed.contains(next)
+                    || (!frozenDayKeys.isEmpty && frozenDayKeys.contains(StreakFreezeService.dayKey(for: next))) {
                     run += 1
                     cursor = next
                 } else {
@@ -288,5 +296,57 @@ enum HabitsService {
             .filter { $0 >= interval.start && $0 < interval.end }
             .count
         return (count: min(count, target), target: max(target, 0))
+    }
+
+    // MARK: - Consistency
+
+    /// Overall completion rate across `habits` over the trailing `days`
+    /// window ending on `endDate`: (completed due-days) / (total due-days),
+    /// where a due-day is one (habit, day) pair the schedule marked due and
+    /// "completed" means the day's max entry value reached the target.
+    /// `.timesPerWeek` habits are excluded — their `isDue` is true every
+    /// day, so per-day completion would misrepresent a weekly cadence.
+    /// Returns nil when the window had no due-days (avoids a 0/0 reading);
+    /// the progress surface treats nil as "not enough data yet".
+    static func completionRate(
+        habits: [Habit],
+        entries: [HabitEntry],
+        days: Int,
+        endingOn endDate: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Double? {
+        guard days > 0 else { return nil }
+        let scheduled = habits.filter {
+            if case .timesPerWeek = $0.schedule { return false }
+            return true
+        }
+        guard !scheduled.isEmpty else { return nil }
+
+        // Pre-index the best value per (habit, day) so the window scan
+        // doesn't re-filter the entries array for every cell.
+        var bestValue: [ConsistencyKey: Int] = [:]
+        for entry in entries where entry.value > 0 {
+            let key = ConsistencyKey(habitId: entry.habitId, day: calendar.startOfDay(for: entry.date))
+            bestValue[key] = max(bestValue[key] ?? 0, entry.value)
+        }
+
+        let end = calendar.startOfDay(for: endDate)
+        var due = 0
+        var done = 0
+        for offset in 0..<days {
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: end) else { continue }
+            for habit in scheduled where habit.schedule.isDue(on: day, calendar: calendar) {
+                due += 1
+                let target = habit.targetValue ?? 1
+                if (bestValue[ConsistencyKey(habitId: habit.id, day: day)] ?? 0) >= target { done += 1 }
+            }
+        }
+        guard due > 0 else { return nil }
+        return Double(done) / Double(due)
+    }
+
+    private struct ConsistencyKey: Hashable {
+        let habitId: UUID
+        let day: Date
     }
 }

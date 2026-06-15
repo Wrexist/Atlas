@@ -95,6 +95,9 @@ final class WorkoutSessionService {
         SwiftDataRepository.shared.upsertWorkoutSession(session)
         let detections = PRDetectionEngine.shared.ingest(session: session)
         activeSession = nil
+        // Reward training (and any new PR). Both this service and the
+        // store are @MainActor, so the call is a direct hop.
+        DataStore.current?.recordWorkoutFinished(detectedPRCount: detections.count)
         AppLog.training.info("Workout finished (id: \(session.id, privacy: .public), sets: \(session.completedSetCount, privacy: .public), PRs: \(detections.count, privacy: .public))")
         return FinishedWorkout(session: session, detectedPRs: detections)
     }

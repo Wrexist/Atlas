@@ -4,6 +4,11 @@ struct PeptideListView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.dismiss) private var dismiss
+    /// True when opened as the demoted Library modal (from Today's cycle
+    /// pill or a Profile entry via `AppState.showLibrary`) — adds a Done
+    /// button. False when hosted directly.
+    var presentedModally = false
     @State private var viewModel = PeptideListViewModel(peptides: PeptideDatabase.shared)
     @State private var showCustomForm = false
     @State private var showResearchAssistant = false
@@ -235,6 +240,12 @@ struct PeptideListView: View {
 
     @ToolbarContentBuilder
     private var sidebarToolbar: some ToolbarContent {
+        if presentedModally {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Done") { dismiss() }
+                    .accessibilityLabel("Close Library")
+            }
+        }
         ToolbarItem(placement: .topBarLeading) {
             Button {
                 if storeService.isProUser {

@@ -100,6 +100,50 @@ final class AchievementService {
         if pendingUnlocks.count != unlocksBefore { saveAchievements() }
     }
 
+    /// Habit-side milestones. Surfaced as the user builds the daily-habit
+    /// streaks the app now leads with. Kept as its own entry point — like
+    /// `checkLifestyleAchievements` — so `DataStore.scheduleAchievementCheck`
+    /// can pass habit-specific counts without one omnibus signature.
+    func checkHabitAchievements(
+        habitCount: Int,
+        bestHabitStreak: Int,
+        totalCompletions: Int,
+        perfectDayToday: Bool,
+        perfectWeek: Bool
+    ) {
+        let unlocksBefore = pendingUnlocks.count
+        unlock("first_habit", if: habitCount >= 1)
+
+        unlock("habit_streak_7", if: bestHabitStreak >= 7)
+        unlock("habit_streak_30", if: bestHabitStreak >= 30)
+        unlock("habit_streak_90", if: bestHabitStreak >= 90)
+
+        unlock("habit_days_50", if: totalCompletions >= 50)
+        unlock("habit_days_250", if: totalCompletions >= 250)
+
+        unlock("perfect_day", if: perfectDayToday)
+        unlock("perfect_week", if: perfectWeek)
+
+        if pendingUnlocks.count != unlocksBefore { saveAchievements() }
+    }
+
+    /// Training-side milestones. Fired from the workout-finish chokepoints
+    /// (`WorkoutSessionService.finishWorkout` + `DataStore.logWorkout`) via
+    /// `DataStore.recordWorkoutFinished`, not the generic save hook —
+    /// workout data lives in SwiftData and would otherwise need a per-save
+    /// fetch. `prDetected` comes from `PRDetectionEngine.ingest`.
+    func checkTrainingAchievements(workoutCount: Int, prDetected: Bool) {
+        let unlocksBefore = pendingUnlocks.count
+        unlock("first_workout", if: workoutCount >= 1)
+        unlock("ten_workouts", if: workoutCount >= 10)
+        unlock("fifty_workouts", if: workoutCount >= 50)
+        unlock("hundred_workouts", if: workoutCount >= 100)
+
+        unlock("first_pr", if: prDetected)
+
+        if pendingUnlocks.count != unlocksBefore { saveAchievements() }
+    }
+
     /// Clears the celebration slot. Call after the toast has been
     /// presented so the next check can write a fresh unlock without
     /// the observer seeing a redundant change.
@@ -197,5 +241,25 @@ final class AchievementService {
         Achievement(id: "first_checkin", title: "Tuning In", description: "Complete your first daily check-in", icon: "heart.text.square"),
         Achievement(id: "checkin_streak_14", title: "Self-Aware", description: "14 daily check-ins logged", icon: "heart.text.square.fill"),
         Achievement(id: "checkin_streak_60", title: "Insight Engine", description: "60 daily check-ins logged", icon: "sparkles"),
+
+        // Habit achievements — the daily-consistency engine the app now
+        // leads with. Streaks reward sticking with a habit; "days" reward
+        // breadth of completion; Perfect Day rewards clearing everything
+        // due in a single day.
+        Achievement(id: "first_habit", title: "First Habit", description: "Create your first habit", icon: "checkmark.seal.fill"),
+        Achievement(id: "habit_streak_7", title: "Habit Spark", description: "7-day habit streak", icon: "flame.fill"),
+        Achievement(id: "habit_streak_30", title: "Habit Forged", description: "30-day habit streak", icon: "bolt.fill"),
+        Achievement(id: "habit_streak_90", title: "Habit Mastery", description: "90-day habit streak", icon: "trophy.fill"),
+        Achievement(id: "habit_days_50", title: "Fifty Strong", description: "Complete 50 habits", icon: "checkmark.circle.fill"),
+        Achievement(id: "habit_days_250", title: "Relentless", description: "Complete 250 habits", icon: "star.circle.fill"),
+        Achievement(id: "perfect_day", title: "Perfect Day", description: "Complete every habit due in a day", icon: "sparkles"),
+        Achievement(id: "perfect_week", title: "Perfect Week", description: "Complete every habit, every day, for a week", icon: "crown.fill"),
+
+        // Training achievements — workouts now feed the rewards layer.
+        Achievement(id: "first_workout", title: "First Workout", description: "Finish your first workout", icon: "figure.strengthtraining.traditional"),
+        Achievement(id: "ten_workouts", title: "Getting Stronger", description: "Finish 10 workouts", icon: "dumbbell.fill"),
+        Achievement(id: "fifty_workouts", title: "Seasoned Lifter", description: "Finish 50 workouts", icon: "figure.run"),
+        Achievement(id: "hundred_workouts", title: "Iron Discipline", description: "Finish 100 workouts", icon: "trophy.fill"),
+        Achievement(id: "first_pr", title: "Personal Best", description: "Set your first personal record", icon: "medal.fill"),
     ]
 }

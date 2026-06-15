@@ -7,6 +7,7 @@ struct HomeView: View {
     @State private var showAchievementToast = false
     @State private var toastAchievement: Achievement?
     @State private var achievementService = AchievementService.shared
+    @State private var showProgress = false
     /// Observed directly so the notification banner reacts to a fresh
     /// schedule report. DataStore exposes `notificationReport` as a passthrough,
     /// but a computed read from a non-observed singleton wouldn't re-render
@@ -110,6 +111,14 @@ struct HomeView: View {
         notificationService.lastReport.hasAnyIssue
     }
 
+    /// The "At a glance" trio (adherence / recovery / sleep) only has
+    /// meaning once there's a data source — an active protocol or a Health
+    /// connection. Hidden otherwise so a day-0 user isn't met with zero
+    /// rings that read as failure.
+    private var showsAtAGlance: Bool {
+        !dataStore.activeProtocols.isEmpty || dataStore.profile.healthConnected
+    }
+
     var body: some View {
         let stats = todayStats
         let overview = TodayOverviewSnapshot.build(from: dataStore)
@@ -141,15 +150,11 @@ struct HomeView: View {
                         activeProtocol: dataStore.activeProtocols.first,
                         date: Date(),
                         onTapCycle: {
-                            withAnimation(AppAnimation.springSnappy) {
-                                // Phase D: Protocols is no longer a
-                                // top-level tab — route through the
-                                // pending-flag pattern so the user
-                                // lands on the protocol list inside
-                                // Library in one navigation hop.
-                                appState.pendingProtocolList = true
-                                appState.selectedTab = .library
-                            }
+                            // Library is no longer a tab — open it as a
+                            // modal with the protocol list pending so the
+                            // cycle pill still lands on Protocols in one hop.
+                            appState.pendingProtocolList = true
+                            appState.showLibrary = true
                         }
                     )
                     .sectionAppear(index: 0)
@@ -168,6 +173,20 @@ struct HomeView: View {
                         onQuickLog: { showQuickLogMenu() }
                     )
                     .sectionAppear(index: 0)
+
+                    // Habit-first hero — today's habits, the daily completion
+                    // ring, the active streak, and the Atlas Score lead the
+                    // screen so the user's daily wins are the first thing they
+                    // see and act on. Per-habit summary work is snapshotted
+                    // off-body inside the component (audit A6).
+                    TodayHabitsHero()
+                        .sectionAppear(index: 0)
+
+                    // Earned "Atlas Score" — the level / tier / progress
+                    // showcase, sitting right under the habits that feed it
+                    // so the user sees their momentum compounding.
+                    AtlasScoreCard(onTap: { showProgress = true })
+                        .sectionAppear(index: 0)
 
                     // Observed via the @State notificationService so the banner
                     // re-renders when a reschedule writes a fresh report. Reading
@@ -200,21 +219,27 @@ struct HomeView: View {
                     // Movement / Timeline / Health blocks further down so
                     // the whole scroll reads as consistent, navigable
                     // chunks instead of an unlabeled wall of cards.
-                    HomeSectionHeader(eyebrow: "Today", title: "At a glance")
-                        .sectionAppear(index: 0)
+                    // Hide the adherence/recovery/sleep trio for a brand-new
+                    // user with no protocols and no Health connection — all
+                    // zeros read as failure (roadmap day-0). They lead with
+                    // the habit hero + Atlas Score above; the coaching card
+                    // below still nudges them to connect Health.
+                    if showsAtAGlance {
+                        HomeSectionHeader(eyebrow: "Today", title: "At a glance")
+                            .sectionAppear(index: 0)
 
-                    // Bevel-style hero trio — Adherence / Recovery /
-                    // Sleep. Replaces the single-ring "score" model
-                    // with three at-a-glance numbers that map to the
-                    // user's mental model from Whoop / Oura / Bevel.
-                    HeroMetricTrio(
-                        snapshot: heroSnapshot,
-                        onTapRing: { kind in
-                            Haptics.impact(.light)
-                            heroDetailKind = HeroDetailItem(kind: kind)
-                        }
-                    )
-                    .sectionAppear(index: 0)
+                        // Bevel-style hero trio — Adherence / Recovery /
+                        // Sleep. Three at-a-glance numbers mapping to the
+                        // user's mental model from Whoop / Oura / Bevel.
+                        HeroMetricTrio(
+                            snapshot: heroSnapshot,
+                            onTapRing: { kind in
+                                Haptics.impact(.light)
+                                heroDetailKind = HeroDetailItem(kind: kind)
+                            }
+                        )
+                        .sectionAppear(index: 0)
+                    }
 
                     // Coaching line — turns the trio's three numbers
                     // into a single recommendation. Same priority
@@ -224,31 +249,21 @@ struct HomeView: View {
                     CoachingCard(message: coachingMessage)
                         .sectionAppear(index: 0)
 
-                    // Momentum block — the user's goal projection, daily
-                    // habits, and any surfaced insights, grouped under one
-                    // header. Habits always renders, so the header never
-                    // sits alone over empty space.
-                    HomeSectionHeader(eyebrow: "Momentum", title: "Goals & habits")
-                        .sectionAppear(index: 0)
+                    // Momentum — goal projection. Habits now lead the screen
+                    // in TodayHabitsHero above; the goal countdown stays here
+                    // for users who committed to a target date. Guarded so the
+                    // header never sits alone when no goal date is set.
+                    if dataStore.profile.goalDate != nil {
+                        HomeSectionHeader(eyebrow: "Momentum", title: "Your goal")
+                            .sectionAppear(index: 0)
 
-                    // Goal countdown from the onboarding "By when?"
-                    // step. Renders only when the user committed to a
-                    // future date; older accounts and skipped users
-                    // see nothing. Reads from dataStore so the card
-                    // updates the moment the user edits the date in
-                    // Profile.
-                    GoalCountdownCard(
-                        goalDate: dataStore.profile.goalDate,
-                        primaryGoal: dataStore.profile.primaryGoal
-                    )
-                    .sectionAppear(index: 0)
-
-                    // Habits — compact / expandable / "View all" sheet.
-                    // Sits just under the goal countdown so the user's
-                    // daily-action surface (single check-tap per habit)
-                    // is right under the projection that motivates it.
-                    HabitsHomeCard()
+                        GoalCountdownCard(
+                            goalDate: dataStore.profile.goalDate,
+                            primaryGoal: dataStore.profile.primaryGoal,
+                            startDate: dataStore.profile.memberSince
+                        )
                         .sectionAppear(index: 0)
+                    }
 
                     if overview.hasAnySignal {
                         TodayOverviewCard(
@@ -424,6 +439,10 @@ struct HomeView: View {
                     )
                 }
                 .liquidGlassPresentation()
+            }
+            .sheet(isPresented: $showProgress) {
+                AtlasProgressView()
+                    .environment(dataStore)
             }
             // Stack-warning / stack-adjustment / paywall sheets
             // moved to ProtocolsStackHealthSection in Phase 34 —
