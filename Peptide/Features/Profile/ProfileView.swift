@@ -9,6 +9,7 @@ struct ProfileView: View {
     @State private var authService = AuthService.shared
     @State private var showReconstitutionCalculator = false
     @State private var showRestoreBackup = false
+    @State private var showProgress = false
 
     /// Single source of truth for the goal catalog. Reads from
     /// OnboardingView.PrimaryGoal so a goal selected during the new
@@ -43,6 +44,12 @@ struct ProfileView: View {
                         UpgradePromptCard()
                             .sectionAppear(index: 1)
                     }
+
+                    // Earned Atlas Score — the rewards identity, sitting
+                    // above the achievement badges it sums up. Taps open
+                    // the full progress view.
+                    AtlasScoreCard(onTap: { showProgress = true })
+                        .sectionAppear(index: 2)
 
                     AchievementsSection(achievements: achievementService.achievements)
                         .sectionAppear(index: 2)
@@ -134,6 +141,10 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showRestoreBackup) {
                 RestoreBackupSheet()
+                    .environment(dataStore)
+            }
+            .sheet(isPresented: $showProgress) {
+                AtlasProgressView()
                     .environment(dataStore)
             }
             // Labs sheet + the `pendingLabsOpen` deep-link
