@@ -61,6 +61,24 @@ struct WatchData: Codable, Sendable {
     /// doesn't write this field still decodes on the watch — the
     /// nutrition surface hides itself gracefully when absent.
     let nutrition: WatchNutritionSnapshot?
+    /// Atlas Score (cumulative momentum) + level/tier/progress for the
+    /// Watch complications. Decode-if-present like the fields above so an
+    /// older phone build that doesn't write them still decodes on the watch.
+    let atlasScore: Int?
+    let atlasLevel: Int?
+    /// Tier rawValue — bronze/silver/gold/platinum/diamond — mapped to a
+    /// tint widget-side (which can't see the app's MomentumEngine).
+    let atlasTier: String?
+    /// 0…1 progress toward the next level.
+    let atlasProgress: Double?
+    /// Points banked today (drives the "+N today" affordance).
+    let atlasTodayEarned: Int?
+    /// Today's habit completion split by domain — health (green) and
+    /// training/fitness (blue) — powering the color-coded complications.
+    let healthHabitsDone: Int?
+    let healthHabitsTotal: Int?
+    let trainingHabitsDone: Int?
+    let trainingHabitsTotal: Int?
 
     var compliance: Double {
         totalToday > 0 ? Double(completedToday) / Double(totalToday) : 0
@@ -74,7 +92,16 @@ struct WatchData: Codable, Sendable {
         currentStreak: Int? = nil,
         weeklyCompliance: Double? = nil,
         totalDosesLogged: Int? = nil,
-        nutrition: WatchNutritionSnapshot? = nil
+        nutrition: WatchNutritionSnapshot? = nil,
+        atlasScore: Int? = nil,
+        atlasLevel: Int? = nil,
+        atlasTier: String? = nil,
+        atlasProgress: Double? = nil,
+        atlasTodayEarned: Int? = nil,
+        healthHabitsDone: Int? = nil,
+        healthHabitsTotal: Int? = nil,
+        trainingHabitsDone: Int? = nil,
+        trainingHabitsTotal: Int? = nil
     ) {
         self.todayEntries = todayEntries
         self.completedToday = completedToday
@@ -84,6 +111,15 @@ struct WatchData: Codable, Sendable {
         self.weeklyCompliance = weeklyCompliance
         self.totalDosesLogged = totalDosesLogged
         self.nutrition = nutrition
+        self.atlasScore = atlasScore
+        self.atlasLevel = atlasLevel
+        self.atlasTier = atlasTier
+        self.atlasProgress = atlasProgress
+        self.atlasTodayEarned = atlasTodayEarned
+        self.healthHabitsDone = healthHabitsDone
+        self.healthHabitsTotal = healthHabitsTotal
+        self.trainingHabitsDone = trainingHabitsDone
+        self.trainingHabitsTotal = trainingHabitsTotal
     }
 
     init(from decoder: Decoder) throws {
@@ -96,12 +132,24 @@ struct WatchData: Codable, Sendable {
         weeklyCompliance = try c.decodeIfPresent(Double.self, forKey: .weeklyCompliance)
         totalDosesLogged = try c.decodeIfPresent(Int.self, forKey: .totalDosesLogged)
         nutrition = try c.decodeIfPresent(WatchNutritionSnapshot.self, forKey: .nutrition)
+        atlasScore = try c.decodeIfPresent(Int.self, forKey: .atlasScore)
+        atlasLevel = try c.decodeIfPresent(Int.self, forKey: .atlasLevel)
+        atlasTier = try c.decodeIfPresent(String.self, forKey: .atlasTier)
+        atlasProgress = try c.decodeIfPresent(Double.self, forKey: .atlasProgress)
+        atlasTodayEarned = try c.decodeIfPresent(Int.self, forKey: .atlasTodayEarned)
+        healthHabitsDone = try c.decodeIfPresent(Int.self, forKey: .healthHabitsDone)
+        healthHabitsTotal = try c.decodeIfPresent(Int.self, forKey: .healthHabitsTotal)
+        trainingHabitsDone = try c.decodeIfPresent(Int.self, forKey: .trainingHabitsDone)
+        trainingHabitsTotal = try c.decodeIfPresent(Int.self, forKey: .trainingHabitsTotal)
     }
 
     private enum CodingKeys: String, CodingKey {
         case todayEntries, completedToday, totalToday, lastUpdated
         case currentStreak, weeklyCompliance, totalDosesLogged
         case nutrition
+        case atlasScore, atlasLevel, atlasTier, atlasProgress, atlasTodayEarned
+        case healthHabitsDone, healthHabitsTotal
+        case trainingHabitsDone, trainingHabitsTotal
     }
 
     static let empty = WatchData(

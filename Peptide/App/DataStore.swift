@@ -2029,16 +2029,34 @@ final class DataStore: DataServiceProtocol {
     /// surface that needs the same numbers.
     private func updateWatchData() {
         // Surface the same stats the Stats page on the watch reads —
-        // streak, week compliance, total logged. The watch carries
-        // these forward as optionals so an older phone build (without
-        // these fields in the JSON) still decodes cleanly.
+        // streak, week compliance, total logged — plus the Atlas Score
+        // and today's health/training habit split for the Watch
+        // complications. The watch carries every field forward as an
+        // optional so an older phone build (without these in the JSON)
+        // still decodes cleanly.
+        let snap = momentum
+        let dueHabits = activeHabits.filter { $0.schedule.isDue(on: Date()) }
+        let healthDue = dueHabits.filter { $0.category == .health }
+        let trainingDue = dueHabits.filter { $0.category == .fitness }
+        func isDone(_ habit: Habit) -> Bool {
+            HabitsService.summary(for: habit, entries: profile.habitEntries).isCompletedToday
+        }
         WatchSyncService.shared.updateWatchData(
             entries: entries,
             protocols: protocols,
             currentStreak: currentStreak,
             weeklyCompliance: EntryAnalytics.weeklyComplianceFraction(in: entries),
             totalDosesLogged: EntryAnalytics.totalDosesLogged(in: entries),
-            nutrition: nutritionSnapshotForWatch()
+            nutrition: nutritionSnapshotForWatch(),
+            atlasScore: snap.score,
+            atlasLevel: snap.level,
+            atlasTier: snap.tier.rawValue,
+            atlasProgress: snap.progressInLevel,
+            atlasTodayEarned: snap.todayEarned,
+            healthHabitsDone: healthDue.filter(isDone).count,
+            healthHabitsTotal: healthDue.count,
+            trainingHabitsDone: trainingDue.filter(isDone).count,
+            trainingHabitsTotal: trainingDue.count
         )
     }
 
