@@ -8,6 +8,27 @@ import SwiftUI
 struct GoalCountdownCard: View {
     let goalDate: Date?
     let primaryGoal: String?
+    /// Journey start (the user's `memberSince`, set at onboarding alongside
+    /// the goal date) used to draw the progress ring. Nil hides the ring and
+    /// keeps the plain countdown — so existing call sites / previews are
+    /// unaffected.
+    var startDate: Date? = nil
+
+    /// 0…1 elapsed from `startDate` to `goalDate`. Nil when there's no start
+    /// reference or a degenerate range.
+    private var progressFraction: Double? {
+        guard let goalDate, let startDate else { return nil }
+        let total = goalDate.timeIntervalSince(startDate)
+        guard total > 0 else { return nil }
+        return min(1, max(0, Date().timeIntervalSince(startDate) / total))
+    }
+
+    /// True once the target date has arrived (or passed).
+    private var isReached: Bool {
+        guard let goalDate else { return false }
+        let calendar = Calendar.current
+        return calendar.startOfDay(for: goalDate) <= calendar.startOfDay(for: Date())
+    }
 
     private var weeksRemaining: Int? {
         // Calendar-based so DST transitions don't shift the math by an
@@ -48,7 +69,11 @@ struct GoalCountdownCard: View {
                 GlassCard(tinted: true) {
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         header
-                        countdown(weeks: weeks, days: days)
+                        if isReached {
+                            reachedState
+                        } else {
+                            progressRow(weeks: weeks, days: days)
+                        }
                         footer(targetDate: goalDate)
                     }
                 }
@@ -74,6 +99,53 @@ struct GoalCountdownCard: View {
                     .foregroundStyle(AppColor.textPrimary)
             }
         }
+    }
+
+    /// Progress ring (elapsed toward the goal) beside the weeks/days
+    /// countdown. The ring is omitted when no `startDate` is supplied.
+    @ViewBuilder
+    private func progressRow(weeks: Int, days: Int) -> some View {
+        HStack(spacing: Spacing.md) {
+            if let fraction = progressFraction {
+                MetricRing(
+                    progress: fraction,
+                    diameter: 56,
+                    strokeWidth: 6,
+                    gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
+                    appearAnimated: true
+                ) {
+                    Text("\(Int((fraction * 100).rounded()))%")
+                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .foregroundStyle(AppColor.textPrimary)
+                }
+                .accessibilityHidden(true)
+            }
+            countdown(weeks: weeks, days: days)
+        }
+    }
+
+    private var reachedState: some View {
+        HStack(spacing: Spacing.md) {
+            ZStack {
+                Circle()
+                    .fill(AppColor.accentPrimary.opacity(0.18))
+                    .frame(width: 48, height: 48)
+                Image(systemName: "flag.checkered")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(AppColor.accentLight)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Goal reached!")
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("Time to set your next one.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Goal reached. Time to set your next one.")
     }
 
     private func countdown(weeks: Int, days: Int) -> some View {

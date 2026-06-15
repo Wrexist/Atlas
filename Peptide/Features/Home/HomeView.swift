@@ -245,7 +245,8 @@ struct HomeView: View {
 
                         GoalCountdownCard(
                             goalDate: dataStore.profile.goalDate,
-                            primaryGoal: dataStore.profile.primaryGoal
+                            primaryGoal: dataStore.profile.primaryGoal,
+                            startDate: dataStore.profile.memberSince
                         )
                         .sectionAppear(index: 0)
                     }
