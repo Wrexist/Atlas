@@ -41,7 +41,16 @@ final class WatchSyncService: NSObject {
         currentStreak: Int? = nil,
         weeklyCompliance: Double? = nil,
         totalDosesLogged: Int? = nil,
-        nutrition: WatchNutritionSnapshot? = nil
+        nutrition: WatchNutritionSnapshot? = nil,
+        atlasScore: Int? = nil,
+        atlasLevel: Int? = nil,
+        atlasTier: String? = nil,
+        atlasProgress: Double? = nil,
+        atlasTodayEarned: Int? = nil,
+        healthHabitsDone: Int? = nil,
+        healthHabitsTotal: Int? = nil,
+        trainingHabitsDone: Int? = nil,
+        trainingHabitsTotal: Int? = nil
     ) {
         guard let url = watchDataURL else { return }
 
@@ -81,7 +90,16 @@ final class WatchSyncService: NSObject {
             currentStreak: currentStreak,
             weeklyCompliance: weeklyCompliance,
             totalDosesLogged: totalDosesLogged,
-            nutrition: nutrition
+            nutrition: nutrition,
+            atlasScore: atlasScore,
+            atlasLevel: atlasLevel,
+            atlasTier: atlasTier,
+            atlasProgress: atlasProgress,
+            atlasTodayEarned: atlasTodayEarned,
+            healthHabitsDone: healthHabitsDone,
+            healthHabitsTotal: healthHabitsTotal,
+            trainingHabitsDone: trainingHabitsDone,
+            trainingHabitsTotal: trainingHabitsTotal
         )
 
         do {
