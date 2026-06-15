@@ -108,7 +108,8 @@ final class AchievementService {
         habitCount: Int,
         bestHabitStreak: Int,
         totalCompletions: Int,
-        perfectDayToday: Bool
+        perfectDayToday: Bool,
+        perfectWeek: Bool
     ) {
         let unlocksBefore = pendingUnlocks.count
         unlock("first_habit", if: habitCount >= 1)
@@ -121,6 +122,7 @@ final class AchievementService {
         unlock("habit_days_250", if: totalCompletions >= 250)
 
         unlock("perfect_day", if: perfectDayToday)
+        unlock("perfect_week", if: perfectWeek)
 
         if pendingUnlocks.count != unlocksBefore { saveAchievements() }
     }
@@ -251,6 +253,7 @@ final class AchievementService {
         Achievement(id: "habit_days_50", title: "Fifty Strong", description: "Complete 50 habits", icon: "checkmark.circle.fill"),
         Achievement(id: "habit_days_250", title: "Relentless", description: "Complete 250 habits", icon: "star.circle.fill"),
         Achievement(id: "perfect_day", title: "Perfect Day", description: "Complete every habit due in a day", icon: "sparkles"),
+        Achievement(id: "perfect_week", title: "Perfect Week", description: "Complete every habit, every day, for a week", icon: "crown.fill"),
 
         // Training achievements — workouts now feed the rewards layer.
         Achievement(id: "first_workout", title: "First Workout", description: "Finish your first workout", icon: "figure.strengthtraining.traditional"),

@@ -2071,7 +2071,12 @@ final class DataStore: DataServiceProtocol {
                 habitCount: self.activeHabits.count,
                 bestHabitStreak: self.bestHabitStreak,
                 totalCompletions: self.totalHabitCompletions,
-                perfectDayToday: self.allHabitsDoneToday()
+                perfectDayToday: self.allHabitsDoneToday(),
+                perfectWeek: (HabitsService.completionRate(
+                    habits: self.activeHabits,
+                    entries: self.profile.habitEntries,
+                    days: 7
+                ) ?? 0) >= 1.0
             )
             // Bank today's Atlas Score from the same coalesced hook. Mutates
             // the profile in memory; the debounced save persists it.
