@@ -166,7 +166,15 @@ jobs:
           if ! command -v xcodegen &>/dev/null; then
             brew install xcodegen || brew reinstall xcodegen
           fi
-          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
+          # Only put Homebrew's bin on PATH for THIS step. Writing it to
+          # $GITHUB_PATH would prepend it ahead of ruby/setup-ruby's Ruby
+          # shims for every later step, so the "Deploy to TestFlight" step
+          # would resolve `bundle` to Homebrew's Ruby — whose gem home never
+          # received the `bundle install` from the step above. That mismatch
+          # is exactly the "Could not find fastlane-… in locally installed
+          # gems" failure: gems land under setup-ruby's Ruby, then bundle
+          # exec runs under Homebrew's. xcodegen is only used here, so a
+          # local export is enough and keeps setup-ruby's Ruby active.
           export PATH="$(brew --prefix)/bin:$PATH"
           if ! command -v xcodegen &>/dev/null; then
             echo "::error::xcodegen still not on PATH after install"
