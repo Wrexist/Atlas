@@ -46,7 +46,15 @@ jobs:
           bundler-cache: false
 
       - name: Install Ruby gems (clean — no poisoned cache)
-        run: bundle install --jobs 4 --retry 3
+        # Pin the install path to vendor/bundle (written to .bundle/config)
+        # so the later `bundle exec fastlane` step resolves gems from the
+        # exact same location. setup-ruby's bundler-cache used to set this
+        # for us; with it disabled we must pin it ourselves, otherwise
+        # `bundle install` and `bundle exec` disagree on the gem path and
+        # fastlane fails with "Could not find … in locally installed gems".
+        run: |
+          bundle config set --local path vendor/bundle
+          bundle install --jobs 4 --retry 3
 
       - uses: webfactory/ssh-agent@v0.9.0
         with:
