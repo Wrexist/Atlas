@@ -34,7 +34,19 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
-          bundler-cache: true
+          # Do NOT enable bundler-cache here. It caches vendor/bundle via
+          # actions/cache, whose restore-keys fall back to a prefix that
+          # ignores the Gemfile.lock hash — so when the hosted runner rotates
+          # its bundler/Ruby toolchain, the previous bundle is restored with
+          # native-extension gems (json, nkf, digest-crc, bigdecimal) compiled
+          # for the old toolchain. Bundler then skips them as "missing
+          # extensions" and `bundle exec fastlane` dies before the build even
+          # starts. This lane runs rarely and by hand, so installing clean
+          # every time is cheap and immune to that cache poisoning.
+          bundler-cache: false
+
+      - name: Install Ruby gems (clean — no poisoned cache)
+        run: bundle install --jobs 4 --retry 3
 
       - uses: webfactory/ssh-agent@v0.9.0
         with:
