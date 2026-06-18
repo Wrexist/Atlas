@@ -19,9 +19,10 @@ body{font-family:"Inter",system-ui,-apple-system,sans-serif;background:var(--bg-
 /* ---------- Frame + background ---------- */
 .frame{position:relative;width:1320px;height:2868px;overflow:hidden;
   background:
-    radial-gradient(100% 42% at 50% -6%, color-mix(in srgb,var(--accent) 22%,transparent), transparent 60%),
-    radial-gradient(90% 30% at 85% 8%, rgba(123,92,255,0.18), transparent 60%),
-    linear-gradient(180deg,#0C0A14 0%, var(--bg-0) 40%, #07070C 100%);}
+    radial-gradient(82% 40% at 50% -5%, color-mix(in srgb,var(--accent) 42%,transparent), transparent 62%),
+    radial-gradient(60% 24% at 90% 8%, rgba(123,92,255,0.26), transparent 60%),
+    radial-gradient(82% 32% at 8% 99%, color-mix(in srgb,var(--accent) 24%,transparent), transparent 62%),
+    linear-gradient(180deg,#0C0A16 0%, var(--bg-0) 42%, #07070C 100%);}
 .frame::after{content:"";position:absolute;inset:0;pointer-events:none;
   background-image:radial-gradient(rgba(255,255,255,0.02) 1px,transparent 1px);background-size:4px 4px;opacity:.5;}
 
@@ -30,7 +31,7 @@ body{font-family:"Inter",system-ui,-apple-system,sans-serif;background:var(--bg-
 .kicker{font-size:27px;font-weight:700;letter-spacing:5px;text-transform:uppercase;color:var(--accent);margin-bottom:22px;display:flex;align-items:center;gap:16px;}
 .kicker::before{content:"";width:48px;height:4px;border-radius:4px;background:var(--accent);}
 .headline{font-size:74px;font-weight:800;line-height:1.03;letter-spacing:-2.4px;text-wrap:balance;}
-.headline .hl{color:var(--accent);}
+.headline .hl{color:var(--accent);text-shadow:0 0 36px color-mix(in srgb,var(--accent) 50%,transparent);}
 .subhead{margin-top:24px;font-size:33px;font-weight:500;line-height:1.3;color:var(--muted);letter-spacing:-0.2px;}
 .badge{display:inline-flex;align-items:center;gap:13px;margin-top:28px;
   background:linear-gradient(180deg,rgba(123,92,255,0.28),rgba(123,92,255,0.15));border:1.5px solid rgba(170,150,255,0.5);
@@ -40,7 +41,7 @@ body{font-family:"Inter",system-ui,-apple-system,sans-serif;background:var(--bg-
 /* ---------- Device (full, all corners) ---------- */
 .device{position:absolute;left:50%;transform:translateX(-50%);top:452px;width:1086px;height:2372px;
   border-radius:88px;padding:18px;background:linear-gradient(180deg,#26262F,#131319);
-  box-shadow:0 0 0 2px rgba(255,255,255,0.05), 0 -4px 60px color-mix(in srgb,var(--accent) 26%,transparent), 0 50px 130px rgba(0,0,0,0.65);}
+  box-shadow:0 0 0 2px rgba(255,255,255,0.06), 0 0 110px color-mix(in srgb,var(--accent) 38%,transparent), 0 44px 120px rgba(0,0,0,0.7);}
 .screen{position:relative;width:1050px;height:2336px;overflow:hidden;border-radius:70px;
   background:radial-gradient(120% 30% at 50% 0%, var(--bg-1), var(--bg-0) 70%);}
 .screen.cosmic{background:
@@ -95,6 +96,8 @@ body{font-family:"Inter",system-ui,-apple-system,sans-serif;background:var(--bg-
 .heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:9px;}
 .heat span{width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,0.05);}
 .hero{font-weight:800;letter-spacing:-6px;line-height:.9;}
+.spark{position:absolute;border-radius:3px;opacity:.95;}
+.pulse{position:absolute;border-radius:50%;border:2px solid color-mix(in srgb,var(--accent) 30%,transparent);}
 .ck{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;}
 .ck.done{background:rgba(52,211,153,0.16);border:2px solid var(--mint);}
 .ck.wait{background:rgba(245,158,11,0.14);border:2px solid var(--amber);}
