@@ -1,64 +1,54 @@
 <!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="../assets/atlas.css">
 <style>:root{ --accent: var(--blue); }
-.bracket{position:absolute;width:60px;height:60px;border:6px solid var(--mint);}
+.bracket{position:absolute;width:58px;height:58px;border:6px solid var(--mint);}
 </style>
 </head><body>
 <div class="frame">
-
   <div class="cap">
     <div class="kicker">Nutrition</div>
     <div class="headline">Snap a photo.<br>Every item <span class="hl">logged.</span></div>
-    <div class="subhead">AI reads your plate and breaks it into foods —<br>tweak portions, save to your library, done.</div>
+    <div class="subhead">AI reads your plate and breaks it into foods and macros.</div>
   </div>
 
   <div class="device">
     <div class="screen">
-      <div class="statusbar">
-        <div class="time">9:41</div>
-        <div class="sys">
-          <svg width="40" height="30" viewBox="0 0 40 30"><g fill="#fff"><rect x="0" y="18" width="6" height="12" rx="2"/><rect x="9" y="12" width="6" height="18" rx="2"/><rect x="18" y="6" width="6" height="24" rx="2"/><rect x="27" y="0" width="6" height="30" rx="2"/></g></svg>
-          <svg width="38" height="30" viewBox="0 0 38 30" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"><path d="M4 12 A 22 22 0 0 1 34 12"/><path d="M10 19 A 13 13 0 0 1 28 19"/><circle cx="19" cy="25" r="2.4" fill="#fff" stroke="none"/></svg>
-          <svg width="58" height="30" viewBox="0 0 58 30"><rect x="1" y="4" width="46" height="22" rx="7" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2.5"/><rect x="4" y="7" width="40" height="16" rx="4" fill="#fff"/><rect x="50" y="11" width="4" height="8" rx="2" fill="#fff" fill-opacity=".6"/></svg>
-        </div>
-      </div>
+      <div class="statusbar"><div class="time">9:41</div><div class="sys">
+        <svg width="38" height="28" viewBox="0 0 40 30"><g fill="#fff"><rect x="0" y="18" width="6" height="12" rx="2"/><rect x="9" y="12" width="6" height="18" rx="2"/><rect x="18" y="6" width="6" height="24" rx="2"/><rect x="27" y="0" width="6" height="30" rx="2"/></g></svg>
+        <svg width="36" height="28" viewBox="0 0 38 30" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"><path d="M4 12 A 22 22 0 0 1 34 12"/><path d="M10 19 A 13 13 0 0 1 28 19"/><circle cx="19" cy="25" r="2.4" fill="#fff" stroke="none"/></svg>
+        <svg width="56" height="28" viewBox="0 0 58 30"><rect x="1" y="4" width="46" height="22" rx="7" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2.5"/><rect x="4" y="7" width="40" height="16" rx="4" fill="#fff"/><rect x="50" y="11" width="4" height="8" rx="2" fill="#fff" fill-opacity=".6"/></svg>
+      </div></div>
 
-      <div class="nav"><div class="title sm">Meal Scan</div><div class="pill" style="background:rgba(255,255,255,0.08); border:1px solid var(--hair);">✕</div></div>
+      <div class="nav"><div class="title sm">Meal Scan</div><div class="pill" style="background:rgba(255,255,255,0.07);border:1px solid var(--hair);">✕</div></div>
 
-      <div class="body">
-        <!-- faux photo with scan UI -->
-        <div style="position:relative; height:430px; border-radius:40px; overflow:hidden; background:radial-gradient(120% 90% at 50% 40%, #2A2620, #14110D);">
-          <!-- plate -->
-          <div style="position:absolute; left:50%; top:54%; transform:translate(-50%,-50%); width:420px; height:300px; border-radius:50%; background:radial-gradient(circle at 50% 40%, #3A3630, #211E18); box-shadow:inset 0 0 40px rgba(0,0,0,0.6), 0 20px 50px rgba(0,0,0,0.5);"></div>
-          <div style="position:absolute; left:34%; top:50%; transform:translate(-50%,-50%); width:170px; height:120px; border-radius:46% 54% 50% 50%; background:linear-gradient(160deg,#D9A066,#A9743C);"></div>
-          <div style="position:absolute; left:60%; top:44%; transform:translate(-50%,-50%); width:160px; height:110px; border-radius:50%; background:linear-gradient(160deg,#EDE3C6,#CFC39A);"></div>
-          <div style="position:absolute; left:54%; top:64%; transform:translate(-50%,-50%); width:150px; height:96px; border-radius:50% 50% 48% 52%; background:linear-gradient(160deg,#5FA845,#2F7A2C);"></div>
-          <!-- scan brackets -->
-          <div class="bracket" style="top:40px; left:40px; border-right:none; border-bottom:none; border-radius:18px 0 0 0;"></div>
-          <div class="bracket" style="top:40px; right:40px; border-left:none; border-bottom:none; border-radius:0 18px 0 0;"></div>
-          <div class="bracket" style="bottom:40px; left:40px; border-right:none; border-top:none; border-radius:0 0 0 18px;"></div>
-          <div class="bracket" style="bottom:40px; right:40px; border-left:none; border-top:none; border-radius:0 0 18px 0;"></div>
-          <!-- scan line -->
-          <div style="position:absolute; left:46px; right:46px; top:210px; height:5px; border-radius:5px; background:linear-gradient(90deg,transparent,var(--mint),transparent); box-shadow:0 0 24px var(--mint);"></div>
-          <div style="position:absolute; top:34px; left:50%; transform:translateX(-50%);" class="chip mint">✦ AI · 3 items detected</div>
+      <div class="body" style="position:absolute;top:218px;left:0;right:0;bottom:46px;display:flex;flex-direction:column;justify-content:center;padding:0 46px;">
+        <div style="position:relative;height:470px;border-radius:38px;overflow:hidden;background:radial-gradient(120% 90% at 50% 40%,#2A2620,#14110D);">
+          <div style="position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);width:440px;height:320px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#3A3630,#211E18);box-shadow:inset 0 0 40px rgba(0,0,0,0.6),0 20px 50px rgba(0,0,0,0.5);"></div>
+          <div style="position:absolute;left:34%;top:50%;transform:translate(-50%,-50%);width:180px;height:128px;border-radius:46% 54% 50% 50%;background:linear-gradient(160deg,#D9A066,#A9743C);"></div>
+          <div style="position:absolute;left:60%;top:44%;transform:translate(-50%,-50%);width:170px;height:118px;border-radius:50%;background:linear-gradient(160deg,#EDE3C6,#CFC39A);"></div>
+          <div style="position:absolute;left:54%;top:64%;transform:translate(-50%,-50%);width:158px;height:104px;border-radius:50% 50% 48% 52%;background:linear-gradient(160deg,#5FA845,#2F7A2C);"></div>
+          <div class="bracket" style="top:38px;left:38px;border-right:none;border-bottom:none;border-radius:18px 0 0 0;"></div>
+          <div class="bracket" style="top:38px;right:38px;border-left:none;border-bottom:none;border-radius:0 18px 0 0;"></div>
+          <div class="bracket" style="bottom:38px;left:38px;border-right:none;border-top:none;border-radius:0 0 0 18px;"></div>
+          <div class="bracket" style="bottom:38px;right:38px;border-left:none;border-top:none;border-radius:0 0 18px 0;"></div>
+          <div style="position:absolute;left:44px;right:44px;top:232px;height:5px;border-radius:5px;background:linear-gradient(90deg,transparent,var(--mint),transparent);box-shadow:0 0 24px var(--mint);"></div>
+          <div style="position:absolute;top:32px;left:50%;transform:translateX(-50%);" class="chip mint">✦ AI · 3 items detected</div>
         </div>
 
-        <!-- item cards -->
-        <div class="glass row between" style="margin-top:24px; padding:30px 34px;">
-          <div class="col"><div style="font-size:40px; font-weight:800;">Chicken Breast</div><div class="row gap" style="margin-top:12px; gap:14px;"><span class="chip orange" style="background:rgba(251,146,60,0.16); border-color:rgba(251,146,60,0.5); color:#FCC79A;">P 56g</span><span class="chip blue">C 0g</span><span class="chip" style="color:#FDE68A; border-color:rgba(250,204,21,0.4); background:rgba(250,204,21,0.12);">F 6g</span></div></div>
-          <div class="col" style="align-items:flex-end;"><div style="font-size:40px; font-weight:800;">297<span class="muted" style="font-size:26px;"> kcal</span></div><div class="row gap" style="margin-top:14px; gap:18px; align-items:center;"><div class="ck wait" style="width:50px;height:50px;"><span style="color:#FBCE7A; font-size:36px; line-height:0;">−</span></div><span style="font-size:32px; font-weight:700;">180g</span><div class="ck done" style="width:50px;height:50px;"><span style="color:#34D399; font-size:34px; line-height:0;">+</span></div></div></div>
+        <div class="glass row between" style="margin-top:28px;padding:30px 36px;">
+          <div class="col"><div style="font-size:40px;font-weight:800;">Chicken Breast</div><div class="muted" style="font-size:26px;margin-top:8px;">P 56g · C 0g · F 6g</div></div>
+          <div class="col" style="align-items:flex-end;"><div style="font-size:42px;font-weight:800;">297<span class="muted" style="font-size:25px;"> kcal</span></div><div class="muted" style="font-size:28px;margin-top:10px;">180 g</div></div>
         </div>
-        <div class="glass row between" style="margin-top:18px; padding:30px 34px;">
-          <div class="col"><div style="font-size:40px; font-weight:800;">Brown Rice</div><div class="row gap" style="margin-top:12px; gap:14px;"><span class="chip" style="color:#FCC79A; border-color:rgba(251,146,60,0.5); background:rgba(251,146,60,0.16);">P 4g</span><span class="chip blue">C 42g</span><span class="chip" style="color:#FDE68A; border-color:rgba(250,204,21,0.4); background:rgba(250,204,21,0.12);">F 1g</span></div></div>
-          <div class="col" style="align-items:flex-end;"><div style="font-size:40px; font-weight:800;">195<span class="muted" style="font-size:26px;"> kcal</span></div><div class="row gap" style="margin-top:14px; gap:18px; align-items:center;"><div class="ck wait" style="width:50px;height:50px;"><span style="color:#FBCE7A; font-size:36px; line-height:0;">−</span></div><span style="font-size:32px; font-weight:700;">150g</span><div class="ck done" style="width:50px;height:50px;"><span style="color:#34D399; font-size:34px; line-height:0;">+</span></div></div></div>
+        <div class="glass row between" style="margin-top:18px;padding:30px 36px;">
+          <div class="col"><div style="font-size:40px;font-weight:800;">Brown Rice</div><div class="muted" style="font-size:26px;margin-top:8px;">P 4g · C 42g · F 1g</div></div>
+          <div class="col" style="align-items:flex-end;"><div style="font-size:42px;font-weight:800;">195<span class="muted" style="font-size:25px;"> kcal</span></div><div class="muted" style="font-size:28px;margin-top:10px;">150 g</div></div>
         </div>
-        <div class="glass row between" style="margin-top:18px; padding:30px 34px;">
-          <div class="col"><div style="font-size:40px; font-weight:800;">Broccoli</div><div class="row gap" style="margin-top:12px; gap:14px;"><span class="chip" style="color:#FCC79A; border-color:rgba(251,146,60,0.5); background:rgba(251,146,60,0.16);">P 3g</span><span class="chip blue">C 5g</span><span class="chip mint">28 kcal</span></div></div>
-          <div class="col" style="align-items:flex-end;"><div style="font-size:40px; font-weight:800;">28<span class="muted" style="font-size:26px;"> kcal</span></div><div class="row gap" style="margin-top:14px; gap:18px; align-items:center;"><div class="ck wait" style="width:50px;height:50px;"><span style="color:#FBCE7A; font-size:36px; line-height:0;">−</span></div><span style="font-size:32px; font-weight:700;">80g</span><div class="ck done" style="width:50px;height:50px;"><span style="color:#34D399; font-size:34px; line-height:0;">+</span></div></div></div>
+        <div class="glass row between" style="margin-top:18px;padding:30px 36px;">
+          <div class="col"><div style="font-size:40px;font-weight:800;">Broccoli</div><div class="muted" style="font-size:26px;margin-top:8px;">P 3g · C 5g · F 0g</div></div>
+          <div class="col" style="align-items:flex-end;"><div style="font-size:42px;font-weight:800;">28<span class="muted" style="font-size:25px;"> kcal</span></div><div class="muted" style="font-size:28px;margin-top:10px;">80 g</div></div>
         </div>
 
-        <!-- CTA -->
-        <div class="cta" style="margin-top:26px;">Add 3 items · 520 kcal</div>
+        <div class="cta" style="margin-top:30px;">Add 3 items · 520 kcal</div>
       </div>
     </div>
   </div>

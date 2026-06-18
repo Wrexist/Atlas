@@ -17,6 +17,11 @@ marketing/app-store/
 > data + caption overlays), not raw simulator captures — which is exactly what
 > the App Store's top apps ship. Use them as-is, or drop real on-device captures
 > into the same device frame later. The numbers shown are illustrative.
+>
+> **Design pass (v2):** clean / realistic / one-hero-stat. Each frame shows the
+> **full device with native iOS chrome** (status bar, a real bottom tab bar on the
+> tab screens, sheet grabbers on modals), is decluttered to a single dominant stat,
+> and drops gimmicky floating callouts. No fake ratings or unverifiable claims.
 
 ---
 
@@ -44,7 +49,7 @@ build breadth and end on the paywall (required by App Review).
 | # | Screen | Hook (headline) | Job it does |
 |---|--------|-----------------|-------------|
 | 1 | Recovery / Today | "Know if you're ready to train." | Scroll-stopper. One glowing hero number = daily intelligence. |
-| 2 | Atlas Score | "Every rep, meal & habit earns points." | Retention proof — gamified streaks/levels (what fitness installers screen for). |
+| 2 | Atlas Score | "A streak you won't break." | Retention proof — gamified streaks/levels (what fitness installers screen for). |
 | 3 | Train | "Log a set in two taps." | Core utility + a PR-celebration dopamine moment. |
 | 4 | Meals | "Snap a photo. Every item logged." | The "magic" effortless-logging differentiator. |
 | 5 | Biology / Bio Age | "See your biological age." | Aspirational **Atlas Pro** hero — the biggest upsell frame. |
@@ -77,17 +82,20 @@ in the deck:
 6. **Dark, high-contrast = "intense & purposeful."** The recommended palette for
    strength/recovery apps; mint-green + violet keep health credibility and signal
    premium. *(ScreenshotWhale, Nakxi)*
-7. **Device frame + guide-the-eye annotations.** UI sits in a modern iPhone frame
-   with floating callouts ("Peak readiness", "Pre-filled for you") to direct attention.
+7. **Authenticity beats over-polish.** Users tune out obviously-designed frames, so
+   the UI sits in a full iPhone with **native iOS chrome** (status bar + real tab bar)
+   and reads like a genuine screenshot — no gimmicky floating callouts. *(ASOMobile)*
 8. **Headlines big, copy < 20% of the frame**, legible at search-thumbnail size.
-9. **Social proof early.** Frame 1 carries a `★ 4.9 · No ads · No tracking` strip.
-   *(Swap 4.9 for your real rating before shipping — see Pre-ship.)*
-10. **Vertical frames** (the 2026 standard for ~96% of top apps).
+9. **One hero stat per frame.** Each screen is decluttered so a single dominant number
+   (78 · 12,480 · 100 kg · 28.4 · 47-day streak) carries it — no competing chips.
+10. **No unverifiable claims.** No fake star rating; only honest signals
+    ("No ads · No tracking", real trial terms).
+11. **Vertical frames** (the 2026 standard for ~96% of top apps).
 
 ### Dopamine levers used
 Glowing progress rings · a gold level-up medallion · climbing trend lines · 🔥 streak
-counters · a PR-confetti burst · "younger than your age" · filling macro/volume bars ·
-big tabular numbers. Each frame shows a *win in progress*, not an empty state.
+counters · a clean PR moment · "younger than your age" · filling macro bars · big
+tabular numbers. Each frame shows a *win in progress*, not an empty state.
 
 ### Sources
 - [SplitMetrics — App Store screenshot guide (2025)](https://splitmetrics.com/blog/app-store-screenshots-aso-guide/)
@@ -113,9 +121,9 @@ big tabular numbers. Each frame shows a *win in progress*, not an empty state.
 - The deck matches the headlines documented in `APP_STORE_METADATA.md` (slots 1–8).
 
 ## Before you ship (Pre-ship checklist)
-- [ ] Replace the `★ 4.9` social-proof strip in `01-recovery.html` with your **real**
-      rating, or remove it (don't claim a rating you don't have).
 - [ ] Confirm the `873` exercise count and `208` compound count still match the app.
+- [ ] Swap the illustrative figures (Recovery 78, Atlas Score 12,480, 47-day streak,
+      Bio Age 28.4) for real screenshots/values if you'd rather not ship sample data.
 - [ ] Keep the `Atlas Pro — subscription required` badge on every Pro-gated frame.
 - [ ] A/B test via **Apple Product Page Optimization** — test frame 1 (Recovery ring)
       against frame 2 (Atlas Score) as the lead; that's the highest-leverage test.
