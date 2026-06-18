@@ -1,0 +1,209 @@
+/* ============================================================
+   Atlas — App Store screenshot design system
+   Canvas: 1320 × 2868 px (iPhone 6.9" / 16 Pro Max)
+   All marketing frames share these tokens & components so the
+   8-screen deck reads as one consistent, premium story.
+   ============================================================ */
+
+:root {
+  /* Surface */
+  --bg-0:   #0A0A10;
+  --bg-1:   #0E0B18;
+  --ink:    #FFFFFF;
+  --muted:  #A6ABBE;
+  --faint:  #6B6F84;
+
+  /* Accents (match in-app design tokens) */
+  --mint:   #34D399;   /* recovery · HRV · health · "go" */
+  --violet: #7B5CFF;   /* Atlas Pro · primary action */
+  --amber:  #F59E0B;   /* sleep · habits · streaks */
+  --coral:  #F87171;   /* heart rate */
+  --blue:   #60A5FA;   /* nutrition · carbs */
+  --orange: #FB923C;   /* protein */
+  --yellow: #FACC15;   /* fat */
+
+  /* Glass */
+  --glass:    rgba(255,255,255,0.055);
+  --glass-2:  rgba(255,255,255,0.085);
+  --hair:     rgba(255,255,255,0.10);
+  --hair-2:   rgba(255,255,255,0.16);
+
+  /* The per-screen accent (themes glow + annotations) */
+  --accent: var(--mint);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+
+html, body { width: 1320px; height: 2868px; }
+
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background: var(--bg-0);
+  color: var(--ink);
+  overflow: hidden;
+  font-feature-settings: "cv11","ss01","tnum";
+}
+
+/* ---------- Frame + branded background ---------- */
+.frame {
+  position: relative;
+  width: 1320px;
+  height: 2868px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 60% at 50% -8%, rgba(123,92,255,0.30), transparent 60%),
+    radial-gradient(90% 50% at 92% 18%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%),
+    linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 46%, #07070C 100%);
+}
+.frame::after { /* fine grain so flat areas don't band */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 4px 4px; opacity: .5; mix-blend-mode: screen;
+}
+
+/* ---------- Caption zone (top) ---------- */
+.cap { position: relative; z-index: 3; padding: 132px 104px 0; }
+.kicker {
+  font-size: 28px; font-weight: 700; letter-spacing: 6px; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 26px; display: flex; align-items: center; gap: 18px;
+}
+.kicker::before { content: ""; width: 54px; height: 4px; border-radius: 4px; background: var(--accent); }
+.headline {
+  font-size: 82px; font-weight: 800; line-height: 1.02; letter-spacing: -2.8px;
+  color: var(--ink); text-wrap: balance;
+}
+.headline .hl { color: var(--accent); }
+.subhead { margin-top: 30px; font-size: 35px; font-weight: 500; line-height: 1.32; color: var(--muted); letter-spacing: -0.3px; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 14px; margin-top: 34px;
+  background: linear-gradient(180deg, rgba(123,92,255,0.30), rgba(123,92,255,0.16));
+  border: 1.5px solid rgba(170,150,255,0.55); color: #EDE9FF;
+  font-size: 27px; font-weight: 700; letter-spacing: .2px;
+  padding: 18px 30px; border-radius: 100px;
+}
+.badge .dot { width: 18px; height: 18px; border-radius: 50%; background: var(--violet); box-shadow: 0 0 18px var(--violet); }
+
+.social { display: flex; align-items: center; gap: 26px; margin-top: 34px; color: var(--muted); font-size: 28px; font-weight: 600; }
+.social .stars { color: var(--amber); letter-spacing: 4px; font-size: 30px; }
+.social .sep { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+
+/* ---------- Device ---------- */
+.device {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  width: 1124px; bottom: -2px;
+  border-radius: 78px 78px 0 0;
+  padding: 18px 18px 0;
+  background: linear-gradient(180deg, #2A2A35, #15151D);
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.06),
+    0 -10px 80px color-mix(in srgb, var(--accent) 40%, transparent),
+    0 40px 120px rgba(0,0,0,0.6);
+}
+.device.tall { width: 1180px; }
+.screen {
+  position: relative; width: 100%; height: 1980px; overflow: hidden;
+  border-radius: 62px 62px 0 0;
+  background: radial-gradient(120% 40% at 50% 0%, var(--bg-1), var(--bg-0) 70%);
+}
+.screen.cosmic {
+  background:
+    radial-gradient(80% 50% at 50% 8%, rgba(123,92,255,0.34), transparent 62%),
+    radial-gradient(60% 40% at 78% 30%, rgba(52,211,153,0.16), transparent 60%),
+    linear-gradient(180deg, #0D0024 0%, #11002E 40%, #08010F 100%);
+}
+
+/* status bar */
+.statusbar { display: flex; align-items: center; justify-content: space-between; height: 96px; padding: 0 62px 0 70px; }
+.statusbar .time { font-size: 36px; font-weight: 700; letter-spacing: -0.5px; }
+.statusbar .sys { display: flex; align-items: center; gap: 14px; }
+.statusbar .sys svg { display: block; }
+
+/* nav bar */
+.nav { display: flex; align-items: center; justify-content: space-between; padding: 8px 58px 18px; }
+.nav .title { font-size: 56px; font-weight: 800; letter-spacing: -1.4px; }
+.nav .title.sm { font-size: 42px; font-weight: 700; }
+.nav .sub { font-size: 28px; color: var(--muted); font-weight: 500; margin-top: 4px; }
+.nav .avatar { width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(140deg, var(--violet), var(--mint)); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 34px; }
+.nav .pill { padding: 16px 30px; border-radius: 100px; font-size: 28px; font-weight: 700; }
+
+.body { padding: 6px 52px 0; }
+.body.tight { padding-top: 0; }
+
+/* ---------- Components ---------- */
+.glass {
+  background: var(--glass); border: 1px solid var(--hair);
+  border-radius: 40px; padding: 40px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.glass.lift { background: var(--glass-2); border-color: var(--hair-2); }
+
+.row { display: flex; align-items: center; }
+.between { justify-content: space-between; }
+.gap { gap: 26px; }
+.col { display: flex; flex-direction: column; }
+
+.section { font-size: 32px; font-weight: 700; color: var(--muted); letter-spacing: .3px; margin: 34px 6px 22px; display: flex; align-items: center; gap: 16px; }
+.section .accent { color: var(--accent); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 12px 22px; border-radius: 100px; font-size: 26px; font-weight: 700;
+  background: rgba(255,255,255,0.07); border: 1px solid var(--hair); color: var(--ink);
+}
+.chip svg { display:block; }
+.chip.mint   { background: rgba(52,211,153,0.15);  border-color: rgba(52,211,153,0.45);  color: #8DF0C8; }
+.chip.violet { background: rgba(123,92,255,0.18);  border-color: rgba(123,92,255,0.5);   color: #C9BCFF; }
+.chip.amber  { background: rgba(245,158,11,0.16);  border-color: rgba(245,158,11,0.5);   color: #FBCE7A; }
+.chip.coral  { background: rgba(248,113,113,0.16); border-color: rgba(248,113,113,0.5);  color: #FCA9A9; }
+.chip.blue   { background: rgba(96,165,250,0.16);  border-color: rgba(96,165,250,0.5);   color: #A7CBFB; }
+
+.tile { background: var(--glass); border: 1px solid var(--hair); border-radius: 34px; padding: 34px 30px; }
+.tile .lab { font-size: 26px; color: var(--faint); font-weight: 600; }
+.tile .val { font-size: 60px; font-weight: 800; letter-spacing: -1.5px; margin-top: 8px; }
+.tile .unit { font-size: 30px; color: var(--muted); font-weight: 600; }
+
+/* progress bar */
+.bar { height: 22px; border-radius: 100px; background: rgba(255,255,255,0.09); overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 100px; }
+
+/* segmented macro bar */
+.macro { display: flex; height: 30px; border-radius: 100px; overflow: hidden; }
+.macro > i { height: 100%; }
+
+/* heatmap */
+.heat { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 1fr); gap: 9px; }
+.heat span { width: 26px; height: 26px; border-radius: 8px; background: rgba(255,255,255,0.06); }
+.heat.lg span { width: 30px; height: 30px; }
+
+/* big hero number */
+.hero { font-weight: 800; letter-spacing: -6px; line-height: .9; }
+
+/* checkmark token */
+.ck { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; }
+.ck.done { background: rgba(52,211,153,0.18); border: 2px solid var(--mint); }
+.ck.wait { background: rgba(245,158,11,0.16); border: 2px solid var(--amber); }
+.ic { width: 70px; height: 70px; border-radius: 22px; display: flex; align-items: center; justify-content: center; flex: none; }
+
+/* CTA */
+.cta { display: flex; align-items: center; justify-content: center; gap: 18px;
+  height: 108px; border-radius: 34px; font-size: 38px; font-weight: 800; letter-spacing: -0.5px;
+  background: linear-gradient(180deg, #8B6BFF, #6A46F5); color: #fff;
+  box-shadow: 0 18px 50px rgba(123,92,255,0.5), inset 0 1px 0 rgba(255,255,255,0.3); }
+.cta.mint { background: linear-gradient(180deg, #45E3A8, #1FB97F); box-shadow: 0 18px 50px rgba(52,211,153,0.45), inset 0 1px 0 rgba(255,255,255,0.35); color: #04231A; }
+
+/* annotation callout — "guides the eye" (ASO best practice) */
+.note { position: absolute; z-index: 5; display: flex; align-items: center; gap: 16px;
+  background: #fff; color: #0A0A10; font-size: 28px; font-weight: 800; letter-spacing: -0.4px;
+  padding: 18px 28px; border-radius: 22px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+.note .em { color: var(--violet); }
+.note.dark { background: #14141C; color: #fff; border: 1px solid var(--hair-2); }
+
+/* confetti / celebration sparks (dopamine) */
+.spark { position: absolute; border-radius: 3px; opacity: .95; }
+
+/* small caps label */
+.lab { font-size: 26px; color: var(--faint); font-weight: 600; }
+.muted { color: var(--muted); }
+.b { font-weight: 800; }
+.tnum { font-variant-numeric: tabular-nums; }

@@ -1,0 +1,81 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../assets/atlas.css">
+<style>:root{ --accent: var(--violet); }</style>
+</head><body>
+<div class="frame">
+
+  <div class="cap">
+    <div class="kicker">Biology · Atlas Pro</div>
+    <div class="headline">See your<br><span class="hl" style="color:var(--mint);">biological age.</span></div>
+    <div class="subhead">Your HRV, sleep, and resting heart rate become one<br>number — and how it's trending against the clock.</div>
+    <div class="badge"><span class="dot"></span> Atlas Pro — subscription required</div>
+  </div>
+
+  <div class="device">
+    <div class="screen cosmic">
+      <!-- stars -->
+      <svg width="100%" height="100%" viewBox="0 0 1124 1980" preserveAspectRatio="none" style="position:absolute; inset:0; opacity:.8;">
+        <g fill="#fff">
+          <circle cx="120" cy="180" r="2.4"/><circle cx="300" cy="120" r="1.6"/><circle cx="520" cy="220" r="2"/><circle cx="760" cy="150" r="2.6"/><circle cx="980" cy="240" r="1.8"/><circle cx="1040" cy="120" r="2"/><circle cx="200" cy="360" r="1.6"/><circle cx="640" cy="80" r="1.8"/><circle cx="880" cy="360" r="2.2"/><circle cx="420" cy="100" r="1.4"/><circle cx="90" cy="520" r="1.8"/><circle cx="1010" cy="520" r="1.6"/><circle cx="560" cy="60" r="1.4"/><circle cx="720" cy="300" r="1.5"/><circle cx="340" cy="300" r="1.5"/>
+        </g>
+      </svg>
+
+      <div class="statusbar">
+        <div class="time">9:41</div>
+        <div class="sys">
+          <svg width="40" height="30" viewBox="0 0 40 30"><g fill="#fff"><rect x="0" y="18" width="6" height="12" rx="2"/><rect x="9" y="12" width="6" height="18" rx="2"/><rect x="18" y="6" width="6" height="24" rx="2"/><rect x="27" y="0" width="6" height="30" rx="2"/></g></svg>
+          <svg width="38" height="30" viewBox="0 0 38 30" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"><path d="M4 12 A 22 22 0 0 1 34 12"/><path d="M10 19 A 13 13 0 0 1 28 19"/><circle cx="19" cy="25" r="2.4" fill="#fff" stroke="none"/></svg>
+          <svg width="58" height="30" viewBox="0 0 58 30"><rect x="1" y="4" width="46" height="22" rx="7" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2.5"/><rect x="4" y="7" width="40" height="16" rx="4" fill="#fff"/><rect x="50" y="11" width="4" height="8" rx="2" fill="#fff" fill-opacity=".6"/></svg>
+        </div>
+      </div>
+
+      <div class="nav"><div class="title">Biology</div><div class="avatar">IM</div></div>
+
+      <div class="body" style="position:relative;">
+        <div style="text-align:center; margin-top:18px;">
+          <div class="lab" style="font-size:30px; letter-spacing:4px;">BIOLOGICAL AGE</div>
+          <div style="font-size:26px; color:var(--faint); margin-top:6px;">Chronological age 32 · as of Jun 3</div>
+        </div>
+
+        <!-- gauge -->
+        <div style="position:relative; margin-top:10px;">
+          <svg width="100%" height="360" viewBox="0 0 460 320">
+            <defs>
+              <linearGradient id="gauge" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#34D399"/><stop offset="0.5" stop-color="#A7F3D0"/><stop offset="1" stop-color="#F87171"/></linearGradient>
+              <filter id="ng" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="14" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <path d="M40 270 A 190 190 0 0 1 420 270" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="36" stroke-linecap="round"/>
+            <path d="M40 270 A 190 190 0 0 1 420 270" fill="none" stroke="url(#gauge)" stroke-width="36" stroke-linecap="round" filter="url(#ng)"/>
+            <text x="44" y="312" fill="#6B6F84" font-size="26" font-weight="700">27</text>
+            <text x="402" y="312" fill="#6B6F84" font-size="26" font-weight="700">37</text>
+            <g filter="url(#ng)"><line x1="230" y1="270" x2="86" y2="186" stroke="#fff" stroke-width="9" stroke-linecap="round"/><circle cx="230" cy="270" r="18" fill="#fff"/><circle cx="230" cy="270" r="9" fill="#11002E"/></g>
+          </svg>
+          <div style="position:absolute; left:0; right:0; top:150px; text-align:center;">
+            <div class="hero" style="font-size:150px; color:var(--mint); text-shadow:0 0 50px rgba(52,211,153,0.7);">28.4</div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:center; margin-top:-6px;"><div class="chip mint" style="font-size:32px; padding:18px 34px;">▼ 3.6 years younger</div></div>
+
+        <!-- drivers -->
+        <div class="row gap" style="margin-top:30px; justify-content:center;">
+          <div class="chip mint" style="font-size:28px; padding:16px 26px;">HRV −2.5y</div>
+          <div class="chip blue" style="font-size:28px; padding:16px 26px;">RHR −1.8y</div>
+          <div class="chip amber" style="font-size:28px; padding:16px 26px;">Sleep +0.7y</div>
+        </div>
+
+        <!-- biomarker rows -->
+        <div class="glass row between" style="margin-top:34px; padding:30px 36px;">
+          <div class="row gap"><div class="ic" style="background:rgba(52,211,153,0.16); border:1px solid rgba(52,211,153,0.4);"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg></div><div class="col"><div style="font-size:36px; font-weight:800;">Heart Rate Variability</div><div class="chip mint" style="margin-top:10px;">▲ Trending up · 62 ms</div></div></div>
+          <svg width="180" height="80" viewBox="0 0 180 80"><polyline points="6,60 30,56 54,58 78,46 102,48 126,34 150,30 174,16" fill="none" stroke="#34D399" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="glass row between" style="margin-top:18px; padding:30px 36px;">
+          <div class="row gap"><div class="ic" style="background:rgba(248,113,113,0.16); border:1px solid rgba(248,113,113,0.4);"><svg width="40" height="40" viewBox="0 0 24 24" fill="#F87171"><path d="M12 21s-7-4.6-9.3-8.6C1 9.5 2.5 6 6 6c2 0 3.2 1.2 4 2.3C10.8 7.2 12 6 14 6c3.5 0 5 3.5 3.3 6.4C19 16.4 12 21 12 21z"/></svg></div><div class="col"><div style="font-size:36px; font-weight:800;">Resting Heart Rate</div><div class="chip" style="margin-top:10px;">— Steady · 54 bpm</div></div></div>
+          <svg width="180" height="80" viewBox="0 0 180 80"><polyline points="6,42 30,40 54,44 78,40 102,42 126,38 150,42 174,40" fill="none" stroke="#F87171" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div style="text-align:center; font-size:24px; color:#505467; margin-top:24px;">Estimates from your biometrics — not medical advice</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>
