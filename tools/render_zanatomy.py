@@ -138,12 +138,14 @@ def material(name, base, subsurface):
     m.use_nodes = True
     b = m.node_tree.nodes["Principled BSDF"]
     setin(b, "Base Color", (*base, 1.0))
-    setin(b, "Roughness", 0.6)
+    setin(b, "Roughness", 0.5)
+    setin(b, "Specular IOR Level", 0.4)
+    setin(b, "Specular", 0.4)
     setin(b, "Subsurface Weight", subsurface)
     setin(b, "Subsurface", subsurface)
     if subsurface:
-        setin(b, "Subsurface Radius", (0.04, 0.02, 0.014))
-        setin(b, "Subsurface Scale", 0.03)
+        setin(b, "Subsurface Radius", (0.055, 0.024, 0.016))
+        setin(b, "Subsurface Scale", 0.045)
     return m
 
 
@@ -204,22 +206,25 @@ def main():
             "back": cam("CB", bmx[1] + dist, True)}
 
     def sun(name, frm, e, col):
-        ld = bpy.data.lights.new(name, "SUN"); ld.energy = e; ld.color = col; ld.angle = 0.2
+        ld = bpy.data.lights.new(name, "SUN"); ld.energy = e; ld.color = col; ld.angle = 0.4
         lo = bpy.data.objects.new(name, ld); sc.collection.objects.link(lo)
         lo.rotation_euler = (mathutils.Vector(center) - mathutils.Vector(frm)).to_track_quat('-Z', 'Y').to_euler()
-    sun("kF", (center[0] - height * 0.7, bmn[1] - dist, center[2] + height * 0.5), 3.0, (1, 0.97, 0.93))
-    sun("fF", (center[0] + height * 0.8, bmn[1] - dist, center[2]), 1.7, (0.92, 0.96, 1))
-    sun("kB", (center[0] - height * 0.7, bmx[1] + dist, center[2] + height * 0.5), 3.0, (1, 0.97, 0.93))
-    sun("fB", (center[0] + height * 0.8, bmx[1] + dist, center[2]), 1.7, (0.92, 0.96, 1))
+    # soft key upper-left, cool fill, and a rim from behind for separation
+    sun("kF", (center[0] - height * 0.6, bmn[1] - dist, center[2] + height * 0.55), 2.7, (1, 0.97, 0.93))
+    sun("fF", (center[0] + height * 0.8, bmn[1] - dist * 0.8, center[2] - height * 0.1), 1.5, (0.92, 0.96, 1))
+    sun("rF", (center[0], bmx[1] + dist, center[2] + height * 0.7), 1.8, (1, 1, 1))
+    sun("kB", (center[0] - height * 0.6, bmx[1] + dist, center[2] + height * 0.55), 2.7, (1, 0.97, 0.93))
+    sun("fB", (center[0] + height * 0.8, bmx[1] + dist * 0.8, center[2] - height * 0.1), 1.5, (0.92, 0.96, 1))
+    sun("rB", (center[0], bmn[1] - dist, center[2] + height * 0.7), 1.8, (1, 1, 1))
     world = bpy.data.worlds.new("w"); world.use_nodes = True
     bg = world.node_tree.nodes["Background"]
-    bg.inputs["Strength"].default_value = 0.15
+    bg.inputs["Strength"].default_value = 0.25
     bg.inputs["Color"].default_value = (0.06, 0.065, 0.07, 1)
     sc.world = world
 
     def render(cam_key, path, transform, samples, denoise):
         sc.view_settings.view_transform = transform
-        sc.view_settings.exposure = 0.3 if transform == "AgX" else 0.0
+        sc.view_settings.exposure = 0.25 if transform == "AgX" else 0.0
         sc.cycles.samples = samples
         sc.cycles.use_denoising = denoise
         sc.camera = cams[cam_key]
@@ -244,12 +249,14 @@ def main():
             poly.use_smooth = True
         merged = bpy.data.objects.new("merged", mm); sc.collection.objects.link(merged)
         merged.data.materials.append(muscle_mat); merged.hide_render = False
-        merged.modifiers.new("d", "DECIMATE").ratio = 0.25
+        merged.modifiers.new("d", "DECIMATE").ratio = 0.3
+        # relax the decimation lumps without adding polys (no subsurf -> no OOM)
+        sm = merged.modifiers.new("s", "SMOOTH"); sm.factor = 0.5; sm.iterations = 8
         for o in eyes:
             o.hide_render = False
             o.data.materials.clear(); o.data.materials.append(eye_mat)
-        render("front", f"{OUT}/anatomy_body_front{suffix}.png", "AgX", 44, True)
-        render("back", f"{OUT}/anatomy_body_back{suffix}.png", "AgX", 44, True)
+        render("front", f"{OUT}/anatomy_body_front{suffix}.png", "AgX", 64, True)
+        render("back", f"{OUT}/anatomy_body_back{suffix}.png", "AgX", 64, True)
         bpy.data.objects.remove(merged, do_unlink=True)
 
     beauty(material("muscle", (0.52, 0.26, 0.23), 0.18),
