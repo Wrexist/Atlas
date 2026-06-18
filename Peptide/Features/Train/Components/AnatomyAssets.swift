@@ -25,11 +25,13 @@ enum AnatomyAssets {
     static let bodyFront = "anatomy_body_front"
     static let bodyBack = "anatomy_body_back"
 
-    /// Neutral grayscale écorché renders, pixel-aligned to the colour
-    /// bodies. Used as the *tint source*: `colorMultiply` on grayscale
-    /// produces a clean activation hue with the render's shading intact,
-    /// where multiplying the colour (red) body would muddy it. Falls back
-    /// to the colour body if a grayscale render isn't bundled.
+    /// Grayscale muscle-écorché renders, pixel-aligned to the skin bodies.
+    /// The map is a two-layer look: the colour body is smooth skin (resting
+    /// state) and this grayscale écorché is the *muscle-reveal* layer —
+    /// `colorMultiply` tints it to the activation hue and clips it to a
+    /// muscle's mask, so a trained muscle surfaces through the skin with its
+    /// shading intact. Falls back to the colour body if a grayscale render
+    /// isn't bundled.
     static let bodyFrontGray = "anatomy_body_front_gray"
     static let bodyBackGray = "anatomy_body_back_gray"
 
