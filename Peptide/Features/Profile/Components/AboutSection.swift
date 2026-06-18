@@ -30,6 +30,24 @@ struct AboutSection: View {
                     Divider().foregroundStyle(AppColor.glassBorder)
                     AboutRow(title: "Peptide Database", value: "\(PeptideDatabase.shared.count) peptides")
                     Divider().foregroundStyle(AppColor.glassBorder)
+                    if let url = URL(string: AnatomyAssets.attributionURL) {
+                        Link(destination: url) {
+                            HStack {
+                                Text("Anatomy art")
+                                    .font(AppFont.subheadline)
+                                    .foregroundStyle(AppColor.textSecondary)
+                                Spacer()
+                                Text("Z-Anatomy · CC BY-SA 4.0")
+                                    .font(AppFont.subheadline)
+                                    .foregroundStyle(AppColor.textPrimary)
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(AppColor.textTertiary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        Divider().foregroundStyle(AppColor.glassBorder)
+                    }
                     NavigationLink {
                         PrivacySummaryView()
                     } label: {

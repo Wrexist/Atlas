@@ -25,11 +25,32 @@ enum AnatomyAssets {
     static let bodyFront = "anatomy_body_front"
     static let bodyBack = "anatomy_body_back"
 
-    /// Provenance note for the bundled pack: rendered in-house with
-    /// Blender from this app's own `BodyAnatomy` geometry (see
-    /// `tools/anatomy/` for the generator). No third-party attribution
-    /// is required.
-    static let attribution = "Anatomy renders generated from Atlas's own body geometry."
+    /// Neutral grayscale écorché renders, pixel-aligned to the colour
+    /// bodies. Used as the *tint source*: `colorMultiply` on grayscale
+    /// produces a clean activation hue with the render's shading intact,
+    /// where multiplying the colour (red) body would muddy it. Falls back
+    /// to the colour body if a grayscale render isn't bundled.
+    static let bodyFrontGray = "anatomy_body_front_gray"
+    static let bodyBackGray = "anatomy_body_back_gray"
+
+    /// The grayscale tint source for a facing, or the colour body when no
+    /// grayscale render ships.
+    static func tintBase(front: Bool) -> String {
+        let gray = front ? bodyFrontGray : bodyBackGray
+        #if canImport(UIKit)
+        if UIImage(named: gray) != nil { return gray }
+        #endif
+        return front ? bodyFront : bodyBack
+    }
+
+    /// Provenance / licence note for the bundled pack. The muscle pack is
+    /// rendered from the open-source **Z-Anatomy** model (z-anatomy.com),
+    /// licensed **CC BY-SA 4.0** — so attribution is required and the
+    /// renders are shared alike. `tools/render_zanatomy.py` documents the
+    /// headless render that produced the base bodies + per-muscle masks.
+    /// Surfaced in the Profile › About credits.
+    static let attribution = "Muscle anatomy from Z-Anatomy (z-anatomy.com), CC BY-SA 4.0."
+    static let attributionURL = "https://www.z-anatomy.com"
 
     /// Asset name for a muscle's tintable mask.
     static func mask(for muscle: AnatomicalMuscle) -> String {

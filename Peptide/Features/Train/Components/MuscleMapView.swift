@@ -139,6 +139,12 @@ struct MuscleMapView: View {
     }
 
     private func identify(at point: CGPoint, facing: Facing, size: CGSize) {
+        // With the photoreal pack the rendered silhouette no longer matches
+        // the vector paths — hit-test the baked masks' alpha instead.
+        if AnatomyAssets.isAvailable {
+            identifyViaMask(at: point, facing: facing, size: size)
+            return
+        }
         let scale = min(size.width, size.height / 2.4)
         guard scale > 0 else { return }
         let xOffset = (size.width - scale) / 2
@@ -156,6 +162,38 @@ struct MuscleMapView: View {
         } else {
             withAnimation(.easeOut(duration: 0.2)) { identified = hit }
         }
+    }
+
+    /// Tap hit-testing for the photoreal pack: map the tap into the fitted
+    /// image's normalized space and sample the per-muscle mask alpha.
+    private func identifyViaMask(at point: CGPoint, facing: Facing, size: CGSize) {
+        #if canImport(UIKit)
+        // The renders share the figure's 1 : 2.4 aspect; fit them into the
+        // tapped figure's frame (scaledToFit) to find the content rect.
+        let imgAspect = BodyAnatomy.aspect
+        var contentW = size.width, contentH = size.height
+        if size.width / size.height > imgAspect {
+            contentW = size.height * imgAspect
+        } else {
+            contentH = size.width / imgAspect
+        }
+        guard contentW > 0, contentH > 0 else { return }
+        let nx = (point.x - (size.width - contentW) / 2) / contentW
+        let ny = (point.y - (size.height - contentH) / 2) / contentH
+
+        let muscles = facing == .front
+            ? AnatomicalMuscle.allCases.filter { !$0.isBack }
+            : AnatomicalMuscle.allCases.filter { $0.isBack }
+        let names = muscles.map { AnatomyAssets.mask(for: $0) }
+        let hit = MuscleMaskHitTester.hit(among: names, atNormalized: CGPoint(x: nx, y: ny))
+            .flatMap { name in muscles.first { AnatomyAssets.mask(for: $0) == name } }
+
+        if let onIdentify {
+            if let hit { onIdentify(hit) }
+        } else {
+            withAnimation(.easeOut(duration: 0.2)) { identified = hit }
+        }
+        #endif
     }
 
     // MARK: - Asset map
@@ -187,23 +225,27 @@ struct MuscleMapView: View {
 
     private func assetFigure(facing: Facing) -> some View {
         let base = facing == .front ? AnatomyAssets.bodyFront : AnatomyAssets.bodyBack
+        // Grayscale twin of the body: multiplying the activation colour
+        // onto grey yields a clean hue with the render's shading intact,
+        // where multiplying the colour écorché would muddy it.
+        let tintBase = AnatomyAssets.tintBase(front: facing == .front)
         let muscles = facing == .front
             ? AnatomicalMuscle.allCases.filter { !$0.isBack }
             : AnatomicalMuscle.allCases.filter { $0.isBack }
         return ZStack {
-            // The grayscale, fully-shaded body. Untrained muscles read
-            // straight off this layer.
+            // The fully-shaded écorché. Untrained muscles read straight
+            // off this layer.
             Image(base)
                 .resizable()
                 .scaledToFit()
-            // For each trained muscle, re-tint a COPY of the shaded base
-            // and clip it to that muscle's mask. `colorMultiply` keeps the
-            // body's photoreal shadows/highlights while pushing the hue to
-            // the training-intensity colour — so the muscle looks lit, not
-            // painted with a flat blob.
+            // For each trained muscle, re-tint a COPY of the shaded grey
+            // body and clip it to that muscle's mask. `colorMultiply` keeps
+            // the body's photoreal shadows/highlights while pushing the hue
+            // to the training-intensity colour — so the muscle looks lit,
+            // not painted with a flat blob.
             ForEach(muscles, id: \.self) { muscle in
                 if let highlight = highlights[muscle] {
-                    Image(base)
+                    Image(tintBase)
                         .resizable()
                         .scaledToFit()
                         .colorMultiply(tintColor(for: highlight))
