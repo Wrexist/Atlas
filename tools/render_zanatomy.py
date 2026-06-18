@@ -11,10 +11,10 @@ WHAT IT PRODUCES (into $ATLAS_ANATOMY_OUT, default /tmp/atlas_pack)
   anatomy_body_front_gray.png / anatomy_body_back_gray.png — grey tint src
   anatomy_<AnatomicalMuscle rawValue>.png                  — one alpha mask
                                                             per muscle head
-  The body is the muscular system as an écorché, but the face/skull is
-  replaced with a smooth mannequin head proxy (the skinless face read as a
-  "monster"). Hands and feet stay as muscle. Every image shares one locked
-  orthographic camera per facing, so masks are pixel-aligned to the bodies.
+  The body is the full muscular-system écorché. The eye sockets are filled
+  with Z-Anatomy's eyeball meshes so the face reads as a medical model, not
+  a hollow-socketed "monster". Every image shares one locked orthographic
+  camera per facing, so masks are pixel-aligned to the bodies.
 
 HOW TO RUN (headless, Blender-as-a-module)
   pip install bpy pillow
@@ -31,7 +31,7 @@ NOTES THAT MATTER (learned the hard way)
   * Merge every belly into ONE decimated mesh; Cycles' geometry export
     OOMs on 500+ separate high-poly objects.
 """
-import bpy, os, math, mathutils, bmesh
+import bpy, os, math, mathutils
 
 BLEND = os.environ.get("ZANATOMY_BLEND", "/tmp/zanatomy/Z-Anatomy/Startup.blend")
 OUT = os.environ.get("ATLAS_ANATOMY_OUT", "/tmp/atlas_pack")
@@ -43,7 +43,6 @@ SKIP = ["fascia", "bursa", "septum", "membrane", "retinaculum", "sheath",
         "aponeurosis", "raphe", "tendon", "ligament"]
 MASK_SKIP = SKIP + ["nerve", "artery", "vein", "node",
                     "capitis", "cervicis", "colli", "trochanteric"]
-HEAD_Z = 1.5   # muscles wholly above this are the face/skull -> proxied out
 
 # AnatomicalMuscle rawValue -> (Z-Anatomy name substrings, facing)
 GROUPS = {
@@ -158,24 +157,6 @@ def mask_material():
     return m
 
 
-def ico(scene, name, center, size, mat):
-    bm = bmesh.new()
-    try:
-        bmesh.ops.create_icosphere(bm, subdivisions=4, radius=0.5)
-    except TypeError:
-        bmesh.ops.create_icosphere(bm, subdivisions=4, diameter=1.0)
-    me = bpy.data.meshes.new(name)
-    bm.to_mesh(me); bm.free()
-    for p in me.polygons:
-        p.use_smooth = True
-    o = bpy.data.objects.new(name, me)
-    scene.collection.objects.link(o)
-    o.scale = size
-    o.location = center
-    o.data.materials.append(mat)
-    return o
-
-
 def main():
     log("opening", BLEND)
     bpy.ops.wm.open_mainfile(filepath=BLEND)
@@ -184,11 +165,17 @@ def main():
 
     musc = bpy.data.collections.get("Muscular system")
     allm = [o for o in musc.all_objects if o.type == "MESH"]
-    bellies = [o for o in allm if not any(k in o.name.lower() for k in SKIP)]
-    head = [o for o in bellies if bbox([o])[0][2] > HEAD_Z]
-    head_names = {o.name for o in head}
-    body = [o for o in bellies if o.name not in head_names]
-    log("muscle meshes:", len(allm), "body:", len(body), "head:", len(head))
+    body = [o for o in allm if not any(k in o.name.lower() for k in SKIP)]
+    # Eyeballs live outside the muscular system; link them into the scene so
+    # the orbits aren't hollow.
+    eyes = [o for o in bpy.data.objects
+            if o.type == "MESH" and o.name.lower().startswith("eyeball")]
+    for o in eyes:
+        try:
+            sc.collection.objects.link(o)
+        except Exception:
+            pass
+    log("muscle meshes:", len(allm), "body:", len(body), "eyes:", len(eyes))
 
     # render settings
     sc.use_nodes = False
@@ -203,7 +190,7 @@ def main():
     sc.render.image_settings.color_mode = "RGBA"
     sc.render.resolution_x, sc.render.resolution_y = RES_X, RES_Y
 
-    bmn, bmx = bbox(bellies)
+    bmn, bmx = bbox(body)
     center = [(bmn[i] + bmx[i]) / 2 for i in range(3)]
     height = max(0.1, bmx[2] - bmn[2]); dist = height * 3 + 1
 
@@ -240,9 +227,9 @@ def main():
         bpy.ops.render.render(write_still=True)
         log("wrote", os.path.basename(path))
 
-    # ---- beauty bodies: merge the body into one decimated mesh, cap the
-    #      skinless face with a smooth mannequin head proxy ----
-    def beauty(muscle_mat, skin_mat, suffix):
+    # ---- beauty bodies: merge the écorché into one decimated mesh; the
+    #      eyeballs render as separate objects to fill the orbits ----
+    def beauty(muscle_mat, eye_mat, suffix):
         for o in list(bpy.data.objects):
             if o.type not in ("CAMERA", "LIGHT"):
                 o.hide_render = True
@@ -257,23 +244,18 @@ def main():
             poly.use_smooth = True
         merged = bpy.data.objects.new("merged", mm); sc.collection.objects.link(merged)
         merged.data.materials.append(muscle_mat); merged.hide_render = False
-        merged.modifiers.new("d", "DECIMATE").ratio = 0.2
-        proxy = None
-        if head:
-            hmn, hmx = bbox(head)
-            hh = 0.27
-            c = ((hmn[0] + hmx[0]) / 2, (hmn[1] + hmx[1]) / 2, hmx[2] - hh * 0.5 + 0.01)
-            proxy = ico(sc, "head", c, (0.15, 0.19, hh), skin_mat)
-        render("front", f"{OUT}/anatomy_body_front{suffix}.png", "AgX", 40, True)
-        render("back", f"{OUT}/anatomy_body_back{suffix}.png", "AgX", 40, True)
+        merged.modifiers.new("d", "DECIMATE").ratio = 0.25
+        for o in eyes:
+            o.hide_render = False
+            o.data.materials.clear(); o.data.materials.append(eye_mat)
+        render("front", f"{OUT}/anatomy_body_front{suffix}.png", "AgX", 44, True)
+        render("back", f"{OUT}/anatomy_body_back{suffix}.png", "AgX", 44, True)
         bpy.data.objects.remove(merged, do_unlink=True)
-        if proxy:
-            bpy.data.objects.remove(proxy, do_unlink=True)
 
     beauty(material("muscle", (0.52, 0.26, 0.23), 0.18),
-           material("skin", (0.78, 0.62, 0.55), 0.25), "")
+           material("eye", (0.92, 0.90, 0.86), 0.0), "")
     beauty(material("muscle_gray", (0.62, 0.62, 0.62), 0.0),
-           material("skin_gray", (0.74, 0.74, 0.74), 0.0), "_gray")
+           material("eye_gray", (0.85, 0.85, 0.85), 0.0), "_gray")
 
     # ---- per-muscle masks (rendered from the muscle meshes) ----
     white = mask_material()
