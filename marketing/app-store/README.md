@@ -121,6 +121,13 @@ tabular numbers. Each frame shows a *win in progress*, not an empty state.
 - The deck matches the headlines documented in `APP_STORE_METADATA.md` (slots 1–8).
 
 ## Before you ship (Pre-ship checklist)
+- [ ] **Meal photo:** `screens/04-meals.html` composites a real food photo from
+      `assets/meal-photo.jpg` (avocado + scrambled eggs + rye toast) with verified
+      macros. The current file is a low-res **demo placeholder** from a public ML
+      research repo (`facebookresearch/inversecooking`, demo image) whose image
+      license isn't clearly stated — **replace it with your own meal photo before
+      submitting** (drop a JPG at `assets/meal-photo.jpg` and re-render). Your own
+      photo is the ideal asset anyway: it's authentic, owned, and zero-risk.
 - [ ] Confirm the `873` exercise count and `208` compound count still match the app.
 - [ ] Swap the illustrative figures (Recovery 78, Atlas Score 12,480, 47-day streak,
       Bio Age 28.4) for real screenshots/values if you'd rather not ship sample data.
