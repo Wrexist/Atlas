@@ -25,22 +25,6 @@ import geometry as G  # noqa: E402
 import bpy  # noqa: E402
 
 
-# Fiber direction per muscle head: degrees from vertical, right side of
-# the body; mirrored lobes flip the sign. Drives the striation texture.
-FIBER_ANGLE = {
-    "neck": 15, "pecClavicular": 70, "pecSternal": 80,
-    "deltAnterior": 12, "deltLateralFront": 8, "biceps": 4,
-    "forearmFront": 6, "abdominals": 0, "obliques": 20,
-    "quadRectus": 4, "quadLateralis": 8, "quadMedialis": 25,
-    "adductors": 12, "tibialis": 4,
-    "trapsUpper": 40, "trapsLower": 15, "rhomboids": 30,
-    "deltPosterior": 12, "deltLateralBack": 8,
-    "tricepsLong": 4, "tricepsLateral": 6, "forearmBack": 6,
-    "lats": 32, "lowerBack": 2, "glutes": 35, "gluteMedius": 18,
-    "hamstringLateral": 3, "hamstringMedial": 3,
-    "gastrocnemius": 5, "soleus": 5,
-}
-
 OUT = os.environ.get("ANATOMY_OUT", "/tmp/anatomy/assets")
 RES_X, RES_Y = 2400, 5760          # 1 : 2.4
 GRID = 0.0028                      # heightfield step in normalized units
@@ -229,13 +213,42 @@ def build_head(front):
         dh += gaussian(WX, WY, 0.500, 0.282, 0.018, 0.012, 0.12)   # chin
         return dh
 
-    skin = make_material("skin", 0.42, 0.5)
-    bsdf = skin.node_tree.nodes["Principled BSDF"]
-    bsdf.inputs["Base Color"].default_value = (0.56, 0.475, 0.44, 1.0)
+    skin = bpy.data.materials.new("skin")
+    skin.use_nodes = True
+    _flesh_skin(skin.node_tree.nodes["Principled BSDF"], base=(0.585, 0.50, 0.455))
     build_heightfield(poly, depth=0.075, z_base=-0.012, name="head",
                       material=skin, features=face if front else None)
 
 # ---------------------------------------------------------------- scene
+
+def _set_input(node, name, value):
+    """Set a shader-node input by name only if that socket exists.
+
+    Principled BSDF socket names drift across Blender versions
+    (`Subsurface` → `Subsurface Weight`, `Specular` → `Specular IOR
+    Level`); setting both spellings and skipping the absent one keeps the
+    build working on 4.x and 5.x alike.
+    """
+    if name in node.inputs:
+        node.inputs[name].default_value = value
+
+
+def _flesh_skin(bsdf, base):
+    """Apply the shared smooth-flesh look to a Principled BSDF: warm
+    desaturated base, soft roughness, and subsurface scattering for the
+    waxy light falloff of real muscle. No bump, no bands — volume and
+    seams come from the geometry and the lighting, not a texture."""
+    _set_input(bsdf, "Base Color", (*base, 1.0))
+    _set_input(bsdf, "Roughness", 0.52)
+    _set_input(bsdf, "Specular IOR Level", 0.35)
+    _set_input(bsdf, "Specular", 0.35)
+    # Subsurface radius is in geometry units (body height == 2.4), so a few
+    # centimetres of soft red-weighted bleed through each belly.
+    _set_input(bsdf, "Subsurface Weight", 0.32)
+    _set_input(bsdf, "Subsurface", 0.32)
+    _set_input(bsdf, "Subsurface Radius", (0.055, 0.030, 0.022))
+    _set_input(bsdf, "Subsurface Scale", 0.08)
+
 
 def make_material(name, gray, roughness):
     m = bpy.data.materials.new(name)
@@ -246,54 +259,28 @@ def make_material(name, gray, roughness):
     return m
 
 
-_muscle_mats = {}
+_muscle_mat = None
 
 
-def muscle_material(angle_deg):
-    """Warm flesh-clay material with fiber striations at angle_deg
-    from vertical (bump + subtle tone bands). Cached per angle."""
-    key = round(angle_deg)
-    if key in _muscle_mats:
-        return _muscle_mats[key]
-    m = bpy.data.materials.new(f"muscle_{key}")
+def muscle_material():
+    """Smooth subsurface flesh material shared by every muscle belly.
+
+    The old pack tinted a wave-banded bump texture, which read as diagonal
+    hatching once the app composited it — the "striped cutout" look. This
+    drops the texture entirely: muscles are rounded forms catching one
+    soft key light, with subsurface scattering doing the soft falloff and
+    Cycles' contact shadows carving the seams. The app still tints
+    training intensity over the neutral render with `colorMultiply`."""
+    global _muscle_mat
+    if _muscle_mat is not None:
+        return _muscle_mat
+    m = bpy.data.materials.new("muscle")
     m.use_nodes = True
-    nt = m.node_tree
-    bsdf = nt.nodes["Principled BSDF"]
-    base = (0.56, 0.475, 0.44)
-    bsdf.inputs["Base Color"].default_value = (*base, 1.0)
-    bsdf.inputs["Roughness"].default_value = 0.46
-
-    coord = nt.nodes.new("ShaderNodeTexCoord")
-    mapping = nt.nodes.new("ShaderNodeMapping")
-    mapping.inputs["Rotation"].default_value = (0, 0, math.radians(angle_deg))
-    wave = nt.nodes.new("ShaderNodeTexWave")
-    wave.wave_type = "BANDS"
-    wave.bands_direction = "X"
-    # empirical: band period ~= 0.31 / scale, so 19 gives the 0.016-unit
-    # fiber spacing used by the vector renderer's striations
-    wave.inputs["Scale"].default_value = 19.0
-    wave.inputs["Distortion"].default_value = 1.4
-    wave.inputs["Detail"].default_value = 1.5
-    bump = nt.nodes.new("ShaderNodeBump")
-    bump.inputs["Strength"].default_value = 0.30
-    bump.inputs["Distance"].default_value = 0.0015
-    mix = nt.nodes.new("ShaderNodeMix")
-    mix.data_type = "RGBA"
-    # RGBA sockets share names with the float ones — address by identifier
-    a_col = next(s for s in mix.inputs if s.identifier == "A_Color")
-    b_col = next(s for s in mix.inputs if s.identifier == "B_Color")
-    result = next(s for s in mix.outputs if s.identifier == "Result_Color")
-    mix.inputs["Factor"].default_value = 0.14
-    a_col.default_value = (*base, 1.0)
-    b_col.default_value = (base[0] * 0.72, base[1] * 0.72, base[2] * 0.72, 1.0)
-
-    nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
-    nt.links.new(mapping.outputs["Vector"], wave.inputs["Vector"])
-    nt.links.new(wave.outputs["Fac"], bump.inputs["Height"])
-    nt.links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
-    nt.links.new(wave.outputs["Fac"], mix.inputs["Factor"])
-    nt.links.new(result, bsdf.inputs["Base Color"])
-    _muscle_mats[key] = m
+    bsdf = m.node_tree.nodes["Principled BSDF"]
+    # Deliberate desaturated warm tone, lifted clear of muddy mid-gray and
+    # of the near-black backing so untrained muscle reads as a calm base.
+    _flesh_skin(bsdf, base=(0.585, 0.50, 0.455))
+    _muscle_mat = m
     return m
 
 
@@ -308,6 +295,16 @@ def reset_scene():
     scene.render.resolution_y = RES_Y
     scene.render.film_transparent = True
     scene.view_settings.view_transform = "Standard"
+
+    # Dim, slightly cool ambient so deep muscle seams read as soft contact
+    # shadow rather than crushing to pure black. The transparent film keeps
+    # the PNG background clear; the world only fills the lighting.
+    world = bpy.data.worlds.new("world")
+    world.use_nodes = True
+    bg = world.node_tree.nodes["Background"]
+    bg.inputs["Color"].default_value = (0.045, 0.05, 0.06, 1.0)
+    bg.inputs["Strength"].default_value = 0.06
+    scene.world = world
 
     cam_data = bpy.data.cameras.new("cam")
     cam_data.type = "ORTHO"
@@ -331,9 +328,13 @@ def reset_scene():
         lo.rotation_euler = rot
         scene.collection.objects.link(lo)
 
-    light("key", "AREA", (-0.9, 2.6, 2.6), 72, size=2.2)
-    light("fill", "AREA", (1.9, 1.0, 2.2), 26, size=2.6, color=(0.9, 0.95, 1.0))
-    light("rim", "AREA", (0.5, -0.6, 1.6), 20, size=3.0)
+    # One studio rig, identical for front and back so the two renders feel
+    # like one object: a large soft warm key upper-left, a cooler fill
+    # opposite at lower intensity, and a rim from behind to lift the body
+    # off the black. Big area sources keep shadows soft and premium.
+    light("key", "AREA", (-1.1, 2.8, 2.8), 90, size=3.0, color=(1.0, 0.97, 0.93))
+    light("fill", "AREA", (2.0, 1.0, 2.4), 22, size=3.2, color=(0.90, 0.95, 1.0))
+    light("rim", "AREA", (0.5, -0.9, 1.8), 30, size=3.5)
     return scene
 
 
@@ -357,17 +358,14 @@ def build_view(front):
     for name, spec in G.MUSCLES.items():
         if spec["back"] != (not front):
             continue
-        base_angle = FIBER_ANGLE.get(name, 4)
         for i, poly in enumerate(polygons_for(name)):
             xs = [p[0] for p in poly]
             ys = [p[1] for p in poly]
             extent = min(max(xs) - min(xs), max(ys) - min(ys))
             depth = max(0.025, min(0.085, extent * 0.42))
-            cx = sum(xs) / len(xs)
-            angle = base_angle if cx >= 0.5 else -base_angle
             build_heightfield(poly, depth=depth, z_base=0.0,
                               name=f"{name}_{i}",
-                              material=muscle_material(angle), erode=True)
+                              material=muscle_material(), erode=True)
 
     out = f"{OUT}/anatomy_body_{'front' if front else 'back'}.png"
     scene.render.filepath = out
