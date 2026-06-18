@@ -195,9 +195,13 @@ def main():
     bmn, bmx = bbox(body)
     center = [(bmn[i] + bmx[i]) / 2 for i in range(3)]
     height = max(0.1, bmx[2] - bmn[2]); dist = height * 3 + 1
+    # Fit the WHOLE figure (arms included) with a small margin so hands are
+    # never clipped. ortho_scale is the vertical extent; horizontal =
+    # ortho_scale * RES_X/RES_Y, so fitting width needs width * RES_Y/RES_X.
+    oscale = max(height, (bmx[0] - bmn[0]) * RES_Y / RES_X) * 1.05
 
     def cam(name, y, flip):
-        cd = bpy.data.cameras.new(name); cd.type = "ORTHO"; cd.ortho_scale = height * 1.06
+        cd = bpy.data.cameras.new(name); cd.type = "ORTHO"; cd.ortho_scale = oscale
         c = bpy.data.objects.new(name, cd); sc.collection.objects.link(c)
         c.location = (center[0], y, center[2])
         c.rotation_euler = (math.radians(90), 0, math.radians(180) if flip else 0)
@@ -210,11 +214,11 @@ def main():
         lo = bpy.data.objects.new(name, ld); sc.collection.objects.link(lo)
         lo.rotation_euler = (mathutils.Vector(center) - mathutils.Vector(frm)).to_track_quat('-Z', 'Y').to_euler()
     # soft key upper-left, cool fill, and a rim from behind for separation
-    sun("kF", (center[0] - height * 0.6, bmn[1] - dist, center[2] + height * 0.55), 2.7, (1, 0.97, 0.93))
-    sun("fF", (center[0] + height * 0.8, bmn[1] - dist * 0.8, center[2] - height * 0.1), 1.5, (0.92, 0.96, 1))
+    sun("kF", (center[0] - height * 0.6, bmn[1] - dist, center[2] + height * 0.55), 2.8, (1.0, 0.94, 0.85))
+    sun("fF", (center[0] + height * 0.8, bmn[1] - dist * 0.8, center[2] - height * 0.1), 1.4, (0.96, 0.97, 1.0))
     sun("rF", (center[0], bmx[1] + dist, center[2] + height * 0.7), 1.8, (1, 1, 1))
-    sun("kB", (center[0] - height * 0.6, bmx[1] + dist, center[2] + height * 0.55), 2.7, (1, 0.97, 0.93))
-    sun("fB", (center[0] + height * 0.8, bmx[1] + dist * 0.8, center[2] - height * 0.1), 1.5, (0.92, 0.96, 1))
+    sun("kB", (center[0] - height * 0.6, bmx[1] + dist, center[2] + height * 0.55), 2.8, (1.0, 0.94, 0.85))
+    sun("fB", (center[0] + height * 0.8, bmx[1] + dist * 0.8, center[2] - height * 0.1), 1.4, (0.96, 0.97, 1.0))
     sun("rB", (center[0], bmn[1] - dist, center[2] + height * 0.7), 1.8, (1, 1, 1))
     world = bpy.data.worlds.new("w"); world.use_nodes = True
     bg = world.node_tree.nodes["Background"]
@@ -224,7 +228,7 @@ def main():
 
     def render(cam_key, path, transform, samples, denoise):
         sc.view_settings.view_transform = transform
-        sc.view_settings.exposure = 0.25 if transform == "AgX" else 0.0
+        sc.view_settings.exposure = 0.32 if transform == "AgX" else 0.0
         sc.cycles.samples = samples
         sc.cycles.use_denoising = denoise
         sc.camera = cams[cam_key]
@@ -259,7 +263,7 @@ def main():
         render("back", f"{OUT}/anatomy_body_back{suffix}.png", "AgX", 64, True)
         bpy.data.objects.remove(merged, do_unlink=True)
 
-    beauty(material("muscle", (0.52, 0.26, 0.23), 0.18),
+    beauty(material("muscle", (0.58, 0.32, 0.27), 0.32),
            material("eye", (0.92, 0.90, 0.86), 0.0), "")
     beauty(material("muscle_gray", (0.62, 0.62, 0.62), 0.0),
            material("eye_gray", (0.85, 0.85, 0.85), 0.0), "_gray")
