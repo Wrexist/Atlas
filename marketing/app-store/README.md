@@ -43,6 +43,7 @@ GROOT=$(npm root -g) node render.mjs            # iPhone (all 8)
 GROOT=$(npm root -g) node render.mjs --ipad     # iPad (all 8)
 GROOT=$(npm root -g) node render.mjs --watch    # Apple Watch upload (all 5, 410×502)
 GROOT=$(npm root -g) node render.mjs --watchframe  # Apple Watch caption frames (all 5, 1320×1650)
+GROOT=$(npm root -g) node render-social.mjs        # web/social: 5 squares + hero + OG
 GROOT=$(npm root -g) node render.mjs 01-recovery.html          # one iPhone screen
 GROOT=$(npm root -g) node render.mjs 02-recovery.html --watch  # one watch screen
 ```
@@ -151,6 +152,24 @@ set is required.
 | 3 | Habits | Health + Training activity rings + streak |
 | 4 | Next Dose | Upcoming dose, amount, time |
 | 5 | Complications | A watch face with all four Atlas complications |
+
+### Web / social (`screenshots-social/` · via `render-social.mjs`)
+Not App Store uploads — for the website, link previews, and social. Self-contained
+(`assets/social.css`), so they don't depend on the App Store layout.
+
+| File | Size | Use |
+|---|---|---|
+| `square-recovery / score / meals / biology / brand` | 1080 × 1080 | Instagram / social posts (1:1) |
+| `hero` | 2560 × 1440 | Website hero banner (phone + watch) |
+| `og` | 1200 × 630 | Open Graph / Twitter link-preview card |
+
+The hero and OG **crop the rendered device shots** via `background-position`, so they
+auto-update when you re-render the iPhone/Watch decks.
+
+### App Preview video
+[`APP_PREVIEW_STORYBOARD.md`](APP_PREVIEW_STORYBOARD.md) — a 25-second, scene-by-scene
+shot list for the listing's autoplay video. It must be **real on-device capture**
+(Apple 2.3.10), so it's a recording script rather than a generated asset.
 
 ## Before you ship (Pre-ship checklist)
 - [ ] **Meal photo:** `screens/04-meals.html` composites a real food photo from
