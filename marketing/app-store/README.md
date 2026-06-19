@@ -6,11 +6,16 @@ sync with the listing copy in [`APP_STORE_METADATA.md`](../../APP_STORE_METADATA
 
 ```
 marketing/app-store/
-  assets/atlas.css     shared design system (tokens, glass, rings, heatmap…)
-  screens/*.html       one self-contained mockup per screenshot slot
-  render.mjs           Playwright → PNG at exact App Store dimensions
-  screenshots/*.png    the rendered deck (1320 × 2868, iPhone 6.9")
-  _preview.png         contact sheet of all 8 frames
+  assets/atlas.css      shared iPhone/iPad design system (tokens, glass, rings…)
+  assets/ipad.css       render-time override → iPad caption-left / device-right
+  assets/watch.css      Apple Watch design system (OLED, glanceable)
+  screens/*.html        iPhone/iPad mockup per slot (8)
+  screens-watch/*.html  Apple Watch mockup per slot (5)
+  render.mjs            Playwright → PNG at exact App Store dimensions
+  screenshots/*.png     iPhone 6.9"  (1320 × 2868)
+  screenshots-ipad/*.png iPad 13"     (2064 × 2752)
+  screenshots-watch/*.png Apple Watch Ultra (410 × 502)
+  _preview*.png         contact sheets (phone · ipad · watch)
 ```
 
 > These are **designed marketing frames** (real app UI laid out with realistic
@@ -31,12 +36,15 @@ marketing/app-store/
 # one-time (already done in this environment):
 #   npx playwright install chromium
 cd marketing/app-store
-GROOT=$(npm root -g) node render.mjs            # all screens
-GROOT=$(npm root -g) node render.mjs 01-recovery.html   # one screen
+GROOT=$(npm root -g) node render.mjs            # iPhone (all 8)
+GROOT=$(npm root -g) node render.mjs --ipad     # iPad (all 8)
+GROOT=$(npm root -g) node render.mjs --watch    # Apple Watch (all 5)
+GROOT=$(npm root -g) node render.mjs 01-recovery.html          # one iPhone screen
+GROOT=$(npm root -g) node render.mjs 02-recovery.html --watch  # one watch screen
 ```
 
-Edit a file in `screens/`, re-run, done. Each HTML pulls `assets/atlas.css`, so a
-token change (e.g. accent colour) propagates across the whole deck.
+Edit a file in `screens/` (or `screens-watch/`), re-run, done. Each HTML pulls its
+shared stylesheet, so a token change (e.g. accent colour) propagates across the deck.
 
 ---
 
@@ -115,10 +123,24 @@ tabular numbers. Each frame shows a *win in progress*, not an empty state.
 |---|---|---|
 | iPhone 6.9" (16 Pro Max) | **1320 × 2868** | ✅ primary — this deck. Satisfies all iPhone sizes. |
 | iPhone 6.5" | 1242 × 2688 | optional legacy (near-identical aspect) |
-| iPad Pro 13" | 2064 × 2752 | only if iPad-targeted (re-layout needed — see below) |
+| iPad Pro 13" | 2064 × 2752 | ✅ built (`screenshots-ipad/`) — only needed if iPad-targeted |
+| Apple Watch Ultra 2 | **410 × 502** | ✅ built (`screenshots-watch/`) — required if the Watch app ships. ASC scales it to every smaller watch. |
 
-- Upload **6–8** of these; the first 3 matter most.
+- Upload **6–8** iPhone shots (first 3 matter most) and **3–5** watch shots.
 - The deck matches the headlines documented in `APP_STORE_METADATA.md` (slots 1–8).
+
+### Apple Watch deck (`screenshots-watch/` · 410 × 502)
+Glanceable, OLED-black, one bold element each — uploaded under the same app's
+**Apple Watch** screenshot section. Atlas ships a Watch app + complications, so this
+set is required.
+
+| # | Screen | Shows |
+|---|--------|-------|
+| 1 | Atlas Score | Level/tier medallion + total + streak |
+| 2 | Recovery | Recovery ring (78) + "Ready to train" |
+| 3 | Habits | Health + Training activity rings + streak |
+| 4 | Next Dose | Upcoming dose, amount, time |
+| 5 | Complications | A watch face with all four Atlas complications |
 
 ## Before you ship (Pre-ship checklist)
 - [ ] **Meal photo:** `screens/04-meals.html` composites a real food photo from
