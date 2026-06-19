@@ -16,12 +16,13 @@ const here = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const ipad = args.includes('--ipad');
 const watch = args.includes('--watch');
+const watchframe = args.includes('--watchframe');
 const only = args.find((a) => a.endsWith('.html'));
 
-const W = watch ? 410 : ipad ? 2064 : 1320;
-const H = watch ? 502 : ipad ? 2752 : 2868;
-const screensDir = join(here, watch ? 'screens-watch' : 'screens');
-const outDir = join(here, watch ? 'screenshots-watch' : ipad ? 'screenshots-ipad' : 'screenshots');
+const W = watchframe ? 1320 : watch ? 410 : ipad ? 2064 : 1320;
+const H = watchframe ? 1650 : watch ? 502 : ipad ? 2752 : 2868;
+const screensDir = join(here, watchframe ? 'screens-watch-frames' : watch ? 'screens-watch' : 'screens');
+const outDir = join(here, watchframe ? 'screenshots-watch-frames' : watch ? 'screenshots-watch' : ipad ? 'screenshots-ipad' : 'screenshots');
 const ipadCss = join(here, 'assets', 'ipad.css');
 mkdirSync(outDir, { recursive: true });
 
@@ -39,7 +40,7 @@ for (const f of files) {
   await page.waitForTimeout(150);
   const out = join(outDir, f.replace(/\.html$/, '.png'));
   await page.screenshot({ path: out, clip: { x: 0, y: 0, width: W, height: H } });
-  console.log('✓', (watch ? '[Watch] ' : ipad ? '[iPad] ' : '') + basename(out));
+  console.log('✓', (watchframe ? '[WatchFrame] ' : watch ? '[Watch] ' : ipad ? '[iPad] ' : '') + basename(out));
 }
 
 await browser.close();

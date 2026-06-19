@@ -6,16 +6,19 @@ sync with the listing copy in [`APP_STORE_METADATA.md`](../../APP_STORE_METADATA
 
 ```
 marketing/app-store/
-  assets/atlas.css      shared iPhone/iPad design system (tokens, glass, rings…)
-  assets/ipad.css       render-time override → iPad caption-left / device-right
-  assets/watch.css      Apple Watch design system (OLED, glanceable)
-  screens/*.html        iPhone/iPad mockup per slot (8)
-  screens-watch/*.html  Apple Watch mockup per slot (5)
-  render.mjs            Playwright → PNG at exact App Store dimensions
-  screenshots/*.png     iPhone 6.9"  (1320 × 2868)
-  screenshots-ipad/*.png iPad 13"     (2064 × 2752)
-  screenshots-watch/*.png Apple Watch Ultra (410 × 502)
-  _preview*.png         contact sheets (phone · ipad · watch)
+  assets/atlas.css        shared iPhone/iPad design system (tokens, glass, rings…)
+  assets/ipad.css         render-time override → iPad caption-left / device-right
+  assets/watch.css        Apple Watch design system (OLED, glanceable)
+  assets/watch-frame.css  Apple Watch marketing-frame device (case/crown/band)
+  screens/*.html          iPhone/iPad mockup per slot (8)
+  screens-watch/*.html    Apple Watch App Store mockup per slot (5)
+  screens-watch-frames/*.html  Apple Watch caption frames for web/social (5)
+  render.mjs              Playwright → PNG at exact App Store dimensions
+  screenshots/*.png            iPhone 6.9"  (1320 × 2868)
+  screenshots-ipad/*.png       iPad 13"     (2064 × 2752)
+  screenshots-watch/*.png      Apple Watch Ultra (410 × 502) — App Store upload
+  screenshots-watch-frames/*.png  Apple Watch caption frames (1320 × 1650) — web/social
+  _preview*.png           contact sheets (phone · ipad · watch · watch-frames)
 ```
 
 > These are **designed marketing frames** (real app UI laid out with realistic
@@ -38,10 +41,17 @@ marketing/app-store/
 cd marketing/app-store
 GROOT=$(npm root -g) node render.mjs            # iPhone (all 8)
 GROOT=$(npm root -g) node render.mjs --ipad     # iPad (all 8)
-GROOT=$(npm root -g) node render.mjs --watch    # Apple Watch (all 5)
+GROOT=$(npm root -g) node render.mjs --watch    # Apple Watch upload (all 5, 410×502)
+GROOT=$(npm root -g) node render.mjs --watchframe  # Apple Watch caption frames (all 5, 1320×1650)
 GROOT=$(npm root -g) node render.mjs 01-recovery.html          # one iPhone screen
 GROOT=$(npm root -g) node render.mjs 02-recovery.html --watch  # one watch screen
 ```
+
+> **Watch caption frames** (`screenshots-watch-frames/`) embed each rendered watch
+> shot in a branded Apple Watch device + headline — for the website, social, and
+> listing promo art. They are **not** the App Store watch upload; that's the bare
+> `screenshots-watch/` set. Re-run `--watch` first if you change a watch screen,
+> then `--watchframe` to refresh these.
 
 Edit a file in `screens/` (or `screens-watch/`), re-run, done. Each HTML pulls its
 shared stylesheet, so a token change (e.g. accent colour) propagates across the deck.
