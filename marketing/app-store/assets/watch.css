@@ -1,0 +1,31 @@
+/* ============================================================
+   Atlas — Apple Watch screenshot design system
+   Canvas: 410 × 502 px (Apple Watch Ultra 2 / 49mm — the largest
+   watch size; App Store Connect scales it to smaller watches).
+   Pure-black OLED background, one bold glanceable element per screen.
+   ============================================================ */
+:root{
+  --mint:#34D399; --violet:#7B5CFF; --amber:#F59E0B; --coral:#F87171; --blue:#60A5FA;
+  --ink:#FFFFFF; --muted:#A6ABBE; --faint:#727892; --accent:var(--mint);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+html,body{width:410px;height:502px;}
+body{font-family:"Inter",system-ui,-apple-system,sans-serif;background:#000;color:#fff;overflow:hidden;font-feature-settings:"tnum";}
+
+.wframe{position:relative;width:410px;height:502px;overflow:hidden;
+  background:radial-gradient(120% 56% at 50% -12%, color-mix(in srgb,var(--accent) 34%,transparent), transparent 60%), #000;}
+
+.wtitle{position:absolute;top:18px;left:30px;font-size:25px;font-weight:800;letter-spacing:-0.3px;color:var(--accent);}
+.wtime{position:absolute;top:18px;right:30px;font-size:25px;font-weight:700;letter-spacing:-0.5px;color:#fff;}
+
+.wcenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.whero{font-weight:800;letter-spacing:-3px;line-height:.88;}
+.wlabel{font-size:23px;font-weight:700;letter-spacing:3px;color:var(--muted);}
+.wsub{font-size:25px;font-weight:600;color:var(--muted);}
+.wchip{display:inline-flex;align-items:center;gap:8px;padding:9px 20px;border-radius:100px;font-size:23px;font-weight:700;}
+.wchip.mint{background:rgba(52,211,153,0.16);color:#9DF3CF;}
+.wchip.amber{background:rgba(245,158,11,0.18);color:#FBCE7A;}
+.wchip.violet{background:rgba(123,92,255,0.2);color:#C9BCFF;}
+.row{display:flex;align-items:center;}
+.col{display:flex;flex-direction:column;}
+.card{background:rgba(255,255,255,0.08);border-radius:30px;}

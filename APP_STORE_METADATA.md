@@ -195,83 +195,82 @@ supplement, or peptide protocol.
 ## "What's New" *(4000 char limit)*
 
 ```
-Atlas 1.0 — rebuilt from the ground up.
+PeptideX is now Atlas — rebuilt into a complete health & fitness app.
 
-Training, nutrition, biology, habits, and protocol tracking — all in one
-private app. No backend. No analytics. Your data stays on your device.
-
-——
-
-BIOLOGY TAB — NEW
-Your biomarkers, all in one place. HRV, resting heart rate, sleep, weight,
-body fat, blood pressure, and lab values (testosterone, vitamin D, lipids)
-displayed as sparkline cards with 90-day drill-down charts.
-
-Atlas Pro unlocks the Biological Age dial — a single metric that tracks your
-biological fitness trajectory from your HRV, RHR, sleep, and weight trend.
-Three states: building a baseline, estimated age, or nudge to improve.
+Everything you used for protocol tracking is still here. On top of it we added training, nutrition, recovery, and a daily momentum system that ties it all together — five tabs in one private app. No backend, no analytics. Your data stays on your device.
 
 ——
 
-TRAIN TAB — NEW
-Log sets with two taps. Atlas pre-fills your last weight and reps — confirm
-or adjust and move on. 873-exercise library, custom lifts, automatic PR
-detection for weight, reps, and bodyweight movements, rest timer with Lock
-Screen notification, and a weekly muscle volume heatmap.
+TRAIN — NEW
+Log a set in two taps. Atlas pre-fills your last weight and reps; confirm or adjust and move on. The rest timer fires automatically and drops a Lock Screen alert when you're ready.
+• 873-exercise library plus unlimited custom lifts
+• Automatic PR detection — weight, rep, and bodyweight records
+• Weekly muscle-volume heatmap
+• Full history — tap any session for every set, the muscle map, and every PR you hit
 
-Tap any past session to see every set, the muscle map, and every PR you hit.
+——
+
+MEALS — NEW
+Three ways to log, all fast. Snap a photo and Atlas identifies each item separately — adjust portions, drop a misfire, save to your library. Scan a barcode from 200M+ products. Or point the camera at a nutrition label and Atlas reads it on-device.
+• Daily calorie + macro rings with goal-aware targets
+• One-tap "Recommended for you" targets with a live macro preview
+• Custom food library and recipes
+• Optional one-way sync to Apple Health
+
+——
+
+BIOLOGY — NEW
+HRV, resting heart rate, and sleep pulled from Apple Health each morning and blended into one Recovery Score — know whether to push or pull back before you leave the house.
+• Biological Age dial (Atlas Pro)
+• Biomarker trends: weight, body fat, waist, blood pressure
+• Lab tracking: testosterone, vitamin D, lipids, custom panels
 
 ——
 
 HABITS — NEW
-Track any daily routine with a 6-month GitHub-style heatmap. Daily, weekday,
-or X-per-week schedules with optional reminders on the days they're due.
+Track any routine on a 6-month momentum heatmap. Daily, weekday, or X-per-week schedules with reminders on the days they're due. Streak-freeze shields one missed day a month so a single slip doesn't reset you.
 
 ——
 
-SMARTER MEAL SCANNER
-Three ways to log food — and all three are faster now.
+ATLAS SCORE — NEW
+One number for your momentum. Every habit, dose, and meal you log earns points that build your level and tier, Bronze to Diamond. See it on Today, your Profile, and your Apple Watch.
 
-Photo scanner: Atlas now identifies each food item separately. Adjust
-portions, drop any misfire, and save items to your food library before
-logging. Your photo is analyzed and deleted immediately.
+PROGRESS — NEW
+Your score trend, current vs. best streaks, and 30-day consistency — framed so you watch the line climb.
 
-Barcode scanner: remembers the portion you chose last time and pre-selects
-it on re-scan. Frequency-ranked recents surface the foods you actually eat,
-not just the last one you scanned.
-
-OCR fallback: when a barcode isn't in the 200M-product database, point the
-camera at the nutrition label. Atlas reads it on-device — no server call,
-no AI cost, result in under a second.
+ACHIEVEMENTS — NEW
+First PR, Perfect Week, dose milestones and more — celebrated the moment you earn them.
 
 ——
 
-NUTRITION TARGETS
-Open the targets editor and Atlas recommends your daily calories and macros
-based on your body metrics and goal — one tap to apply. The macro bar
-animates live as you edit so you see the calorie split in real-time.
+ALSO NEW
+• Rebuilt onboarding with a live workout demo
+• Today timeline — doses, meals, check-ins, and workouts in one feed
+• Apple Watch complications for Atlas Score and your health & training habits
+• Home Screen widgets + Live Activities in the Dynamic Island
+• AI Research assistant and AI Weekly Summary (Atlas Pro)
+
+——
+
+PROTOCOL TRACKING (Advanced)
+The peptide tools you know, refined: a 208-compound research database with citations, dose logging, a cycle calendar, dose edit/delete, and community stacks. Atlas does not prescribe or recommend doses — research and self-tracking only.
 
 ——
 
 STABILITY
-This release fixes iCloud sync (it was silently falling back to local-only
-storage), dose duplication on schedule edits, expired Pro entitlements that
-were staying active, and achievement toasts that were racing to dismiss
-before you saw them.
+Fixes iCloud sync (it was silently falling back to local-only storage), dose duplication on schedule edits, expired Pro entitlements staying active, and achievement toasts dismissing before you saw them — plus a deep correctness and performance pass throughout.
 
 ——
 
 PRIVATE BY DEFAULT
-No backend. No analytics. No third-party SDKs. Data on-device or in your
-private iCloud — we cannot see it. No account required.
+No backend. No analytics. No third-party SDKs. Data lives on-device or in your private iCloud — we can't see it. No account required.
 
-Atlas is an educational reference and tracking journal. Always consult a
-licensed healthcare provider before changing any protocol.
+Atlas is an educational reference and tracking journal, not medical advice. Always consult a licensed healthcare provider before changing any training, nutrition, supplement, or protocol.
 
 Feedback → support@peptidesai.com
 ```
 
-*(3 891 / 4 000)*
+*(3 588 / 4 000)*
 
 ---
 

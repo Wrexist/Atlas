@@ -1,0 +1,27 @@
+/* iPad Pro 13" override — injected at render time over atlas.css.
+   Reflows the phone deck into a caption-left / device-right composition
+   that fills the 2064 × 2752 canvas. Same source screens, no edits. */
+
+html, body { width: 2064px !important; height: 2752px !important; }
+
+.frame {
+  width: 2064px !important; height: 2752px !important;
+  display: flex; flex-direction: row; align-items: center;
+  background:
+    radial-gradient(70% 60% at 18% 30%, color-mix(in srgb,var(--accent) 20%,transparent), transparent 60%),
+    radial-gradient(60% 50% at 50% -6%, rgba(123,92,255,0.16), transparent 60%),
+    linear-gradient(135deg,#0C0A14 0%, var(--bg-0) 45%, #07070C 100%) !important;
+}
+
+/* left caption column, vertically centred by the flex row */
+.cap { position: relative; z-index: 3; flex: 0 0 760px; padding: 0 0 0 120px !important; }
+.kicker { font-size: 31px; margin-bottom: 26px; }
+.headline { font-size: 98px; letter-spacing: -3.2px; }
+.subhead { font-size: 41px; margin-top: 30px; max-width: 700px; }
+.badge { font-size: 30px; margin-top: 34px; padding: 18px 32px; }
+
+/* right device column */
+.device {
+  position: relative !important; left: auto !important; top: auto !important;
+  transform: none !important; margin: 0 48px 0 56px !important; flex: 0 0 auto;
+}

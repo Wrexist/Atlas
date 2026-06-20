@@ -1,0 +1,42 @@
+/* ============================================================
+   Atlas — social & web marketing assets
+   Self-contained (no atlas.css). Each file sets its own canvas
+   size; this provides tokens + shared components.
+   ============================================================ */
+:root{
+  --mint:#34D399; --violet:#7B5CFF; --amber:#F59E0B; --coral:#F87171;
+  --blue:#60A5FA; --orange:#FB923C; --yellow:#FACC15;
+  --ink:#FFFFFF; --muted:#A6ABBE; --faint:#6B6F84; --accent:var(--mint);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{font-family:"Inter",system-ui,-apple-system,sans-serif;color:var(--ink);font-feature-settings:"tnum";}
+
+.tile{position:relative;overflow:hidden;
+  background:
+    radial-gradient(78% 50% at 50% -10%, color-mix(in srgb,var(--accent) 42%,transparent), transparent 60%),
+    radial-gradient(70% 46% at 102% 104%, rgba(123,92,255,0.22), transparent 60%),
+    linear-gradient(160deg,#0C0A16 0%,#0A0A10 45%,#07070C 100%);}
+.tile::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(rgba(255,255,255,0.02) 1px,transparent 1px);background-size:4px 4px;opacity:.5;}
+
+.wordmark{display:flex;align-items:center;gap:16px;font-size:30px;font-weight:800;letter-spacing:7px;color:#fff;}
+.kicker{font-size:26px;font-weight:700;letter-spacing:5px;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:14px;}
+.kicker::before{content:"";width:46px;height:4px;border-radius:4px;background:var(--accent);}
+.h1{font-weight:800;letter-spacing:-2.4px;line-height:1.02;text-wrap:balance;}
+.hl{color:var(--accent);text-shadow:0 0 40px color-mix(in srgb,var(--accent) 55%,transparent);}
+.sub{color:var(--muted);font-weight:500;line-height:1.3;}
+.heronum{font-weight:800;letter-spacing:-6px;line-height:.88;}
+
+.chip{display:inline-flex;align-items:center;gap:11px;padding:13px 24px;border-radius:100px;font-size:27px;font-weight:700;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff;}
+.chip.mint{background:rgba(52,211,153,0.15);border-color:rgba(52,211,153,0.42);color:#9DF3CF;}
+.chip.amber{background:rgba(245,158,11,0.16);border-color:rgba(245,158,11,0.46);color:#FBCE7A;}
+.chip.violet{background:rgba(123,92,255,0.18);border-color:rgba(123,92,255,0.48);color:#C9BCFF;}
+.chip.blue{background:rgba(96,165,250,0.15);border-color:rgba(96,165,250,0.46);color:#A7CBFB;}
+
+.badge-as{display:inline-flex;align-items:center;gap:16px;background:#fff;color:#0A0A10;border-radius:20px;padding:18px 30px;font-weight:700;font-size:30px;letter-spacing:-0.3px;}
+.badge-as small{display:block;font-size:21px;font-weight:600;color:#555;letter-spacing:0;}
+
+/* a phone cut from a rendered portrait screenshot (crops out the caption) */
+.phone{position:relative;border-radius:64px;overflow:hidden;
+  box-shadow:0 0 0 2px rgba(255,255,255,0.07), 0 0 130px color-mix(in srgb,var(--accent) 36%,transparent), 0 50px 120px rgba(0,0,0,0.6);
+  background-repeat:no-repeat;}

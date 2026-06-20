@@ -1,0 +1,39 @@
+/* ============================================================
+   Atlas — Apple Watch marketing caption frame (1320 × 1650, 4:5).
+   Loaded AFTER atlas.css: reuses the caption + branded background,
+   adds a realistic Apple Watch device (case · crown · button · band)
+   that displays a rendered watch screenshot. For web / social, not
+   the bare App Store watch upload.
+   ============================================================ */
+html, body { height: 1650px !important; }
+.frame { height: 1650px !important; }
+
+.watchwrap { position: absolute; left: 0; right: 0; top: 472px; bottom: 0;
+  display: flex; align-items: center; justify-content: center; }
+.watch { position: relative; display: flex; flex-direction: column; align-items: center; }
+
+/* sport band stubs (accent-tinted) */
+.band { width: 314px; z-index: 1; position: relative;
+  background: linear-gradient(180deg, color-mix(in srgb,var(--accent) 52%,#0c0c10), color-mix(in srgb,var(--accent) 20%,#000));
+  box-shadow: inset 0 0 34px rgba(0,0,0,0.4); }
+.band-top { height: 196px; border-radius: 72px 72px 24px 24px; margin-bottom: -74px; }
+.band-bottom { height: 196px; border-radius: 24px 24px 72px 72px; margin-top: -74px; }
+.band::after { content: ""; position: absolute; left: 50%; top: 16px; bottom: 16px; width: 3px;
+  transform: translateX(-50%); background: rgba(255,255,255,0.07); border-radius: 3px; }
+
+/* case */
+.case { position: relative; z-index: 2; width: 626px; height: 752px; border-radius: 152px; padding: 26px;
+  background: linear-gradient(145deg,#43434c,#15151a);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.09), inset 0 2px 7px rgba(255,255,255,0.14),
+    0 0 140px color-mix(in srgb,var(--accent) 48%,transparent), 0 54px 120px rgba(0,0,0,0.62); }
+.screen { width: 100%; height: 100%; border-radius: 128px; overflow: hidden; background: #000;
+  box-shadow: inset 0 0 0 3px rgba(0,0,0,0.6); }
+.screen img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* digital crown + side button on the right edge */
+.crown { position: absolute; right: -16px; top: 258px; width: 31px; height: 100px; border-radius: 11px;
+  background: linear-gradient(90deg,#56565f,#23232a); box-shadow: inset 0 0 6px rgba(0,0,0,0.5); }
+.crown::after { content: ""; position: absolute; inset: 9px 7px; border-radius: 6px;
+  background: repeating-linear-gradient(180deg, rgba(255,255,255,0.14) 0 2px, transparent 2px 5px); }
+.sidebtn { position: absolute; right: -8px; top: 398px; width: 16px; height: 132px; border-radius: 8px;
+  background: linear-gradient(90deg,#3b3b44,#191920); }
