@@ -241,6 +241,7 @@ struct HabitEditSheet: View {
                                 lineWidth: 1
                             )
                         )
+                        .minimumHitArea()
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(symbol)

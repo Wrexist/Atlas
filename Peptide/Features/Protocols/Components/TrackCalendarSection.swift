@@ -303,7 +303,7 @@ struct TrackCalendarSection: View {
                             Circle().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                         }
                 }
-                .contentShape(Rectangle())
+                .minimumHitArea()
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.9))
         .accessibilityLabel(direction < 0 ? "Previous month" : "Next month")

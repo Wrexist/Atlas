@@ -433,7 +433,7 @@ struct StackAdjustmentSheet: View {
                 Text(subtitle)
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
-                    .padding(.leading, 34)
+                    .padding(.leading, Spacing.xxl + Spacing.sm)
             }
         }
     }

@@ -270,7 +270,7 @@ struct WhatsNewTourSheet: View {
             }
             .foregroundStyle(AppColor.onAccent)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
+            .padding(.vertical, Spacing.lg)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
                     .fill(

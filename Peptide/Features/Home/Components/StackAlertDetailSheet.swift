@@ -128,7 +128,7 @@ struct StackAlertDetailSheet: View {
                     .font(.system(size: 30, weight: .semibold))
                     .foregroundStyle(severityColor)
             }
-            .shadow(color: severityColor.opacity(0.35), radius: 18, x: 0, y: 0)
+            .shadow(color: .black.opacity(0.25), radius: 10, x: 0, y: 4)
 
             Text(warning.title)
                 .font(AppFont.title2)

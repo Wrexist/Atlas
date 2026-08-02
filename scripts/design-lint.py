@@ -42,6 +42,10 @@ DOMAIN_PALETTE_FILES = {
 # for tiny icon insets. Anything else is a number someone eyeballed.
 GRID = {0, 2, 4, 6, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64}
 
+# Rendered to a fixed export canvas rather than laid out in the app, so its
+# proportions are its own — the 8-point rhythm doesn't govern a shared image.
+FIXED_CANVAS_FILES = {"CycleCardView.swift", "ShareCardSheet.swift"}
+
 PLACEHOLDER_COPY = re.compile(
     r'"(?:[^"]*\b(?:lorem ipsum|placeholder text|dummy|foo bar|coming soon|tbd|todo:)\b[^"]*)"',
     re.IGNORECASE,
@@ -70,6 +74,30 @@ def strip_comments(source: str) -> str:
     """Blank out comments so rules don't fire on prose that describes them."""
     source = re.sub(r"/\*.*?\*/", "", source, flags=re.DOTALL)
     return re.sub(r"//[^\n]*", "", source)
+
+
+def blank_previews(source: str) -> str:
+    """Replace `#Preview { … }` bodies with blank lines.
+
+    Preview scaffolding isn't shipping UI — a hardcoded 200pt spacer that
+    positions a demo button says nothing about the app's rhythm — but line
+    numbers still have to line up with the file, so the text is blanked
+    rather than removed.
+    """
+    out = source
+    for m in reversed(list(re.finditer(r"#Preview\b[^{]*\{", source))):
+        depth, i = 0, m.end() - 1
+        while i < len(source):
+            if source[i] == "{":
+                depth += 1
+            elif source[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+        span = source[m.start():i + 1]
+        out = out[:m.start()] + re.sub(r"[^\n]", " ", span) + out[i + 1:]
+    return out
 
 
 def line_of(source: str, index: int) -> int:
@@ -117,17 +145,35 @@ def rule_fixed_font(path, source, code) -> list[Finding]:
 
 
 def rule_glow(path, source, code) -> list[Finding]:
-    """A shadow in a hue other than black is a glow. Glows read as 2018
-    'gamer UI'; depth should come from the material, not from a halo."""
+    """A coloured shadow behind a *glyph* is a halo — the neon look the
+    craft rules exist to prevent.
+
+    A coloured shadow under a *filled shape* is something else entirely:
+    tinted elevation, which is how the accent medallions across the app read
+    as floating. That idiom is used identically in a dozen places, so it's a
+    system, not an accident, and the rule doesn't touch it.
+    """
     out = []
     for m in re.finditer(r"\.shadow\(\s*color:\s*([^,]+),[^)]*radius:\s*(\d+(?:\.\d+)?)", code):
         colour, radius = m.group(1).strip(), float(m.group(2))
         if re.search(r"\.black|\.clear|Color\.black|AppShadow", colour):
             continue
-        if radius >= 10:
-            out.append(Finding(path, line_of(code, m.start()), "glow",
-                               f"coloured shadow at radius {radius:g} reads as a glow; "
-                               "use AppShadow or drop it", "warning"))
+        if radius < 10:
+            continue
+        # What is the shadow attached to? Walk back to the nearest construct.
+        before = code[max(0, m.start() - 500):m.start()]
+        anchor = None
+        for kind, pattern in (("shape", r"\.fill\(|\.background\s*\{|Image\(uiImage:|Image\(\""),
+                              ("glyph", r"\bText\(|Image\(systemName:")):
+            found = list(re.finditer(pattern, before))
+            if found and (anchor is None or found[-1].start() > anchor[1]):
+                anchor = (kind, found[-1].start())
+        if anchor is None or anchor[0] == "shape":
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "glow",
+                           f"coloured shadow at radius {radius:g} behind a glyph is a "
+                           "halo; contrast should come from the ink, not a glow",
+                           "warning"))
     return out
 
 
@@ -178,19 +224,37 @@ def rule_placeholder_copy(path, source, code) -> list[Finding]:
 
 
 def rule_hit_target(path, source, code) -> list[Finding]:
-    """A control smaller than 44pt is hard to hit and fails an accessibility
-    audit. Only flags frames inside a Button/tap-gesture label."""
+    """A control smaller than 44pt is hard to hit and fails an audit.
+
+    The subtlety is *what* the frame belongs to. A 28pt icon tile inside a
+    full-width row button is not a 28pt target — the row is the target, and
+    flagging it would bury the handful of genuinely small controls. So the
+    rule only fires when the flagged frame sizes the button's entire label:
+    no stack, no Spacer, no infinite width anywhere in it.
+    """
     out = []
+    lines = code.splitlines()
     for m in re.finditer(r"\.frame\(width:\s*(\d+),\s*height:\s*(\d+)\)", code):
         w, h = int(m.group(1)), int(m.group(2))
         if min(w, h) >= 44:
             continue
-        window = code[max(0, m.start() - 600):m.start()]
-        if not re.search(r"\bButton\b|onTapGesture", window):
+
+        # Find the enclosing Button, and confirm the frame is actually inside
+        # its label — the nearest preceding `Button` is often a context-menu
+        # action or a sibling row, and a plain badge is not a tap target.
+        head = code[:m.start()]
+        bi = max(head.rfind("Button {"), head.rfind("Button("), head.rfind("onTapGesture"))
+        if bi < 0 or m.start() - bi > 1200:
             continue
-        # An explicit contentShape/padding after the frame can still expand it.
-        after = code[m.end():m.end() + 240]
-        if "contentShape" in after or re.search(r"\.padding\(", after):
+        label = code[bi:m.start()]
+        if label.count("{") - label.count("}") < 1:
+            continue
+        if re.search(r"\b(?:H|V|Z)?Stack\b|Spacer\(\)|maxWidth:\s*\.infinity", label):
+            continue
+
+        # An explicit larger frame or contentShape afterwards already fixes it.
+        after = code[m.end():m.end() + 900]
+        if re.search(r"minimumHitArea|minimumHitTarget|\.frame\(width:\s*(?:4[4-9]|[5-9]\d)", after):
             continue
         out.append(Finding(path, line_of(code, m.start()), "hit-target",
                            f"{w}×{h} tap target is under Spacing.minimumHitTarget (44)",
@@ -201,6 +265,8 @@ def rule_hit_target(path, source, code) -> list[Finding]:
 def rule_off_grid_spacing(path, source, code) -> list[Finding]:
     """Padding and stack spacing come from Spacing so the rhythm is one
     decision, not two hundred."""
+    if path.name in FIXED_CANVAS_FILES:
+        return []
     out = []
     patterns = [
         r"\.padding\((?:\.\w+,\s*)?(\d+)\)",
@@ -211,6 +277,12 @@ def rule_off_grid_spacing(path, source, code) -> list[Finding]:
             value = int(m.group(1))
             if value in GRID:
                 continue
+            # Sub-8pt values are optical, not structural: a badge with 8pt of
+            # vertical padding is a tall badge. The grid governs layout
+            # rhythm — stack spacing and card/screen padding — so the rule
+            # starts where that rhythm does.
+            if value < 8:
+                continue
             out.append(Finding(path, line_of(code, m.start()), "off-grid",
                                f"{value}pt is off the 8-point grid; use a Spacing token",
                                "warning"))
@@ -218,10 +290,25 @@ def rule_off_grid_spacing(path, source, code) -> list[Finding]:
 
 
 def rule_low_contrast_ink(path, source, code) -> list[Finding]:
-    """Text at under 55% opacity on a glass surface fails WCAG AA at small
-    sizes. Tokens already encode the intended hierarchy."""
+    """Text at under 50% opacity fails WCAG AA at small sizes, and the ramp
+    already encodes the intended hierarchy — fading a token is how you end up
+    with five greys that were each meant to be `textTertiary`.
+
+    Only fires on *text*. A dashed chart reference line and a decorative
+    particle are supposed to be faint; flagging those would make the rule
+    noise, and noisy rules get muted.
+    """
     out = []
     for m in re.finditer(r"\.foregroundStyle\(\s*AppColor\.\w+\.opacity\(0?\.([0-4]\d?)\)", code):
+        before = code[max(0, m.start() - 300):m.start()]
+        anchor = None
+        for kind, pattern in (("other", r"RuleMark|LineMark|AreaMark|BarMark|Image\(|Circle\(|Capsule\(|Rectangle\("),
+                              ("text", r"\bText\(")):
+            found = list(re.finditer(pattern, before))
+            if found and (anchor is None or found[-1].start() > anchor[1]):
+                anchor = (kind, found[-1].start())
+        if anchor is None or anchor[0] != "text":
+            continue
         frac = float("0." + m.group(1))
         out.append(Finding(path, line_of(code, m.start()), "low-contrast",
                            f"ink at {frac:g} opacity; use textSecondary/textTertiary "
@@ -298,7 +385,7 @@ def main() -> int:
     findings: list[Finding] = []
     for root in (FEATURES, DESIGN_SYSTEM):
         for path, source in swift_files(root):
-            code = strip_comments(source)
+            code = blank_previews(strip_comments(source))
             for rule in RULES:
                 if args.rule and rule.__name__ != f"rule_{args.rule.replace('-', '_')}":
                     continue

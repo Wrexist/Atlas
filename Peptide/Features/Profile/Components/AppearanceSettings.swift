@@ -1,5 +1,9 @@
 import SwiftUI
 
+/// Width of the leading icon column shared by every settings row, so copy on
+/// a second line can align under the title rather than under the icon.
+private let iconColumnWidth: CGFloat = 24
+
 struct AppearanceSettings: View {
     @Environment(DataStore.self) private var dataStore
     @State private var notificationService = NotificationService.shared
@@ -100,7 +104,7 @@ struct AppearanceSettings: View {
                     .foregroundStyle(AppColor.textTertiary)
             }
         }
-        .padding(.leading, 36)
+        .padding(.leading, iconColumnWidth + Spacing.md)
     }
 
     private func handleDoseRemindersToggle(_ enabled: Bool) {
@@ -136,7 +140,7 @@ private struct SettingsToggleRow: View {
             Image(systemName: icon)
                 .font(AppFont.scaled(14))
                 .foregroundStyle(AppColor.accentPrimary)
-                .frame(width: 24)
+                .frame(width: iconColumnWidth)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(title)
@@ -165,7 +169,7 @@ private struct ThemePickerRow: View {
                 Image(systemName: "paintpalette.fill")
                     .font(AppFont.scaled(14))
                     .foregroundStyle(AppColor.accentPrimary)
-                    .frame(width: 24)
+                    .frame(width: iconColumnWidth)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Accent Color")
@@ -184,7 +188,7 @@ private struct ThemePickerRow: View {
                     swatch(for: theme)
                 }
             }
-            .padding(.leading, 36)
+            .padding(.leading, iconColumnWidth + Spacing.md)
         }
     }
 
@@ -211,6 +215,7 @@ private struct ThemePickerRow: View {
                         .foregroundStyle(AppColor.onAccent)
                         .opacity(isSelected ? 1 : 0)
                 )
+                .minimumHitArea()
                 .accessibilityLabel(theme.displayName)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
@@ -277,7 +282,7 @@ private struct SettingsPickerRow<Control: View>: View {
                 Image(systemName: icon)
                     .font(AppFont.scaled(14))
                     .foregroundStyle(AppColor.accentPrimary)
-                    .frame(width: 24)
+                    .frame(width: iconColumnWidth)
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -293,7 +298,7 @@ private struct SettingsPickerRow<Control: View>: View {
             }
 
             control()
-                .padding(.leading, 36)
+                .padding(.leading, iconColumnWidth + Spacing.md)
         }
     }
 }

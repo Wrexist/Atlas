@@ -409,6 +409,7 @@ struct LiquidGlassStepper: View {
                 .foregroundStyle(isEnabled ? AppColor.textPrimary : AppColor.textTertiary)
                 .frame(width: 30, height: 30)
                 .glassControl(.circle)
+                .minimumHitArea()
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.88))
         .disabled(!isEnabled)

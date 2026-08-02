@@ -169,6 +169,7 @@ struct ProfileCustomizationSheet: View {
                                     Circle().strokeBorder(AppColor.background, lineWidth: 2)
                                 }
                         }
+                        .minimumHitArea()
                 }
                 .disabled(isProcessingPhoto)
                 .accessibilityLabel("Change profile photo")

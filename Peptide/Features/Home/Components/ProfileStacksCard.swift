@@ -179,7 +179,7 @@ struct ProfileStacksCard: View {
 
                 if stack.status == .active {
                     cycleProgressBar(for: stack)
-                        .padding(.leading, 34)
+                        .padding(.leading, Spacing.xxl + Spacing.sm)
                 }
             }
             .padding(.vertical, Spacing.xxs)

@@ -995,8 +995,7 @@ struct FoodLibraryFlow: View {
                         )
                 }
                 .shadow(color: AppColor.accentPrimary.opacity(inFlight ? 0 : 0.35), radius: 5, y: 2)
-                .contentShape(Rectangle())
-                .frame(width: 44, height: 44)
+                .minimumHitArea()
         }
         .buttonStyle(.plain)
         .disabled(inFlight || product.loggable(for: product.defaultPortion) == nil)

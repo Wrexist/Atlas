@@ -372,6 +372,14 @@ jobs:
           fi
           echo "OK: no proxy secret keys committed."
 
+      - name: Design system check
+        # SwiftLint covers Swift-level problems; this covers design-system
+        # ones — raw colour literals that skip light mode, fixed font sizes
+        # that skip Dynamic Type, glass surfaces that stack two materials,
+        # sub-44pt tap targets, off-grid spacing. Errors fail the build;
+        # warnings are printed for review.
+        run: python3 scripts/design-lint.py --all
+
       - name: Verify bundled peptide dataset integrity
         # PeptideDatabase falls back to a tiny MockPeptides set if
         # peptides.json is missing or corrupt — and in release builds

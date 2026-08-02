@@ -51,7 +51,7 @@ struct ScreenshotModeBanner: View {
                             .font(AppFont.scaled(12, weight: .heavy))
                             .tracking(0.5)
                             .textCase(.uppercase)
-                            .padding(.horizontal, 10)
+                            .padding(.horizontal, Spacing.md)
                             .padding(.vertical, 5)
                             .foregroundStyle(AppColor.onAccent)
                             .background {
@@ -83,6 +83,7 @@ struct ScreenshotModeBanner: View {
                                     Circle().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                                 }
                         }
+                        .minimumHitArea()
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Hide screenshot mode reminder")

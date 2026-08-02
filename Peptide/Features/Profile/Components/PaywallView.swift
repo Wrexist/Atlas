@@ -137,10 +137,7 @@ struct PaywallView: View {
                             Circle().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                         }
                 }
-                // 44pt tap target while the visible circle stays 32pt
-                // (Deep Audit II B4 — the dismiss control was sub-HIG).
-                .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
+                .minimumHitArea()
         }
         .accessibilityLabel("Close")
     }

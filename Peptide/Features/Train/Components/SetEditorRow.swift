@@ -140,6 +140,7 @@ struct SetEditorRow: View {
                                  : AppColor.textTertiary)
                 .frame(width: 32, height: 32)
                 .contentTransition(.symbolEffect(.replace))
+                .minimumHitArea()
         }
         .buttonStyle(.plain)
         .accessibilityLabel(set.completed ? "Set complete" : "Mark set complete")

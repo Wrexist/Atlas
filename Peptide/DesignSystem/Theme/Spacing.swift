@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 enum Spacing {
     static let xxs: CGFloat = 2
@@ -45,4 +46,24 @@ enum Spacing {
     /// Apple's minimum comfortable target. Icon-only controls should reserve
     /// at least this much, even when the glyph itself is smaller.
     static let minimumHitTarget: CGFloat = 44
+
+    // MARK: - Scroll insets
+
+    /// Bottom padding that keeps the last row of a scroll view clear of the
+    /// tab bar and the floating next-dose accessory above it.
+    static let scrollBottomInset: CGFloat = 96
+}
+
+extension View {
+    /// Grows the *tappable* area to the 44pt minimum without changing what's
+    /// drawn: the visual keeps whatever frame it already had and sits centred
+    /// in the larger hit box.
+    ///
+    /// Apply it last, after the fill and border — putting it earlier resizes
+    /// the artwork instead of the target, which is the mistake it exists to
+    /// prevent.
+    func minimumHitArea() -> some View {
+        frame(minWidth: Spacing.minimumHitTarget, minHeight: Spacing.minimumHitTarget)
+            .contentShape(Rectangle())
+    }
 }

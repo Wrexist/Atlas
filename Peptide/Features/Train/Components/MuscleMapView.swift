@@ -129,7 +129,7 @@ struct MuscleMapView: View {
             Text(identified.displayName)
                 .font(AppFont.caption.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
-                .padding(.horizontal, 10)
+                .padding(.horizontal, Spacing.md)
                 .padding(.vertical, 5)
                 .background(Capsule().fill(AppColor.surfaceElevated))
                 .overlay(Capsule().stroke(Color.white.opacity(0.12)))

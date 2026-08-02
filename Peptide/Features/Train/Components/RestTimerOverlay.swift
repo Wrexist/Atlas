@@ -104,7 +104,7 @@ struct RestTimerOverlay: View {
             Text(label)
                 .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
-                .padding(.horizontal, 10)
+                .padding(.horizontal, Spacing.md)
                 .padding(.vertical, 8)
                 .background(
                     Capsule().fill(AppColor.surfaceSecondary.opacity(0.8))

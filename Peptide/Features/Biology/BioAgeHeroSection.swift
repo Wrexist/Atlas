@@ -118,8 +118,11 @@ struct BioAgeHeroSection: View {
             .foregroundStyle(tint)
             .monospacedDigit()
             .contentTransition(.numericText())
-            .shadow(color: tint.opacity(0.6), radius: 24, y: 0)
-            .shadow(color: tint.opacity(0.25), radius: 6, y: 0)
+            // A neutral drop, not a tinted halo. Two stacked coloured
+            // shadows behind a 56pt number read as neon; the number already
+            // carries its own colour, and legibility over the starfield only
+            // needs the backdrop pushed away from it.
+            .shadow(color: .black.opacity(0.35), radius: 8, y: 2)
     }
 
     // MARK: - State affordance (Pro pill / progress label / value below)

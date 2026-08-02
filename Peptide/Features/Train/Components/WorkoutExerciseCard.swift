@@ -83,7 +83,7 @@ struct WorkoutExerciseCard: View {
                 if setSnapshot.id != entry.sets.last?.id {
                     Divider()
                         .background(AppColor.glassBorder.opacity(0.5))
-                        .padding(.leading, 30)
+                        .padding(.leading, Spacing.xl + Spacing.sm)
                 }
             }
         }

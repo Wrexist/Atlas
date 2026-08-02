@@ -42,7 +42,7 @@ struct HomeStickyHeader: View {
                 .offset(y: (1 - progress) * 6)
         }
         .padding(.horizontal, Spacing.screenPadding)
-        .padding(.vertical, 10)
+        .padding(.vertical, Spacing.sm)
         .background {
             ZStack {
                 Rectangle()
