@@ -120,7 +120,10 @@ struct PeptideSelector: View {
                     Image(systemName: "xmark.circle.fill")
                         .font(AppFont.scaled(14))
                         .foregroundStyle(AppColor.textTertiary)
+                        .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
+                        .contentShape(Rectangle())
                 }
+                .accessibilityLabel("Clear search")
                 .transition(.scale.combined(with: .opacity))
             }
         }

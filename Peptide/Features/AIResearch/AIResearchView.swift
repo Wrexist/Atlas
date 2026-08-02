@@ -230,6 +230,7 @@ struct AIResearchView: View {
             }
             .buttonStyle(.plain)
             .disabled(!canSend)
+            .accessibilityLabel("Send question")
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.sm)

@@ -102,7 +102,11 @@ struct StackAlertDetailSheet: View {
                                     }
                             }
                             .liquidGlass(.circle)
+                            .frame(width: Spacing.minimumHitTarget,
+                                   height: Spacing.minimumHitTarget)
+                            .contentShape(Rectangle())
                     }
+                    .accessibilityLabel("Close")
                 }
             }
             .navigationTitle("Alert Details")

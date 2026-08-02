@@ -125,6 +125,7 @@ private struct DiagnosticsDetailSheet: View {
                         } label: {
                             Image(systemName: "trash")
                         }
+                        .accessibilityLabel("Clear all reports")
                     }
                 }
             }

@@ -38,7 +38,11 @@ struct AchievementToastView: View {
                         Image(systemName: "xmark")
                             .font(AppFont.scaled(12, weight: .bold))
                             .foregroundStyle(AppColor.textTertiary)
+                            .frame(width: Spacing.minimumHitTarget,
+                                   height: Spacing.minimumHitTarget)
+                            .contentShape(Rectangle())
                     }
+                    .accessibilityLabel("Dismiss")
                 }
                 .padding(Spacing.lg)
                 .background {

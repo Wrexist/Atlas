@@ -440,6 +440,7 @@ struct LiquidGlassStepper: View {
         .buttonStyle(ScalePressStyle(pressedScale: 0.88))
         .disabled(!isEnabled)
         .opacity(isEnabled ? 1 : 0.5)
+        .accessibilityLabel(icon.contains("minus") ? "Decrease" : "Increase")
     }
 
     private func tick() {

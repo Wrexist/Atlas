@@ -480,9 +480,10 @@ struct OnboardingView: View {
                     Image(systemName: "chevron.left")
                         .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
-                        .padding(10)
+                        .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
                         .background(Circle().fill(AppColor.surfaceSecondary.opacity(0.6)))
                 }
+                .accessibilityLabel("Back")
             } else {
                 Color.clear.frame(width: 36, height: 36)
             }
