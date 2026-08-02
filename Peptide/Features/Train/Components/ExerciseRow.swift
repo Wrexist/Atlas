@@ -40,6 +40,9 @@ struct ExerciseRow: View {
         }
         .padding(.vertical, Spacing.xs)
         .contentShape(Rectangle())
+        // One VoiceOver stop per exercise, not four — the tile, the name,
+        // the two pills and the chevron are one piece of information.
+        .accessibilityElement(children: .combine)
     }
 
     private var musclePill: some View {

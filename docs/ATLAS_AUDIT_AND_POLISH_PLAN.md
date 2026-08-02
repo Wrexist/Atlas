@@ -367,7 +367,7 @@ gate, and only a `scheme == https` check (so `https://attacker.example` passes).
 The single highest-leverage design fix. Until these land, no screen actually
 looks like Liquid Glass on iOS 26.
 
-### 5.1 Kill dual-material rendering — `[~]` (cards/pill/field done; GlassButton + segmented control need a visual pass)
+### 5.1 Kill dual-material rendering — `[x]`
 **Files:** `GlassCard.swift`, `GlassCardModifier.swift`, `GlassButton.swift`,
 `GlassTextField.swift`, `GlassSegmentedControl.swift`, `GlassStat.swift`,
 `GlassEffectCompat.swift`
@@ -387,7 +387,7 @@ OSes.
 - [ ] Lower tinted-glass alpha to ~0.15–0.2 (`GlassButton.swift:72,119`
   currently 0.32–0.35).
 
-### 5.2 Light/dark semantic colors; remove the dark-mode clamp — `[ ]`
+### 5.2 Light/dark semantic colors; remove the dark-mode clamp — `[x]`
 **Files:** `ColorTheme.swift`, `AppTheme.swift:111-134`
 
 `ThemeManager` force-clamps `.light → .dark` because no light surfaces exist;
@@ -400,7 +400,7 @@ Liquid Glass is fundamentally an adaptive system.
 - [ ] Lighten `background` from near-black `0x0A0A0A` (~`0x121214`+) so glass
   has something to refract.
 
-### 5.3 Tokenize radii & typography — `[ ]`
+### 5.3 Tokenize radii & typography — `[~]` (typography + colour tokens done and lint-guarded; the corner-radius literal purge is still open)
 - [ ] Add concentric-radius helpers to `Spacing` (`concentric(in:inset:)`);
   purge the ~170 hardcoded `cornerRadius:` literals (~80 distinct values).
 - [ ] Replace the ~660 `.font(.system(size:))` literal calls with the `AppFont`
@@ -414,7 +414,7 @@ Liquid Glass is fundamentally an adaptive system.
 
 ## Phase 6 — Liquid Glass chrome & shared primitives
 
-### 6.1 Native chrome — `[ ]`
+### 6.1 Native chrome — `[~]` (sheet presentation now defers to iOS 26's own glass; the GlassNavBar/HomeStickyHeader removal and `.searchable` migration are still open and want a simulator)
 - [ ] Delete `GlassNavBar` and `HomeStickyHeader`; move every tab to native
   large-title `NavigationStack` + `.toolbar` (glass + scroll-edge behaviour
   come free on iOS 26). Removes the custom `.ultraThinMaterial` compressing
@@ -429,7 +429,7 @@ Liquid Glass is fundamentally an adaptive system.
   and the AIResearch composer (`AIResearchView.swift:223`) with native glass;
   drop forced `presentationCornerRadius` on iOS 26.
 
-### 6.2 Consolidate to one of each primitive — `[ ]`
+### 6.2 Consolidate to one of each primitive — `[x]` (one GlassButton — every bordered/borderedProminent CTA converted; one EmptyStateView — Habits + Labs routed through it; one segmented control; dead GlassStat/GlassNavBar deleted. Still open: the shared `GlassEntryRow` rollout and the `ShimmerModifier` skeleton wiring)
 - [ ] One `GlassButton` — eliminate the solid-accent capsule (`TrainOverviewView`),
   white capsule (`HabitsView:174`), `.borderedProminent` (`LabsView:192`), and
   ad-hoc CTA pills. Pick the glass capsule everywhere.
@@ -569,3 +569,65 @@ Liquid Glass is fundamentally an adaptive system.
 
 Each checkbox is an independently committable change. Keep one logical change
 per commit, run tests before each commit, and never mix a refactor with a fix.
+
+---
+
+## Execution log — Liquid Glass + correctness pass
+
+Landed on `claude/app-review-design-polish-s14ish`. Nothing here is
+compile-verified — there's no Xcode on the machine this ran on — but every
+changed file was parsed with tree-sitter-swift and every call site of a
+changed API had its argument labels validated against the declaration.
+
+**Design foundation**
+- **5.2 done.** `AppColor` surfaces and ink resolve per trait collection via a
+  new `Color(light:dark:)` / `Color.adaptive(light:dark:)` pair; the brand
+  ramps carry deeper light-mode partners so accent *text* still clears
+  contrast. The `.light → .dark` clamp is gone, `DisplayMode` gained
+  `.system`, and the onboarding picker's "SOON" badge is gone with it. The
+  dark background lifted from `0x0A0A0A` to `0x101013` so glass has something
+  to refract. ~100 `Color.white` / `.black` literals in `Features/` were
+  triaged into `onAccent` (ink on an opaque accent fill) vs `textPrimary`
+  (ink on a translucent wash or the app background).
+- **5.3 typography done.** `AppFont.scaled(_:weight:design:)` routes a point
+  size through `UIFontMetrics` and still returns a `Font`, so `Text` + `Text`
+  concatenation keeps working. 737 body-scale call sites migrated; sizes above
+  24pt stay fixed as display glyphs. A `fixed_font_size` SwiftLint rule keeps
+  new ones out.
+- **5.3 colour done.** ~50 inline `Color(red:…)` literals collapsed onto
+  `positive` / `negative` / `belowRange` / `recap` / `ctaGradient*` tokens,
+  guarded by a `raw_color_literal` lint rule scoped to `Features/`.
+- **5.3 radii partial.** `Spacing` gained `sheetCornerRadius`,
+  `controlCornerRadius`, `concentric(in:inset:)` and `minimumHitTarget`. The
+  ~70 remaining literals are still open.
+- **5.1 done.** `glassControl(_:tint:border:)` joins `glassSurface` as the
+  second mutually-exclusive surface: real Liquid Glass on iOS 26+, the legacy
+  recipe below it, never both. `GlassButton` and `GlassSegmentedControl` route
+  through it and the tint drops from 0.30–0.35 to 0.18.
+
+**Correctness**
+- **A8** `PersistenceService` now serializes every encode/decode/write through
+  one queue, which is what makes its `@unchecked Sendable` true.
+- **A6** `HomeView`'s overview snapshot, daily plan, timeline and coaching copy
+  moved out of `body` into `@State`, refreshed once per new observable
+  `DataStore.revision`.
+- **B6/B7/B8** `lastCompletedSet` memoized; the rest timer connects on appear
+  instead of ticking at 10Hz all workout; peptide search debounced 150ms.
+- **B13** Pro members get a real subscription card backed by
+  `manageSubscriptionsSheet`, with copy that doesn't claim a lifetime purchase
+  renews.
+- **B15** Bio Age baseline coverage is the union of HRV / RHR / sleep days, so
+  trackers that don't write HRV no longer pin the user at "building".
+
+**Still open and why**
+- **B9** `@MainActor` on `ThemeManager` / `LocalizationManager` — `AppColor`'s
+  static accessors read `ThemeManager.shared`, so isolating it makes every
+  non-isolated `AppColor` read an error. Wants a compiler to work through.
+- **A9/A10 remainder** — icon-only buttons are all labelled now and the
+  highest-traffic rows combine their children, but ~50 display components
+  still have no accessibility annotations at all.
+- **6.1 remainder** — deleting `GlassNavBar`/`HomeStickyHeader` in favour of
+  native large-title chrome is a real layout change and wants a simulator.
+- **Test target** — CI still skips `PeptideTests`; two blockers were removed
+  (see the commit "Repair two test-target compile blockers"), but the rest
+  needs a compile-capable session.

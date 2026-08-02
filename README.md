@@ -57,6 +57,33 @@ Service convention (`Peptide/Services/`): stateful services are
 caseless `enum`s with static members; pure-computation types are
 named `*Engine`.
 
+## Design system
+
+Everything visual comes from `Peptide/DesignSystem/`. Four rules, all of
+them enforced by SwiftLint (`custom_rules` in `.swiftlint.yml`) or by
+there being exactly one primitive to reach for:
+
+- **Colour** — use an `AppColor` token, never a raw `Color(hex:)` /
+  `Color(red:…)` / `Color.white`. Surface and ink tokens resolve per trait
+  collection through `Color(light:dark:)`, which is what makes light mode
+  work; a literal silently opts that screen out. Ink painted *on* an accent
+  fill is `AppColor.onAccent`; ink on a translucent wash or on the app
+  background is `AppColor.textPrimary`. Domain palettes that must stay
+  constant (macros, HealthKit metrics, anatomy) are listed in
+  `ColorTheme.swift` and excluded from the lint rule.
+- **Type** — use the `AppFont` ramp, or `AppFont.scaled(_:weight:design:)`
+  for a size the ramp doesn't cover. `Font.system(size:)` ignores the
+  content-size category outright, so anything set that way is invisible to
+  Dynamic Type. Sizes above 24pt are display glyphs and stay fixed.
+- **Glass** — `glassSurface(cornerRadius:tinted:)` for cards,
+  `glassControl(_:tint:border:)` for controls. Both render the real iOS 26
+  material *or* the legacy translucent recipe, never both stacked. Keep
+  tints around 0.15–0.20; higher and the control reads as paint, not glass.
+- **Metrics** — radii and hit targets come from `Spacing`. Use
+  `Spacing.concentric(in:inset:)` for a shape nested inside another rather
+  than guessing a second literal, and `Spacing.minimumHitTarget` for
+  icon-only controls.
+
 ## Secrets
 
 The iOS app does **not** embed an Anthropic key. `MealScannerService`,

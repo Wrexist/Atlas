@@ -74,6 +74,20 @@ struct ProtocolCard: View {
                 }
             }
         }
+        // The peptide avatars are a visual summary of the count already
+        // announced above, so they're hidden and the card reads as one item.
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var accessibilitySummary: String {
+        var parts = [protocol_.name, protocol_.status.displayName]
+        parts.append("\(protocol_.peptides.count) peptides")
+        if protocol_.status == .active {
+            parts.append("week \(protocol_.weekNumber) of \(protocol_.cycleLengthWeeks)")
+            parts.append("\(protocol_.daysRemaining) days left")
+        }
+        return parts.joined(separator: ", ")
     }
 }
 

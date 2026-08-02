@@ -104,7 +104,7 @@ these first.
   exist. (Confirms the product-bug I flagged earlier; the PaywallView
   banner was already softened — onboarding was missed.)
 
-- [ ] **A4 · [HealthKit] Imperial users see the kilograms number with a hardcoded "kg" label.**
+- [x] **A4 · [HealthKit] Imperial users see the kilograms number with a hardcoded "kg" label.**
   `Biomarker.displayValue/displayUnit(for:)` exist
   (`Biomarker.swift:72-98`) but are called **nowhere** in the render
   path; `BiomarkerSeriesService.swift:139-149` and the 48pt hero number
@@ -122,7 +122,7 @@ these first.
   **Fix:** include `.asleepUnspecified` in the asleep set (one line in
   both filters; extract a shared `isAsleep(_:)` so they can't drift).
 
-- [ ] **A6 · [Performance] `HomeView` does disk-backed work in `var body` every scroll frame.**
+- [x] **A6 · [Performance] `HomeView` does disk-backed work in `var body` every scroll frame.**
   Three offenders: `timelineEvents` runs a synchronous SwiftData fetch
   (`HomeView.swift:665-701`); `TodayOverviewSnapshot.build`
   (`:115`) walks entries, allocates a `NumberFormatter`, and can
@@ -138,14 +138,14 @@ these first.
   are reached from `body`. **Fix:** add the same versioned-cache tuple
   pattern `_entriesByDay` already uses.
 
-- [ ] **A8 · [Concurrency] `PersistenceService` is `@unchecked Sendable` with no actor isolation.**
+- [x] **A8 · [Concurrency] `PersistenceService` is `@unchecked Sendable` with no actor isolation.**
   `PersistenceService.swift:3`. Reachable from the widget/intent
   processes; the `@unchecked` is unearned and invites a torn
   cross-process read. **Fix:** `@MainActor` the class (and drop
   `@unchecked`), or back the write path with a serial queue and
   document that as the invariant.
 
-- [ ] **A9 · [Accessibility] ~812 `.font(.system(size:))` calls bypass Dynamic Type.**
+- [x] **A9 · [Accessibility] ~812 `.font(.system(size:))` calls bypass Dynamic Type.**
   172 files (784 in Features); heaviest in `OnboardingView` (42),
   `FoodLibraryFlow` (32), `TrialOfferView` (21). Body/label text at
   fixed point sizes never scales for low-vision users across
@@ -163,6 +163,28 @@ these first.
   `.accessibilityElement(children: .combine)` and hide decorative
   glyphs. Prioritize high-traffic rows (PeptideRow, DoseLogRow,
   TodayScheduleCard, TodaysMealsCard, BiomarkerRow).
+
+---
+
+## Execution log — pass 2
+
+Landed on `claude/app-review-design-polish-s14ish`. No compiler was
+available, so verification was tree-sitter parse checks over every changed
+file plus argument-label validation against each changed declaration.
+
+- **Closed:** A4 (was already wired end-to-end — verified and pinned with
+  `BiomarkerUnitConversionTests`, including the °C→°F delta trap), A6, A8,
+  A9, B3, B4, B6, B7, B8, B13, B15.
+- **A10 partial:** every icon-only button is labelled and the highest-traffic
+  rows combine their children; ~50 display components still carry no
+  accessibility annotations.
+- **B9 still open** and not attempted blind: `AppColor`'s static accessors
+  read `ThemeManager.shared`, so `@MainActor`-ing it turns every non-isolated
+  `AppColor` read into an error. It needs a cross-target compile.
+- **B10 / B11 re-confirmed as non-issues.** `DataStore.current` is a static on
+  a `@MainActor` type and so is already isolated; the barcode coders are only
+  reached from inside their own actor's synchronous methods, which can't
+  interleave.
 
 ---
 
@@ -184,12 +206,12 @@ these first.
   privacy-label checklist already added to `APP_STORE_METADATA.md`.)*
 
 ### Accessibility
-- [ ] **B3** ~40 icon-only buttons missing `accessibilityLabel` — including the
+- [x] **B3** ~40 icon-only buttons missing `accessibilityLabel` — including the
   **paywall close button** (`PaywallView.swift:117-124`), so a VoiceOver
   user can't reliably dismiss the paywall. **Fix:** route through the
   existing label-requiring `GlassIconButton` (GlassButton.swift:89);
   label the residual one-offs.
-- [ ] **B4** Sub-44pt tap targets: avatar chip 30×30 (`HomeStickyHeader.swift:101`),
+- [x] **B4** Sub-44pt tap targets: avatar chip 30×30 (`HomeStickyHeader.swift:101`),
   paywall close 32×32 (`PaywallView.swift:124`), several custom pills.
   **Fix:** enforce a 44pt floor in the shared button styles /
   `.frame(minWidth:44,minHeight:44)`.
@@ -200,15 +222,15 @@ these first.
   `@Environment(\.accessibilityReduceMotion)` to onboarding.
 
 ### Performance
-- [ ] **B6** `WorkoutSessionService.lastCompletedSet` (`:204`) does an unbounded
+- [x] **B6** `WorkoutSessionService.lastCompletedSet` (`:204`) does an unbounded
   200-session full-JSON fetch on **every set tap** in ActiveWorkoutView.
   **Fix:** predicate-filter by exercise ID + limit to recent sessions,
   or keep a small per-exercise LRU invalidated on commit.
-- [ ] **B7** `RestTimerOverlay` `Timer.publish(every:0.1).autoconnect()`
+- [x] **B7** `RestTimerOverlay` `Timer.publish(every:0.1).autoconnect()`
   (`:20`) ticks at 10Hz whenever ActiveWorkoutView is on screen, even
   between sets (confirms Phase 4.2). **Fix:** manual `connect()`/`cancel()`
   on appear/disappear, or `TimelineView`.
-- [ ] **B8** Peptide search re-filters 208 entries synchronously per keystroke,
+- [x] **B8** Peptide search re-filters 208 entries synchronously per keystroke,
   no debounce (`PeptideListViewModel.swift:38-56`). **Fix:** ~150ms
   debounce / Combine `debounce` before writing `filteredPeptides`.
 
@@ -235,7 +257,7 @@ these first.
   work. **Fixed in the same commit series as this document.**
 
 ### StoreKit
-- [ ] **B13** No in-app "Manage Subscription / Cancel" affordance anywhere (only
+- [x] **B13** No in-app "Manage Subscription / Cancel" affordance anywhere (only
   static "Settings → …" text). **Fix:** add a row in `ProfileView`
   (when `isProUser`) using `.manageSubscriptionsSheet(isPresented:)`.
 - [ ] **B14** `.storekit` trial lengths (annual P2W, monthly P3D) drive a confident
@@ -245,7 +267,7 @@ these first.
   confirm ASC intro offers match exactly; treat ASC as source of truth.
 
 ### HealthKit
-- [ ] **B15** Bio Age confidence keys on an **HRV-only** day count
+- [x] **B15** Bio Age confidence keys on an **HRV-only** day count
   (`BioAgeStateResolver.swift:64-77`); RHR+sleep-only users stay stuck
   "building baseline." **Fix:** compute `healthDataDays` as the union of
   distinct days across HRV/RHR/sleep series.
