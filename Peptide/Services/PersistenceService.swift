@@ -1,9 +1,24 @@
 import Foundation
 
+/// JSON-file persistence for the surfaces SwiftData doesn't own: custom
+/// peptides and the widget/watch snapshot in the App Group container.
+///
+/// **Concurrency invariant.** The `@unchecked Sendable` here is earned by
+/// `queue`: every encode, decode, and file write funnels through one serial
+/// queue, so the shared `JSONEncoder`/`JSONDecoder` — which are *not* safe to
+/// use concurrently — are only ever touched by one thread at a time. The
+/// reachable callers (the app, the widget extension, the App Intents
+/// extension) are separate processes, and cross-process interleaving is
+/// handled by `.atomic` writes, which publish via rename rather than in place.
+///
+/// Don't reach around `queue` by adding a new encode/decode path; add it
+/// inside `save`/`load` instead.
 final class PersistenceService: @unchecked Sendable {
     static let shared = PersistenceService()
 
     private let fileManager = FileManager.default
+
+    private let queue = DispatchQueue(label: "com.peptidesai.persistence")
 
     /// Documents directory. `nil` only on the rare devices/sandboxes where the
     /// container is unavailable; callers must handle nil by skipping IO.
@@ -145,22 +160,24 @@ final class PersistenceService: @unchecked Sendable {
     /// truth. The error is also logged for diagnostics.
     @discardableResult
     private func save<T: Encodable>(_ value: T, to url: URL) -> Bool {
-        do {
-            let data = try encoder.encode(value)
-            // .completeFileProtection encrypts the file at rest while
-            // the device is locked. The profile JSON carries the
-            // user's captured email and creator-attribution data and
-            // shouldn't be readable from a locked-device filesystem
-            // dump (audit security H-1). Backups still include the
-            // profile — that's intentional, the user expects a phone
-            // restore to recover their name / metrics / weight
-            // history; the email and attribution survive too. The
-            // protection only blocks the off-device-attacker case.
-            try data.write(to: url, options: [.atomic, .completeFileProtection])
-            return true
-        } catch {
-            AppLog.persistence.error("Failed to save \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
-            return false
+        queue.sync {
+            do {
+                let data = try encoder.encode(value)
+                // .completeFileProtection encrypts the file at rest while
+                // the device is locked. The profile JSON carries the
+                // user's captured email and creator-attribution data and
+                // shouldn't be readable from a locked-device filesystem
+                // dump (audit security H-1). Backups still include the
+                // profile — that's intentional, the user expects a phone
+                // restore to recover their name / metrics / weight
+                // history; the email and attribution survive too. The
+                // protection only blocks the off-device-attacker case.
+                try data.write(to: url, options: [.atomic, .completeFileProtection])
+                return true
+            } catch {
+                AppLog.persistence.error("Failed to save \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                return false
+            }
         }
     }
 
@@ -168,13 +185,15 @@ final class PersistenceService: @unchecked Sendable {
     /// distinguish the two cases should check `fileManager.fileExists(atPath:)` first.
     /// Decode failures (data corruption) are logged; absence is silent.
     private func load<T: Decodable>(_ type: T.Type, from url: URL) -> T? {
-        guard fileManager.fileExists(atPath: url.path) else { return nil }
-        do {
-            let data = try Data(contentsOf: url)
-            return try decoder.decode(type, from: data)
-        } catch {
-            AppLog.persistence.error("Failed to load \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
-            return nil
+        queue.sync {
+            guard fileManager.fileExists(atPath: url.path) else { return nil }
+            do {
+                let data = try Data(contentsOf: url)
+                return try decoder.decode(type, from: data)
+            } catch {
+                AppLog.persistence.error("Failed to load \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                return nil
+            }
         }
     }
 }

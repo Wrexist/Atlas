@@ -71,7 +71,22 @@ struct HomeView: View {
     /// detail sheet can route. Non-optional Identifiable wrapper so
     /// `.sheet(item:)` does the right thing.
     @State private var heroDetailKind: HeroDetailItem?
+    /// Everything Today derives from the store. These four used to be
+    /// computed properties read straight from `body`, which meant a SwiftData
+    /// fetch (the timeline), a `NumberFormatter` allocation plus a cold
+    /// insight recompute (the overview), and two engine passes ran on *every*
+    /// render — including every frame of a scroll, since `body` re-evaluates
+    /// on any `DataStore` mutation. `refreshDerived()` computes them once per
+    /// `dataStore.revision` change instead.
+    @State private var derived = DerivedToday()
     @Environment(\.requestReview) private var requestReview
+
+    private struct DerivedToday {
+        var overview: TodayOverviewSnapshot?
+        var plan: DailyScheduleEngine.DailyPlan?
+        var timeline: [TodayTimelineEvent] = []
+        var coaching: CoachingMessageEngine.CoachingMessage?
+    }
 
     private struct HeroDetailItem: Identifiable {
         let kind: HeroMetricKind
@@ -99,8 +114,16 @@ struct HomeView: View {
         return (entries, score, completed, total)
     }
 
-    private var dailyPlan: DailyScheduleEngine.DailyPlan {
-        DailyScheduleEngine.plan(for: dataStore.todayEntries)
+    /// Recomputes the four derived Today models. Cheap enough to run
+    /// synchronously on the main actor — it's a handful of in-memory passes
+    /// plus one day-scoped SwiftData fetch — but it must not run from `body`.
+    private func refreshDerived() {
+        derived = DerivedToday(
+            overview: TodayOverviewSnapshot.build(from: dataStore),
+            plan: DailyScheduleEngine.plan(for: dataStore.todayEntries),
+            timeline: buildTimelineEvents(),
+            coaching: buildCoachingMessage()
+        )
     }
 
     /// Touches `notificationService.lastReport` so the View takes a SwiftUI
@@ -121,7 +144,6 @@ struct HomeView: View {
 
     var body: some View {
         let stats = todayStats
-        let overview = TodayOverviewSnapshot.build(from: dataStore)
 
         NavigationStack {
             ScrollViewReader { proxy in
@@ -246,8 +268,10 @@ struct HomeView: View {
                     // cascade Bevel uses ("Excellent recovery, push
                     // today" / "Short sleep, cap intensity"), tuned
                     // for Atlas's peptide-protocol context.
-                    CoachingCard(message: coachingMessage)
-                        .sectionAppear(index: 0)
+                    if let coaching = derived.coaching {
+                        CoachingCard(message: coaching)
+                            .sectionAppear(index: 0)
+                    }
 
                     // Momentum — goal projection. Habits now lead the screen
                     // in TodayHabitsHero above; the goal countdown stays here
@@ -265,7 +289,7 @@ struct HomeView: View {
                         .sectionAppear(index: 0)
                     }
 
-                    if overview.hasAnySignal {
+                    if let overview = derived.overview, overview.hasAnySignal {
                         TodayOverviewCard(
                             snapshot: overview,
                             onTapHero: { dose in
@@ -326,9 +350,9 @@ struct HomeView: View {
                     // owner. The jump-bar .meals chip now navigates to
                     // the Meals tab (handled in handleJump).
 
-                    if !dataStore.protocols.isEmpty {
+                    if !dataStore.protocols.isEmpty, let plan = derived.plan {
                         DailyPlanCard(
-                            plan: dailyPlan,
+                            plan: plan,
                             onTapDose: { entry in selectedEntry = entry }
                         )
                         .id(TodayJumpBar.SectionAnchor.doses)
@@ -362,7 +386,7 @@ struct HomeView: View {
                     // + check-in + workouts merged into one sorted
                     // list. Hides itself when the day has no events
                     // (a brand-new install before the first log).
-                    TodayTimelineCard(events: timelineEvents)
+                    TodayTimelineCard(events: derived.timeline)
                         .sectionAppear(index: 6)
 
                     // Bevel-style Health Monitor grid — HRV / RHR /
@@ -584,6 +608,18 @@ struct HomeView: View {
                     }
                 }
             }
+            // Recompute the derived Today models once per store mutation.
+            // `.task(id:)` cancels and re-runs on each new revision, and fires
+            // once on first appear, which covers the initial population too.
+            .task(id: dataStore.revision) {
+                refreshDerived()
+            }
+            // The coaching copy reads recovery + sleep off the hero snapshot,
+            // so it has to re-pick when that lands (it arrives async, after
+            // the first `refreshDerived()`).
+            .onChange(of: heroSnapshot) { _, _ in
+                derived.coaching = buildCoachingMessage()
+            }
             .onAppear {
                 checkMilestonePrompt()
                 consumePendingDoseDeepLink()
@@ -681,7 +717,7 @@ struct HomeView: View {
     /// to the pure `TodayTimelineEvent.build` for sorting + row
     /// construction. Recomputes cheaply on every body re-eval
     /// (small lists, all in-memory).
-    private var timelineEvents: [TodayTimelineEvent] {
+    private func buildTimelineEvents() -> [TodayTimelineEvent] {
         let now = Date()
         let cal = Calendar.current
         // Plan C: workouts now live in StoredWorkoutSession; the
@@ -723,7 +759,7 @@ struct HomeView: View {
     /// Builds the coaching context from the current store + hero
     /// snapshot. Pure read — synchronous so the view body can
     /// consume it without an async hop.
-    private var coachingMessage: CoachingMessageEngine.CoachingMessage {
+    private func buildCoachingMessage() -> CoachingMessageEngine.CoachingMessage {
         let next = dataStore.nextDose
         let nextTimeDisplay: String? = next.map {
             DateFormatter.localizedString(from: $0.date, dateStyle: .none, timeStyle: .short)

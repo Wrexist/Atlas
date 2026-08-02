@@ -4,13 +4,29 @@ import WidgetKit
 @MainActor @Observable
 final class DataStore: DataServiceProtocol {
     var protocols: [PeptideProtocol] {
-        didSet { cacheVersion &+= 1 }
+        didSet {
+            cacheVersion &+= 1
+            revision &+= 1
+        }
     }
     var entries: [ProtocolEntry] {
-        didSet { cacheVersion &+= 1 }
+        didSet {
+            cacheVersion &+= 1
+            revision &+= 1
+        }
     }
-    var profile: UserProfile
+    var profile: UserProfile {
+        didSet { revision &+= 1 }
+    }
     var customPeptides: [Peptide]
+
+    /// Observable counterpart to the private `cacheVersion`. Views key
+    /// `.task(id:)` / `.onChange(of:)` off this to recompute a derived
+    /// snapshot exactly once per mutation, instead of doing the work inline
+    /// in `body` where it re-runs on every render pass.
+    ///
+    /// It's deliberately *not* `@ObservationIgnored` — that's the whole point.
+    private(set) var revision: Int = 0
 
     /// Non-fatal banner message for the UI. Set when persistence falls back to
     /// in-memory storage so the user knows changes won't survive relaunch.
