@@ -8,9 +8,7 @@ struct GlassSheetModifier<SheetContent: View>: ViewModifier {
         content
             .sheet(isPresented: $isPresented) {
                 sheetContent()
-                    .presentationBackground(.ultraThinMaterial)
-                    .presentationDragIndicator(.visible)
-                    .presentationCornerRadius(Spacing.cardCornerRadius)
+                    .liquidGlassPresentation()
             }
     }
 }
@@ -28,18 +26,34 @@ extension View {
     /// presented with `.sheet(item:)` (where there's no Bool to pass to
     /// `glassSheet`), or on any sheet you can't easily migrate to the
     /// modifier above.
+    ///
+    /// On iOS 26 the system already presents sheets on Liquid Glass, with a
+    /// corner radius that matches the device and reshapes as the sheet is
+    /// dragged. Forcing `.ultraThinMaterial` and a fixed radius there
+    /// *replaces* that with a flat blur and a corner that no longer lines up
+    /// with the display, so both are applied only on the older OSes that
+    /// actually need them.
     @ViewBuilder
     func liquidGlassPresentation(
         detents: Set<PresentationDetent>? = nil
     ) -> some View {
-        let view = self
-            .presentationDragIndicator(.visible)
-            .presentationCornerRadius(Spacing.cardCornerRadius)
-            .presentationBackground(.ultraThinMaterial)
-        if let detents {
-            view.presentationDetents(detents)
+        if #available(iOS 26.0, *) {
+            applyingDetents(detents)
+                .presentationDragIndicator(.visible)
         } else {
-            view
+            applyingDetents(detents)
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(Spacing.cardCornerRadius)
+                .presentationBackground(.ultraThinMaterial)
+        }
+    }
+
+    @ViewBuilder
+    private func applyingDetents(_ detents: Set<PresentationDetent>?) -> some View {
+        if let detents {
+            self.presentationDetents(detents)
+        } else {
+            self
         }
     }
 }
