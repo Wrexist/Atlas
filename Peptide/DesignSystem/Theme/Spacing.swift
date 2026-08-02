@@ -13,10 +13,36 @@ enum Spacing {
 
     static let cardPadding: CGFloat = 16
     static let screenPadding: CGFloat = 20
+
+    // MARK: - Corner radii
+    //
+    // One named role per radius. Nesting a rounded shape inside another looks
+    // wrong unless the inner radius is the outer one minus the inset — use
+    // `concentric(in:inset:)` rather than eyeballing a second literal.
+
+    static let sheetCornerRadius: CGFloat = 28
     static let cardCornerRadius: CGFloat = 20
+    /// Buttons, fields, and other single-line controls.
+    static let controlCornerRadius: CGFloat = 16
     static let smallCornerRadius: CGFloat = 12
     static let chipCornerRadius: CGFloat = 8
     /// Smaller than chipCornerRadius. Used for tiny icon backgrounds (≤24pt
     /// frames) where chipCornerRadius would look too round.
     static let iconCornerRadius: CGFloat = 6
+
+    /// The inner radius that keeps a nested shape concentric with its
+    /// container. A 20pt card padded by 8pt wants a 12pt inner radius; any
+    /// other value leaves a visibly uneven gap at the corners.
+    ///
+    /// Clamped at 2pt so a deep inset degrades to "almost square" instead of
+    /// inverting into a negative radius.
+    static func concentric(in outerRadius: CGFloat, inset: CGFloat) -> CGFloat {
+        max(2, outerRadius - inset)
+    }
+
+    // MARK: - Touch targets
+
+    /// Apple's minimum comfortable target. Icon-only controls should reserve
+    /// at least this much, even when the glyph itself is smaller.
+    static let minimumHitTarget: CGFloat = 44
 }

@@ -110,18 +110,14 @@ struct RecipeLogConfirmSheet: View {
     }
 
     private var confirmButton: some View {
-        Button {
+        GlassButton(
+            title: "Log to today",
+            icon: "checkmark.circle.fill",
+            style: .primary,
+            isFullWidth: true
+        ) {
             onLog(category)
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "checkmark.circle.fill")
-                Text("Log to today")
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.sm)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(AppColor.accentPrimary)
         .disabled(totals.calories == 0)
     }
 }

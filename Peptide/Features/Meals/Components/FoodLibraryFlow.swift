@@ -498,34 +498,23 @@ struct FoodLibraryFlow: View {
                 title: "No recipes yet",
                 body: "Combine your custom foods into a named recipe — log a multi-ingredient meal in one tap."
             )
-            Button {
+            GlassButton(title: "Build a recipe", icon: "plus.circle.fill", style: .primary) {
                 editingRecipe = Recipe(name: "")
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "plus.circle.fill")
-                    Text("Build a recipe")
-                }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColor.accentPrimary)
             .padding(.top, Spacing.sm)
         } else {
             sectionHeader("Your recipes (\(profile.recipes.count))")
             ForEach(profile.recipes) { recipe in
                 recipeRow(recipe)
             }
-            Button {
+            GlassButton(
+                title: "Add a recipe",
+                icon: "plus.circle",
+                style: .secondary,
+                isFullWidth: true
+            ) {
                 editingRecipe = Recipe(name: "")
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "plus.circle")
-                    Text("Add a recipe")
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.sm)
             }
-            .buttonStyle(.bordered)
-            .tint(AppColor.accentLight)
             .padding(.top, Spacing.xs)
         }
     }
@@ -776,16 +765,9 @@ struct FoodLibraryFlow: View {
                 title: "No custom foods",
                 body: "Create your own foods for meals and ingredients the database doesn't have."
             )
-            Button {
+            GlassButton(title: "Create custom food", icon: "plus.circle.fill", style: .primary) {
                 editingCustomFood = .blank
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "plus.circle.fill")
-                    Text("Create custom food")
-                }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColor.accentPrimary)
             .padding(.top, Spacing.sm)
         } else {
             sectionHeader("Your foods (\(profile.customFoods.count))")
@@ -1460,15 +1442,11 @@ struct FoodLibraryFlow: View {
 
     private func reviewActions(_ product: ScannedProduct) -> some View {
         HStack(spacing: Spacing.sm) {
-            Button("Back") { backToBrowse() }
-                .buttonStyle(.bordered)
-                .tint(AppColor.textSecondary)
+            GlassButton(title: "Back", style: .secondary) { backToBrowse() }
 
-            Button("Add to today") {
+            GlassButton(title: "Add to today", style: .primary) {
                 confirmLog(for: product)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColor.accentPrimary)
             // Block logging a 0-kcal OFF product despite the warning above —
             // it would push an all-zero entry into today's totals/rings.
             .disabled(product.loggable(for: portion) == nil || zeroCaloriesPer100g(product))
@@ -1495,20 +1473,11 @@ struct FoodLibraryFlow: View {
                 )
             }
             VStack(spacing: Spacing.sm) {
-                Button {
+                GlassButton(title: "Undo", icon: "arrow.uturn.backward", style: .destructive) {
                     undoLastLog()
-                } label: {
-                    HStack(spacing: Spacing.sm) {
-                        Image(systemName: "arrow.uturn.backward")
-                        Text("Undo")
-                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColor.destructive.opacity(0.85))
 
-                Button("Done") { onClose() }
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
+                GlassButton(title: "Done", style: .ghost) { onClose() }
             }
             .padding(.top, Spacing.sm)
         }

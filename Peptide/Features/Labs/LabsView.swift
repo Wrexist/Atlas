@@ -163,50 +163,15 @@ struct LabsView: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        VStack(spacing: Spacing.md) {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                AppColor.accentPrimary.opacity(0.35),
-                                AppColor.accentLight.opacity(0.15),
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 88, height: 88)
-                Image(systemName: "testtube.2")
-                    .font(.system(size: 36, weight: .semibold))
-                    .foregroundStyle(AppColor.textPrimary)
-            }
-            .padding(.top, Spacing.xxl)
-
-            Text("Track your biomarkers")
-                .font(AppFont.title2)
-                .foregroundStyle(AppColor.textPrimary)
-
-            Text("Testosterone, IGF-1, lipids, thyroid panels. Log a value to chart how your protocols are moving real numbers.")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.lg)
-
-            Button {
+        EmptyStateView(
+            icon: "testtube.2",
+            title: "Track your biomarkers",
+            message: "Testosterone, IGF-1, lipids, thyroid panels. Log a value to chart how your protocols are moving real numbers.",
+            action: .init(title: "Log first lab", icon: "plus.circle.fill") {
                 creatingEntry = true
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "plus.circle.fill")
-                    Text("Log first lab")
-                }
-                .frame(maxWidth: 200)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColor.accentPrimary)
-            .padding(.top, Spacing.sm)
-        }
-        .frame(maxWidth: .infinity)
+        )
+        .padding(.top, Spacing.xxl)
     }
 }
 

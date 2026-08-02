@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// The app's one segmented control. The selection pill slides between
+/// segments via `matchedGeometryEffect`, mirroring the system tab bar.
 struct GlassSegmentedControl<T: Hashable & CustomStringConvertible>: View {
     let options: [T]
     @Binding var selected: T
@@ -12,6 +14,8 @@ struct GlassSegmentedControl<T: Hashable & CustomStringConvertible>: View {
         HStack(spacing: Spacing.xs) {
             ForEach(options, id: \.self) { option in
                 Button {
+                    guard selected != option else { return }
+                    Haptics.selection()
                     withAnimation(AppAnimation.springSnappy) {
                         selected = option
                     }
@@ -19,54 +23,46 @@ struct GlassSegmentedControl<T: Hashable & CustomStringConvertible>: View {
                     optionLabel(for: option)
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(
+                    selected == option ? [.isButton, .isSelected] : .isButton
+                )
             }
         }
         .padding(Spacing.xs)
-        .background {
-            Capsule()
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    Capsule()
-                        .fill(AppColor.cardOverlay)
-                }
-                .overlay {
-                    Capsule()
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.capsule)
+        .glassControl(.capsule, interactive: false)
+    }
+
+    private func optionLabel(for option: T) -> some View {
+        title(for: option)
+            .font(AppFont.subheadline)
+            .foregroundStyle(
+                selected == option ? AppColor.textPrimary : AppColor.textSecondary
+            )
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.sm)
+            .frame(minHeight: Spacing.minimumHitTarget)
+            .background { selectionBackground(for: option) }
     }
 
     @ViewBuilder
-    private func optionLabel(for option: T) -> some View {
+    private func title(for option: T) -> some View {
         if let label {
             Text(label(option))
-                .font(AppFont.subheadline)
-                .foregroundStyle(
-                    selected == option ? AppColor.textPrimary : AppColor.textSecondary
-                )
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.sm)
-                .background { selectionBackground(for: option) }
         } else {
             Text(option.description)
-                .font(AppFont.subheadline)
-                .foregroundStyle(
-                    selected == option ? AppColor.textPrimary : AppColor.textSecondary
-                )
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.sm)
-                .background { selectionBackground(for: option) }
         }
     }
 
+    /// The moving pill. It's a plain tinted capsule rather than a second
+    /// glass surface — stacking `glassEffect` inside an already-glass track
+    /// is what made the control read as a muddy grey slab on iOS 26.
     @ViewBuilder
     private func selectionBackground(for option: T) -> some View {
         if selected == option {
-            Capsule()
-                .fill(AppColor.accentPrimary.opacity(0.25))
+            Capsule(style: .continuous)
+                .fill(AppColor.accentPrimary.opacity(0.18))
                 .overlay {
-                    Capsule()
+                    Capsule(style: .continuous)
                         .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
                 }
                 .matchedGeometryEffect(id: "segment", in: namespace)
@@ -85,5 +81,4 @@ struct GlassSegmentedControl<T: Hashable & CustomStringConvertible>: View {
             namespace: ns
         )
     }
-    .preferredColorScheme(.dark)
 }

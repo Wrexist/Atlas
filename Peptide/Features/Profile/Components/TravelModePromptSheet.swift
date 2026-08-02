@@ -164,27 +164,21 @@ struct TravelModePromptSheet: View {
 
     private var actions: some View {
         VStack(spacing: Spacing.sm) {
-            Button(action: onShift) {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "clock.arrow.2.circlepath")
-                    Text("Shift to local time")
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.sm)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColor.accentPrimary)
+            GlassButton(
+                title: "Shift to local time",
+                icon: "clock.arrow.2.circlepath",
+                style: .primary,
+                isFullWidth: true,
+                action: onShift
+            )
 
-            Button(action: onKeep) {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "house.fill")
-                    Text("Keep origin times")
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.sm)
-            }
-            .buttonStyle(.bordered)
-            .tint(AppColor.textSecondary)
+            GlassButton(
+                title: "Keep origin times",
+                icon: "house.fill",
+                style: .secondary,
+                isFullWidth: true,
+                action: onKeep
+            )
         }
     }
 

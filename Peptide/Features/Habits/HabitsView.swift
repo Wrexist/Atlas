@@ -318,41 +318,16 @@ struct HabitsView: View {
 
     private var emptyState: some View {
         VStack(spacing: Spacing.lg) {
-            ZStack {
-                Circle()
-                    .fill(AppColor.accentPrimary.opacity(0.18))
-                    .frame(width: 92, height: 92)
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 40, weight: .semibold))
-                    .foregroundStyle(AppColor.accentPrimary)
-            }
-            VStack(spacing: Spacing.sm) {
-                Text("No habits yet")
-                    .font(AppFont.scaled(24, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppColor.textPrimary)
-                Text("Pick something small — 10 push-ups, 5 minutes of stretching, a glass of water. Consistency compounds.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.lg)
-            }
-            Button {
-                editing = .new
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "plus")
-                    Text("Create your first habit")
+            EmptyStateView(
+                icon: "checkmark.seal.fill",
+                title: "No habits yet",
+                message: "Pick something small — 10 push-ups, 5 minutes of stretching, a glass of water. Consistency compounds.",
+                action: .init(title: "Create your first habit", icon: "plus") {
+                    editing = .new
                 }
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.background)
-                .padding(.horizontal, Spacing.xl)
-                .padding(.vertical, Spacing.md)
-                .background(Capsule().fill(AppColor.textPrimary))
-            }
-            .buttonStyle(.plain)
+            )
 
             StarterHabitSuggestions(onPick: addStarter)
-                .padding(.top, Spacing.sm)
         }
     }
 

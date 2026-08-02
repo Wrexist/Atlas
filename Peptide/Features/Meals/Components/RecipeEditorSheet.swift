@@ -270,18 +270,14 @@ struct RecipeEditorSheet: View {
     }
 
     private var deleteButton: some View {
-        Button(role: .destructive) {
+        GlassButton(
+            title: "Delete recipe",
+            icon: "trash",
+            style: .destructive,
+            isFullWidth: true
+        ) {
             showDeleteConfirm = true
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "trash")
-                Text("Delete recipe")
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.sm)
         }
-        .buttonStyle(.bordered)
-        .tint(AppColor.destructive)
     }
 
     private func commit() {

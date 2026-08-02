@@ -178,18 +178,14 @@ struct MealEntryEditorSheet: View {
     }
 
     private var deleteButton: some View {
-        Button(role: .destructive) {
+        GlassButton(
+            title: "Delete this entry",
+            icon: "trash",
+            style: .destructive,
+            isFullWidth: true
+        ) {
             showDeleteConfirm = true
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "trash")
-                Text("Delete this entry")
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.sm)
         }
-        .buttonStyle(.bordered)
-        .tint(AppColor.destructive)
     }
 
     private func commit() {

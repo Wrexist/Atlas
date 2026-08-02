@@ -10,6 +10,16 @@ enum GlassPreset {
     case circle
     case capsule
     case rect(cornerRadius: CGFloat)
+
+    /// The same silhouette as a plain `Shape`, for the pre-iOS-26 fallback
+    /// recipe which has to draw the fill, wash, and hairline itself.
+    var shape: AnyShape {
+        switch self {
+        case .circle: AnyShape(Circle())
+        case .capsule: AnyShape(Capsule(style: .continuous))
+        case .rect(let radius): AnyShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+        }
+    }
 }
 
 extension View {
@@ -109,6 +119,58 @@ extension View {
                         }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        }
+    }
+
+    /// The app's one glass **control** surface — buttons, icon buttons,
+    /// segmented controls, chips.
+    ///
+    /// Like `glassSurface`, the real material and the legacy recipe are
+    /// mutually exclusive: `GlassButton` and `GlassSegmentedControl` used to
+    /// paint a 60%-opaque fake capsule *and then* composite `glassEffect` over
+    /// it, so on iOS 26 every control stacked two materials and read as muddy
+    /// grey rather than glass.
+    ///
+    /// - Parameters:
+    ///   - tint: the accent wash the control carries. Keep it low —
+    ///     ~0.15–0.20 — or the tint stops reading as glass and starts reading
+    ///     as a flat coloured button.
+    ///   - border: hairline colour for the legacy recipe. Ignored on iOS 26+,
+    ///     where the material provides its own edge.
+    ///   - interactive: opt into the system's bouncy press response.
+    @ViewBuilder
+    func glassControl(
+        _ preset: GlassPreset,
+        tint: Color? = nil,
+        border: Color = AppColor.glassBorder,
+        interactive: Bool = true
+    ) -> some View {
+        if #available(iOS 26.0, *) {
+            let glass: Glass = {
+                var value: Glass = .regular
+                if let tint { value = value.tint(tint) }
+                if interactive { value = value.interactive() }
+                return value
+            }()
+
+            switch preset {
+            case .circle:
+                self.glassEffect(glass, in: .circle)
+            case .capsule:
+                self.glassEffect(glass, in: .capsule)
+            case .rect(let radius):
+                self.glassEffect(glass, in: .rect(cornerRadius: radius))
+            }
+        } else {
+            let shape = preset.shape
+            self
+                .background {
+                    shape
+                        .fill(AppColor.surfaceSecondary.opacity(0.6))
+                        .overlay { shape.fill(tint ?? AppColor.cardOverlay) }
+                        .overlay { shape.stroke(border, lineWidth: 0.5) }
+                }
+                .clipShape(shape)
         }
     }
 

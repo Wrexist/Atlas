@@ -297,20 +297,16 @@ struct MealScanFlow: View {
                 MealCategoryPicker(selection: $category)
 
                 HStack(spacing: Spacing.sm) {
-                    Button("Re-scan") {
+                    GlassButton(title: "Re-scan", style: .secondary) {
                         image = nil
                         selectedItem = nil
                         items = []
                         phase = .pickImage
                     }
-                    .buttonStyle(.bordered)
-                    .tint(AppColor.textSecondary)
 
-                    Button(addButtonTitle) {
+                    GlassButton(title: addButtonTitle, style: .primary) {
                         confirm()
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppColor.accentPrimary)
                     .disabled(includedItems.isEmpty)
                 }
                 .padding(.top, Spacing.xs)
@@ -338,7 +334,7 @@ struct MealScanFlow: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
-            Button(image == nil ? "Try again" : "Retry") {
+            GlassButton(title: image == nil ? "Try again" : "Retry", style: .primary) {
                 errorText = nil
                 if let image {
                     // Re-run analysis on the photo already loaded —
@@ -351,8 +347,6 @@ struct MealScanFlow: View {
                     phase = .pickImage
                 }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColor.accentPrimary)
             .padding(.top, Spacing.md)
         }
     }
