@@ -31,6 +31,9 @@ with an execution log recording what actually landed.
   the rest timer no longer ticks at 10Hz all workout; peptide search is
   debounced; Bio Age counts baseline coverage across all three health
   signals; Pro members can manage their subscription in-app.
+- **A six-step type scale.** The app had thirty distinct point sizes,
+  thirteen inside a 12pt band. Below the display range there are now six
+  (`AppFont.Scale`), lint-enforced. 393 call sites moved, all by ≤2pt.
 - **A design checker that gates CI.** `scripts/design-lint.py` covers
   eleven rules SwiftLint can't see. Running it found 25 surfaces still
   stacking two glass materials outside the primitives, two neon halos,
@@ -51,7 +54,16 @@ signatures, not types. Build first.
 
 **Nothing has been seen rendered.** No simulator, no screenshots. The
 design work is correct by construction and by static check; it has not
-been looked at.
+been looked at. The type-scale collapse is the change most in need of a
+visual pass — 393 sites moved by 1–2pt, and while the moves are mostly
+downward (shrinking text can't truncate), dense rows are worth a look.
+
+`OneRedOak/claude-code-workflows → design-review` was read and is the
+right tool for this loop, but it drives a browser through Playwright MCP;
+it has no path to a native iOS view. Its Phase 3–4 checklist (visual
+polish, WCAG 2.1 AA) is what `scripts/design-lint.py` now covers
+statically. The rendered-screen half of that loop still needs a human
+with a simulator.
 
 **CI skips the unit tests.** `.github/workflows/pr-checks.yml` has the
 `Unit Tests` step stubbed out with a note that `PeptideTests` doesn't
