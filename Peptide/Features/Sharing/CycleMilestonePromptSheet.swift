@@ -29,7 +29,7 @@ struct CycleMilestonePromptSheet: View {
                     .shadow(color: AppColor.accentGlow, radius: 18, y: 6)
                 Image(systemName: glyph)
                     .font(.system(size: 38, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColor.onAccent)
             }
 
             VStack(spacing: Spacing.sm) {

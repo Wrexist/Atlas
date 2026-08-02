@@ -64,7 +64,7 @@ struct MuscleGroupChipRow: View {
             Button(action: action) {
                 HStack(spacing: 4) {
                     Image(systemName: group.symbolName)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                     Text(group.displayName)
                         .font(AppFont.chipText)
                 }

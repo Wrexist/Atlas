@@ -117,7 +117,7 @@ struct ExerciseDetailView: View {
     private func metadataPill(icon: String, label: String) -> some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
             Text(label)
                 .font(AppFont.chipText)
         }
@@ -164,14 +164,14 @@ struct ExerciseDetailView: View {
                 muscleLegendCluster(
                     title: "Primary",
                     muscles: exercise.primaryMuscles,
-                    swatch: Color(red: 0.93, green: 0.27, blue: 0.30)
+                    swatch: AppColor.negative
                 )
             }
             if !exercise.secondaryMuscles.isEmpty {
                 muscleLegendCluster(
                     title: "Secondary",
                     muscles: exercise.secondaryMuscles,
-                    swatch: Color(red: 0.42, green: 0.58, blue: 0.95)
+                    swatch: AppColor.belowRange
                 )
             }
         }

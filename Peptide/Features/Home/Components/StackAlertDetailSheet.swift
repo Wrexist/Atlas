@@ -90,7 +90,7 @@ struct StackAlertDetailSheet: View {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(AppFont.scaled(13, weight: .semibold))
                             .foregroundStyle(AppColor.textSecondary)
                             .frame(width: 30, height: 30)
                             .background {
@@ -152,7 +152,7 @@ struct StackAlertDetailSheet: View {
                 .frame(width: 6, height: 6)
 
             Text(severityLabel.uppercased())
-                .font(.system(size: 11, weight: .bold))
+                .font(AppFont.scaled(11, weight: .bold))
                 .tracking(0.8)
                 .foregroundStyle(severityColor)
         }
@@ -226,7 +226,7 @@ struct StackAlertDetailSheet: View {
 
             if navigable {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(AppFont.scaled(9, weight: .bold))
                     .foregroundStyle(severityColor.opacity(0.7))
             }
         }
@@ -253,11 +253,11 @@ struct StackAlertDetailSheet: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: iconName)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(tint)
 
                 Text(title.uppercased())
-                    .font(.system(size: 11, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
                     .tracking(0.6)
                     .foregroundStyle(AppColor.textSecondary)
             }

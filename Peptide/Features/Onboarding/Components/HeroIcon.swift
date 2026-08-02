@@ -22,7 +22,7 @@ struct HeroIcon: View {
                 .scaleEffect(pulse ? 1.05 : 0.96)
 
             Circle()
-                .strokeBorder(Color.white.opacity(0.05), lineWidth: 0.5)
+                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                 .frame(width: size * 1.55, height: size * 1.55)
 
             Circle()
@@ -87,7 +87,7 @@ struct HeroLogo: View {
 
             // Soft outer ring for depth, matching HeroIcon's framing.
             Circle()
-                .strokeBorder(Color.white.opacity(0.05), lineWidth: 0.5)
+                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                 .frame(width: size * 1.5, height: size * 1.5)
 
             // The logo, filled into the disc.

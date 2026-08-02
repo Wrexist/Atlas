@@ -159,7 +159,7 @@ struct ProfileCustomizationSheet: View {
                     isShowingPhotoSourceMenu = true
                 } label: {
                     Image(systemName: "camera.fill")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(AppFont.scaled(14, weight: .semibold))
                         .foregroundStyle(AppColor.background)
                         .frame(width: 32, height: 32)
                         .background {
@@ -420,7 +420,7 @@ struct ProfileCustomizationSheet: View {
         GlassCardCompact {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(accent)
                 Text(value)
                     .font(AppFont.title3)
@@ -581,7 +581,7 @@ struct ProfileCustomizationSheet: View {
                         .strokeBorder(AppColor.textPrimary, lineWidth: 2)
                         .frame(width: 38, height: 38)
                     Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(AppFont.scaled(14, weight: .bold))
                         .foregroundStyle(AppColor.textPrimary)
                 }
             }
@@ -615,7 +615,7 @@ struct ProfileCustomizationSheet: View {
                 if let pinned = dataStore.profile.primaryGoal, !pinned.isEmpty {
                     HStack(spacing: Spacing.xs) {
                         Image(systemName: "pin.fill")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(AppFont.scaled(11, weight: .semibold))
                             .foregroundStyle(AppColor.accentLight)
                         Text("Primary: \(pinned)")
                             .font(AppFont.caption)
@@ -657,7 +657,7 @@ struct ProfileCustomizationSheet: View {
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: pinned ? "pin.fill" : (selected ? "checkmark.circle.fill" : "circle"))
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.scaled(12, weight: .semibold))
                 Text(goal)
                     .font(AppFont.subheadline)
                     .fontWeight(.medium)
@@ -810,7 +810,7 @@ struct ProfileCustomizationSheet: View {
     ) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(AppFont.scaled(14))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 24)
 

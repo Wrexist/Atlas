@@ -47,7 +47,7 @@ struct StackWarningCard: View {
     private func warningRow(_ warning: StackRecommendationEngine.Warning) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: warning.icon)
-                .font(.system(size: 14))
+                .font(AppFont.scaled(14))
                 .foregroundStyle(severityColor(warning.severity))
                 .frame(width: 20)
                 .padding(.top, 2)
@@ -63,7 +63,7 @@ struct StackWarningCard: View {
                     Spacer(minLength: Spacing.xs)
 
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
@@ -76,7 +76,7 @@ struct StackWarningCard: View {
                 // Actionable suggestion
                 HStack(alignment: .top, spacing: Spacing.xs) {
                     Image(systemName: "lightbulb.fill")
-                        .font(.system(size: 9))
+                        .font(AppFont.scaled(9))
                         .foregroundStyle(AppColor.accentLight)
                         .padding(.top, 2)
 

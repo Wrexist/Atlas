@@ -86,10 +86,10 @@ struct GoalCountdownCard: View {
     private var header: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "flag.checkered")
-                .font(.system(size: 14, weight: .semibold))
+                .font(AppFont.scaled(14, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
             Text("YOUR GOAL")
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(1.2)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
@@ -115,7 +115,7 @@ struct GoalCountdownCard: View {
                     appearAnimated: true
                 ) {
                     Text("\(Int((fraction * 100).rounded()))%")
-                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(15, weight: .heavy, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                 }
                 .accessibilityHidden(true)
@@ -131,12 +131,12 @@ struct GoalCountdownCard: View {
                     .fill(AppColor.accentPrimary.opacity(0.18))
                     .frame(width: 48, height: 48)
                 Image(systemName: "flag.checkered")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(AppFont.scaled(20, weight: .bold))
                     .foregroundStyle(AppColor.accentLight)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text("Goal reached!")
-                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(22, weight: .heavy, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                 Text("Time to set your next one.")
                     .font(AppFont.caption)
@@ -169,7 +169,7 @@ struct GoalCountdownCard: View {
     private func footer(targetDate: Date) -> some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "calendar")
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppFont.scaled(10, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
             Text("Target — \(targetDate.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))")
                 .font(AppFont.caption)

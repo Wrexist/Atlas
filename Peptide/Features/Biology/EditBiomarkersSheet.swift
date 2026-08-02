@@ -40,12 +40,12 @@ struct EditBiomarkersSheet: View {
                     }
                 } header: {
                     Text("Showing")
-                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(12, weight: .heavy, design: .rounded))
                         .tracking(0.8)
                         .foregroundStyle(AppColor.accentLight)
                 } footer: {
                     Text("Drag to reorder.")
-                        .font(.system(size: 11))
+                        .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.textSecondary)
                 }
 
@@ -56,12 +56,12 @@ struct EditBiomarkersSheet: View {
                         }
                     } header: {
                         Text("Available")
-                            .font(.system(size: 12, weight: .heavy, design: .rounded))
+                            .font(AppFont.scaled(12, weight: .heavy, design: .rounded))
                             .tracking(0.8)
                             .foregroundStyle(AppColor.accentLight)
                     } footer: {
                         Text("Add biomarkers you want to track.")
-                            .font(.system(size: 11))
+                            .font(AppFont.scaled(11))
                             .foregroundStyle(AppColor.textSecondary)
                     }
                 }
@@ -73,7 +73,7 @@ struct EditBiomarkersSheet: View {
                         }
                     } header: {
                         Text("Hidden")
-                            .font(.system(size: 12, weight: .heavy, design: .rounded))
+                            .font(AppFont.scaled(12, weight: .heavy, design: .rounded))
                             .tracking(0.8)
                             .foregroundStyle(AppColor.textSecondary)
                     }
@@ -107,7 +107,7 @@ struct EditBiomarkersSheet: View {
                 Circle()
                     .fill(AppColor.surfaceElevated)
                 Image(systemName: biomarker.icon)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(AppFont.scaled(14, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
             }
             .frame(width: 32, height: 32)
@@ -155,7 +155,7 @@ struct EditBiomarkersSheet: View {
 
     private var proBadge: some View {
         Text("PRO")
-            .font(.system(size: 9, weight: .heavy, design: .rounded))
+            .font(AppFont.scaled(9, weight: .heavy, design: .rounded))
             .tracking(0.5)
             .foregroundStyle(AppColor.accentPrimary)
             .padding(.horizontal, 5)

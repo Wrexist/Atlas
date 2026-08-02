@@ -47,12 +47,12 @@ struct DosageInfoSection: View {
                     Button(action: { onShowSources?() }) {
                         HStack(spacing: Spacing.xs) {
                             Image(systemName: "doc.text.magnifyingglass")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(AppFont.scaled(12, weight: .semibold))
                             Text(sourcesLabel)
                                 .font(AppFont.caption)
                                 .fontWeight(.semibold)
                             Image(systemName: "arrow.down")
-                                .font(.system(size: 10, weight: .semibold))
+                                .font(AppFont.scaled(10, weight: .semibold))
                         }
                         .foregroundStyle(AppColor.accentPrimary)
                         .padding(.horizontal, Spacing.md)
@@ -72,9 +72,9 @@ struct DosageInfoSection: View {
     private var citationChip: some View {
         HStack(spacing: 4) {
             Image(systemName: "doc.text.magnifyingglass")
-                .font(.system(size: 10, weight: .bold))
+                .font(AppFont.scaled(10, weight: .bold))
             Text(citationCountText)
-                .font(.system(size: 10, weight: .bold))
+                .font(AppFont.scaled(10, weight: .bold))
         }
         .foregroundStyle(AppColor.accentLight)
         .padding(.horizontal, 6)
@@ -111,7 +111,7 @@ private struct DosageRow: View {
         HStack(alignment: .top) {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
-                    .font(.system(size: 12))
+                    .font(AppFont.scaled(12))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: 20)
 

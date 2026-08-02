@@ -21,10 +21,10 @@ struct SyncToast: View {
             if isShowing {
                 HStack(spacing: Spacing.xs) {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(AppFont.scaled(13, weight: .bold))
                         .foregroundStyle(AppColor.success)
                     Text(message)
-                        .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                 }
                 .padding(.horizontal, Spacing.md)

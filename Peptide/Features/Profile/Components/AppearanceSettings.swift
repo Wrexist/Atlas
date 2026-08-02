@@ -66,11 +66,7 @@ struct AppearanceSettings: View {
 
                 Divider().foregroundStyle(AppColor.glassBorder)
 
-                SettingsInfoRow(
-                    icon: "moon.fill",
-                    title: "Appearance",
-                    value: "Dark"
-                )
+                DisplayModeRow(selection: $themeBinding.displayMode)
 
                 Divider().foregroundStyle(AppColor.glassBorder)
 
@@ -78,11 +74,10 @@ struct AppearanceSettings: View {
 
                 Divider().foregroundStyle(AppColor.glassBorder)
 
-                SettingsInfoRow(
-                    icon: "globe",
-                    title: "Units",
-                    value: "Metric (mcg)"
-                )
+                MeasurementUnitRow(selection: $store.profile.bodyMetrics.unit)
+                    .onChange(of: dataStore.profile.bodyMetrics.unit) { _, _ in
+                        dataStore.persistProfile()
+                    }
             }
         }
     }
@@ -92,7 +87,7 @@ struct AppearanceSettings: View {
         let overLimit = notificationService.requestedCount > limit
         return HStack(spacing: Spacing.sm) {
             Image(systemName: overLimit ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                .font(.system(size: 11))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(overLimit ? .orange : AppColor.accentPrimary)
 
             if overLimit {
@@ -139,7 +134,7 @@ private struct SettingsToggleRow: View {
     var body: some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(AppFont.scaled(14))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 24)
 
@@ -168,7 +163,7 @@ private struct ThemePickerRow: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(spacing: Spacing.md) {
                 Image(systemName: "paintpalette.fill")
-                    .font(.system(size: 14))
+                    .font(AppFont.scaled(14))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: 24)
 
@@ -207,13 +202,13 @@ private struct ThemePickerRow: View {
                 .frame(width: 30, height: 30)
                 .overlay(
                     Circle()
-                        .strokeBorder(Color.white.opacity(isSelected ? 0.95 : 0.0), lineWidth: 2)
+                        .strokeBorder(AppColor.textPrimary.opacity(isSelected ? 0.95 : 0.0), lineWidth: 2)
                         .padding(-3)
                 )
                 .overlay(
                     Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Color.white)
+                        .font(AppFont.scaled(12, weight: .bold))
+                        .foregroundStyle(AppColor.onAccent)
                         .opacity(isSelected ? 1 : 0)
                 )
                 .accessibilityLabel(theme.displayName)
@@ -223,27 +218,82 @@ private struct ThemePickerRow: View {
     }
 }
 
-private struct SettingsInfoRow: View {
-    let icon: String
-    let title: LocalizedStringKey
-    let value: LocalizedStringKey
+/// Auto / Light / Dark. Replaces the static "Appearance — Dark" info row that
+/// stood in while `AppColor` was dark-only; every surface token now resolves
+/// per trait collection, so all three modes are live.
+private struct DisplayModeRow: View {
+    @Binding var selection: DisplayMode
 
     var body: some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundStyle(AppColor.accentPrimary)
-                .frame(width: 24)
+        SettingsPickerRow(
+            icon: selection.iconName,
+            title: "Appearance",
+            subtitle: LocalizedStringKey(selection.displayName)
+        ) {
+            Picker("Appearance", selection: $selection) {
+                ForEach(DisplayMode.allCases) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+        }
+    }
+}
 
-            Text(title)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textPrimary)
+/// Metric / Imperial for the body-metric surfaces (weight, height, waist,
+/// temperature). Peptide doses stay in mcg/mg regardless — they're prescribed
+/// in metric everywhere.
+private struct MeasurementUnitRow: View {
+    @Binding var selection: MeasurementUnit
 
-            Spacer()
+    var body: some View {
+        SettingsPickerRow(
+            icon: "ruler.fill",
+            title: "Units",
+            subtitle: selection == .metric ? "kg · cm · °C" : "lb · in · °F"
+        ) {
+            Picker("Units", selection: $selection) {
+                Text("Metric").tag(MeasurementUnit.metric)
+                Text("Imperial").tag(MeasurementUnit.imperial)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+        }
+    }
+}
 
-            Text(value)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
+/// Shared skeleton for a settings row whose control is wide enough to need
+/// its own line beneath the label (matches `ThemePickerRow`'s layout).
+private struct SettingsPickerRow<Control: View>: View {
+    let icon: String
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
+    @ViewBuilder var control: () -> Control
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: icon)
+                    .font(AppFont.scaled(14))
+                    .foregroundStyle(AppColor.accentPrimary)
+                    .frame(width: 24)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(title)
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(subtitle)
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+
+                Spacer()
+            }
+
+            control()
+                .padding(.leading, 36)
         }
     }
 }

@@ -45,3 +45,30 @@ identifier_name:
 
 nesting:
   type_level: 2
+
+custom_rules:
+  # `Font.system(size:)` ignores the content-size category entirely, so any
+  # body/label copy set this way is invisible to Dynamic Type. Use
+  # `AppFont.scaled(_:weight:design:)` (Typography.swift) instead. Sizes above
+  # 24pt are display glyphs and stay fixed on purpose, so they're allowed.
+  fixed_font_size:
+    name: "Fixed font size"
+    regex: '\.system\(size:\s*(?:[0-9]|1[0-9]|2[0-4])(?:\.[0-9]+)?\s*[,)]'
+    match_kinds:
+      - identifier
+      - keyword
+      - none
+    message: "Body-scale text must use AppFont.scaled(_:) so it honours Dynamic Type."
+    severity: warning
+    excluded: ".*/Typography\\.swift"
+
+  # Feature views must go through AppColor so light mode, the brand themes,
+  # and a future palette change are all a single edit. Domain palettes that
+  # legitimately need literals live in ColorTheme.swift's whitelist.
+  raw_color_literal:
+    name: "Raw colour literal"
+    regex: 'Color\((?:hex:\s*0x|red:\s*[0-9])'
+    message: "Use an AppColor token instead of a raw Color literal."
+    severity: warning
+    included: ".*/Peptide/Features/.*"
+    excluded: ".*(WhatsNewPage|MuscleMapView|CycleCardView|ProtocolNotesTimeline|AvatarPreset|HabitEditSheet|BarcodeScanFlow|ShareCardSheet)\\.swift"

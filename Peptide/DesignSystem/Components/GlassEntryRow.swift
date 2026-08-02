@@ -33,16 +33,16 @@ struct GlassEntryRow: View {
                         )
                         .frame(width: 38, height: 38)
                     Image(systemName: icon)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(.white)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(AppFont.scaled(15, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                     subtitle
-                        .font(.system(size: 12))
+                        .font(AppFont.scaled(12))
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
@@ -51,7 +51,7 @@ struct GlassEntryRow: View {
                 Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
             }
             .padding(.horizontal, Spacing.md)

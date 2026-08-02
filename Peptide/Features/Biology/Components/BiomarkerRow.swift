@@ -46,7 +46,7 @@ struct BiomarkerRow: View {
                     // edge anchored so the list reads as a grid
                     // rather than a ragged column.
                     Text(snapshot.latest == nil ? "Add" : "—")
-                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                         .foregroundStyle(AppColor.textTertiary)
                         .frame(width: 64, height: 24, alignment: .trailing)
                 }
@@ -73,7 +73,7 @@ struct BiomarkerRow: View {
             Circle()
                 .fill(badgeTint.opacity(0.18))
             Image(systemName: snapshot.biomarker.icon)
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(badgeTint)
 
             // Direction arrow in a tiny notch — only when there's
@@ -81,7 +81,7 @@ struct BiomarkerRow: View {
             // tile has no series (blood pressure, etc.).
             if let arrow = trendArrow {
                 Image(systemName: arrow)
-                    .font(.system(size: 9, weight: .heavy))
+                    .font(AppFont.scaled(9, weight: .heavy))
                     .foregroundStyle(AppColor.background)
                     .padding(3)
                     .background {

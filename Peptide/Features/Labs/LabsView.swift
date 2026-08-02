@@ -106,7 +106,7 @@ struct LabsView: View {
     private var introHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Lab work")
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.accentLight.opacity(0.85))
@@ -124,7 +124,7 @@ struct LabsView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text(category.displayName)
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(0.8)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textTertiary)
@@ -179,7 +179,7 @@ struct LabsView: View {
                     .frame(width: 88, height: 88)
                 Image(systemName: "testtube.2")
                     .font(.system(size: 36, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColor.textPrimary)
             }
             .padding(.top, Spacing.xxl)
 
@@ -234,7 +234,7 @@ struct LabSummaryRow: View {
                     .fill(panel.tint.opacity(0.20))
                     .frame(width: 38, height: 38)
                 Text(panel.shortName)
-                    .font(.system(size: 10, weight: .heavy))
+                    .font(AppFont.scaled(10, weight: .heavy))
                     .foregroundStyle(panel.tint)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -243,11 +243,11 @@ struct LabSummaryRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(panel.displayName)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(AppFont.scaled(14, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
                 Text(Self.relative.localizedString(for: summary.latest.date, relativeTo: Date()))
-                    .font(.system(size: 11))
+                    .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)
                     .monospacedDigit()
             }
@@ -274,11 +274,11 @@ struct LabSummaryRow: View {
         HStack(spacing: 4) {
             VStack(alignment: .trailing, spacing: 1) {
                 Text(formatted(summary.latest.value))
-                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                 Text(panel.canonicalUnit)
-                    .font(.system(size: 9, weight: .medium))
+                    .font(AppFont.scaled(9, weight: .medium))
                     .foregroundStyle(AppColor.textTertiary)
             }
             trendBadge
@@ -290,19 +290,19 @@ struct LabSummaryRow: View {
         switch summary.trend {
         case .rising:
             Image(systemName: "arrow.up.right")
-                .font(.system(size: 11, weight: .heavy))
-                .foregroundStyle(Color(red: 0.40, green: 0.78, blue: 0.55))
+                .font(AppFont.scaled(11, weight: .heavy))
+                .foregroundStyle(AppColor.positive)
                 .padding(6)
-                .background { Circle().fill(Color(red: 0.40, green: 0.78, blue: 0.55).opacity(0.15)) }
+                .background { Circle().fill(AppColor.positive.opacity(0.15)) }
         case .falling:
             Image(systemName: "arrow.down.right")
-                .font(.system(size: 11, weight: .heavy))
-                .foregroundStyle(Color(red: 0.92, green: 0.45, blue: 0.45))
+                .font(AppFont.scaled(11, weight: .heavy))
+                .foregroundStyle(AppColor.negative)
                 .padding(6)
-                .background { Circle().fill(Color(red: 0.92, green: 0.45, blue: 0.45).opacity(0.15)) }
+                .background { Circle().fill(AppColor.negative.opacity(0.15)) }
         case .stable:
             Image(systemName: "minus")
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .foregroundStyle(AppColor.textSecondary)
                 .padding(6)
                 .background { Circle().fill(AppColor.textSecondary.opacity(0.12)) }

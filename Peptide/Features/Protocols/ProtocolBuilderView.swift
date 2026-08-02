@@ -337,7 +337,7 @@ struct ProtocolBuilderView: View {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack(spacing: Spacing.md) {
                     Image(systemName: "square.stack.3d.up.fill")
-                        .font(.system(size: 16))
+                        .font(AppFont.scaled(16))
                         .foregroundStyle(AppColor.accentPrimary)
                         .frame(width: 28, height: 28)
                         .background {
@@ -411,7 +411,7 @@ struct ProtocolBuilderView: View {
                     .fill(AppColor.accentPrimary.opacity(0.18))
                     .frame(width: 44, height: 44)
                 Image(systemName: "books.vertical.fill")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(AppFont.scaled(18, weight: .bold))
                     .foregroundStyle(AppColor.accentLight)
             }
             VStack(alignment: .leading, spacing: 2) {
@@ -424,7 +424,7 @@ struct ProtocolBuilderView: View {
             }
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
+                .font(AppFont.scaled(12, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
         }
         .padding(Spacing.md)
@@ -597,7 +597,7 @@ struct ProtocolBuilderView: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     Text("1080 × 1920")
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .font(AppFont.scaled(10, weight: .semibold, design: .monospaced))
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
@@ -638,7 +638,7 @@ struct ProtocolBuilderView: View {
             timesPerDay = times
         } label: {
             Text(label)
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.xs)
@@ -726,7 +726,7 @@ private struct PeptideScheduleRow: View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
                 Image(systemName: peptide.imageSystemName)
-                    .font(.system(size: 14))
+                    .font(AppFont.scaled(14))
                     .foregroundStyle(peptide.category.color)
                     .frame(width: 32, height: 32)
                     .background {
@@ -742,7 +742,7 @@ private struct PeptideScheduleRow: View {
                             .foregroundStyle(AppColor.textPrimary)
                         if isCustom {
                             Text("CUSTOM")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(AppFont.scaled(9, weight: .bold))
                                 .foregroundStyle(AppColor.accentPrimary)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 2)
@@ -772,7 +772,7 @@ private struct PeptideScheduleRow: View {
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(.vertical, Spacing.xs)

@@ -350,7 +350,7 @@ struct LiquidGlassSegmentedControl<Option: Hashable>: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: icon(option))
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                 Text(label(option))
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
@@ -425,7 +425,7 @@ struct LiquidGlassStepper: View {
     ) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
+                .font(AppFont.scaled(12, weight: .bold))
                 .foregroundStyle(isEnabled ? AppColor.textPrimary : AppColor.textTertiary)
                 .frame(width: 30, height: 30)
                 .background {
@@ -505,7 +505,7 @@ private struct TimeSlotRow: View {
                     .animation(.snappy(duration: 0.2), value: timeString)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(.horizontal, Spacing.md)

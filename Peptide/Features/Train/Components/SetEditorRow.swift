@@ -134,9 +134,9 @@ struct SetEditorRow: View {
             set.completed.toggle()
         } label: {
             Image(systemName: set.completed ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 24, weight: .semibold))
+                .font(AppFont.scaled(24, weight: .semibold))
                 .foregroundStyle(set.completed
-                                 ? Color(red: 0.30, green: 0.80, blue: 0.50)
+                                 ? AppColor.positive
                                  : AppColor.textTertiary)
                 .frame(width: 32, height: 32)
                 .contentTransition(.symbolEffect(.replace))

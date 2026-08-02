@@ -130,7 +130,7 @@ struct AffiliateApplySheet: View {
                     .foregroundStyle(AppColor.accentPrimary)
             }
             Text("Earn for every Pro signup")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(24, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
             Text("Approved creators get a personal code, a revenue share, and a creator-only Atlas dashboard.")
@@ -164,11 +164,11 @@ struct AffiliateApplySheet: View {
             if AffiliateIntakeService.drainConfigured || hasPrefill {
                 HStack(alignment: .top, spacing: Spacing.sm) {
                     Image(systemName: "info.circle.fill")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppFont.scaled(12, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(lead)
-                            .font(.system(size: 11, weight: .bold))
+                            .font(AppFont.scaled(11, weight: .bold))
                             .foregroundStyle(AppColor.textSecondary)
                         if let nameLine {
                             Text(nameLine)
@@ -237,7 +237,7 @@ struct AffiliateApplySheet: View {
                 if let urlError {
                     HStack(spacing: 4) {
                         Image(systemName: "exclamationmark.circle.fill")
-                            .font(.system(size: 11))
+                            .font(AppFont.scaled(11))
                         Text(urlError)
                             .font(AppFont.caption)
                     }
@@ -267,7 +267,7 @@ struct AffiliateApplySheet: View {
     private func field<Content: View>(label: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
-                .font(.system(size: 10, weight: .heavy))
+                .font(AppFont.scaled(10, weight: .heavy))
                 .tracking(1)
                 .foregroundStyle(AppColor.textTertiary)
             content()
@@ -305,7 +305,7 @@ struct AffiliateApplySheet: View {
     private func perkRow(icon: String, text: String) -> some View {
         HStack(alignment: .top, spacing: Spacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
                 .frame(width: 22)
             Text(text)

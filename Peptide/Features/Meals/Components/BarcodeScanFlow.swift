@@ -235,7 +235,7 @@ struct BarcodeScanFlow: View {
                         image.resizable().scaledToFit()
                     default:
                         Image(systemName: "shippingbox.fill")
-                            .font(.system(size: 22, weight: .light))
+                            .font(AppFont.scaled(22, weight: .light))
                             .foregroundStyle(AppColor.textSecondary)
                     }
                 }
@@ -246,7 +246,7 @@ struct BarcodeScanFlow: View {
                 }
 
                 Text(product.name)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .medium))
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -287,7 +287,7 @@ struct BarcodeScanFlow: View {
             TextField("e.g. 5449000000996", text: $manualBarcode)
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.center)
-                .font(.system(size: 22, weight: .semibold, design: .monospaced))
+                .font(AppFont.scaled(22, weight: .semibold, design: .monospaced))
                 .foregroundStyle(AppColor.textPrimary)
                 .padding(Spacing.md)
                 .background {
@@ -356,7 +356,7 @@ struct BarcodeScanFlow: View {
     private func sourceBadge(for product: ScannedProduct) -> some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "globe")
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppFont.scaled(10, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
             Text("Open Food Facts · \(Self.relativeAge(product.fetchedAt))")
                 .font(AppFont.caption)
@@ -364,7 +364,7 @@ struct BarcodeScanFlow: View {
             Spacer(minLength: 0)
             if manualOverride != nil {
                 Text("✏ Edited")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .foregroundStyle(AppColor.warning)
                     .padding(.horizontal, Spacing.xs)
                     .padding(.vertical, 2)
@@ -380,7 +380,7 @@ struct BarcodeScanFlow: View {
     private var overrideNotice: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "pencil.circle.fill")
-                .font(.system(size: 18))
+                .font(AppFont.scaled(18))
                 .foregroundStyle(AppColor.warning)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Using your manual values")
@@ -416,7 +416,7 @@ struct BarcodeScanFlow: View {
                     image.resizable().scaledToFit()
                 default:
                     Image(systemName: "shippingbox.fill")
-                        .font(.system(size: 24, weight: .light))
+                        .font(AppFont.scaled(24, weight: .light))
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
@@ -570,7 +570,7 @@ struct BarcodeScanFlow: View {
                         Image(systemName: "pencil")
                         Text("Edit")
                     }
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(canEdit ? AppColor.accentLight : AppColor.textSecondary.opacity(0.5))
                 }
                 .buttonStyle(.plain)
@@ -774,8 +774,8 @@ struct BarcodeScanFlow: View {
 
     private func nutriScorePill(_ score: String) -> some View {
         Text(score.uppercased())
-            .font(.system(size: 14, weight: .heavy))
-            .foregroundStyle(.white)
+            .font(AppFont.scaled(14, weight: .heavy))
+            .foregroundStyle(AppColor.onAccent)
             .frame(width: 28, height: 28)
             .background {
                 Circle().fill(Self.nutriScoreColor(score))

@@ -36,10 +36,10 @@ struct MealCategoryPicker: View {
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: category.icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(active ? tint : AppColor.textSecondary)
                 Text(category.displayName)
-                    .font(.system(size: 11, weight: active ? .semibold : .medium))
+                    .font(AppFont.scaled(11, weight: active ? .semibold : .medium))
                     .foregroundStyle(active ? AppColor.textPrimary : AppColor.textSecondary)
             }
             .frame(maxWidth: .infinity)

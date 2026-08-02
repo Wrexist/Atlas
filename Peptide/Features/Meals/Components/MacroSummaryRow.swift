@@ -164,18 +164,18 @@ struct MacroSummaryRow: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(title)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(AppFont.scaled(12, weight: .medium))
                     .foregroundStyle(AppColor.textSecondary)
                     .textCase(.uppercase)
                     .tracking(0.6)
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(value)
-                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .font(AppFont.scaled(20, weight: .semibold, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
                         .contentTransition(.numericText())
                     Text(target)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppFont.scaled(11, weight: .medium))
                         .foregroundStyle(AppColor.textTertiary)
                         .monospacedDigit()
                 }
@@ -190,9 +190,9 @@ struct MacroSummaryRow: View {
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "drop.fill")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(AppFont.scaled(10, weight: .bold))
                 Text(label)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.scaled(12, weight: .semibold))
             }
             .foregroundStyle(AppColor.macroWaterLight)
             .padding(.horizontal, Spacing.md)

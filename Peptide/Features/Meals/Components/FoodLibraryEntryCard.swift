@@ -30,17 +30,17 @@ struct FoodLibraryEntryCard: View {
                         )
                         .frame(width: 36, height: 36)
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color.white)
+                        .font(AppFont.scaled(15, weight: .semibold))
+                        .foregroundStyle(AppColor.textPrimary)
                 }
                 .shadow(color: AppColor.accentPrimary.opacity(0.35), radius: 6, y: 3)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Search the food library")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(AppFont.scaled(15, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                     Text("Type a food, brand, or meal — log without scanning")
-                        .font(.system(size: 12))
+                        .font(AppFont.scaled(12))
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
                 }
@@ -48,7 +48,7 @@ struct FoodLibraryEntryCard: View {
                 Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
             }
             .padding(.horizontal, Spacing.md)

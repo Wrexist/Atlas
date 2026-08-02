@@ -351,7 +351,7 @@ private struct StrategyCard: View {
         Button(action: onTap) {
             HStack(alignment: .top, spacing: Spacing.md) {
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(style == .destructive ? AppColor.destructive : AppColor.accentLight)
                     .frame(width: 32)
                 VStack(alignment: .leading, spacing: 2) {
@@ -394,11 +394,11 @@ private struct PrimaryButtonLabel: View {
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .bold))
+                .font(AppFont.scaled(16, weight: .bold))
             Text(title)
                 .font(AppFont.headline)
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(AppColor.onAccent)
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.md)
         .frame(maxWidth: .infinity)

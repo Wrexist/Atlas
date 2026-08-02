@@ -63,11 +63,11 @@ struct WeightTrackingCard: View {
             Button(action: onLog) {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(AppFont.scaled(11, weight: .bold))
                     Text("Log weight")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppFont.scaled(12, weight: .semibold))
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(AppColor.onAccent)
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, 7)
                 .background {
@@ -81,7 +81,7 @@ struct WeightTrackingCard: View {
                         )
                         .overlay {
                             Capsule(style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                                .strokeBorder(AppColor.onAccent.opacity(0.18), lineWidth: 0.5)
                         }
                 }
                 .shadow(color: AppColor.accentPrimary.opacity(0.45), radius: 8, y: 3)
@@ -106,11 +106,11 @@ struct WeightTrackingCard: View {
         let format = unitFormatter()
         return HStack(spacing: 4) {
             Image(systemName: delta >= 0 ? "arrow.up.right" : "arrow.down.right")
-                .font(.system(size: 10, weight: .bold))
+                .font(AppFont.scaled(10, weight: .bold))
             Text(format(abs(delta)) + " this week")
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
         }
-        .foregroundStyle(delta == 0 ? AppColor.textSecondary : (delta > 0 ? Color(red: 0.83, green: 0.5, blue: 0.2) : AppColor.accentPrimary))
+        .foregroundStyle(delta == 0 ? AppColor.textSecondary : (delta > 0 ? AppColor.negative : AppColor.accentPrimary))
         .padding(.horizontal, Spacing.sm)
         .padding(.vertical, 3)
         .background {

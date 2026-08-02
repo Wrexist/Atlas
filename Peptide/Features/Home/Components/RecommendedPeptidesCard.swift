@@ -14,7 +14,7 @@ struct RecommendedPeptidesCard: View {
                 if recommendations.isEmpty {
                     HStack(spacing: Spacing.md) {
                         Image(systemName: "plus.circle.dashed")
-                            .font(.system(size: 20))
+                            .font(AppFont.scaled(20))
                             .foregroundStyle(AppColor.textTertiary)
 
                         Text("Add peptides to a protocol to get smart recommendations")
@@ -48,7 +48,7 @@ struct RecommendedPeptidesCard: View {
 
     private func reasonBadge(_ text: String, color: Color, bgOpacity: Double) -> some View {
         Text(text)
-            .font(.system(size: 9, weight: .bold))
+            .font(AppFont.scaled(9, weight: .bold))
             .foregroundStyle(color)
             .padding(.horizontal, 5)
             .padding(.vertical, 2)
@@ -78,7 +78,7 @@ struct RecommendedPeptidesCard: View {
                     .frame(width: 40, height: 40)
 
                 Image(systemName: rec.peptide.imageSystemName)
-                    .font(.system(size: 16))
+                    .font(AppFont.scaled(16))
                     .foregroundStyle(rec.peptide.category.color)
             }
 
@@ -97,7 +97,7 @@ struct RecommendedPeptidesCard: View {
                 ForEach(Array(rec.reasons.prefix(2).enumerated()), id: \.offset) { _, reason in
                     HStack(spacing: Spacing.xs) {
                         Image(systemName: reason.icon)
-                            .font(.system(size: 8))
+                            .font(AppFont.scaled(8))
                             .foregroundStyle(AppColor.accentLight)
 
                         Text(reason.text)
@@ -123,21 +123,21 @@ struct RecommendedPeptidesCard: View {
         if !stacks.isEmpty {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "square.stack.3d.up.fill")
-                    .font(.system(size: 8))
+                    .font(AppFont.scaled(8))
                     .foregroundStyle(AppColor.accentLight)
 
                 ForEach(Array(stacks.prefix(2).enumerated()), id: \.element.id) { index, proto in
                     stackPill(proto.name)
                     if index < min(stacks.count, 2) - 1 {
                         Text("·")
-                            .font(.system(size: 8, weight: .bold))
+                            .font(AppFont.scaled(8, weight: .bold))
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 }
 
                 if stacks.count > 2 {
                     Text("+\(stacks.count - 2)")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(AppFont.scaled(9, weight: .bold))
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
@@ -146,7 +146,7 @@ struct RecommendedPeptidesCard: View {
 
     private func stackPill(_ name: String) -> some View {
         Text(name)
-            .font(.system(size: 9, weight: .semibold))
+            .font(AppFont.scaled(9, weight: .semibold))
             .foregroundStyle(AppColor.accentLight)
             .lineLimit(1)
             .padding(.horizontal, 6)
@@ -174,7 +174,7 @@ struct RecommendedPeptidesCard: View {
                 }
 
             Image(systemName: inStacks ? "chevron.right" : "plus")
-                .font(.system(size: 11, weight: .bold))
+                .font(AppFont.scaled(11, weight: .bold))
                 .foregroundStyle(AppColor.accentLight)
         }
         .liquidGlass(.circle)

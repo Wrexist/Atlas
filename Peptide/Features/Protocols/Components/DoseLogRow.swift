@@ -6,11 +6,11 @@ struct DoseLogRow: View {
     var body: some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: entry.completed ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 18))
+                .font(AppFont.scaled(18))
                 .foregroundStyle(entry.completed ? AppColor.accentPrimary : AppColor.textTertiary)
 
             Image(systemName: entry.peptide.imageSystemName)
-                .font(.system(size: 12))
+                .font(AppFont.scaled(12))
                 .foregroundStyle(entry.peptide.category.color)
                 .frame(width: 24, height: 24)
                 .background {

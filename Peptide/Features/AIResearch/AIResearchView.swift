@@ -83,7 +83,7 @@ struct AIResearchView: View {
     private var disclaimer: some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "stethoscope")
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
             Text("Educational only. Not medical advice.")
                 .font(AppFont.caption)
             Spacer(minLength: 0)
@@ -162,7 +162,7 @@ struct AIResearchView: View {
                     } label: {
                         HStack(spacing: Spacing.sm) {
                             Image(systemName: "sparkles")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(AppFont.scaled(13, weight: .semibold))
                                 .foregroundStyle(AppColor.accentLight)
                             Text(prompt)
                                 .font(AppFont.subheadline)
@@ -329,7 +329,7 @@ private struct TurnBubble: View {
         HStack(alignment: .top) {
             if turn.role == .assistant {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(AppFont.scaled(13, weight: .bold))
                     .foregroundStyle(AppColor.accentLight)
                     .frame(width: 24, height: 24)
                     .background {
@@ -363,7 +363,7 @@ private struct TurnBubble: View {
 
             if turn.role == .user {
                 Image(systemName: "person.fill")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(AppFont.scaled(12, weight: .bold))
                     .foregroundStyle(AppColor.textSecondary)
                     .frame(width: 24, height: 24)
                     .background {

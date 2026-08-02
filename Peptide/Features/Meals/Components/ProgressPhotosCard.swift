@@ -138,9 +138,9 @@ struct ProgressPhotosCard: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "rectangle.split.2x1")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(AppFont.scaled(11, weight: .bold))
                         Text("Compare")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(AppFont.scaled(12, weight: .semibold))
                     }
                     .foregroundStyle(AppColor.accentLight)
                     .padding(.horizontal, Spacing.md)
@@ -165,9 +165,9 @@ struct ProgressPhotosCard: View {
             ) {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(AppFont.scaled(11, weight: .bold))
                     Text("Add photo")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppFont.scaled(12, weight: .semibold))
                 }
                 .foregroundStyle(AppColor.accentLight)
                 .padding(.horizontal, Spacing.md)
@@ -208,8 +208,8 @@ struct ProgressPhotosCard: View {
             .overlay(alignment: .topTrailing) {
                 if !isRevealed {
                     Image(systemName: "eye.slash.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .font(AppFont.scaled(11, weight: .bold))
+                        .foregroundStyle(AppColor.onAccent.opacity(0.7))
                         .padding(6)
                 }
             }
@@ -274,7 +274,7 @@ struct ProgressPhotosCard: View {
                 }
 
             Image(systemName: "photo")
-                .font(.system(size: 22, weight: .light))
+                .font(AppFont.scaled(22, weight: .light))
                 .foregroundStyle(AppColor.textTertiary.opacity(0.6))
         }
         .aspectRatio(1, contentMode: .fit)

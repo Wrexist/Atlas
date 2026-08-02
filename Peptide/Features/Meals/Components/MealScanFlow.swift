@@ -190,11 +190,11 @@ struct MealScanFlow: View {
     nonisolated private func pickerButtonLabel(icon: String, title: LocalizedStringKey, style: PickerButtonStyle) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .bold))
+                .font(AppFont.scaled(14, weight: .bold))
             Text(title)
-                .font(.system(size: 16, weight: .bold))
+                .font(AppFont.scaled(16, weight: .bold))
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(AppColor.onAccent)
         .frame(maxWidth: .infinity)
         .padding(.vertical, Spacing.md)
         .background {
@@ -614,7 +614,7 @@ private struct FoodItemEditCard: View {
                 item.include.toggle()
             } label: {
                 Image(systemName: item.include ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22))
+                    .font(AppFont.scaled(22))
                     .foregroundStyle(item.include ? AppColor.accentPrimary : AppColor.textTertiary)
             }
             .buttonStyle(.plain)
@@ -637,7 +637,7 @@ private struct FoodItemEditCard: View {
 
             VStack(alignment: .trailing, spacing: 0) {
                 Text("\(item.calories)")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .monospacedDigit()
                 Text("kcal")
@@ -722,7 +722,7 @@ private struct FoodItemEditCard: View {
     private func stepperButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 24))
+                .font(AppFont.scaled(24))
                 .foregroundStyle(AppColor.accentLight)
         }
         .buttonStyle(.plain)
@@ -766,7 +766,7 @@ private struct FoodItemEditCard: View {
             item.grams = grams.rounded()
         } label: {
             Text(label)
-                .font(.system(size: 12, weight: .semibold))
+                .font(AppFont.scaled(12, weight: .semibold))
                 .foregroundStyle(isActive ? .white : AppColor.textSecondary)
                 .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, 5)
@@ -788,9 +788,9 @@ private struct FoodItemEditCard: View {
         Button(action: onSave) {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: item.savedToLibrary ? "checkmark" : "bookmark")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(AppFont.scaled(12, weight: .bold))
                 Text(item.savedToLibrary ? "Saved to library" : "Save to library")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
             }
             .foregroundStyle(item.savedToLibrary ? AppColor.accentPrimary : AppColor.accentLight)
         }

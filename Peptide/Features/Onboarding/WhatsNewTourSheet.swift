@@ -77,7 +77,7 @@ struct WhatsNewTourSheet: View {
             // Soft corner vignette so the gradient never washes
             // out the text on lighter accents.
             RadialGradient(
-                colors: [Color.black.opacity(0.0), Color.black.opacity(0.55)],
+                colors: [AppColor.background.opacity(0.0), AppColor.background.opacity(0.55)],
                 center: .center,
                 startRadius: 220,
                 endRadius: 520
@@ -96,7 +96,7 @@ struct WhatsNewTourSheet: View {
                 completeAndDismiss()
             } label: {
                 Text("Skip")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(AppFont.scaled(15, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(.horizontal, Spacing.md)
                     .padding(.vertical, 8)
@@ -138,7 +138,7 @@ struct WhatsNewTourSheet: View {
             heroCard(page: page)
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text(page.eyebrow)
-                    .font(.system(size: 12, weight: .heavy))
+                    .font(AppFont.scaled(12, weight: .heavy))
                     .tracking(1.0)
                     .textCase(.uppercase)
                     .foregroundStyle(page.accent.opacity(0.95))
@@ -147,7 +147,7 @@ struct WhatsNewTourSheet: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(page.body)
-                    .font(.system(size: 16))
+                    .font(AppFont.scaled(16))
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -178,17 +178,17 @@ struct WhatsNewTourSheet: View {
             // without an illustration commitment. Two ovals + the
             // SF symbol read as a "polished marketing card" idiom.
             Circle()
-                .fill(Color.white.opacity(0.10))
+                .fill(AppColor.onAccent.opacity(0.10))
                 .frame(width: 220, height: 220)
                 .offset(x: 120, y: -60)
             Circle()
-                .fill(Color.white.opacity(0.08))
+                .fill(AppColor.onAccent.opacity(0.08))
                 .frame(width: 140, height: 140)
                 .offset(x: -120, y: 70)
 
             Image(systemName: page.icon)
                 .font(.system(size: 60, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppColor.onAccent)
                 .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
                 .scaleEffect(heroPulse ? 1.08 : 1.0)
                 .animation(
@@ -217,11 +217,11 @@ struct WhatsNewTourSheet: View {
                     .fill(tint.opacity(0.22))
                     .frame(width: 22, height: 22)
                 Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .foregroundStyle(tint)
             }
             Text(text)
-                .font(.system(size: 14, weight: .medium))
+                .font(AppFont.scaled(14, weight: .medium))
                 .foregroundStyle(AppColor.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .lineSpacing(2)
@@ -264,11 +264,11 @@ struct WhatsNewTourSheet: View {
         } label: {
             HStack(spacing: Spacing.sm) {
                 Text(isLastPage ? "Get started" : "Continue")
-                    .font(.system(size: 16, weight: .heavy))
+                    .font(AppFont.scaled(16, weight: .heavy))
                 Image(systemName: isLastPage ? "arrow.right.circle.fill" : "chevron.right")
-                    .font(.system(size: 14, weight: .heavy))
+                    .font(AppFont.scaled(14, weight: .heavy))
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(AppColor.onAccent)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .background {

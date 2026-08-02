@@ -105,7 +105,7 @@ private struct CompletionAction: View {
         Button(action: onTap) {
             HStack(alignment: .top, spacing: Spacing.md) {
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(style == .primary ? AppColor.accentPrimary : AppColor.accentLight)
                     .frame(width: 32, alignment: .center)
                 VStack(alignment: .leading, spacing: 2) {

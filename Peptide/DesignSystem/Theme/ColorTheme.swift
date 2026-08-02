@@ -1,11 +1,16 @@
 import SwiftUI
+import UIKit
 
 /// The single source of truth for colour in the app.
 ///
 /// **Rule:** feature views must use `AppColor` tokens — never a raw
-/// `Color(red:…)` / `Color(hex:…)` literal — so the whole app stays on one
-/// theme and a palette change is one edit. See
-/// `docs/PREMIUM_CONSISTENCY_PLAN.md`.
+/// `Color(red:…)` / `Color(hex:…)` / `Color.white` literal — so the whole app
+/// stays on one theme, adapts to light *and* dark, and a palette change is one
+/// edit. See `docs/PREMIUM_CONSISTENCY_PLAN.md`.
+///
+/// Every token that describes a *surface* or *ink* resolves per
+/// `UITraitCollection`, so Display mode → System renders a correct light
+/// appearance without a second palette.
 ///
 /// **Whitelisted domain colours** (intentionally literal, do NOT tokenize):
 /// the macro-ring colours (`macro*`), HealthKit metric colours (`metric*`),
@@ -13,11 +18,21 @@ import SwiftUI
 /// `MuscleMapView`, the notes mood-rating scale in `ProtocolNotesTimeline`,
 /// the multi-colour onboarding showcase in `WhatsNewPage`, and the
 /// deliberately-distinct Screenshot-mode dev row. These encode a real-world
-/// concept, not the brand, and stay constant across themes.
+/// concept, not the brand — but they still carry a light variant where the
+/// dark-mode value would fail contrast on a light surface.
 enum AppColor {
-    static let background = Color(hex: 0x0A0A0A)
-    static let surfaceElevated = Color(hex: 0x1A1A1A)
-    static let surfaceSecondary = Color(hex: 0x141414)
+    // MARK: - Surfaces
+    //
+    // The dark values are lifted off pure black (was `0x0A0A0A`) so Liquid
+    // Glass has something to refract; a true-black backdrop makes the iOS 26
+    // material read as flat grey. The light values are a warm neutral rather
+    // than pure white for the same reason.
+
+    static let background = Color(light: 0xF4F4F7, dark: 0x101013)
+    static let surfaceElevated = Color(light: 0xFFFFFF, dark: 0x1C1C21)
+    static let surfaceSecondary = Color(light: 0xFAFAFC, dark: 0x17171B)
+
+    // MARK: - Brand accents
 
     static var accentPrimary: Color { ThemeManager.shared.theme.primary }
     static var accentLight: Color { ThemeManager.shared.theme.light }
@@ -25,20 +40,73 @@ enum AppColor {
     static var accentGlow: Color { ThemeManager.shared.theme.primary.opacity(0.3) }
     static var glassTint: Color { ThemeManager.shared.theme.primary.opacity(0.15) }
 
-    static let textPrimary = Color.white
-    static let textSecondary = Color(hex: 0xA0A0A0)
-    // Deepened from #666666 to clear WCAG AA (4.5:1) against the dark
-    // background and elevated surfaces. The previous value sat at ~3:1.
-    static let textTertiary = Color(hex: 0x888888)
+    // MARK: - Ink
+
+    static let textPrimary = Color(light: 0x111114, dark: 0xFFFFFF)
+    static let textSecondary = Color(light: 0x5B5B63, dark: 0xA0A0A0)
+    /// Deepened from `#666666` to clear WCAG AA (4.5:1) against the dark
+    /// background and elevated surfaces. The previous value sat at ~3:1.
+    static let textTertiary = Color(light: 0x76767E, dark: 0x888888)
     static var textHighlight: Color { ThemeManager.shared.theme.highlight }
 
-    static let destructive = Color(hex: 0xFF4444)
-    static let warning = Color(hex: 0xFFB800)
+    /// Ink for content painted **on top of** an accent-filled or photographic
+    /// surface (filled buttons, vial glyphs, gradient hero cards). Constant
+    /// across schemes on purpose — the surface underneath is always dark.
+    static let onAccent = Color.white
+
+    // MARK: - Status
+
+    static let destructive = Color(light: 0xD32F2F, dark: 0xFF4444)
+    static let warning = Color(light: 0x9A6B00, dark: 0xFFB800)
     static var success: Color { ThemeManager.shared.theme.primary }
 
-    static let glassBorder = Color.white.opacity(0.08)
+    // MARK: - Glass
+
+    /// Hairline separating a glass surface from the backdrop. Light mode
+    /// borrows a dark hairline; dark mode a light one.
+    static let glassBorder = Color.adaptive(
+        light: Color.black.opacity(0.10),
+        dark: Color.white.opacity(0.08)
+    )
     static var glassBorderActive: Color { ThemeManager.shared.theme.primary.opacity(0.3) }
-    static let cardOverlay = Color.white.opacity(0.04)
+    /// The faint wash that lifts a card off the backdrop on pre-iOS-26 OSes.
+    static let cardOverlay = Color.adaptive(
+        light: Color.black.opacity(0.03),
+        dark: Color.white.opacity(0.04)
+    )
+    /// Fill for a pressed / selected glass control.
+    static let controlFill = Color.adaptive(
+        light: Color.black.opacity(0.06),
+        dark: Color.white.opacity(0.10)
+    )
+
+    // MARK: - Directional feedback
+    //
+    // "This moved the right way" / "this moved the wrong way". Distinct from
+    // `success` (which follows the brand accent) and `destructive` (which
+    // means a irreversible action), these read as *data* commentary and were
+    // previously ~20 near-identical inline `Color(red:green:blue:)` literals
+    // scattered across Labs, Biology, Meals, Train and the weekly recap.
+
+    /// Improving trend, in-range lab value, on-track streak.
+    static let positive = Color(light: 0x2F8F5B, dark: 0x66C78C)
+    /// Regressing trend or an above-range lab value. Softer than
+    /// `destructive` — it's an observation, not an error.
+    static let negative = Color(light: 0xB4573C, dark: 0xEE8C70)
+    /// Below-range lab value — cool counterpart to `negative`.
+    static let belowRange = Color(light: 0x2F6E96, dark: 0x8CC7EB)
+
+    // MARK: - Feature accents
+
+    /// Indigo that identifies the weekly-recap surfaces (hero card, detail
+    /// view, past-weeks list) and the screenshot/demo chrome.
+    static let recap = Color(light: 0x5A5FCF, dark: 0x7A80EB)
+
+    /// The two stops of the paywall / quick-log call-to-action gradient. A
+    /// deliberate violet that stays constant across brand themes so the
+    /// single most important button in the app is always the same button.
+    static let ctaGradientStart = Color(light: 0x4238C4, dark: 0x4F46E5)
+    static let ctaGradientEnd = Color(light: 0x6620C0, dark: 0x7C3AED)
 
     // MARK: - Semantic accents
     //
@@ -48,27 +116,28 @@ enum AppColor {
     // the same color and a future palette tweak is one edit.
 
     /// Warm orange used for streak flames and "consecutive days" affordances.
-    static let streak = Color(hex: 0xE88D4F)
+    static let streak = Color(light: 0xC26A2B, dark: 0xE88D4F)
 
     /// Soft gold used for achievement / trophy iconography.
-    static let achievement = Color(hex: 0xD4A844)
+    static let achievement = Color(light: 0x9C7714, dark: 0xD4A844)
 
     /// Warm amber for the workout "perceived effort" indicator.
-    static let perceivedEffort = Color(hex: 0xFFB347)
+    static let perceivedEffort = Color(light: 0xB2740F, dark: 0xFFB347)
 
-    /// Canonical macro colors. Match the rings + legend on the Lifestyle
-    /// Nutrition card so the same idea reads consistently across the app.
-    static let macroProtein = Color(hex: 0xEF9F27)
-    static let macroProteinLight = Color(hex: 0xF5C56C)
-    static let macroWater = Color(hex: 0x378ADD)
-    static let macroWaterLight = Color(hex: 0x7CC5FF)
+    /// Canonical macro colors. Match the rings + legend on the Nutrition card
+    /// so the same idea reads consistently across the app.
+    static let macroProtein = Color(light: 0xB56F0B, dark: 0xEF9F27)
+    static let macroProteinLight = Color(light: 0xD08F2E, dark: 0xF5C56C)
+    static let macroWater = Color(light: 0x1F6FC0, dark: 0x378ADD)
+    static let macroWaterLight = Color(light: 0x3F8BD6, dark: 0x7CC5FF)
 
     /// HealthKit metric category colors. Each represents a physiological
-    /// signal, not the brand — they intentionally stay constant across themes.
-    static let metricHeartRate = Color(hex: 0xCF7272)
-    static let metricHRV = Color(hex: 0x9B72CF)
-    static let metricSleep = Color(hex: 0xD4A844)
-    static let metricActivity = Color(hex: 0x4A7C59)
+    /// signal, not the brand — they intentionally stay constant across themes,
+    /// but darken in light mode so they clear contrast on a white card.
+    static let metricHeartRate = Color(light: 0xA84343, dark: 0xCF7272)
+    static let metricHRV = Color(light: 0x6B44A3, dark: 0x9B72CF)
+    static let metricSleep = Color(light: 0x9C7714, dark: 0xD4A844)
+    static let metricActivity = Color(light: 0x35603F, dark: 0x4A7C59)
 }
 
 extension Color {
@@ -78,6 +147,33 @@ extension Color {
             green: Double((hex >> 8) & 0xFF) / 255.0,
             blue: Double(hex & 0xFF) / 255.0,
             opacity: opacity
+        )
+    }
+
+    /// A token that resolves to a different hex per interface style, so one
+    /// `AppColor` entry serves both light and dark without a parallel palette.
+    init(light: UInt, dark: UInt, opacity: Double = 1.0) {
+        self.init(uiColor: UIColor { traits in
+            UIColor(hex: traits.userInterfaceStyle == .light ? light : dark, alpha: opacity)
+        })
+    }
+
+    /// Trait-resolving pair for tokens whose two halves aren't plain hexes
+    /// (translucent overlays, hairlines).
+    static func adaptive(light: Color, dark: Color) -> Color {
+        Color(uiColor: UIColor { traits in
+            UIColor(traits.userInterfaceStyle == .light ? light : dark)
+        })
+    }
+}
+
+private extension UIColor {
+    convenience init(hex: UInt, alpha: CGFloat) {
+        self.init(
+            red: CGFloat((hex >> 16) & 0xFF) / 255.0,
+            green: CGFloat((hex >> 8) & 0xFF) / 255.0,
+            blue: CGFloat(hex & 0xFF) / 255.0,
+            alpha: alpha
         )
     }
 }

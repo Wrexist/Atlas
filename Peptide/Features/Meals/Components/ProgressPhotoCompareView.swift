@@ -102,7 +102,7 @@ struct ProgressPhotoCompareView: View {
     private func photoColumn(filename: String?, label: String) -> some View {
         VStack(spacing: 6) {
             Text(label)
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
@@ -142,10 +142,10 @@ struct ProgressPhotoCompareView: View {
         let days = ProgressPhotoMetadata.daysBetween(primary, compare)
         return HStack(spacing: Spacing.sm) {
             Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 12, weight: .semibold))
+                .font(AppFont.scaled(12, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
             Text(diffCopy(days: days))
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
             Spacer(minLength: 0)
@@ -189,7 +189,7 @@ struct ProgressPhotoCompareView: View {
     private var pickerStrip: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("Compare with")
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
@@ -241,7 +241,7 @@ struct ProgressPhotoCompareView: View {
                     placeholder.frame(width: 56, height: 70)
                 }
                 Text(ProgressPhotoMetadata.displayDate(forFilename: filename))
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(AppFont.scaled(9, weight: .semibold))
                     .foregroundStyle(active ? AppColor.accentLight : AppColor.textSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)

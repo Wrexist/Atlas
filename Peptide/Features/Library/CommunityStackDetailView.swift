@@ -77,7 +77,7 @@ struct CommunityStackDetailView: View {
                 HStack(spacing: Spacing.sm) {
                     if stack.featured {
                         Label("Featured", systemImage: "star.fill")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(AppFont.scaled(11, weight: .bold))
                             .foregroundStyle(AppColor.accentLight)
                             .padding(.horizontal, Spacing.sm)
                             .padding(.vertical, 4)
@@ -85,7 +85,7 @@ struct CommunityStackDetailView: View {
                     }
                     HStack(spacing: 4) {
                         Image(systemName: "flame.fill")
-                            .font(.system(size: 11))
+                            .font(AppFont.scaled(11))
                         Text("\(stack.popularityScore) popularity")
                             .font(AppFont.caption)
                             .fontWeight(.semibold)
@@ -111,7 +111,7 @@ struct CommunityStackDetailView: View {
                     .fill(AppColor.accentPrimary.opacity(0.2))
                     .frame(width: 44, height: 44)
                 Image(systemName: "person.crop.circle.fill")
-                    .font(.system(size: 22))
+                    .font(AppFont.scaled(22))
                     .foregroundStyle(AppColor.accentLight)
             }
             VStack(alignment: .leading, spacing: 2) {
@@ -175,7 +175,7 @@ struct CommunityStackDetailView: View {
                     HStack(spacing: 6) {
                         ForEach(stack.goalTags, id: \.self) { tag in
                             Text(tag)
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(AppFont.scaled(11, weight: .semibold))
                                 .foregroundStyle(AppColor.accentLight)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
@@ -220,7 +220,7 @@ struct CommunityStackDetailView: View {
     private func peptideRow(_ peptide: Peptide) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: peptide.imageSystemName)
-                .font(.system(size: 16))
+                .font(AppFont.scaled(16))
                 .foregroundStyle(peptide.category.color)
                 .frame(width: 32, height: 32)
                 .background(

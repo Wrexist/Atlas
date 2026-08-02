@@ -135,7 +135,7 @@ struct RecipeEditorSheet: View {
         return GlassCard(tinted: true, padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Logs as")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.accentLight.opacity(0.85))
@@ -152,12 +152,12 @@ struct RecipeEditorSheet: View {
     private func macroPill(value: String, label: String, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(value)
-                .font(.system(size: 18, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(18, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
             Text(label)
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppFont.scaled(10, weight: .semibold))
                 .foregroundStyle(tint)
                 .textCase(.uppercase)
                 .tracking(0.4)
@@ -172,7 +172,7 @@ struct RecipeEditorSheet: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack {
                 Text("Ingredients (\(components.count))")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)
@@ -182,9 +182,9 @@ struct RecipeEditorSheet: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(AppFont.scaled(11, weight: .bold))
                         Text("Add")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(AppFont.scaled(12, weight: .semibold))
                     }
                     .foregroundStyle(AppColor.accentLight)
                     .padding(.horizontal, Spacing.sm)
@@ -198,7 +198,7 @@ struct RecipeEditorSheet: View {
 
             if components.isEmpty {
                 Text("Tap Add to drop in your first ingredient.")
-                    .font(.system(size: 12))
+                    .font(AppFont.scaled(12))
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(.vertical, Spacing.md)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -218,22 +218,22 @@ struct RecipeEditorSheet: View {
         } label: {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "fork.knife")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(component.cachedName)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(AppFont.scaled(14, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
                     Text(portionDescription(component.portion))
-                        .font(.system(size: 11))
+                        .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.textSecondary)
                         .monospacedDigit()
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11))
+                    .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(Spacing.sm)

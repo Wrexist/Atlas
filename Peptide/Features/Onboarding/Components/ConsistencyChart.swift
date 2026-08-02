@@ -15,7 +15,7 @@ struct ConsistencyChart: View {
     @State private var endpointsVisible = false
 
     private var lineColorA: Color { AppColor.accentPrimary }
-    private let lineColorB = Color(red: 0.612, green: 0.639, blue: 0.686) // #9CA3AF
+    private let lineColorB = AppColor.textSecondary
 
     var body: some View {
         VStack(spacing: Spacing.sm) {

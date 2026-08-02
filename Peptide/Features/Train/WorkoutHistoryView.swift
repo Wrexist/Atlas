@@ -83,7 +83,7 @@ struct WorkoutHistoryView: View {
             Spacer()
             if let duration = session.durationLabel {
                 Text(duration)
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
                     .foregroundStyle(AppColor.accentLight)
             }
         }

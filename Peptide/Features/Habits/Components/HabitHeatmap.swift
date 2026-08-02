@@ -36,7 +36,7 @@ struct HabitHeatmap: View {
                 if showsMonthLabels {
                     monthRow(perColumnWidth: perColumnWidth)
                         .foregroundStyle(AppColor.textTertiary)
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(AppFont.scaled(9, weight: .semibold))
                 }
 
                 HStack(spacing: cellSpacing) {

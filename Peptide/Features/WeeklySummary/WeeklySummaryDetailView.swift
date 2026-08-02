@@ -17,7 +17,7 @@ struct WeeklySummaryDetailView: View {
     @State private var isRefreshing = false
 
     private var accent: Color {
-        Color(red: 0.48, green: 0.50, blue: 0.92)
+        AppColor.recap
     }
 
     var body: some View {
@@ -46,7 +46,7 @@ struct WeeklySummaryDetailView: View {
                     Image(systemName: isRefreshing
                           ? "arrow.clockwise.circle"
                           : "arrow.clockwise")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .symbolEffect(.rotate, value: isRefreshing)
                 }
                 .disabled(isRefreshing)
@@ -77,12 +77,12 @@ struct WeeklySummaryDetailView: View {
                         .shadow(color: accent.opacity(0.45), radius: 12, y: 6)
                     Image(systemName: "chart.bar.doc.horizontal.fill")
                         .font(.system(size: 26, weight: .heavy))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColor.onAccent)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Week recap")
-                        .font(.system(size: 11, weight: .heavy))
+                        .font(AppFont.scaled(11, weight: .heavy))
                         .tracking(1.2)
                         .textCase(.uppercase)
                         .foregroundStyle(accent)
@@ -140,8 +140,8 @@ struct WeeklySummaryDetailView: View {
                     value: "\(prefix)\(delta)",
                     sublabel: "ms vs prior week",
                     tint: delta >= 0
-                        ? Color(red: 0.36, green: 0.78, blue: 0.55)
-                        : Color(red: 0.95, green: 0.50, blue: 0.55)
+                        ? AppColor.positive
+                        : AppColor.negative
                 )
             }
         }
@@ -155,7 +155,7 @@ struct WeeklySummaryDetailView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(0.5)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
@@ -165,7 +165,7 @@ struct WeeklySummaryDetailView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             Text(sublabel)
-                .font(.system(size: 11))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
                 .lineLimit(1)
         }
@@ -186,7 +186,7 @@ struct WeeklySummaryDetailView: View {
     private var bodyText: some View {
         GlassCard {
             Text(summary.text)
-                .font(.system(size: 15))
+                .font(AppFont.scaled(15))
                 .foregroundStyle(AppColor.textPrimary)
                 .lineSpacing(5)
                 .multilineTextAlignment(.leading)
@@ -200,10 +200,10 @@ struct WeeklySummaryDetailView: View {
     private var metadataRow: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: summary.kind == .ai ? "sparkles" : "wifi.slash")
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
             Text(metadataText)
-                .font(.system(size: 11))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
             Spacer(minLength: 0)
         }

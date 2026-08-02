@@ -64,7 +64,7 @@ struct OutcomeCheckInSheet: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(headerCopy)
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.accentLight.opacity(0.85))
@@ -97,7 +97,7 @@ struct OutcomeCheckInSheet: View {
                             .fill(dimension.tint.opacity(0.20))
                             .frame(width: 32, height: 32)
                         Image(systemName: dimension.icon)
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(AppFont.scaled(14, weight: .semibold))
                             .foregroundStyle(dimension.tint)
                     }
                     Text(dimension.displayName)
@@ -106,7 +106,7 @@ struct OutcomeCheckInSheet: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer(minLength: 0)
                     Text("\(value.wrappedValue)")
-                        .font(.system(size: 22, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(22, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(dimension.tint)
                         .contentTransition(.numericText())
@@ -142,7 +142,7 @@ struct OutcomeCheckInSheet: View {
         let active = rating == current
         return Button(action: action) {
             Text("\(rating)")
-                .font(.system(size: 16, weight: active ? .heavy : .semibold, design: .rounded))
+                .font(AppFont.scaled(16, weight: active ? .heavy : .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(active ? AppColor.textPrimary : AppColor.textSecondary)
                 .frame(maxWidth: .infinity)
@@ -168,7 +168,7 @@ struct OutcomeCheckInSheet: View {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack {
                     Image(systemName: "text.bubble")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
                     Text("Note (optional)")
                         .font(AppFont.subheadline)

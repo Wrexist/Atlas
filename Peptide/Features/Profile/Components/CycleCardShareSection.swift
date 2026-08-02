@@ -26,8 +26,8 @@ struct CycleCardShareSection: View {
         } label: {
             HStack(spacing: Spacing.md) {
                 Image(systemName: "square.and.arrow.up.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(AppFont.scaled(18, weight: .semibold))
+                    .foregroundStyle(AppColor.onAccent)
                     .frame(width: 40, height: 40)
                     .background {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -53,7 +53,7 @@ struct CycleCardShareSection: View {
                 Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(AppFont.scaled(12, weight: .bold))
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(Spacing.md)

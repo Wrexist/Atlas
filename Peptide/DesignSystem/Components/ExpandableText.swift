@@ -56,7 +56,7 @@ struct ExpandableText: View {
                     HStack(spacing: Spacing.xs) {
                         Text(isExpanded ? "Show less" : "Read more")
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(AppFont.scaled(10, weight: .semibold))
                             .rotationEffect(.degrees(isExpanded ? 180 : 0))
                     }
                     .font(AppFont.caption)

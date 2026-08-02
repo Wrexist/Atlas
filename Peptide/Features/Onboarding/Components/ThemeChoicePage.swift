@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// "Make it yours" onboarding step. Two-card display-mode picker on top
-/// (Light / Dark) and a horizontal pill row of brand colours below. Both
+/// "Make it yours" onboarding step. Three-card display-mode picker on top
+/// (Auto / Light / Dark) and a horizontal pill row of brand colours below. Both
 /// choices write through to `ThemeManager.shared`, which persists the
 /// values to UserDefaults; the picker view re-renders live as the user
 /// taps so the selection ring follows the touch.
@@ -35,77 +35,38 @@ struct ThemeChoicePage: View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             sectionHeader("DISPLAY MODE")
 
-            HStack(spacing: Spacing.md) {
-                // Light mode is intentionally disabled until the design system
-                // gains light-mode surface variants — every panel and text
-                // colour is currently a hardcoded dark hex, so flipping the
-                // colour scheme would render the app unreadable.
-                displayModeCard(.light, icon: "sun.max.fill", label: "Light", comingSoon: true)
-                displayModeCard(.dark, icon: "moon.fill", label: "Dark")
+            HStack(spacing: Spacing.sm) {
+                ForEach(DisplayMode.allCases) { mode in
+                    displayModeCard(mode)
+                }
             }
         }
     }
 
-    private func displayModeCard(
-        _ mode: DisplayMode,
-        icon: String,
-        label: LocalizedStringKey,
-        comingSoon: Bool = false
-    ) -> some View {
-        let isSelected = theme.displayMode == mode && !comingSoon
+    private func displayModeCard(_ mode: DisplayMode) -> some View {
+        let isSelected = theme.displayMode == mode
         return Button {
-            guard !comingSoon else {
-                Haptics.warning()
-                return
-            }
             select(mode)
         } label: {
-            ZStack(alignment: .topTrailing) {
-                VStack(spacing: Spacing.sm) {
-                    Image(systemName: icon)
-                        .font(.system(size: 26, weight: .medium))
-                        .foregroundStyle(
-                            comingSoon
-                                ? AppColor.textTertiary
-                                : (isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
-                        )
-                        .symbolEffect(.bounce, value: isSelected)
-                        .frame(height: 30)
+            VStack(spacing: Spacing.sm) {
+                Image(systemName: mode.iconName)
+                    .font(AppFont.scaled(24, weight: .medium))
+                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
+                    .symbolEffect(.bounce, value: isSelected)
+                    .frame(height: 28)
 
-                    Text(label)
-                        .font(AppFont.headline)
-                        .foregroundStyle(
-                            comingSoon
-                                ? AppColor.textTertiary
-                                : (isSelected ? AppColor.textPrimary : AppColor.textSecondary)
-                        )
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.xl)
-
-                if comingSoon {
-                    Text("SOON")
-                        .font(.system(size: 9, weight: .heavy))
-                        .tracking(1.0)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background {
-                            Capsule()
-                                .fill(AppColor.surfaceElevated)
-                                .overlay {
-                                    Capsule().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                                }
-                        }
-                        .padding(Spacing.sm)
-                }
+                Text(mode.displayName)
+                    .font(AppFont.headline)
+                    .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.lg)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                     .fill(
                         isSelected
                             ? AppColor.accentPrimary.opacity(0.10)
-                            : AppColor.surfaceSecondary.opacity(comingSoon ? 0.4 : 0.6)
+                            : AppColor.surfaceSecondary.opacity(0.6)
                     )
                     .overlay {
                         RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
@@ -115,9 +76,9 @@ struct ThemeChoicePage: View {
                             )
                     }
             }
-            .opacity(comingSoon ? 0.55 : 1.0)
         }
         .buttonStyle(ScalePressStyle())
+        .accessibilityLabel(mode.displayName)
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
@@ -145,14 +106,14 @@ struct ThemeChoicePage: View {
                     .fill(pillFill(for: themeColor))
                     .frame(width: 36, height: 36)
                     .overlay {
-                        Circle().strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                        Circle().strokeBorder(AppColor.onAccent.opacity(0.18), lineWidth: 0.5)
                     }
                     .shadow(color: themeColor.primary.opacity(isSelected ? 0.55 : 0.0), radius: 8, y: 2)
 
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .heavy))
-                        .foregroundStyle(.white)
+                        .font(AppFont.scaled(14, weight: .heavy))
+                        .foregroundStyle(AppColor.onAccent)
                         .shadow(color: .black.opacity(0.35), radius: 1)
                 }
             }
@@ -197,7 +158,7 @@ struct ThemeChoicePage: View {
 
     private func sectionHeader(_ text: LocalizedStringKey) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .heavy))
+            .font(AppFont.eyebrow)
             .tracking(1.5)
             .foregroundStyle(AppColor.textSecondary)
     }
@@ -225,5 +186,4 @@ struct ThemeChoicePage: View {
         ThemeChoicePage(theme: ThemeManager.shared)
             .padding(.horizontal, Spacing.screenPadding)
     }
-    .preferredColorScheme(.dark)
 }

@@ -36,7 +36,7 @@ struct AtlasScoreCard: View {
             ) {
                 VStack(spacing: 0) {
                     Text("LV")
-                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(10, weight: .heavy, design: .rounded))
                         .foregroundStyle(AppColor.textSecondary)
                     Text("\(momentum.level)")
                         .font(.system(size: 26, weight: .heavy, design: .rounded))
@@ -48,14 +48,14 @@ struct AtlasScoreCard: View {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 HStack(spacing: 6) {
                     Image(systemName: momentum.tier.symbol)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(tint)
                     Text("\(momentum.tier.name) · Atlas Score")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                 }
                 Text("\(momentum.score) pts")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
                     .foregroundStyle(AppColor.textSecondary)
                     .contentTransition(.numericText())
                 Text(progressLine(momentum))
@@ -68,7 +68,7 @@ struct AtlasScoreCard: View {
 
             if onTap != nil {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.scaled(12, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
             }
         }

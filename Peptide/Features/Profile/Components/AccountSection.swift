@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AccountSection: View {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var authService = AuthService.shared
     @State private var isConfirmingDeletion = false
     @State private var cloudSyncState: CloudSyncState?
@@ -84,7 +85,7 @@ struct AccountSection: View {
         if let state = cloudSyncState {
             HStack(alignment: .top, spacing: Spacing.md) {
                 Image(systemName: state == .active ? "icloud.fill" : "icloud.slash.fill")
-                    .font(.system(size: 14))
+                    .font(AppFont.scaled(14))
                     .foregroundStyle(state == .active ? AppColor.accentLight : AppColor.textTertiary)
                     .frame(width: 20)
 
@@ -123,7 +124,7 @@ struct AccountSection: View {
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
             + Text("Apple ID")
-                .font(.system(size: 15, weight: .medium))
+                .font(AppFont.scaled(15, weight: .medium))
                 .foregroundStyle(AppColor.accentLight)
             + Text(" to keep your Atlas account associated with your device. All your protocols, entries, and settings stay on this device.")
                 .font(AppFont.subheadline)
@@ -137,13 +138,19 @@ struct AccountSection: View {
                 .frame(height: 50)
                 .opacity(authService.isSigningIn ? 0.5 : 1)
                 .allowsHitTesting(!authService.isSigningIn)
+                // The button's style is baked in at init; re-identify it so
+                // SwiftUI rebuilds the UIView when the scheme flips.
+                .id(colorScheme)
 
                 if authService.isSigningIn {
+                    // The in-flight label sits on top of the Apple button,
+                    // which is white in dark mode and black in light mode —
+                    // so the ink is the inverse of the app's normal ink.
                     HStack(spacing: Spacing.sm) {
-                        ProgressView().tint(.black)
+                        ProgressView().tint(AppColor.background)
                         Text("Signing in…")
                             .font(AppFont.subheadline)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(AppColor.background)
                     }
                     .allowsHitTesting(false)
                 }
@@ -188,7 +195,7 @@ struct AccountSection: View {
     private func accountRow(icon: String, label: String) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(AppFont.scaled(14))
                 .foregroundStyle(AppColor.textTertiary)
                 .frame(width: 20)
 

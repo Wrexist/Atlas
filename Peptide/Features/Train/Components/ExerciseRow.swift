@@ -58,7 +58,7 @@ struct ExerciseRow: View {
         if exercise.equipmentKind != .bodyweight {
             HStack(spacing: 3) {
                 Image(systemName: exercise.equipmentKind.symbolName)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(AppFont.scaled(10, weight: .semibold))
                 Text(exercise.equipmentKind.displayName)
                     .font(AppFont.chipText)
             }

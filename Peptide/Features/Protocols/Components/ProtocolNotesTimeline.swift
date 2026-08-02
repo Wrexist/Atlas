@@ -69,7 +69,7 @@ struct ProtocolNotesTimeline: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Notes")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.accentLight.opacity(0.85))
@@ -84,9 +84,9 @@ struct ProtocolNotesTimeline: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(AppFont.scaled(11, weight: .bold))
                     Text("Add note")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppFont.scaled(12, weight: .semibold))
                 }
                 .foregroundStyle(AppColor.accentLight)
                 .padding(.horizontal, Spacing.md)
@@ -108,7 +108,7 @@ struct ProtocolNotesTimeline: View {
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
             Text("Capture side effects, energy shifts, mood, anything you want to remember about this protocol.")
-                .font(.system(size: 12))
+                .font(AppFont.scaled(12))
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -120,7 +120,7 @@ struct ProtocolNotesTimeline: View {
     private func daySection(day: Date, notes: [ProtocolNote]) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(Self.dayFormatter.string(from: day))
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textTertiary)
@@ -156,7 +156,7 @@ struct ProtocolNotesTimeline: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(Self.timeFormatter.string(from: note.date))
-                        .font(.system(size: 10))
+                        .font(AppFont.scaled(10))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textTertiary)
                 }
@@ -323,7 +323,7 @@ struct ProtocolNoteEditorSheet: View {
                 mood = nil
             } label: {
                 Image(systemName: "xmark.circle")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: 44)
@@ -340,7 +340,7 @@ struct ProtocolNoteEditorSheet: View {
             mood = rating
         } label: {
             Text("\(rating)")
-                .font(.system(size: 15, weight: active ? .heavy : .semibold, design: .rounded))
+                .font(AppFont.scaled(15, weight: active ? .heavy : .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(active ? AppColor.textPrimary : AppColor.textSecondary)
                 .frame(maxWidth: .infinity)

@@ -33,7 +33,7 @@ struct ExercisePickerSheet: View {
                         creatingCustomExercise = true
                     } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(AppFont.scaled(16, weight: .semibold))
                     }
                     .accessibilityLabel("Create custom exercise")
                 }
@@ -113,7 +113,7 @@ struct ExercisePickerSheet: View {
                             ExerciseRow(exercise: exercise, showsChevron: false)
                                 .overlay(alignment: .trailing) {
                                     Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 22, weight: .semibold))
+                                        .font(AppFont.scaled(22, weight: .semibold))
                                         .foregroundStyle(AppColor.accentPrimary)
                                 }
                         }

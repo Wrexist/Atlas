@@ -87,7 +87,7 @@ struct TrainContainerView: View {
         } label: {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "figure.run.circle.fill")
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(AppFont.scaled(22, weight: .semibold))
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Workout in progress")
                         .font(AppFont.callout.weight(.semibold))
@@ -99,7 +99,7 @@ struct TrainContainerView: View {
                 }
                 Spacer()
                 Image(systemName: "chevron.up")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(AppFont.scaled(14, weight: .semibold))
             }
             .foregroundStyle(AppColor.background)
             .padding(.horizontal, Spacing.md)

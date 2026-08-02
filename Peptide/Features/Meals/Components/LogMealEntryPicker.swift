@@ -59,8 +59,8 @@ struct LogMealEntryPicker: View {
                         )
                         .frame(width: 38, height: 38)
                     Image(systemName: icon)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Color.white)
+                        .font(AppFont.scaled(17, weight: .semibold))
+                        .foregroundStyle(AppColor.textPrimary)
                 }
                 .shadow(color: accent.opacity(0.35), radius: 8, y: 4)
 
@@ -68,10 +68,10 @@ struct LogMealEntryPicker: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                     Text(subtitle)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppFont.scaled(12, weight: .medium))
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }

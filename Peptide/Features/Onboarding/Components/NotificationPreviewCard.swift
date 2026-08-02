@@ -17,7 +17,7 @@ struct NotificationPreviewCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(appName)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
                         .textCase(.uppercase)
                         .tracking(0.5)
@@ -52,8 +52,8 @@ struct NotificationPreviewCard: View {
 
     private var iconBadge: some View {
         Image(systemName: "flask.fill")
-            .font(.system(size: 14, weight: .bold))
-            .foregroundStyle(.white)
+            .font(AppFont.scaled(14, weight: .bold))
+            .foregroundStyle(AppColor.onAccent)
             .frame(width: 28, height: 28)
             .background {
                 RoundedRectangle(cornerRadius: 7, style: .continuous)

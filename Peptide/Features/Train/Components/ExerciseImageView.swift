@@ -60,7 +60,7 @@ struct ExerciseImageView: View {
             .fill(AppColor.surfaceSecondary.opacity(0.5))
             .overlay {
                 Image(systemName: muscleGroup.symbolName)
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(AppFont.scaled(22, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary.opacity(0.7))
             }
     }

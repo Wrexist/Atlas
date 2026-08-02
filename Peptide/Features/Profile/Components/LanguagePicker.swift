@@ -12,7 +12,7 @@ struct LanguagePickerRow: View {
         } label: {
             HStack(spacing: Spacing.md) {
                 Image(systemName: "character.bubble.fill")
-                    .font(.system(size: 14))
+                    .font(AppFont.scaled(14))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: 24)
 
@@ -24,12 +24,12 @@ struct LanguagePickerRow: View {
 
                 HStack(spacing: Spacing.xs) {
                     Text(currentFlag)
-                        .font(.system(size: 16))
+                        .font(AppFont.scaled(16))
                     Text(currentName)
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }
@@ -158,7 +158,7 @@ private struct LanguageRow: View {
                     Spacer()
 
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 22, weight: .regular))
+                        .font(AppFont.scaled(22, weight: .regular))
                         .foregroundStyle(
                             isSelected ? AppColor.accentPrimary : AppColor.glassBorder
                         )

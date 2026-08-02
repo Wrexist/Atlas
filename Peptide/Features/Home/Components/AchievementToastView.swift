@@ -12,7 +12,7 @@ struct AchievementToastView: View {
             VStack {
                 HStack(spacing: Spacing.md) {
                     Image(systemName: achievement.icon)
-                        .font(.system(size: 22))
+                        .font(AppFont.scaled(22))
                         .foregroundStyle(AppColor.accentLight)
                         .frame(width: 40, height: 40)
                         .background {
@@ -36,7 +36,7 @@ struct AchievementToastView: View {
                         withAnimation(AppAnimation.springSnappy) { isShowing = false }
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(AppFont.scaled(12, weight: .bold))
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 }

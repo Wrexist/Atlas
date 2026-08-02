@@ -28,7 +28,7 @@ struct DoseLoggingSheet: View {
                     GlassCard(tinted: true) {
                         HStack(spacing: Spacing.md) {
                             Image(systemName: entry.peptide.imageSystemName)
-                                .font(.system(size: 24))
+                                .font(AppFont.scaled(24))
                                 .foregroundStyle(entry.peptide.category.color)
                                 .frame(width: 48, height: 48)
                                 .accessibilityHidden(true)              // peptide name + dose alongside carry the label

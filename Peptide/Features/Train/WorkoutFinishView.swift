@@ -58,7 +58,7 @@ struct WorkoutFinishView: View {
         VStack(spacing: Spacing.xs) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 48, weight: .semibold))
-                .foregroundStyle(Color(red: 0.30, green: 0.80, blue: 0.50))
+                .foregroundStyle(AppColor.positive)
             Text(session.name ?? "Workout complete")
                 .font(AppFont.title)
                 .foregroundStyle(AppColor.textPrimary)

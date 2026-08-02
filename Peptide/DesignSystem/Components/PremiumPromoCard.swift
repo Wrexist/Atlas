@@ -46,19 +46,19 @@ struct PremiumPromoCard<Trailing: View>: View {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     if let eyebrow {
                         Text(eyebrow)
-                            .font(.system(size: 11, weight: .heavy, design: .rounded))
+                            .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                             .tracking(1.0)
-                            .foregroundStyle(Color.white.opacity(0.65))
+                            .foregroundStyle(AppColor.textPrimary.opacity(0.65))
                     }
                     Text(title)
-                        .font(.system(size: 17, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(17, weight: .heavy, design: .rounded))
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     if let subtitle {
                         Text(subtitle)
                             .font(AppFont.subheadline)
-                            .foregroundStyle(Color.white.opacity(0.75))
+                            .foregroundStyle(AppColor.textPrimary.opacity(0.75))
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
@@ -88,7 +88,7 @@ struct PremiumPromoCard<Trailing: View>: View {
             .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.5)
+                    .strokeBorder(AppColor.textPrimary.opacity(0.10), lineWidth: 0.5)
             }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
@@ -96,14 +96,14 @@ struct PremiumPromoCard<Trailing: View>: View {
 
     private func ctaPill(label: LocalizedStringKey) -> some View {
         Text(label)
-            .font(.system(size: 12, weight: .heavy))
+            .font(AppFont.scaled(12, weight: .heavy))
             .foregroundStyle(.white)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, 6)
             .background {
-                Capsule().fill(Color.white.opacity(0.15))
+                Capsule().fill(AppColor.textPrimary.opacity(0.15))
                     .overlay {
-                        Capsule().strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
+                        Capsule().strokeBorder(AppColor.textPrimary.opacity(0.25), lineWidth: 0.5)
                     }
             }
     }
@@ -115,18 +115,18 @@ struct PremiumPromoCard<Trailing: View>: View {
     private func qualifierPill(label: LocalizedStringKey) -> some View {
         HStack(spacing: 4) {
             Image(systemName: "lock.fill")
-                .font(.system(size: 9, weight: .heavy))
+                .font(AppFont.scaled(9, weight: .heavy))
             Text(label)
-                .font(.system(size: 10, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(10, weight: .heavy, design: .rounded))
                 .tracking(0.3)
         }
-        .foregroundStyle(Color.white.opacity(0.85))
+        .foregroundStyle(AppColor.textPrimary.opacity(0.85))
         .padding(.horizontal, Spacing.sm)
         .padding(.vertical, 4)
         .background {
-            Capsule().fill(Color.white.opacity(0.08))
+            Capsule().fill(AppColor.textPrimary.opacity(0.08))
                 .overlay {
-                    Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+                    Capsule().strokeBorder(AppColor.textPrimary.opacity(0.12), lineWidth: 0.5)
                 }
         }
     }
@@ -165,11 +165,11 @@ struct BrandGlyphMark: View {
                 .fill(.ultraThinMaterial)
                 .overlay {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                        .strokeBorder(AppColor.textPrimary.opacity(0.18), lineWidth: 0.5)
                 }
             Text("A")
                 .font(.system(size: 34, weight: .heavy, design: .rounded))
-                .foregroundStyle(Color.white.opacity(0.85))
+                .foregroundStyle(AppColor.textPrimary.opacity(0.85))
         }
     }
 }

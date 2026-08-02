@@ -256,7 +256,7 @@ struct PeptideListView: View {
             } label: {
                 Label("Ask the assistant", systemImage: "sparkles")
                     .labelStyle(.iconOnly)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
             }
             .accessibilityLabel("Open AI research assistant")
@@ -267,7 +267,7 @@ struct PeptideListView: View {
             } label: {
                 Label("Protocols", systemImage: "square.stack.3d.up.fill")
                     .labelStyle(.iconOnly)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentPrimary)
             }
             .accessibilityLabel("Open protocols")
@@ -317,7 +317,7 @@ private struct ProtocolsEntryCard: View {
                         .fill(AppColor.accentPrimary.opacity(0.18))
                         .frame(width: 44, height: 44)
                     Image(systemName: "flask.fill")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(AppFont.scaled(18, weight: .bold))
                         .foregroundStyle(AppColor.accentLight)
                 }
 
@@ -336,11 +336,11 @@ private struct ProtocolsEntryCard: View {
 
                 if isEmpty {
                     Text("Get started")
-                        .font(.system(size: 13, weight: .heavy))
+                        .font(AppFont.scaled(13, weight: .heavy))
                         .foregroundStyle(AppColor.accentPrimary)
                 } else {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppFont.scaled(12, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }
@@ -376,7 +376,7 @@ private struct AddCustomPeptideCard: View {
                         .fill(AppColor.accentPrimary.opacity(0.18))
                         .frame(width: 44, height: 44)
                     Image(systemName: "plus")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(AppFont.scaled(18, weight: .bold))
                         .foregroundStyle(AppColor.accentLight)
                 }
 
@@ -394,7 +394,7 @@ private struct AddCustomPeptideCard: View {
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.scaled(12, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(Spacing.md)

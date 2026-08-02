@@ -37,7 +37,7 @@ struct StackCompletenessCard: View {
                     if let suggestion = completeness.suggestions.first {
                         HStack(alignment: .top, spacing: Spacing.xs) {
                             Image(systemName: "lightbulb.fill")
-                                .font(.system(size: 9))
+                                .font(AppFont.scaled(9))
                                 .foregroundStyle(AppColor.accentLight)
                                 .padding(.top, 2)
 

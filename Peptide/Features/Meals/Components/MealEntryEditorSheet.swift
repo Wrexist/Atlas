@@ -99,7 +99,7 @@ struct MealEntryEditorSheet: View {
                         .fill(initial.category.tint.opacity(0.20))
                         .frame(width: 44, height: 44)
                     Image(systemName: initial.category.icon)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(AppFont.scaled(18, weight: .semibold))
                         .foregroundStyle(initial.category.tint)
                 }
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -109,7 +109,7 @@ struct MealEntryEditorSheet: View {
                         .lineLimit(2)
                     HStack(spacing: 6) {
                         Image(systemName: initial.source.icon)
-                            .font(.system(size: 10))
+                            .font(AppFont.scaled(10))
                             .foregroundStyle(AppColor.textSecondary)
                         Text(Self.timeFormatter.string(from: initial.date))
                             .font(AppFont.caption)

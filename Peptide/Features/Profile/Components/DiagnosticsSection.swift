@@ -35,7 +35,7 @@ struct DiagnosticsSection: View {
                         }
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(AppFont.scaled(12, weight: .semibold))
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 }
@@ -165,7 +165,7 @@ private struct DiagnosticsDetailSheet: View {
             HStack {
                 Label(record.kind == .diagnostic ? "Diagnostic" : "Metric",
                       systemImage: record.kind == .diagnostic ? "exclamationmark.triangle.fill" : "gauge.with.dots.needle.bottom.50percent")
-                    .font(.system(size: 12, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(12, weight: .heavy, design: .rounded))
                     .foregroundStyle(record.kind == .diagnostic ? AppColor.warning : AppColor.accentLight)
                 Spacer()
                 Text(record.receivedAt.formatted(date: .abbreviated, time: .shortened))
@@ -173,7 +173,7 @@ private struct DiagnosticsDetailSheet: View {
                     .foregroundStyle(AppColor.textSecondary)
             }
             Text(payloadPreview(for: record))
-                .font(.system(size: 11, design: .monospaced))
+                .font(AppFont.scaled(11, design: .monospaced))
                 .foregroundStyle(AppColor.textSecondary)
                 .lineLimit(6)
                 .frame(maxWidth: .infinity, alignment: .leading)

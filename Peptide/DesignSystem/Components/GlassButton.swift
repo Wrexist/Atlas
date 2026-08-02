@@ -19,7 +19,7 @@ struct GlassButton: View {
             HStack(spacing: Spacing.xs) {
                 if let icon {
                     Image(systemName: icon)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(AppFont.scaled(14, weight: .semibold))
                 }
                 Text(title)
                     .font(AppFont.headline)
@@ -96,7 +96,7 @@ struct GlassIconButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(tinted ? AppColor.accentLight : AppColor.textPrimary)
                 .frame(width: size, height: size)
                 .background {

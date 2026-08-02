@@ -52,7 +52,7 @@ struct ProtocolCard: View {
                                 }
 
                             Image(systemName: peptide.imageSystemName)
-                                .font(.system(size: 12))
+                                .font(AppFont.scaled(12))
                                 .foregroundStyle(peptide.category.color)
                         }
                     }
@@ -83,7 +83,7 @@ private struct StatusBadge: View {
     var body: some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: status.iconName)
-                .font(.system(size: 8))
+                .font(AppFont.scaled(8))
             Text(status.displayName)
                 .font(AppFont.caption)
                 .fontWeight(.medium)

@@ -53,7 +53,7 @@ struct ProfileStacksCard: View {
                         HStack(spacing: Spacing.xs) {
                             Text("Manage Stacks")
                             Image(systemName: "arrow.up.right")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(AppFont.scaled(11, weight: .semibold))
                         }
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
@@ -143,7 +143,7 @@ struct ProfileStacksCard: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 HStack(spacing: Spacing.md) {
                     Image(systemName: stack.status.iconName)
-                        .font(.system(size: 14))
+                        .font(AppFont.scaled(14))
                         .foregroundStyle(color(for: stack.status))
                         .frame(width: 22)
 
@@ -173,7 +173,7 @@ struct ProfileStacksCard: View {
                         }
 
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                 }
 

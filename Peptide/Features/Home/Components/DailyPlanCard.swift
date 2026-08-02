@@ -53,7 +53,7 @@ struct DailyPlanCard: View {
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
                 Text(isExpanded
                      ? "Show less"
                      : "Show \(hiddenSlotCount) more time slot\(hiddenSlotCount == 1 ? "" : "s")")
@@ -73,7 +73,7 @@ struct DailyPlanCard: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "wand.and.stars")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(AppFont.scaled(14, weight: .semibold))
                     .foregroundStyle(AppColor.accentPrimary)
                 Text("Smart Daily Plan")
                     .font(AppFont.headline)
@@ -147,7 +147,7 @@ struct DailyPlanCard: View {
     private func slotHeader(_ slot: DailyScheduleEngine.DaySlot, count: Int) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: slot.iconName)
-                .font(.system(size: 12, weight: .semibold))
+                .font(AppFont.scaled(12, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
                 .frame(width: 22, height: 22)
                 .background { Circle().fill(AppColor.accentPrimary.opacity(0.15)) }
@@ -162,7 +162,7 @@ struct DailyPlanCard: View {
             }
             Spacer()
             Text("\(count)")
-                .font(.system(size: 11, weight: .bold))
+                .font(AppFont.scaled(11, weight: .bold))
                 .foregroundStyle(AppColor.textSecondary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
@@ -216,7 +216,7 @@ private struct DailyPlanDoseRow: View {
             orderBadge
 
             Image(systemName: dose.entry.peptide.imageSystemName)
-                .font(.system(size: 13))
+                .font(AppFont.scaled(13))
                 .foregroundStyle(dose.entry.peptide.category.color)
                 .frame(width: 26, height: 26)
                 .background {
@@ -257,7 +257,7 @@ private struct DailyPlanDoseRow: View {
 
     private var orderBadge: some View {
         Text("\(dose.order)")
-            .font(.system(size: 11, weight: .bold))
+            .font(AppFont.scaled(11, weight: .bold))
             .foregroundStyle(AppColor.accentLight)
             .frame(width: 20, height: 20)
             .background {
@@ -270,7 +270,7 @@ private struct DailyPlanDoseRow: View {
 
     private var fastedFlag: some View {
         Text("FASTED")
-            .font(.system(size: 8, weight: .bold))
+            .font(AppFont.scaled(8, weight: .bold))
             .foregroundStyle(AppColor.warning)
             .padding(.horizontal, 5)
             .padding(.vertical, 1)
@@ -280,7 +280,7 @@ private struct DailyPlanDoseRow: View {
     private func combinationChip(_ combo: DailyScheduleEngine.CombinationHint) -> some View {
         HStack(alignment: .top, spacing: Spacing.xs) {
             Image(systemName: "link")
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppFont.scaled(10, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 14)
             VStack(alignment: .leading, spacing: 1) {
@@ -289,7 +289,7 @@ private struct DailyPlanDoseRow: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.accentLight)
                 Text(combo.synergy)
-                    .font(.system(size: 10))
+                    .font(AppFont.scaled(10))
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(2)
             }
@@ -306,7 +306,7 @@ private struct DailyPlanDoseRow: View {
     private func conflictChip(_ conflict: DailyScheduleEngine.ConflictHint) -> some View {
         HStack(alignment: .top, spacing: Spacing.xs) {
             Image(systemName: conflict.severity == .info ? "info.circle.fill" : "exclamationmark.triangle.fill")
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppFont.scaled(10, weight: .semibold))
                 .foregroundStyle(severityColor(conflict.severity))
                 .frame(width: 14)
             VStack(alignment: .leading, spacing: 1) {
@@ -315,7 +315,7 @@ private struct DailyPlanDoseRow: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(severityColor(conflict.severity))
                 Text(conflict.detail)
-                    .font(.system(size: 10))
+                    .font(AppFont.scaled(10))
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(2)
             }

@@ -11,7 +11,7 @@ struct GlassStat: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 if let icon {
                     Image(systemName: icon)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppFont.scaled(12, weight: .semibold))
                         .foregroundStyle(tinted ? AppColor.accentLight : AppColor.textTertiary)
                 }
 
@@ -40,7 +40,7 @@ struct GlassStatPill: View {
         HStack(spacing: Spacing.sm) {
             if let icon {
                 Image(systemName: icon)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.scaled(12, weight: .semibold))
                     .foregroundStyle(AppColor.accentPrimary)
             }
 

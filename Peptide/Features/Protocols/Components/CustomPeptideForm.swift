@@ -170,7 +170,7 @@ struct CustomPeptideForm: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: option.iconName)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                 Text(option.localizedTitle)
                     .font(AppFont.caption)
                     .fontWeight(.medium)

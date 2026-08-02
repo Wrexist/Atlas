@@ -74,7 +74,7 @@ struct PeptideSelector: View {
         } label: {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                 Text("Add Custom Peptide")
                     .font(AppFont.subheadline)
                     .fontWeight(.medium)
@@ -101,7 +101,7 @@ struct PeptideSelector: View {
     private var searchBar: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 14))
+                .font(AppFont.scaled(14))
                 .foregroundStyle(AppColor.textTertiary)
 
             TextField("Search peptides...", text: $searchText)
@@ -118,7 +118,7 @@ struct PeptideSelector: View {
                     }
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
+                        .font(AppFont.scaled(14))
                         .foregroundStyle(AppColor.textTertiary)
                 }
                 .transition(.scale.combined(with: .opacity))
@@ -236,12 +236,12 @@ struct PeptideSelector: View {
 
             HStack(spacing: Spacing.md) {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20))
+                    .font(AppFont.scaled(20))
                     .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
                     .contentTransition(.symbolEffect(.replace))
 
                 Image(systemName: peptide.imageSystemName)
-                    .font(.system(size: 14))
+                    .font(AppFont.scaled(14))
                     .foregroundStyle(peptide.category.color)
                     .frame(width: 28, height: 28)
                     .background {
@@ -295,7 +295,7 @@ private struct FilterChip: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                 Text(title)
                     .font(AppFont.caption)
                     .fontWeight(.medium)

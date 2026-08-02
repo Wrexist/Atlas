@@ -51,10 +51,10 @@ struct VialShelfCard: View {
     private var header: some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "tray.full.fill")
-                .font(.system(size: 13, weight: .bold))
+                .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(AppColor.accentLight)
             Text("YOUR INVENTORY")
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(1.5)
                 .foregroundStyle(AppColor.accentLight)
 

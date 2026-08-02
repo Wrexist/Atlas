@@ -99,7 +99,7 @@ struct CycleCardView: View {
             }
             Spacer()
             Text(model.subjectTitle)
-                .font(.system(size: 22, weight: .semibold))
+                .font(AppFont.scaled(22, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.55))
                 .lineLimit(1)
         }
@@ -114,14 +114,14 @@ struct CycleCardView: View {
 
             if !model.peptides.isEmpty {
                 Text(peptideNamesLine)
-                    .font(.system(size: 22, weight: .medium))
+                    .font(AppFont.scaled(22, weight: .medium))
                     .foregroundStyle(Color.white.opacity(0.65))
                     .lineLimit(2)
             }
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Active since \(activeSinceFormatted)")
-                    .font(.system(size: 22, weight: .medium))
+                    .font(AppFont.scaled(22, weight: .medium))
                     .foregroundStyle(Color.white.opacity(0.55))
                 Text("Day \(model.cycleDay) of \(model.cycleTotalDays) cycle")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
@@ -216,7 +216,7 @@ struct CycleCardView: View {
                 }
             }
             Text(label)
-                .font(.system(size: 18, weight: .semibold))
+                .font(AppFont.scaled(18, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.55))
                 .textCase(.uppercase)
                 .tracking(1.2)
@@ -238,7 +238,7 @@ struct CycleCardView: View {
     private func healthSection(_ summary: CycleCardModel.HealthSummary) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Health signals")
-                .font(.system(size: 18, weight: .semibold))
+                .font(AppFont.scaled(18, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.55))
                 .textCase(.uppercase)
                 .tracking(1.2)
@@ -274,7 +274,7 @@ struct CycleCardView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(Color(red: 0.78, green: 0.74, blue: 0.96))
                 Text(value)
                     .font(.system(size: 26, weight: .bold, design: .rounded))
@@ -283,7 +283,7 @@ struct CycleCardView: View {
                     .minimumScaleFactor(0.7)
             }
             Text(label)
-                .font(.system(size: 16, weight: .medium))
+                .font(AppFont.scaled(16, weight: .medium))
                 .foregroundStyle(Color.white.opacity(0.55))
         }
         .padding(20)
@@ -314,10 +314,10 @@ struct CycleCardView: View {
             Spacer()
             HStack(spacing: 12) {
                 Image(systemName: "flask.fill")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(AppFont.scaled(18, weight: .bold))
                     .foregroundStyle(.white.opacity(0.7))
                 Text(AppConstants.watermarkText)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(AppFont.scaled(18, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.7))
             }
         }

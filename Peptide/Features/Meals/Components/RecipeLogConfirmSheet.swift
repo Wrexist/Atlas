@@ -62,8 +62,8 @@ struct RecipeLogConfirmSheet: View {
                     )
                     .frame(width: 56, height: 56)
                 Image(systemName: "list.bullet.rectangle.fill")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(AppFont.scaled(22, weight: .semibold))
+                    .foregroundStyle(AppColor.textPrimary)
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text(recipe.name)
@@ -82,7 +82,7 @@ struct RecipeLogConfirmSheet: View {
         GlassCard(tinted: true, padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Logs as")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.accentLight.opacity(0.85))

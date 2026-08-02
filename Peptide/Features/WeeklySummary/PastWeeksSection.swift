@@ -51,11 +51,11 @@ struct PastWeeksSection: View {
         HStack(spacing: Spacing.md) {
             ZStack {
                 Circle()
-                    .fill(Color(red: 0.48, green: 0.50, blue: 0.92).opacity(0.18))
+                    .fill(AppColor.recap.opacity(0.18))
                     .frame(width: 36, height: 36)
                 Image(systemName: "chart.bar.doc.horizontal.fill")
-                    .font(.system(size: 14, weight: .heavy))
-                    .foregroundStyle(Color(red: 0.48, green: 0.50, blue: 0.92))
+                    .font(AppFont.scaled(14, weight: .heavy))
+                    .foregroundStyle(AppColor.recap)
             }
 
             VStack(alignment: .leading, spacing: 2) {
@@ -71,7 +71,7 @@ struct PastWeeksSection: View {
             }
             Spacer(minLength: 0)
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .heavy))
+                .font(AppFont.scaled(12, weight: .heavy))
                 .foregroundStyle(AppColor.textTertiary)
         }
         .padding(Spacing.md)

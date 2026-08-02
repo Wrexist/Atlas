@@ -252,7 +252,7 @@ struct ShareCardSheet: View {
 
             HStack(spacing: 6) {
                 Image(systemName: "lock.fill")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                 Text("Both off by default. Injection sites are never shared.")
                     .font(AppFont.caption)
             }

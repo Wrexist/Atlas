@@ -35,19 +35,19 @@ struct TodayContextRow: View {
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "circle.dashed.rectangle")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
                     .foregroundStyle(AppColor.accentLight)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(proto.name)
-                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
                     Text(cycleSubtitle(for: proto))
-                        .font(.system(size: 10, weight: .medium))
+                        .font(AppFont.scaled(10, weight: .medium))
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .heavy))
+                    .font(AppFont.scaled(9, weight: .heavy))
                     .foregroundStyle(AppColor.textSecondary)
             }
             .padding(.horizontal, Spacing.sm)
@@ -79,10 +79,10 @@ struct TodayContextRow: View {
     private var datePill: some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "calendar")
-                .font(.system(size: 11, weight: .bold))
+                .font(AppFont.scaled(11, weight: .bold))
                 .foregroundStyle(AppColor.accentLight)
             Text(Self.formatter.string(from: date))
-                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(12, weight: .heavy, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
         }
         .padding(.horizontal, Spacing.sm)

@@ -26,8 +26,8 @@ struct WorkoutCard: View {
                         )
                         .frame(width: 40, height: 40)
                     Image(systemName: "dumbbell.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.white)
+                        .font(AppFont.scaled(16, weight: .semibold))
+                        .foregroundStyle(AppColor.textPrimary)
                 }
                 .shadow(color: AppColor.accentPrimary.opacity(0.25), radius: 6, y: 3)
 
@@ -43,7 +43,7 @@ struct WorkoutCard: View {
                 Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(AppFont.scaled(12, weight: .bold))
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(Spacing.md)

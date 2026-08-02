@@ -93,10 +93,10 @@ struct EmptyStateView: View {
                         HStack(spacing: Spacing.xs) {
                             if let icon = secondary.icon {
                                 Image(systemName: icon)
-                                    .font(.system(size: 11, weight: .heavy))
+                                    .font(AppFont.scaled(11, weight: .heavy))
                             }
                             Text(secondary.title)
-                                .font(.system(size: 13, weight: .heavy))
+                                .font(AppFont.scaled(13, weight: .heavy))
                                 .tracking(0.4)
                                 .textCase(.uppercase)
                         }

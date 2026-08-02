@@ -127,7 +127,7 @@ struct MetricRing<Center: View>: View {
         Circle()
             .trim(from: 0, to: fraction)
             .stroke(
-                gradient.first?.opacity(0.45) ?? Color.white.opacity(0.3),
+                gradient.first?.opacity(0.45) ?? AppColor.textPrimary.opacity(0.3),
                 style: StrokeStyle(lineWidth: strokeWidth, lineCap: .butt, dash: [4, 3])
             )
             .rotationEffect(.degrees(-90))
@@ -218,7 +218,7 @@ extension MetricRing where Center == EmptyView {
                 hatchedFraction: 0.30
             ) {
                 Text("17%")
-                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(22, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white)
             }
             MetricRing(

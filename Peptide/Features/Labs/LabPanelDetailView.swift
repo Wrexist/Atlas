@@ -79,7 +79,7 @@ struct LabPanelDetailView: View {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Latest")
-                            .font(.system(size: 11, weight: .heavy))
+                            .font(AppFont.scaled(11, weight: .heavy))
                             .tracking(0.6)
                             .textCase(.uppercase)
                             .foregroundStyle(panel.tint.opacity(0.85))
@@ -91,11 +91,11 @@ struct LabPanelDetailView: View {
                                     .foregroundStyle(AppColor.textPrimary)
                                     .contentTransition(.numericText())
                                 Text(panel.canonicalUnit)
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(AppFont.scaled(14, weight: .medium))
                                     .foregroundStyle(AppColor.textSecondary)
                             }
                             Text(Self.dateFormatter.string(from: latest.date))
-                                .font(.system(size: 11))
+                                .font(AppFont.scaled(11))
                                 .foregroundStyle(AppColor.textTertiary)
                                 .monospacedDigit()
                         }
@@ -118,14 +118,14 @@ struct LabPanelDetailView: View {
         }()
         let (label, tint): (LocalizedStringKey, Color) = {
             switch status {
-            case .within:  return ("In range", Color(red: 0.40, green: 0.78, blue: 0.55))
-            case .below:   return ("Below range", Color(red: 0.55, green: 0.78, blue: 0.92))
-            case .above:   return ("Above range", Color(red: 0.92, green: 0.55, blue: 0.30))
+            case .within:  return ("In range", AppColor.positive)
+            case .below:   return ("Below range", AppColor.belowRange)
+            case .above:   return ("Above range", AppColor.negative)
             case .unknown: return ("No reference", AppColor.textSecondary)
             }
         }()
         return Text(label)
-            .font(.system(size: 11, weight: .heavy))
+            .font(AppFont.scaled(11, weight: .heavy))
             .foregroundStyle(tint)
             .padding(.horizontal, Spacing.sm)
             .padding(.vertical, 4)
@@ -140,7 +140,7 @@ struct LabPanelDetailView: View {
         GlassCard(padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Trend")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)
@@ -163,7 +163,7 @@ struct LabPanelDetailView: View {
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                     .annotation(position: .leading, alignment: .leading) {
                         Text("ref")
-                            .font(.system(size: 9))
+                            .font(AppFont.scaled(9))
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 RuleMark(y: .value("High ref", range.upperBound))
@@ -216,7 +216,7 @@ struct LabPanelDetailView: View {
         GlassCard(padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("History")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)
@@ -236,17 +236,17 @@ struct LabPanelDetailView: View {
             HStack(spacing: Spacing.sm) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(Self.dateFormatter.string(from: entry.date))
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
                     if let source = entry.source, !source.isEmpty {
                         Text(source)
-                            .font(.system(size: 11))
+                            .font(AppFont.scaled(11))
                             .foregroundStyle(AppColor.textSecondary)
                             .lineLimit(1)
                     } else if let note = entry.note, !note.isEmpty {
                         Text(note)
-                            .font(.system(size: 11))
+                            .font(AppFont.scaled(11))
                             .foregroundStyle(AppColor.textSecondary)
                             .lineLimit(1)
                     }
@@ -254,11 +254,11 @@ struct LabPanelDetailView: View {
                 Spacer(minLength: 0)
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text(formatted(entry.value))
-                        .font(.system(size: 16, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                     Text(panel.canonicalUnit)
-                        .font(.system(size: 10, weight: .medium))
+                        .font(AppFont.scaled(10, weight: .medium))
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }

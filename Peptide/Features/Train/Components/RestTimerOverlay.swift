@@ -34,7 +34,7 @@ struct RestTimerOverlay: View {
             ring
             VStack(alignment: .leading, spacing: 2) {
                 Text("Rest")
-                    .font(.system(size: 10, weight: .heavy))
+                    .font(AppFont.scaled(10, weight: .heavy))
                     .tracking(1.2)
                     .foregroundStyle(AppColor.textTertiary)
                 Text(remainingLabel)
@@ -90,7 +90,7 @@ struct RestTimerOverlay: View {
     private func tinyButton(label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)

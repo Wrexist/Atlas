@@ -74,9 +74,9 @@ struct HomeMealsSection: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "slider.horizontal.3")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(AppFont.scaled(11, weight: .semibold))
                             Text("Edit targets")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(AppFont.scaled(12, weight: .semibold))
                         }
                         .foregroundStyle(AppColor.accentLight)
                     }
@@ -223,7 +223,7 @@ struct HomeMealsSection: View {
     private var targetsPrompt: some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: "sparkles")
-                .font(.system(size: 18, weight: .semibold))
+                .font(AppFont.scaled(18, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
                 .frame(width: 36, height: 36)
                 .background {

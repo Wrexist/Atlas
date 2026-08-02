@@ -62,8 +62,8 @@ private struct DayCircle: View {
                     .fill(AppColor.accentPrimary)
 
                 Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.white)
+                    .font(AppFont.scaled(11, weight: .bold))
+                    .foregroundStyle(AppColor.onAccent)
             }
 
         case .partial:

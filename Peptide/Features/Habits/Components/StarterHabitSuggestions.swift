@@ -46,7 +46,7 @@ struct StarterHabitSuggestions: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("QUICK START")
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(1.2)
                 .foregroundStyle(AppColor.textTertiary)
 
@@ -67,13 +67,13 @@ struct StarterHabitSuggestions: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: template.iconSymbol)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(Color(hex: UInt(template.tintHex)))
                 Text(template.name)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(AppFont.scaled(13, weight: .medium))
                     .foregroundStyle(AppColor.textPrimary)
                 Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 12))
+                    .font(AppFont.scaled(12))
                     .foregroundStyle(AppColor.accentPrimary)
             }
             .padding(.horizontal, Spacing.md)

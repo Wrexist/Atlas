@@ -38,7 +38,7 @@ struct WeeklySummaryHeroCard: View {
         // so the card visually signals "review surface", and
         // distinguishes itself from the warm-orange Today
         // Overview Card directly beneath.
-        Color(red: 0.48, green: 0.50, blue: 0.92)
+        AppColor.recap
     }
 
     var body: some View {
@@ -82,7 +82,7 @@ struct WeeklySummaryHeroCard: View {
                     )
 
                     Text(truncated(summary.text, to: 280))
-                        .font(.system(size: 14, weight: .medium))
+                        .font(AppFont.scaled(14, weight: .medium))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.leading)
                         .lineSpacing(3)
@@ -94,11 +94,11 @@ struct WeeklySummaryHeroCard: View {
 
                     HStack(spacing: Spacing.xs) {
                         Text("Read full recap")
-                            .font(.system(size: 13, weight: .heavy))
+                            .font(AppFont.scaled(13, weight: .heavy))
                             .tracking(0.4)
                             .textCase(.uppercase)
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 11, weight: .heavy))
+                            .font(AppFont.scaled(11, weight: .heavy))
                     }
                     .foregroundStyle(accent)
                     .padding(.top, Spacing.xs)
@@ -120,7 +120,7 @@ struct WeeklySummaryHeroCard: View {
                 eyebrowRow(badge: nil)
                 heroRow(title: "Your weekly recap will appear here", aiBadge: false)
                 Text("Log a check-in or a dose for a few more days this week, and we'll have enough signal to summarise.")
-                    .font(.system(size: 13))
+                    .font(AppFont.scaled(13))
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, Spacing.xs)
@@ -128,9 +128,9 @@ struct WeeklySummaryHeroCard: View {
                     Button(action: onRetry) {
                         HStack(spacing: Spacing.xs) {
                             Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 11, weight: .heavy))
+                                .font(AppFont.scaled(11, weight: .heavy))
                             Text("Try again")
-                                .font(.system(size: 13, weight: .heavy))
+                                .font(AppFont.scaled(13, weight: .heavy))
                                 .tracking(0.4)
                                 .textCase(.uppercase)
                         }
@@ -164,7 +164,7 @@ struct WeeklySummaryHeroCard: View {
     private func eyebrowRow(badge: String?) -> some View {
         HStack(spacing: Spacing.sm) {
             Text("Week recap")
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(1.2)
                 .textCase(.uppercase)
                 .foregroundStyle(accent)
@@ -177,9 +177,9 @@ struct WeeklySummaryHeroCard: View {
                 // with an icon makes it unmissable without screaming.
                 HStack(spacing: 3) {
                     Image(systemName: "wifi.slash")
-                        .font(.system(size: 9, weight: .heavy))
+                        .font(AppFont.scaled(9, weight: .heavy))
                     Text(badge)
-                        .font(.system(size: 10, weight: .heavy))
+                        .font(AppFont.scaled(10, weight: .heavy))
                         .tracking(0.8)
                 }
                 .padding(.horizontal, 7)
@@ -215,8 +215,8 @@ struct WeeklySummaryHeroCard: View {
                     .frame(width: 44, height: 44)
                     .shadow(color: accent.opacity(0.45), radius: 10, y: 4)
                 Image(systemName: "chart.bar.doc.horizontal.fill")
-                    .font(.system(size: 18, weight: .heavy))
-                    .foregroundStyle(.white)
+                    .font(AppFont.scaled(18, weight: .heavy))
+                    .foregroundStyle(AppColor.onAccent)
             }
 
             VStack(alignment: .leading, spacing: 2) {
@@ -228,9 +228,9 @@ struct WeeklySummaryHeroCard: View {
                 if aiBadge {
                     HStack(spacing: 4) {
                         Image(systemName: "sparkles")
-                            .font(.system(size: 9, weight: .heavy))
+                            .font(AppFont.scaled(9, weight: .heavy))
                         Text("Personalised by AI")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(AppFont.scaled(11, weight: .semibold))
                     }
                     .foregroundStyle(accent.opacity(0.95))
                 }
@@ -277,8 +277,8 @@ struct WeeklySummaryHeroCard: View {
                     label: "HRV Δ",
                     value: "\(prefix)\(delta) ms",
                     accent: delta >= 0
-                        ? Color(red: 0.36, green: 0.78, blue: 0.55)
-                        : Color(red: 0.95, green: 0.50, blue: 0.55)
+                        ? AppColor.positive
+                        : AppColor.negative
                 )
             }
         }
@@ -291,12 +291,12 @@ struct WeeklySummaryHeroCard: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.system(size: 10, weight: .heavy))
+                .font(AppFont.scaled(10, weight: .heavy))
                 .tracking(0.5)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
             Text(value)
-                .font(.system(size: 17, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(17, weight: .heavy, design: .rounded))
                 .foregroundStyle(accent)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
