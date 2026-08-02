@@ -270,11 +270,11 @@ struct SyringeDiagram: View {
 
             ZStack(alignment: .leading) {
                 // Syringe body track (clear)
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                     .fill(AppColor.surfaceSecondary.opacity(0.65))
                     .frame(width: bodyWidth, height: plungerHeight)
                     .overlay {
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                             .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                     }
                     .position(x: bodyWidth / 2, y: centerY)

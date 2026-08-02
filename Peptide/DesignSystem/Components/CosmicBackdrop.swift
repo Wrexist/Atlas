@@ -114,7 +114,7 @@ struct SplitMix64: RandomNumberGenerator {
         AppColor.background.ignoresSafeArea()
         CosmicBackdrop()
             .frame(height: 140)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
             .padding()
     }
     .preferredColorScheme(.dark)

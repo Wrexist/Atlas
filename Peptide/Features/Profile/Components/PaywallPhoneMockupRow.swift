@@ -145,7 +145,7 @@ private struct HomeMock: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
         .background {
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                 .fill(AppColor.surfaceElevated)
         }
     }

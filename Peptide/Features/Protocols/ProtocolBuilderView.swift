@@ -407,7 +407,7 @@ struct ProtocolBuilderView: View {
     private var browseLibraryRow: some View {
         HStack(spacing: Spacing.md) {
             ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                     .fill(AppColor.accentPrimary.opacity(0.18))
                     .frame(width: 44, height: 44)
                 Image(systemName: "books.vertical.fill")
@@ -611,9 +611,9 @@ struct ProtocolBuilderView: View {
                         width: ShareCardRenderer.canvasSize.width * 0.26,
                         height: ShareCardRenderer.canvasSize.height * 0.26
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
                             .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                     )
                     .frame(maxWidth: .infinity)

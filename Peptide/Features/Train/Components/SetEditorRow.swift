@@ -90,11 +90,11 @@ struct SetEditorRow: View {
             .focused($weightFocused)
             .frame(width: 60, height: 32)
             .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                     .fill(AppColor.surfaceSecondary.opacity(0.6))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                     .stroke(weightFocused ? AppColor.accentPrimary : AppColor.glassBorder,
                             lineWidth: weightFocused ? 1 : 0.5)
             )
@@ -117,11 +117,11 @@ struct SetEditorRow: View {
             .focused($repsFocused)
             .frame(width: 48, height: 32)
             .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                     .fill(AppColor.surfaceSecondary.opacity(0.6))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                     .stroke(repsFocused ? AppColor.accentPrimary : AppColor.glassBorder,
                             lineWidth: repsFocused ? 1 : 0.5)
             )

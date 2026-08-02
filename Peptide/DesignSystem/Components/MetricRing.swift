@@ -14,8 +14,8 @@ import SwiftUI
 /// Three optional behaviours stay defaulted-off so callers like
 /// `HeroMetricTrio` opt into the simple ring, while branded
 /// surfaces like `ProtocolScoreCard` opt in to the appear sweep +
-/// celebration pulse + accent glow that used to live in the now-
-/// retired `GlassProgressRing`.
+/// celebration pulse + accent glow. `GlassProgressBar` is the linear
+/// counterpart for the same idea inside a row.
 struct MetricRing<Center: View>: View {
     let progress: Double
     let diameter: CGFloat

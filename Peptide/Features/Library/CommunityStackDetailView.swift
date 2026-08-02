@@ -224,7 +224,7 @@ struct CommunityStackDetailView: View {
                 .foregroundStyle(peptide.category.color)
                 .frame(width: 32, height: 32)
                 .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                         .fill(peptide.category.color.opacity(0.15))
                 )
             VStack(alignment: .leading, spacing: 2) {

@@ -398,11 +398,11 @@ struct TrainingCalendarGrid: View {
             .frame(maxWidth: .infinity)
             .frame(height: 28)
             .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                     .fill(backgroundColor(trained: trained, isToday: isToday))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                     .stroke(isToday ? AppColor.accentPrimary : Color.clear, lineWidth: 1)
             )
     }

@@ -45,7 +45,7 @@ struct LockScreenView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.md)
                 .background(AppColor.accentPrimary)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .clipShape(RoundedRectangle(cornerRadius: Spacing.controlCornerRadius))
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.97))
             .disabled(isAuthenticating)

@@ -74,11 +74,6 @@ enum AppColor {
         light: Color.black.opacity(0.03),
         dark: Color.white.opacity(0.04)
     )
-    /// Fill for a pressed / selected glass control.
-    static let controlFill = Color.adaptive(
-        light: Color.black.opacity(0.06),
-        dark: Color.white.opacity(0.10)
-    )
 
     // MARK: - Directional feedback
     //

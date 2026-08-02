@@ -188,7 +188,7 @@ private struct CommunityStacksEntryCard: View {
         NavigationLink(value: StackLibraryRoute()) {
             HStack(spacing: Spacing.md) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                         .fill(AppColor.accentPrimary.opacity(0.18))
                         .frame(width: 44, height: 44)
                     Image(systemName: "books.vertical.fill")

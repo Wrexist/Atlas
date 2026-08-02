@@ -185,10 +185,10 @@ struct WorkoutDetailView: View {
                 ForEach(bars) { bar in
                     VStack(spacing: Spacing.xs) {
                         ZStack(alignment: .bottom) {
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                                 .fill(AppColor.surfaceElevated)
                                 .frame(width: 22, height: 96)
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                                 .fill(
                                     LinearGradient(
                                         colors: [AppColor.accentLight, AppColor.accentPrimary],

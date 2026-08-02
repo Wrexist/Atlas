@@ -289,10 +289,10 @@ struct CycleCardView: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                 .fill(Color.white.opacity(0.06))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                         .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
                 }
         }
@@ -331,14 +331,14 @@ struct CycleCardView: View {
                     .resizable()
                     .frame(width: 96, height: 96)
             } else {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                     .fill(.white)
                     .frame(width: 96, height: 96)
             }
         }
         .padding(8)
         .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                 .fill(.white)
         }
     }

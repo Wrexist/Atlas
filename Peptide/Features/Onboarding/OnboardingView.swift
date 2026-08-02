@@ -614,7 +614,7 @@ struct OnboardingView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.md)
             .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous)
                     .fill(primaryEnabled ? AppColor.textPrimary : AppColor.textTertiary.opacity(0.4))
             )
         }
@@ -2694,7 +2694,7 @@ private struct ThemePickerCover: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, Spacing.md)
                         .background(
-                            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous)
                                 .fill(AppColor.textPrimary)
                         )
                 }

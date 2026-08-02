@@ -163,7 +163,7 @@ struct WhatsNewTourSheet: View {
     /// `triggerHeroPulse`.
     private func heroCard(page: WhatsNewPage) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: page.gradient,
@@ -198,7 +198,7 @@ struct WhatsNewTourSheet: View {
                     value: heroPulse
                 )
         }
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous))
         .frame(height: 160)
     }
 
@@ -272,7 +272,7 @@ struct WhatsNewTourSheet: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .background {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: currentPage.gradient,
