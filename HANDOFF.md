@@ -65,6 +65,24 @@ polish, WCAG 2.1 AA) is what `scripts/design-lint.py` now covers
 statically. The rendered-screen half of that loop still needs a human
 with a simulator.
 
+**Two things were proven un-doable here, not assumed.** The `@MainActor`
+conversion of `ThemeManager` was measured, not guessed: 231 reads of the
+ThemeManager-backed `AppColor` accessors sit outside an obviously isolated
+context, so the isolation propagates far past what inspection can verify.
+Both it and `LocalizationManager` now enforce the invariant at runtime
+(`assertMainActor()`, debug-only) so a stray background write traps with a
+stack trace instead of silently racing the `@Observable` registrar — the
+audit's own second option, and what makes their `@unchecked Sendable`
+honest. Do the type-level conversion when you have a compiler and delete
+the assertions.
+
+Separately, a signature checker was built to find the `PeptideTests`
+compile backlog statically. It works for initializers (zero mismatches
+once memberwise inits are modelled) but not for method calls: without
+receiver-type resolution, `Calendar.date(byAdding:)` is indistinguishable
+from an app-target `date(...)`, and the noise floor swamps the signal.
+That backlog needs a type checker.
+
 **CI skips the unit tests.** `.github/workflows/pr-checks.yml` has the
 `Unit Tests` step stubbed out with a note that `PeptideTests` doesn't
 compile on Xcode 26.3. Two blockers were removed on this branch (a Swift 6

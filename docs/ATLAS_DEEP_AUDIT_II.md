@@ -235,7 +235,7 @@ file plus argument-label validation against each changed declaration.
   debounce / Combine `debounce` before writing `filteredPeptides`.
 
 ### Concurrency
-- [ ] **B9** `ThemeManager` (`AppTheme.swift:99`) and `LocalizationManager`
+- [~] **B9** `ThemeManager` (`AppTheme.swift:99`) and `LocalizationManager`
   (`LocalizationManager.swift:5`) are `@Observable @unchecked Sendable`
   with no isolation; a background read of `ThemeManager.shared.theme`
   concurrent with a main-thread `didSet` races the observation

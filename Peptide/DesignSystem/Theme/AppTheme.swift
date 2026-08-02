@@ -141,6 +141,25 @@ enum DisplayMode: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// Persisted appearance preferences, observed by SwiftUI.
+///
+/// **Concurrency invariant: main actor only.**
+///
+/// `@MainActor` would state this in the type system, and that's the better
+/// fix — but `AppColor`'s accent accessors read `shared`, and there are ~230
+/// reads of those outside an obviously-isolated context (private helper
+/// structs, `View` extensions, `*Engine.tint(for:)`). Annotating the class
+/// propagates isolation through all of them, which is a change that has to be
+/// made against a compiler, not by inspection.
+///
+/// Until then the invariant is enforced at runtime instead of at compile
+/// time: every access asserts it's on the main actor in debug builds. That
+/// catches a violation the moment it happens, with a stack trace, which is
+/// stronger evidence than a comment — and it's what makes `@unchecked
+/// Sendable` an honest claim rather than an unearned one.
+///
+/// When someone does the `@MainActor` conversion, delete `assertMainActor()`
+/// and the `@unchecked` along with it.
 @Observable
 final class ThemeManager: @unchecked Sendable {
     static let shared = ThemeManager()
@@ -150,6 +169,7 @@ final class ThemeManager: @unchecked Sendable {
 
     var theme: AppThemeColor {
         didSet {
+            assertMainActor()
             UserDefaults.standard.set(theme.rawValue, forKey: Self.colorKey)
         }
     }
@@ -160,6 +180,7 @@ final class ThemeManager: @unchecked Sendable {
     /// appearance they were shipped with.
     var displayMode: DisplayMode {
         didSet {
+            assertMainActor()
             UserDefaults.standard.set(displayMode.rawValue, forKey: Self.displayModeKey)
         }
     }
