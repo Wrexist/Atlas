@@ -631,3 +631,30 @@ changed API had its argument labels validated against the declaration.
 - **Test target** — CI still skips `PeptideTests`; two blockers were removed
   (see the commit "Repair two test-target compile blockers"), but the rest
   needs a compile-capable session.
+
+---
+
+## Execution log — round two (design checker)
+
+`scripts/design-lint.py` was written to mechanise the craft rules and then
+run to exhaustion. What it caught that the by-hand pass had missed:
+
+- **25 dual-material surfaces outside the primitives.** Phase 5.1 fixed
+  `GlassButton` and `GlassSegmentedControl`, but feature views were still
+  hand-rolling `.background { shape.fill(…) } .liquidGlass(…)`. 21 convert
+  mechanically to `glassControl`; five selection pills inside an
+  already-glass track dropped their second layer.
+- **2 coloured halos behind glyphs** — the 56pt Bio Age number carried two
+  stacked tinted shadows.
+- **9 sub-44pt controls**, now sharing a `minimumHitArea()` helper.
+- **12 off-grid spacings**; the leading insets that align copy under a
+  row's icon are now written as the sum they are.
+- **5 rows VoiceOver read as several stops**, worst being an onboarding
+  pill that announced five star glyphs and a bare "·".
+
+Phase 5.3's corner-radius purge and Phase 7's accessibility pass close
+here. Still open, and still needing a compiler or a simulator: **B9**
+(`@MainActor` on `ThemeManager` — `AppColor`'s static accessors read it, so
+isolating it makes every non-isolated `AppColor` read an error across seven
+files), **6.1**'s native-chrome migration, and the `PeptideTests` compile
+backlog that keeps the CI test step disabled.

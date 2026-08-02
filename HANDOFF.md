@@ -31,14 +31,27 @@ with an execution log recording what actually landed.
   the rest timer no longer ticks at 10Hz all workout; peptide search is
   debounced; Bio Age counts baseline coverage across all three health
   signals; Pro members can manage their subscription in-app.
+- **A design checker that gates CI.** `scripts/design-lint.py` covers
+  eleven rules SwiftLint can't see. Running it found 25 surfaces still
+  stacking two glass materials outside the primitives, two neon halos,
+  nine sub-44pt controls, and five rows VoiceOver read as eight stops —
+  all fixed. It's at zero errors and zero warnings; keep it there rather
+  than growing the exemption lists.
 
 ### Read this before picking the branch up
 
 **There is no compile verification.** The session that produced these
-changes had no Xcode. Every changed file was parsed with
-`tree-sitter-swift` and every changed API's call sites had their argument
-labels checked against the declaration — but that catches syntax and
+changes had no Xcode, and the Swift toolchain download is blocked by the
+environment's proxy allowlist, so this was not a matter of not trying.
+Every changed file was parsed with `tree-sitter-swift` (the only 5 parse
+errors in the repo are pre-existing grammar limitations, byte-identical to
+the base commit) and every changed API's call sites had their argument
+labels checked against the declaration. That catches syntax and
 signatures, not types. Build first.
+
+**Nothing has been seen rendered.** No simulator, no screenshots. The
+design work is correct by construction and by static check; it has not
+been looked at.
 
 **CI skips the unit tests.** `.github/workflows/pr-checks.yml` has the
 `Unit Tests` step stubbed out with a note that `PeptideTests` doesn't
