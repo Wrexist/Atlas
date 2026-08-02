@@ -6,6 +6,7 @@ import XCTest
 /// saw the kilogram number labelled "kg". The trap when wiring that up is
 /// temperature — °C→°F has an *offset*, so a delta must be computed from two
 /// converted values, never by converting the delta.
+@MainActor
 final class BiomarkerUnitConversionTests: XCTestCase {
 
     // MARK: - Labels
@@ -70,7 +71,6 @@ final class BiomarkerUnitConversionTests: XCTestCase {
 
     // MARK: - Rendered copy
 
-    @MainActor
     func test_changeText_rendersTheUsersUnitNotTheStoredOne() {
         let imperial = BiomarkerSeriesService.changeText(
             for: .weight, trend: BiomarkerSnapshot.Trend.flat, latest: 80, unit: .imperial

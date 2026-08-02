@@ -24,53 +24,74 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
         }
     }
 
-    // Each ramp carries a light-mode partner. The dark-mode hexes are the
-    // original brand values; the light-mode ones are the same hue pushed
-    // deeper so accent *text* (`AppColor.accentLight` is used as ink in 150+
-    // places) clears WCAG AA on a white card instead of washing out.
+    /// Four stops of one hue. Each carries a light-mode partner: the dark-mode
+    /// hexes are the original brand values, and the light-mode ones are the
+    /// same hue pushed deeper so accent *text* — `AppColor.accentLight` is
+    /// used as ink in 150+ places — clears WCAG AA on a white card instead of
+    /// washing out.
+    private struct Ramp {
+        let primary: Color
+        let light: Color
+        let dark: Color
+        let highlight: Color
+    }
 
-    var primary: Color {
+    // Stored, not computed. `AppColor.accentPrimary` is read many times per
+    // render pass, and each `Color(light:dark:)` allocates a UIColor with a
+    // trait-resolving closure — cheap once, wasteful per frame.
+    private static let tealRamp = Ramp(
+        primary:   Color(light: 0x0A8F63, dark: 0x10B981),   // emerald-500
+        light:     Color(light: 0x0E7490, dark: 0x22D3EE),   // cyan-400
+        dark:      Color(light: 0x065F46, dark: 0x047857),   // emerald-700
+        highlight: Color(light: 0x047857, dark: 0xA7F3D0)    // emerald-200
+    )
+    private static let purpleRamp = Ramp(
+        primary:   Color(light: 0x5B52B8, dark: 0x7F77DD),
+        light:     Color(light: 0xB03060, dark: 0xD4537E),
+        dark:      Color(light: 0x3E3773, dark: 0x534B96),
+        highlight: Color(light: 0x534B96, dark: 0xE8D2E2)
+    )
+    private static let oceanRamp = Ramp(
+        primary:   Color(light: 0x1F6FC0, dark: 0x378ADD),
+        light:     Color(light: 0x2F7FC8, dark: 0x6CA9E6),
+        dark:      Color(light: 0x1A5386, dark: 0x256AAA),
+        highlight: Color(light: 0x256AAA, dark: 0xC4DCF1)
+    )
+    private static let amberRamp = Ramp(
+        primary:   Color(light: 0x9A6112, dark: 0xBA7517),
+        light:     Color(light: 0xB07A1E, dark: 0xD89438),
+        dark:      Color(light: 0x714810, dark: 0x8E5A12),
+        highlight: Color(light: 0x8E5A12, dark: 0xF1D8B0)
+    )
+    /// Graphite already reads on either surface, so it's the one ramp whose
+    /// first three stops don't shift between schemes.
+    private static let onyxRamp = Ramp(
+        primary:   Color(hex: 0x3F3F3D),
+        light:     Color(hex: 0x5C5C5A),
+        dark:      Color(hex: 0x1F1F1D),
+        highlight: Color(light: 0x3F3F3D, dark: 0xC9C9C7)
+    )
+
+    private var ramp: Ramp {
         switch self {
-        case .teal: Color(light: 0x0A8F63, dark: 0x10B981)          // emerald-500
-        case .purpleGradient: Color(light: 0x5B52B8, dark: 0x7F77DD)
-        case .ocean: Color(light: 0x1F6FC0, dark: 0x378ADD)
-        case .amber: Color(light: 0x9A6112, dark: 0xBA7517)
-        case .onyx: Color(light: 0x3F3F3D, dark: 0x3F3F3D)
+        case .teal: Self.tealRamp
+        case .purpleGradient: Self.purpleRamp
+        case .ocean: Self.oceanRamp
+        case .amber: Self.amberRamp
+        case .onyx: Self.onyxRamp
         }
     }
+
+    var primary: Color { ramp.primary }
 
     /// Second stop for the marketing gradient. For the default emerald
     /// theme this is a cool cyan partner so every `[primary, light]`
     /// gradient renders as a green→cyan sweep without per-site changes.
-    var light: Color {
-        switch self {
-        case .teal: Color(light: 0x0E7490, dark: 0x22D3EE)          // cyan-400
-        case .purpleGradient: Color(light: 0xB03060, dark: 0xD4537E)
-        case .ocean: Color(light: 0x2F7FC8, dark: 0x6CA9E6)
-        case .amber: Color(light: 0xB07A1E, dark: 0xD89438)
-        case .onyx: Color(light: 0x5C5C5A, dark: 0x5C5C5A)
-        }
-    }
+    var light: Color { ramp.light }
 
-    var dark: Color {
-        switch self {
-        case .teal: Color(light: 0x065F46, dark: 0x047857)          // emerald-700
-        case .purpleGradient: Color(light: 0x3E3773, dark: 0x534B96)
-        case .ocean: Color(light: 0x1A5386, dark: 0x256AAA)
-        case .amber: Color(light: 0x714810, dark: 0x8E5A12)
-        case .onyx: Color(light: 0x1F1F1D, dark: 0x1F1F1D)
-        }
-    }
+    var dark: Color { ramp.dark }
 
-    var highlight: Color {
-        switch self {
-        case .teal: Color(light: 0x047857, dark: 0xA7F3D0)          // emerald-200
-        case .purpleGradient: Color(light: 0x534B96, dark: 0xE8D2E2)
-        case .ocean: Color(light: 0x256AAA, dark: 0xC4DCF1)
-        case .amber: Color(light: 0x8E5A12, dark: 0xF1D8B0)
-        case .onyx: Color(light: 0x3F3F3D, dark: 0xC9C9C7)
-        }
-    }
+    var highlight: Color { ramp.highlight }
 
     /// Maps a UserDefaults rawValue to a current case, including the
     /// 6-theme palette this replaces (`forest`, `amethyst`, `sunset`,

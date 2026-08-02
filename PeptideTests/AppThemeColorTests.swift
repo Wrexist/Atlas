@@ -33,9 +33,14 @@ final class AppThemeColorTests: XCTestCase {
 
     // MARK: - Defaults
 
+    /// The brand default is `.teal` (emerald), and has been since the palette
+    /// was cut from six themes to five — this test still asserted the old
+    /// `.purpleGradient` default and was failing against the shipped
+    /// behaviour, not describing it.
     func test_resolving_emptyOrUnknown_fallsBackToBrandDefault() {
-        XCTAssertEqual(AppThemeColor.resolving(rawValue: ""),       .purpleGradient)
-        XCTAssertEqual(AppThemeColor.resolving(rawValue: "garbage"), .purpleGradient)
+        XCTAssertEqual(AppThemeColor.resolving(rawValue: ""),        .teal)
+        XCTAssertEqual(AppThemeColor.resolving(rawValue: "garbage"), .teal)
+        XCTAssertEqual(AppThemeColor.allCases.first, .teal)
     }
 
     // MARK: - Display mode
@@ -43,6 +48,7 @@ final class AppThemeColorTests: XCTestCase {
     func test_displayMode_preferredScheme_matchesCase() {
         XCTAssertEqual(DisplayMode.light.preferredScheme, .light)
         XCTAssertEqual(DisplayMode.dark.preferredScheme,  .dark)
+        XCTAssertNil(DisplayMode.system.preferredScheme)
     }
 
     func test_appThemeColor_caseCount_matchesSpec() {
