@@ -47,8 +47,9 @@ screen will drift. There is exactly one of each:
 
 ## 3. The four token rules
 
-These are enforced by SwiftLint `custom_rules` and by there being one
-obvious primitive. See the "Design system" section of `README.md`.
+These are enforced by `scripts/design-lint.py` (which gates CI), by
+SwiftLint `custom_rules`, and by there being one obvious primitive. See the
+"Design system" section of `README.md`.
 
 - **Colour** — `AppColor` only. Never `Color(hex:)`, `Color(red:)`, or
   `Color.white` in `Features/`. Surface and ink tokens resolve per trait
@@ -61,8 +62,10 @@ obvious primitive. See the "Design system" section of `README.md`.
 - **Glass** — `glassSurface(cornerRadius:tinted:)` for cards,
   `glassControl(_:tint:border:)` for controls. Never stack a fake fill under
   a real `glassEffect`. Keep tints at 0.15–0.20.
-- **Metrics** — radii and hit targets from `Spacing`. Nested shapes use
-  `Spacing.concentric(in:inset:)`. Tap targets use `Spacing.minimumHitTarget`.
+- **Metrics** — radii from `Spacing`; nested shapes use
+  `Spacing.concentric(in:inset:)`. Any control whose artwork is under 44pt
+  gets `.minimumHitArea()`, applied last so it grows the target and not the
+  artwork.
 
 ## 4. Craft checks before you call it done
 
@@ -76,7 +79,7 @@ obvious primitive. See the "Design system" section of `README.md`.
 - Every row a VoiceOver user hits is one stop, not five:
   `.accessibilityElement(children: .combine)` with decorative glyphs hidden.
 - Read the screen at the largest Dynamic Type size and in light mode. Both
-  are now real; neither is checked by CI.
+  are real now, and neither can be checked without running the app.
 
 ## 5. Verify
 
