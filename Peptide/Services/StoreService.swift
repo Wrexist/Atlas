@@ -163,6 +163,12 @@ final class StoreService {
         await updatePurchasedProducts()
     }
 
+    /// True when Pro came from the non-consumable lifetime IAP rather than a
+    /// subscription. Nothing renews for these users, so any copy about
+    /// renewal, cancellation, or a billing period is wrong for them —
+    /// App Store guideline 3.1.2(a) is specific about that.
+    var hasLifetimeAccess: Bool { purchasedProductIDs.contains(Self.lifetimeID) }
+
     var canAccessUnlimitedProtocols: Bool { isProUser }
     var canAccessFullAnalytics: Bool { isProUser }
     var canAccessAIFeatures: Bool { isProUser }

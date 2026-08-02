@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import UserNotifications
 
@@ -17,7 +18,13 @@ import UserNotifications
 struct RestTimerOverlay: View {
     @Binding var state: RestTimerState
 
-    private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+    /// Connected on appear and cancelled on disappear. `.autoconnect()`
+    /// starts the publisher the moment the view value is *created*, which
+    /// for an `.overlay` on ActiveWorkoutView means 10 ticks a second for
+    /// the whole workout — including the long stretches between sets when
+    /// no timer is running and nothing consumes them.
+    private let timer = Timer.publish(every: 0.1, on: .main, in: .common)
+    @State private var connection: (any Cancellable)?
 
     var body: some View {
         if state.isRunning {
@@ -26,6 +33,11 @@ struct RestTimerOverlay: View {
                 .padding(.bottom, Spacing.lg)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .onReceive(timer) { _ in tick() }
+                .onAppear { connection = timer.connect() }
+                .onDisappear {
+                    connection?.cancel()
+                    connection = nil
+                }
         }
     }
 
