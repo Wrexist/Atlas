@@ -80,6 +80,9 @@ obvious primitive. See the "Design system" section of `README.md`.
 
 ## 5. Verify
 
+Run `python3 scripts/design-lint.py --all`. It mechanises most of section 4
+and is at zero findings today, so anything it prints is yours.
+
 There is no headless way to render this app. Build for an iOS 18+
 simulator, and check Liquid Glass surfaces on iOS 26 specifically — the
 material is a no-op below that and the fallback recipe is what you'll see.

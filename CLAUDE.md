@@ -24,7 +24,7 @@ This file configures Claude Code for the codebase's conventions.
 - Functions should do one thing. If a function needs a comment explaining what it does, split it.
 - No unused imports, variables, or dead code. Delete, don't comment out.
 - Service convention: stateful services are `final class` singletons (`.shared`); stateless namespaces are caseless `enum`s with static members; pure-computation types are named `*Engine`.
-- Design system: colour comes from `AppColor`, type from `AppFont` (use `AppFont.scaled(_:)` rather than `Font.system(size:)` — the latter ignores Dynamic Type), glass from `glassSurface` / `glassControl`, radii and hit targets from `Spacing`. See the "Design system" section of `README.md`; SwiftLint `custom_rules` enforce the colour and type rules.
+- Design system: colour comes from `AppColor`, type from `AppFont` (use `AppFont.scaled(_:)` rather than `Font.system(size:)` — the latter ignores Dynamic Type), glass from `glassSurface` / `glassControl`, radii and hit targets from `Spacing`. See the "Design system" section of `README.md`. Run `python3 scripts/design-lint.py --all` before committing UI work — it gates CI and is currently at zero errors and zero warnings.
 - Error handling at system boundaries only (user input, external APIs, file I/O). Trust internal code.
 - IMPORTANT: Never commit secrets, API keys, or credentials. Use environment variables.
 

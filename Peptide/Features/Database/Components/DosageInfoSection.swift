@@ -130,6 +130,7 @@ private struct DosageRow: View {
                 .multilineTextAlignment(.trailing)
                 .lineLimit(3)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 

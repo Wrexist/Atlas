@@ -502,6 +502,7 @@ private struct MolecularRow: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 

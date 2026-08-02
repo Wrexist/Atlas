@@ -361,6 +361,40 @@ def rule_stacked_glass(path, source, code) -> list[Finding]:
     return out
 
 
+def rule_uncombined_row(path, source, code) -> list[Finding]:
+    """A repeated list row that mixes an icon with text is one piece of
+    information, but VoiceOver reads it as several — an icon stop, then each
+    Text, in visual order.
+
+    Only fires on *rows*: a view whose body is a top-level `HStack`. A large
+    card is genuinely several things and combining it produces one unreadable
+    sentence, so the rule leaves those alone.
+    """
+    out = []
+    for m in re.finditer(r"struct (\w*(?:Row|Chip|Pill|Item))\b[^{]*:\s*View\s*\{", code):
+        start = m.end() - 1
+        depth, end = 0, start
+        for i in range(start, len(code)):
+            if code[i] == "{":
+                depth += 1
+            elif code[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+        block = code[start:end]
+        if "accessibility" in block:
+            continue
+        if "Image(systemName:" not in block or "Text(" not in block:
+            continue
+        if not re.search(r"var body:[^{]*\{\s*HStack", block):
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "uncombined-row",
+                           f"{m.group(1)} reads as several VoiceOver stops; combine its "
+                           "children and hide the decorative glyph", "warning"))
+    return out
+
+
 RULES = [
     rule_raw_colour,
     rule_fixed_font,
@@ -372,6 +406,7 @@ RULES = [
     rule_low_contrast_ink,
     rule_unlabelled_icon_button,
     rule_stacked_glass,
+    rule_uncombined_row,
 ]
 
 

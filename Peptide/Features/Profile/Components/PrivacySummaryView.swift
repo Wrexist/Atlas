@@ -134,6 +134,7 @@ private struct PrivacyRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .accessibilityElement(children: .combine)
     }
 
     struct Row {

@@ -81,8 +81,16 @@ there being exactly one primitive to reach for:
   tints around 0.15–0.20; higher and the control reads as paint, not glass.
 - **Metrics** — radii and hit targets come from `Spacing`. Use
   `Spacing.concentric(in:inset:)` for a shape nested inside another rather
-  than guessing a second literal, and `Spacing.minimumHitTarget` for
-  icon-only controls.
+  than guessing a second literal, and `.minimumHitArea()` on any control
+  whose artwork is smaller than 44pt.
+
+Run `python3 scripts/design-lint.py --all` to check all of it. It covers
+eleven rules SwiftLint can't see — raw colour, fixed font sizes, stacked
+glass materials, coloured halos behind glyphs, untargeted `.animation`,
+placeholder copy, sub-44pt targets, off-grid spacing, faded ink,
+unlabelled icon buttons, and rows VoiceOver reads as several stops. CI
+fails on any error; warnings are printed for review. It's currently clean
+on both counts — keep it that way rather than growing an exemption list.
 
 ## Secrets
 

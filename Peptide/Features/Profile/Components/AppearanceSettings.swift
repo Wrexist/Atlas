@@ -150,12 +150,14 @@ private struct SettingsToggleRow: View {
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
             }
+            .accessibilityElement(children: .combine)
 
             Spacer()
 
             Toggle("", isOn: $isOn)
                 .labelsHidden()
                 .tint(AppColor.accentPrimary)
+                .accessibilityLabel(title)
         }
     }
 }

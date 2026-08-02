@@ -2518,6 +2518,10 @@ private struct SocialProofPill: View {
             Capsule()
                 .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
         )
+        // Five separate star glyphs plus a bare "·" is eight meaningless
+        // VoiceOver stops; the rating is one fact, so it's spoken as one.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Rated 4.9 out of 5 by over 12,000 athletes")
     }
 }
 
