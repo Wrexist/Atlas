@@ -260,3 +260,24 @@ schemes:
         - PeptideUITests
     archive:
       config: Release
+
+  # UI-capture-only scheme.
+  #
+  # The `Peptide` scheme's test action builds `PeptideTests`, which currently
+  # doesn't compile — so the screenshot job, whose whole purpose is to let a
+  # human *look at the app*, was gated behind an unrelated unit-test backlog.
+  # This scheme builds the app and the UI tests and nothing else, so the
+  # visual loop stays available while that backlog is worked through.
+  PeptideUICapture:
+    build:
+      targets:
+        Peptide: all
+        PeptideUITests: [test]
+    run:
+      config: Debug
+      storeKitConfiguration: Peptide/Resources/Products.storekit
+    test:
+      config: Debug
+      storeKitConfiguration: Peptide/Resources/Products.storekit
+      targets:
+        - PeptideUITests

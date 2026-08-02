@@ -52,11 +52,17 @@ the base commit) and every changed API's call sites had their argument
 labels checked against the declaration. That catches syntax and
 signatures, not types. Build first.
 
-**Nothing has been seen rendered.** No simulator, no screenshots. The
-design work is correct by construction and by static check; it has not
-been looked at. The type-scale collapse is the change most in need of a
-visual pass — 393 sites moved by 1–2pt, and while the moves are mostly
-downward (shrinking text can't truncate), dense rows are worth a look.
+**Nothing has been seen rendered — but you can fix that in one click.**
+Dispatch the **Screenshots** workflow (Actions → Screenshots → Run
+workflow). It now captures every tab in three passes — dark, light, and
+Accessibility XXXL — and uploads them as an artifact. Those three are
+chosen deliberately: light mode had never been rendered at all, and XXXL
+is where the type-scale change would show up as truncation.
+
+It runs on a macOS runner, so it needs no local machine, and it no longer
+depends on the `PeptideTests` backlog: it builds the new `PeptideUICapture`
+scheme, which compiles the app and the UI tests only. Reviewing those
+screenshots is the fastest way to validate this branch.
 
 `OneRedOak/claude-code-workflows → design-review` was read and is the
 right tool for this loop, but it drives a browser through Playwright MCP;
@@ -64,6 +70,10 @@ it has no path to a native iOS view. Its Phase 3–4 checklist (visual
 polish, WCAG 2.1 AA) is what `scripts/design-lint.py` now covers
 statically. The rendered-screen half of that loop still needs a human
 with a simulator.
+
+**What still needs a compiler.** The `PeptideTests` backlog and the
+native-chrome migration. Everything else on this branch is either landed
+or enforced by a check.
 
 **Two things were proven un-doable here, not assumed.** The `@MainActor`
 conversion of `ThemeManager` was measured, not guessed: 231 reads of the

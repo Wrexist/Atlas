@@ -7,10 +7,14 @@ name: Screenshots
 #
 # workflow_dispatch only — never gates a PR, so it can't block merges.
 #
-# NOTE: this builds the test bundle, which currently also compiles the
-# PeptideTests target. If that target has outstanding compile errors (see
-# the Unit Tests note in pr-checks.yml), this job fails at build until
-# those are fixed. The capture logic itself is independent of that.
+# Uses the `PeptideUICapture` scheme, which builds the app and the UI tests
+# and nothing else. The main `Peptide` scheme's test action also compiles
+# `PeptideTests`, which currently doesn't build — that would gate the one job
+# whose purpose is to let a human look at the app behind an unrelated backlog.
+#
+# Captures three passes per tab: dark, light, and Accessibility XXXL. Light
+# and XXXL exist because the trait-resolving colour tokens and the six-step
+# type scale are both invisible to a single default-appearance run.
 on:
   workflow_dispatch:
     inputs:
@@ -44,7 +48,7 @@ jobs:
         run: |
           xcodebuild test \
             -project Peptide.xcodeproj \
-            -scheme Peptide \
+            -scheme PeptideUICapture \
             -destination "platform=iOS Simulator,name=${{ inputs.simulator }},OS=latest" \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \

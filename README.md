@@ -143,7 +143,13 @@ xcodebuild test \
 ```
 
 PR checks run the same command via `.github/workflows/pr-checks.yml`
-with SwiftLint and binary-size delta gating.
+with SwiftLint, the design checker, and binary-size delta gating.
+
+To *look* at the app without a local simulator, dispatch the **Screenshots**
+workflow. It boots the app in demo mode on a macOS runner and captures every
+tab in dark, light, and Accessibility XXXL, then uploads them as an artifact.
+It builds the `PeptideUICapture` scheme so it stays independent of the unit
+test target.
 
 ## TestFlight
 
