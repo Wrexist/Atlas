@@ -122,7 +122,7 @@ struct HabitsView: View {
                         editing = .new
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .font(AppFont.scaled(22, weight: .semibold))
+                            .font(AppFont.scaled(20, weight: .semibold))
                             .foregroundStyle(AppColor.accentPrimary)
                     }
                     .accessibilityLabel("Add habit")
@@ -193,12 +193,12 @@ struct HabitsView: View {
                             .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                             .foregroundStyle(AppColor.textPrimary)
                         Text("today")
-                            .font(AppFont.scaled(9, weight: .semibold))
+                            .font(AppFont.scaled(8, weight: .semibold))
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 } else {
                     Image(systemName: "leaf.fill")
-                        .font(AppFont.scaled(18, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.accentLight)
                 }
             }
@@ -253,7 +253,7 @@ struct HabitsView: View {
     private var streakFreezeBanner: some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: "snowflake")
-                .font(AppFont.scaled(18, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.macroWater)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Streak at risk")
@@ -297,7 +297,7 @@ struct HabitsView: View {
         Button { showProgress = true } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(AppFont.scaled(12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                 Text("See your progress")
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")

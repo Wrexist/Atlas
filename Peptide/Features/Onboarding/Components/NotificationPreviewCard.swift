@@ -44,7 +44,7 @@ struct NotificationPreviewCard: View {
 
     private var iconBadge: some View {
         Image(systemName: "flask.fill")
-            .font(AppFont.scaled(14, weight: .bold))
+            .font(AppFont.scaled(13, weight: .bold))
             .foregroundStyle(AppColor.onAccent)
             .frame(width: 28, height: 28)
             .background {

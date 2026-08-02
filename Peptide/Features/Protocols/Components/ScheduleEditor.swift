@@ -405,7 +405,7 @@ struct LiquidGlassStepper: View {
     ) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(AppFont.scaled(12, weight: .bold))
+                .font(AppFont.scaled(11, weight: .bold))
                 .foregroundStyle(isEnabled ? AppColor.textPrimary : AppColor.textTertiary)
                 .frame(width: 30, height: 30)
                 .glassControl(.circle)

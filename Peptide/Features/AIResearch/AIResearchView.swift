@@ -364,7 +364,7 @@ private struct TurnBubble: View {
 
             if turn.role == .user {
                 Image(systemName: "person.fill")
-                    .font(AppFont.scaled(12, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
                     .foregroundStyle(AppColor.textSecondary)
                     .frame(width: 24, height: 24)
                     .background {

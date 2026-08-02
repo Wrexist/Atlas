@@ -85,7 +85,7 @@ struct AccountSection: View {
         if let state = cloudSyncState {
             HStack(alignment: .top, spacing: Spacing.md) {
                 Image(systemName: state == .active ? "icloud.fill" : "icloud.slash.fill")
-                    .font(AppFont.scaled(14))
+                    .font(AppFont.scaled(13))
                     .foregroundStyle(state == .active ? AppColor.accentLight : AppColor.textTertiary)
                     .frame(width: 20)
 
@@ -124,7 +124,7 @@ struct AccountSection: View {
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
             + Text("Apple ID")
-                .font(AppFont.scaled(15, weight: .medium))
+                .font(AppFont.scaled(16, weight: .medium))
                 .foregroundStyle(AppColor.accentLight)
             + Text(" to keep your Atlas account associated with your device. All your protocols, entries, and settings stay on this device.")
                 .font(AppFont.subheadline)
@@ -195,7 +195,7 @@ struct AccountSection: View {
     private func accountRow(icon: String, label: String) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(AppFont.scaled(14))
+                .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.textTertiary)
                 .frame(width: 20)
 

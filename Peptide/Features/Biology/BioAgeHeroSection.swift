@@ -50,7 +50,7 @@ struct BioAgeHeroSection: View {
                 .font(.system(size: 28, weight: .heavy, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
             Text("As of \(Self.asOfFormatter.string(from: asOfDate))")
-                .font(AppFont.scaled(15, weight: .medium))
+                .font(AppFont.scaled(16, weight: .medium))
                 .foregroundStyle(AppColor.textPrimary.opacity(0.55))
         }
     }
@@ -208,7 +208,7 @@ struct BioAgeHeroSection: View {
             : (isYounger ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
         return HStack(spacing: 5) {
             Image(systemName: icon)
-                .font(AppFont.scaled(12, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
             Text(label)
                 .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
         }
@@ -244,12 +244,12 @@ struct BioAgeHeroSection: View {
                             driver.deltaYears)
         return HStack(spacing: 3) {
             Image(systemName: driverIcon(for: driver.kind))
-                .font(AppFont.scaled(9, weight: .heavy))
+                .font(AppFont.scaled(8, weight: .heavy))
             Text(driverLabel(for: driver.kind))
-                .font(AppFont.scaled(10, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .tracking(0.3)
             Text(signed)
-                .font(AppFont.scaled(10, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .monospacedDigit()
         }
         .foregroundStyle(unlockedTint(isYounger: isYounger).opacity(0.95))

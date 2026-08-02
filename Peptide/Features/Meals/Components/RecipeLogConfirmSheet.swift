@@ -62,7 +62,7 @@ struct RecipeLogConfirmSheet: View {
                     )
                     .frame(width: 56, height: 56)
                 Image(systemName: "list.bullet.rectangle.fill")
-                    .font(AppFont.scaled(22, weight: .semibold))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
             }
             VStack(alignment: .leading, spacing: 4) {

@@ -10,7 +10,7 @@ struct RestoreBackupEntryRow: View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
                 Image(systemName: "tray.and.arrow.down.fill")
-                    .font(AppFont.scaled(18, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                     .frame(width: 36, height: 36)
                     .background {

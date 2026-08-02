@@ -70,7 +70,7 @@ struct TodayOverviewCard: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(stripEyebrow)
-                        .font(AppFont.scaled(10, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                         .tracking(1.0)
                         .foregroundStyle(AppColor.accentLight)
                     Text(stripTitle)
@@ -242,7 +242,7 @@ struct TodayOverviewCard: View {
                         .fill(AppColor.accentPrimary.opacity(0.18))
                         .frame(width: 36, height: 36)
                     Image(systemName: insight.icon)
-                        .font(AppFont.scaled(15, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.accentPrimary)
                 }
                 VStack(alignment: .leading, spacing: 2) {
@@ -336,7 +336,7 @@ private struct OverviewTile: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
-                .font(AppFont.scaled(10, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(0.5)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)

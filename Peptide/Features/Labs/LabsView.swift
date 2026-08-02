@@ -199,7 +199,7 @@ struct LabSummaryRow: View {
                     .fill(panel.tint.opacity(0.20))
                     .frame(width: 38, height: 38)
                 Text(panel.shortName)
-                    .font(AppFont.scaled(10, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .foregroundStyle(panel.tint)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -208,7 +208,7 @@ struct LabSummaryRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(panel.displayName)
-                    .font(AppFont.scaled(14, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
                 Text(Self.relative.localizedString(for: summary.latest.date, relativeTo: Date()))
@@ -243,7 +243,7 @@ struct LabSummaryRow: View {
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                 Text(panel.canonicalUnit)
-                    .font(AppFont.scaled(9, weight: .medium))
+                    .font(AppFont.scaled(8, weight: .medium))
                     .foregroundStyle(AppColor.textTertiary)
             }
             trendBadge

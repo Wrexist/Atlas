@@ -10,7 +10,7 @@ struct TodayScheduleCard: View {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 HStack {
                     Image(systemName: "calendar.badge.clock")
-                        .font(AppFont.scaled(14, weight: .semibold))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.accentPrimary)
 
                     Text("Today's Schedule")
@@ -62,7 +62,7 @@ private struct ScheduleRow: View {
             // Circle button = quick toggle
             Button(action: onToggle) {
                 Image(systemName: entry.completed ? "checkmark.circle.fill" : "circle")
-                    .font(AppFont.scaled(22))
+                    .font(AppFont.scaled(20))
                     .foregroundStyle(entry.completed ? AppColor.accentPrimary : AppColor.textTertiary)
                     .contentTransition(.symbolEffect(.replace))
             }
@@ -75,7 +75,7 @@ private struct ScheduleRow: View {
             Button(action: onTap) {
                 HStack(spacing: Spacing.md) {
                     Image(systemName: entry.peptide.imageSystemName)
-                        .font(AppFont.scaled(14))
+                        .font(AppFont.scaled(13))
                         .foregroundStyle(entry.peptide.category.color)
                         .frame(width: 28, height: 28)
                         .background {

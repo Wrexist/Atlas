@@ -317,7 +317,7 @@ private struct ProtocolsEntryCard: View {
                         .fill(AppColor.accentPrimary.opacity(0.18))
                         .frame(width: 44, height: 44)
                     Image(systemName: "flask.fill")
-                        .font(AppFont.scaled(18, weight: .bold))
+                        .font(AppFont.scaled(16, weight: .bold))
                         .foregroundStyle(AppColor.accentLight)
                 }
 
@@ -340,7 +340,7 @@ private struct ProtocolsEntryCard: View {
                         .foregroundStyle(AppColor.accentPrimary)
                 } else {
                     Image(systemName: "chevron.right")
-                        .font(AppFont.scaled(12, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }
@@ -376,7 +376,7 @@ private struct AddCustomPeptideCard: View {
                         .fill(AppColor.accentPrimary.opacity(0.18))
                         .frame(width: 44, height: 44)
                     Image(systemName: "plus")
-                        .font(AppFont.scaled(18, weight: .bold))
+                        .font(AppFont.scaled(16, weight: .bold))
                         .foregroundStyle(AppColor.accentLight)
                 }
 
@@ -394,7 +394,7 @@ private struct AddCustomPeptideCard: View {
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(AppFont.scaled(12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(Spacing.md)

@@ -42,7 +42,7 @@ struct EmailCapturePage: View {
                 if let error {
                     HStack(spacing: Spacing.xs) {
                         Image(systemName: "exclamationmark.circle.fill")
-                            .font(AppFont.scaled(12, weight: .semibold))
+                            .font(AppFont.scaled(11, weight: .semibold))
                         Text(error)
                             .font(AppFont.caption)
                     }

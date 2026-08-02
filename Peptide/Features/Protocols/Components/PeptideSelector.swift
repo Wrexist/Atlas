@@ -101,7 +101,7 @@ struct PeptideSelector: View {
     private var searchBar: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "magnifyingglass")
-                .font(AppFont.scaled(14))
+                .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.textTertiary)
 
             TextField("Search peptides...", text: $searchText)
@@ -118,7 +118,7 @@ struct PeptideSelector: View {
                     }
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(AppFont.scaled(14))
+                        .font(AppFont.scaled(13))
                         .foregroundStyle(AppColor.textTertiary)
                         .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
                         .contentShape(Rectangle())
@@ -244,7 +244,7 @@ struct PeptideSelector: View {
                     .contentTransition(.symbolEffect(.replace))
 
                 Image(systemName: peptide.imageSystemName)
-                    .font(AppFont.scaled(14))
+                    .font(AppFont.scaled(13))
                     .foregroundStyle(peptide.category.color)
                     .frame(width: 28, height: 28)
                     .background {

@@ -97,7 +97,7 @@ struct OutcomeCheckInSheet: View {
                             .fill(dimension.tint.opacity(0.20))
                             .frame(width: 32, height: 32)
                         Image(systemName: dimension.icon)
-                            .font(AppFont.scaled(14, weight: .semibold))
+                            .font(AppFont.scaled(13, weight: .semibold))
                             .foregroundStyle(dimension.tint)
                     }
                     Text(dimension.displayName)
@@ -106,7 +106,7 @@ struct OutcomeCheckInSheet: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer(minLength: 0)
                     Text("\(value.wrappedValue)")
-                        .font(AppFont.scaled(22, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(dimension.tint)
                         .contentTransition(.numericText())

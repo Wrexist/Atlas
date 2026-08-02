@@ -96,7 +96,7 @@ struct TravelModePromptSheet: View {
                     tint: AppColor.textSecondary
                 )
                 Image(systemName: "arrow.down")
-                    .font(AppFont.scaled(12, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .foregroundStyle(AppColor.textTertiary)
                     .padding(.leading, 6)
                 row(
@@ -144,14 +144,14 @@ struct TravelModePromptSheet: View {
                     .foregroundStyle(AppColor.accentLight.opacity(0.85))
                 HStack(spacing: Spacing.sm) {
                     Text(original)
-                        .font(AppFont.scaled(18, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textSecondary)
                     Image(systemName: "arrow.right")
-                        .font(AppFont.scaled(12, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                     Text(shifted)
-                        .font(AppFont.scaled(22, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                 }

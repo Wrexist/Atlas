@@ -67,7 +67,7 @@ struct WorkoutSessionDetailView: View {
     private func stat(value: String, label: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value)
-                .font(AppFont.scaled(22, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(20, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
             Text(label)
                 .font(AppFont.caption)
@@ -94,7 +94,7 @@ struct WorkoutSessionDetailView: View {
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
             Text("\(effort) / 5")
-                .font(AppFont.scaled(14, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(13, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
         }
         .padding(Spacing.md)
@@ -172,18 +172,18 @@ struct WorkoutSessionDetailView: View {
                     Spacer()
                     if set.isWarmup {
                         Text("W")
-                            .font(AppFont.scaled(10, weight: .bold))
+                            .font(AppFont.scaled(11, weight: .bold))
                             .foregroundStyle(AppColor.textTertiary)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
                             .background(Capsule().fill(AppColor.surfaceElevated))
                     } else if set.completed {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(AppFont.scaled(14))
+                            .font(AppFont.scaled(13))
                             .foregroundStyle(AppColor.accentPrimary)
                     } else {
                         Image(systemName: "circle")
-                            .font(AppFont.scaled(14))
+                            .font(AppFont.scaled(13))
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 }

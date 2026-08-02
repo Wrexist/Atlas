@@ -36,7 +36,7 @@ struct AtlasScoreCard: View {
             ) {
                 VStack(spacing: 0) {
                     Text("LV")
-                        .font(AppFont.scaled(10, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                         .foregroundStyle(AppColor.textSecondary)
                     Text("\(momentum.level)")
                         .font(.system(size: 26, weight: .heavy, design: .rounded))
@@ -68,7 +68,7 @@ struct AtlasScoreCard: View {
 
             if onTap != nil {
                 Image(systemName: "chevron.right")
-                    .font(AppFont.scaled(12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
             }
         }

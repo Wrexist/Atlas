@@ -159,7 +159,7 @@ struct ProfileCustomizationSheet: View {
                     isShowingPhotoSourceMenu = true
                 } label: {
                     Image(systemName: "camera.fill")
-                        .font(AppFont.scaled(14, weight: .semibold))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.background)
                         .frame(width: 32, height: 32)
                         .background {
@@ -582,7 +582,7 @@ struct ProfileCustomizationSheet: View {
                         .strokeBorder(AppColor.textPrimary, lineWidth: 2)
                         .frame(width: 38, height: 38)
                     Image(systemName: "checkmark")
-                        .font(AppFont.scaled(14, weight: .bold))
+                        .font(AppFont.scaled(13, weight: .bold))
                         .foregroundStyle(AppColor.textPrimary)
                 }
             }
@@ -658,7 +658,7 @@ struct ProfileCustomizationSheet: View {
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: pinned ? "pin.fill" : (selected ? "checkmark.circle.fill" : "circle"))
-                    .font(AppFont.scaled(12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                 Text(goal)
                     .font(AppFont.subheadline)
                     .fontWeight(.medium)
@@ -811,7 +811,7 @@ struct ProfileCustomizationSheet: View {
     ) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(AppFont.scaled(14))
+                .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 24)
 

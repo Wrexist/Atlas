@@ -82,7 +82,7 @@ struct BiomarkerDetailSheet: View {
                 .monospacedDigit()
             if let unitString = biomarker.displayUnit(for: unit) {
                 Text(unitString)
-                    .font(AppFont.scaled(18, weight: .heavy))
+                    .font(AppFont.scaled(16, weight: .heavy))
                     .foregroundStyle(AppColor.textSecondary)
             }
             Spacer(minLength: 0)
@@ -108,7 +108,7 @@ struct BiomarkerDetailSheet: View {
             Image(systemName: icon)
                 .font(AppFont.scaled(11, weight: .heavy))
             Text(label)
-                .font(AppFont.scaled(12, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
         }
         .foregroundStyle(tint)
         .padding(.horizontal, Spacing.sm)
@@ -191,7 +191,7 @@ struct BiomarkerDetailSheet: View {
                 AxisValueLabel {
                     if let day = value.as(Int.self) {
                         Text(dayLabel(daysAgo: day))
-                            .font(AppFont.scaled(10))
+                            .font(AppFont.scaled(11))
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 }

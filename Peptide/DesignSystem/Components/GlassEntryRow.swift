@@ -39,10 +39,10 @@ struct GlassEntryRow: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(AppFont.scaled(15, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                     subtitle
-                        .font(AppFont.scaled(12))
+                        .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)

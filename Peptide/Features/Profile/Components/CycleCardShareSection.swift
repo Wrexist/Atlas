@@ -26,7 +26,7 @@ struct CycleCardShareSection: View {
         } label: {
             HStack(spacing: Spacing.md) {
                 Image(systemName: "square.and.arrow.up.fill")
-                    .font(AppFont.scaled(18, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.onAccent)
                     .frame(width: 40, height: 40)
                     .background {
@@ -53,7 +53,7 @@ struct CycleCardShareSection: View {
                 Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
-                    .font(AppFont.scaled(12, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(Spacing.md)

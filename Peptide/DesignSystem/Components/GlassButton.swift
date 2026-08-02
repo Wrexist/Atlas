@@ -40,7 +40,7 @@ struct GlassButton: View {
         HStack(spacing: Spacing.xs) {
             if let icon {
                 Image(systemName: icon)
-                    .font(AppFont.scaled(14, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .accessibilityHidden(true)
             }
             Text(title)

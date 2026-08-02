@@ -86,7 +86,7 @@ struct TodayJumpBar: View {
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: anchor.systemImage)
-                    .font(AppFont.scaled(12, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
                     .foregroundStyle(isActive ? .white : anchor.accent)
                 Text(anchor.label)
                     .font(AppFont.scaled(13, weight: .semibold))

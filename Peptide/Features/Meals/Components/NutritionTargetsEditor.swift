@@ -166,7 +166,7 @@ struct NutritionTargetsEditor: View {
                     .foregroundStyle(AppColor.textSecondary)
             }
             Text("\(grams) g")
-                .font(AppFont.scaled(15, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
         }
@@ -231,11 +231,11 @@ struct NutritionTargetsEditor: View {
     private func recChip(_ value: String, _ unit: LocalizedStringKey, tint: Color) -> some View {
         VStack(spacing: 1) {
             Text(value)
-                .font(AppFont.scaled(17, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
             Text(unit)
-                .font(AppFont.scaled(10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(tint.opacity(0.9))
         }
         .frame(maxWidth: .infinity)
@@ -277,10 +277,10 @@ struct NutritionTargetsEditor: View {
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: preset.icon)
-                    .font(AppFont.scaled(18, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(isSelected ? AppColor.background : AppColor.accentLight)
                 Text(preset.title)
-                    .font(AppFont.scaled(12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(isSelected ? AppColor.background : AppColor.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -372,7 +372,7 @@ struct NutritionTargetsEditor: View {
             TextField("0", text: text)
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
-                .font(AppFont.scaled(17, weight: .semibold, design: .rounded))
+                .font(AppFont.scaled(16, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .focused($focusedField, equals: field)

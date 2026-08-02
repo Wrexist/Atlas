@@ -111,7 +111,7 @@ struct CommunityStackDetailView: View {
                     .fill(AppColor.accentPrimary.opacity(0.2))
                     .frame(width: 44, height: 44)
                 Image(systemName: "person.crop.circle.fill")
-                    .font(AppFont.scaled(22))
+                    .font(AppFont.scaled(20))
                     .foregroundStyle(AppColor.accentLight)
             }
             VStack(alignment: .leading, spacing: 2) {

@@ -86,7 +86,7 @@ struct ProtocolNotesTimeline: View {
                     Image(systemName: "plus")
                         .font(AppFont.scaled(11, weight: .bold))
                     Text("Add note")
-                        .font(AppFont.scaled(12, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                 }
                 .foregroundStyle(AppColor.accentLight)
                 .padding(.horizontal, Spacing.md)
@@ -108,7 +108,7 @@ struct ProtocolNotesTimeline: View {
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
             Text("Capture side effects, energy shifts, mood, anything you want to remember about this protocol.")
-                .font(AppFont.scaled(12))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -156,7 +156,7 @@ struct ProtocolNotesTimeline: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(Self.timeFormatter.string(from: note.date))
-                        .font(AppFont.scaled(10))
+                        .font(AppFont.scaled(11))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textTertiary)
                 }
@@ -340,7 +340,7 @@ struct ProtocolNoteEditorSheet: View {
             mood = rating
         } label: {
             Text("\(rating)")
-                .font(AppFont.scaled(15, weight: active ? .heavy : .semibold, design: .rounded))
+                .font(AppFont.scaled(16, weight: active ? .heavy : .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(active ? AppColor.textPrimary : AppColor.textSecondary)
                 .frame(maxWidth: .infinity)

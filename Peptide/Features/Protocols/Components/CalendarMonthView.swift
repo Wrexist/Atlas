@@ -111,7 +111,7 @@ struct CalendarMonthView: View {
                             .frame(width: 34, height: 34)
                     }
                     Text(dayNumber(for: date))
-                        .font(AppFont.scaled(15, weight: dayWeight(isSelected: isSelected, isToday: isToday), design: .rounded))
+                        .font(AppFont.scaled(16, weight: dayWeight(isSelected: isSelected, isToday: isToday), design: .rounded))
                         .foregroundStyle(dateColor(isCurrentMonth: isCurrentMonth, isSelected: isSelected, isToday: isToday))
                         .monospacedDigit()
                 }

@@ -40,7 +40,7 @@ struct GoalsSectionCard: View {
                             HStack(spacing: Spacing.xs) {
                                 if isSelected {
                                     Image(systemName: "checkmark")
-                                        .font(AppFont.scaled(10, weight: .bold))
+                                        .font(AppFont.scaled(11, weight: .bold))
                                         .transition(.scale.combined(with: .opacity))
                                 }
                                 Text(entry.displayName)

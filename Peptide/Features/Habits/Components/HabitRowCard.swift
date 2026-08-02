@@ -46,7 +46,7 @@ struct HabitRowCard: View {
                     .fill(habit.tint.opacity(0.18))
                     .frame(width: 28, height: 28)
                 Image(systemName: habit.iconSymbol)
-                    .font(AppFont.scaled(14, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(habit.tint)
             }
             Text(habit.name)
@@ -87,7 +87,7 @@ struct HabitRowCard: View {
                         .fill(habit.tint)
                         .frame(width: 22, height: 22)
                     Image(systemName: "checkmark")
-                        .font(AppFont.scaled(12, weight: .bold))
+                        .font(AppFont.scaled(11, weight: .bold))
                         .foregroundStyle(AppColor.background)
                 } else if summary.todayProgress > 0 {
                     Circle()
@@ -115,10 +115,10 @@ struct HabitRowCard: View {
     private func statChip(icon: String, value: String, label: String, tint: Color) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(AppFont.scaled(10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(tint)
             Text(value)
-                .font(AppFont.scaled(12, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(11, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
             Text(label)
                 .font(AppFont.scaled(11, weight: .medium))

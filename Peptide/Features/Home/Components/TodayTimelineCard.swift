@@ -44,7 +44,7 @@ struct TodayTimelineCard: View {
                     Circle()
                         .fill(tint.opacity(0.18))
                     Image(systemName: event.icon)
-                        .font(AppFont.scaled(12, weight: .bold))
+                        .font(AppFont.scaled(11, weight: .bold))
                         .foregroundStyle(tint)
                 }
                 .frame(width: 26, height: 26)
@@ -75,7 +75,7 @@ struct TodayTimelineCard: View {
                             .foregroundStyle(AppColor.success)
                     } else if event.isPending {
                         Text("PENDING")
-                            .font(AppFont.scaled(9, weight: .heavy))
+                            .font(AppFont.scaled(8, weight: .heavy))
                             .tracking(0.5)
                             .foregroundStyle(AppColor.warning)
                             .padding(.horizontal, 5)

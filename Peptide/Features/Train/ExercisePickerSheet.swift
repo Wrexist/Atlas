@@ -113,7 +113,7 @@ struct ExercisePickerSheet: View {
                             ExerciseRow(exercise: exercise, showsChevron: false)
                                 .overlay(alignment: .trailing) {
                                     Image(systemName: "plus.circle.fill")
-                                        .font(AppFont.scaled(22, weight: .semibold))
+                                        .font(AppFont.scaled(20, weight: .semibold))
                                         .foregroundStyle(AppColor.accentPrimary)
                                 }
                         }

@@ -110,7 +110,7 @@ struct ExportSection: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Divider().background(AppColor.glassBorder).padding(.vertical, 2)
                 Text("By section")
-                    .font(AppFont.scaled(10, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)
@@ -138,7 +138,7 @@ struct ExportSection: View {
         Button(action: action) {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
-                    .font(AppFont.scaled(12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                     .frame(width: 18)
                 Text(title)

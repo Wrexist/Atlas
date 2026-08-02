@@ -242,7 +242,7 @@ struct DoseDayDetailPanel: View {
 
     private var scheduledBadge: some View {
         Text("Scheduled")
-            .font(AppFont.scaled(10, weight: .heavy))
+            .font(AppFont.scaled(11, weight: .heavy))
             .tracking(0.6)
             .foregroundStyle(AppColor.accentLight)
             .padding(.horizontal, Spacing.xs)
@@ -270,7 +270,7 @@ struct DoseDayDetailPanel: View {
         }()
         if let label {
             Text(label)
-                .font(AppFont.scaled(10, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(0.6)
                 .foregroundStyle(AppColor.textSecondary)
                 .padding(.horizontal, Spacing.xs)

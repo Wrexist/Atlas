@@ -43,7 +43,7 @@ struct WorkoutCard: View {
                 Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
-                    .font(AppFont.scaled(12, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(Spacing.md)

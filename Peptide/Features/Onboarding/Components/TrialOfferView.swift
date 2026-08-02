@@ -212,7 +212,7 @@ struct TrialOfferView: View {
     private var headline: some View {
         VStack(spacing: Spacing.xs) {
             Text("YOUR WELCOME GIFT")
-                .font(AppFont.scaled(12, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(2)
                 .foregroundStyle(AppColor.accentLight)
 
@@ -280,7 +280,7 @@ struct TrialOfferView: View {
                         .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
                     Text(timeString(remaining))
-                        .font(AppFont.scaled(15, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
@@ -328,7 +328,7 @@ struct TrialOfferView: View {
                 .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
             Text("· Loved by 12k+ athletes")
-                .font(AppFont.scaled(12, weight: .medium))
+                .font(AppFont.scaled(11, weight: .medium))
                 .foregroundStyle(AppColor.textSecondary)
         }
         .opacity(didReveal ? 1 : 0)
@@ -342,7 +342,7 @@ struct TrialOfferView: View {
                     .fill(AppColor.accentPrimary.opacity(0.18))
                     .frame(width: 32, height: 32)
                 Image(systemName: icon)
-                    .font(AppFont.scaled(14, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                     .symbolEffect(.bounce, value: didReveal)
             }
@@ -402,7 +402,7 @@ struct TrialOfferView: View {
                             .foregroundStyle(AppColor.textPrimary)
                         if isAnnual, let savings = annualSavingsPercent {
                             Text("SAVE \(savings)%")
-                                .font(AppFont.scaled(10, weight: .heavy))
+                                .font(AppFont.scaled(11, weight: .heavy))
                                 .tracking(0.6)
                                 .foregroundStyle(AppColor.background)
                                 .padding(.horizontal, 6)
@@ -419,7 +419,7 @@ struct TrialOfferView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(tierPrimaryPrice(for: tier))
-                        .font(AppFont.scaled(18, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .bold, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                     Text("/mo")
                         .font(AppFont.caption)
@@ -443,7 +443,7 @@ struct TrialOfferView: View {
             .overlay(alignment: .topTrailing) {
                 if isAnnual {
                     Text("MOST POPULAR")
-                        .font(AppFont.scaled(9, weight: .heavy))
+                        .font(AppFont.scaled(8, weight: .heavy))
                         .tracking(0.8)
                         .foregroundStyle(AppColor.background)
                         .padding(.horizontal, 8)
@@ -492,7 +492,7 @@ struct TrialOfferView: View {
                             .tint(AppColor.textPrimary)
                     } else {
                         Image(systemName: "sparkles")
-                            .font(AppFont.scaled(15, weight: .bold))
+                            .font(AppFont.scaled(16, weight: .bold))
                         Text(ctaTitle)
                             .font(AppFont.headline)
                     }
@@ -523,7 +523,7 @@ struct TrialOfferView: View {
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                 Text(reassuranceCopy)
-                    .font(AppFont.scaled(12, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .medium))
                     .foregroundStyle(AppColor.textSecondary)
             }
 
@@ -537,7 +537,7 @@ struct TrialOfferView: View {
             .disabled(isPurchasing)
 
             Text(legalCopy)
-                .font(AppFont.scaled(10))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.md)
@@ -547,7 +547,7 @@ struct TrialOfferView: View {
                 Text("·").foregroundStyle(AppColor.textTertiary)
                 Link("Privacy Policy", destination: URL.staticHTTPS("https://wrexist.github.io/Peptide-ai/privacy.html"))
             }
-            .font(AppFont.scaled(10))
+            .font(AppFont.scaled(11))
             .foregroundStyle(AppColor.accentLight)
         }
     }
@@ -573,7 +573,7 @@ struct TrialOfferView: View {
         let y = (yBase + drift).truncatingRemainder(dividingBy: 1)
         let scale = 0.5 + (sin(seed) + 1) / 2 * 0.6
         return Image(systemName: "sparkle")
-            .font(AppFont.scaled(10))
+            .font(AppFont.scaled(11))
             .foregroundStyle(AppColor.accentLight.opacity(0.35))
             .scaleEffect(scale)
             .position(x: size.width * xRatio, y: size.height * (1 - y))

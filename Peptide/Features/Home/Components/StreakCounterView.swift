@@ -34,7 +34,7 @@ struct StreakCounterView: View {
         VStack(spacing: Spacing.xs) {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "flame.fill")
-                    .font(AppFont.scaled(22, weight: .semibold))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(flameColor)
                     .symbolEffect(.bounce, value: pulseTrigger)
                     .modifier(ConditionalGlow(active: showGlow))

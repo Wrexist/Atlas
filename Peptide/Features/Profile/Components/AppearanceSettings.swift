@@ -138,7 +138,7 @@ private struct SettingsToggleRow: View {
     var body: some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(AppFont.scaled(14))
+                .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: iconColumnWidth)
 
@@ -169,7 +169,7 @@ private struct ThemePickerRow: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(spacing: Spacing.md) {
                 Image(systemName: "paintpalette.fill")
-                    .font(AppFont.scaled(14))
+                    .font(AppFont.scaled(13))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: iconColumnWidth)
 
@@ -213,7 +213,7 @@ private struct ThemePickerRow: View {
                 )
                 .overlay(
                     Image(systemName: "checkmark")
-                        .font(AppFont.scaled(12, weight: .bold))
+                        .font(AppFont.scaled(11, weight: .bold))
                         .foregroundStyle(AppColor.onAccent)
                         .opacity(isSelected ? 1 : 0)
                 )
@@ -282,7 +282,7 @@ private struct SettingsPickerRow<Control: View>: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
-                    .font(AppFont.scaled(14))
+                    .font(AppFont.scaled(13))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: iconColumnWidth)
                     .accessibilityHidden(true)

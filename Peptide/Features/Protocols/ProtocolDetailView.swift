@@ -114,7 +114,7 @@ struct ProtocolDetailView: View {
                                 .foregroundStyle(AppColor.textPrimary)
                             if customScheduleCount > 0 {
                                 Text("\(customScheduleCount) custom")
-                                    .font(AppFont.scaled(9, weight: .bold))
+                                    .font(AppFont.scaled(8, weight: .bold))
                                     .foregroundStyle(AppColor.accentPrimary)
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
@@ -332,7 +332,7 @@ struct ProtocolDetailView: View {
                                 .foregroundStyle(AppColor.textPrimary)
                             if isCustom {
                                 Text("CUSTOM")
-                                    .font(AppFont.scaled(9, weight: .bold))
+                                    .font(AppFont.scaled(8, weight: .bold))
                                     .foregroundStyle(AppColor.accentPrimary)
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 2)

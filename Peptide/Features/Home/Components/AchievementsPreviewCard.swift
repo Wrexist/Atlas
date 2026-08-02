@@ -57,7 +57,7 @@ struct AchievementsPreviewCard: View {
                         Circle().strokeBorder(AppColor.glassBorderActive, lineWidth: 1)
                     }
                 Image(systemName: achievement.icon)
-                    .font(AppFont.scaled(18))
+                    .font(AppFont.scaled(16))
                     .foregroundStyle(AppColor.accentLight)
             }
             .frame(width: 44, height: 44)

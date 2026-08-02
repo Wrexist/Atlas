@@ -32,7 +32,7 @@ struct ScreenshotModeBanner: View {
                                 .fill(accent.opacity(0.25))
                                 .frame(width: 26, height: 26)
                             Image(systemName: "camera.viewfinder")
-                                .font(AppFont.scaled(12, weight: .heavy))
+                                .font(AppFont.scaled(11, weight: .heavy))
                                 .foregroundStyle(accent)
                         }
 
@@ -48,7 +48,7 @@ struct ScreenshotModeBanner: View {
                         Spacer(minLength: 0)
 
                         Text("Exit")
-                            .font(AppFont.scaled(12, weight: .heavy))
+                            .font(AppFont.scaled(11, weight: .heavy))
                             .tracking(0.5)
                             .textCase(.uppercase)
                             .padding(.horizontal, Spacing.md)

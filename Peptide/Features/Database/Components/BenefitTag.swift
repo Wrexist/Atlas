@@ -9,7 +9,7 @@ struct BenefitTag: View {
         HStack(alignment: .center, spacing: 4) {
             if let icon {
                 Image(systemName: icon)
-                    .font(AppFont.scaled(9, weight: .semibold))
+                    .font(AppFont.scaled(8, weight: .semibold))
             }
             Text(text)
                 .font(AppFont.caption)

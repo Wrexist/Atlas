@@ -32,7 +32,7 @@ struct HabitCompletionChip: View {
                 if currentStreak >= 3 {
                     HStack(spacing: 2) {
                         Image(systemName: "flame.fill")
-                            .font(AppFont.scaled(9))
+                            .font(AppFont.scaled(8))
                         Text("\(currentStreak)")
                             .font(AppFont.scaled(11, weight: .bold, design: .rounded))
                     }
@@ -63,11 +63,11 @@ struct HabitCompletionChip: View {
                     .fill(habit.tint)
                     .frame(width: 14, height: 14)
                 Image(systemName: "checkmark")
-                    .font(AppFont.scaled(9, weight: .bold))
+                    .font(AppFont.scaled(8, weight: .bold))
                     .foregroundStyle(AppColor.background)
             } else {
                 Image(systemName: habit.iconSymbol)
-                    .font(AppFont.scaled(9, weight: .semibold))
+                    .font(AppFont.scaled(8, weight: .semibold))
                     .foregroundStyle(habit.tint)
             }
         }

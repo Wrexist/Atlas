@@ -99,7 +99,7 @@ struct HeroMetricTrio: View {
                 .contentTransition(.numericText())
         } else {
             Text("—")
-                .font(AppFont.scaled(22, weight: .bold))
+                .font(AppFont.scaled(20, weight: .bold))
                 .foregroundStyle(AppColor.textSecondary)
         }
     }

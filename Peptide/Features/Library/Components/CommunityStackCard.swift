@@ -28,7 +28,7 @@ struct CommunityStackCard: View {
                     if stack.featured {
                         Label("Featured", systemImage: "star.fill")
                             .labelStyle(.iconOnly)
-                            .font(AppFont.scaled(12, weight: .bold))
+                            .font(AppFont.scaled(11, weight: .bold))
                             .foregroundStyle(AppColor.accentLight)
                     }
                 }
@@ -48,7 +48,7 @@ struct CommunityStackCard: View {
                     Spacer()
                     HStack(spacing: 3) {
                         Image(systemName: "flame.fill")
-                            .font(AppFont.scaled(10))
+                            .font(AppFont.scaled(11))
                         Text("\(stack.popularityScore)")
                             .font(AppFont.scaled(11, weight: .semibold, design: .rounded))
                     }
@@ -61,7 +61,7 @@ struct CommunityStackCard: View {
     private func statChip(icon: String, value: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(AppFont.scaled(10))
+                .font(AppFont.scaled(11))
             Text(value)
                 .font(AppFont.scaled(11, weight: .medium))
         }

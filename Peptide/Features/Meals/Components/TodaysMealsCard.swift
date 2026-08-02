@@ -67,7 +67,7 @@ struct TodaysMealsCard: View {
                 .font(AppFont.scaled(24, weight: .light))
                 .foregroundStyle(AppColor.textSecondary)
             Text("Log a meal to see it here. Tap any entry afterwards to edit its category or remove it.")
-                .font(AppFont.scaled(12))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
@@ -110,12 +110,12 @@ struct MealEntryRow: View {
                 categoryBadge
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(entry.name)
-                        .font(AppFont.scaled(14, weight: .semibold))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
                     HStack(spacing: 6) {
                         Image(systemName: entry.source.icon)
-                            .font(AppFont.scaled(9))
+                            .font(AppFont.scaled(8))
                             .foregroundStyle(AppColor.textSecondary)
                         Text(Self.timeFormatter.string(from: entry.date))
                             .font(AppFont.scaled(11))
@@ -130,7 +130,7 @@ struct MealEntryRow: View {
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                     Text("\(entry.proteinG)P · \(entry.carbsG)C · \(entry.fatG)F")
-                        .font(AppFont.scaled(10, weight: .medium))
+                        .font(AppFont.scaled(11, weight: .medium))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textSecondary)
                 }

@@ -6,7 +6,7 @@ struct PeptideCategoryBadge: View {
     var body: some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: category.iconName)
-                .font(AppFont.scaled(10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
 
             Text(category.localizedTitle)
                 .font(AppFont.caption)

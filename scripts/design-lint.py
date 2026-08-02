@@ -42,6 +42,10 @@ DOMAIN_PALETTE_FILES = {
 # for tiny icon insets. Anything else is a number someone eyeballed.
 GRID = {0, 2, 4, 6, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64}
 
+# The six body-text steps. Mirrors `AppFont.Scale`; anything above 24pt is a
+# display glyph sized per screen and isn't part of the scale.
+TYPE_SCALE = {8, 11, 13, 16, 20, 24}
+
 # Rendered to a fixed export canvas rather than laid out in the app, so its
 # proportions are its own — the 8-point rhythm doesn't govern a shared image.
 FIXED_CANVAS_FILES = {"CycleCardView.swift", "ShareCardSheet.swift"}
@@ -395,8 +399,70 @@ def rule_uncombined_row(path, source, code) -> list[Finding]:
     return out
 
 
+
+def rule_type_scale(path, source, code) -> list[Finding]:
+    """R9 — hierarchy from weight and colour before size, on a small scale.
+
+    The app carried thirty distinct point sizes, thirteen of them inside a
+    12pt band. Below the display range there are six steps and nothing
+    between them; see `AppFont.Scale`.
+    """
+    if path.name == "Typography.swift":
+        return []
+    out = []
+    for m in re.finditer(r"(?:AppFont\.scaled\(|\.system\(size:\s*)(\d+(?:\.\d+)?)", code):
+        v = float(m.group(1))
+        if v > 24 or v in TYPE_SCALE:
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "type-scale",
+                           f"{v:g}pt is off the six-step body scale "
+                           f"({', '.join(f'{s:g}' for s in sorted(TYPE_SCALE))})", "error"))
+    return out
+
+
+def rule_pure_neutral(path, source, code) -> list[Finding]:
+    """R7 — no pure black on pure white.
+
+    `#FFF`/`#000` read as unfinished; tuned near-neutrals are one of the
+    cheapest things that separates a designed surface from a default one.
+    """
+    if path.name != "ColorTheme.swift":
+        return []
+    out = []
+    for m in re.finditer(r"0x(?:FFFFFF|000000)\b", code):
+        out.append(Finding(path, line_of(code, m.start()), "pure-neutral",
+                           f"{m.group(0)} is a pure neutral; tune it a step off "
+                           "(e.g. 0xFCFCFD / 0x0B0B0E)", "warning"))
+    return out
+
+
+def rule_motion(path, source, code) -> list[Finding]:
+    """R12 — UI motion is 120–250ms and doesn't loop for decoration.
+
+    Ambient background drift and explicit loading indicators are the
+    exceptions, so only *short* repeating animations are flagged: those are
+    attention-grabbing, not ambient.
+    """
+    # The shimmer *is* the loading indicator; looping is the whole point.
+    if path.name == "ShimmerModifier.swift":
+        return []
+    out = []
+    for m in re.finditer(r"repeatForever", code):
+        before = code[max(0, m.start() - 260):m.start()]
+        durations = [float(d) for d in re.findall(r"duration:\s*(\d*\.?\d+)", before)]
+        if durations and durations[-1] >= 1.2:
+            continue          # ambient drift or a deliberate breathing pulse
+        out.append(Finding(path, line_of(code, m.start()), "motion",
+                           "a short looping animation reads as decoration; loop only "
+                           "ambient or loading motion", "warning"))
+    return out
+
+
 RULES = [
     rule_raw_colour,
+    rule_type_scale,
+    rule_pure_neutral,
+    rule_motion,
     rule_fixed_font,
     rule_glow,
     rule_untargeted_animation,

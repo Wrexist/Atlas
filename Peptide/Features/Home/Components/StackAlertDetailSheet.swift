@@ -218,7 +218,7 @@ struct StackAlertDetailSheet: View {
 
             if navigable {
                 Image(systemName: "chevron.right")
-                    .font(AppFont.scaled(9, weight: .bold))
+                    .font(AppFont.scaled(8, weight: .bold))
                     .foregroundStyle(severityColor.opacity(0.7))
             }
         }

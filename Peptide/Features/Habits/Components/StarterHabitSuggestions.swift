@@ -73,7 +73,7 @@ struct StarterHabitSuggestions: View {
                     .font(AppFont.scaled(13, weight: .medium))
                     .foregroundStyle(AppColor.textPrimary)
                 Image(systemName: "plus.circle.fill")
-                    .font(AppFont.scaled(12))
+                    .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.accentPrimary)
             }
             .padding(.horizontal, Spacing.md)

@@ -141,12 +141,12 @@ struct TodayHabitsHero: View {
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
                     Text("done")
-                        .font(AppFont.scaled(9, weight: .semibold))
+                        .font(AppFont.scaled(8, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                 }
             } else {
                 Image(systemName: "leaf.fill")
-                    .font(AppFont.scaled(18, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
             }
         }
@@ -157,7 +157,7 @@ struct TodayHabitsHero: View {
         if snapshot.bestCurrentStreak > 0 {
             HStack(spacing: 4) {
                 Image(systemName: "flame.fill")
-                    .font(AppFont.scaled(12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.streak)
                 Text("\(snapshot.bestCurrentStreak) day streak")
                     .font(AppFont.subheadline)
@@ -200,9 +200,9 @@ struct TodayHabitsHero: View {
             HStack(spacing: 4) {
                 Text("View all habits")
                 Image(systemName: "chevron.right")
-                    .font(AppFont.scaled(10, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
             }
-            .font(AppFont.scaled(12, weight: .semibold))
+            .font(AppFont.scaled(11, weight: .semibold))
             .foregroundStyle(AppColor.accentLight)
         }
         .buttonStyle(.plain)
@@ -232,7 +232,7 @@ struct TodayHabitsHero: View {
                             .fill(AppColor.accentPrimary.opacity(0.15))
                             .frame(width: 40, height: 40)
                         Image(systemName: "checkmark.seal.fill")
-                            .font(AppFont.scaled(18, weight: .semibold))
+                            .font(AppFont.scaled(16, weight: .semibold))
                             .foregroundStyle(AppColor.accentPrimary)
                     }
                     VStack(alignment: .leading, spacing: 2) {

@@ -62,7 +62,7 @@ struct CyclePhaseCard: View {
                     .fill(tint.opacity(0.22))
                     .frame(width: 38, height: 38)
                 Image(systemName: icon)
-                    .font(AppFont.scaled(17, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(tint)
             }
             VStack(alignment: .leading, spacing: 2) {
@@ -124,7 +124,7 @@ struct CyclePhaseCard: View {
     private var footer: some View {
         HStack(spacing: 4) {
             Image(systemName: "clock")
-                .font(AppFont.scaled(10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
             Text(footerCopy)
                 .font(AppFont.scaled(11))

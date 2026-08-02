@@ -8,7 +8,7 @@ struct GlassTextField: View {
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
-                .font(AppFont.scaled(15, weight: .medium))
+                .font(AppFont.scaled(16, weight: .medium))
                 .foregroundStyle(AppColor.textTertiary)
 
             TextField(placeholder, text: $text)
@@ -23,7 +23,7 @@ struct GlassTextField: View {
                     }
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(AppFont.scaled(14))
+                        .font(AppFont.scaled(13))
                         .foregroundStyle(AppColor.textTertiary)
                         .frame(width: Spacing.minimumHitTarget,
                                height: Spacing.minimumHitTarget)

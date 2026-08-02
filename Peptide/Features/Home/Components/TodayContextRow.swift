@@ -43,11 +43,11 @@ struct TodayContextRow: View {
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
                     Text(cycleSubtitle(for: proto))
-                        .font(AppFont.scaled(10, weight: .medium))
+                        .font(AppFont.scaled(11, weight: .medium))
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 Image(systemName: "chevron.right")
-                    .font(AppFont.scaled(9, weight: .heavy))
+                    .font(AppFont.scaled(8, weight: .heavy))
                     .foregroundStyle(AppColor.textSecondary)
             }
             .padding(.horizontal, Spacing.sm)
@@ -82,7 +82,7 @@ struct TodayContextRow: View {
                 .font(AppFont.scaled(11, weight: .bold))
                 .foregroundStyle(AppColor.accentLight)
             Text(Self.formatter.string(from: date))
-                .font(AppFont.scaled(12, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
         }
         .padding(.horizontal, Spacing.sm)

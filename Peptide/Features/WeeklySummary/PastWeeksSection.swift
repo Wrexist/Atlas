@@ -54,7 +54,7 @@ struct PastWeeksSection: View {
                     .fill(AppColor.recap.opacity(0.18))
                     .frame(width: 36, height: 36)
                 Image(systemName: "chart.bar.doc.horizontal.fill")
-                    .font(AppFont.scaled(14, weight: .heavy))
+                    .font(AppFont.scaled(13, weight: .heavy))
                     .foregroundStyle(AppColor.recap)
             }
 
@@ -71,7 +71,7 @@ struct PastWeeksSection: View {
             }
             Spacer(minLength: 0)
             Image(systemName: "chevron.right")
-                .font(AppFont.scaled(12, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .foregroundStyle(AppColor.textTertiary)
         }
         .padding(Spacing.md)

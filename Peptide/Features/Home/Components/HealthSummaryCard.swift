@@ -53,7 +53,7 @@ struct HealthSummaryCard: View {
     private var unavailableState: some View {
         VStack(spacing: Spacing.xs) {
             Image(systemName: "heart.slash")
-                .font(AppFont.scaled(22))
+                .font(AppFont.scaled(20))
                 .foregroundStyle(AppColor.textTertiary)
             Text("Apple Health isn't available on this device")
                 .font(AppFont.caption)
@@ -67,7 +67,7 @@ struct HealthSummaryCard: View {
     private var noDataState: some View {
         VStack(spacing: Spacing.xs) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(AppFont.scaled(18))
+                .font(AppFont.scaled(16))
                 .foregroundStyle(AppColor.accentPrimary.opacity(0.7))
             Text("No recent Health data")
                 .font(AppFont.subheadline)
@@ -85,7 +85,7 @@ struct HealthSummaryCard: View {
     private func metricView(icon: String, value: String, unit: String, label: String) -> some View {
         VStack(spacing: Spacing.xs) {
             Image(systemName: icon)
-                .font(AppFont.scaled(14))
+                .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.accentPrimary)
                 .accessibilityHidden(true)              // label below conveys the metric name
             Text(value + (unit.isEmpty ? "" : " ") + unit)
@@ -95,7 +95,7 @@ struct HealthSummaryCard: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
-                .font(AppFont.scaled(9))
+                .font(AppFont.scaled(8))
                 .foregroundStyle(AppColor.textTertiary)
         }
         .frame(maxWidth: .infinity)

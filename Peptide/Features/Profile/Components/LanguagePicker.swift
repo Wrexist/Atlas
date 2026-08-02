@@ -12,7 +12,7 @@ struct LanguagePickerRow: View {
         } label: {
             HStack(spacing: Spacing.md) {
                 Image(systemName: "character.bubble.fill")
-                    .font(AppFont.scaled(14))
+                    .font(AppFont.scaled(13))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: 24)
 
@@ -158,7 +158,7 @@ private struct LanguageRow: View {
                     Spacer()
 
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(AppFont.scaled(22, weight: .regular))
+                        .font(AppFont.scaled(20, weight: .regular))
                         .foregroundStyle(
                             isSelected ? AppColor.accentPrimary : AppColor.glassBorder
                         )

@@ -190,7 +190,7 @@ struct MealScanFlow: View {
     nonisolated private func pickerButtonLabel(icon: String, title: LocalizedStringKey, style: PickerButtonStyle) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
-                .font(AppFont.scaled(14, weight: .bold))
+                .font(AppFont.scaled(13, weight: .bold))
             Text(title)
                 .font(AppFont.scaled(16, weight: .bold))
         }
@@ -608,7 +608,7 @@ private struct FoodItemEditCard: View {
                 item.include.toggle()
             } label: {
                 Image(systemName: item.include ? "checkmark.circle.fill" : "circle")
-                    .font(AppFont.scaled(22))
+                    .font(AppFont.scaled(20))
                     .foregroundStyle(item.include ? AppColor.accentPrimary : AppColor.textTertiary)
             }
             .buttonStyle(.plain)
@@ -760,7 +760,7 @@ private struct FoodItemEditCard: View {
             item.grams = grams.rounded()
         } label: {
             Text(label)
-                .font(AppFont.scaled(12, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(isActive ? .white : AppColor.textSecondary)
                 .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, 5)
@@ -782,7 +782,7 @@ private struct FoodItemEditCard: View {
         Button(action: onSave) {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: item.savedToLibrary ? "checkmark" : "bookmark")
-                    .font(AppFont.scaled(12, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
                 Text(item.savedToLibrary ? "Saved to library" : "Save to library")
                     .font(AppFont.scaled(13, weight: .semibold))
             }

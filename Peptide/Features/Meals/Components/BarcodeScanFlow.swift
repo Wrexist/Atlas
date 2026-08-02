@@ -235,7 +235,7 @@ struct BarcodeScanFlow: View {
                         image.resizable().scaledToFit()
                     default:
                         Image(systemName: "shippingbox.fill")
-                            .font(AppFont.scaled(22, weight: .light))
+                            .font(AppFont.scaled(20, weight: .light))
                             .foregroundStyle(AppColor.textSecondary)
                     }
                 }
@@ -287,7 +287,7 @@ struct BarcodeScanFlow: View {
             TextField("e.g. 5449000000996", text: $manualBarcode)
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.center)
-                .font(AppFont.scaled(22, weight: .semibold, design: .monospaced))
+                .font(AppFont.scaled(20, weight: .semibold, design: .monospaced))
                 .foregroundStyle(AppColor.textPrimary)
                 .padding(Spacing.md)
                 .background {
@@ -354,7 +354,7 @@ struct BarcodeScanFlow: View {
     private func sourceBadge(for product: ScannedProduct) -> some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "globe")
-                .font(AppFont.scaled(10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
             Text("Open Food Facts · \(Self.relativeAge(product.fetchedAt))")
                 .font(AppFont.caption)
@@ -378,7 +378,7 @@ struct BarcodeScanFlow: View {
     private var overrideNotice: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "pencil.circle.fill")
-                .font(AppFont.scaled(18))
+                .font(AppFont.scaled(16))
                 .foregroundStyle(AppColor.warning)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Using your manual values")
@@ -661,7 +661,7 @@ struct BarcodeScanFlow: View {
                     // the three options read as one set.
                     HStack(spacing: Spacing.xs) {
                         Image(systemName: "doc.text.viewfinder")
-                            .font(AppFont.scaled(14, weight: .semibold))
+                            .font(AppFont.scaled(13, weight: .semibold))
                         Text("Scan the nutrition label")
                             .font(AppFont.headline)
                     }
@@ -758,7 +758,7 @@ struct BarcodeScanFlow: View {
 
     private func nutriScorePill(_ score: String) -> some View {
         Text(score.uppercased())
-            .font(AppFont.scaled(14, weight: .heavy))
+            .font(AppFont.scaled(13, weight: .heavy))
             .foregroundStyle(AppColor.onAccent)
             .frame(width: 28, height: 28)
             .background {

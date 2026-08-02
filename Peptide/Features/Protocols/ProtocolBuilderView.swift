@@ -411,7 +411,7 @@ struct ProtocolBuilderView: View {
                     .fill(AppColor.accentPrimary.opacity(0.18))
                     .frame(width: 44, height: 44)
                 Image(systemName: "books.vertical.fill")
-                    .font(AppFont.scaled(18, weight: .bold))
+                    .font(AppFont.scaled(16, weight: .bold))
                     .foregroundStyle(AppColor.accentLight)
             }
             VStack(alignment: .leading, spacing: 2) {
@@ -424,7 +424,7 @@ struct ProtocolBuilderView: View {
             }
             Spacer()
             Image(systemName: "chevron.right")
-                .font(AppFont.scaled(12, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
         }
         .padding(Spacing.md)
@@ -597,7 +597,7 @@ struct ProtocolBuilderView: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     Text("1080 × 1920")
-                        .font(AppFont.scaled(10, weight: .semibold, design: .monospaced))
+                        .font(AppFont.scaled(11, weight: .semibold, design: .monospaced))
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
@@ -726,7 +726,7 @@ private struct PeptideScheduleRow: View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
                 Image(systemName: peptide.imageSystemName)
-                    .font(AppFont.scaled(14))
+                    .font(AppFont.scaled(13))
                     .foregroundStyle(peptide.category.color)
                     .frame(width: 32, height: 32)
                     .background {
@@ -742,7 +742,7 @@ private struct PeptideScheduleRow: View {
                             .foregroundStyle(AppColor.textPrimary)
                         if isCustom {
                             Text("CUSTOM")
-                                .font(AppFont.scaled(9, weight: .bold))
+                                .font(AppFont.scaled(8, weight: .bold))
                                 .foregroundStyle(AppColor.accentPrimary)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 2)

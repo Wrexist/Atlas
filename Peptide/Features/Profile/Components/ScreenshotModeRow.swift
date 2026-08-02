@@ -52,7 +52,7 @@ struct ScreenshotModeRow: View {
                             .fontWeight(.semibold)
                             .foregroundStyle(AppColor.textPrimary)
                         Text("DEMO")
-                            .font(AppFont.scaled(9, weight: .heavy))
+                            .font(AppFont.scaled(8, weight: .heavy))
                             .tracking(0.5)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)

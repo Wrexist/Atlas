@@ -57,7 +57,7 @@ struct AtlasProgressView: View {
                 Spacer()
                 HStack(spacing: 5) {
                     Image(systemName: momentum.tier.symbol)
-                        .font(AppFont.scaled(12, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                     Text("Level \(momentum.level) · \(momentum.tier.name)")
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
@@ -119,13 +119,13 @@ struct AtlasProgressView: View {
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(current > 0 ? tint : AppColor.textTertiary)
             Text("\(current)")
-                .font(AppFont.scaled(22, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
             Text(label)
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
             Text("best \(best)")
-                .font(AppFont.scaled(10, weight: .medium))
+                .font(AppFont.scaled(11, weight: .medium))
                 .foregroundStyle(AppColor.textTertiary)
         }
         .frame(maxWidth: .infinity)
@@ -176,7 +176,7 @@ struct AtlasProgressView: View {
         let improving = delta >= 0
         return HStack(spacing: 3) {
             Image(systemName: improving ? "arrow.up.right" : "arrow.down.right")
-                .font(AppFont.scaled(10, weight: .bold))
+                .font(AppFont.scaled(11, weight: .bold))
             Text("\(abs(delta))% vs prev 30")
                 .font(AppFont.scaled(11, weight: .semibold))
         }

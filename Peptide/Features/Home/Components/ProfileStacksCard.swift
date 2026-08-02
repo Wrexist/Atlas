@@ -143,7 +143,7 @@ struct ProfileStacksCard: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 HStack(spacing: Spacing.md) {
                     Image(systemName: stack.status.iconName)
-                        .font(AppFont.scaled(14))
+                        .font(AppFont.scaled(13))
                         .foregroundStyle(color(for: stack.status))
                         .frame(width: 22)
 

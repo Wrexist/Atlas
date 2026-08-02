@@ -187,12 +187,12 @@ struct BiometricCorrelationCard: View {
             }
             .frame(height: 10)
             Text(formatValue(value))
-                .font(AppFont.scaled(12, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .frame(width: 38, alignment: .trailing)
             Text("\(count)d")
-                .font(AppFont.scaled(10))
+                .font(AppFont.scaled(11))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textTertiary)
                 .frame(width: 28, alignment: .trailing)
@@ -202,7 +202,7 @@ struct BiometricCorrelationCard: View {
     private func footnote(finding: BiometricCorrelationEngine.Finding) -> some View {
         HStack(spacing: 4) {
             Image(systemName: "info.circle")
-                .font(AppFont.scaled(10))
+                .font(AppFont.scaled(11))
             Text("Pulled from Apple Health over \(windowDays) days. Correlation, not causation.")
                 .font(AppFont.scaled(11))
                 .fixedSize(horizontal: false, vertical: true)

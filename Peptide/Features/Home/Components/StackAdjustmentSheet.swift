@@ -130,7 +130,7 @@ struct StackAdjustmentSheet: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "slider.horizontal.3")
-                    .font(AppFont.scaled(12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentPrimary)
                 Text("ADJUSTING FOR")
                     .font(AppFont.scaled(11, weight: .bold))
@@ -174,7 +174,7 @@ struct StackAdjustmentSheet: View {
         let hits = proto.peptides.filter { affected.contains($0.abbreviation) }.count
         return HStack(spacing: Spacing.sm) {
             Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .font(AppFont.scaled(18))
+                .font(AppFont.scaled(16))
                 .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
             VStack(alignment: .leading, spacing: 2) {
                 Text(proto.name)
@@ -238,7 +238,7 @@ struct StackAdjustmentSheet: View {
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("\(label.uppercased()) (\(peptides.count))")
-                    .font(AppFont.scaled(10, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
                     .tracking(0.5)
                     .foregroundStyle(color)
                 FlowLayout(spacing: Spacing.xs) {
@@ -296,7 +296,7 @@ struct StackAdjustmentSheet: View {
                 } label: {
                     HStack(spacing: Spacing.xs) {
                         Image(systemName: "plus.circle.fill")
-                            .font(AppFont.scaled(14, weight: .semibold))
+                            .font(AppFont.scaled(13, weight: .semibold))
                         Text("Add peptide")
                             .font(AppFont.subheadline)
                             .fontWeight(.medium)
@@ -337,7 +337,7 @@ struct StackAdjustmentSheet: View {
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: isIncluded ? "checkmark" : "xmark")
-                    .font(AppFont.scaled(9, weight: .bold))
+                    .font(AppFont.scaled(8, weight: .bold))
                 Text(peptide.abbreviation)
                     .font(AppFont.caption)
                     .fontWeight(.semibold)
@@ -415,7 +415,7 @@ struct StackAdjustmentSheet: View {
                             .fontWeight(.medium)
                             .lineLimit(1)
                         Image(systemName: "chevron.down")
-                            .font(AppFont.scaled(9, weight: .bold))
+                            .font(AppFont.scaled(8, weight: .bold))
                     }
                     .foregroundStyle(AppColor.accentPrimary)
                     .padding(.horizontal, Spacing.sm)

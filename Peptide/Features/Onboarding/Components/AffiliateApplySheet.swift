@@ -164,7 +164,7 @@ struct AffiliateApplySheet: View {
             if AffiliateIntakeService.drainConfigured || hasPrefill {
                 HStack(alignment: .top, spacing: Spacing.sm) {
                     Image(systemName: "info.circle.fill")
-                        .font(AppFont.scaled(12, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(lead)
@@ -267,7 +267,7 @@ struct AffiliateApplySheet: View {
     private func field<Content: View>(label: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
-                .font(AppFont.scaled(10, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(1)
                 .foregroundStyle(AppColor.textTertiary)
             content()

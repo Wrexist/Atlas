@@ -40,7 +40,7 @@ struct EditBiomarkersSheet: View {
                     }
                 } header: {
                     Text("Showing")
-                        .font(AppFont.scaled(12, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                         .tracking(0.8)
                         .foregroundStyle(AppColor.accentLight)
                 } footer: {
@@ -56,7 +56,7 @@ struct EditBiomarkersSheet: View {
                         }
                     } header: {
                         Text("Available")
-                            .font(AppFont.scaled(12, weight: .heavy, design: .rounded))
+                            .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                             .tracking(0.8)
                             .foregroundStyle(AppColor.accentLight)
                     } footer: {
@@ -73,7 +73,7 @@ struct EditBiomarkersSheet: View {
                         }
                     } header: {
                         Text("Hidden")
-                            .font(AppFont.scaled(12, weight: .heavy, design: .rounded))
+                            .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                             .tracking(0.8)
                             .foregroundStyle(AppColor.textSecondary)
                     }
@@ -107,7 +107,7 @@ struct EditBiomarkersSheet: View {
                 Circle()
                     .fill(AppColor.surfaceElevated)
                 Image(systemName: biomarker.icon)
-                    .font(AppFont.scaled(14, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
             }
             .frame(width: 32, height: 32)
@@ -155,7 +155,7 @@ struct EditBiomarkersSheet: View {
 
     private var proBadge: some View {
         Text("PRO")
-            .font(AppFont.scaled(9, weight: .heavy, design: .rounded))
+            .font(AppFont.scaled(8, weight: .heavy, design: .rounded))
             .tracking(0.5)
             .foregroundStyle(AppColor.accentPrimary)
             .padding(.horizontal, 5)

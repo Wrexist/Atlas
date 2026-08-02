@@ -519,7 +519,7 @@ struct OnboardingView: View {
             .frame(width: 160)
 
             Text("\(min(page + 1, totalPages)) / \(totalPages)")
-                .font(AppFont.scaled(10, weight: .semibold, design: .rounded))
+                .font(AppFont.scaled(11, weight: .semibold, design: .rounded))
                 .foregroundStyle(AppColor.textTertiary)
                 .contentTransition(.numericText())
                 .animation(AppAnimation.springSmooth, value: page)
@@ -938,7 +938,7 @@ struct OnboardingView: View {
     private func signInDisclosureRow(icon: String, text: String) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(AppFont.scaled(14, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
                 .frame(width: 22)
             Text(text)
@@ -1009,7 +1009,7 @@ struct OnboardingView: View {
             Spacer(minLength: 0)
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(AppFont.scaled(14))
+                    .font(AppFont.scaled(13))
                     .foregroundStyle(AppColor.accentPrimary)
             }
         }
@@ -1198,7 +1198,7 @@ struct OnboardingView: View {
             withAnimation(AppAnimation.springSnappy) { goalDate = candidate }
         } label: {
             Text(label)
-                .font(AppFont.scaled(14, weight: .semibold, design: .rounded))
+                .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
                 .foregroundStyle(isSelected ? AppColor.background : AppColor.textPrimary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.sm)
@@ -1244,7 +1244,7 @@ struct OnboardingView: View {
             .overlay(alignment: .topTrailing) {
                 if selected {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(AppFont.scaled(18, weight: .bold))
+                        .font(AppFont.scaled(16, weight: .bold))
                         .foregroundStyle(goal.tint)
                         .background(Circle().fill(AppColor.background).padding(2))
                         .padding(Spacing.sm)
@@ -1317,7 +1317,7 @@ struct OnboardingView: View {
         } label: {
             HStack(spacing: Spacing.md) {
                 Image(systemName: level.icon)
-                    .font(AppFont.scaled(22, weight: .semibold))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: 40)
                 VStack(alignment: .leading, spacing: 2) {
@@ -1579,7 +1579,7 @@ struct OnboardingView: View {
                         RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                             .fill(AppColor.surfaceSecondary.opacity(0.6))
                         Image(systemName: "figure.strengthtraining.traditional")
-                            .font(AppFont.scaled(22, weight: .semibold))
+                            .font(AppFont.scaled(20, weight: .semibold))
                             .foregroundStyle(AppColor.accentPrimary)
                     }
                     .frame(width: 56, height: 56)
@@ -1620,7 +1620,7 @@ struct OnboardingView: View {
     private var successBanner: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "checkmark.seal.fill")
-                .font(AppFont.scaled(22, weight: .semibold))
+                .font(AppFont.scaled(20, weight: .semibold))
                 .foregroundStyle(AppColor.positive)
             Text("Set logged. Atlas tracks weight, reps, RPE — and lights up the muscles you trained.")
                 .font(AppFont.callout)
@@ -2036,7 +2036,7 @@ struct OnboardingView: View {
                 .foregroundStyle(tint)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
-                    .font(AppFont.scaled(22, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                 Text(unit)
                     .font(AppFont.caption)
@@ -2164,7 +2164,7 @@ struct OnboardingView: View {
         Button(action: action) {
             HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
-                    .font(AppFont.scaled(22, weight: .semibold))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: 36)
                 VStack(alignment: .leading, spacing: 2) {
@@ -2286,7 +2286,7 @@ struct OnboardingView: View {
     private var widgetTipCard: some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: "square.grid.2x2.fill")
-                .font(AppFont.scaled(18, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
@@ -2403,7 +2403,7 @@ struct OnboardingView: View {
             if let error = creatorError {
                 HStack(spacing: Spacing.xs) {
                     Image(systemName: "exclamationmark.circle.fill")
-                        .font(AppFont.scaled(12, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                     Text(error)
                         .font(AppFont.caption)
                 }
@@ -2417,7 +2417,7 @@ struct OnboardingView: View {
     private func creatorSuccessCard(_ attribution: CreatorAttribution) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: "checkmark.seal.fill")
-                .font(AppFont.scaled(22, weight: .bold))
+                .font(AppFont.scaled(20, weight: .bold))
                 .foregroundStyle(AppColor.accentPrimary)
 
             VStack(alignment: .leading, spacing: 2) {

@@ -53,7 +53,7 @@ struct WeeklySummaryToggleRow: View {
                             .foregroundStyle(AppColor.textPrimary)
                         if !isPro {
                             Text("PRO")
-                                .font(AppFont.scaled(9, weight: .heavy))
+                                .font(AppFont.scaled(8, weight: .heavy))
                                 .tracking(0.5)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 2)
@@ -92,7 +92,7 @@ struct WeeklySummaryToggleRow: View {
                     .tint(accent)
                 } else {
                     Image(systemName: "lock.fill")
-                        .font(AppFont.scaled(14, weight: .heavy))
+                        .font(AppFont.scaled(13, weight: .heavy))
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }

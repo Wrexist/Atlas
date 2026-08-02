@@ -29,7 +29,7 @@ enum AppColor {
     // than pure white for the same reason.
 
     static let background = Color(light: 0xF4F4F7, dark: 0x101013)
-    static let surfaceElevated = Color(light: 0xFFFFFF, dark: 0x1C1C21)
+    static let surfaceElevated = Color(light: 0xFCFCFD, dark: 0x1C1C21)
     static let surfaceSecondary = Color(light: 0xFAFAFC, dark: 0x17171B)
 
     // MARK: - Brand accents
@@ -42,7 +42,7 @@ enum AppColor {
 
     // MARK: - Ink
 
-    static let textPrimary = Color(light: 0x111114, dark: 0xFFFFFF)
+    static let textPrimary = Color(light: 0x111114, dark: 0xF7F7FA)
     static let textSecondary = Color(light: 0x5B5B63, dark: 0xA0A0A0)
     /// Deepened from `#666666` to clear WCAG AA (4.5:1) against the dark
     /// background and elevated surfaces. The previous value sat at ~3:1.
@@ -52,7 +52,11 @@ enum AppColor {
     /// Ink for content painted **on top of** an accent-filled or photographic
     /// surface (filled buttons, vial glyphs, gradient hero cards). Constant
     /// across schemes on purpose — the surface underneath is always dark.
-    static let onAccent = Color.white
+    ///
+    /// Very slightly off pure white, like every other neutral here: `#FFF`
+    /// against a saturated fill is harsher than it needs to be, and the
+    /// difference is the kind you feel rather than see.
+    static let onAccent = Color(hex: 0xFCFCFD)
 
     // MARK: - Status
 

@@ -27,7 +27,7 @@ struct CycleTransitionCard: View {
     private func transitionRow(_ transition: StackRecommendationEngine.CycleTransition) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: transition.weeksRemaining == 0 ? "exclamationmark.circle.fill" : "clock.fill")
-                .font(AppFont.scaled(14))
+                .font(AppFont.scaled(13))
                 .foregroundStyle(transition.weeksRemaining == 0 ? Color.orange : AppColor.accentPrimary)
                 .frame(width: 20)
                 .padding(.top, 2)
@@ -40,7 +40,7 @@ struct CycleTransitionCard: View {
                         .foregroundStyle(AppColor.textPrimary)
 
                     Text(transition.weeksRemaining == 0 ? "Cycle complete" : "\(transition.weeksRemaining)w remaining")
-                        .font(AppFont.scaled(9, weight: .bold))
+                        .font(AppFont.scaled(8, weight: .bold))
                         .foregroundStyle(transition.weeksRemaining == 0 ? Color.orange : AppColor.accentLight)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
@@ -59,7 +59,7 @@ struct CycleTransitionCard: View {
                 if !transition.suggestedReplacements.isEmpty {
                     HStack(spacing: Spacing.xs) {
                         Image(systemName: "arrow.right.circle")
-                            .font(AppFont.scaled(9))
+                            .font(AppFont.scaled(8))
                             .foregroundStyle(AppColor.accentLight)
 
                         Text("Switch to: \(transition.suggestedReplacements.joined(separator: " or "))")

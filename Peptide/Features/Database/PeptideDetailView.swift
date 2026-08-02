@@ -176,7 +176,7 @@ struct PeptideDetailView: View {
                                 ForEach(peptide.sideEffects, id: \.self) { effect in
                                     HStack(alignment: .top, spacing: Spacing.sm) {
                                         Image(systemName: "circle.fill")
-                                            .font(AppFont.scaled(6))
+                                            .font(AppFont.scaled(8))
                                             .foregroundStyle(Color.orange.opacity(0.7))
                                             .shadow(color: Color.orange.opacity(0.3), radius: 3)
                                             .padding(.top, 7)
@@ -210,7 +210,7 @@ struct PeptideDetailView: View {
                                 ForEach(peptide.contraindications, id: \.self) { item in
                                     HStack(alignment: .top, spacing: Spacing.sm) {
                                         Image(systemName: "xmark.circle.fill")
-                                            .font(AppFont.scaled(12))
+                                            .font(AppFont.scaled(11))
                                             .foregroundStyle(AppColor.destructive.opacity(0.7))
                                             .shadow(color: AppColor.destructive.opacity(0.3), radius: 3)
                                             .padding(.top, 3)
@@ -328,7 +328,7 @@ struct PeptideDetailView: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     Text("\(memberProtocols.count)")
-                        .font(AppFont.scaled(12, weight: .bold))
+                        .font(AppFont.scaled(11, weight: .bold))
                         .foregroundStyle(AppColor.accentLight)
                         .padding(.horizontal, Spacing.sm)
                         .padding(.vertical, 2)
@@ -371,7 +371,7 @@ struct PeptideDetailView: View {
             Spacer()
 
             Image(systemName: "chevron.right")
-                .font(AppFont.scaled(10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
         }
         .padding(.horizontal, Spacing.md)
@@ -390,7 +390,7 @@ struct PeptideDetailView: View {
     private var disclaimerFooter: some View {
         HStack(alignment: .top, spacing: Spacing.sm) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(AppFont.scaled(12))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
             Text(PeptideDatabase.disclaimer)
                 .font(AppFont.caption)
@@ -445,7 +445,7 @@ struct MolecularInfoSection: View {
                                 HStack {
                                     HStack(spacing: Spacing.sm) {
                                         Image(systemName: "link")
-                                            .font(AppFont.scaled(12))
+                                            .font(AppFont.scaled(11))
                                             .foregroundStyle(AppColor.accentPrimary)
                                             .frame(width: 20)
 
@@ -462,7 +462,7 @@ struct MolecularInfoSection: View {
                                         .foregroundStyle(AppColor.accentPrimary)
 
                                     Image(systemName: "arrow.up.right")
-                                        .font(AppFont.scaled(10, weight: .semibold))
+                                        .font(AppFont.scaled(11, weight: .semibold))
                                         .foregroundStyle(AppColor.accentPrimary)
                                 }
                             }
@@ -484,7 +484,7 @@ private struct MolecularRow: View {
         HStack {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
-                    .font(AppFont.scaled(12))
+                    .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: 20)
 

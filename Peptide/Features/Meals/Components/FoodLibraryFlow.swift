@@ -451,7 +451,7 @@ struct FoodLibraryFlow: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: entry.icon)
-                    .font(AppFont.scaled(12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                 Text(entry.rawValue)
                     .font(AppFont.scaled(13, weight: active ? .semibold : .medium))
                     .lineLimit(1)
@@ -540,17 +540,17 @@ struct FoodLibraryFlow: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(recipe.name.isEmpty ? "(unnamed)" : recipe.name)
-                        .font(AppFont.scaled(15, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
                     Text("\(recipe.components.count) item\(recipe.components.count == 1 ? "" : "s") · \(totals.calories) kcal")
-                        .font(AppFont.scaled(12))
+                        .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "plus.circle.fill")
-                    .font(AppFont.scaled(22, weight: .semibold))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
             }
             .padding(Spacing.md)
@@ -692,10 +692,10 @@ struct FoodLibraryFlow: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(AppFont.scaled(18, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                 Text(title)
-                    .font(AppFont.scaled(12, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .medium))
                     .foregroundStyle(AppColor.textPrimary)
             }
             .frame(maxWidth: .infinity)
@@ -715,7 +715,7 @@ struct FoodLibraryFlow: View {
     private var tipCard: some View {
         HStack(alignment: .top, spacing: Spacing.sm) {
             Image(systemName: "lightbulb.fill")
-                .font(AppFont.scaled(14))
+                .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.accentLight)
                 .padding(.top, 2)
             VStack(alignment: .leading, spacing: 2) {
@@ -723,7 +723,7 @@ struct FoodLibraryFlow: View {
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                 Text("Brand name + product works best (\"Fage 0%\", \"Chipotle bowl\"). Save your go-tos as favorites for one-tap re-logs.")
-                    .font(AppFont.scaled(12))
+                    .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -822,12 +822,12 @@ struct FoodLibraryFlow: View {
                 productThumbnail(product)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(product.name)
-                        .font(AppFont.scaled(15, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
                     if let brand = product.brand, brand != product.name {
                         Text(brand)
-                            .font(AppFont.scaled(12))
+                            .font(AppFont.scaled(11))
                             .foregroundStyle(AppColor.textSecondary)
                             .lineLimit(1)
                     }
@@ -863,11 +863,11 @@ struct FoodLibraryFlow: View {
                 customFoodIcon
                 VStack(alignment: .leading, spacing: 2) {
                     Text(food.name)
-                        .font(AppFont.scaled(15, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
                     Text(food.brand ?? "Custom food")
-                        .font(AppFont.scaled(12))
+                        .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
                     macroPreview(food.per100g)
@@ -915,7 +915,7 @@ struct FoodLibraryFlow: View {
                 .fill(AppColor.accentPrimary.opacity(0.25))
                 .frame(width: 44, height: 44)
             Image(systemName: "fork.knife")
-                .font(AppFont.scaled(18, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
         }
     }
@@ -927,7 +927,7 @@ struct FoodLibraryFlow: View {
                 image.resizable().scaledToFit()
             default:
                 Image(systemName: "shippingbox.fill")
-                    .font(AppFont.scaled(18, weight: .light))
+                    .font(AppFont.scaled(16, weight: .light))
                     .foregroundStyle(AppColor.textSecondary)
             }
         }
@@ -951,11 +951,11 @@ struct FoodLibraryFlow: View {
     private func macroChip(label: LocalizedStringKey, value: Int, tint: Color) -> some View {
         HStack(spacing: 2) {
             Text("\(value)")
-                .font(AppFont.scaled(10, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
             Text(label)
-                .font(AppFont.scaled(9, weight: .medium))
+                .font(AppFont.scaled(8, weight: .medium))
                 .foregroundStyle(tint.opacity(0.85))
         }
         .padding(.horizontal, 6)
@@ -979,7 +979,7 @@ struct FoodLibraryFlow: View {
             performQuickLog(product)
         } label: {
             Image(systemName: inFlight ? "checkmark" : "plus")
-                .font(AppFont.scaled(14, weight: .bold))
+                .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(inFlight ? AppColor.accentLight : AppColor.onAccent)
                 .frame(width: 32, height: 32)
                 .background {
@@ -1245,7 +1245,7 @@ struct FoodLibraryFlow: View {
     private func reviewSourceBadge(_ product: ScannedProduct) -> some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: product.barcode.hasPrefix("custom:") ? "person.crop.rectangle.stack" : "globe")
-                .font(AppFont.scaled(10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
             Text(product.barcode.hasPrefix("custom:") ? "Your custom food" : "Open Food Facts")
                 .font(AppFont.caption)

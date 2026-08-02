@@ -226,7 +226,7 @@ struct HabitEditSheet: View {
                     iconSymbol = symbol
                 } label: {
                     Image(systemName: symbol)
-                        .font(AppFont.scaled(18, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(iconSymbol == symbol ? Color(hex: UInt(tintHex)) : AppColor.textSecondary)
                         .frame(width: 36, height: 36)
                         .background(
@@ -265,7 +265,7 @@ struct HabitEditSheet: View {
                             .frame(width: 32, height: 32)
                         if tintHex == hex {
                             Image(systemName: "checkmark")
-                                .font(AppFont.scaled(14, weight: .bold))
+                                .font(AppFont.scaled(13, weight: .bold))
                                 .foregroundStyle(AppColor.onAccent)
                         }
                     }

@@ -107,7 +107,7 @@ struct ReconstitutionCalculator: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack(alignment: .firstTextBaseline) {
                 Text(label)
-                    .font(AppFont.scaled(12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textSecondary)
@@ -158,7 +158,7 @@ struct ReconstitutionCalculator: View {
             // the tool states what the user's inputs convert to, it
             // does not instruct administration.
             Text("Equivalent volume")
-                .font(AppFont.scaled(12, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.accentLight.opacity(0.85))
@@ -202,7 +202,7 @@ struct ReconstitutionCalculator: View {
     private func footnoteCell(label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(AppFont.scaled(10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .tracking(0.5)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
@@ -224,7 +224,7 @@ struct ReconstitutionCalculator: View {
     private var disclaimer: some View {
         HStack(alignment: .top, spacing: Spacing.sm) {
             Image(systemName: "info.circle")
-                .font(AppFont.scaled(12))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
                 .padding(.top, 1)
             Text("Calculator only. Doses and protocols vary widely — consult a qualified medical professional. Atlas doesn't recommend any specific compound or dose.")

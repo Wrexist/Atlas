@@ -142,7 +142,7 @@ struct ProgressPhotoCompareView: View {
         let days = ProgressPhotoMetadata.daysBetween(primary, compare)
         return HStack(spacing: Spacing.sm) {
             Image(systemName: "calendar.badge.clock")
-                .font(AppFont.scaled(12, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
             Text(diffCopy(days: days))
                 .font(AppFont.scaled(13, weight: .semibold))
@@ -241,7 +241,7 @@ struct ProgressPhotoCompareView: View {
                     placeholder.frame(width: 56, height: 70)
                 }
                 Text(ProgressPhotoMetadata.displayDate(forFilename: filename))
-                    .font(AppFont.scaled(9, weight: .semibold))
+                    .font(AppFont.scaled(8, weight: .semibold))
                     .foregroundStyle(active ? AppColor.accentLight : AppColor.textSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)

@@ -81,7 +81,7 @@ struct AppendStackPickerSheet: View {
 
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(AppFont.scaled(18))
+                            .font(AppFont.scaled(16))
                             .foregroundStyle(AppColor.accentLight)
                             .transition(.scale.combined(with: .opacity))
                     } else {

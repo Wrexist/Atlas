@@ -82,7 +82,7 @@ struct WeeklySummaryHeroCard: View {
                     )
 
                     Text(truncated(summary.text, to: 280))
-                        .font(AppFont.scaled(14, weight: .medium))
+                        .font(AppFont.scaled(13, weight: .medium))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.leading)
                         .lineSpacing(3)
@@ -177,9 +177,9 @@ struct WeeklySummaryHeroCard: View {
                 // with an icon makes it unmissable without screaming.
                 HStack(spacing: 3) {
                     Image(systemName: "wifi.slash")
-                        .font(AppFont.scaled(9, weight: .heavy))
+                        .font(AppFont.scaled(8, weight: .heavy))
                     Text(badge)
-                        .font(AppFont.scaled(10, weight: .heavy))
+                        .font(AppFont.scaled(11, weight: .heavy))
                         .tracking(0.8)
                 }
                 .padding(.horizontal, 7)
@@ -215,7 +215,7 @@ struct WeeklySummaryHeroCard: View {
                     .frame(width: 44, height: 44)
                     .shadow(color: accent.opacity(0.45), radius: 10, y: 4)
                 Image(systemName: "chart.bar.doc.horizontal.fill")
-                    .font(AppFont.scaled(18, weight: .heavy))
+                    .font(AppFont.scaled(16, weight: .heavy))
                     .foregroundStyle(AppColor.onAccent)
             }
 
@@ -228,7 +228,7 @@ struct WeeklySummaryHeroCard: View {
                 if aiBadge {
                     HStack(spacing: 4) {
                         Image(systemName: "sparkles")
-                            .font(AppFont.scaled(9, weight: .heavy))
+                            .font(AppFont.scaled(8, weight: .heavy))
                         Text("Personalised by AI")
                             .font(AppFont.scaled(11, weight: .semibold))
                     }
@@ -291,12 +291,12 @@ struct WeeklySummaryHeroCard: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(AppFont.scaled(10, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(0.5)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
             Text(value)
-                .font(AppFont.scaled(17, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                 .foregroundStyle(accent)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)

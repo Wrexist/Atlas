@@ -81,7 +81,7 @@ struct BiomarkerRow: View {
             // tile has no series (blood pressure, etc.).
             if let arrow = trendArrow {
                 Image(systemName: arrow)
-                    .font(AppFont.scaled(9, weight: .heavy))
+                    .font(AppFont.scaled(8, weight: .heavy))
                     .foregroundStyle(AppColor.background)
                     .padding(3)
                     .background {

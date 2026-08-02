@@ -53,7 +53,7 @@ struct WeightTrackingCard: View {
                     Image(systemName: "plus")
                         .font(AppFont.scaled(11, weight: .bold))
                     Text("Log weight")
-                        .font(AppFont.scaled(12, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                 }
                 .foregroundStyle(AppColor.onAccent)
                 .padding(.horizontal, Spacing.md)
@@ -93,7 +93,7 @@ struct WeightTrackingCard: View {
         let format = unitFormatter()
         return HStack(spacing: 4) {
             Image(systemName: delta >= 0 ? "arrow.up.right" : "arrow.down.right")
-                .font(AppFont.scaled(10, weight: .bold))
+                .font(AppFont.scaled(11, weight: .bold))
             Text(format(abs(delta)) + " this week")
                 .font(AppFont.scaled(11, weight: .semibold))
         }

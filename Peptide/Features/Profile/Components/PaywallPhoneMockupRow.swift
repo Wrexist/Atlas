@@ -105,7 +105,7 @@ private struct HomeMock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Today")
-                .font(AppFont.scaled(9, weight: .heavy))
+                .font(AppFont.scaled(8, weight: .heavy))
                 .tracking(0.8)
                 .foregroundStyle(AppColor.textSecondary)
 
@@ -130,14 +130,14 @@ private struct HomeMock: View {
     private func mockDoseRow(label: String, time: String, done: Bool) -> some View {
         HStack(spacing: 6) {
             Image(systemName: done ? "checkmark.circle.fill" : "circle")
-                .font(AppFont.scaled(10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(done ? AppColor.accentPrimary : AppColor.textTertiary)
             VStack(alignment: .leading, spacing: 0) {
                 Text(label)
-                    .font(AppFont.scaled(9, weight: .semibold))
+                    .font(AppFont.scaled(8, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                 Text(time)
-                    .font(AppFont.scaled(7))
+                    .font(AppFont.scaled(8))
                     .foregroundStyle(AppColor.textTertiary)
             }
             Spacer(minLength: 0)
@@ -155,7 +155,7 @@ private struct HalfLifeMock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Half-life")
-                .font(AppFont.scaled(9, weight: .heavy))
+                .font(AppFont.scaled(8, weight: .heavy))
                 .tracking(0.8)
                 .foregroundStyle(AppColor.accentLight)
 
@@ -174,7 +174,7 @@ private struct HalfLifeMock: View {
                 Spacer()
                 Text("24h")
             }
-            .font(AppFont.scaled(7))
+            .font(AppFont.scaled(8))
             .foregroundStyle(AppColor.textTertiary)
         }
         .padding(Spacing.sm)
@@ -200,7 +200,7 @@ private struct CycleCardMock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Cycle 02")
-                .font(AppFont.scaled(9, weight: .heavy))
+                .font(AppFont.scaled(8, weight: .heavy))
                 .tracking(0.8)
                 .foregroundStyle(AppColor.textSecondary)
 
@@ -222,7 +222,7 @@ private struct CycleCardMock: View {
                     Spacer()
                     Text("of 84")
                 }
-                .font(AppFont.scaled(7))
+                .font(AppFont.scaled(8))
                 .foregroundStyle(AppColor.textTertiary)
             }
 
@@ -235,7 +235,7 @@ private struct CycleCardMock: View {
 
     private func pill(_ label: String) -> some View {
         Text(label)
-            .font(AppFont.scaled(7, weight: .semibold))
+            .font(AppFont.scaled(8, weight: .semibold))
             .foregroundStyle(AppColor.accentLight)
             .padding(.horizontal, 5)
             .padding(.vertical, 2)

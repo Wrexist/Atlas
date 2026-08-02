@@ -86,7 +86,7 @@ struct GoalCountdownCard: View {
     private var header: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "flag.checkered")
-                .font(AppFont.scaled(14, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
             Text("YOUR GOAL")
                 .font(AppFont.scaled(11, weight: .heavy))
@@ -115,7 +115,7 @@ struct GoalCountdownCard: View {
                     appearAnimated: true
                 ) {
                     Text("\(Int((fraction * 100).rounded()))%")
-                        .font(AppFont.scaled(15, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                 }
                 .accessibilityHidden(true)
@@ -136,7 +136,7 @@ struct GoalCountdownCard: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text("Goal reached!")
-                    .font(AppFont.scaled(22, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                 Text("Time to set your next one.")
                     .font(AppFont.caption)
@@ -169,7 +169,7 @@ struct GoalCountdownCard: View {
     private func footer(targetDate: Date) -> some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "calendar")
-                .font(AppFont.scaled(10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
             Text("Target — \(targetDate.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))")
                 .font(AppFont.caption)

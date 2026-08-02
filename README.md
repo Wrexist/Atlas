@@ -84,6 +84,12 @@ there being exactly one primitive to reach for:
   than guessing a second literal, and `.minimumHitArea()` on any control
   whose artwork is smaller than 44pt.
 
+`.claude/skills/` carries two design skills that load automatically:
+`dna-transplant` (pick the donor idiom before laying out a screen) and
+`atlas-screen` (which donor each Atlas surface already uses, plus the token
+rules). Anthropic's `frontend-design` skill pairs well with both and installs
+via `/plugin marketplace add anthropics/claude-code`.
+
 Run `python3 scripts/design-lint.py --all` to check all of it. It covers
 eleven rules SwiftLint can't see — raw colour, fixed font sizes, stacked
 glass materials, coloured halos behind glyphs, untargeted `.animation`,

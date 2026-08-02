@@ -140,7 +140,7 @@ struct ProgressPhotosCard: View {
                         Image(systemName: "rectangle.split.2x1")
                             .font(AppFont.scaled(11, weight: .bold))
                         Text("Compare")
-                            .font(AppFont.scaled(12, weight: .semibold))
+                            .font(AppFont.scaled(11, weight: .semibold))
                     }
                     .foregroundStyle(AppColor.accentLight)
                     .padding(.horizontal, Spacing.md)
@@ -167,7 +167,7 @@ struct ProgressPhotosCard: View {
                     Image(systemName: "plus")
                         .font(AppFont.scaled(11, weight: .bold))
                     Text("Add photo")
-                        .font(AppFont.scaled(12, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                 }
                 .foregroundStyle(AppColor.accentLight)
                 .padding(.horizontal, Spacing.md)
@@ -274,7 +274,7 @@ struct ProgressPhotosCard: View {
                 }
 
             Image(systemName: "photo")
-                .font(AppFont.scaled(22, weight: .light))
+                .font(AppFont.scaled(20, weight: .light))
                 .foregroundStyle(AppColor.textTertiary.opacity(0.6))
         }
         .aspectRatio(1, contentMode: .fit)

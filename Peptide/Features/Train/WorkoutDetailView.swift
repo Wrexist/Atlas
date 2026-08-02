@@ -255,7 +255,7 @@ struct WorkoutDetailView: View {
     private func historyRow(_ entry: WorkoutEntry) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: "dumbbell.fill")
-                .font(AppFont.scaled(14, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 32, height: 32)
                 .background {

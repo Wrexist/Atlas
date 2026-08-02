@@ -186,7 +186,7 @@ struct WeeklySummaryDetailView: View {
     private var bodyText: some View {
         GlassCard {
             Text(summary.text)
-                .font(AppFont.scaled(15))
+                .font(AppFont.scaled(16))
                 .foregroundStyle(AppColor.textPrimary)
                 .lineSpacing(5)
                 .multilineTextAlignment(.leading)

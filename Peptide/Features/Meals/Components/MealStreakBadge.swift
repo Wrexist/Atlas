@@ -88,7 +88,7 @@ struct MealStreakBadge: View {
 
     private var flameIcon: some View {
         Image(systemName: "flame.fill")
-            .font(AppFont.scaled(18, weight: .semibold))
+            .font(AppFont.scaled(16, weight: .semibold))
             .foregroundStyle(flameTint)
             .symbolEffect(.bounce, value: pulseTrigger)
             .scaleEffect(milestoneScale)
@@ -110,12 +110,12 @@ struct MealStreakBadge: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
                 Text(currentStreak == 1 ? "day streak" : "day meal streak")
-                    .font(AppFont.scaled(12, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .medium))
                     .foregroundStyle(AppColor.textSecondary)
             }
         } else {
             Text("Streak paused")
-                .font(AppFont.scaled(14, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
         }
     }

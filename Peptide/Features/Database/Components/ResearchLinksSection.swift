@@ -44,7 +44,7 @@ struct ResearchLinksSection: View {
     private func researchRowContent(link: ResearchLink, tappable: Bool) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: "doc.fill")
-                .font(AppFont.scaled(14))
+                .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 20)
 
@@ -77,7 +77,7 @@ struct ResearchLinksSection: View {
             Spacer()
 
             Image(systemName: "arrow.up.right")
-                .font(AppFont.scaled(10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(tappable ? AppColor.accentPrimary : AppColor.textTertiary)
         }
     }

@@ -73,7 +73,7 @@ struct DailyPlanCard: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "wand.and.stars")
-                    .font(AppFont.scaled(14, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.accentPrimary)
                 Text("Smart Daily Plan")
                     .font(AppFont.headline)
@@ -147,7 +147,7 @@ struct DailyPlanCard: View {
     private func slotHeader(_ slot: DailyScheduleEngine.DaySlot, count: Int) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: slot.iconName)
-                .font(AppFont.scaled(12, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
                 .frame(width: 22, height: 22)
                 .background { Circle().fill(AppColor.accentPrimary.opacity(0.15)) }
@@ -280,7 +280,7 @@ private struct DailyPlanDoseRow: View {
     private func combinationChip(_ combo: DailyScheduleEngine.CombinationHint) -> some View {
         HStack(alignment: .top, spacing: Spacing.xs) {
             Image(systemName: "link")
-                .font(AppFont.scaled(10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 14)
             VStack(alignment: .leading, spacing: 1) {
@@ -289,7 +289,7 @@ private struct DailyPlanDoseRow: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.accentLight)
                 Text(combo.synergy)
-                    .font(AppFont.scaled(10))
+                    .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(2)
             }
@@ -306,7 +306,7 @@ private struct DailyPlanDoseRow: View {
     private func conflictChip(_ conflict: DailyScheduleEngine.ConflictHint) -> some View {
         HStack(alignment: .top, spacing: Spacing.xs) {
             Image(systemName: conflict.severity == .info ? "info.circle.fill" : "exclamationmark.triangle.fill")
-                .font(AppFont.scaled(10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(severityColor(conflict.severity))
                 .frame(width: 14)
             VStack(alignment: .leading, spacing: 1) {
@@ -315,7 +315,7 @@ private struct DailyPlanDoseRow: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(severityColor(conflict.severity))
                 Text(conflict.detail)
-                    .font(AppFont.scaled(10))
+                    .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(2)
             }

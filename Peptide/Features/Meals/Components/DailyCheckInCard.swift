@@ -57,7 +57,7 @@ struct DailyCheckInCard: View {
                     .frame(width: 44, height: 44)
                     .scaleEffect(promptPulse ? 1.06 : 1.0)
                 Image(systemName: "heart.text.square.fill")
-                    .font(AppFont.scaled(18, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
             }
 
@@ -95,7 +95,7 @@ struct DailyCheckInCard: View {
                     .fill(AppColor.accentLight.opacity(0.22))
                     .frame(width: 44, height: 44)
                 Image(systemName: "checkmark.seal.fill")
-                    .font(AppFont.scaled(18, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
             }
 
@@ -111,7 +111,7 @@ struct DailyCheckInCard: View {
             Spacer(minLength: 0)
 
             Text("Edit")
-                .font(AppFont.scaled(12, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
         }
         .padding(Spacing.md)

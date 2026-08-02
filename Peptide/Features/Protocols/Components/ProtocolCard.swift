@@ -52,7 +52,7 @@ struct ProtocolCard: View {
                                 }
 
                             Image(systemName: peptide.imageSystemName)
-                                .font(AppFont.scaled(12))
+                                .font(AppFont.scaled(11))
                                 .foregroundStyle(peptide.category.color)
                         }
                     }

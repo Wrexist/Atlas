@@ -48,7 +48,7 @@ struct RecommendedPeptidesCard: View {
 
     private func reasonBadge(_ text: String, color: Color, bgOpacity: Double) -> some View {
         Text(text)
-            .font(AppFont.scaled(9, weight: .bold))
+            .font(AppFont.scaled(8, weight: .bold))
             .foregroundStyle(color)
             .padding(.horizontal, 5)
             .padding(.vertical, 2)
@@ -137,7 +137,7 @@ struct RecommendedPeptidesCard: View {
 
                 if stacks.count > 2 {
                     Text("+\(stacks.count - 2)")
-                        .font(AppFont.scaled(9, weight: .bold))
+                        .font(AppFont.scaled(8, weight: .bold))
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
@@ -146,7 +146,7 @@ struct RecommendedPeptidesCard: View {
 
     private func stackPill(_ name: String) -> some View {
         Text(name)
-            .font(AppFont.scaled(9, weight: .semibold))
+            .font(AppFont.scaled(8, weight: .semibold))
             .foregroundStyle(AppColor.accentLight)
             .lineLimit(1)
             .padding(.horizontal, 6)

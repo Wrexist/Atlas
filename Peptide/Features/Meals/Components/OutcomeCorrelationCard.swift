@@ -115,12 +115,12 @@ struct OutcomeCorrelationCard: View {
             }
             .frame(height: 10)
             Text(String(format: "%.1f", value))
-                .font(AppFont.scaled(12, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .frame(width: 32, alignment: .trailing)
             Text("\(count)d")
-                .font(AppFont.scaled(10))
+                .font(AppFont.scaled(11))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textTertiary)
                 .frame(width: 28, alignment: .trailing)
@@ -132,7 +132,7 @@ struct OutcomeCorrelationCard: View {
     private var footnote: some View {
         HStack(spacing: 4) {
             Image(systemName: "info.circle")
-                .font(AppFont.scaled(10))
+                .font(AppFont.scaled(11))
             Text("Based on \(sampleSize) check-ins. Correlations aren't causation — but they're a useful nudge.")
                 .font(AppFont.scaled(11))
                 .fixedSize(horizontal: false, vertical: true)

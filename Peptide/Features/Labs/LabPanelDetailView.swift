@@ -91,7 +91,7 @@ struct LabPanelDetailView: View {
                                     .foregroundStyle(AppColor.textPrimary)
                                     .contentTransition(.numericText())
                                 Text(panel.canonicalUnit)
-                                    .font(AppFont.scaled(14, weight: .medium))
+                                    .font(AppFont.scaled(13, weight: .medium))
                                     .foregroundStyle(AppColor.textSecondary)
                             }
                             Text(Self.dateFormatter.string(from: latest.date))
@@ -163,7 +163,7 @@ struct LabPanelDetailView: View {
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                     .annotation(position: .leading, alignment: .leading) {
                         Text("ref")
-                            .font(AppFont.scaled(9))
+                            .font(AppFont.scaled(8))
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 RuleMark(y: .value("High ref", range.upperBound))
@@ -258,7 +258,7 @@ struct LabPanelDetailView: View {
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                     Text(panel.canonicalUnit)
-                        .font(AppFont.scaled(10, weight: .medium))
+                        .font(AppFont.scaled(11, weight: .medium))
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }

@@ -111,7 +111,7 @@ struct AchievementsSection: View {
                 .saturation(unlocked ? 1.0 : 0.35)
 
             Text(achievement.title)
-                .font(AppFont.scaled(9, weight: .medium))
+                .font(AppFont.scaled(8, weight: .medium))
                 .foregroundStyle(unlocked ? AppColor.textPrimary : AppColor.textTertiary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)

@@ -9,23 +9,23 @@ Build the screen: $ARGUMENTS
 
 ## 1. Steal a shape before you invent one
 
-Atlas's strongest surfaces are transplants — an idiom Apple already taught
-the user, refitted to health data. Pick the reference *first*, then map it
-field by field. Inventing a novel layout is the fallback, not the default.
+Load the **`dna-transplant`** skill first — it holds the donor table and the
+field-mapping discipline. This section only records which donor each Atlas
+surface already uses, so a new screen joins the existing language rather than
+starting a second one.
 
-| The data you have | The idiom to transplant | Already used in |
+| Data shape | Donor | Already used in |
 |---|---|---|
-| One number that is the point of the screen | Fitness ring / Bevel dial — big glyph, thin arc, delta underneath | `BioAgeDial`, `MetricRing` |
-| 3–5 peer metrics, glanceable | Activity's ring trio — equal weight, no hierarchy between them | `HeroMetricTrio` |
-| A value over time with a target | Stocks row — name, current value, sparkline, signed delta | `BiomarkerRow` + `BiomarkerSparkline` |
-| A chronological log of mixed event types | Wallet transaction list — one row per event, type as a leading glyph | `TodayTimelineCard` |
-| A set of things with state, one tap to advance | Reminders checklist — the tap target *is* the row | `TodayScheduleCard` |
-| A streak or habit | Duolingo flame — the count is the hero, the calendar is secondary | `HabitRowCard` |
-| Something aspirational behind a paywall | Apple One card — dark gradient, one promise, one CTA | `PremiumPromoCard` |
+| One number that is the point of the screen | Fitness ring / Bevel dial | `BioAgeDial`, `MetricRing` |
+| 3–5 peer metrics, glanceable | Activity ring trio | `HeroMetricTrio` |
+| A value over time with a target | Stocks row + sparkline | `BiomarkerRow` + `BiomarkerSparkline` |
+| Mixed events in time order | Wallet transaction list | `TodayTimelineCard` |
+| Things with state, one tap to advance | Reminders checklist | `TodayScheduleCard` |
+| A streak or habit | Duolingo flame | `HabitRowCard` |
+| Something aspirational behind a paywall | Apple One card | `PremiumPromoCard` |
 
-Write the mapping down before writing the view. If a field in your data has
-no home in the idiom, that's a signal the idiom is wrong — not a reason to
-bolt on a slot.
+If your data has no home in any of these, that's the signal to reach for a
+new donor from `dna-transplant` — not to bolt a slot onto one of these.
 
 ## 2. Use the primitives — all of them exist
 

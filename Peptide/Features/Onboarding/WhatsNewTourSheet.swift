@@ -96,7 +96,7 @@ struct WhatsNewTourSheet: View {
                 completeAndDismiss()
             } label: {
                 Text("Skip")
-                    .font(AppFont.scaled(15, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(.horizontal, Spacing.md)
                     .padding(.vertical, 8)
@@ -138,7 +138,7 @@ struct WhatsNewTourSheet: View {
             heroCard(page: page)
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text(page.eyebrow)
-                    .font(AppFont.scaled(12, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(1.0)
                     .textCase(.uppercase)
                     .foregroundStyle(page.accent.opacity(0.95))
@@ -221,7 +221,7 @@ struct WhatsNewTourSheet: View {
                     .foregroundStyle(tint)
             }
             Text(text)
-                .font(AppFont.scaled(14, weight: .medium))
+                .font(AppFont.scaled(13, weight: .medium))
                 .foregroundStyle(AppColor.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .lineSpacing(2)
@@ -266,7 +266,7 @@ struct WhatsNewTourSheet: View {
                 Text(isLastPage ? "Get started" : "Continue")
                     .font(AppFont.scaled(16, weight: .heavy))
                 Image(systemName: isLastPage ? "arrow.right.circle.fill" : "chevron.right")
-                    .font(AppFont.scaled(14, weight: .heavy))
+                    .font(AppFont.scaled(13, weight: .heavy))
             }
             .foregroundStyle(AppColor.onAccent)
             .frame(maxWidth: .infinity)

@@ -127,7 +127,7 @@ struct PaywallView: View {
             dismiss()
         } label: {
             Image(systemName: "xmark")
-                .font(AppFont.scaled(14, weight: .bold))
+                .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 32, height: 32)
                 .background {
@@ -217,11 +217,11 @@ struct PaywallView: View {
     private func featureRow(_ label: LocalizedStringKey) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: "checkmark.circle.fill")
-                .font(AppFont.scaled(22, weight: .bold))
+                .font(AppFont.scaled(20, weight: .bold))
                 .foregroundStyle(AppColor.accentPrimary)
 
             Text(label)
-                .font(AppFont.scaled(17, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.leading)
 
@@ -250,7 +250,7 @@ struct PaywallView: View {
         let bannerGreen = AppColor.positive
         return HStack(spacing: Spacing.sm) {
             Image(systemName: "tag.fill")
-                .font(AppFont.scaled(14, weight: .bold))
+                .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(bannerGreen)
                 .accessibilityHidden(true)              // Text alongside carries the meaning
 
@@ -368,7 +368,7 @@ struct PaywallView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: Spacing.xs) {
                         Text(title)
-                            .font(AppFont.scaled(17, weight: .bold))
+                            .font(AppFont.scaled(16, weight: .bold))
                             .foregroundStyle(AppColor.textPrimary)
                         if let badge {
                             savingsPill(badge)
@@ -386,7 +386,7 @@ struct PaywallView: View {
 
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(primaryPrice)
-                        .font(AppFont.scaled(22, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(20, weight: .bold, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
                     Text(primaryUnit)
@@ -507,9 +507,9 @@ struct PaywallView: View {
                         .tint(AppColor.onAccent)
                 } else {
                     Text(ctaTitle)
-                        .font(AppFont.scaled(17, weight: .bold))
+                        .font(AppFont.scaled(16, weight: .bold))
                     Image(systemName: "arrow.right")
-                        .font(AppFont.scaled(14, weight: .bold))
+                        .font(AppFont.scaled(13, weight: .bold))
                 }
             }
             .foregroundStyle(AppColor.onAccent)

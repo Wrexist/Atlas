@@ -218,7 +218,7 @@ extension MetricRing where Center == EmptyView {
                 hatchedFraction: 0.30
             ) {
                 Text("17%")
-                    .font(AppFont.scaled(22, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white)
             }
             MetricRing(

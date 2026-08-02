@@ -39,7 +39,7 @@ struct AboutSection: View {
                                 .foregroundStyle(AppColor.textSecondary)
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(AppFont.scaled(12, weight: .semibold))
+                                .font(AppFont.scaled(11, weight: .semibold))
                                 .foregroundStyle(AppColor.textTertiary)
                         }
                     }
@@ -52,7 +52,7 @@ struct AboutSection: View {
                                 .foregroundStyle(AppColor.textSecondary)
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(AppFont.scaled(12, weight: .semibold))
+                                .font(AppFont.scaled(11, weight: .semibold))
                                 .foregroundStyle(AppColor.textTertiary)
                         }
                     }
@@ -65,7 +65,7 @@ struct AboutSection: View {
                                 .foregroundStyle(AppColor.accentLight)
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(AppFont.scaled(12, weight: .semibold))
+                                .font(AppFont.scaled(11, weight: .semibold))
                                 .foregroundStyle(AppColor.textTertiary)
                         }
                     }

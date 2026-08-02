@@ -77,7 +77,7 @@ struct WashoutPicker: View {
             ) {
                 HStack(spacing: 4) {
                     Text("\(washoutWeeks)")
-                        .font(AppFont.scaled(22, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())

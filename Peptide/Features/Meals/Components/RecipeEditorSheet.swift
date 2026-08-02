@@ -152,12 +152,12 @@ struct RecipeEditorSheet: View {
     private func macroPill(value: String, label: String, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(value)
-                .font(AppFont.scaled(18, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
             Text(label)
-                .font(AppFont.scaled(10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(tint)
                 .textCase(.uppercase)
                 .tracking(0.4)
@@ -184,7 +184,7 @@ struct RecipeEditorSheet: View {
                         Image(systemName: "plus")
                             .font(AppFont.scaled(11, weight: .bold))
                         Text("Add")
-                            .font(AppFont.scaled(12, weight: .semibold))
+                            .font(AppFont.scaled(11, weight: .semibold))
                     }
                     .foregroundStyle(AppColor.accentLight)
                     .padding(.horizontal, Spacing.sm)
@@ -198,7 +198,7 @@ struct RecipeEditorSheet: View {
 
             if components.isEmpty {
                 Text("Tap Add to drop in your first ingredient.")
-                    .font(AppFont.scaled(12))
+                    .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(.vertical, Spacing.md)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -223,7 +223,7 @@ struct RecipeEditorSheet: View {
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(component.cachedName)
-                        .font(AppFont.scaled(14, weight: .semibold))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
                     Text(portionDescription(component.portion))

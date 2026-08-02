@@ -35,12 +35,12 @@ struct LoggedCaloriePanel: View {
                     .rotationEffect(.degrees(-90))
                 VStack(spacing: Spacing.xxs) {
                     Text("\(Int(displayed))")
-                        .font(AppFont.scaled(22, weight: .heavy))
+                        .font(AppFont.scaled(20, weight: .heavy))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
                     Text("of \(targetCalories) kcal")
-                        .font(AppFont.scaled(10, weight: .medium))
+                        .font(AppFont.scaled(11, weight: .medium))
                         .foregroundStyle(AppColor.textTertiary)
                         .monospacedDigit()
                 }
