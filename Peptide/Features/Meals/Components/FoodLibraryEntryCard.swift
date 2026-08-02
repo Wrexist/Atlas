@@ -53,28 +53,7 @@ struct FoodLibraryEntryCard: View {
             }
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.md)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.55))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        AppColor.accentPrimary.opacity(0.16),
-                                        Color.clear,
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
-            }
-            .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
+            .glassControl(.rect(cornerRadius: Spacing.cardCornerRadius))
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)

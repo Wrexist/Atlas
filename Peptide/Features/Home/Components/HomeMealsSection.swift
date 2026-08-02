@@ -248,14 +248,10 @@ struct HomeMealsSection: View {
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.accentPrimary.opacity(0.10))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.accentPrimary.opacity(0.35), lineWidth: 1)
-                }
-        }
-        .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
+        .glassControl(
+            .rect(cornerRadius: Spacing.cardCornerRadius),
+            tint: AppColor.accentPrimary.opacity(0.10),
+            border: AppColor.accentPrimary.opacity(0.35)
+        )
     }
 }

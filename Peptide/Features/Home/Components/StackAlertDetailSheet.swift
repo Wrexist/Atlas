@@ -93,15 +93,7 @@ struct StackAlertDetailSheet: View {
                             .font(AppFont.scaled(13, weight: .semibold))
                             .foregroundStyle(AppColor.textSecondary)
                             .frame(width: 30, height: 30)
-                            .background {
-                                Circle()
-                                    .fill(AppColor.surfaceSecondary.opacity(0.7))
-                                    .overlay {
-                                        Circle()
-                                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                                    }
-                            }
-                            .liquidGlass(.circle)
+                            .glassControl(.circle)
                             .frame(width: Spacing.minimumHitTarget,
                                    height: Spacing.minimumHitTarget)
                             .contentShape(Rectangle())
@@ -162,15 +154,11 @@ struct StackAlertDetailSheet: View {
         }
         .padding(.horizontal, Spacing.md)
         .padding(.vertical, 6)
-        .background {
-            Capsule()
-                .fill(severityColor.opacity(0.12))
-                .overlay {
-                    Capsule()
-                        .strokeBorder(severityColor.opacity(0.25), lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.capsule)
+        .glassControl(
+            .capsule,
+            tint: severityColor.opacity(0.12),
+            border: severityColor.opacity(0.25)
+        )
     }
 
     private var detailSection: some View {
@@ -236,15 +224,11 @@ struct StackAlertDetailSheet: View {
         }
         .padding(.horizontal, Spacing.md)
         .padding(.vertical, Spacing.sm)
-        .background {
-            Capsule()
-                .fill(severityColor.opacity(0.14))
-                .overlay {
-                    Capsule()
-                        .strokeBorder(severityColor.opacity(0.28), lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.capsule)
+        .glassControl(
+            .capsule,
+            tint: severityColor.opacity(0.14),
+            border: severityColor.opacity(0.28)
+        )
     }
 
     @ViewBuilder
@@ -270,20 +254,7 @@ struct StackAlertDetailSheet: View {
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius + 4, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius + 4, style: .continuous)
-                        .fill(AppColor.cardOverlay)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius + 4, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius + 4, style: .continuous))
-        .liquidGlass(.rect(cornerRadius: Spacing.smallCornerRadius + 4))
+        .glassSurface(cornerRadius: Spacing.smallCornerRadius + 4)
     }
 
     private var actionFooter: some View {

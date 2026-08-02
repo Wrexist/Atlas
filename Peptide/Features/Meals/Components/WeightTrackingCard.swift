@@ -32,19 +32,7 @@ struct WeightTrackingCard: View {
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.cardOverlay)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
+        .glassControl(.rect(cornerRadius: Spacing.cardCornerRadius))
     }
 
     private var header: some View {
@@ -85,7 +73,6 @@ struct WeightTrackingCard: View {
                         }
                 }
                 .shadow(color: AppColor.accentPrimary.opacity(0.45), radius: 8, y: 3)
-                .liquidGlass(.capsule)
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.95))
         }

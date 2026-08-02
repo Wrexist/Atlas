@@ -198,15 +198,11 @@ struct MacroSummaryRow: View {
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity)
-            .background {
-                Capsule(style: .continuous)
-                    .fill(AppColor.macroWater.opacity(0.18))
-                    .overlay {
-                        Capsule(style: .continuous)
-                            .strokeBorder(AppColor.macroWater.opacity(0.32), lineWidth: 0.5)
-                    }
-            }
-            .liquidGlass(.capsule)
+            .glassControl(
+                .capsule,
+                tint: AppColor.macroWater.opacity(0.18),
+                border: AppColor.macroWater.opacity(0.32)
+            )
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.94))
         .accessibilityLabel("Add \(oz) ounces of water")

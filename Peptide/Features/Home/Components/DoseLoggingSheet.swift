@@ -111,18 +111,11 @@ struct DoseLoggingSheet: View {
                                                 .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, Spacing.sm)
-                                                .background {
-                                                    RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                                                        .fill(isSelected ? AppColor.accentPrimary.opacity(0.25) : AppColor.surfaceElevated)
-                                                        .overlay {
-                                                            RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                                                                .strokeBorder(
-                                                                    isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                                                    lineWidth: 0.5
-                                                                )
-                                                        }
-                                                }
-                                                .liquidGlass(.rect(cornerRadius: Spacing.chipCornerRadius))
+                                                .glassControl(
+                                                    .rect(cornerRadius: Spacing.chipCornerRadius),
+                                                    tint: isSelected ? AppColor.accentPrimary.opacity(0.25) : AppColor.surfaceElevated,
+                                                    border: isSelected ? AppColor.glassBorderActive : AppColor.glassBorder
+                                                )
                                         }
                                         .buttonStyle(ScalePressStyle())
                                     }

@@ -146,9 +146,9 @@ enum HeroMetricKind: Hashable, CaseIterable {
         case .adherence:
             return [AppColor.accentLight, AppColor.accentPrimary]
         case .recovery:
-            return [Color(red: 0.72, green: 0.96, blue: 0.34), Color(red: 0.28, green: 0.78, blue: 0.36)]
+            return [AppColor.ringRecoveryStart, AppColor.ringRecoveryEnd]
         case .sleep:
-            return [Color(red: 0.66, green: 0.62, blue: 0.96), Color(red: 0.45, green: 0.40, blue: 0.85)]
+            return [AppColor.ringSleepStart, AppColor.ringSleepEnd]
         }
     }
 }

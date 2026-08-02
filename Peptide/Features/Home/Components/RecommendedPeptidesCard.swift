@@ -151,15 +151,11 @@ struct RecommendedPeptidesCard: View {
             .lineLimit(1)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background {
-                Capsule()
-                    .fill(AppColor.accentPrimary.opacity(0.18))
-                    .overlay {
-                        Capsule()
-                            .strokeBorder(AppColor.accentPrimary.opacity(0.3), lineWidth: 0.5)
-                    }
-            }
-            .liquidGlass(.capsule)
+            .glassControl(
+                .capsule,
+                tint: AppColor.accentPrimary.opacity(0.18),
+                border: AppColor.accentPrimary.opacity(0.3)
+            )
     }
 
     @ViewBuilder

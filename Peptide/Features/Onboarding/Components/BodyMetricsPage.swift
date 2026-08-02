@@ -52,17 +52,7 @@ struct BodyMetricsPage: View {
             unitChip(label: "Imperial", unit: .imperial)
         }
         .padding(4)
-        .background {
-            Capsule()
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    Capsule().fill(AppColor.cardOverlay)
-                }
-                .overlay {
-                    Capsule().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.capsule)
+        .glassControl(.capsule)
     }
 
     private func unitChip(label: LocalizedStringKey, unit: MeasurementUnit) -> some View {
@@ -80,11 +70,10 @@ struct BodyMetricsPage: View {
                 .background {
                     if isSelected {
                         Capsule()
-                            .fill(AppColor.accentPrimary.opacity(0.28))
+                            .fill(AppColor.accentPrimary.opacity(0.18))
                             .overlay {
                                 Capsule().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
                             }
-                            .liquidGlass(.capsule)
                     }
                 }
         }

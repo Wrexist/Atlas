@@ -376,15 +376,7 @@ struct PeptideDetailView: View {
         }
         .padding(.horizontal, Spacing.md)
         .padding(.vertical, Spacing.sm)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceElevated.opacity(0.8))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.rect(cornerRadius: Spacing.smallCornerRadius))
+        .glassControl(.rect(cornerRadius: Spacing.smallCornerRadius))
     }
 
     private func statusColor(_ status: ProtocolStatus) -> Color {

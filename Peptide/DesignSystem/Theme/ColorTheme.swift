@@ -103,6 +103,15 @@ enum AppColor {
     static let ctaGradientStart = Color(light: 0x4238C4, dark: 0x4F46E5)
     static let ctaGradientEnd = Color(light: 0x6620C0, dark: 0x7C3AED)
 
+    /// Hero-ring identities. Adherence follows the brand accent; Recovery and
+    /// Sleep get their own hues so the three rings stay tellable apart at a
+    /// glance even in a screenshot. Stops run light → deep so the arc reads
+    /// as having direction.
+    static let ringRecoveryStart = Color(light: 0x6FA328, dark: 0xB8F557)
+    static let ringRecoveryEnd = Color(light: 0x2F7A3B, dark: 0x47C75C)
+    static let ringSleepStart = Color(light: 0x6B63C4, dark: 0xA89EF5)
+    static let ringSleepEnd = Color(light: 0x453FA8, dark: 0x7366D9)
+
     // MARK: - Semantic accents
     //
     // Theme-independent colors for icons whose meaning is tied to a real-world

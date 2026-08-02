@@ -78,28 +78,7 @@ struct LogMealEntryPicker: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(Spacing.md)
             .frame(minHeight: 108)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.55))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        accent.opacity(0.18),
-                                        Color.clear,
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
-            }
-            .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
+            .glassControl(.rect(cornerRadius: Spacing.cardCornerRadius))
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.97))
         .accessibilityElement(children: .ignore)
