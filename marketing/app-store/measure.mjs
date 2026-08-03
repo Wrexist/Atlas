@@ -1,12 +1,39 @@
+// Measure the App Store screens the way a browser sees them: load each
+// screen in Chromium, resolve every text node's computed colour against its
+// real background, and report anything under WCAG 2.1 AA.
+//
+// This is the rendered half of the design review. `scripts/contrast-check.py`
+// runs the same arithmetic over the iOS colour tokens, but it can only see
+// token *pairs* — it cannot know what a given label actually sits on. This
+// can, because the browser has already done the layout.
+//
+//   GROOT=$(npm root -g) node measure.mjs
+//
+// The canvas is 3x (1320px wide for a 6.9" device), so CSS px are divided by
+// 3 before WCAG's large-text threshold is applied: 24px here is 8pt, which is
+// small text needing 4.5:1, not large text needing 3:1.
+//
+// Known false positive: text over an SVG `fill="url(#...)"` gradient. The
+// background walker reads CSS backgrounds only, so the gold medal on
+// 02-score reports ~1.04:1 for text that is really dark-on-gold. Confirmed
+// by eye; left visible rather than special-cased, because a rule that
+// quietly excuses cases is how the iOS glow rule came to report zero.
+
 import { createRequire } from 'module';
 import { readdirSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 const require = createRequire(import.meta.url);
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const groot = process.env.GROOT || '/opt/node22/lib/node_modules';
+const { chromium } = require(join(groot, 'playwright'));
 
-const here = '/home/user/Peptide-ai/marketing/app-store';
+const here = dirname(fileURLToPath(import.meta.url));
 const files = readdirSync(here + '/screens').filter(f => f.endsWith('.html'));
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+// Honour an explicit path when the environment pins one, else let
+// Playwright resolve its own bundled browser.
+const exe = process.env.CHROMIUM_PATH;
+const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 const page = await browser.newPage({ viewport: { width: 1320, height: 2868 } });
 
 const results = [];

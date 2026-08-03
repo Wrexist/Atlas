@@ -197,6 +197,7 @@ background, held to WCAG 2.1 AA.
 
 ```sh
 GROOT=$(npm root -g) node measure.mjs
+# CHROMIUM_PATH=... if Playwright's bundled browser isn't where it expects
 ```
 
 It found five real failures the first time it was run, including the medical
