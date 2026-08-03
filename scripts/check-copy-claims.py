@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Check the numbers in user-facing copy against their source of truth.
+"""Check what the app *claims* against what it *does*.
+
+Numbers in copy, privacy purpose strings, entitlements, App Group IDs — every
+one is an assertion about the code, and every one is checked here against the
+code itself.
 
 This exists because of a real one. The App Store screen for the Atlas Score
 claimed "LEVEL 14 · GOLD" and "1,240 pts to Level 15 · Diamond". The app's
@@ -178,6 +182,49 @@ def main() -> int:
             print("  FAIL NSHealthUpdateUsageDescription claims the app does not "
                   "write, but requestAuthorization(toShare:) is called")
             failures.append("health-write-claim")
+
+    # Entitlements vs code. A capability used without its entitlement fails at
+    # runtime; an App Group that disagrees between targets means the widget
+    # silently reads an empty container forever.
+    import plistlib
+    ents = {}
+    for f in sorted(REPO.rglob("*.entitlements")):
+        try:
+            ents[f.name] = plistlib.load(f.open("rb"))
+        except Exception as e:
+            print(f"  FAIL {f.name}: unreadable ({e})")
+            failures.append(f.name)
+    groups = {g for d in ents.values() for g in d.get("com.apple.security.application-groups", [])}
+    code_groups = set(re.findall(r'"(group\.[\w.-]+)"', swift))
+    if len(groups) > 1:
+        print(f"  FAIL App Group differs between targets: {sorted(groups)}")
+        failures.append("app-group-mismatch")
+    elif code_groups and not (code_groups <= groups):
+        print(f"  FAIL code uses {sorted(code_groups)}, entitlements declare {sorted(groups)}")
+        failures.append("app-group-code-mismatch")
+    elif groups:
+        print(f"  ok   App Group {sorted(groups)[0]} consistent across "
+              f"{len(ents)} targets and code")
+
+    app_ents = ents.get("Peptide.entitlements", {})
+    for key, pat, label in [
+        ("com.apple.developer.healthkit", r"HKHealthStore", "HealthKit"),
+        ("com.apple.developer.applesignin", r"ASAuthorizationAppleIDProvider", "Sign in with Apple"),
+        ("com.apple.developer.devicecheck.appattest-environment", r"DCAppAttestService", "App Attest"),
+        ("com.apple.developer.icloud-services", r"ModelConfiguration|CKContainer", "CloudKit"),
+    ]:
+        used, declared = re.search(pat, swift) is not None, key in app_ents
+        if used and not declared:
+            print(f"  FAIL {label}: used in code, no entitlement")
+            failures.append(label)
+        elif used:
+            print(f"  ok   {label}: entitlement and code agree")
+
+    if re.search(r"ActivityKit|Activity<", swift) and "NSSupportsLiveActivities" not in plist:
+        print("  FAIL Live Activities used but NSSupportsLiveActivities is not set")
+        failures.append("live-activities")
+    elif "NSSupportsLiveActivities" in plist:
+        print("  ok   Live Activities: declared and used")
 
     if failures:
         print(f"\n{len(failures)} copy claim(s) no longer match the source")

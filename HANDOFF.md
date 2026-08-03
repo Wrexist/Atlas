@@ -98,6 +98,19 @@ dosing and safety copy, and a plausible-but-wrong translation there is worse
 than English. 72 stale keys that no longer appear in the UI are also
 reported; three orphaned Swedish entries were removed outright.
 
+**Everything the app claims is checked against what it does.**
+`scripts/check-copy-claims.py` audits four kinds of assertion: counts in copy
+(exercises, compounds, lab panels), the Atlas Score level/tier pairing,
+`Info.plist` privacy purpose strings against the APIs actually called, and
+entitlements / App Group IDs against code and against each other.
+
+That last group is why it exists in this shape. The plist claimed *"Atlas
+does not write to Apple Health"* while shipping a toggle that writes
+nutrition, and `NSPhotoLibraryUsageDescription` was missing entirely while
+`MealScanFlow` calls `PHAsset.fetchAssets` — a hard TCC termination on the
+photo meal-scan path. Neither was visible to any other check, because a
+claim is only false *relative to something else*.
+
 **Numbers in copy are checked against their source.**
 `scripts/check-copy-claims.py` compares every count the marketing and app
 copy asserts — exercises, compounds, lab panels and categories, and the
