@@ -57,11 +57,35 @@ simulator.
 
 ## 3. anthropics/skills → frontend-design
 
-Installed at `~/.claude/skills/frontend-design/`. It is a posture ("make
-deliberate, opinionated choices; take one real aesthetic risk"), not a
-checklist, so there is nothing to measure. Applied as the standing lens on
-this branch: the Liquid Glass surface language, the tuned near-neutrals,
-and the five-theme ramp are the app's non-default choices.
+Installed at `~/.claude/skills/frontend-design/`. Mostly a posture rather
+than a checklist — but running it surfaced one finding sharp enough to
+record, and it is not comfortable.
+
+**Atlas's default theme is one of the three looks the skill names as the
+current AI-generated default.** Its calibration section lists them
+explicitly; the second is *"a near-black background with a single bright
+acid-green or vermilion accent."* Atlas ships `#101013` with emerald-500
+`#10B981` as the default Emerald theme. That is the pattern, not an
+approximation of it.
+
+This is **not** filed as a bug and nothing was changed for it. Rebranding
+the default palette is a product and positioning decision, not a craft
+defect, and it is not a call to make from inside a review — still less
+without ever having seen the app rendered. Two things are worth weighing
+against the finding, too: the app ships five ramps rather than one, so the
+default is a starting point the user can move off in two taps; and a
+near-black surface is a defensible choice for a health app people open at
+5am and last thing at night.
+
+What the skill would push toward, if the direction is ever revisited: the
+signature should come from somewhere in the subject's own world — recovery,
+sleep, load, adaptation — rather than from the accent colour. The Liquid
+Glass surface language and the five-ramp system are the app's real
+non-default choices; the default accent is the safe one.
+
+The skill's structural rule — *"eyebrows, dividers and labels should encode
+something true about the content, not decorate it"* — is what the 60/30/10
+pass above acted on independently, and the two agree.
 
 ## 4. OneRedOak/claude-code-workflows → design-review
 

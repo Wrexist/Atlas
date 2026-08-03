@@ -155,7 +155,9 @@ final class BodyMetricsTests: XCTestCase {
     func test_weightLabel_roundsAndSuffixesForTheUsersUnit() {
         XCTAssertEqual(MeasurementUnit.metric.weightLabel(1234.6), "1235 kg")
         XCTAssertEqual(MeasurementUnit.imperial.weightLabel(100), "220 lb")
-        XCTAssertEqual(MeasurementUnit.metric.weightLabel(60.25, fractionDigits: 1), "60.2 kg")
+        // Deliberately not a .x5 tie — that would make the test depend on
+        // the C library's rounding mode rather than on our formatting.
+        XCTAssertEqual(MeasurementUnit.metric.weightLabel(60.28, fractionDigits: 1), "60.3 kg")
     }
 
     // MARK: - Volume (water is stored in fluid ounces)
