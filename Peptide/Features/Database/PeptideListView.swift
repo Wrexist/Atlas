@@ -11,6 +11,11 @@ struct PeptideListView: View {
     var presentedModally = false
     @State private var viewModel = PeptideListViewModel(peptides: PeptideDatabase.shared)
     @State private var showCustomForm = false
+    /// Ties each row to the detail view it pushes, so the push grows out of
+    /// the tapped row instead of sliding in over it. Only the iPhone stack
+    /// uses it — the iPad split view swaps the detail column in place and has
+    /// no push to animate.
+    @Namespace private var zoom
 
     /// Built here rather than inline: a ternary whose branches are both
     /// trailing-closure `.init`s is a parse hazard, and the empty state
@@ -146,6 +151,7 @@ struct PeptideListView: View {
                 .toolbar { sidebarToolbar }
                 .navigationDestination(for: Peptide.self) { peptide in
                     PeptideDetailView(peptide: peptide)
+                        .navigationTransition(.zoom(sourceID: peptide.id, in: zoom))
                 }
                 .sheet(isPresented: $showCustomForm) {
                     CustomPeptideForm { peptide in
@@ -244,6 +250,7 @@ struct PeptideListView: View {
                 PeptideRow(peptide: peptide)
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+            .matchedTransitionSource(id: peptide.id, in: zoom)
             .transition(.scale(scale: 0.97).combined(with: .opacity))
         } else {
             Button {

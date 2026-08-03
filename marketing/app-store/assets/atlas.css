@@ -94,8 +94,12 @@ body{font-family:"Inter",system-ui,-apple-system,sans-serif;background:var(--bg-
 .tile .unit{font-size:24px;color:var(--muted);font-weight:600;}
 .bar{height:20px;border-radius:100px;background:rgba(255,255,255,0.09);overflow:hidden;}
 .bar>i{display:block;height:100%;border-radius:100px;}
-.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:12px;}
-.heat span{width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,0.05);}
+/* Columns are fluid, not fixed: 26 weeks at a hard 26px + 12px gap needed
+   976px inside an 880px card, so a season and a half of every heatmap was
+   being clipped by the phone bezel. 1fr columns make the grid fit whatever
+   card it lands in, and aspect-ratio keeps the cells square. */
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,auto);grid-auto-columns:1fr;gap:8px;}
+.heat span{aspect-ratio:1;border-radius:8px;background:rgba(255,255,255,0.05);}
 .hero{font-weight:800;letter-spacing:-6px;line-height:.9;}
 .spark{position:absolute;border-radius:3px;opacity:.95;}
 .pulse{position:absolute;border-radius:50%;border:2px solid color-mix(in srgb,var(--accent) 30%,transparent);}

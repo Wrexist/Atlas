@@ -16,6 +16,10 @@ struct ProtocolListView: View {
     // desyncing navigation state once a stack/library route was pushed.
     @State private var path = NavigationPath()
     @State private var sharingProtocol: PeptideProtocol?
+    /// Shared with every ProtocolSection so a card's push grows out of
+    /// the card itself. The sections are separate views, so the id has to
+    /// travel down rather than being declared where the rows are.
+    @Namespace private var zoom
 
     var body: some View {
         @Bindable var state = appState
@@ -58,7 +62,8 @@ struct ProtocolListView: View {
                                 ProtocolSection(
                                     title: "Active",
                                     protocols: dataStore.activeProtocols,
-                                    onShare: { sharingProtocol = $0 }
+                                    onShare: { sharingProtocol = $0 },
+                                    zoom: zoom
                                 )
                                 .sectionAppear(index: 2)
                             }
@@ -79,7 +84,8 @@ struct ProtocolListView: View {
                                 ProtocolSection(
                                     title: "Paused",
                                     protocols: dataStore.pausedProtocols,
-                                    onShare: { sharingProtocol = $0 }
+                                    onShare: { sharingProtocol = $0 },
+                                    zoom: zoom
                                 )
                                 .sectionAppear(index: 5)
                             }
@@ -88,7 +94,8 @@ struct ProtocolListView: View {
                                 ProtocolSection(
                                     title: "Completed",
                                     protocols: dataStore.completedProtocols,
-                                    onShare: { sharingProtocol = $0 }
+                                    onShare: { sharingProtocol = $0 },
+                                    zoom: zoom
                                 )
                                 .sectionAppear(index: 6)
                             }
@@ -140,6 +147,7 @@ struct ProtocolListView: View {
             }
             .navigationDestination(for: PeptideProtocol.self) { protocol_ in
                 ProtocolDetailView(protocol_: protocol_)
+                    .navigationTransition(.zoom(sourceID: protocol_.id, in: zoom))
             }
             .navigationDestination(for: CommunityStack.self) { stack in
                 CommunityStackDetailView(stack: stack)
@@ -237,6 +245,7 @@ private struct ProtocolSection: View {
     let title: String
     let protocols: [PeptideProtocol]
     let onShare: (PeptideProtocol) -> Void
+    let zoom: Namespace.ID
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -251,6 +260,7 @@ private struct ProtocolSection: View {
                     ProtocolCard(protocol_: protocol_)
                 }
                 .buttonStyle(.plain)
+                .matchedTransitionSource(id: protocol_.id, in: zoom)
                 .contextMenu {
                     Button {
                         onShare(protocol_)
