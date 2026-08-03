@@ -488,6 +488,7 @@ struct ProfileCustomizationSheet: View {
                 .textCase(.uppercase)
 
             TextField(placeholder, text: text)
+                .accessibilityLabel(Text(title))
                 .font(AppFont.body)
                 .foregroundStyle(AppColor.textPrimary)
                 .tint(AppColor.accentPrimary)

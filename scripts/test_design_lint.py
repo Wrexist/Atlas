@@ -84,6 +84,10 @@ CASES = [
      'Text("a").animation(.easeOut(duration: 0.2))',
      'Text("a").animation(.easeOut(duration: 0.2), value: count)'),
 
+    ("rule_placeholder_as_label", "Foo.swift",
+     'HStack {\n  Text("Sets")\n  TextField("0", text: $sets)\n    .keyboardType(.numberPad)\n}',
+     'HStack {\n  Text("Sets")\n  TextField("0", text: $sets)\n    .accessibilityLabel("Sets")\n}'),
+
     ("rule_pure_neutral", "ColorTheme.swift",
      'static let ink = Color(light: 0x000000, dark: 0xFFFFFF)',
      'static let ink = Color(light: 0x111114, dark: 0xF7F7FA)'),

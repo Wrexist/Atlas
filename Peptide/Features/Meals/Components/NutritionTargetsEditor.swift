@@ -369,6 +369,7 @@ struct NutritionTargetsEditor: View {
                 .foregroundStyle(AppColor.textPrimary)
             Spacer(minLength: Spacing.sm)
             TextField("0", text: text)
+                .accessibilityLabel(Text(title))
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
                 .font(AppFont.scaled(16, weight: .semibold, design: .rounded))

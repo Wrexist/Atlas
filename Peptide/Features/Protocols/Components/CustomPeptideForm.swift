@@ -71,10 +71,10 @@ struct CustomPeptideForm: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 fieldLabel("Name")
-                styledTextField("e.g., Selank", text: $name)
+                styledTextField("e.g., Selank", label: "Name", text: $name)
 
                 fieldLabel("Abbreviation")
-                styledTextField("e.g., SLK", text: $abbreviation)
+                styledTextField("e.g., SLK", label: "Abbreviation", text: $abbreviation)
                     .textInputAutocapitalization(.characters)
             }
         }
@@ -108,10 +108,10 @@ struct CustomPeptideForm: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 fieldLabel("Dosage Range")
-                styledTextField("e.g., 200-300 mcg", text: $dosageRange)
+                styledTextField("e.g., 200-300 mcg", label: "Dosage range", text: $dosageRange)
 
                 fieldLabel("Frequency")
-                styledTextField("e.g., 1x daily (optional)", text: $frequency)
+                styledTextField("e.g., 1x daily (optional)", label: "Frequency", text: $frequency)
             }
         }
     }
@@ -147,8 +147,14 @@ struct CustomPeptideForm: View {
             .foregroundStyle(AppColor.textTertiary)
     }
 
-    private func styledTextField(_ placeholder: String, text: Binding<String>) -> some View {
+    /// `label` is what VoiceOver announces. Without it the field's name is
+    /// the placeholder, so the Name field introduced itself as
+    /// "e.g., Selank" — the example read as the label.
+    private func styledTextField(_ placeholder: String,
+                                 label: String,
+                                 text: Binding<String>) -> some View {
         TextField(placeholder, text: text)
+            .accessibilityLabel(label)
             .font(AppFont.body)
             .foregroundStyle(AppColor.textPrimary)
             .tint(AppColor.accentPrimary)

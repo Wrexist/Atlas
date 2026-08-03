@@ -24,6 +24,9 @@ struct WeightLogSheet: View {
                         Text(unit == .metric ? "Weight (kg)" : "Weight (lb)")
                         Spacer()
                         TextField("0", text: $input)
+                            .accessibilityLabel(unit == .metric
+                                                ? "Weight in kilograms"
+                                                : "Weight in pounds")
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .frame(maxWidth: 120)

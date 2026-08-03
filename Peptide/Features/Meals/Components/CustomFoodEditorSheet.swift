@@ -163,6 +163,7 @@ struct CustomFoodEditorSheet: View {
                 .foregroundStyle(AppColor.textPrimary)
             Spacer()
             TextField(optional ? "Optional" : "0", text: text)
+                .accessibilityLabel(Text(title))
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .focused($focused, equals: focus)

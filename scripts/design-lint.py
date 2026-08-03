@@ -277,6 +277,30 @@ def rule_untargeted_animation(path, source, code) -> list[Finding]:
     return out
 
 
+def rule_placeholder_as_label(path, source, code) -> list[Finding]:
+    """R5, second clause — a placeholder is not a label.
+
+    SwiftUI uses a `TextField`'s first argument as its accessibility label,
+    which is usually fine. It stops being fine when that argument is a bare
+    number or a unit: six numeric fields in the nutrition and workout sheets
+    announced themselves to VoiceOver as "0, text field", with the actual
+    name sitting beside them in a separate `Text` the field never inherits.
+    """
+    out = []
+    lines = code.split("\n")
+    uninformative = re.compile(r'^"(\s*|0|0\.0|\d+|kg|lb|reps|g|mcg|mg|oz|ml)"$', re.I)
+    for i, line in enumerate(lines):
+        m = re.search(r'\b(?:TextField|SecureField)\(\s*("(?:[^"\\]|\\.)*")', line)
+        if not m or not uninformative.match(m.group(1)):
+            continue
+        if "accessibilityLabel" in "\n".join(lines[i:i + 30]):
+            continue
+        out.append(Finding(path, i + 1, "placeholder-as-label",
+                           f"{m.group(1)} is the only thing VoiceOver reads for this "
+                           "field; add .accessibilityLabel", "error"))
+    return out
+
+
 def rule_placeholder_copy(path, source, code) -> list[Finding]:
     out = []
     for m in PLACEHOLDER_COPY.finditer(code):
@@ -594,6 +618,7 @@ RULES = [
     rule_glow,
     rule_untargeted_animation,
     rule_placeholder_copy,
+    rule_placeholder_as_label,
     rule_hit_target,
     rule_off_grid_spacing,
     rule_low_contrast_ink,

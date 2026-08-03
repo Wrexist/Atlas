@@ -7,12 +7,11 @@ Every number here is reproducible from the two checkers in `scripts/`.
 Reproduce:
 
 ```sh
-python3 scripts/design-lint.py --all     # 17 rules, gates CI on errors
+python3 scripts/design-lint.py --all     # 18 rules, gates CI on errors
 python3 scripts/contrast-check.py        # 244 colour pairs, gates CI
 ```
 
-Current state: **0 errors, 7 warnings** — all 7 are R2 accent halos, listed
-below. Errors gate the build; warnings do not.
+Current state: **0 errors, 0 warnings**.
 
 **The limit of this document.** Nothing here has been rendered. These four
 resources split cleanly into rules that are arithmetic (contrast, spacing
@@ -33,7 +32,7 @@ simulator.
 | R2 | No glow | **enforced, 0 open** | You asked for these 12 rules enforced; I kept 7 halos on my own judgement that a glowing ring is the category idiom. That was substituting taste for your instruction. All are gone: `MetricRing` lost its `glow` parameter entirely (an API offering a banned effect is the wrong shape), and 5 more turned up in a *third* form the rule still could not see — a blurred coloured disc stacked behind a medallion, a halo built from a shape rather than a shadow. The rule now catches all three forms and has tests for each. Data-encoding glow stays: the muscle-map heat halo *is* the activation reading, and the share card's 180px backdrop wash is scene lighting on a fixed export canvas. |
 | R3 | No `transition: all` | **enforced** | `design-lint: untargeted-animation` — the SwiftUI analogue is `.animation(x)` without a `value:`, which animates every change in the subtree. |
 | R4 | Kill visual monotony | **measured, still needs eyes** | Not "unmeasurable" as first claimed — the squint test has a proxy: largest type on a screen ÷ median type. Onboarding scores 3.5–4.3x (a clear focal element); `PeptideListView` scores **1.17x** (17pt vs 14pt median), `HabitsView` 1.33x, `ProtocolBuilderView` 1.42x. But the metric cannot tell "flat because nobody made a choice" from "flat because it is a list" — and those three lowest scorers are a searchable database list, a habit list and a form, which are *correctly* flat. Acting on the number alone would damage them. Recorded as a ranked candidate list for whoever has a simulator. |
-| R5 | No placeholder text | **enforced** | `design-lint: placeholder-copy` — lorem ipsum, "coming soon", "TBD". Zero hits. |
+| R5 | No placeholder text | **enforced, both clauses** | Lorem/"coming soon"/TBD: zero hits, as before. The rule's *second* clause — "never use a placeholder as an input's only label" — had never been checked. Ten inputs failed it: six numeric fields across the weight, workout, nutrition-target and macro sheets announced themselves to VoiceOver as **"0, text field"**, and the custom-peptide form introduced its Name field as *"e.g., Selank"*. In each case the real label sat beside the field in a separate `Text` the field never inherits. All ten now carry `.accessibilityLabel`; `design-lint: placeholder-as-label` holds the line. |
 | R6 | Contain stacking contexts | **pass** | 4 `zIndex` calls, values 1–3, no arms race. SwiftUI scopes z-order to the container, so the CSS failure mode does not arise. |
 | R7 | No pure black on pure white | **enforced** | `design-lint: pure-neutral`. Light surface is `#F4F4F7`, dark is `#101013`, ink-on-accent is `#FCFCFD`. Zero pure neutrals. |
 | R8 | Space on a scale | **enforced** | `design-lint: off-grid-spacing`, 8-point grid plus 2/4/6 for optical insets. |
