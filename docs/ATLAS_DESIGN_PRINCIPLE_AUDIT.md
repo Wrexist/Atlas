@@ -58,6 +58,34 @@ simulator.
 | Thumb-zone CTAs | **open** | Needs renders. |
 | Soft, background-tinted shadows | **pass** | Shadows resolve through `AppShadow`; the glow rule catches the harsh case. |
 
+## 2b. The App Store screens, measured
+
+The iOS app cannot be rendered here, but `marketing/app-store/` can — it is
+HTML through Playwright, and Chromium is available. That makes it the one
+surface where the craft rules could be *measured* rather than inferred.
+Numbers below are from `craft.mjs`-style instrumentation over all 8 phone
+screens at their real 3x canvas.
+
+| Rule | Measured | Status |
+|------|----------|--------|
+| Contrast (AA) | 5 real failures, incl. the medical disclaimer at 2.6:1 and subscription terms at 3.4:1 | **fixed**, all 4 sets clean |
+| R2/R1 on controls | the primary CTA matched no CSS rule at all — browser-default 16px on a 3x canvas = 5.3pt | **fixed** |
+| Weights | 6 distinct (400/500/600/700/800/900) | **fixed** — folded to 3 emphasis + default |
+| R9 type scale | **33 distinct sizes**, from 7.0pt to 73.3pt | **open** |
+| R8 8-point grid | **29 distinct off-grid values across 530 uses** — 3.7pt, 6.0pt, 10.7pt, 6.7pt, 9.3pt lead | **open** |
+
+The last two are real and large. They are the same failure the app itself
+already went through and fixed — 30 point sizes collapsed onto a six-step
+scale, seven weights onto three — and the marketing deck simply never had
+that pass. 33 sizes is the single clearest reason these screens read as
+assembled rather than designed.
+
+They are left open deliberately: collapsing 33 sizes onto 5 and re-flowing
+530 spacing values is a redesign of assets that are about to ship, not a
+bug fix, and it is the author's call rather than a reviewer's. Every number
+here is reproducible, and the render-and-look loop exists now, so it is a
+contained job for whoever takes it.
+
 ## 3. anthropics/skills → frontend-design
 
 Installed at `~/.claude/skills/frontend-design/`. Mostly a posture rather
