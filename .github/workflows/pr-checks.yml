@@ -237,23 +237,41 @@ jobs:
         run: swiftlint lint --reporter github-actions-logging
 
       - name: Unit Tests
-        # Still skipped, but the reason recorded here was wrong and worth
-        # correcting: the last `test-compile` run that actually executed
-        # (run 27603514542, Xcode 26.3) reported exactly **two** errors,
-        # both `type 'AppTab' has no member 'protocols'` in
-        # AppStateTests.swift — not "a backlog of stale API references and
-        # Swift-6 actor-isolation issues". Those two are fixed.
+        # Enabled again. It had been a stub since the test target stopped
+        # compiling; `test-compile` on 89587a3 came back
+        # `** TEST BUILD SUCCEEDED **` with zero errors, which is the
+        # condition the previous note set for turning it back on.
         #
-        # Left skipped rather than re-enabled because Xcode batches Swift
-        # compilation: that error killed the A–C batch, so the D–Z files
-        # were never compiled and may hold more. `test-compile` is
-        # non-gating and runs `build-for-testing`, so the next run on this
-        # branch reports the truth. Re-enable this step (and restore
-        # build-for-testing above) once it comes back clean.
+        # Still `continue-on-error` for its first outings: these tests have
+        # not run in months, so a failure here is information about the
+        # suite rather than a reason to block the PR. Drop the flag once a
+        # few runs have gone green.
         continue-on-error: true
         run: |
-          touch test-output.log
-          echo "Unit tests skipped — see the test-compile job for the current state." | tee test-output.log
+          # Resolve whatever iPhone this runner actually has rather than
+          # naming one. A hardcoded `name:iPhone 16` is why test-compile
+          # died with "Unable to find a device matching the provided
+          # destination specifier" while a sibling job on another runner
+          # found one — the image's simulator list is not guaranteed.
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; ids=[x['udid'] for r in d.values() for x in r if 'iPhone' in x.get('name','')]; print(ids[0] if ids else '')")
+          if [ -z "$DEVICE_ID" ]; then
+            echo "::error::No iPhone simulator available on this runner image."
+            exit 1
+          fi
+          echo "Running unit tests on simulator $DEVICE_ID"
+
+          set -o pipefail
+          xcodebuild test \
+            -project Peptide.xcodeproj \
+            -scheme Peptide \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -only-testing:PeptideTests \
+            -resultBundlePath UnitTestResults.xcresult \
+            2>&1 | tee test-output.log
 
       - name: Coverage report
         if: always()
