@@ -74,12 +74,12 @@ struct HeroMetricDetailSheet: View {
             ) {
                 if valueForRing.isAvailable {
                     Text("\(valueForRing.displayPercent)%")
-                        .font(.system(size: 28, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(28, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
                 } else {
                     Text("—")
-                        .font(.system(size: 28, weight: .bold))
+                        .font(AppFont.scaled(28, weight: .bold, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }

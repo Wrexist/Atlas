@@ -136,15 +136,42 @@ def rule_raw_colour(path, source, code) -> list[Finding]:
 
 
 def rule_fixed_font(path, source, code) -> list[Finding]:
-    """Font.system(size:) ignores the content-size category outright."""
+    """`Font.system(size:)` ignores the content-size category outright.
+
+    Body scale must go through `AppFont.scaled(_:)`. Display sizes above the
+    scale used to be exempt, on the theory that a 56pt headline is already
+    large — but "already large" is not the same as "large enough for someone
+    at Accessibility XXXL", where body copy grows past a fixed 26pt heading
+    and the hierarchy inverts. Display *text* now needs
+    `relativeTo: .largeTitle`, which grows it on a display curve rather than
+    the body one. Glyphs and share cards keep fixed sizes: an SF Symbol is
+    art, and a share card renders to a fixed export canvas.
+    """
     if path.name == "Typography.swift":
         return []
     out = []
+    lines = code.split("\n")
     for m in re.finditer(r"\.system\(size:\s*(\d+(?:\.\d+)?)", code):
-        if float(m.group(1)) <= 24:
-            out.append(Finding(path, line_of(code, m.start()), "fixed-font",
+        size = float(m.group(1))
+        line = line_of(code, m.start())
+        if size <= 24:
+            out.append(Finding(path, line, "fixed-font",
                                f"{m.group(1)}pt is body scale and must use "
                                "AppFont.scaled(_:) to honour Dynamic Type", "error"))
+            continue
+        if path.name in FIXED_CANVAS_FILES:
+            continue
+        # Only Text carries the Dynamic Type contract; a symbol is a glyph.
+        j = line - 1
+        while j > 0 and not re.search(r"\b(Text|Image|Label)\(", lines[j]):
+            j -= 1
+        anchor = re.search(r"\b(Text|Image|Label)\(", lines[j])
+        if not anchor or anchor.group(1) != "Text":
+            continue
+        out.append(Finding(path, line, "fixed-font",
+                           f"{m.group(1)}pt display text is frozen against Dynamic "
+                           "Type; use AppFont.scaled(_:relativeTo: .largeTitle)",
+                           "error"))
     return out
 
 

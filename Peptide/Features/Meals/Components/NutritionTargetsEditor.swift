@@ -113,7 +113,7 @@ struct NutritionTargetsEditor: View {
             VStack(spacing: Spacing.md) {
                 VStack(spacing: 2) {
                     Text("\(intValue(calories))")
-                        .font(.system(size: 48, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(48, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())

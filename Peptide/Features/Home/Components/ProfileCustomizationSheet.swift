@@ -325,7 +325,7 @@ struct ProfileCustomizationSheet: View {
                         )
                     if let initial = displayInitial {
                         Text(initial)
-                            .font(.system(size: 48, weight: .bold, design: .rounded))
+                            .font(AppFont.scaled(48, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                             .foregroundStyle(AppColor.accentLight)
                     } else {
                         Image(systemName: "person.fill")

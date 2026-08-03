@@ -50,7 +50,7 @@ struct RestTimerOverlay: View {
                     .tracking(1.2)
                     .foregroundStyle(AppColor.textTertiary)
                 Text(remainingLabel)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(28, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .monospacedDigit()
                     .contentTransition(.numericText())

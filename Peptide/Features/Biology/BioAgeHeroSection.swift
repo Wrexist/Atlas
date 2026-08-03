@@ -47,7 +47,7 @@ struct BioAgeHeroSection: View {
     private var header: some View {
         VStack(spacing: 4) {
             Text("Biological Age")
-                .font(.system(size: 28, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(28, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textPrimary)
             Text("As of \(Self.asOfFormatter.string(from: asOfDate))")
                 .font(AppFont.scaled(16, weight: .semibold))
@@ -114,7 +114,7 @@ struct BioAgeHeroSection: View {
         let isYounger = estimate.biologicalAge < Double(chronologicalAge)
         let tint = unlockedTint(isYounger: isYounger)
         return Text(Self.bigNumberFormatter.string(from: NSNumber(value: estimate.biologicalAge)) ?? "—")
-            .font(.system(size: 56, weight: .heavy, design: .rounded))
+            .font(AppFont.scaled(56, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
             .foregroundStyle(tint)
             .monospacedDigit()
             .contentTransition(.numericText())

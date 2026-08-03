@@ -76,7 +76,7 @@ struct BiomarkerDetailSheet: View {
     private var heroBlock: some View {
         HStack(alignment: .lastTextBaseline, spacing: Spacing.sm) {
             Text(latestValueString)
-                .font(.system(size: 48, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(48, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
             if let unitString = biomarker.displayUnit(for: unit) {

@@ -93,11 +93,14 @@ a simulator. Phases 3 and 4 are what the two checkers replicate.
    ambient backdrops. Whether each is artwork or decoration turns on seeing
    it. The decorative-on-controls case — the one R1 is actually aimed at —
    is fixed and lint-enforced.
-3. **Display numerals ignore Dynamic Type.** The 16 sites above 24pt use
-   `Font.system(size:)` directly. At Accessibility XXXL body text grows
-   past some of them and the hierarchy inverts.
-   `AppFont.scaled(_:relativeTo:)` is the fix; capping growth without the
-   XXXL screenshots risks truncation instead.
+3. ~~Display type ignores Dynamic Type.~~ **Fixed.** The count was 43, not
+   the 16 first reported — that figure covered numerals only and missed
+   every onboarding headline. All 37 outside the fixed export canvas now use
+   `AppFont.scaled(_:relativeTo: .largeTitle)`, which grows them on a
+   display curve. The truncation worry that held this back was misplaced:
+   without `lineLimit` the text wraps rather than clipping, and the six
+   share-card sites that genuinely need a frozen size are exempt by name.
+   `design-lint: fixed-font` now covers display text as well as body.
 4. **Visual monotony, thumb zone, relationship spacing** (R4 and friends) —
    blocked on renders.
 5. **Two empty states still tell without showing**: `WorkoutHistoryView`

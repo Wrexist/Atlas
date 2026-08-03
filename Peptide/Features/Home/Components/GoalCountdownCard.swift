@@ -151,7 +151,7 @@ struct GoalCountdownCard: View {
     private func countdown(weeks: Int, days: Int) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
             Text("\(weeks)")
-                .font(.system(size: 44, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())

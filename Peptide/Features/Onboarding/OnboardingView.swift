@@ -828,7 +828,7 @@ struct OnboardingView: View {
             )
             VStack(spacing: Spacing.md) {
                 Text("Welcome to\nAtlas.")
-                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(56, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(-4)
@@ -857,7 +857,7 @@ struct OnboardingView: View {
             HeroIcon(symbol: "person.crop.circle.fill", bounceTrigger: bounceTrigger)
             VStack(spacing: Spacing.md) {
                 Text("Save your\nprogress.")
-                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(38, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(-2)
@@ -958,7 +958,7 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.lg) {
             VStack(spacing: Spacing.sm) {
                 Text("Where did you hear\nabout Atlas?")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(-2)
@@ -1032,7 +1032,7 @@ struct OnboardingView: View {
                 .padding(.top, Spacing.xl)
             VStack(spacing: Spacing.sm) {
                 Text("What should we call you?")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
             }
@@ -1085,7 +1085,7 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             VStack(spacing: Spacing.xs) {
                 Text(goalHeadline)
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                     .contentTransition(.opacity)
@@ -1294,7 +1294,7 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.lg) {
             VStack(spacing: Spacing.sm) {
                 Text("How much experience?")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
             }
@@ -1362,7 +1362,7 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.lg) {
             VStack(spacing: Spacing.sm) {
                 Text("When do you train?")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
             }
@@ -1478,7 +1478,7 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.lg) {
             VStack(spacing: Spacing.sm) {
                 Text("What gear do you have?")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
             }
@@ -1549,7 +1549,7 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     Text("Try logging a set.")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(32, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                     Text("Two taps. That's the whole loop.")
                         .font(AppFont.subheadline)
@@ -1678,7 +1678,7 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     Text(projectionHeadline)
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(32, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(projectionSubtitle)
@@ -1860,7 +1860,7 @@ struct OnboardingView: View {
                     .padding(.top, Spacing.xl)
                 VStack(spacing: Spacing.sm) {
                     Text("A quick safety note.")
-                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(30, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.center)
                     Text("Atlas is an educational and tracking tool — not a replacement for a clinician.")
@@ -1924,7 +1924,7 @@ struct OnboardingView: View {
                     .padding(.top, Spacing.xl)
                 VStack(spacing: Spacing.sm) {
                     Text("Stay on track.")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(32, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.center)
                     Text("Workout reminders, weekly recaps,\nand rest-timer alerts.")
@@ -1975,7 +1975,7 @@ struct OnboardingView: View {
                 .padding(.top, Spacing.xl)
                 VStack(spacing: Spacing.sm) {
                     Text("Connect Apple Health.")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(32, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.center)
                     Text("Unlock Recovery, HRV trends,\nand sleep-quality insights.")
@@ -2077,7 +2077,7 @@ struct OnboardingView: View {
             buildingRing
             VStack(spacing: Spacing.sm) {
                 Text("Building your plan…")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(28, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                 Text(buildingStageLabel)
                     .font(AppFont.subheadline)
@@ -2125,7 +2125,7 @@ struct OnboardingView: View {
                 .frame(width: 120, height: 120)
                 .rotationEffect(.degrees(-90))
             Text("\(Int(buildingProgress * 100))%")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(28, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
@@ -2265,7 +2265,7 @@ struct OnboardingView: View {
                     .padding(.top, Spacing.xl)
                 if !name.isEmpty {
                     Text("You're set, \(name).")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(28, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.center)
                 }
@@ -2363,7 +2363,7 @@ struct OnboardingView: View {
 
                 VStack(spacing: Spacing.sm) {
                     Text("Got a creator code?")
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.center)
                     Text("Apply a friend's code or join the Atlas creator program.")

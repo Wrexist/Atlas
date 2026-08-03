@@ -165,13 +165,13 @@ struct ReconstitutionCalculator: View {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 if hasFractionalUnits {
                     Text("≈ \(unitsRounded)")
-                        .font(.system(size: 44, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
                 } else {
                     Text("\(unitsRounded)")
-                        .font(.system(size: 44, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())

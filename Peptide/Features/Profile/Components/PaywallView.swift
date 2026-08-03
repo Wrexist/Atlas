@@ -111,7 +111,7 @@ struct PaywallView: View {
                     }
 
                 Text("Atlas")
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(30, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
             }
 

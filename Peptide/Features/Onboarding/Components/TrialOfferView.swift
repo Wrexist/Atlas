@@ -220,7 +220,7 @@ struct TrialOfferView: View {
                 .foregroundStyle(AppColor.textSecondary)
 
             Text("\(trialDays) Days Free")
-                .font(.system(size: 44, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
 

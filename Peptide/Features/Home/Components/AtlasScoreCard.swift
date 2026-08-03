@@ -39,7 +39,7 @@ struct AtlasScoreCard: View {
                         .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                         .foregroundStyle(AppColor.textSecondary)
                     Text("\(momentum.level)")
-                        .font(.system(size: 26, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(26, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())

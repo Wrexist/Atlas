@@ -129,7 +129,7 @@ private struct LanguageRow: View {
             GlassCardCompact(tinted: isSelected) {
                 HStack(spacing: Spacing.md) {
                     Text(flag)
-                        .font(.system(size: 28))
+                        .font(AppFont.scaled(28, relativeTo: .largeTitle))
                         .frame(width: 44, height: 44)
                         .background(
                             Circle().fill(AppColor.cardOverlay)

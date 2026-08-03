@@ -168,7 +168,7 @@ struct BrandGlyphMark: View {
                         .strokeBorder(AppColor.textPrimary.opacity(0.18), lineWidth: 0.5)
                 }
             Text("A")
-                .font(.system(size: 34, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textPrimary.opacity(0.85))
         }
     }
