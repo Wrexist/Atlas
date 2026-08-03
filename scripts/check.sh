@@ -44,6 +44,11 @@ else
   printf '\n\033[1m── SwiftLint\033[0m\n\033[33m   skipped — not installed\033[0m\n'
 fi
 
+# Numbers in copy are only wrong relative to something else. Nothing else
+# here compares the two, which is how "LEVEL 14 · GOLD" shipped into an App
+# Store screenshot for an app whose engine puts level 14 in Silver.
+run "Copy claims vs source" python3 scripts/check-copy-claims.py
+
 run "Bundled peptide dataset" python3 - <<'PY'
 import json, pathlib, sys
 p = pathlib.Path("Peptide/Resources/peptides.json")

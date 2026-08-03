@@ -84,6 +84,15 @@ the CBOR decoder, and they *execute* — no Xcode needed. All 48 pass. That
 is worth knowing precisely because nothing on the Swift side can say the
 same.
 
+**Numbers in copy are checked against their source.**
+`scripts/check-copy-claims.py` compares every count the marketing and app
+copy asserts — exercises, compounds, lab panels and categories, and the
+Atlas Score level/tier pairing — against the dataset or engine it comes
+from. It exists because a screenshot shipped claiming "LEVEL 14 · GOLD"
+for an app whose `MomentumEngine` puts level 14 in Silver, and nothing
+caught it: a claim is only wrong *relative to something else*, and no
+checker was comparing the two.
+
 **Run `scripts/check.sh` before you push.** It is every check that works
 without Xcode — the design system, the 244 colour pairs, SwiftLint if it is
 installed, the bundled dataset, the 48 proxy tests, and the four App Store
