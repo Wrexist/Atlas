@@ -49,6 +49,7 @@ struct AtlasProgressView: View {
             HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
                 Text("\(momentum.score)")
                     .font(.system(size: 40, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
                 Text("pts")
@@ -153,6 +154,7 @@ struct AtlasProgressView: View {
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
                     Text("\(Int((rate30 * 100).rounded()))%")
                         .font(.system(size: 36, weight: .heavy, design: .rounded))
+                        .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                     Text("last 30 days")
                         .font(AppFont.subheadline)

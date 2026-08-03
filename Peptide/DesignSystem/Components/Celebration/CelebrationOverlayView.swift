@@ -34,6 +34,7 @@ struct CelebrationOverlayView: View {
             VStack(spacing: Spacing.xxs) {
                 Text("LEVEL \(level)")
                     .font(.system(size: 34, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
                 Text("\(tierName) tier")

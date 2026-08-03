@@ -152,6 +152,7 @@ struct GoalCountdownCard: View {
         HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
             Text("\(weeks)")
                 .font(.system(size: 44, weight: .heavy, design: .rounded))
+                .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
             VStack(alignment: .leading, spacing: 0) {

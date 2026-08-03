@@ -2114,6 +2114,7 @@ struct OnboardingView: View {
                 .rotationEffect(.degrees(-90))
             Text("\(Int(buildingProgress * 100))%")
                 .font(.system(size: 28, weight: .bold, design: .rounded))
+                .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
                 .animation(.linear(duration: 0.1), value: buildingProgress)
