@@ -769,13 +769,16 @@ final class PersistenceRoundTripTests: XCTestCase {
         } else { XCTFail("Expected upcoming") }
     }
 
-    func test_progressPhotoMetadata_parsesUnixTimestampFromFilename() {
+    func test_progressPhotoMetadata_parsesUnixTimestampFromFilename() throws {
         // Filename format: progress-<unix>-<uuid6>.jpg
         let stamp: TimeInterval = 1_715_000_000   // May 2024
         let filename = "progress-\(Int(stamp))-abc123.jpg"
-        let parsed = ProgressPhotoMetadata.date(forFilename: filename)
-        XCTAssertNotNil(parsed)
-        XCTAssertEqual(parsed?.timeIntervalSince1970, stamp, accuracy: 0.001)
+        // XCTUnwrap rather than XCTAssertNotNil + optional chaining: the
+        // `accuracy:` overload takes a non-optional, so `parsed?.` could
+        // never have compiled here. Unwrapping also fails the test at the
+        // real cause instead of comparing against a silently-defaulted 0.
+        let parsed = try XCTUnwrap(ProgressPhotoMetadata.date(forFilename: filename))
+        XCTAssertEqual(parsed.timeIntervalSince1970, stamp, accuracy: 0.001)
     }
 
     func test_progressPhotoMetadata_returnsNilForUnknownScheme() {
