@@ -616,7 +616,7 @@ struct TrialOfferView: View {
         Haptics.impact(.medium)
         errorMessage = nil
         guard let product = productForSelectedTier else {
-            withAnimation { errorMessage = "Plan still loading. Try again in a moment." }
+            withAnimation(AppAnimation.fadeIn) { errorMessage = "Plan still loading. Try again in a moment." }
             return
         }
         isPurchasing = true
@@ -635,14 +635,14 @@ struct TrialOfferView: View {
                     Haptics.success()
                     onAccept()
                 case .pending:
-                    withAnimation {
+                    withAnimation(AppAnimation.fadeIn) {
                         errorMessage = "Purchase pending approval. We'll unlock Pro as soon as it's approved."
                     }
                 case .userCancelled:
                     break // no UI noise on explicit cancel
                 }
             } catch {
-                withAnimation { errorMessage = "Couldn't complete the purchase. Please try again." }
+                withAnimation(AppAnimation.fadeIn) { errorMessage = "Couldn't complete the purchase. Please try again." }
             }
         }
     }

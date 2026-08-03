@@ -155,7 +155,7 @@ struct PeptideDetailView: View {
 
                 // Dosage Info
                 DosageInfoSection(peptide: peptide) {
-                    withAnimation { proxy.scrollTo(Section.research, anchor: .top) }
+                    withAnimation(AppAnimation.springSmooth) { proxy.scrollTo(Section.research, anchor: .top) }
                 }
                 .sectionAppear(index: staggerIndex(.dosage))
 

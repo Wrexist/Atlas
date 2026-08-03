@@ -301,6 +301,28 @@ def rule_placeholder_as_label(path, source, code) -> list[Finding]:
     return out
 
 
+def rule_unnamed_motion(path, source, code) -> list[Finding]:
+    """R3, second clause — "explicit durations and easings".
+
+    The first clause (an untargeted `.animation`) is `rule_untargeted_animation`.
+    This is the other half: `withAnimation { }` with no argument takes
+    SwiftUI's default, which is the same "author didn't decide what should
+    move, or how fast" that `transition: all` signals in CSS. `AppAnimation`
+    exists to name the motion; nine sites were bypassing it.
+    """
+    if path.name == "AnimationConstants.swift":
+        return []
+    out = []
+    pattern = (r"withAnimation\s*\{|withAnimation\(\s*\)|"
+               r"\.animation\(\s*\.(?:default|easeInOut|easeOut|easeIn)\s*[,)]|"
+               r"\.animation\(\s*\.spring\(\s*\)")
+    for m in re.finditer(pattern, code):
+        out.append(Finding(path, line_of(code, m.start()), "unnamed-motion",
+                           "animation with no explicit duration or easing; use an "
+                           "AppAnimation constant so the motion is named", "error"))
+    return out
+
+
 def rule_placeholder_copy(path, source, code) -> list[Finding]:
     out = []
     for m in PLACEHOLDER_COPY.finditer(code):
@@ -617,6 +639,7 @@ RULES = [
     rule_fixed_font,
     rule_glow,
     rule_untargeted_animation,
+    rule_unnamed_motion,
     rule_placeholder_copy,
     rule_placeholder_as_label,
     rule_hit_target,

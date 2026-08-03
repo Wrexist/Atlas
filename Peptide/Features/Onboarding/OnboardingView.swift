@@ -474,7 +474,7 @@ struct OnboardingView: View {
             if page > 0 {
                 Button {
                     haptic()
-                    withAnimation { page = max(0, page - 1) }
+                    withAnimation(AppAnimation.springSnappy) { page = max(0, page - 1) }
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(AppFont.scaled(16, weight: .semibold))
@@ -729,7 +729,7 @@ struct OnboardingView: View {
             return true
         }
         guard trimmed.looksLikeEmail else {
-            withAnimation { emailError = "That doesn't look like an email address." }
+            withAnimation(AppAnimation.fadeIn) { emailError = "That doesn't look like an email address." }
             Haptics.error()
             return false
         }
@@ -765,7 +765,7 @@ struct OnboardingView: View {
             OnboardingFunnelTracker.recordEvent("creator_code_applied")
             Haptics.success()
         } else {
-            withAnimation { creatorError = "Code not found — double-check and try again." }
+            withAnimation(AppAnimation.fadeIn) { creatorError = "Code not found — double-check and try again." }
             OnboardingFunnelTracker.recordEvent("creator_code_invalid")
             Haptics.error()
         }
@@ -795,7 +795,7 @@ struct OnboardingView: View {
         // Tear down the keyboard before the page transition so it can't
         // linger over the next card mid-animation.
         dismissKeyboard()
-        withAnimation { page = min(totalPages - 1, page + 1) }
+        withAnimation(AppAnimation.springSnappy) { page = min(totalPages - 1, page + 1) }
     }
 
     /// Resigns the first responder app-wide. Covers the text fields that
@@ -1612,7 +1612,7 @@ struct OnboardingView: View {
                      : "Tap the circle to log this set.")
                     .font(AppFont.footnote)
                     .foregroundStyle(demoCelebrate ? AppColor.positive : AppColor.textTertiary)
-                    .animation(.easeInOut, value: demoCelebrate)
+                    .animation(AppAnimation.fadeIn, value: demoCelebrate)
             }
         }
     }

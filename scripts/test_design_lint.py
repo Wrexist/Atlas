@@ -84,6 +84,10 @@ CASES = [
      'Text("a").animation(.easeOut(duration: 0.2))',
      'Text("a").animation(.easeOut(duration: 0.2), value: count)'),
 
+    ("rule_unnamed_motion", "Foo.swift",
+     'Button { withAnimation { page += 1 } } label: { Text("Next") }',
+     'Button { withAnimation(AppAnimation.springSnappy) { page += 1 } } label: { Text("Next") }'),
+
     ("rule_placeholder_as_label", "Foo.swift",
      'HStack {\n  Text("Sets")\n  TextField("0", text: $sets)\n    .keyboardType(.numberPad)\n}',
      'HStack {\n  Text("Sets")\n  TextField("0", text: $sets)\n    .accessibilityLabel("Sets")\n}'),
