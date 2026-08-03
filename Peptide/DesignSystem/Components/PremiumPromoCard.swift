@@ -161,12 +161,12 @@ extension PremiumPromoCard where Trailing == BrandGlyphMark {
 struct BrandGlyphMark: View {
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(AppColor.textPrimary.opacity(0.18), lineWidth: 0.5)
-                }
+            Color.clear
+                .glassControl(
+                    .rect(cornerRadius: 18),
+                    border: AppColor.textPrimary.opacity(0.18),
+                    interactive: false
+                )
             Text("A")
                 .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textPrimary.opacity(0.85))

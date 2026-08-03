@@ -469,6 +469,28 @@ def rule_stacked_glass(path, source, code) -> list[Finding]:
     return out
 
 
+def rule_raw_material(path, source, code) -> list[Finding]:
+    """A hand-rolled `.fill(.ultraThinMaterial)` is the legacy glass recipe
+    written out inline, and on iOS 26 it renders the iOS 15 material instead
+    of Liquid Glass — the surface silently opts out of the design system.
+
+    `.presentationBackground(.thinMaterial)` is exempt: that is the documented
+    sheet API, not a bypass, and there is no glass equivalent for it.
+    """
+    if path.name == "GlassEffectCompat.swift":
+        return []
+    out = []
+    for m in re.finditer(r"\.(?:fill|background)\(\s*\.(\w*[Mm]aterial)\s*\)", code):
+        before = code[max(0, m.start() - 40):m.start()]
+        if "presentationBackground" in before:
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "raw-material",
+                           f".{m.group(1)} bypasses the glass system; use "
+                           "glassSurface / glassControl / glassSurfaceCapsule",
+                           "error"))
+    return out
+
+
 def rule_uncombined_row(path, source, code) -> list[Finding]:
     """A repeated list row that mixes an icon with text is one piece of
     information, but VoiceOver reads it as several — an icon stop, then each
@@ -647,6 +669,7 @@ RULES = [
     rule_low_contrast_ink,
     rule_unlabelled_icon_button,
     rule_stacked_glass,
+    rule_raw_material,
     rule_uncombined_row,
 ]
 

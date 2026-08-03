@@ -43,15 +43,7 @@ struct HomeStickyHeader: View {
         }
         .padding(.horizontal, Spacing.screenPadding)
         .padding(.vertical, Spacing.sm)
-        .background {
-            ZStack {
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                Rectangle()
-                    .fill(AppColor.background.opacity(0.55))
-            }
-            .opacity(progress)
-        }
+        .background { GlassBarBackground(opacity: progress) }
         .overlay(alignment: .bottom) {
             // Hairline divider that arrives with the rest of the
             // bar. 0.5pt to read crisp on Retina without looking

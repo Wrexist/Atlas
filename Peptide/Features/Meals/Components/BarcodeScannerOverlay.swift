@@ -56,16 +56,11 @@ struct BarcodeScannerOverlay: View {
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(torchOn ? AppColor.accentLight : .white)
                 .frame(width: 44, height: 44)
-                .background {
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .overlay {
-                            Circle().strokeBorder(
-                                torchOn ? AppColor.accentPrimary.opacity(0.55) : AppColor.glassBorder,
-                                lineWidth: 1
-                            )
-                        }
-                }
+                .glassControl(
+                    .circle,
+                    tint: torchOn ? AppColor.accentPrimary.opacity(0.18) : nil,
+                    border: torchOn ? AppColor.accentPrimary.opacity(0.55) : AppColor.glassBorder
+                )
         }
         .accessibilityLabel(torchOn ? "Turn off flashlight" : "Turn on flashlight")
         .accessibilityAddTraits(torchOn ? [.isButton, .isSelected] : .isButton)

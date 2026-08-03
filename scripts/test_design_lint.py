@@ -92,6 +92,14 @@ CASES = [
      'HStack {\n  Text("Sets")\n  TextField("0", text: $sets)\n    .keyboardType(.numberPad)\n}',
      'HStack {\n  Text("Sets")\n  TextField("0", text: $sets)\n    .accessibilityLabel("Sets")\n}'),
 
+    ("rule_raw_material", "Foo.swift",
+     'Capsule().fill(.ultraThinMaterial)',
+     'Text("hi").glassControl(.capsule, interactive: false)'),
+
+    ("rule_raw_material", "Foo.swift",
+     'VStack { Text("hi") }.background(.regularMaterial)',
+     'VStack { Text("hi") }.presentationBackground(.ultraThinMaterial)'),
+
     ("rule_pure_neutral", "ColorTheme.swift",
      'static let ink = Color(light: 0x000000, dark: 0xFFFFFF)',
      'static let ink = Color(light: 0x111114, dark: 0xF7F7FA)'),

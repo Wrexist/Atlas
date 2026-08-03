@@ -195,19 +195,17 @@ struct CompoundVial: View {
             .padding(.horizontal, m.labelPadding)
             .padding(.vertical, m.labelPadding * 0.55)
             .frame(width: m.labelWidth)
-            .background {
-                RoundedRectangle(cornerRadius: m.labelCornerRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: m.labelCornerRadius, style: .continuous)
-                            .fill(palette.fill.opacity(0.55))
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: m.labelCornerRadius, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.35), lineWidth: 0.5)
-                    }
-                    .shadow(color: .black.opacity(0.25), radius: 1.5, y: 0.8)
-            }
+            .glassControl(
+                .rect(cornerRadius: m.labelCornerRadius),
+                // The vial label is a coloured band by design, so it takes
+                // more tint than a control would. `Glass.tint` saturates
+                // much faster than the painted legacy wash, hence the split.
+                tint: palette.fill.opacity(0.22),
+                legacyTint: palette.fill.opacity(0.55),
+                border: Color.white.opacity(0.35),
+                interactive: false
+            )
+            .shadow(color: .black.opacity(0.25), radius: 1.5, y: 0.8)
     }
 
     private func contactShadow(metrics m: VialMetrics) -> some View {

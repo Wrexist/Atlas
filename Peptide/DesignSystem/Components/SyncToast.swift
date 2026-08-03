@@ -29,16 +29,12 @@ struct SyncToast: View {
                 }
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, 8)
-                .background {
-                    Capsule()
-                        .fill(.ultraThinMaterial)
-                        .overlay {
-                            Capsule().fill(AppColor.success.opacity(0.10))
-                        }
-                        .overlay {
-                            Capsule().strokeBorder(AppColor.success.opacity(0.35), lineWidth: 0.5)
-                        }
-                }
+                .glassControl(
+                    .capsule,
+                    tint: AppColor.success.opacity(0.10),
+                    border: AppColor.success.opacity(0.35),
+                    interactive: false
+                )
                 .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .onAppear { scheduleDismiss() }

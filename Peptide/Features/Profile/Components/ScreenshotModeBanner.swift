@@ -90,15 +90,12 @@ struct ScreenshotModeBanner: View {
             }
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)
-            .background {
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 26, style: .continuous)
-                            .strokeBorder(accent.opacity(0.4), lineWidth: 0.5)
-                    }
-                    .shadow(color: .black.opacity(0.35), radius: 18, y: 8)
-            }
+            .glassControl(
+                .rect(cornerRadius: 26),
+                border: accent.opacity(0.4),
+                interactive: false
+            )
+            .appShadow(AppShadow.glassElevated)
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.sm)
             .transition(.move(edge: .bottom).combined(with: .opacity))

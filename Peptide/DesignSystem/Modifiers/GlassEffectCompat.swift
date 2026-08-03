@@ -135,6 +135,11 @@ extension View {
     ///   - tint: the accent wash the control carries. Keep it low —
     ///     ~0.15–0.20 — or the tint stops reading as glass and starts reading
     ///     as a flat coloured button.
+    ///   - legacyTint: the wash for the pre-iOS-26 recipe, when it needs to be
+    ///     stronger than the real material's tint. The two are not
+    ///     interchangeable: the legacy path *paints* the colour over an opaque
+    ///     fill, so it needs more alpha to read at all, while `Glass.tint`
+    ///     multiplies into the material and saturates fast. Defaults to `tint`.
     ///   - border: hairline colour for the legacy recipe. Ignored on iOS 26+,
     ///     where the material provides its own edge.
     ///   - interactive: opt into the system's bouncy press response.
@@ -142,6 +147,7 @@ extension View {
     func glassControl(
         _ preset: GlassPreset,
         tint: Color? = nil,
+        legacyTint: Color? = nil,
         border: Color = AppColor.glassBorder,
         interactive: Bool = true
     ) -> some View {
@@ -163,11 +169,12 @@ extension View {
             }
         } else {
             let shape = preset.shape
+            let wash = legacyTint ?? tint ?? AppColor.cardOverlay
             self
                 .background {
                     shape
                         .fill(AppColor.surfaceSecondary.opacity(0.6))
-                        .overlay { shape.fill(tint ?? AppColor.cardOverlay) }
+                        .overlay { shape.fill(wash) }
                         .overlay { shape.stroke(border, lineWidth: 0.5) }
                 }
                 .clipShape(shape)
@@ -199,6 +206,40 @@ extension View {
                 }
                 .clipShape(Capsule())
         }
+    }
+}
+
+/// The backdrop for a full-bleed docked bar — the AI composer, the Home
+/// sticky header, any rail pinned to a screen edge.
+///
+/// Bars can't go through `glassSurface`: they have no corner radius, and its
+/// legacy recipe strokes a hairline all the way round, which on a full-width
+/// bar draws a line down both screen edges. A bar owns its own divider on the
+/// single edge that faces content.
+///
+/// It is also the one place outside this file allowed to reach for
+/// `.ultraThinMaterial`. Pre-iOS-26 the bar sits over live scrolling content,
+/// where the flat `surfaceSecondary` wash the card recipe uses would read as
+/// an opaque slab. Keeping the material here means feature code still has a
+/// single call to make, and `rule_raw_material` can stay an error everywhere
+/// else.
+///
+/// `opacity` exists for scroll-driven bars that fade in as content passes
+/// under them.
+struct GlassBarBackground: View {
+    var opacity: Double = 1
+
+    var body: some View {
+        Group {
+            if #available(iOS 26.0, *) {
+                Color.clear.glassEffect(.regular, in: .rect(cornerRadius: 0))
+            } else {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .overlay { Rectangle().fill(AppColor.background.opacity(0.55)) }
+            }
+        }
+        .opacity(opacity)
     }
 }
 

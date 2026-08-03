@@ -233,7 +233,7 @@ struct AIResearchView: View {
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.sm)
-        .background(.ultraThinMaterial)
+        .background { GlassBarBackground() }
         .overlay(alignment: .top) {
             Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
         }
