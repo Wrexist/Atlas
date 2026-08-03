@@ -195,6 +195,21 @@ def rule_glow(path, source, code) -> list[Finding]:
                            "AppShadow.accentGlow is an accent halo; emphasis should "
                            "come from size, weight and contrast", "warning"))
 
+    # Third form, and the one that hid longest: a blurred coloured disc
+    # stacked behind a medallion. It is a halo built out of a shape rather
+    # than a shadow, so neither of the patterns above could see it.
+    if path.name not in FIXED_CANVAS_FILES:
+        for m in re.finditer(r"\.blur\(radius:\s*(\d+)", code):
+            if int(m.group(1)) < 12:
+                continue
+            before = code[max(0, m.start() - 260):m.start()]
+            if not re.search(r"\.fill\(\s*(?:AppColor\.accent|accent|color|tint)", before):
+                continue
+            out.append(Finding(path, line_of(code, m.start()), "glow",
+                               f"a blurred coloured disc at radius {m.group(1)} behind a "
+                               "glyph is a halo built from a shape; emphasis comes from "
+                               "size, weight and contrast", "warning"))
+
     for m in re.finditer(r"\.shadow\(\s*color:\s*([^,]+),[^)]*radius:\s*(\d+(?:\.\d+)?)", code):
         colour, radius = m.group(1).strip(), float(m.group(2))
         if re.search(r"\.black|\.clear|Color\.black|AppShadow", colour):

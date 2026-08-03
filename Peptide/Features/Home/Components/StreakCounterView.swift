@@ -105,7 +105,7 @@ private struct ConditionalGlow: ViewModifier {
 
     func body(content: Content) -> some View {
         if active {
-            content.appShadow(AppShadow.accentGlow)
+            content.appShadow(AppShadow.glassElevated)
         } else {
             content
         }

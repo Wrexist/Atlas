@@ -72,6 +72,10 @@ CASES = [
      'Circle().trim(from: 0, to: p).stroke(tint, lineWidth: 8)\n.shadow(color: AppColor.accentPrimary, radius: 16, y: 4)',
      'Circle().fill(tint)\n.shadow(color: AppColor.accentPrimary, radius: 16, y: 4)'),
 
+    ("rule_glow", "Foo.swift",
+     'ZStack {\n  Circle().fill(accent.opacity(0.2)).frame(width: 84, height: 84).blur(radius: 18)\n  Image(systemName: "star")\n}',
+     'ZStack {\n  Circle().fill(accent).frame(width: 84, height: 84)\n  Image(systemName: "star")\n}'),
+
     ("rule_placeholder_copy", "Foo.swift",
      'Text("Coming soon")',
      'Text("Log your first workout")'),

@@ -348,7 +348,7 @@ struct ProfileCustomizationSheet: View {
                 )
         }
         .liquidGlass(.circle)
-        .shadow(color: AppColor.accentGlow, radius: 16, y: 6)
+        .appShadow(AppShadow.glassElevated)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(avatarAccessibilityLabel)
     }

@@ -36,8 +36,7 @@ struct ProtocolScoreCard: View {
                     strokeWidth: 14,
                     gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
                     appearAnimated: true,
-                    celebrateAtCompletion: true,
-                    glow: true
+                    celebrateAtCompletion: true
                 ) {
                     VStack(spacing: Spacing.xxs) {
                         Text("\(Int((score * 100).rounded()))")

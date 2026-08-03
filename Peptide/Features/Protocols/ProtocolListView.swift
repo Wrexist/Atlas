@@ -121,7 +121,7 @@ struct ProtocolListView: View {
                         showingBuilder = true
                     }
                 }
-                .appShadow(AppShadow.accentGlow)
+                .appShadow(AppShadow.glassElevated)
                 .padding(Spacing.xxl)
             }
             .refreshable {

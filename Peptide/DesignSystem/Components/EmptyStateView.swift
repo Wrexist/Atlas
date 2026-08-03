@@ -117,10 +117,6 @@ struct EmptyStateView: View {
     private var heroMedallion: some View {
         ZStack {
             Circle()
-                .fill(accent.opacity(0.18))
-                .frame(width: 84, height: 84)
-                .blur(radius: 18)
-            Circle()
                 .fill(
                     LinearGradient(
                         colors: [accent, accent.opacity(0.65)],

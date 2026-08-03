@@ -38,10 +38,13 @@ with an execution log recording what actually landed.
   thirteen rules SwiftLint can't see. Running it found 25 surfaces still
   stacking two glass materials outside the primitives, two neon halos,
   nine sub-44pt controls, and five rows VoiceOver read as eight stops —
-  all fixed. It sits at zero errors and 7 warnings — the warnings are R2
-  accent halos, surfaced only after the glow rule was found to be blind to
-  `AppShadow.accentGlow` and to stroke-anchored glows. Keep errors at zero,
-  and resolve those 7 against a render rather than by muting the rule.
+  all fixed. It sits at **zero errors and zero warnings**. Getting there
+  meant finding the glow rule blind three separate times — to
+  `AppShadow.accentGlow`, to stroke-anchored shadows, and finally to a
+  blurred coloured disc stacked behind a medallion, which is a halo built
+  from a shape rather than a shadow. Twelve halos in total, including
+  `MetricRing`'s `glow` parameter, which is now deleted rather than
+  defaulted off. `scripts/test_design_lint.py` pins all three forms.
 - **Light mode is no longer optional per screen.** 44 shipping views —
   every sheet, both editors, the paywall, onboarding — pinned
   `.preferredColorScheme(.dark)` on their own root. That was invisible

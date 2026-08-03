@@ -17,12 +17,6 @@ struct HeroIcon: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(color.opacity(0.16))
-                .frame(width: size * 1.9, height: size * 1.9)
-                .blur(radius: 32)
-                .scaleEffect(pulse ? 1.05 : 0.96)
-
-            Circle()
                 .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                 .frame(width: size * 1.55, height: size * 1.55)
 
@@ -81,13 +75,6 @@ struct HeroLogo: View {
 
     var body: some View {
         ZStack {
-            // Wide ambient glow — the "outglow shadow around the circle".
-            Circle()
-                .fill(color.opacity(0.22))
-                .frame(width: size * 1.9, height: size * 1.9)
-                .blur(radius: 38)
-                .scaleEffect(pulse ? 1.06 : 0.96)
-
             // Soft outer ring for depth, matching HeroIcon's framing.
             Circle()
                 .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
@@ -102,8 +89,7 @@ struct HeroLogo: View {
                 .overlay {
                     Circle().strokeBorder(AppColor.glassBorderActive, lineWidth: 1)
                 }
-                .shadow(color: color.opacity(0.55), radius: 24, x: 0, y: 6)
-                .shadow(color: color.opacity(0.35), radius: 8, x: 0, y: 2)
+                .appShadow(AppShadow.glassElevated)
                 .scaleEffect(pulse ? 1.015 : 1.0)
                 .scaleEffect(bounce ? 1.06 : 1.0)
         }

@@ -201,10 +201,6 @@ struct WeeklySummaryHeroCard: View {
         HStack(alignment: .center, spacing: Spacing.md) {
             ZStack {
                 Circle()
-                    .fill(accent.opacity(0.20))
-                    .frame(width: 52, height: 52)
-                    .blur(radius: 12)
-                Circle()
                     .fill(
                         LinearGradient(
                             colors: [accent, accent.opacity(0.65)],

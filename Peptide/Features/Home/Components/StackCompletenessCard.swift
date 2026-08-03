@@ -11,8 +11,7 @@ struct StackCompletenessCard: View {
                     diameter: 64,
                     strokeWidth: 6,
                     gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
-                    appearAnimated: true,
-                    glow: true
+                    appearAnimated: true
                 ) {
                     Text("\(Int(completeness.score * 100))%")
                         .font(AppFont.subheadline)

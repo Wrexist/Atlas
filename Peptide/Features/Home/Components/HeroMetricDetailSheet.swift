@@ -69,8 +69,7 @@ struct HeroMetricDetailSheet: View {
                 diameter: 110,
                 strokeWidth: 12,
                 gradient: kind.gradient(active: valueForRing.isAvailable),
-                appearAnimated: true,
-                glow: true
+                appearAnimated: true
             ) {
                 if valueForRing.isAvailable {
                     Text("\(valueForRing.displayPercent)%")

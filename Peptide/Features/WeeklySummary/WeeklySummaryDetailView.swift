@@ -62,10 +62,6 @@ struct WeeklySummaryDetailView: View {
             HStack(spacing: Spacing.md) {
                 ZStack {
                     Circle()
-                        .fill(accent.opacity(0.20))
-                        .frame(width: 72, height: 72)
-                        .blur(radius: 14)
-                    Circle()
                         .fill(
                             LinearGradient(
                                 colors: [accent, accent.opacity(0.65)],

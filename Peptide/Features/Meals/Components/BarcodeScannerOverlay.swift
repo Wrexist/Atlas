@@ -42,7 +42,6 @@ struct BarcodeScannerOverlay: View {
             .strokeBorder(AppColor.accentLight.opacity(0.85), lineWidth: 2)
             .frame(width: 240, height: 140)
             .scaleEffect(isBreathing ? 1.06 : 1.0)
-            .shadow(color: AppColor.accentGlow, radius: 12)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
     }
