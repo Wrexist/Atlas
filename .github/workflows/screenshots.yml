@@ -23,17 +23,6 @@ on:
         required: false
         default: ""
         type: string
-  # TEMPORARY. Dispatching this workflow needs an `actions: write` token,
-  # which the agent working this branch does not have — so the one job whose
-  # entire purpose is to let a human look at the app could never be started
-  # by the thing that needed it. A push trigger scoped to this one branch
-  # needs no special permission.
-  #
-  # Delete this `push:` block once the branch merges. It costs a macOS
-  # runner (~15 min) on every push while it is here.
-  push:
-    branches:
-      - claude/app-review-design-polish-s14ish
 
 permissions:
   contents: read
@@ -56,10 +45,10 @@ jobs:
         run: xcodegen generate
 
       - name: Pick a simulator
-        # `inputs.simulator` is empty on a push event, which would have made
-        # the destination `name=,OS=latest`. And this workflow has never
-        # actually run, so its old hardcoded "iPhone 16" was never verified
-        # to exist on the runner's Xcode. Resolve a real device instead.
+        # This workflow has never once run, so its hardcoded "iPhone 16"
+        # default was never verified to exist on the runner's Xcode — and an
+        # empty `inputs.simulator` would produce `name=,OS=latest`. Resolve a
+        # real device and fail loudly with the device list if there is none.
         id: sim
         run: |
           WANT="${{ inputs.simulator }}"

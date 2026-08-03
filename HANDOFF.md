@@ -75,6 +75,18 @@ the base commit) and every changed API's call sites had their argument
 labels checked against the declaration. That catches syntax and
 signatures, not types. Build first.
 
+**CI has not run since 2026-06-20 — check this first.** Every push to this
+branch creates a workflow run that immediately reports `startup_failure`,
+with no workflow name and `path: BuildFailed` (35 of them so far). All six
+files in `.github/workflows/` parse as valid YAML and none but `release.yml`
+(tags only) even triggers on a branch push, so the cause is not in the repo.
+The last run of any workflow that *succeeded* was 2026-06-20, six weeks ago,
+across a period of active development. That pattern — runs failing before a
+job starts, no name resolved — is what GitHub does when Actions cannot start
+on a repository at all, most commonly a spending limit on a private repo or
+a disabled-Actions policy. Until that is resolved, no CI check on this branch
+means anything, including the two checkers added here.
+
 **Nothing has been seen rendered — but you can fix that in one click.**
 Dispatch the **Screenshots** workflow (Actions → Screenshots → Run
 workflow). It now captures every tab in three passes — dark, light, and
