@@ -49,6 +49,11 @@ fi
 # Store screenshot for an app whose engine puts level 14 in Silver.
 run "Copy claims vs source" python3 scripts/check-copy-claims.py
 
+# Informational, not gating. Coverage is 13% today; making that a hard gate
+# would just fail every run until someone commissions the translations.
+printf '\n\033[1m── Localization coverage\033[0m\n'
+python3 scripts/check-localization.py
+
 run "Bundled peptide dataset" python3 - <<'PY'
 import json, pathlib, sys
 p = pathlib.Path("Peptide/Resources/peptides.json")

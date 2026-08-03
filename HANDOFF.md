@@ -84,6 +84,20 @@ the CBOR decoder, and they *execute* — no Xcode needed. All 48 pass. That
 is worth knowing precisely because nothing on the Swift side can say the
 same.
 
+**The language picker offers ten languages; the catalog covers 13% of the
+UI.** `scripts/check-localization.py` measures it. The translations that
+exist are complete — all 170 catalog keys are present in all nine
+non-English languages — but the app renders **351** distinct user-facing
+sentences and only **45** of them are keys. The rest fall back to the
+English source string, silently: a missing key is not a build error.
+
+This is a product decision, not a bug to patch. Either the remaining ~306
+sentences get translated, or the picker should offer only what is actually
+covered. Machine-translating them was not on the table — this app carries
+dosing and safety copy, and a plausible-but-wrong translation there is worse
+than English. 72 stale keys that no longer appear in the UI are also
+reported; three orphaned Swedish entries were removed outright.
+
 **Numbers in copy are checked against their source.**
 `scripts/check-copy-claims.py` compares every count the marketing and app
 copy asserts — exercises, compounds, lab panels and categories, and the
