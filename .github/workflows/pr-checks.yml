@@ -507,11 +507,21 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            2>&1 | tee testbuild.log || true
+            2>&1 | tee testbuild.log || BUILD_FAILED=1
           echo "## Test-target compile errors (unique)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           grep -E "error:" testbuild.log | sed 's#/Users/runner/work/Peptide-ai/Peptide-ai/##' | sort -u | head -300 >> "$GITHUB_STEP_SUMMARY" || echo "(no error: lines — target may compile clean)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+          # The `|| true` this replaces made the job report success while the
+          # test target was failing to compile — a green check for a red
+          # build. It is not in the `pr-checks` aggregate, so failing here
+          # signals honestly without blocking the PR, which is the whole
+          # point of a non-gating diagnostic job.
+          if [ "${BUILD_FAILED:-0}" = "1" ]; then
+            echo "::error::Test target does not compile — see the step summary for the unique errors."
+            exit 1
+          fi
 
       - name: Upload test build log
         if: always()
