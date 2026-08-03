@@ -59,9 +59,11 @@ final class WorkoutSessionServiceTests: XCTestCase {
     func test_finishWorkout_setsFinishedAt_andClearsActive() {
         _ = service.startWorkout()
         let finished = service.finishWorkout(perceivedEffort: 4, note: "Good day")
-        XCTAssertNotNil(finished?.finishedAt)
-        XCTAssertEqual(finished?.perceivedEffort, 4)
-        XCTAssertEqual(finished?.note, "Good day")
+        // FinishedWorkout is a wrapper — (session, detectedPRs) — so the
+        // session's own fields are one level down, not beside it.
+        XCTAssertNotNil(finished?.session.finishedAt)
+        XCTAssertEqual(finished?.session.perceivedEffort, 4)
+        XCTAssertEqual(finished?.session.note, "Good day")
         XCTAssertNil(service.activeSession,
                      "Service should drop activeSession after finish")
     }
