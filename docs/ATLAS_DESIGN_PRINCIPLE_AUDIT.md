@@ -71,20 +71,21 @@ screens at their real 3x canvas.
 | Contrast (AA) | 5 real failures, incl. the medical disclaimer at 2.6:1 and subscription terms at 3.4:1 | **fixed**, all 4 sets clean |
 | R2/R1 on controls | the primary CTA matched no CSS rule at all — browser-default 16px on a 3x canvas = 5.3pt | **fixed** |
 | Weights | 6 distinct (400/500/600/700/800/900) | **fixed** — folded to 3 emphasis + default |
-| R9 type scale | **33 distinct sizes**, from 7.0pt to 73.3pt | **open** |
+| R9 type scale | 33 distinct sizes, 7.0pt–73.3pt | **fixed** — snapped onto the app's own six-step `AppFont.Scale` (8/11/13/16/20/24pt), largest move 2.0pt, plus four untouched hero numerals |
 | R8 8-point grid | **29 distinct off-grid values across 530 uses** — 3.7pt, 6.0pt, 10.7pt, 6.7pt, 9.3pt lead | **open** |
 
-The last two are real and large. They are the same failure the app itself
-already went through and fixed — 30 point sizes collapsed onto a six-step
-scale, seven weights onto three — and the marketing deck simply never had
-that pass. 33 sizes is the single clearest reason these screens read as
-assembled rather than designed.
+The type scale was the same failure the app itself already fixed — 30 point
+sizes collapsed onto six — and the marketing deck simply never had that
+pass. It now uses the *same* scale as the app, which is the point: the
+screenshots and the product finally agree about what a caption is. 125
+declarations moved, none by more than 2.0pt, and all four sets were
+re-rendered and inspected.
 
-They are left open deliberately: collapsing 33 sizes onto 5 and re-flowing
-530 spacing values is a redesign of assets that are about to ship, not a
-bug fix, and it is the author's call rather than a reviewer's. Every number
-here is reproducible, and the render-and-look loop exists now, so it is a
-contained job for whoever takes it.
+The 8-point grid is left open. 530 uses across 29 values is a re-flow of
+every card and stack on eight screens, and unlike type size — where a 1pt
+move is invisible — spacing changes are what actually break a layout. It
+wants a designer with the file open, not a regex. The numbers are
+reproducible from the instrumentation described above.
 
 ## 3. anthropics/skills → frontend-design
 
