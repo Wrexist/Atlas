@@ -19,10 +19,21 @@ on:
   workflow_dispatch:
     inputs:
       simulator:
-        description: "Simulator device to capture on"
+        description: "Simulator device to capture on (blank = first available iPhone)"
         required: false
-        default: "iPhone 16"
+        default: ""
         type: string
+  # TEMPORARY. Dispatching this workflow needs an `actions: write` token,
+  # which the agent working this branch does not have — so the one job whose
+  # entire purpose is to let a human look at the app could never be started
+  # by the thing that needed it. A push trigger scoped to this one branch
+  # needs no special permission.
+  #
+  # Delete this `push:` block once the branch merges. It costs a macOS
+  # runner (~15 min) on every push while it is here.
+  push:
+    branches:
+      - claude/app-review-design-polish-s14ish
 
 permissions:
   contents: read
@@ -44,12 +55,34 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
+      - name: Pick a simulator
+        # `inputs.simulator` is empty on a push event, which would have made
+        # the destination `name=,OS=latest`. And this workflow has never
+        # actually run, so its old hardcoded "iPhone 16" was never verified
+        # to exist on the runner's Xcode. Resolve a real device instead.
+        id: sim
+        run: |
+          WANT="${{ inputs.simulator }}"
+          if [ -n "$WANT" ] && xcrun simctl list devices available | grep -q "$WANT ("; then
+            echo "name=$WANT" >> "$GITHUB_OUTPUT"
+          else
+            FOUND=$(xcrun simctl list devices available \
+              | grep -oE '^\s+iPhone [^(]+' | sed 's/^ *//;s/ *$//' | tail -1)
+            if [ -z "$FOUND" ]; then
+              echo "::error::No iPhone simulator available on this runner."
+              xcrun simctl list devices available
+              exit 1
+            fi
+            echo "Using $FOUND"
+            echo "name=$FOUND" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run screenshot UI test
         run: |
           xcodebuild test \
             -project Peptide.xcodeproj \
             -scheme PeptideUICapture \
-            -destination "platform=iOS Simulator,name=${{ inputs.simulator }},OS=latest" \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.name }},OS=latest" \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
