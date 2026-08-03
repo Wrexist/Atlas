@@ -51,6 +51,16 @@ print(f"{n} entries")
 sys.exit(0 if n >= 200 else 1)
 PY
 
+# ------------------------------------------------------------------ Proxy side
+# The only part of this codebase whose tests actually execute here — Node,
+# no Xcode required. 48 of them, covering the rate limiter, the per-device
+# quota, App Attest and the CBOR decoder.
+if [ -d server ] && command -v node >/dev/null 2>&1; then
+  run "Proxy tests (server/)" bash -c "cd server && node --test >/dev/null 2>&1"
+else
+  printf '\n\033[1m── Proxy tests\033[0m\n\033[33m   skipped\033[0m\n'
+fi
+
 # ------------------------------------------------------------- Marketing side
 if [ "$QUICK" = "0" ] && [ -d marketing/app-store ] && command -v node >/dev/null 2>&1; then
   for set in phone watch watchframe ipad; do

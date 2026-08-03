@@ -75,10 +75,16 @@ the base commit) and every changed API's call sites had their argument
 labels checked against the declaration. That catches syntax and
 signatures, not types. Build first.
 
+**One part of this repo is genuinely tested: the proxy.** `server/` has 48
+Node tests covering the rate limiter, the per-device quota, App Attest and
+the CBOR decoder, and they *execute* — no Xcode needed. All 48 pass. That
+is worth knowing precisely because nothing on the Swift side can say the
+same.
+
 **Run `scripts/check.sh` before you push.** It is every check that works
 without Xcode — the design system, the 244 colour pairs, SwiftLint if it is
-installed, the bundled dataset, and the four App Store screen sets — in one
-command, exiting non-zero on failure so it works as a `pre-push` hook. It
+installed, the bundled dataset, the 48 proxy tests, and the four App Store
+screen sets — in one command, exiting non-zero on failure so it works as a `pre-push` hook. It
 exists because of the next paragraph: with CI down, these checks run only if
 a human runs them.
 
