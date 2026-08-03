@@ -148,3 +148,59 @@ test('daily budget fails closed and only upstream-bound requests spend it', asyn
 
   assert.equal(upstream.length, 2);
 });
+
+// ---------------------------------------------------------------------------
+// Abuse containment, end to end through the handler.
+//
+// The scenario each of these is about: someone pulls the shared secret out of
+// the .ipa and scripts the endpoint. Rate limiting alone doesn't stop that —
+// a script simply retries at the limit forever. These are the controls that
+// bound both the bill and the damage to everyone else.
+// ---------------------------------------------------------------------------
+
+test('one abusive caller is capped by daily quota without affecting others', async (t) => {
+  setEnv(t, { ...BASE_ENV, DEVICE_DAILY_QUOTA: '3', RATE_LIMIT_RPM: '1000' });
+  const upstream = stubUpstream(t);
+
+  for (let i = 0; i < 3; i += 1) {
+    assert.equal((await forward(makeReq('9.9.9.1'), 'quota-e2e')).statusCode, 200);
+  }
+  const denied = await forward(makeReq('9.9.9.1'), 'quota-e2e');
+  assert.equal(denied.statusCode, 429);
+  assert.match(denied.body.error.message, /Daily limit/);
+
+  // A different caller is untouched — the abuser spends their own
+  // allowance, not the shared one.
+  assert.equal((await forward(makeReq('9.9.9.2'), 'quota-e2e')).statusCode, 200);
+  assert.equal(upstream.length, 4, 'only the allowed requests reached Anthropic');
+});
+
+test('a large payload spends more quota than a small one', async (t) => {
+  setEnv(t, { ...BASE_ENV, DEVICE_DAILY_QUOTA: '5', RATE_LIMIT_RPM: '1000' });
+  stubUpstream(t);
+
+  const big = makeReq('9.9.9.3');
+  big.headers['content-length'] = String(1024 * 1024); // 1 MB ⇒ 4 units
+  assert.equal((await forward(big, 'quota-cost-e2e')).statusCode, 200);
+  // 4 of 5 units spent; a second megabyte would be 8 and must be refused.
+  const second = makeReq('9.9.9.3');
+  second.headers['content-length'] = String(1024 * 1024);
+  assert.equal((await forward(second, 'quota-cost-e2e')).statusCode, 429);
+});
+
+test('quota rejection never reaches Anthropic', async (t) => {
+  setEnv(t, { ...BASE_ENV, DEVICE_DAILY_QUOTA: '1', RATE_LIMIT_RPM: '1000' });
+  const upstream = stubUpstream(t);
+  await forward(makeReq('9.9.9.4'), 'quota-noupstream');
+  await forward(makeReq('9.9.9.4'), 'quota-noupstream');
+  assert.equal(upstream.length, 1, 'the refused request cost nothing');
+});
+
+test('per-principal limits are per route, so one route cannot starve another', async (t) => {
+  setEnv(t, { ...BASE_ENV, RATE_LIMIT_RPM: '1', DEVICE_DAILY_QUOTA: '0' });
+  stubUpstream(t);
+  assert.equal((await forward(makeReq('9.9.9.5'), 'route-a')).statusCode, 200);
+  assert.equal((await forward(makeReq('9.9.9.5'), 'route-a')).statusCode, 429);
+  // Same caller, different route — still has its own allowance.
+  assert.equal((await forward(makeReq('9.9.9.5'), 'route-b')).statusCode, 200);
+});

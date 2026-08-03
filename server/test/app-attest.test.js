@@ -136,11 +136,17 @@ test('checkAppAttest gate: enforce accepts a valid assertion once and blocks its
     },
   };
 
-  assert.deepEqual(await checkAppAttest(req, { logLabel: 'test' }), { ok: true });
+  // The verified key id comes back so the rate limiter can count
+  // against the install rather than the (rotatable) client IP.
+  assert.deepEqual(
+    await checkAppAttest(req, { logLabel: 'test' }),
+    { ok: true, keyId: keyIdB64 }
+  );
   // Same assertion again — counter no longer advances.
   const replay = await checkAppAttest(req, { logLabel: 'test' });
   assert.equal(replay.ok, false);
   assert.match(replay.reason, /replayed/);
+  assert.equal(replay.keyId, undefined);
 });
 
 test('checkAppAttest gate: header absence rejects only in enforce mode', async (t) => {
