@@ -98,13 +98,7 @@ struct TodayJumpBar: View {
                 Capsule()
                     .fill(
                         isActive
-                            ? AnyShapeStyle(
-                                LinearGradient(
-                                    colors: [anchor.accent, anchor.accent.opacity(0.75)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            ? AnyShapeStyle(anchor.accent)
                             : AnyShapeStyle(AppColor.surfaceSecondary.opacity(0.65))
                     )
                     .overlay {

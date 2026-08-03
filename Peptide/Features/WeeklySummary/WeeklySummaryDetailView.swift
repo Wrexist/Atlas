@@ -62,13 +62,7 @@ struct WeeklySummaryDetailView: View {
             HStack(spacing: Spacing.md) {
                 ZStack {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [accent, accent.opacity(0.65)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(accent)
                         .frame(width: 64, height: 64)
                         .shadow(color: accent.opacity(0.45), radius: 12, y: 6)
                     Image(systemName: "chart.bar.doc.horizontal.fill")

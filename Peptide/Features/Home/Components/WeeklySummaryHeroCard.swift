@@ -201,13 +201,7 @@ struct WeeklySummaryHeroCard: View {
         HStack(alignment: .center, spacing: Spacing.md) {
             ZStack {
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [accent, accent.opacity(0.65)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(accent)
                     .frame(width: 44, height: 44)
                     .shadow(color: accent.opacity(0.45), radius: 10, y: 4)
                 Image(systemName: "chart.bar.doc.horizontal.fill")
