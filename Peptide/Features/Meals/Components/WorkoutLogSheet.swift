@@ -98,7 +98,6 @@ struct WorkoutLogSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear { nameFocused = true }
     }
 

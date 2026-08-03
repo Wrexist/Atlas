@@ -90,6 +90,5 @@ private struct StatefulPreviewWrapper: View {
             EmailCapturePage(input: $input, error: error)
                 .padding(.horizontal, Spacing.screenPadding)
         }
-        .preferredColorScheme(.dark)
     }
 }

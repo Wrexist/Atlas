@@ -102,7 +102,6 @@ struct RecipeEditorSheet: View {
                 Text("Past meal logs aren't affected — only the recipe disappears from your library.")
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear { hydrate() }
     }
 
@@ -351,7 +350,6 @@ struct RecipeFoodPickerSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 }
 
@@ -395,7 +393,6 @@ struct RecipeComponentEditorSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear { portion = initial.portion }
     }
 

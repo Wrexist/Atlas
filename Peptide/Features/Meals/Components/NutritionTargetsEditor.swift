@@ -100,7 +100,6 @@ struct NutritionTargetsEditor: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear(perform: hydrate)
     }
 

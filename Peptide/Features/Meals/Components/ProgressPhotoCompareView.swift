@@ -76,7 +76,6 @@ struct ProgressPhotoCompareView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     // MARK: - Photo pair

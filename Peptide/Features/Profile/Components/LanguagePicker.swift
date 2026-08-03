@@ -104,7 +104,6 @@ struct LanguagePickerSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .tint(AppColor.accentPrimary)
     }
 

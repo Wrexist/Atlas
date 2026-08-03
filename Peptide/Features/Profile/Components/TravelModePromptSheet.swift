@@ -52,7 +52,6 @@ struct TravelModePromptSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private var hero: some View {

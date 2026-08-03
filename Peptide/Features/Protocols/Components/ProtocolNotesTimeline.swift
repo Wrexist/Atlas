@@ -292,7 +292,6 @@ struct ProtocolNoteEditorSheet: View {
                 Text("This can't be undone.")
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear {
             self.noteBody = initial.body
             self.mood = initial.mood

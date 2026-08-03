@@ -70,7 +70,6 @@ struct RestoreBackupSheet: View {
                 onCompletion: handleFilePicked
             )
         }
-        .preferredColorScheme(.dark)
     }
 
     // MARK: - Phases

@@ -45,7 +45,6 @@ struct WhatsNewTourSheet: View {
                     .padding(.bottom, Spacing.lg)
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear { triggerHeroPulse() }
         .onChange(of: currentIndex) { _, _ in
             triggerHeroPulse()

@@ -46,7 +46,6 @@ struct RecipeLogConfirmSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private var headerCard: some View {

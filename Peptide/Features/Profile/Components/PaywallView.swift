@@ -61,7 +61,6 @@ struct PaywallView: View {
             closeButton
                 .padding(Spacing.lg)
         }
-        .preferredColorScheme(.dark)
         .task {
             // Re-check entitlements first: a user who upgraded on another
             // device (or just restored) shouldn't be stranded on the paywall.
@@ -655,7 +654,6 @@ struct PaywallView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func termRow(_ label: LocalizedStringKey, price: String) -> some View {

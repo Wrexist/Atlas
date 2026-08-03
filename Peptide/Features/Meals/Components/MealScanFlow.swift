@@ -79,7 +79,6 @@ struct MealScanFlow: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .onDisappear {
             inFlightTask?.cancel()
             inFlightTask = nil

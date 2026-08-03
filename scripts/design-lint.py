@@ -458,7 +458,26 @@ def rule_motion(path, source, code) -> list[Finding]:
     return out
 
 
+def rule_forced_color_scheme(path, source, code) -> list[Finding]:
+    """R13 — shipping views don't hard-code a colour scheme.
+
+    A literal `.preferredColorScheme(.dark)` on a sheet or editor overrides
+    the user's appearance choice for that surface only, so picking Light
+    turns the tabs light and snaps every sheet back to dark. The scheme is
+    the app's to set once, from `ThemeManager.displayMode`. Previews are
+    blanked before rules run, so demo scaffolding is unaffected.
+    """
+    out = []
+    for m in re.finditer(r"\.preferredColorScheme\(\s*\.(dark|light)\b", code):
+        out.append(Finding(path, line_of(code, m.start()), "forced-color-scheme",
+                           f"hard-coded .{m.group(1)} scheme overrides the user's "
+                           "appearance setting; drive it from "
+                           "ThemeManager.displayMode.preferredScheme", "error"))
+    return out
+
+
 RULES = [
+    rule_forced_color_scheme,
     rule_raw_colour,
     rule_type_scale,
     rule_pure_neutral,

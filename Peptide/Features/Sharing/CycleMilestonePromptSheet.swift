@@ -67,7 +67,6 @@ struct CycleMilestonePromptSheet: View {
         .padding(.vertical, Spacing.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColor.background.ignoresSafeArea())
-        .preferredColorScheme(.dark)
     }
 
     private var glyph: String {

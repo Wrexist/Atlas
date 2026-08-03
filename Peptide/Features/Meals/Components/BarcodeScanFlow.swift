@@ -94,7 +94,6 @@ struct BarcodeScanFlow: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .task { await preflightCheck() }
         .task { await loadRecentlyScanned() }
         // SwiftUI-owned auto-close. Re-running on phase changes

@@ -114,7 +114,6 @@ struct AffiliateApplySheet: View {
                 if new.count > notesCap { notes = String(new.prefix(notesCap)) }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     // MARK: - Header

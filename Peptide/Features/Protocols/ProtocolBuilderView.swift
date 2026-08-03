@@ -393,7 +393,6 @@ struct ProtocolBuilderView: View {
                 },
                 onCancel: { isShowingAppendPicker = false }
             )
-            .preferredColorScheme(.dark)
         }
     }
 

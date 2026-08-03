@@ -339,7 +339,6 @@ struct OnboardingView: View {
         .onChange(of: page) { _, newValue in
             lastPage = newValue
         }
-        .preferredColorScheme(.dark)
         .onAppear {
             OnboardingFunnelTracker.recordStepEntered(stepName(for: page), index: page)
             // Re-hydrate goalDate + selected-goal state from a

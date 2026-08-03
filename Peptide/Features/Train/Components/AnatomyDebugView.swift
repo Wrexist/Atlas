@@ -37,7 +37,6 @@ struct AnatomyDebugView: View {
         .padding(.vertical)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black.ignoresSafeArea())
-        .preferredColorScheme(.dark)
         .onReceive(tick) { _ in
             guard auto else { return }
             index = (index + 1) % muscles.count

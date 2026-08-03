@@ -176,7 +176,6 @@ struct FoodLibraryFlow: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .onDisappear {
             // Cancel outstanding "Logged ✓" timeouts so they can't
             // fire into a re-presented sheet and surface stale

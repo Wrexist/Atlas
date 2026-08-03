@@ -58,7 +58,6 @@ struct HeroMetricDetailSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     // MARK: - Header

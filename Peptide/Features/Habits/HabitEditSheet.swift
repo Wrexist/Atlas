@@ -210,7 +210,6 @@ struct HabitEditSheet: View {
                 if editing == nil { nameFocused = true }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private var iconGrid: some View {

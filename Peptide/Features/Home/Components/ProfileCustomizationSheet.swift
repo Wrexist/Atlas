@@ -112,7 +112,6 @@ struct ProfileCustomizationSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear(perform: hydrateFromProfile)
         .onChange(of: photoSelection) { _, newValue in
             guard let newValue else { return }
@@ -272,7 +271,6 @@ struct ProfileCustomizationSheet: View {
                 },
                 onCancel: { isShowingPresetPicker = false }
             )
-            .preferredColorScheme(.dark)
             .liquidGlassPresentation(detents: [.medium, .large])
         }
     }

@@ -58,7 +58,6 @@ struct OutcomeCheckInSheet: View {
             }
             .onAppear(perform: hydrate)
         }
-        .preferredColorScheme(.dark)
     }
 
     private var header: some View {

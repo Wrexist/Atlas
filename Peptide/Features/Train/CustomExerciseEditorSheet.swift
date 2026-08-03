@@ -100,7 +100,6 @@ struct CustomExerciseEditorSheet: View {
                 if editing == nil { nameFocused = true }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func commit() {

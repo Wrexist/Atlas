@@ -65,7 +65,6 @@ struct WeightLogSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear { inputFocused = true }
     }
 

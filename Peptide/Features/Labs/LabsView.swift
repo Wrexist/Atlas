@@ -136,7 +136,6 @@ struct LabsView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func row(for summary: LabDataLogic.LatestSummary) -> some View {

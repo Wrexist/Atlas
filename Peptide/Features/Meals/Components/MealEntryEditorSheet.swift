@@ -88,7 +88,6 @@ struct MealEntryEditorSheet: View {
                 Text("Subtracts \(initial.calories) kcal from today's totals. This can't be undone.")
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private var summaryCard: some View {

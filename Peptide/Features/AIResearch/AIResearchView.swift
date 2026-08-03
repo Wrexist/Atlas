@@ -75,7 +75,6 @@ struct AIResearchView: View {
                 Text(errorText ?? "Something went wrong reaching the research assistant. Check your connection and try again.")
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     // MARK: - Disclaimer

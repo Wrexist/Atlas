@@ -29,7 +29,6 @@ struct ReconstitutionSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private var intro: some View {

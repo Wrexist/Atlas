@@ -28,7 +28,6 @@ struct CycleCompletionPromptSheet: View {
         .padding(.vertical, Spacing.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(AppColor.background.ignoresSafeArea())
-        .preferredColorScheme(.dark)
     }
 
     private var header: some View {

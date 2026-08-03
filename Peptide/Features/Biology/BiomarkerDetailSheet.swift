@@ -69,7 +69,6 @@ struct BiomarkerDetailSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     // MARK: - Hero

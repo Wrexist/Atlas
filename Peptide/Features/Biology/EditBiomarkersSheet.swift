@@ -94,7 +94,6 @@ struct EditBiomarkersSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private enum RowAction {

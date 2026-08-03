@@ -546,6 +546,5 @@ private struct TimePickerSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 }

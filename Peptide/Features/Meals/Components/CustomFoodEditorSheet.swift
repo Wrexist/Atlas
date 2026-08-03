@@ -145,7 +145,6 @@ struct CustomFoodEditorSheet: View {
                 Text("This won't remove past logs — only the food itself disappears from your library.")
             }
         }
-        .preferredColorScheme(.dark)
         // `.onAppear` fires once per presentation, where `.task` would
         // re-run on every observation cycle and clobber the user's
         // in-progress edits when DataStore publishes a change.

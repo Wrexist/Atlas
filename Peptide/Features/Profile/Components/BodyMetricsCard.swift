@@ -148,7 +148,6 @@ private struct BodyMetricsEditSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 }
 

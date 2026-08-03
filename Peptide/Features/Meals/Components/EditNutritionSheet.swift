@@ -55,7 +55,6 @@ struct EditNutritionSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear(perform: hydrate)
     }
 

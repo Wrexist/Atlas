@@ -101,7 +101,6 @@ struct ProgressPhotoViewer: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     @ViewBuilder
