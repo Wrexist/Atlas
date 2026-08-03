@@ -6,6 +6,10 @@ import SwiftUI
 struct DailyPlanCard: View {
     let plan: DailyScheduleEngine.DailyPlan
     var onTapDose: ((ProtocolEntry) -> Void)?
+    /// Route to the protocol list. Optional so the CTA only renders where
+    /// the host can actually service it — the empty-state copy asks the
+    /// user to add a protocol, and it should not ask without offering.
+    var onAddProtocol: (() -> Void)?
 
     /// Collapsed by default so the card stays scannable even when the
     /// user has 4+ time-of-day slots. The first slot shows in full
@@ -121,11 +125,19 @@ struct DailyPlanCard: View {
 
     // MARK: - Empty state
 
+    private var addProtocolAction: EmptyStateView.Action? {
+        guard let onAddProtocol else { return nil }
+        return EmptyStateView.Action(title: "Add a protocol",
+                                     icon: "plus.circle.fill",
+                                     perform: onAddProtocol)
+    }
+
     private var emptyState: some View {
         EmptyStateView(
             icon: "calendar.badge.exclamationmark",
             title: "No doses today",
             message: "Add a protocol to see your organized plan.",
+            action: addProtocolAction,
             style: .compact
         )
     }

@@ -36,7 +36,7 @@ simulator.
 | R8 | Space on a scale | **enforced** | `design-lint: off-grid-spacing`, 8-point grid plus 2/4/6 for optical insets. |
 | R9 | Type does the work | **enforced** | Six-step scale (`AppFont.Scale`), lint-enforced; three emphasis weights over the default; tabular figures on every animated numeral (`monospacedDigit`). |
 | R10 | Pick an elevation language | **enforced** | `design-lint: stacked-glass` — 25 surfaces were stacking two glass materials outside the primitives; all fixed. |
-| R11 | Design every state | **partial** | 20 empty states, 10 with a CTA (2 added this pass); of the 10 without, 8 are error / not-found / success states where no CTA applies. Loading and error states exist per async surface but are not machine-checked. |
+| R11 | Design every state | **pass on empty states** | 20 empty states, 12 with a CTA (4 added this pass). The 8 without are error, not-found and success states where a CTA would be noise. No empty state now asks the user to do something without offering it. Loading and error states exist per async surface but are not machine-checked. |
 | R12 | Motion is physics | **enforced** | `design-lint: motion` (no short decorative loops) and `design-lint: unguarded-loop` (a `repeatForever` in a file that never reads `accessibilityReduceMotion` fails the build). Eight loops across six views were fixed this pass. |
 
 ## 2. ceorkm/mobile-app-ui-design
@@ -103,7 +103,12 @@ a simulator. Phases 3 and 4 are what the two checkers replicate.
    `design-lint: fixed-font` now covers display text as well as body.
 4. **Visual monotony, thumb zone, relationship spacing** (R4 and friends) —
    blocked on renders.
-5. **Two empty states still tell without showing**: `WorkoutHistoryView`
-   ("once you finish your first session…") and `DailyPlanCard` ("add a
-   protocol…"). Both need a callback threaded from a parent, which is why
-   they were left when the two self-contained ones were fixed.
+5. ~~Two empty states still tell without showing.~~ **Fixed.**
+   `WorkoutHistoryView` needed no parent plumbing after all —
+   `startWorkout()` is on the shared session service and
+   `TrainContainerView` already presents on `activeSession` appearing.
+   `DailyPlanCard` takes an optional `onAddProtocol`, matching its existing
+   `onTapDose` shape, wired to the `pendingProtocolList` route Home already
+   uses. Every empty state that asks the user to do something now offers a
+   way to do it; the 8 without a CTA are error, not-found and success
+   states where none applies.

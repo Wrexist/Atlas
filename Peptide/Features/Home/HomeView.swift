@@ -353,7 +353,11 @@ struct HomeView: View {
                     if !dataStore.protocols.isEmpty, let plan = derived.plan {
                         DailyPlanCard(
                             plan: plan,
-                            onTapDose: { entry in selectedEntry = entry }
+                            onTapDose: { entry in selectedEntry = entry },
+                            onAddProtocol: {
+                                appState.pendingProtocolList = true
+                                appState.showLibrary = true
+                            }
                         )
                         .id(TodayJumpBar.SectionAnchor.doses)
                         .trackSectionAnchor(.doses)

@@ -11,6 +11,22 @@ struct PeptideListView: View {
     var presentedModally = false
     @State private var viewModel = PeptideListViewModel(peptides: PeptideDatabase.shared)
     @State private var showCustomForm = false
+
+    /// Built here rather than inline: a ternary whose branches are both
+    /// trailing-closure `.init`s is a parse hazard, and the empty state
+    /// should always offer whichever escape actually applies.
+    private var noResultsAction: EmptyStateView.Action {
+        if viewModel.searchText.isEmpty {
+            return EmptyStateView.Action(title: "Add custom peptide",
+                                         icon: "plus.circle.fill") {
+                showCustomForm = true
+            }
+        }
+        return EmptyStateView.Action(title: "Clear search",
+                                     icon: "xmark.circle.fill") {
+            viewModel.searchText = ""
+        }
+    }
     @State private var showResearchAssistant = false
     @State private var selectedPeptide: Peptide?
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
@@ -195,13 +211,7 @@ struct PeptideListView: View {
                             : "Try a different search term.",
                         // The copy already tells the user what to do next;
                         // without this it was the only way to do it.
-                        action: viewModel.searchText.isEmpty
-                            ? .init(title: "Add custom peptide", icon: "plus.circle.fill") {
-                                showCustomForm = true
-                            }
-                            : .init(title: "Clear search", icon: "xmark.circle.fill") {
-                                viewModel.searchText = ""
-                            }
+                        action: noResultsAction
                     )
                     .padding(.top, Spacing.xl)
                 } else {

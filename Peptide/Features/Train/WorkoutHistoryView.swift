@@ -7,6 +7,17 @@ import SwiftUI
 struct WorkoutHistoryView: View {
     @State private var sessions: [WorkoutSession] = []
     @State private var hasLoaded: Bool = false
+    @State private var sessionService = WorkoutSessionService.shared
+
+    /// Explicit type rather than a `.init` shorthand inside the call —
+    /// leading-dot syntax in an optional-typed ternary is the kind of
+    /// inference that reads fine and resolves badly.
+    private var startAction: EmptyStateView.Action? {
+        guard sessionService.activeSession == nil else { return nil }
+        return EmptyStateView.Action(title: "Start a workout", icon: "play.fill") {
+            sessionService.startWorkout()
+        }
+    }
 
     var body: some View {
         Group {
@@ -17,7 +28,11 @@ struct WorkoutHistoryView: View {
                 EmptyStateView(
                     icon: "calendar",
                     title: "No workouts logged yet",
-                    message: "Once you finish your first session, it'll show up here with PRs and a monthly recap."
+                    message: "Once you finish your first session, it'll show up here with PRs and a monthly recap.",
+                    // TrainContainerView presents the active workout as soon
+                    // as `activeSession` appears, so starting one here needs
+                    // no plumbing back through the parent.
+                    action: startAction
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
