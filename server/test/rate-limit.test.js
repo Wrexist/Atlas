@@ -4,6 +4,7 @@ import {
   allowRate,
   isBlocked,
   recordLimitStrike,
+  costForBytes,
   requestCost,
   withinDailyBudget,
   withinDeviceQuota,
@@ -140,6 +141,36 @@ test('budget: unset env disables; set env caps per UTC day', async (t) => {
   assert.equal(await withinDailyBudget(), false);
   t.mock.timers.tick(86_400_001); // next day → fresh budget
   assert.equal(await withinDailyBudget(), true);
+});
+
+test('budget: a rejected request does not consume the shared allowance', async (t) => {
+  // The failure this guards: an oversized request arriving with one
+  // unit left is rejected, but if it still charges its cost the
+  // counter is pushed past the budget and every small request behind
+  // it 503s for the rest of the day — without a single upstream token
+  // having been spent.
+  setEnv(t, { ...NO_REDIS, ANTHROPIC_DAILY_REQUEST_BUDGET: '3' });
+  // Day 9: the memory fallback keys on one global bucket, so each test
+  // touching it needs its own day or it inherits the previous test's count.
+  t.mock.timers.enable({ apis: ['Date'], now: 9 * 86_400_000 });
+
+  assert.equal(await withinDailyBudget({ cost: 2 }), true);   // 2/3
+  assert.equal(await withinDailyBudget({ cost: 5 }), false);  // would be 7 — refunded
+  assert.equal(await withinDailyBudget({ cost: 1 }), true);   // 3/3, still fits
+  assert.equal(await withinDailyBudget({ cost: 1 }), false);  // genuinely full
+});
+
+test('cost: a large body costs more than a small one', () => {
+  assert.equal(costForBytes(0), 1);
+  assert.equal(costForBytes(1024), 1);
+  assert.equal(costForBytes(256 * 1024), 1);
+  assert.equal(costForBytes(256 * 1024 + 1), 2);
+  assert.equal(costForBytes(7 * 1024 * 1024), 28);
+  // A client that omits content-length reads as one unit from the
+  // header alone — which is why the proxy re-charges on the parsed
+  // body rather than trusting this number.
+  assert.equal(requestCost({ headers: {} }), 1);
+  assert.equal(requestCost({ headers: { 'content-length': 'not-a-number' } }), 1);
 });
 
 // ---------------------------------------------------------------------------

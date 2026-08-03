@@ -74,8 +74,14 @@ enum BioAgeStateResolver {
         let rhrValue = await rhr
         let sleepValue = await sleep
         let calendar = Calendar.current
+        // Bound separately because Swift rejects `await` to the right of a
+        // non-assignment operator. The three `async let`s are already in
+        // flight, so awaiting them one after another costs nothing.
+        let hrvDays = await hrvDaily
+        let rhrDays = await rhrDaily
+        let sleepDays = await sleepDaily
         let coveredDays = Set(
-            (await hrvDaily + await rhrDaily + await sleepDaily)
+            (hrvDays + rhrDays + sleepDays)
                 .map { calendar.startOfDay(for: $0.date) }
         )
         let dataDays = coveredDays.count

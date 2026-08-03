@@ -89,6 +89,13 @@ export async function allowRate({ name, key, limit, windowSeconds, cost = 1 }) {
   return memoryAllow(`${name}:${key}`, limit, windowMs, cost);
 }
 
+/** Undo a `memoryAllow` charge that was rejected. See `withinDailyBudget`. */
+function memoryRefund(key, windowMs, cost) {
+  const bucketKey = `${key}:${Math.floor(Date.now() / windowMs)}`;
+  const current = memory.get(bucketKey);
+  if (current !== undefined) memory.set(bucketKey, Math.max(0, current - cost));
+}
+
 function intEnv(name, fallback) {
   const parsed = parseInt(process.env[name] ?? '', 10);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -105,9 +112,12 @@ function intEnv(name, fallback) {
  * without needing the upstream usage numbers (which arrive too late
  * to gate on).
  */
+export function costForBytes(bytes) {
+  return Math.max(1, Math.ceil((Number(bytes) || 0) / (256 * 1024)));
+}
+
 export function requestCost(req) {
-  const bytes = Number(req?.headers?.['content-length']) || 0;
-  return Math.max(1, Math.ceil(bytes / (256 * 1024)));
+  return costForBytes(req?.headers?.['content-length']);
 }
 
 /**
@@ -143,19 +153,29 @@ export async function withinDailyBudget({ cost = 1 } = {}) {
 
   const windowSeconds = 86_400;
   const windowIndex = Math.floor(Date.now() / (windowSeconds * 1000));
-  const count = await redisCount(
-    `rl:budget:anthropic:global:${windowIndex}`,
-    windowSeconds * 2,
-    cost
-  );
-  if (count !== null) return count <= budget;
+  const key = `rl:budget:anthropic:global:${windowIndex}`;
+  const count = await redisCount(key, windowSeconds * 2, cost);
+  if (count !== null) {
+    if (count <= budget) return true;
+    // Give the units back. The counter is shared by everyone, and a
+    // request rejected here never reaches Anthropic, so charging it
+    // would let one client burn the whole budget on requests that cost
+    // nothing upstream — 503ing everybody else without a single token
+    // spent. Without the refund, one oversized request landing at
+    // budget-1 also locks out every small request behind it for the
+    // rest of the day.
+    await redisPipeline([['DECRBY', key, String(cost)]]);
+    return false;
+  }
 
   // Redis said nothing. If it was never configured, there's no outage
   // — use the in-memory window as before. If it *is* configured, this
   // is an outage, and an uncapped spend ceiling is worse than a brief
   // 503.
   if (redisConfigured() && process.env.BUDGET_FAIL_OPEN !== '1') return false;
-  return memoryAllow('budget:anthropic:global', budget, windowSeconds * 1000, cost);
+  const allowed = memoryAllow('budget:anthropic:global', budget, windowSeconds * 1000, cost);
+  if (!allowed) memoryRefund('budget:anthropic:global', windowSeconds * 1000, cost);
+  return allowed;
 }
 
 /**

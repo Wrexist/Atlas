@@ -52,6 +52,7 @@ import {
   isBlocked,
   recordLimitStrike,
   requestCost,
+  costForBytes,
   withinDailyBudget,
   withinDeviceQuota,
 } from './rate-limit.js';
@@ -206,7 +207,7 @@ export async function forwardToAnthropic(req, res, {
   }
 
   const principal = principalFor(req, attest);
-  const cost = requestCost(req);
+  let cost = requestCost(req);
 
   // A principal in an abuse cooldown is refused before any work.
   if (await isBlocked({ principal })) {
@@ -264,6 +265,24 @@ export async function forwardToAnthropic(req, res, {
       error: { message: 'Request too large; resize before retrying' }
     });
     return;
+  }
+
+  // `cost` was derived from `content-length`, which a client can omit
+  // entirely (chunked transfer) or understate. That made a 7 MB meal
+  // scan cost the same single unit as a one-line text turn — the exact
+  // payloads the spend controls exist for were the ones that slipped
+  // past them. The parsed body is measured above, so charge on that
+  // instead, and bill the difference to the device quota, which was
+  // already charged the header's smaller figure before parsing.
+  const actualCost = costForBytes(parsedBytes);
+  if (actualCost > cost) {
+    if (!(await withinDeviceQuota({ principal, cost: actualCost - cost }))) {
+      res.status(429).json({
+        error: { message: 'Daily limit reached; try again tomorrow' }
+      });
+      return;
+    }
+    cost = actualCost;
   }
 
   const clean = sanitiseBody(req.body, { systemPrefix, allowClientSystem });
