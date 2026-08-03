@@ -96,6 +96,24 @@ control treatments are all measured, fixed, re-rendered and looked at. The
 only reported failure left across all four sets is one verified false
 positive.
 
+### Industry conventions (the skill's reference file)
+
+`mobile-app-ui-design` ends by pointing at
+`references/industry-conventions.md`, which I had not opened — the same
+partial reading that produced the four rule failures above. Checked against
+its Health and Fitness rows:
+
+| Convention | Status |
+|---|---|
+| Non-intimidating onboarding | **pass** — a guided multi-step flow, every step skippable |
+| Adapt UI complexity to user stage | **pass** — `HomeView` branches on `hasAnySignal`, `protocols.isEmpty` and `showsDoses`, so a zero-data user gets guidance rather than a stack of empty cards |
+| Progress-focused, visual momentum | **pass** — rings, progress bars, streaks and the Atlas Score across 40+ views |
+| Peak-End rule | **pass** — the peak is `WorkoutFinishView` + `CelebrationOverlayView` + PR detection; the end is the weekly summary and cycle-completion prompt |
+
+Nothing to fix here. Recorded because "I read the SKILL.md" is not the same
+as "I read the skill", and this session's four real design findings all came
+from that gap.
+
 ## 3. anthropics/skills → frontend-design
 
 Installed at `~/.claude/skills/frontend-design/`. Mostly a posture rather
