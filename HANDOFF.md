@@ -35,11 +35,32 @@ with an execution log recording what actually landed.
   thirteen inside a 12pt band. Below the display range there are now six
   (`AppFont.Scale`), lint-enforced. 393 call sites moved, all by ≤2pt.
 - **A design checker that gates CI.** `scripts/design-lint.py` covers
-  eleven rules SwiftLint can't see. Running it found 25 surfaces still
+  thirteen rules SwiftLint can't see. Running it found 25 surfaces still
   stacking two glass materials outside the primitives, two neon halos,
   nine sub-44pt controls, and five rows VoiceOver read as eight stops —
   all fixed. It's at zero errors and zero warnings; keep it there rather
   than growing the exemption lists.
+- **Light mode is no longer optional per screen.** 44 shipping views —
+  every sheet, both editors, the paywall, onboarding — pinned
+  `.preferredColorScheme(.dark)` on their own root. That was invisible
+  until this branch made light mode real, at which point picking Light
+  would have turned the tabs light and left every sheet dark. All 44 are
+  gone and a `forced-color-scheme` lint rule keeps the literal out of
+  shipping code (previews are blanked before rules run).
+- **Contrast is measured, not assumed.** `scripts/contrast-check.py`
+  reads the hex literals out of `ColorTheme.swift` / `AppTheme.swift`
+  and holds all 244 ink/surface pairs to WCAG 2.1 AA, in both schemes and
+  all five themes. It found 30 failures, two of them structural: the
+  Graphite ramp pinned its ink stops to one value and sat at 1.8:1 on the
+  dark background, and `onAccent` was printed on `accentPrimary` — a stop
+  tuned as *ink*, so near-white on it was 2.5:1 on the lock screen's
+  unlock button. Filled accent surfaces now use `AppColor.accentFill`.
+  It gates CI at zero failures.
+- **Training weights honour the unit setting.** `SetEntry.weightKg` is
+  documented as canonical kilograms the UI converts on read and write;
+  the Train feature never did the conversion, so an imperial user typing
+  225 stored 225 kg. The conversion now lives on `MeasurementUnit` and
+  retired the `2.20462` literal that six other files had each copied.
 
 ### Read this before picking the branch up
 
@@ -67,9 +88,21 @@ screenshots is the fastest way to validate this branch.
 `OneRedOak/claude-code-workflows → design-review` was read and is the
 right tool for this loop, but it drives a browser through Playwright MCP;
 it has no path to a native iOS view. Its Phase 3–4 checklist (visual
-polish, WCAG 2.1 AA) is what `scripts/design-lint.py` now covers
-statically. The rendered-screen half of that loop still needs a human
-with a simulator.
+polish, WCAG 2.1 AA) is what `scripts/design-lint.py` and
+`scripts/contrast-check.py` now cover statically. The rendered-screen half
+of that loop still needs a human with a simulator.
+
+**Two things were deliberately reported rather than changed**, because
+both are judgment calls that need a rendered screen:
+
+1. *Accent is over-spent.* 671 accent references, 280 of them ink —
+   roughly 27% of coloured surface against the 60/30/10 target of ~10%.
+   Thinning it is per-site taste, not a mechanical edit.
+2. *Display numerals don't scale.* The 16 sites above 24pt use
+   `Font.system(size:)` and so ignore Dynamic Type entirely; at
+   Accessibility XXXL body text grows past some of them and the hierarchy
+   inverts. `AppFont.scaled(_:relativeTo:)` fixes it, but capping the
+   growth without seeing the XXXL screenshots risks truncation instead.
 
 **What still needs a compiler.** The `PeptideTests` backlog and the
 native-chrome migration. Everything else on this branch is either landed
