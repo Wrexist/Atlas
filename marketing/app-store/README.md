@@ -196,9 +196,18 @@ sees them — every text node's computed colour resolved against its actual
 background, held to WCAG 2.1 AA.
 
 ```sh
-GROOT=$(npm root -g) node measure.mjs
+GROOT=$(npm root -g) node measure.mjs [phone|watch|watchframe|ipad]
 # CHROMIUM_PATH=... if Playwright's bundled browser isn't where it expects
 ```
+
+All four sets are checked separately because each has its own canvas scale —
+the phone deck is 3x, the watch and iPad are 2x — and WCAG's large-text
+threshold is in points, not pixels. Getting that wrong understates small
+text by a factor of three.
+
+The only remaining reported failures are one known false positive: text over
+an SVG gradient (the gold medal on 02-score), which the background walker
+cannot resolve. Verified by eye.
 
 It found five real failures the first time it was run, including the medical
 disclaimer at 2.6:1 and the subscription terms at 3.4:1 — the two pieces of

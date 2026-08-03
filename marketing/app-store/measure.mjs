@@ -28,19 +28,29 @@ const groot = process.env.GROOT || '/opt/node22/lib/node_modules';
 const { chromium } = require(join(groot, 'playwright'));
 
 const here = dirname(fileURLToPath(import.meta.url));
-const files = readdirSync(here + '/screens').filter(f => f.endsWith('.html'));
+const SETS = {
+  phone:      { dir: 'screens',             w: 1320, h: 2868, scale: 3 },
+  watch:      { dir: 'screens-watch',       w: 410,  h: 502,  scale: 2 },
+  watchframe: { dir: 'screens-watch-frames', w: 1320, h: 1650, scale: 3 },
+  ipad:       { dir: 'screens',             w: 2064, h: 2752, scale: 2, css: 'assets/ipad.css' },
+};
+const setName = process.argv[2] || 'phone';
+const SET = SETS[setName];
+if (!SET) { console.error('unknown set: ' + setName + ' (have: ' + Object.keys(SETS).join(', ') + ')'); process.exit(2); }
+const files = readdirSync(join(here, SET.dir)).filter(f => f.endsWith('.html'));
 
 // Honour an explicit path when the environment pins one, else let
 // Playwright resolve its own bundled browser.
 const exe = process.env.CHROMIUM_PATH;
 const browser = await chromium.launch(exe ? { executablePath: exe } : {});
-const page = await browser.newPage({ viewport: { width: 1320, height: 2868 } });
+const page = await browser.newPage({ viewport: { width: SET.w, height: SET.h } });
 
 const results = [];
 for (const f of files) {
-  await page.goto('file://' + here + '/screens/' + f);
+  await page.goto('file://' + join(here, SET.dir, f));
+  if (SET.css) await page.addStyleTag({ path: join(here, SET.css) });
   await page.waitForTimeout(300);
-  const data = await page.evaluate(() => {
+  const data = await page.evaluate((SCALE) => {
     const lum = (r,g,b) => { const c=[r,g,b].map(v=>{v/=255; return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4);}); return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2]; };
     const parse = s => { const m = s.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/); return m ? {r:+m[1],g:+m[2],b:+m[3],a:m[4]===undefined?1:+m[4]} : null; };
     const bgOf = el => { let n = el; while (n && n !== document.documentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0.5) return c; n = n.parentElement; } return {r:19,g:19,b:25,a:1}; };
@@ -57,14 +67,14 @@ for (const f of files) {
       const size = parseFloat(cs.fontSize);
       const weight = parseInt(cs.fontWeight) || 400;
       const ratio = contrast(fg, bg);
-      const large = (size/3) >= 24 || ((size/3) >= 18.66 && weight >= 700);
+      const large = (size/SCALE) >= 24 || ((size/SCALE) >= 18.66 && weight >= 700);
       const need = large ? 3.0 : 4.5;
       if (ratio < need) out.text.push({ t: kids.map(n=>n.textContent.trim()).join(' ').slice(0,40), size, weight, ratio: +ratio.toFixed(2), need, color: cs.color });
       const r = el.getBoundingClientRect();
-      if (size < 11 && r.width > 0) out.small.push({ t: kids.map(n=>n.textContent.trim()).join(' ').slice(0,30), size });
+      if ((size/SCALE) < 9 && r.width > 0) out.small.push({ t: kids.map(n=>n.textContent.trim()).join(' ').slice(0,30), size });
     }
     return out;
-  });
+  }, SET.scale);
   results.push({ file: f, ...data });
 }
 await browser.close();
@@ -76,4 +86,4 @@ for (const r of results) {
   for (const t of r.text) { totalFail++; console.log(`    CONTRAST ${t.ratio}:1 (needs ${t.need})  ${t.size}px/${t.weight}  "${t.t}"  ${t.color}`); }
   for (const s of r.small) console.log(`    TINY ${s.size}px  "${s.t}"`);
 }
-console.log(`\n${totalFail} contrast failures across ${results.length} screens`);
+console.log(`\n[${setName}] ${totalFail} contrast failures across ${results.length} screens`);
