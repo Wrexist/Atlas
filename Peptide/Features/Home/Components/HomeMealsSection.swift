@@ -89,6 +89,7 @@ struct HomeMealsSection: View {
                 targets: targets,
                 consumed: dataStore.consumption(),
                 breakdown: dailyBreakdown,
+                unit: dataStore.profile.bodyMetrics.unit,
                 onAddWater: { oz in dataStore.logWater(oz: oz) }
             )
             .contextMenu {

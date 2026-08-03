@@ -14,17 +14,22 @@ struct MacroSummaryRow: View {
     /// monochrome render so callers that haven't been upgraded
     /// (older snapshots, previews, tests) keep working unchanged.
     let breakdown: LifestyleDataLogic.CategoryBreakdown?
+    /// Water is stored in fluid ounces; this decides what the legend and
+    /// the quick-add chips say. They used to disagree with each other.
+    let unit: MeasurementUnit
     let onAddWater: (Int) -> Void
 
     init(
         targets: NutritionTargets,
         consumed: DailyConsumption,
         breakdown: LifestyleDataLogic.CategoryBreakdown? = nil,
+        unit: MeasurementUnit,
         onAddWater: @escaping (Int) -> Void
     ) {
         self.targets = targets
         self.consumed = consumed
         self.breakdown = breakdown
+        self.unit = unit
         self.onAddWater = onAddWater
     }
 
@@ -65,8 +70,8 @@ struct MacroSummaryRow: View {
                     )
                     legend(
                         title: "Water",
-                        value: "\(consumed.waterOz)",
-                        target: "/\(Self.waterTargetOz) oz",
+                        value: "\(unit.volumeValue(consumed.waterOz))",
+                        target: "/\(unit.volumeLabel(Self.waterTargetOz))",
                         color: AppColor.macroWaterLight
                     )
                 }
@@ -77,9 +82,9 @@ struct MacroSummaryRow: View {
                 .overlay(AppColor.glassBorder)
 
             HStack(spacing: Spacing.sm) {
-                quickAddButton(label: "+250 mL", oz: 8)
-                quickAddButton(label: "+500 mL", oz: 17)
-                quickAddButton(label: "+1 L", oz: 34)
+                ForEach(quickAddOptions) { option in
+                    quickAddButton(label: option.label, oz: option.oz)
+                }
             }
         }
         .padding(Spacing.lg)
@@ -183,7 +188,28 @@ struct MacroSummaryRow: View {
         }
     }
 
-    private func quickAddButton(label: LocalizedStringKey, oz: Int) -> some View {
+    /// Quick-add amounts, chosen per unit so both systems get round
+    /// numbers. Water is stored as whole fluid ounces, so the metric
+    /// labels are the nearest ounce to 250 mL / 500 mL / 1 L — which is
+    /// how 8 / 17 / 34 were picked in the first place. Deriving the
+    /// label from the stored ounces instead would print "+237 mL".
+    private var quickAddOptions: [QuickAddOption] {
+        unit == .metric
+            ? [.init(label: "+250 mL", oz: 8),
+               .init(label: "+500 mL", oz: 17),
+               .init(label: "+1 L", oz: 34)]
+            : [.init(label: "+8 oz", oz: 8),
+               .init(label: "+16 oz", oz: 16),
+               .init(label: "+32 oz", oz: 32)]
+    }
+
+    private struct QuickAddOption: Identifiable {
+        let label: String
+        let oz: Int
+        var id: Int { oz }
+    }
+
+    private func quickAddButton(label: String, oz: Int) -> some View {
         Button {
             Haptics.impact(.light)
             onAddWater(oz)
@@ -205,7 +231,7 @@ struct MacroSummaryRow: View {
             )
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.94))
-        .accessibilityLabel("Add \(oz) ounces of water")
+        .accessibilityLabel("Add \(unit.volumeValue(oz)) \(unit.volumeSpokenUnit) of water")
         .accessibilityAddTraits(.isButton)
     }
 

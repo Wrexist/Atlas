@@ -111,6 +111,41 @@ extension MeasurementUnit {
         let value = weightForDisplay(kilograms)
         return "\(String(format: "%.\(fractionDigits)f", value)) \(weightSuffix)"
     }
+
+    // MARK: - Volume
+
+    /// Water is persisted in fluid ounces, so these are its read/write
+    /// boundary. Without them the nutrition card showed a target in
+    /// ounces above quick-add chips labelled in millilitres.
+    private static let millilitresPerFluidOunce = 29.5735
+
+    var volumeSuffix: String {
+        self == .metric ? "mL" : "oz"
+    }
+
+    /// Spelled out for VoiceOver, which reads "oz" as two letters.
+    var volumeSpokenUnit: String {
+        self == .metric
+            ? String(localized: "millilitres")
+            : String(localized: "ounces")
+    }
+
+    /// Fluid ounces → the number to show, in the user's unit. Metric
+    /// promotes to litres past 1000 mL so a 3 L target doesn't read as
+    /// "2960 mL".
+    func volumeLabel(_ fluidOunces: Int) -> String {
+        guard self == .metric else { return "\(fluidOunces) oz" }
+        let millilitres = Int((Double(fluidOunces) * Self.millilitresPerFluidOunce).rounded())
+        guard millilitres >= 1_000 else { return "\(millilitres) mL" }
+        return String(format: "%.1f L", Double(millilitres) / 1_000)
+    }
+
+    /// Bare number, for a value shown next to a separate unit suffix.
+    func volumeValue(_ fluidOunces: Int) -> Int {
+        self == .metric
+            ? Int((Double(fluidOunces) * Self.millilitresPerFluidOunce).rounded())
+            : fluidOunces
+    }
 }
 
 /// Optional body metrics displayed alongside the user's compliance trends

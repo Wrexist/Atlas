@@ -292,6 +292,7 @@ struct HomeView: View {
                     if let overview = derived.overview, overview.hasAnySignal {
                         TodayOverviewCard(
                             snapshot: overview,
+                            unit: dataStore.profile.bodyMetrics.unit,
                             onTapHero: { dose in
                                 guard let dose else { return }
                                 selectedEntry = dose

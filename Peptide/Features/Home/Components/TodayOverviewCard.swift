@@ -15,6 +15,9 @@ import SwiftUI
 /// labs or dismisses the nudge via `onTapInsight`.
 struct TodayOverviewCard: View {
     let snapshot: TodayOverviewSnapshot
+    /// Water is stored in fluid ounces. Defaulted so previews stay
+    /// two-line; the one live call site passes the profile's setting.
+    var unit: MeasurementUnit = .metric
     /// Called when the user taps the hero. Receives the next
     /// pending dose if there is one, else nil — the host decides
     /// whether to open the logging sheet or no-op.
@@ -221,9 +224,9 @@ struct TodayOverviewCard: View {
             icon: "drop.fill",
             iconTint: AppColor.macroWater,
             label: String(localized: "Water"),
-            value: snapshot.waterToday > 0 ? "\(snapshot.waterToday)" : "—",
+            value: snapshot.waterToday > 0 ? "\(unit.volumeValue(snapshot.waterToday))" : "—",
             footnote: snapshot.waterToday > 0
-                ? String(localized: "oz today")
+                ? "\(unit.volumeSuffix) today"
                 : String(localized: "Quick-add from Watch"),
             progress: nil
         )
