@@ -63,10 +63,7 @@ struct BodyMetricsCard: View {
 
     private var weightText: String {
         guard let kg = metrics.weightKg else { return "—" }
-        if metrics.unit == .metric {
-            return "\(formatNumber(kg)) kg"
-        }
-        return "\(formatNumber(kg * 2.20462)) lb"
+        return "\(formatNumber(metrics.unit.weightForDisplay(kg))) \(metrics.unit.weightSuffix)"
     }
 
     private var heightText: String {

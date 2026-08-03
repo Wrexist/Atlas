@@ -125,4 +125,36 @@ final class BodyMetricsTests: XCTestCase {
         XCTAssertEqual(BiologicalSex.male.shortLabel, "Male")
         XCTAssertEqual(BiologicalSex.female.shortLabel, "Female")
     }
+
+    // MARK: - Weight unit conversion
+
+    func test_metricWeight_passesThroughUnchanged() {
+        XCTAssertEqual(MeasurementUnit.metric.weightForDisplay(100), 100, accuracy: 0.0001)
+        XCTAssertEqual(MeasurementUnit.metric.kilograms(fromDisplayed: 100), 100, accuracy: 0.0001)
+        XCTAssertEqual(MeasurementUnit.metric.weightSuffix, "kg")
+    }
+
+    func test_imperialWeight_convertsBothDirections() {
+        XCTAssertEqual(MeasurementUnit.imperial.weightForDisplay(100), 220.462, accuracy: 0.001)
+        XCTAssertEqual(MeasurementUnit.imperial.kilograms(fromDisplayed: 220.462), 100, accuracy: 0.001)
+        XCTAssertEqual(MeasurementUnit.imperial.weightSuffix, "lb")
+    }
+
+    func test_weightRoundTrip_survivesTheUnitToggle() {
+        // The whole reason weight is persisted in kilograms: a user who
+        // logs 225 lb, switches to metric and back must still see 225.
+        for unit in [MeasurementUnit.metric, .imperial] {
+            for entered in [45.0, 102.5, 225.0, 405.0] {
+                let stored = unit.kilograms(fromDisplayed: entered)
+                XCTAssertEqual(unit.weightForDisplay(stored), entered, accuracy: 0.0001,
+                               "\(entered) did not round-trip through \(unit)")
+            }
+        }
+    }
+
+    func test_weightLabel_roundsAndSuffixesForTheUsersUnit() {
+        XCTAssertEqual(MeasurementUnit.metric.weightLabel(1234.6), "1235 kg")
+        XCTAssertEqual(MeasurementUnit.imperial.weightLabel(100), "220 lb")
+        XCTAssertEqual(MeasurementUnit.metric.weightLabel(60.25, fractionDigits: 1), "60.2 kg")
+    }
 }

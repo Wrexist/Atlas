@@ -84,7 +84,7 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
     func displayValue(_ metricValue: Double, for unit: MeasurementUnit) -> Double {
         guard unit == .imperial else { return metricValue }
         switch self {
-        case .weight:           return metricValue * 2.20462         // kg → lb
+        case .weight:           return unit.weightForDisplay(metricValue)
         case .waist:            return metricValue / 2.54            // cm → in
         case .bodyTemperature:  return metricValue * 9.0 / 5.0 + 32  // °C → °F
         default:                return metricValue

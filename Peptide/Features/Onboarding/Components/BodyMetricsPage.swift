@@ -256,10 +256,11 @@ struct BodyMetricsPage: View {
     private var weightLbBinding: Binding<Int> {
         Binding(
             get: {
-                let lb = (metrics.weightKg ?? Double(BodyMetricsRanges.defaultWeightKg)) * 2.20462
+                let lb = MeasurementUnit.imperial.weightForDisplay(
+                    metrics.weightKg ?? Double(BodyMetricsRanges.defaultWeightKg))
                 return BodyMetricsRanges.clampWeightLb(Int(lb.rounded()))
             },
-            set: { metrics.weightKg = Double($0) / 2.20462 }
+            set: { metrics.weightKg = MeasurementUnit.imperial.kilograms(fromDisplayed: Double($0)) }
         )
     }
 

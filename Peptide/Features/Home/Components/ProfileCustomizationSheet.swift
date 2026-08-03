@@ -748,8 +748,7 @@ struct ProfileCustomizationSheet: View {
 
     private func weightString(_ m: BodyMetrics) -> String {
         guard let kg = m.weightKg else { return "—" }
-        if m.unit == .metric { return "\(Int(kg.rounded())) kg" }
-        return "\(Int((kg * 2.20462).rounded())) lb"
+        return m.unit.weightLabel(kg)
     }
 
     private func heightString(_ m: BodyMetrics) -> String {

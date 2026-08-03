@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// Single-set row inside the active-workout exercise card. Renders
-/// the set index, an editable weight (kg), an editable reps count,
+/// the set index, an editable weight in the user's unit, an editable
+/// reps count,
 /// optional RPE, the "previous session" hint when available, and a
 /// completion checkbox.
 ///
@@ -11,6 +12,10 @@ import SwiftUI
 struct SetEditorRow: View {
     @Binding var set: SetEntry
     let previousSet: SetEntry?
+    /// The user's weight unit. `SetEntry.weightKg` is canonical
+    /// kilograms, so this row converts on both read and write —
+    /// without it an imperial user typing "225" stores 225 kg.
+    let unit: MeasurementUnit
     let onDelete: () -> Void
 
     @FocusState private var weightFocused: Bool
@@ -76,10 +81,10 @@ struct SetEditorRow: View {
     }
 
     private var weightField: some View {
-        TextField("kg",
+        TextField(unit.weightSuffix,
                   value: Binding(
-                    get: { set.weightKg },
-                    set: { set.weightKg = $0 }
+                    get: { unit.weightForDisplay(set.weightKg) },
+                    set: { set.weightKg = unit.kilograms(fromDisplayed: $0) }
                   ),
                   format: .number.precision(.fractionLength(0...1)))
             .keyboardType(.decimalPad)
@@ -99,7 +104,7 @@ struct SetEditorRow: View {
                             lineWidth: weightFocused ? 1 : 0.5)
             )
             .accessibilityLabel(Text("Weight for set \(set.index)"))
-            .accessibilityValue(Text("\(formatted(set.weightKg)) kilograms"))
+            .accessibilityValue(Text("\(formatted(set.weightKg)) \(unit.weightSpokenUnit)"))
     }
 
     private var repsField: some View {
@@ -147,9 +152,10 @@ struct SetEditorRow: View {
     }
 
     private func formatted(_ kg: Double) -> String {
-        if kg.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(Int(kg))
+        let value = unit.weightForDisplay(kg)
+        if value.rounded() == value {
+            return String(Int(value))
         }
-        return String(format: "%.1f", kg)
+        return String(format: "%.1f", value)
     }
 }

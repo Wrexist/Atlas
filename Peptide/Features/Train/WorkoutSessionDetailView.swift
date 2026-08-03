@@ -11,6 +11,9 @@ import SwiftUI
 /// empty on re-open — same bug we fixed in WorkoutFinishView).
 struct WorkoutSessionDetailView: View {
     let session: WorkoutSession
+    @Environment(DataStore.self) private var dataStore
+
+    private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
     @State private var library = ExerciseLibrary.shared
 
     private var muscleHighlights: [AnatomicalMuscle: MuscleHighlight] {
@@ -156,7 +159,7 @@ struct WorkoutSessionDetailView: View {
                         .frame(width: 20, alignment: .leading)
                         .foregroundStyle(AppColor.textTertiary)
                     if set.weightKg > 0 {
-                        Text("\(set.weightKg, specifier: "%.1f") kg × \(set.reps)")
+                        Text("\(unit.weightLabel(set.weightKg, fractionDigits: 1)) × \(set.reps)")
                             .font(AppFont.callout)
                             .foregroundStyle(AppColor.textPrimary)
                     } else {

@@ -107,12 +107,7 @@ struct WeightTrackingCard: View {
     }
 
     private func unitFormatter() -> (Double) -> String {
-        return { kg in
-            switch unit {
-            case .metric:    String(format: "%.1f kg", kg)
-            case .imperial:  String(format: "%.1f lb", kg * 2.20462)
-            }
-        }
+        return { kg in unit.weightLabel(kg, fractionDigits: 1) }
     }
 }
 
@@ -174,10 +169,7 @@ private struct Sparkline: View {
     private var accessibilitySummary: String {
         guard let first = points.first?.kg, let last = points.last?.kg else { return "No data" }
         let delta = last - first
-        switch unit {
-        case .metric:    return String(format: "Weight changed %.1f kg over the window", delta)
-        case .imperial:  return String(format: "Weight changed %.1f lb over the window", delta * 2.20462)
-        }
+        return String(localized: "Weight changed \(unit.weightLabel(delta, fractionDigits: 1)) over the window")
     }
 }
 

@@ -1596,6 +1596,7 @@ struct OnboardingView: View {
                 SetEditorRow(
                     set: $demoSet,
                     previousSet: SetEntry(index: 0, weightKg: 55, reps: 8, completed: true),
+                    unit: bodyMetrics.unit,
                     onDelete: {}
                 )
                 .onChange(of: demoSet.completed) { _, completed in

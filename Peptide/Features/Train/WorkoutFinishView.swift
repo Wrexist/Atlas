@@ -13,6 +13,9 @@ struct WorkoutFinishView: View {
     /// row was always empty because the engine had already run in
     /// WorkoutSessionService.finishWorkout. Audit Train H4.
     let detectedPRs: [PRDetectionEngine.DetectedPR]
+    /// Session volume and PR values are stored in kilograms; this is
+    /// what turns them back into the unit the user logs in.
+    let unit: MeasurementUnit
     let onClose: () -> Void
 
     @State private var library = ExerciseLibrary.shared
@@ -73,7 +76,7 @@ struct WorkoutFinishView: View {
         HStack(spacing: Spacing.sm) {
             stat(label: "Duration", value: durationFormatted)
             stat(label: "Sets", value: "\(session.completedSetCount)")
-            stat(label: "Volume", value: "\(Int(session.totalVolumeKg.rounded())) kg")
+            stat(label: "Volume", value: unit.weightLabel(session.totalVolumeKg))
         }
     }
 
@@ -129,9 +132,9 @@ struct WorkoutFinishView: View {
 
     private func prSummary(_ pr: PRDetectionEngine.DetectedPR) -> String {
         switch pr.kind {
-        case .estimatedOneRepMax: return "e1RM \(Int(pr.value.rounded())) kg"
-        case .absoluteWeight:     return "Top set \(Int(pr.value.rounded())) kg"
-        case .sessionVolume:      return "Volume \(Int(pr.value.rounded())) kg"
+        case .estimatedOneRepMax: return "e1RM \(unit.weightLabel(pr.value))"
+        case .absoluteWeight:     return "Top set \(unit.weightLabel(pr.value))"
+        case .sessionVolume:      return "Volume \(unit.weightLabel(pr.value))"
         case .bodyweightReps:     return "\(Int(pr.value)) reps"
         }
     }
@@ -150,7 +153,7 @@ struct WorkoutFinishView: View {
                             .lineLimit(1)
                         Spacer()
                         let workingSets = entry.sets.filter { $0.completed && !$0.isWarmup }.count
-                        Text("\(workingSets) sets · \(Int(entry.workingVolumeKg.rounded())) kg")
+                        Text("\(workingSets) sets · \(unit.weightLabel(entry.workingVolumeKg))")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                             .monospacedDigit()
