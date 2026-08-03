@@ -31,6 +31,10 @@ run() {
 }
 
 # ---------------------------------------------------------------- Swift side
+# The checkers are checked first: a blind rule reports a clean bill it has
+# not earned, which is worse than no rule. This suite exists because that
+# actually happened to rule_glow on this branch.
+run "Checker self-tests" python3 scripts/test_design_lint.py
 run "Design system (17 rules)" python3 scripts/design-lint.py --all
 run "Colour contrast (244 token pairs, WCAG AA)" python3 scripts/contrast-check.py
 
