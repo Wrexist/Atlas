@@ -438,13 +438,7 @@ struct PaywallView: View {
             .padding(.vertical, 4)
             .background {
                 Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [AppColor.accentPrimary, AppColor.accentLight],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
+                    .fill(AppColor.accentFill)
             }
             .shadow(color: AppColor.accentGlow, radius: 6, y: 2)
     }

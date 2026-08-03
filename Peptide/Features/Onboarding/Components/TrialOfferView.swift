@@ -221,12 +221,7 @@ struct TrialOfferView: View {
 
             Text("\(trialDays) Days Free")
                 .font(.system(size: 44, weight: .heavy, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [AppColor.textPrimary, AppColor.accentLight],
-                        startPoint: .top, endPoint: .bottom
-                    )
-                )
+                .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
 
             Text("Atlas Pro Monthly")
@@ -503,15 +498,10 @@ struct TrialOfferView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.md + 2)
                 .padding(.horizontal, Spacing.xl)
-                .foregroundStyle(AppColor.textPrimary)
+                .foregroundStyle(AppColor.onAccent)
                 .background {
                     Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [AppColor.accentPrimary, AppColor.accentLight],
-                                startPoint: .leading, endPoint: .trailing
-                            )
-                        )
+                        .fill(AppColor.accentFill)
                         .overlay(Capsule().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5))
                 }
                 .scaleEffect(ctaPulse && !isPurchasing ? 1.02 : 1.0)

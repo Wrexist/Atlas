@@ -497,8 +497,36 @@ def rule_unguarded_loop(path, source, code) -> list[Finding]:
                     "@Environment(\\.accessibilityReduceMotion)", "error")]
 
 
+def rule_accent_gradient_fill(path, source, code) -> list[Finding]:
+    """R1 + contrast — no accent gradient under `onAccent` ink.
+
+    `accentPrimary` and `accentLight` are tuned as *ink on the background*,
+    so in the dark scheme they are the brightest colours in the app. Filling
+    a CTA with a gradient between them and printing near-white on top lands
+    between 1.3:1 and 3.7:1 depending on the theme. `contrast-check` cannot
+    see this because the fill is a gradient, not a token pair.
+
+    Craft R1 independently rejects the same construct — a fade applied to
+    buttons and pills alike is decoration standing in for a colour decision.
+    `AppColor.accentFill` is the flat answer to both.
+    """
+    out = []
+    for m in re.finditer(r"(?:Linear|Radial|Angular)Gradient", code):
+        block = code[m.start():m.start() + 320]
+        if not re.search(r"AppColor\.accent(?:Primary|Light)", block):
+            continue
+        before = code[max(0, m.start() - 500):m.start()]
+        if not re.search(r"\.foregroundStyle\(\s*AppColor\.onAccent\s*\)", before):
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "accent-gradient-fill",
+                           "accent gradient under onAccent ink drops below 4:1 in the "
+                           "dark scheme; fill with AppColor.accentFill", "error"))
+    return out
+
+
 RULES = [
     rule_forced_color_scheme,
+    rule_accent_gradient_fill,
     rule_unguarded_loop,
     rule_raw_colour,
     rule_type_scale,

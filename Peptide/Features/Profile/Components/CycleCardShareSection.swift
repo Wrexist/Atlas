@@ -31,13 +31,7 @@ struct CycleCardShareSection: View {
                     .frame(width: 40, height: 40)
                     .background {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [AppColor.accentPrimary, AppColor.accentLight],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .fill(AppColor.accentFill)
                     }
 
                 VStack(alignment: .leading, spacing: 2) {

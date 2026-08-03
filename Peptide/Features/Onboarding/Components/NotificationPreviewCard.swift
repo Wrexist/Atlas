@@ -49,13 +49,7 @@ struct NotificationPreviewCard: View {
             .frame(width: 28, height: 28)
             .background {
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [AppColor.accentLight, AppColor.accentPrimary],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(AppColor.accentFill)
             }
     }
 }

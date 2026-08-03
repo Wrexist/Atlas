@@ -60,13 +60,7 @@ struct WeightTrackingCard: View {
                 .padding(.vertical, 7)
                 .background {
                     Capsule(style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [AppColor.accentPrimary, AppColor.accentLight],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .fill(AppColor.accentFill)
                         .overlay {
                             Capsule(style: .continuous)
                                 .strokeBorder(AppColor.onAccent.opacity(0.18), lineWidth: 0.5)

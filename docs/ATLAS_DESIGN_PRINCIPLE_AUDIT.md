@@ -26,7 +26,7 @@ simulator.
 
 | # | Rule | Status | Evidence |
 |---|------|--------|----------|
-| R1 | No gradients | **open** | 84 gradient sites across 55 files. The rule permits a brand gradient used deliberately; it forbids one applied to buttons, cards and headings alike. Classifying these needs renders — the top files are `CompoundVial` (5, an illustration), onboarding heroes and the paywall. |
+| R1 | No gradients | **partial — enforced where it bites** | 84 gradient sites classified by what they fill: 53 surface fills, 20 illustration/other, 6 ring or chart strokes, 3 overlay masks. The rule's actual target — a fade applied to buttons and pills alike — was **6 CTA capsules** filling with `[accentPrimary → accentLight]`; all now flat `accentFill`, which also fixed a 1.3–3.7:1 contrast failure the token checker could not see (see below). Gradient-filled *text* was 2 sites: the promo numeral (flattened) and the "Atlas" wordmark (R1's explicit brand exception, kept). `design-lint: accent-gradient-fill` holds the line. The remaining fills are illustrations, charts and ambient backdrops — classifying those still needs renders. |
 | R2 | No glow | **enforced** | `design-lint: glow` — a coloured shadow at radius ≥10 behind a *glyph*. Two neon halos found and removed. Tinted elevation under a filled shape is a deliberate system and is exempt. |
 | R3 | No `transition: all` | **enforced** | `design-lint: untargeted-animation` — the SwiftUI analogue is `.animation(x)` without a `value:`, which animates every change in the subtree. |
 | R4 | Kill visual monotony | **open** | Not statically checkable. Squint test needs renders. |
@@ -50,7 +50,7 @@ simulator.
 | 8-point grid | **enforced** | `design-lint: off-grid-spacing`. |
 | Relationship-based spacing | **open** | Needs renders. |
 | 44×44pt tap targets | **enforced** | `design-lint: hit-target`; nine sub-44pt controls found and fixed. |
-| Contrast ratios | **enforced** | `contrast-check`, 244 pairs at WCAG AA, both schemes × five themes. |
+| Contrast ratios | **enforced** | `contrast-check`, 244 pairs at WCAG AA, both schemes × five themes, plus `design-lint: accent-gradient-fill` for gradient fills the pair-checker cannot resolve. |
 | Empty / error / loading / success states | **partial** | See R11. |
 | Thumb-zone CTAs | **open** | Needs renders. |
 | Soft, background-tinted shadows | **pass** | Shadows resolve through `AppShadow`; the glow rule catches the harsh case. |
@@ -87,8 +87,10 @@ a simulator. Phases 3 and 4 are what the two checkers replicate.
 1. **Accent at ~27% against a 10% target** (60/30/10). 280 accent-coloured
    glyphs. The single biggest lever on "does this read as premium", and the
    one that most needs a rendered screen to act on safely.
-2. **84 gradient sites across 55 files** (R1). Same problem: the rule turns on whether a
-   given gradient is brand or decoration.
+2. **~70 remaining gradient fills** (R1) are illustrations, chart strokes and
+   ambient backdrops. Whether each is artwork or decoration turns on seeing
+   it. The decorative-on-controls case — the one R1 is actually aimed at —
+   is fixed and lint-enforced.
 3. **Display numerals ignore Dynamic Type.** The 16 sites above 24pt use
    `Font.system(size:)` directly. At Accessibility XXXL body text grows
    past some of them and the hierarchy inverts.

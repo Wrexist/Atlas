@@ -199,16 +199,9 @@ struct MealScanFlow: View {
         .background {
             Capsule()
                 .fill(
-                    LinearGradient(
-                        colors: style == .primary
-                            ? [AppColor.accentPrimary, AppColor.accentLight]
-                            : [
-                                AppColor.surfaceSecondary.opacity(0.85),
-                                AppColor.surfaceSecondary.opacity(0.55),
-                            ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
+                    style == .primary
+                        ? AnyShapeStyle(AppColor.accentFill)
+                        : AnyShapeStyle(AppColor.surfaceSecondary.opacity(0.85))
                 )
                 .overlay {
                     Capsule().strokeBorder(
