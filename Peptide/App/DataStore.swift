@@ -1481,6 +1481,10 @@ final class DataStore: DataServiceProtocol {
     func deleteWorkout(id: UUID) {
         repo.deleteWorkoutSession(id: id)
         cacheVersion &+= 1
+        // Same reason as `recordWorkoutFinished`: a repo-level write is
+        // invisible to the property observers, so derived snapshots need
+        // telling explicitly or a deleted workout lingers on Today.
+        revision &+= 1
         updateWidgetData()
         updateWatchData()
     }
@@ -1491,6 +1495,15 @@ final class DataStore: DataServiceProtocol {
     /// count + the PR signal — runs only on this workout event, never on
     /// the generic save hot-path.
     func recordWorkoutFinished(detectedPRCount: Int) {
+        // A structured finish writes StoredWorkoutSession through the repo,
+        // not through `protocols` / `entries` / `profile`, so none of the
+        // `didSet` bumps fire. Views that recompute a derived snapshot off
+        // `.task(id: revision)` — Today's timeline among them — would keep
+        // serving the pre-workout view for as long as they stayed mounted,
+        // until some unrelated mutation happened to bump it. Bumped before
+        // the ephemeral guard: screenshot mode still has to redraw.
+        cacheVersion &+= 1
+        revision &+= 1
         guard !isEphemeral else { return }
         AchievementService.shared.checkTrainingAchievements(
             workoutCount: repo.workoutSessionCount(),
