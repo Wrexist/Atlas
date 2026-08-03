@@ -56,7 +56,7 @@ struct VialShelfCard: View {
             Text("YOUR INVENTORY")
                 .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(1.5)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
 
             Spacer(minLength: 0)
 

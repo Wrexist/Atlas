@@ -124,7 +124,7 @@ struct BiomarkerDetailSheet: View {
             Text("WHAT THIS TRACKS")
                 .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .tracking(1.0)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
             Text(explainerBody)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
@@ -166,7 +166,7 @@ struct BiomarkerDetailSheet: View {
                 Text("RECENT TREND")
                     .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                     .tracking(1.0)
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.textSecondary)
 
                 trendChart
             }
@@ -292,7 +292,7 @@ struct BiomarkerDetailSheet: View {
             Text("VS RECENT AVERAGE")
                 .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .tracking(1.0)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
             Text(deltaLine)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textPrimary)

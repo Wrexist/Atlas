@@ -137,7 +137,7 @@ struct HeroMetricDetailSheet: View {
             Text("WHY IT MATTERS")
                 .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .tracking(1.0)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
             Text(explainerBody)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
@@ -174,7 +174,7 @@ struct HeroMetricDetailSheet: View {
             Text("TODAY'S DOSES")
                 .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .tracking(1.0)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
 
             if context.todayEntries.isEmpty {
                 Text("No doses scheduled.")
@@ -224,7 +224,7 @@ struct HeroMetricDetailSheet: View {
             Text("WHAT'S DRIVING IT")
                 .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .tracking(1.0)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
 
             if let components = context.recoveryComponents {
                 componentRow(label: "HRV vs baseline",        value: components.hrv,   icon: "waveform.path.ecg")
@@ -281,7 +281,7 @@ struct HeroMetricDetailSheet: View {
             Text("LAST NIGHT")
                 .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .tracking(1.0)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
 
             HStack(spacing: Spacing.lg) {
                 sleepStat(

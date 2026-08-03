@@ -217,7 +217,7 @@ struct TrialOfferView: View {
             Text("YOUR WELCOME GIFT")
                 .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(2)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
 
             Text("\(trialDays) Days Free")
                 .font(.system(size: 44, weight: .heavy, design: .rounded))

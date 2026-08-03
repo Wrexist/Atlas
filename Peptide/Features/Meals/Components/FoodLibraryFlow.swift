@@ -1354,7 +1354,7 @@ struct FoodLibraryFlow: View {
                     ForEach(Self.gramsQuickPicks, id: \.self) { quick in
                         Button("\(Int(quick))g") { portion = .grams(quick) }
                             .font(AppFont.caption)
-                            .foregroundStyle(AppColor.accentLight)
+                            .foregroundStyle(AppColor.textSecondary)
                             .padding(.horizontal, Spacing.sm)
                             .padding(.vertical, 4)
                             .background {

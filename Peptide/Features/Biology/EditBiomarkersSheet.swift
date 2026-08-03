@@ -42,7 +42,7 @@ struct EditBiomarkersSheet: View {
                     Text("Showing")
                         .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                         .tracking(0.8)
-                        .foregroundStyle(AppColor.accentLight)
+                        .foregroundStyle(AppColor.textSecondary)
                 } footer: {
                     Text("Drag to reorder.")
                         .font(AppFont.scaled(11))
@@ -58,7 +58,7 @@ struct EditBiomarkersSheet: View {
                         Text("Available")
                             .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                             .tracking(0.8)
-                            .foregroundStyle(AppColor.accentLight)
+                            .foregroundStyle(AppColor.textSecondary)
                     } footer: {
                         Text("Add biomarkers you want to track.")
                             .font(AppFont.scaled(11))

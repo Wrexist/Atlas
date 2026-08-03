@@ -242,7 +242,7 @@ struct HomeMealsSection: View {
                 Button("Edit targets") { showTargetsEditor = true }
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.textSecondary)
                     .padding(.top, Spacing.xs)
             }
         }

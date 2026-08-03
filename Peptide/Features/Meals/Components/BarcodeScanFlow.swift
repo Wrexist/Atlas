@@ -392,7 +392,7 @@ struct BarcodeScanFlow: View {
                 manualOverride = nil
             }
             .font(AppFont.subheadline)
-            .foregroundStyle(AppColor.accentLight)
+            .foregroundStyle(AppColor.textSecondary)
         }
         .padding(Spacing.md)
         .background {
@@ -535,7 +535,7 @@ struct BarcodeScanFlow: View {
                     ForEach([50.0, 100.0, 200.0, 500.0], id: \.self) { quick in
                         Button("\(Int(quick))g") { portion = .grams(quick) }
                             .font(AppFont.caption)
-                            .foregroundStyle(AppColor.accentLight)
+                            .foregroundStyle(AppColor.textSecondary)
                             .padding(.horizontal, Spacing.sm)
                             .padding(.vertical, 4)
                             .background {
@@ -667,7 +667,7 @@ struct BarcodeScanFlow: View {
                     .padding(.horizontal, Spacing.md)
                     .padding(.vertical, Spacing.md)
                     .frame(minHeight: Spacing.minimumHitTarget)
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.textSecondary)
                     .glassControl(
                         .capsule,
                         tint: AppColor.accentPrimary.opacity(0.18),

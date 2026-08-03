@@ -46,7 +46,7 @@ simulator.
 | One font family | **pass** | System font only; `.rounded` design on numerals. |
 | Max 4 sizes / ≤3 weights | **partial** | Weights: 3 emphasis (semibold 285 / heavy 149 / bold 87) over the default — compliant. Sizes: six steps below display, one more than the rule's four. Held deliberately: a health app renders badge, caption and body in the same row constantly, and the 30 sizes this replaced is the failure the rule is actually aimed at. |
 | Monospace for large numbers | **pass** | All display-size stat numerals carry `monospacedDigit()`. The exceptions are non-numeric (`"You're set, {name}"`) or fixed-canvas share cards. |
-| 60/30/10 colour | **open — off target** | 671 accent references: 281 ink, 202 tint/wash, 101 palette/other, 58 control tint, 16 solid fill, 13 stroke. Roughly **27% against a ~10% target**. This is the largest open design finding. Thinning it is per-site judgement — which of 280 accent glyphs carry state and which are decoration is not decidable from source. |
+| 60/30/10 colour | **partial — the decidable half is done** | The rule's own definition (accent = CTAs, key indicators, icons; text hierarchy from *neutral* opacity) makes the split decidable after all. Classifying the 281 accent ink sites: **136 icons** and **26 CTA labels** are legitimate by the rule, **40 values/indicators** are legitimate, and **25 were static literal labels** — uppercase eyebrows ("WHAT THIS TRACKS", "YOUR INVENTORY"), help copy and unit suffixes, which the rule says come from neutral opacity. 19 moved to `textSecondary`; 6 kept as genuine indicators or Peak-End moments (`PRO` badges, "Achievement Unlocked!", "New personal best!"). 671 → 645 references. What remains — 202 tint/wash fills at low opacity — is what the rule explicitly *encourages* ("accent at 5% opacity for subtle card highlights"), so the raw reference count overstates the surface. The true painted-area ratio still needs a render. |
 | 8-point grid | **enforced** | `design-lint: off-grid-spacing`. |
 | Relationship-based spacing | **open** | Needs renders. |
 | 44×44pt tap targets | **enforced** | `design-lint: hit-target`; nine sub-44pt controls found and fixed. |
@@ -84,9 +84,11 @@ a simulator. Phases 3 and 4 are what the two checkers replicate.
 
 ## Open findings, ranked
 
-1. **Accent at ~27% against a 10% target** (60/30/10). 280 accent-coloured
-   glyphs. The single biggest lever on "does this read as premium", and the
-   one that most needs a rendered screen to act on safely.
+1. **Accent ratio — measured by area, not by reference count.** The
+   source-decidable half is fixed (19 static labels moved to neutral). The
+   remaining question is what fraction of *painted pixels* is accent, which
+   only a render answers. The 202 low-opacity tint/wash fills are sanctioned
+   by the rule, so 645 references is not 645 accent-coloured surfaces.
 2. **~70 remaining gradient fills** (R1) are illustrations, chart strokes and
    ambient backdrops. Whether each is artwork or decoration turns on seeing
    it. The decorative-on-controls case — the one R1 is actually aimed at —

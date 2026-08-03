@@ -157,7 +157,7 @@ private struct HalfLifeMock: View {
             Text("Half-life")
                 .font(AppFont.scaled(8, weight: .heavy))
                 .tracking(0.8)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
 
             ZStack {
                 GeometryReader { proxy in
