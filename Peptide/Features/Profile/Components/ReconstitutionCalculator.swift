@@ -107,13 +107,13 @@ struct ReconstitutionCalculator: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack(alignment: .firstTextBaseline) {
                 Text(label)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()
                 Text("\(formatted(value)) \(unit)")
-                    .font(.system(size: 20, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
@@ -126,7 +126,7 @@ struct ReconstitutionCalculator: View {
                         Haptics.impact(.light)
                         bind.wrappedValue = pick
                     }
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                     .padding(.horizontal, Spacing.sm)
                     .padding(.vertical, 4)
@@ -158,30 +158,30 @@ struct ReconstitutionCalculator: View {
             // the tool states what the user's inputs convert to, it
             // does not instruct administration.
             Text("Equivalent volume")
-                .font(.system(size: 12, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.accentLight.opacity(0.85))
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 if hasFractionalUnits {
                     Text("≈ \(unitsRounded)")
-                        .font(.system(size: 44, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
                 } else {
                     Text("\(unitsRounded)")
-                        .font(.system(size: 44, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
                 }
                 Text("units")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
             }
             Text("on a 100-unit (U-100) insulin syringe")
-                .font(.system(size: 11))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
         }
     }
@@ -202,12 +202,12 @@ struct ReconstitutionCalculator: View {
     private func footnoteCell(label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .tracking(0.5)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
             Text(value)
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
         }
@@ -224,11 +224,11 @@ struct ReconstitutionCalculator: View {
     private var disclaimer: some View {
         HStack(alignment: .top, spacing: Spacing.sm) {
             Image(systemName: "info.circle")
-                .font(.system(size: 12))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
                 .padding(.top, 1)
             Text("Calculator only. Doses and protocols vary widely — consult a qualified medical professional. Atlas doesn't recommend any specific compound or dose.")
-                .font(.system(size: 11))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
@@ -270,11 +270,11 @@ struct SyringeDiagram: View {
 
             ZStack(alignment: .leading) {
                 // Syringe body track (clear)
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                     .fill(AppColor.surfaceSecondary.opacity(0.65))
                     .frame(width: bodyWidth, height: plungerHeight)
                     .overlay {
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                             .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                     }
                     .position(x: bodyWidth / 2, y: centerY)
@@ -305,7 +305,7 @@ struct SyringeDiagram: View {
 
                     if tick > 0 && tick < 10 {
                         Text("\(tick * majorTickEvery)")
-                            .font(.system(size: 8, weight: .medium))
+                            .font(AppFont.scaled(8, weight: .semibold))
                             .monospacedDigit()
                             .foregroundStyle(AppColor.textTertiary)
                             .position(x: x, y: centerY + plungerHeight / 2 + 8)

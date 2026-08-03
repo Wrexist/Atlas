@@ -41,7 +41,7 @@ struct WeeklySummaryToggleRow: View {
                         .fill(accent.opacity(0.18))
                         .frame(width: 36, height: 36)
                     Image(systemName: "sparkles")
-                        .font(.system(size: 16, weight: .heavy))
+                        .font(AppFont.scaled(16, weight: .heavy))
                         .foregroundStyle(accent)
                 }
 
@@ -53,13 +53,13 @@ struct WeeklySummaryToggleRow: View {
                             .foregroundStyle(AppColor.textPrimary)
                         if !isPro {
                             Text("PRO")
-                                .font(.system(size: 9, weight: .heavy))
+                                .font(AppFont.scaled(8, weight: .heavy))
                                 .tracking(0.5)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 2)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppColor.onAccent)
                                 .background {
-                                    Capsule().fill(AppColor.accentPrimary)
+                                    Capsule().fill(AppColor.accentFill)
                                 }
                         }
                     }
@@ -92,7 +92,7 @@ struct WeeklySummaryToggleRow: View {
                     .tint(accent)
                 } else {
                     Image(systemName: "lock.fill")
-                        .font(.system(size: 14, weight: .heavy))
+                        .font(AppFont.scaled(13, weight: .heavy))
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }
@@ -116,7 +116,7 @@ struct WeeklySummaryToggleRow: View {
     }
 
     private var accent: Color {
-        Color(red: 0.48, green: 0.50, blue: 0.92)
+        AppColor.recap
     }
 
     private func subtitle(isPro: Bool) -> LocalizedStringKey {

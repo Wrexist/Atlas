@@ -57,7 +57,7 @@ struct AppendStackPickerSheet: View {
             GlassCard(tinted: isSelected) {
                 HStack(spacing: Spacing.md) {
                     Image(systemName: proto.status.iconName)
-                        .font(.system(size: 16))
+                        .font(AppFont.scaled(16))
                         .foregroundStyle(statusColor(proto.status))
                         .frame(width: 28, height: 28)
                         .background {
@@ -81,12 +81,12 @@ struct AppendStackPickerSheet: View {
 
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 18))
+                            .font(AppFont.scaled(16))
                             .foregroundStyle(AppColor.accentLight)
                             .transition(.scale.combined(with: .opacity))
                     } else {
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(AppFont.scaled(11, weight: .semibold))
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 }

@@ -25,11 +25,18 @@ struct CosmicBackdrop: View {
     /// backdrop covers a 200pt card or a full screen.
     var starDensityPer10k: Double = 14
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         ZStack {
             AppColor.background
             glow
-            starfield
+            // A starfield only reads as "night sky" on a dark surface. In
+            // light mode the same specks look like dust on the screen, so
+            // the accent glow carries the premium feel alone.
+            if colorScheme == .dark {
+                starfield
+            }
         }
     }
 
@@ -107,7 +114,7 @@ struct SplitMix64: RandomNumberGenerator {
         AppColor.background.ignoresSafeArea()
         CosmicBackdrop()
             .frame(height: 140)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
             .padding()
     }
     .preferredColorScheme(.dark)

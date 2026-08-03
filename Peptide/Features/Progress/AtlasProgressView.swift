@@ -48,7 +48,8 @@ struct AtlasProgressView: View {
 
             HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
                 Text("\(momentum.score)")
-                    .font(.system(size: 40, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(40, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                    .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
                 Text("pts")
@@ -57,7 +58,7 @@ struct AtlasProgressView: View {
                 Spacer()
                 HStack(spacing: 5) {
                     Image(systemName: momentum.tier.symbol)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                     Text("Level \(momentum.level) · \(momentum.tier.name)")
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
@@ -116,16 +117,16 @@ struct AtlasProgressView: View {
     private func streakTile(label: String, current: Int, best: Int, tint: Color) -> some View {
         VStack(spacing: Spacing.xxs) {
             Image(systemName: "flame.fill")
-                .font(.system(size: 16, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(current > 0 ? tint : AppColor.textTertiary)
             Text("\(current)")
-                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
             Text(label)
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
             Text("best \(best)")
-                .font(.system(size: 10, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
         }
         .frame(maxWidth: .infinity)
@@ -152,7 +153,8 @@ struct AtlasProgressView: View {
             if let rate30 {
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
                     Text("\(Int((rate30 * 100).rounded()))%")
-                        .font(.system(size: 36, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(36, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                        .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                     Text("last 30 days")
                         .font(AppFont.subheadline)
@@ -176,9 +178,9 @@ struct AtlasProgressView: View {
         let improving = delta >= 0
         return HStack(spacing: 3) {
             Image(systemName: improving ? "arrow.up.right" : "arrow.down.right")
-                .font(.system(size: 10, weight: .bold))
+                .font(AppFont.scaled(11, weight: .bold))
             Text("\(abs(delta))% vs prev 30")
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
         }
         .foregroundStyle(improving ? AppColor.success : AppColor.textTertiary)
         .padding(.horizontal, Spacing.sm)
@@ -191,7 +193,7 @@ struct AtlasProgressView: View {
     private func sectionHeader(_ title: String, systemImage: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: systemImage)
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
             Text(title)
                 .font(AppFont.headline)

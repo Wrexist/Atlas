@@ -119,7 +119,7 @@ struct LabEntryEditor: View {
                     if let rangeError {
                         HStack(spacing: 4) {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 11))
+                                .font(AppFont.scaled(11))
                             Text(rangeError)
                                 .font(AppFont.caption)
                         }
@@ -190,7 +190,6 @@ struct LabEntryEditor: View {
                 Text("This can't be undone. The trend chart will skip the deleted point.")
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func rangeFooter(range: ClosedRange<Double>) -> String {

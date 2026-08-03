@@ -125,4 +125,61 @@ final class BodyMetricsTests: XCTestCase {
         XCTAssertEqual(BiologicalSex.male.shortLabel, "Male")
         XCTAssertEqual(BiologicalSex.female.shortLabel, "Female")
     }
+
+    // MARK: - Weight unit conversion
+
+    func test_metricWeight_passesThroughUnchanged() {
+        XCTAssertEqual(MeasurementUnit.metric.weightForDisplay(100), 100, accuracy: 0.0001)
+        XCTAssertEqual(MeasurementUnit.metric.kilograms(fromDisplayed: 100), 100, accuracy: 0.0001)
+        XCTAssertEqual(MeasurementUnit.metric.weightSuffix, "kg")
+    }
+
+    func test_imperialWeight_convertsBothDirections() {
+        XCTAssertEqual(MeasurementUnit.imperial.weightForDisplay(100), 220.462, accuracy: 0.001)
+        XCTAssertEqual(MeasurementUnit.imperial.kilograms(fromDisplayed: 220.462), 100, accuracy: 0.001)
+        XCTAssertEqual(MeasurementUnit.imperial.weightSuffix, "lb")
+    }
+
+    func test_weightRoundTrip_survivesTheUnitToggle() {
+        // The whole reason weight is persisted in kilograms: a user who
+        // logs 225 lb, switches to metric and back must still see 225.
+        for unit in [MeasurementUnit.metric, .imperial] {
+            for entered in [45.0, 102.5, 225.0, 405.0] {
+                let stored = unit.kilograms(fromDisplayed: entered)
+                XCTAssertEqual(unit.weightForDisplay(stored), entered, accuracy: 0.0001,
+                               "\(entered) did not round-trip through \(unit)")
+            }
+        }
+    }
+
+    func test_weightLabel_roundsAndSuffixesForTheUsersUnit() {
+        XCTAssertEqual(MeasurementUnit.metric.weightLabel(1234.6), "1235 kg")
+        XCTAssertEqual(MeasurementUnit.imperial.weightLabel(100), "220 lb")
+        // Deliberately not a .x5 tie — that would make the test depend on
+        // the C library's rounding mode rather than on our formatting.
+        XCTAssertEqual(MeasurementUnit.metric.weightLabel(60.28, fractionDigits: 1), "60.3 kg")
+    }
+
+    // MARK: - Volume (water is stored in fluid ounces)
+
+    func test_imperialVolume_passesOuncesThrough() {
+        XCTAssertEqual(MeasurementUnit.imperial.volumeLabel(8), "8 oz")
+        XCTAssertEqual(MeasurementUnit.imperial.volumeLabel(100), "100 oz")
+        XCTAssertEqual(MeasurementUnit.imperial.volumeValue(32), 32)
+        XCTAssertEqual(MeasurementUnit.imperial.volumeSuffix, "oz")
+    }
+
+    func test_metricVolume_convertsAndPromotesToLitres() {
+        XCTAssertEqual(MeasurementUnit.metric.volumeLabel(8), "237 mL")
+        XCTAssertEqual(MeasurementUnit.metric.volumeLabel(17), "503 mL")
+        XCTAssertEqual(MeasurementUnit.metric.volumeValue(8), 237)
+        XCTAssertEqual(MeasurementUnit.metric.volumeSuffix, "mL")
+    }
+
+    func test_metricVolume_promotesPastOneLitre() {
+        // The daily target is 100 oz — "2957 mL" is not a number anyone
+        // reads, which is the whole reason for the promotion.
+        XCTAssertEqual(MeasurementUnit.metric.volumeLabel(34), "1.0 L")
+        XCTAssertEqual(MeasurementUnit.metric.volumeLabel(100), "3.0 L")
+    }
 }

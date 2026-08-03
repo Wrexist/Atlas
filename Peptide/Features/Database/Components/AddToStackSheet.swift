@@ -70,7 +70,7 @@ struct AddToStackSheet: View {
                         .fill(peptide.category.color.opacity(0.15))
                         .frame(width: 44, height: 44)
                     Image(systemName: peptide.imageSystemName)
-                        .font(.system(size: 18))
+                        .font(AppFont.scaled(16))
                         .foregroundStyle(peptide.category.color)
                 }
 
@@ -176,7 +176,7 @@ struct AddToStackSheet: View {
                 .frame(width: 36, height: 36)
 
             Image(systemName: (alreadyIn || justAdded) ? "checkmark" : "plus")
-                .font(.system(size: 14, weight: .bold))
+                .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(AppColor.accentLight)
         }
         .liquidGlass(.circle)
@@ -195,7 +195,7 @@ struct AddToStackSheet: View {
 
     private func badgeText(_ text: String, color: Color, bg: Color) -> some View {
         Text(text)
-            .font(.system(size: 10, weight: .bold))
+            .font(AppFont.scaled(11, weight: .bold))
             .foregroundStyle(color)
             .padding(.horizontal, Spacing.sm)
             .padding(.vertical, 4)

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ReadyHero: View {
     let bounceTrigger: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var ringScale: CGFloat = 0.8
     @State private var ringOpacity: Double = 0.6
 
@@ -18,6 +19,7 @@ struct ReadyHero: View {
             HeroIcon(symbol: "checkmark.circle.fill", size: 100, bounceTrigger: bounceTrigger)
         }
         .onAppear {
+            guard !reduceMotion else { return }
             withAnimation(.easeOut(duration: 1.8).repeatForever(autoreverses: false)) {
                 ringScale = 1.7
                 ringOpacity = 0

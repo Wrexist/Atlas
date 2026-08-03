@@ -4,6 +4,14 @@ struct DoseRowView: View {
     @EnvironmentObject private var store: WatchStore
     let entry: WatchEntry
 
+    private var accessibilityLabel: String {
+        let time = entry.scheduledTime.formatted(date: .omitted, time: .shortened)
+        let state = entry.completed
+            ? String(localized: "taken")
+            : String(localized: "not taken")
+        return "\(entry.peptideName), \(entry.dose), \(time), \(state)"
+    }
+
     var body: some View {
         Button {
             store.toggleEntry(entry)
@@ -37,5 +45,13 @@ struct DoseRowView: View {
         // second tap was being ignored (matches the water buttons).
         .disabled(store.isSending)
         .strikethrough(entry.completed, color: .secondary)
+        // Without this VoiceOver reads the row as four separate stops,
+        // and "completed" is carried only by the checkmark glyph and the
+        // strikethrough — neither of which it announces.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityAddTraits(entry.completed ? [.isButton, .isSelected] : .isButton)
+        .accessibilityHint(entry.completed ? "Double tap to mark not taken"
+                                           : "Double tap to log this dose")
     }
 }

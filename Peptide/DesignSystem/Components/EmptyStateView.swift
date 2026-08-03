@@ -93,10 +93,10 @@ struct EmptyStateView: View {
                         HStack(spacing: Spacing.xs) {
                             if let icon = secondary.icon {
                                 Image(systemName: icon)
-                                    .font(.system(size: 11, weight: .heavy))
+                                    .font(AppFont.scaled(11, weight: .heavy))
                             }
                             Text(secondary.title)
-                                .font(.system(size: 13, weight: .heavy))
+                                .font(AppFont.scaled(13, weight: .heavy))
                                 .tracking(0.4)
                                 .textCase(.uppercase)
                         }
@@ -117,17 +117,7 @@ struct EmptyStateView: View {
     private var heroMedallion: some View {
         ZStack {
             Circle()
-                .fill(accent.opacity(0.18))
-                .frame(width: 84, height: 84)
-                .blur(radius: 18)
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [accent, accent.opacity(0.65)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(accent)
                 .frame(width: 72, height: 72)
                 .shadow(color: accent.opacity(0.45), radius: 12, y: 6)
             Image(systemName: icon)

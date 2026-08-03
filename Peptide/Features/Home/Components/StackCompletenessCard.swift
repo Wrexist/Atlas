@@ -11,8 +11,7 @@ struct StackCompletenessCard: View {
                     diameter: 64,
                     strokeWidth: 6,
                     gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
-                    appearAnimated: true,
-                    glow: true
+                    appearAnimated: true
                 ) {
                     Text("\(Int(completeness.score * 100))%")
                         .font(AppFont.subheadline)
@@ -37,7 +36,7 @@ struct StackCompletenessCard: View {
                     if let suggestion = completeness.suggestions.first {
                         HStack(alignment: .top, spacing: Spacing.xs) {
                             Image(systemName: "lightbulb.fill")
-                                .font(.system(size: 9))
+                                .font(AppFont.scaled(8))
                                 .foregroundStyle(AppColor.accentLight)
                                 .padding(.top, 2)
 

@@ -75,7 +75,7 @@ struct BiomarkerListSection: View {
                 .foregroundStyle(AppColor.textSecondary)
             Button("Open Edit") { onEditTapped?() }
                 .font(AppFont.caption)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(Spacing.xl)

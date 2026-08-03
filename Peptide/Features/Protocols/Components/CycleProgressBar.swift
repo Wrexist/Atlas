@@ -16,7 +16,7 @@ struct CycleProgressBar: View {
 
                 Text("\(Int(protocol_.cycleProgress * 100))%")
                     .font(AppFont.caption)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
                     .foregroundStyle(AppColor.accentLight)
 
                 Spacer()

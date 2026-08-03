@@ -120,7 +120,7 @@ struct PeptideScheduleSheet: View {
         GlassCard {
             HStack(spacing: Spacing.md) {
                 Image(systemName: peptide.imageSystemName)
-                    .font(.system(size: 18))
+                    .font(AppFont.scaled(16))
                     .foregroundStyle(peptide.category.color)
                     .frame(width: 40, height: 40)
                     .background {
@@ -234,7 +234,7 @@ struct PeptideScheduleSheet: View {
                             withAnimation(AppAnimation.springSnappy) { customDose = "" }
                         } label: {
                             Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 18))
+                                .font(AppFont.scaled(16))
                                 .foregroundStyle(AppColor.textTertiary)
                         }
                         .accessibilityLabel("Clear dose")

@@ -82,6 +82,42 @@ enum BackupImportService {
         let hasWeightHistory: Bool
     }
 
+    /// The one place a `Preview` is built. Three call sites summarise
+    /// three different states — the backup as it arrived, the backup
+    /// under a dry run, and the state that resulted from applying it —
+    /// but the fields are identical, and three hand-written copies of
+    /// the same eight-field initializer is three chances for one of
+    /// them to drift.
+    private static func preview(
+        exportDate: Date,
+        version: String,
+        protocols: [PeptideProtocol],
+        entries: [ProtocolEntry],
+        profile: UserProfile
+    ) -> Preview {
+        Preview(
+            exportDate: exportDate,
+            version: version,
+            protocolsCount: protocols.count,
+            entriesCount: entries.count,
+            profileName: profile.name.isEmpty ? "—" : profile.name,
+            hasMealHistory: !profile.mealHistory.isEmpty,
+            hasLabHistory: !profile.labHistory.isEmpty,
+            hasWeightHistory: !profile.weightHistory.isEmpty
+        )
+    }
+
+    /// The backup summarised as it arrived — nothing applied.
+    private static func preview(of backup: AppBackup) -> Preview {
+        preview(
+            exportDate: backup.exportDate,
+            version: backup.version,
+            protocols: backup.protocols,
+            entries: backup.entries,
+            profile: backup.profile
+        )
+    }
+
     // MARK: - Validate
 
     /// Parses + structurally validates the backup. Doesn't write
@@ -124,17 +160,7 @@ enum BackupImportService {
         // sized arrays).
         try sanityCheck(backup)
 
-        let preview = Preview(
-            exportDate: backup.exportDate,
-            version: backup.version,
-            protocolsCount: backup.protocols.count,
-            entriesCount: backup.entries.count,
-            profileName: backup.profile.name.isEmpty ? "—" : backup.profile.name,
-            hasMealHistory: !backup.profile.mealHistory.isEmpty,
-            hasLabHistory: !backup.profile.labHistory.isEmpty,
-            hasWeightHistory: !backup.profile.weightHistory.isEmpty
-        )
-        return (backup, preview)
+        return (backup, preview(of: backup))
     }
 
     private static func sanityCheck(_ backup: AppBackup) throws {
@@ -181,16 +207,7 @@ enum BackupImportService {
         guard strategy != .dryRun else {
             // Re-derive the preview from the backup — same shape the
             // validate path produced; nothing committed.
-            return Preview(
-                exportDate: backup.exportDate,
-                version: backup.version,
-                protocolsCount: backup.protocols.count,
-                entriesCount: backup.entries.count,
-                profileName: backup.profile.name.isEmpty ? "—" : backup.profile.name,
-                hasMealHistory: !backup.profile.mealHistory.isEmpty,
-                hasLabHistory: !backup.profile.labHistory.isEmpty,
-                hasWeightHistory: !backup.profile.weightHistory.isEmpty
-            )
+            return preview(of: backup)
         }
 
         // Build the new state in memory, then hand off to DataStore as
@@ -239,8 +256,12 @@ enum BackupImportService {
             // because it has full visibility into the field set.
             resolvedProfile = mergeProfile(current: dataStore.profile, incoming: backup.profile)
         case .dryRun:
-            // Unreachable — guarded above.
-            fatalError("dryRun should have early-returned")
+            // The guard above already returned. Reaching here would
+            // mean a future edit removed it — in which case summarising
+            // the backup and writing nothing is the behaviour that
+            // cannot lose the user's data. A `fatalError` on the
+            // restore path could.
+            return preview(of: backup)
         }
 
         do {
@@ -253,15 +274,12 @@ enum BackupImportService {
             throw ImportError.applyFailed(error.localizedDescription)
         }
 
-        return Preview(
+        return preview(
             exportDate: backup.exportDate,
             version: backup.version,
-            protocolsCount: resolvedProtocols.count,
-            entriesCount: resolvedEntries.count,
-            profileName: resolvedProfile.name.isEmpty ? "—" : resolvedProfile.name,
-            hasMealHistory: !resolvedProfile.mealHistory.isEmpty,
-            hasLabHistory: !resolvedProfile.labHistory.isEmpty,
-            hasWeightHistory: !resolvedProfile.weightHistory.isEmpty
+            protocols: resolvedProtocols,
+            entries: resolvedEntries,
+            profile: resolvedProfile
         )
     }
 

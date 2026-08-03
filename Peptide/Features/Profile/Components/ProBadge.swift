@@ -4,9 +4,9 @@ struct ProBadge: View {
     var body: some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "star.fill")
-                .font(.system(size: 10))
+                .font(AppFont.scaled(11))
             Text("PRO")
-                .font(.system(size: 10, weight: .bold))
+                .font(AppFont.scaled(11, weight: .bold))
         }
         .foregroundStyle(AppColor.accentLight)
         .padding(.horizontal, Spacing.sm)

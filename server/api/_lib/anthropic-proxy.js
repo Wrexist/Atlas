@@ -1,7 +1,7 @@
 /**
  * Shared proxy logic for every Atlas → Anthropic route. Holds the
  * server-side API key, authenticates clients via a shared secret,
- * sanitises the request body, throttles per IP, and forwards to
+ * sanitises the request body, throttles per principal, and forwards to
  * `api.anthropic.com/v1/messages`. The iOS client never sees the
  * upstream Anthropic key.
  *
@@ -14,14 +14,27 @@
  *                          echoes as `X-Peptide-Proxy`.
  *   ALLOWED_MODELS       — comma-separated Anthropic model IDs.
  *                          Default: claude-sonnet-4-6.
- *   RATE_LIMIT_RPM       — per-IP requests per minute per route.
- *                          Default 20.
+ *   RATE_LIMIT_RPM       — requests per minute per principal per
+ *                          route. Default 20.
+ *   DEVICE_DAILY_QUOTA   — upstream requests per principal per UTC
+ *                          day. Default 300.
+ *   ABUSE_STRIKES / ABUSE_BLOCK_SECONDS
+ *                        — cooldown for a principal that keeps
+ *                          tripping the limit. Defaults 20 / 900.
  *   UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN
  *                        — optional Redis backing so the limits hold
  *                          across all instances (see _lib/rate-limit.js).
  *   ANTHROPIC_DAILY_REQUEST_BUDGET
- *                        — optional hard cap on upstream requests per
- *                          UTC day across all routes; 503 once spent.
+ *                        — optional hard cap on upstream cost units
+ *                          per UTC day across all routes; 503 once
+ *                          spent. Fails closed if Redis is configured
+ *                          but unreachable (BUDGET_FAIL_OPEN=1 opts
+ *                          out).
+ *
+ * Limits are counted per *principal*: the verified App Attest key
+ * when one is present, else the client IP. See `principalFor` — an
+ * IP-only limit is close to meaningless against a caller who can
+ * rotate it at will.
  *   APP_ATTEST_MODE / APP_ATTEST_APP_ID
  *                        — App Attest assertion gate; see
  *                          _lib/app-attest.js for modes and rollout.
@@ -34,7 +47,15 @@
  */
 import { checkAppAttest } from './app-attest.js';
 import { authorize } from './auth.js';
-import { allowRate, withinDailyBudget } from './rate-limit.js';
+import {
+  allowRate,
+  isBlocked,
+  recordLimitStrike,
+  requestCost,
+  costForBytes,
+  withinDailyBudget,
+  withinDeviceQuota,
+} from './rate-limit.js';
 
 const DEFAULT_ALLOWED_MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS_HARDCAP = 800;
@@ -71,12 +92,27 @@ export function clientKey(req) {
   return req.socket?.remoteAddress || 'unknown';
 }
 
+/**
+ * The principal every limit is counted against.
+ *
+ * A verified App Attest key is one physical install and can't be
+ * rotated by the caller, so it's the honest identity. The client IP
+ * is the fallback, and a weak one — mobile carriers rotate it per
+ * request and a VPN makes it free to change, so an IP-only limit is
+ * a speed bump rather than a cap. This is why attestation matters
+ * beyond authentication: it's what makes per-user quotas possible.
+ */
+function principalFor(req, attest) {
+  if (attest?.keyId) return `k:${attest.keyId}`;
+  return `ip:${clientKey(req)}`;
+}
+
 // Scoped per route (logLabel) so a meal-scan burst can't starve
 // ai-research — the same isolation the old per-lambda Maps had by
 // accident of deployment topology.
-function checkRateLimit(req, logLabel) {
+function checkRateLimit(principal, logLabel, cost) {
   const limit = parseInt(process.env.RATE_LIMIT_RPM || '20', 10);
-  return allowRate({ name: logLabel, key: clientKey(req), limit, windowSeconds: 60 });
+  return allowRate({ name: logLabel, key: principal, limit, windowSeconds: 60, cost });
 }
 
 // Anthropic accepts content parts of these typed shapes. Anything else
@@ -157,19 +193,44 @@ export async function forwardToAnthropic(req, res, {
     return;
   }
 
-  if (!(await checkRateLimit(req, logLabel))) {
+  // App Attest runs before throttling, because its verified key is the
+  // identity the limits are counted against. See `principalFor`.
+  //
+  // Only rejects in enforce mode; report mode verifies + logs so the
+  // rollout can be validated from production logs before anything is
+  // blocked. The `attest_required` code tells a genuine client to
+  // (re-)register its key rather than treat this as a secret failure.
+  const attest = await checkAppAttest(req, { logLabel });
+  if (!attest.ok) {
+    res.status(401).json({ error: { message: 'Unauthorised', code: 'attest_required' } });
+    return;
+  }
+
+  const principal = principalFor(req, attest);
+  let cost = requestCost(req);
+
+  // A principal in an abuse cooldown is refused before any work.
+  if (await isBlocked({ principal })) {
     res.status(429).json({ error: { message: 'Too many requests' } });
     return;
   }
 
-  // App Attest gate (see _lib/app-attest.js). Only rejects in
-  // enforce mode; report mode verifies + logs so the rollout can be
-  // validated from production logs before anything is blocked. The
-  // `attest_required` code tells a genuine client to (re-)register
-  // its key rather than treat this as a secret failure.
-  const attest = await checkAppAttest(req, { logLabel });
-  if (!attest.ok) {
-    res.status(401).json({ error: { message: 'Unauthorised', code: 'attest_required' } });
+  if (!(await checkRateLimit(principal, logLabel, cost))) {
+    // Persistent hammering earns a cooldown; a client that trips the
+    // limit occasionally never accumulates enough strikes to notice.
+    if (await recordLimitStrike({ principal })) {
+      console.warn(`[${logLabel}] principal blocked for repeated limit strikes`);
+    }
+    res.status(429).json({ error: { message: 'Too many requests' } });
+    return;
+  }
+
+  // Per-principal daily ceiling. Without this, one extracted secret
+  // can spend the whole shared budget and take every paying user down
+  // with it — the global cap alone protects the bill, not the service.
+  if (!(await withinDeviceQuota({ principal, cost }))) {
+    console.warn(`[${logLabel}] principal exceeded daily quota`);
+    res.status(429).json({ error: { message: 'Daily limit reached; try again tomorrow' } });
     return;
   }
 
@@ -206,6 +267,24 @@ export async function forwardToAnthropic(req, res, {
     return;
   }
 
+  // `cost` was derived from `content-length`, which a client can omit
+  // entirely (chunked transfer) or understate. That made a 7 MB meal
+  // scan cost the same single unit as a one-line text turn — the exact
+  // payloads the spend controls exist for were the ones that slipped
+  // past them. The parsed body is measured above, so charge on that
+  // instead, and bill the difference to the device quota, which was
+  // already charged the header's smaller figure before parsing.
+  const actualCost = costForBytes(parsedBytes);
+  if (actualCost > cost) {
+    if (!(await withinDeviceQuota({ principal, cost: actualCost - cost }))) {
+      res.status(429).json({
+        error: { message: 'Daily limit reached; try again tomorrow' }
+      });
+      return;
+    }
+    cost = actualCost;
+  }
+
   const clean = sanitiseBody(req.body, { systemPrefix, allowClientSystem });
   if (!clean) {
     res.status(400).json({ error: { message: 'Malformed request body' } });
@@ -216,8 +295,8 @@ export async function forwardToAnthropic(req, res, {
   // actually reach Anthropic consume budget. Fail closed with the
   // same generic 503 the missing-key path uses — the client treats
   // both as "try later", and the reason stays server-side.
-  if (!(await withinDailyBudget())) {
-    console.error(`[${logLabel}] daily Anthropic request budget exhausted`);
+  if (!(await withinDailyBudget({ cost }))) {
+    console.error(`[${logLabel}] daily Anthropic budget exhausted or unverifiable`);
     res.status(503).json({ error: { message: 'Service unavailable' } });
     return;
   }

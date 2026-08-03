@@ -52,17 +52,7 @@ struct BodyMetricsPage: View {
             unitChip(label: "Imperial", unit: .imperial)
         }
         .padding(4)
-        .background {
-            Capsule()
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    Capsule().fill(AppColor.cardOverlay)
-                }
-                .overlay {
-                    Capsule().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.capsule)
+        .glassControl(.capsule)
     }
 
     private func unitChip(label: LocalizedStringKey, unit: MeasurementUnit) -> some View {
@@ -73,18 +63,17 @@ struct BodyMetricsPage: View {
         } label: {
             Text(label)
                 .font(AppFont.subheadline)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
                 .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.xs)
                 .background {
                     if isSelected {
                         Capsule()
-                            .fill(AppColor.accentPrimary.opacity(0.28))
+                            .fill(AppColor.accentPrimary.opacity(0.18))
                             .overlay {
                                 Capsule().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
                             }
-                            .liquidGlass(.capsule)
                     }
                 }
         }
@@ -184,7 +173,7 @@ struct BodyMetricsPage: View {
         } label: {
             Text(option.localizedShortLabel)
                 .font(AppFont.subheadline)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
                 .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.sm)
@@ -267,10 +256,11 @@ struct BodyMetricsPage: View {
     private var weightLbBinding: Binding<Int> {
         Binding(
             get: {
-                let lb = (metrics.weightKg ?? Double(BodyMetricsRanges.defaultWeightKg)) * 2.20462
+                let lb = MeasurementUnit.imperial.weightForDisplay(
+                    metrics.weightKg ?? Double(BodyMetricsRanges.defaultWeightKg))
                 return BodyMetricsRanges.clampWeightLb(Int(lb.rounded()))
             },
-            set: { metrics.weightKg = Double($0) / 2.20462 }
+            set: { metrics.weightKg = MeasurementUnit.imperial.kilograms(fromDisplayed: Double($0)) }
         )
     }
 

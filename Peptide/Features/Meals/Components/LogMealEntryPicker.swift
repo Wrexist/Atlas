@@ -59,8 +59,8 @@ struct LogMealEntryPicker: View {
                         )
                         .frame(width: 38, height: 38)
                     Image(systemName: icon)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Color.white)
+                        .font(AppFont.scaled(16, weight: .semibold))
+                        .foregroundStyle(AppColor.textPrimary)
                 }
                 .shadow(color: accent.opacity(0.35), radius: 8, y: 4)
 
@@ -68,38 +68,17 @@ struct LogMealEntryPicker: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                     Text(subtitle)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(Spacing.md)
             .frame(minHeight: 108)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.55))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        accent.opacity(0.18),
-                                        Color.clear,
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
-            }
-            .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
+            .glassControl(.rect(cornerRadius: Spacing.cardCornerRadius))
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.97))
         .accessibilityElement(children: .ignore)

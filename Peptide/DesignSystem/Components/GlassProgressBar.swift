@@ -1,12 +1,8 @@
 import SwiftUI
 
-// `GlassProgressRing` retired — its responsibilities (gradient ring,
-// appear sweep, celebration pulse, accent glow, center label) are
-// now covered by `MetricRing` opt-in flags. The horizontal
-// `GlassProgressBar` lives on here because there's no equivalent
-// primitive for a linear gauge yet (Phase 2.4 follow-up: bring it
-// under a `MetricBar` companion).
-
+/// Linear gauge counterpart to `MetricRing`. Same gradient, same appear
+/// sweep — reach for the ring when the value is the point of the card, and
+/// for this when it's a secondary detail inside a row.
 struct GlassProgressBar: View {
     let progress: Double
     var height: CGFloat = 6

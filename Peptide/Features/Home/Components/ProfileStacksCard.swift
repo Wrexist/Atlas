@@ -53,7 +53,7 @@ struct ProfileStacksCard: View {
                         HStack(spacing: Spacing.xs) {
                             Text("Manage Stacks")
                             Image(systemName: "arrow.up.right")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(AppFont.scaled(11, weight: .semibold))
                         }
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
@@ -143,14 +143,14 @@ struct ProfileStacksCard: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 HStack(spacing: Spacing.md) {
                     Image(systemName: stack.status.iconName)
-                        .font(.system(size: 14))
+                        .font(AppFont.scaled(13))
                         .foregroundStyle(color(for: stack.status))
                         .frame(width: 22)
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(stack.name)
                             .font(AppFont.subheadline)
-                            .fontWeight(.medium)
+                            .fontWeight(.semibold)
                             .foregroundStyle(AppColor.textPrimary)
                             .lineLimit(1)
 
@@ -164,7 +164,7 @@ struct ProfileStacksCard: View {
 
                     Text(stack.status.displayName)
                         .font(AppFont.caption)
-                        .fontWeight(.medium)
+                        .fontWeight(.semibold)
                         .foregroundStyle(color(for: stack.status))
                         .padding(.horizontal, Spacing.sm)
                         .padding(.vertical, 4)
@@ -173,13 +173,13 @@ struct ProfileStacksCard: View {
                         }
 
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
                 if stack.status == .active {
                     cycleProgressBar(for: stack)
-                        .padding(.leading, 34)
+                        .padding(.leading, Spacing.xxl + Spacing.sm)
                 }
             }
             .padding(.vertical, Spacing.xxs)

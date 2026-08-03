@@ -114,7 +114,7 @@ struct ProtocolDetailView: View {
                                 .foregroundStyle(AppColor.textPrimary)
                             if customScheduleCount > 0 {
                                 Text("\(customScheduleCount) custom")
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(AppFont.scaled(8, weight: .bold))
                                     .foregroundStyle(AppColor.accentPrimary)
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
@@ -317,7 +317,7 @@ struct ProtocolDetailView: View {
             } label: {
                 HStack(spacing: Spacing.md) {
                     Image(systemName: peptide.imageSystemName)
-                        .font(.system(size: 16))
+                        .font(AppFont.scaled(16))
                         .foregroundStyle(peptide.category.color)
                         .frame(width: 32, height: 32)
                         .background {
@@ -332,7 +332,7 @@ struct ProtocolDetailView: View {
                                 .foregroundStyle(AppColor.textPrimary)
                             if isCustom {
                                 Text("CUSTOM")
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(AppFont.scaled(8, weight: .bold))
                                     .foregroundStyle(AppColor.accentPrimary)
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 2)
@@ -379,7 +379,7 @@ struct ProtocolDetailView: View {
 
             NavigationLink(value: peptide) {
                 Image(systemName: "info.circle")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
                     .frame(width: 32, height: 32)
                     .contentShape(Rectangle())

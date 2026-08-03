@@ -40,7 +40,10 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 0)
 
-                    if !storeService.isProUser {
+                    if storeService.isProUser {
+                        SubscriptionSection()
+                            .sectionAppear(index: 1)
+                    } else {
                         UpgradePromptCard()
                             .sectionAppear(index: 1)
                     }

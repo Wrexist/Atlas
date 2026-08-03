@@ -69,6 +69,7 @@ final class WorkoutSessionService {
         )
         activeSession = session
         SwiftDataRepository.shared.upsertWorkoutSession(session)
+        invalidatePreviousSetCache()
         AppLog.training.info("Workout started (id: \(session.id, privacy: .public))")
         return session
     }
@@ -95,6 +96,7 @@ final class WorkoutSessionService {
         SwiftDataRepository.shared.upsertWorkoutSession(session)
         let detections = PRDetectionEngine.shared.ingest(session: session)
         activeSession = nil
+        invalidatePreviousSetCache()
         // Reward training (and any new PR). Both this service and the
         // store are @MainActor, so the call is a direct hop.
         DataStore.current?.recordWorkoutFinished(detectedPRCount: detections.count)
@@ -108,6 +110,7 @@ final class WorkoutSessionService {
         guard let session = activeSession else { return }
         SwiftDataRepository.shared.deleteWorkoutSession(id: session.id)
         activeSession = nil
+        invalidatePreviousSetCache()
         AppLog.training.info("Workout discarded (id: \(session.id, privacy: .public))")
     }
 
@@ -203,7 +206,21 @@ final class WorkoutSessionService {
     /// cue on each SetEditorRow so the user sees "Last: 60 kg × 8"
     /// before they tap to log the next set (audit Train C1). Returns
     /// nil when the user hasn't ever logged this exercise.
+    ///
+    /// Memoized per exercise. `ActiveWorkoutView` calls this from a row's
+    /// `previousSetLookup` closure, so an uncached version re-ran a full
+    /// session fetch — deserializing every stored workout — on every set
+    /// tap and every re-render of the exercise stack. The answer can only
+    /// change when a session is persisted, so `invalidatePreviousSetCache()`
+    /// clears it there.
     func lastCompletedSet(forExerciseID id: String) -> SetEntry? {
+        if let cached = previousSetCache[id] { return cached }
+        let resolved = resolveLastCompletedSet(forExerciseID: id)
+        previousSetCache[id] = .some(resolved)
+        return resolved
+    }
+
+    private func resolveLastCompletedSet(forExerciseID id: String) -> SetEntry? {
         let sessions = SwiftDataRepository.shared.loadWorkoutSessions()
         // Walk newest-first, skip the in-flight session.
         for session in sessions.sorted(by: { $0.startedAt > $1.startedAt }) {
@@ -219,8 +236,18 @@ final class WorkoutSessionService {
 
     // MARK: - Internals
 
+    /// `[exerciseID: lookup result]`. The value is a double optional on
+    /// purpose: a cached "no previous set" answer is worth keeping, and
+    /// storing it as plain `nil` would be indistinguishable from a miss.
+    private var previousSetCache: [String: SetEntry?] = [:]
+
+    private func invalidatePreviousSetCache() {
+        previousSetCache.removeAll(keepingCapacity: true)
+    }
+
     private func persist(_ session: WorkoutSession) {
         activeSession = session
         SwiftDataRepository.shared.upsertWorkoutSession(session)
+        invalidatePreviousSetCache()
     }
 }

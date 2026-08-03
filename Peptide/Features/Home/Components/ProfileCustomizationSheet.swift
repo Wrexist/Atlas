@@ -112,7 +112,6 @@ struct ProfileCustomizationSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear(perform: hydrateFromProfile)
         .onChange(of: photoSelection) { _, newValue in
             guard let newValue else { return }
@@ -159,7 +158,7 @@ struct ProfileCustomizationSheet: View {
                     isShowingPhotoSourceMenu = true
                 } label: {
                     Image(systemName: "camera.fill")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.background)
                         .frame(width: 32, height: 32)
                         .background {
@@ -169,6 +168,7 @@ struct ProfileCustomizationSheet: View {
                                     Circle().strokeBorder(AppColor.background, lineWidth: 2)
                                 }
                         }
+                        .minimumHitArea()
                 }
                 .disabled(isProcessingPhoto)
                 .accessibilityLabel("Change profile photo")
@@ -271,7 +271,6 @@ struct ProfileCustomizationSheet: View {
                 },
                 onCancel: { isShowingPresetPicker = false }
             )
-            .preferredColorScheme(.dark)
             .liquidGlassPresentation(detents: [.medium, .large])
         }
     }
@@ -326,7 +325,7 @@ struct ProfileCustomizationSheet: View {
                         )
                     if let initial = displayInitial {
                         Text(initial)
-                            .font(.system(size: 48, weight: .bold, design: .rounded))
+                            .font(AppFont.scaled(48, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                             .foregroundStyle(AppColor.accentLight)
                     } else {
                         Image(systemName: "person.fill")
@@ -349,7 +348,7 @@ struct ProfileCustomizationSheet: View {
                 )
         }
         .liquidGlass(.circle)
-        .shadow(color: AppColor.accentGlow, radius: 16, y: 6)
+        .appShadow(AppShadow.glassElevated)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(avatarAccessibilityLabel)
     }
@@ -420,7 +419,7 @@ struct ProfileCustomizationSheet: View {
         GlassCardCompact {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(accent)
                 Text(value)
                     .font(AppFont.title3)
@@ -489,6 +488,7 @@ struct ProfileCustomizationSheet: View {
                 .textCase(.uppercase)
 
             TextField(placeholder, text: text)
+                .accessibilityLabel(Text(title))
                 .font(AppFont.body)
                 .foregroundStyle(AppColor.textPrimary)
                 .tint(AppColor.accentPrimary)
@@ -581,7 +581,7 @@ struct ProfileCustomizationSheet: View {
                         .strokeBorder(AppColor.textPrimary, lineWidth: 2)
                         .frame(width: 38, height: 38)
                     Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(AppFont.scaled(13, weight: .bold))
                         .foregroundStyle(AppColor.textPrimary)
                 }
             }
@@ -615,7 +615,7 @@ struct ProfileCustomizationSheet: View {
                 if let pinned = dataStore.profile.primaryGoal, !pinned.isEmpty {
                     HStack(spacing: Spacing.xs) {
                         Image(systemName: "pin.fill")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(AppFont.scaled(11, weight: .semibold))
                             .foregroundStyle(AppColor.accentLight)
                         Text("Primary: \(pinned)")
                             .font(AppFont.caption)
@@ -657,10 +657,10 @@ struct ProfileCustomizationSheet: View {
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: pinned ? "pin.fill" : (selected ? "checkmark.circle.fill" : "circle"))
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                 Text(goal)
                     .font(AppFont.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
             }
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)
@@ -749,8 +749,7 @@ struct ProfileCustomizationSheet: View {
 
     private func weightString(_ m: BodyMetrics) -> String {
         guard let kg = m.weightKg else { return "—" }
-        if m.unit == .metric { return "\(Int(kg.rounded())) kg" }
-        return "\(Int((kg * 2.20462).rounded())) lb"
+        return m.unit.weightLabel(kg)
     }
 
     private func heightString(_ m: BodyMetrics) -> String {
@@ -810,7 +809,7 @@ struct ProfileCustomizationSheet: View {
     ) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 24)
 

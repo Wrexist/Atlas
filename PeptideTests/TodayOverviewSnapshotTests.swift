@@ -119,7 +119,7 @@ final class TodayOverviewSnapshotTests: XCTestCase {
         let store = DataStore(seedSampleData: false)
         let snapshot = TodayOverviewSnapshot.build(from: store)
         // No insights, no labs, no target → calorie-target nudge fires.
-        guard case .nudge(let title, _, _) = snapshot.bottomInsight else {
+        guard case .nudge(let title, _, _, _) = snapshot.bottomInsight else {
             XCTFail("Expected nudge insight for empty profile")
             return
         }

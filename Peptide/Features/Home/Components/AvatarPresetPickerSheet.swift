@@ -58,7 +58,7 @@ struct AvatarPresetPickerSheet: View {
                     }
                 Image(systemName: preset.symbol)
                     .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColor.onAccent)
             }
             .liquidGlass(.circle)
         }

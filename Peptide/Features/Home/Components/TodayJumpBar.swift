@@ -86,10 +86,10 @@ struct TodayJumpBar: View {
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: anchor.systemImage)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
                     .foregroundStyle(isActive ? .white : anchor.accent)
                 Text(anchor.label)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(isActive ? .white : AppColor.textPrimary)
             }
             .padding(.horizontal, Spacing.md)
@@ -98,19 +98,13 @@ struct TodayJumpBar: View {
                 Capsule()
                     .fill(
                         isActive
-                            ? AnyShapeStyle(
-                                LinearGradient(
-                                    colors: [anchor.accent, anchor.accent.opacity(0.75)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            ? AnyShapeStyle(anchor.accent)
                             : AnyShapeStyle(AppColor.surfaceSecondary.opacity(0.65))
                     )
                     .overlay {
                         Capsule().strokeBorder(
                             isActive
-                                ? Color.white.opacity(0.25)
+                                ? AppColor.onAccent.opacity(0.25)
                                 : AppColor.glassBorder,
                             lineWidth: 0.5
                         )
@@ -129,11 +123,11 @@ struct TodayJumpBar: View {
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "plus")
-                    .font(.system(size: 13, weight: .heavy))
+                    .font(AppFont.scaled(13, weight: .heavy))
                 Text("Log")
-                    .font(.system(size: 13, weight: .heavy))
+                    .font(AppFont.scaled(13, weight: .heavy))
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(AppColor.onAccent)
             .padding(.horizontal, Spacing.md)
             .frame(minHeight: 36)
             .background {
@@ -141,8 +135,8 @@ struct TodayJumpBar: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(red: 0.310, green: 0.275, blue: 0.898),
-                                Color(red: 0.486, green: 0.227, blue: 0.929),
+                                AppColor.ctaGradientStart,
+                                AppColor.ctaGradientEnd,
                             ],
                             startPoint: .leading,
                             endPoint: .trailing

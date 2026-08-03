@@ -6,11 +6,11 @@ struct DoseLogRow: View {
     var body: some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: entry.completed ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 18))
+                .font(AppFont.scaled(16))
                 .foregroundStyle(entry.completed ? AppColor.accentPrimary : AppColor.textTertiary)
 
             Image(systemName: entry.peptide.imageSystemName)
-                .font(.system(size: 12))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(entry.peptide.category.color)
                 .frame(width: 24, height: 24)
                 .background {
@@ -21,7 +21,7 @@ struct DoseLogRow: View {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(entry.peptide.abbreviation)
                     .font(AppFont.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
 
                 Text(entry.dose)

@@ -137,16 +137,16 @@ struct TodayHabitsHero: View {
             if snapshot.dueCount > 0 {
                 VStack(spacing: 0) {
                     Text("\(snapshot.doneCount)/\(snapshot.dueCount)")
-                        .font(.system(size: 16, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
                     Text("done")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(AppFont.scaled(8, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                 }
             } else {
                 Image(systemName: "leaf.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
             }
         }
@@ -157,7 +157,7 @@ struct TodayHabitsHero: View {
         if snapshot.bestCurrentStreak > 0 {
             HStack(spacing: 4) {
                 Image(systemName: "flame.fill")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.streak)
                 Text("\(snapshot.bestCurrentStreak) day streak")
                     .font(AppFont.subheadline)
@@ -200,9 +200,9 @@ struct TodayHabitsHero: View {
             HStack(spacing: 4) {
                 Text("View all habits")
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
             }
-            .font(.system(size: 12, weight: .semibold))
+            .font(AppFont.scaled(11, weight: .semibold))
             .foregroundStyle(AppColor.accentLight)
         }
         .buttonStyle(.plain)
@@ -232,7 +232,7 @@ struct TodayHabitsHero: View {
                             .fill(AppColor.accentPrimary.opacity(0.15))
                             .frame(width: 40, height: 40)
                         Image(systemName: "checkmark.seal.fill")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(AppFont.scaled(16, weight: .semibold))
                             .foregroundStyle(AppColor.accentPrimary)
                     }
                     VStack(alignment: .leading, spacing: 2) {
@@ -246,7 +246,7 @@ struct TodayHabitsHero: View {
                     }
                     Spacer()
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 24))
+                        .font(AppFont.scaled(24))
                         .foregroundStyle(AppColor.accentPrimary)
                 }
             }

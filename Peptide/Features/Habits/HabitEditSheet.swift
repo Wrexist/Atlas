@@ -210,7 +210,6 @@ struct HabitEditSheet: View {
                 if editing == nil { nameFocused = true }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private var iconGrid: some View {
@@ -226,7 +225,7 @@ struct HabitEditSheet: View {
                     iconSymbol = symbol
                 } label: {
                     Image(systemName: symbol)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(iconSymbol == symbol ? Color(hex: UInt(tintHex)) : AppColor.textSecondary)
                         .frame(width: 36, height: 36)
                         .background(
@@ -241,6 +240,7 @@ struct HabitEditSheet: View {
                                 lineWidth: 1
                             )
                         )
+                        .minimumHitArea()
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(symbol)
@@ -264,13 +264,13 @@ struct HabitEditSheet: View {
                             .frame(width: 32, height: 32)
                         if tintHex == hex {
                             Image(systemName: "checkmark")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(.white)
+                                .font(AppFont.scaled(13, weight: .bold))
+                                .foregroundStyle(AppColor.onAccent)
                         }
                     }
                     .overlay(
                         Circle().stroke(
-                            tintHex == hex ? Color.white.opacity(0.9) : Color.clear,
+                            tintHex == hex ? AppColor.textPrimary.opacity(0.9) : Color.clear,
                             lineWidth: 1.5
                         )
                     )
@@ -298,7 +298,7 @@ struct HabitEditSheet: View {
                     if isSelected { weekdays.remove(day) } else { weekdays.insert(day) }
                 } label: {
                     Text(day.shortName)
-                        .font(.system(size: 13, weight: .bold))
+                        .font(AppFont.scaled(13, weight: .bold))
                         .foregroundStyle(isSelected ? AppColor.background : AppColor.textPrimary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 32)

@@ -77,7 +77,7 @@ struct HeroMetricTrio: View {
                 }
 
                 Text(kind.label)
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
@@ -93,13 +93,13 @@ struct HeroMetricTrio: View {
     private func ringCenter(kind: HeroMetricKind, value: HeroMetricValue) -> some View {
         if value.isAvailable {
             Text("\(value.displayPercent)%")
-                .font(.system(size: 20, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
                 .contentTransition(.numericText())
         } else {
             Text("—")
-                .font(.system(size: 22, weight: .bold))
+                .font(AppFont.scaled(20, weight: .bold))
                 .foregroundStyle(AppColor.textSecondary)
         }
     }
@@ -109,10 +109,10 @@ struct HeroMetricTrio: View {
     private var healthConnectionFooter: some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "heart.text.square.fill")
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
             Text("Connect Apple Health for Recovery & Sleep scores")
-                .font(.system(size: 11, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
@@ -146,9 +146,9 @@ enum HeroMetricKind: Hashable, CaseIterable {
         case .adherence:
             return [AppColor.accentLight, AppColor.accentPrimary]
         case .recovery:
-            return [Color(red: 0.72, green: 0.96, blue: 0.34), Color(red: 0.28, green: 0.78, blue: 0.36)]
+            return [AppColor.ringRecoveryStart, AppColor.ringRecoveryEnd]
         case .sleep:
-            return [Color(red: 0.66, green: 0.62, blue: 0.96), Color(red: 0.45, green: 0.40, blue: 0.85)]
+            return [AppColor.ringSleepStart, AppColor.ringSleepEnd]
         }
     }
 }

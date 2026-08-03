@@ -9,7 +9,7 @@ struct NotificationIssueBanner: View {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack(spacing: Spacing.sm) {
                     Image(systemName: "bell.badge.slash.fill")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.warning)
                     Text(headline)
                         .font(AppFont.subheadline.weight(.semibold))

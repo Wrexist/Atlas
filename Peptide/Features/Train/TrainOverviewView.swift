@@ -18,6 +18,7 @@ import SwiftUI
 ///      compliance calendar so the visual language is consistent
 ///      across tabs.
 struct TrainOverviewView: View {
+    @Environment(DataStore.self) private var dataStore
     @State private var library = ExerciseLibrary.shared
     @State private var sessions: [WorkoutSession] = []
     @State private var sessionService = WorkoutSessionService.shared
@@ -36,6 +37,8 @@ struct TrainOverviewView: View {
     /// The muscle the user tapped on the map, presented as a detail sheet
     /// of the exercises they've logged for it.
     @State private var inspectedMuscle: AnatomicalMuscle?
+
+    private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
 
     private var weekHasTraining: Bool {
         !frequencies.isEmpty
@@ -281,7 +284,7 @@ struct TrainOverviewView: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .monospacedDigit()
                 if session.totalVolumeKg > 0 {
-                    Text("\(Int(session.totalVolumeKg.rounded())) kg")
+                    Text(unit.weightLabel(session.totalVolumeKg))
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
                         .monospacedDigit()
@@ -398,11 +401,11 @@ struct TrainingCalendarGrid: View {
             .frame(maxWidth: .infinity)
             .frame(height: 28)
             .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                     .fill(backgroundColor(trained: trained, isToday: isToday))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                     .stroke(isToday ? AppColor.accentPrimary : Color.clear, lineWidth: 1)
             )
     }
@@ -422,6 +425,7 @@ struct TrainingCalendarGrid: View {
 
 #Preview {
     TrainOverviewView()
+        .environment(DataStore(seedSampleData: true))
         .padding(.top, Spacing.lg)
         .background(AppColor.background)
         .preferredColorScheme(.dark)

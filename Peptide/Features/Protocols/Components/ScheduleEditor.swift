@@ -280,18 +280,11 @@ private struct DayChip: View {
                 .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textTertiary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 40)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill(isSelected ? AppColor.accentPrimary.opacity(0.32) : AppColor.surfaceElevated)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                .strokeBorder(
-                                    isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                    lineWidth: isSelected ? 1 : 0.5
-                                )
-                        }
-                }
-                .liquidGlass(.rect(cornerRadius: Spacing.smallCornerRadius))
+                .glassControl(
+                    .rect(cornerRadius: Spacing.smallCornerRadius),
+                    tint: isSelected ? AppColor.accentPrimary.opacity(0.32) : AppColor.surfaceElevated,
+                    border: isSelected ? AppColor.glassBorderActive : AppColor.glassBorder
+                )
                 .shadow(
                     color: isSelected ? AppColor.accentGlow : .clear,
                     radius: isSelected ? 8 : 0,
@@ -324,19 +317,7 @@ struct LiquidGlassSegmentedControl<Option: Hashable>: View {
             }
         }
         .padding(4)
-        .background {
-            Capsule()
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    Capsule()
-                        .fill(AppColor.cardOverlay)
-                }
-                .overlay {
-                    Capsule()
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.capsule)
+        .glassControl(.capsule)
     }
 
     private func segmentButton(for option: Option) -> some View {
@@ -350,7 +331,7 @@ struct LiquidGlassSegmentedControl<Option: Hashable>: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: icon(option))
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                 Text(label(option))
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
@@ -364,12 +345,11 @@ struct LiquidGlassSegmentedControl<Option: Hashable>: View {
             .background {
                 if isSelected {
                     Capsule()
-                        .fill(AppColor.accentPrimary.opacity(0.28))
+                        .fill(AppColor.accentPrimary.opacity(0.18))
                         .overlay {
                             Capsule().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
                         }
                         .matchedGeometryEffect(id: "segment-pill", in: pillNamespace)
-                        .liquidGlass(.capsule)
                 }
             }
         }
@@ -425,21 +405,16 @@ struct LiquidGlassStepper: View {
     ) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
+                .font(AppFont.scaled(11, weight: .bold))
                 .foregroundStyle(isEnabled ? AppColor.textPrimary : AppColor.textTertiary)
                 .frame(width: 30, height: 30)
-                .background {
-                    Circle()
-                        .fill(AppColor.surfaceElevated)
-                        .overlay {
-                            Circle().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                        }
-                }
-                .liquidGlass(.circle)
+                .glassControl(.circle)
+                .minimumHitArea()
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.88))
         .disabled(!isEnabled)
         .opacity(isEnabled ? 1 : 0.5)
+        .accessibilityLabel(icon.contains("minus") ? "Decrease" : "Increase")
     }
 
     private func tick() {
@@ -505,20 +480,12 @@ private struct TimeSlotRow: View {
                     .animation(.snappy(duration: 0.2), value: timeString)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceElevated)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
-            }
-            .liquidGlass(.rect(cornerRadius: Spacing.smallCornerRadius))
+            .glassControl(.rect(cornerRadius: Spacing.smallCornerRadius))
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .sheet(isPresented: $isShowingPicker) {
@@ -579,6 +546,5 @@ private struct TimePickerSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 }

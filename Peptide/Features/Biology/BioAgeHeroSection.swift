@@ -47,11 +47,11 @@ struct BioAgeHeroSection: View {
     private var header: some View {
         VStack(spacing: 4) {
             Text("Biological Age")
-                .font(.system(size: 28, weight: .heavy, design: .rounded))
-                .foregroundStyle(.white)
+                .font(AppFont.scaled(28, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                .foregroundStyle(AppColor.textPrimary)
             Text("As of \(Self.asOfFormatter.string(from: asOfDate))")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(Color.white.opacity(0.55))
+                .font(AppFont.scaled(16, weight: .semibold))
+                .foregroundStyle(AppColor.textPrimary.opacity(0.55))
         }
     }
 
@@ -92,11 +92,11 @@ struct BioAgeHeroSection: View {
         VStack(spacing: 6) {
             Image(systemName: "hourglass")
                 .font(.system(size: 28, weight: .light))
-                .foregroundStyle(Color.white.opacity(0.7))
+                .foregroundStyle(AppColor.textPrimary.opacity(0.7))
             Text("Building")
-                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
                 .tracking(1.0)
-                .foregroundStyle(Color.white.opacity(0.7))
+                .foregroundStyle(AppColor.textPrimary.opacity(0.7))
             ProgressView(value: progress)
                 .progressViewStyle(.linear)
                 .tint(AppColor.accentLight)
@@ -114,12 +114,15 @@ struct BioAgeHeroSection: View {
         let isYounger = estimate.biologicalAge < Double(chronologicalAge)
         let tint = unlockedTint(isYounger: isYounger)
         return Text(Self.bigNumberFormatter.string(from: NSNumber(value: estimate.biologicalAge)) ?? "—")
-            .font(.system(size: 56, weight: .heavy, design: .rounded))
+            .font(AppFont.scaled(56, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
             .foregroundStyle(tint)
             .monospacedDigit()
             .contentTransition(.numericText())
-            .shadow(color: tint.opacity(0.6), radius: 24, y: 0)
-            .shadow(color: tint.opacity(0.25), radius: 6, y: 0)
+            // A neutral drop, not a tinted halo. Two stacked coloured
+            // shadows behind a 56pt number read as neon; the number already
+            // carries its own colour, and legibility over the starfield only
+            // needs the backdrop pushed away from it.
+            .shadow(color: .black.opacity(0.35), radius: 8, y: 2)
     }
 
     // MARK: - State affordance (Pro pill / progress label / value below)
@@ -140,17 +143,17 @@ struct BioAgeHeroSection: View {
         Button(action: onUnlockTapped) {
             HStack(spacing: 6) {
                 Image(systemName: "lock.fill")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                 Text("Unlock with Pro")
-                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(AppColor.textPrimary)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, 8)
             .background {
-                Capsule().fill(Color.white.opacity(0.18))
+                Capsule().fill(AppColor.textPrimary.opacity(0.18))
                     .overlay {
-                        Capsule().strokeBorder(Color.white.opacity(0.30), lineWidth: 0.5)
+                        Capsule().strokeBorder(AppColor.textPrimary.opacity(0.30), lineWidth: 0.5)
                     }
             }
         }
@@ -169,8 +172,8 @@ struct BioAgeHeroSection: View {
         let total = BioAgeStateResolver.minBaselineDays
         let days = max(0, min(total, Int((progress * Double(total)).rounded())))
         return Text("\(days) of \(total) days of data collected")
-            .font(.system(size: 13, weight: .medium))
-            .foregroundStyle(Color.white.opacity(0.55))
+            .font(AppFont.scaled(13, weight: .semibold))
+            .foregroundStyle(AppColor.textPrimary.opacity(0.55))
     }
 
     private func unlockedBigNumber(estimate: PerformanceAgeEngine.Estimate) -> some View {
@@ -205,9 +208,9 @@ struct BioAgeHeroSection: View {
             : (isYounger ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
         return HStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 12, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
             Text(label)
-                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
         }
         .foregroundStyle(tint)
         .padding(.horizontal, Spacing.md)
@@ -241,21 +244,21 @@ struct BioAgeHeroSection: View {
                             driver.deltaYears)
         return HStack(spacing: 3) {
             Image(systemName: driverIcon(for: driver.kind))
-                .font(.system(size: 9, weight: .heavy))
+                .font(AppFont.scaled(8, weight: .heavy))
             Text(driverLabel(for: driver.kind))
-                .font(.system(size: 10, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .tracking(0.3)
             Text(signed)
-                .font(.system(size: 10, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .monospacedDigit()
         }
         .foregroundStyle(unlockedTint(isYounger: isYounger).opacity(0.95))
         .padding(.horizontal, Spacing.sm)
         .padding(.vertical, 4)
         .background {
-            Capsule().fill(Color.white.opacity(0.08))
+            Capsule().fill(AppColor.textPrimary.opacity(0.08))
                 .overlay {
-                    Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 0.5)
+                    Capsule().strokeBorder(AppColor.textPrimary.opacity(0.10), lineWidth: 0.5)
                 }
         }
     }
@@ -284,8 +287,8 @@ struct BioAgeHeroSection: View {
     /// backdrop doesn't wash them out.
     private func unlockedTint(isYounger: Bool) -> Color {
         isYounger
-            ? Color(red: 0.55, green: 0.92, blue: 0.65)   // soft mint-green
-            : Color(red: 0.97, green: 0.62, blue: 0.42)   // warm orange
+            ? AppColor.positive
+            : AppColor.negative
     }
 
     // MARK: - Formatters

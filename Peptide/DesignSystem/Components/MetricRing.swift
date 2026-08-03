@@ -14,8 +14,8 @@ import SwiftUI
 /// Three optional behaviours stay defaulted-off so callers like
 /// `HeroMetricTrio` opt into the simple ring, while branded
 /// surfaces like `ProtocolScoreCard` opt in to the appear sweep +
-/// celebration pulse + accent glow that used to live in the now-
-/// retired `GlassProgressRing`.
+/// celebration pulse + accent glow. `GlassProgressBar` is the linear
+/// counterpart for the same idea inside a row.
 struct MetricRing<Center: View>: View {
     let progress: Double
     let diameter: CGFloat
@@ -35,10 +35,10 @@ struct MetricRing<Center: View>: View {
     /// the centre content so a finished day reads as a moment, not
     /// just a number flip. Suppressed under Reduce Motion.
     let celebrateAtCompletion: Bool
-    /// Adds the app-wide accent glow under the progress arc. Branded
+    /// Removed: this used to add an accent halo under the arc. Craft R2 —
+    /// emphasis comes from size, weight, contrast and space, never from a
+    /// coloured glow. The ring is already the largest thing on its card.
     /// rings use it; the hero trio doesn't (the trio sits on a glass
-    /// card where a glow would muddy the gradient).
-    let glow: Bool
     @ViewBuilder let center: () -> Center
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -54,7 +54,6 @@ struct MetricRing<Center: View>: View {
         hatchedFraction: Double? = nil,
         appearAnimated: Bool = false,
         celebrateAtCompletion: Bool = false,
-        glow: Bool = false,
         @ViewBuilder center: @escaping () -> Center
     ) {
         self.progress = max(0, min(1, progress))
@@ -64,7 +63,6 @@ struct MetricRing<Center: View>: View {
         self.hatchedFraction = hatchedFraction.map { max(0, min(1, $0)) }
         self.appearAnimated = appearAnimated
         self.celebrateAtCompletion = celebrateAtCompletion
-        self.glow = glow
         self.center = center
     }
 
@@ -112,11 +110,7 @@ struct MetricRing<Center: View>: View {
             .rotationEffect(.degrees(-90))
             .animation(.easeOut(duration: 0.6), value: progress)
 
-        if glow {
-            arc.appShadow(AppShadow.accentGlow)
-        } else {
-            arc
-        }
+        arc
     }
 
     /// Drawn as a striped pattern over the same trim arc so it reads
@@ -127,7 +121,7 @@ struct MetricRing<Center: View>: View {
         Circle()
             .trim(from: 0, to: fraction)
             .stroke(
-                gradient.first?.opacity(0.45) ?? Color.white.opacity(0.3),
+                gradient.first?.opacity(0.45) ?? AppColor.textPrimary.opacity(0.3),
                 style: StrokeStyle(lineWidth: strokeWidth, lineCap: .butt, dash: [4, 3])
             )
             .rotationEffect(.degrees(-90))
@@ -191,8 +185,7 @@ extension MetricRing where Center == EmptyView {
         gradient: [Color],
         hatchedFraction: Double? = nil,
         appearAnimated: Bool = false,
-        celebrateAtCompletion: Bool = false,
-        glow: Bool = false
+        celebrateAtCompletion: Bool = false
     ) {
         self.init(
             progress: progress,
@@ -202,7 +195,6 @@ extension MetricRing where Center == EmptyView {
             hatchedFraction: hatchedFraction,
             appearAnimated: appearAnimated,
             celebrateAtCompletion: celebrateAtCompletion,
-            glow: glow,
             center: { EmptyView() }
         )
     }
@@ -218,15 +210,14 @@ extension MetricRing where Center == EmptyView {
                 hatchedFraction: 0.30
             ) {
                 Text("17%")
-                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white)
             }
             MetricRing(
                 progress: 0.85,
                 gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
                 appearAnimated: true,
-                celebrateAtCompletion: true,
-                glow: true
+                celebrateAtCompletion: true
             ) {
                 Text("85")
                     .font(.system(size: 30, weight: .heavy, design: .rounded))

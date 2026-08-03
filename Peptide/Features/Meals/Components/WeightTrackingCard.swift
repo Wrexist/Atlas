@@ -32,19 +32,7 @@ struct WeightTrackingCard: View {
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.cardOverlay)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
+        .glassControl(.rect(cornerRadius: Spacing.cardCornerRadius))
     }
 
     private var header: some View {
@@ -63,29 +51,22 @@ struct WeightTrackingCard: View {
             Button(action: onLog) {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(AppFont.scaled(11, weight: .bold))
                     Text("Log weight")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(AppColor.onAccent)
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, 7)
                 .background {
                     Capsule(style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [AppColor.accentPrimary, AppColor.accentLight],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .fill(AppColor.accentFill)
                         .overlay {
                             Capsule(style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                                .strokeBorder(AppColor.onAccent.opacity(0.18), lineWidth: 0.5)
                         }
                 }
                 .shadow(color: AppColor.accentPrimary.opacity(0.45), radius: 8, y: 3)
-                .liquidGlass(.capsule)
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.95))
         }
@@ -106,11 +87,11 @@ struct WeightTrackingCard: View {
         let format = unitFormatter()
         return HStack(spacing: 4) {
             Image(systemName: delta >= 0 ? "arrow.up.right" : "arrow.down.right")
-                .font(.system(size: 10, weight: .bold))
+                .font(AppFont.scaled(11, weight: .bold))
             Text(format(abs(delta)) + " this week")
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
         }
-        .foregroundStyle(delta == 0 ? AppColor.textSecondary : (delta > 0 ? Color(red: 0.83, green: 0.5, blue: 0.2) : AppColor.accentPrimary))
+        .foregroundStyle(delta == 0 ? AppColor.textSecondary : (delta > 0 ? AppColor.negative : AppColor.accentPrimary))
         .padding(.horizontal, Spacing.sm)
         .padding(.vertical, 3)
         .background {
@@ -120,12 +101,7 @@ struct WeightTrackingCard: View {
     }
 
     private func unitFormatter() -> (Double) -> String {
-        return { kg in
-            switch unit {
-            case .metric:    String(format: "%.1f kg", kg)
-            case .imperial:  String(format: "%.1f lb", kg * 2.20462)
-            }
-        }
+        return { kg in unit.weightLabel(kg, fractionDigits: 1) }
     }
 }
 
@@ -187,10 +163,7 @@ private struct Sparkline: View {
     private var accessibilitySummary: String {
         guard let first = points.first?.kg, let last = points.last?.kg else { return "No data" }
         let delta = last - first
-        switch unit {
-        case .metric:    return String(format: "Weight changed %.1f kg over the window", delta)
-        case .imperial:  return String(format: "Weight changed %.1f lb over the window", delta * 2.20462)
-        }
+        return String(localized: "Weight changed \(unit.weightLabel(delta, fractionDigits: 1)) over the window")
     }
 }
 

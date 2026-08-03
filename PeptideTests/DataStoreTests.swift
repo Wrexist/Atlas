@@ -162,10 +162,18 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(store.profile.goals, ["Better Sleep", "Fat Loss", "Muscle Recovery"])
     }
 
-    func test_toggleHealthConnection_flipsState() {
-        let was = store.profile.healthConnected
-        store.toggleHealthConnection()
-        XCTAssertEqual(store.profile.healthConnected, !was)
+    func test_toggleHealthConnection_disconnectsWithoutNeedingHealthKit() async {
+        // Only the disconnect direction is deterministic. Connecting awaits a
+        // real HealthKit authorization that a unit test cannot obtain, so the
+        // service returns false and deliberately leaves the flag alone — the
+        // old version of this test called an `async` method synchronously and
+        // asserted a flip that would not happen in either direction.
+        store.profile.healthConnected = true
+
+        let didToggle = await store.toggleHealthConnection()
+
+        XCTAssertTrue(didToggle)
+        XCTAssertFalse(store.profile.healthConnected)
     }
 
     // MARK: - Profile customization

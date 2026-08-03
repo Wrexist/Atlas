@@ -52,7 +52,7 @@ struct ProtocolCard: View {
                                 }
 
                             Image(systemName: peptide.imageSystemName)
-                                .font(.system(size: 12))
+                                .font(AppFont.scaled(11))
                                 .foregroundStyle(peptide.category.color)
                         }
                     }
@@ -74,6 +74,20 @@ struct ProtocolCard: View {
                 }
             }
         }
+        // The peptide avatars are a visual summary of the count already
+        // announced above, so they're hidden and the card reads as one item.
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var accessibilitySummary: String {
+        var parts = [protocol_.name, protocol_.status.displayName]
+        parts.append("\(protocol_.peptides.count) peptides")
+        if protocol_.status == .active {
+            parts.append("week \(protocol_.weekNumber) of \(protocol_.cycleLengthWeeks)")
+            parts.append("\(protocol_.daysRemaining) days left")
+        }
+        return parts.joined(separator: ", ")
     }
 }
 
@@ -83,10 +97,10 @@ private struct StatusBadge: View {
     var body: some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: status.iconName)
-                .font(.system(size: 8))
+                .font(AppFont.scaled(8))
             Text(status.displayName)
                 .font(AppFont.caption)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
         }
         .foregroundStyle(status.color)
         .padding(.horizontal, Spacing.sm)

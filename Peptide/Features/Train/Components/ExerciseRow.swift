@@ -40,6 +40,9 @@ struct ExerciseRow: View {
         }
         .padding(.vertical, Spacing.xs)
         .contentShape(Rectangle())
+        // One VoiceOver stop per exercise, not four — the tile, the name,
+        // the two pills and the chevron are one piece of information.
+        .accessibilityElement(children: .combine)
     }
 
     private var musclePill: some View {
@@ -58,7 +61,7 @@ struct ExerciseRow: View {
         if exercise.equipmentKind != .bodyweight {
             HStack(spacing: 3) {
                 Image(systemName: exercise.equipmentKind.symbolName)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                 Text(exercise.equipmentKind.displayName)
                     .font(AppFont.chipText)
             }

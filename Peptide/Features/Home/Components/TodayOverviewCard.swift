@@ -15,6 +15,9 @@ import SwiftUI
 /// labs or dismisses the nudge via `onTapInsight`.
 struct TodayOverviewCard: View {
     let snapshot: TodayOverviewSnapshot
+    /// Water is stored in fluid ounces. Defaulted so previews stay
+    /// two-line; the one live call site passes the profile's setting.
+    var unit: MeasurementUnit = .metric
     /// Called when the user taps the hero. Receives the next
     /// pending dose if there is one, else nil — the host decides
     /// whether to open the logging sheet or no-op.
@@ -70,7 +73,7 @@ struct TodayOverviewCard: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(stripEyebrow)
-                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                         .tracking(1.0)
                         .foregroundStyle(AppColor.accentLight)
                     Text(stripTitle)
@@ -88,7 +91,7 @@ struct TodayOverviewCard: View {
                 Spacer(minLength: 0)
                 if snapshot.nextDose != nil {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(AppFont.scaled(13, weight: .bold))
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }
@@ -104,7 +107,7 @@ struct TodayOverviewCard: View {
             Circle()
                 .fill(AppColor.accentPrimary.opacity(0.18))
             Image(systemName: stripIcon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
         }
         .frame(width: 40, height: 40)
@@ -221,9 +224,9 @@ struct TodayOverviewCard: View {
             icon: "drop.fill",
             iconTint: AppColor.macroWater,
             label: String(localized: "Water"),
-            value: snapshot.waterToday > 0 ? "\(snapshot.waterToday)" : "—",
+            value: snapshot.waterToday > 0 ? "\(unit.volumeValue(snapshot.waterToday))" : "—",
             footnote: snapshot.waterToday > 0
-                ? String(localized: "oz today")
+                ? "\(unit.volumeSuffix) today"
                 : String(localized: "Quick-add from Watch"),
             progress: nil
         )
@@ -242,7 +245,7 @@ struct TodayOverviewCard: View {
                         .fill(AppColor.accentPrimary.opacity(0.18))
                         .frame(width: 36, height: 36)
                     Image(systemName: insight.icon)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.accentPrimary)
                 }
                 VStack(alignment: .leading, spacing: 2) {
@@ -324,7 +327,7 @@ private struct OverviewTile: View {
                             .fill(iconTint.opacity(0.18))
                     }
                     Image(systemName: icon)
-                        .font(.system(size: 11, weight: .heavy))
+                        .font(AppFont.scaled(11, weight: .heavy))
                         .foregroundStyle(iconTint)
                 }
                 .frame(width: 28, height: 28)
@@ -336,12 +339,12 @@ private struct OverviewTile: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
-                .font(.system(size: 10, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(0.5)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
             Text(footnote)
-                .font(.system(size: 11, weight: .regular))
+                .font(AppFont.scaled(11, weight: .regular))
                 .foregroundStyle(AppColor.textTertiary)
                 .lineLimit(1)
         }

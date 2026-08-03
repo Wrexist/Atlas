@@ -1,6 +1,12 @@
 import Foundation
 import SwiftUI
 
+/// The user's language override, observed by SwiftUI.
+///
+/// **Concurrency invariant: main actor only** — same situation as
+/// `ThemeManager`, and the same stopgap: `@unchecked Sendable` plus a debug
+/// assertion on every mutation, until the isolation can be stated as
+/// `@MainActor` against a compiler.
 @Observable
 final class LocalizationManager: @unchecked Sendable {
     static let shared = LocalizationManager()
@@ -9,6 +15,7 @@ final class LocalizationManager: @unchecked Sendable {
 
     var selectedCode: String? {
         didSet {
+            assertMainActor()
             if let code = selectedCode {
                 UserDefaults.standard.set(code, forKey: Self.defaultsKey)
             } else {

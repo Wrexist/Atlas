@@ -21,7 +21,8 @@ final class PeptideProtocolCycleTests: XCTestCase {
             cycleLengthWeeks: cycleLengthWeeks,
             washoutWeeks: washoutWeeks,
             startDate: startDate,
-            status: .active
+            status: .active,
+            notes: ""
         )
     }
 

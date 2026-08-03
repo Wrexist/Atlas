@@ -50,11 +50,11 @@ private struct FilterChip: View {
             HStack(spacing: Spacing.xs) {
                 if let icon {
                     Image(systemName: icon)
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                 }
                 Text(title)
                     .font(AppFont.footnote)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
             }
             .foregroundStyle(isSelected ? color : AppColor.textSecondary)
             .padding(.horizontal, Spacing.md)

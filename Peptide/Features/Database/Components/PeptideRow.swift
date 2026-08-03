@@ -11,7 +11,7 @@ struct PeptideRow: View {
                     .frame(width: 48, height: 48)
 
                 Image(systemName: peptide.imageSystemName)
-                    .font(.system(size: 20))
+                    .font(AppFont.scaled(20))
                     .foregroundStyle(peptide.category.color)
             }
 
@@ -31,7 +31,7 @@ struct PeptideRow: View {
             Spacer()
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
                 .accessibilityHidden(true)
         }

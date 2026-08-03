@@ -197,10 +197,17 @@ jobs:
         # Restore `build-for-testing` here once the test target
         # compiles again.
         run: |
+          # `generic/platform=iOS Simulator` compiles without requiring any
+          # particular simulator to exist. Naming iPhone 16 made this step
+          # depend on the runner image happening to ship that device — and
+          # it does not always: test-compile failed on exactly this line
+          # with "Unable to find a device matching the provided destination
+          # specifier" while build-check, on a different runner in the same
+          # workflow, found one. A gating job must not be a coin flip.
           xcodebuild build \
             -project Peptide.xcodeproj \
             -scheme Peptide \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -230,16 +237,41 @@ jobs:
         run: swiftlint lint --reporter github-actions-logging
 
       - name: Unit Tests
-        # Temporarily skipped: the PeptideTests target does not compile
-        # on the current toolchain (Xcode 26.3) — a backlog of stale
-        # API references and Swift-6 actor-isolation issues. The "Build
-        # app" step above gates app-code compilation. Re-enable this
-        # (xcodebuild test-without-building, restoring build-for-testing
-        # above) once the test target is repaired.
+        # Enabled again. It had been a stub since the test target stopped
+        # compiling; `test-compile` on 89587a3 came back
+        # `** TEST BUILD SUCCEEDED **` with zero errors, which is the
+        # condition the previous note set for turning it back on.
+        #
+        # Still `continue-on-error` for its first outings: these tests have
+        # not run in months, so a failure here is information about the
+        # suite rather than a reason to block the PR. Drop the flag once a
+        # few runs have gone green.
         continue-on-error: true
         run: |
-          touch test-output.log
-          echo "Unit tests skipped — PeptideTests target needs a compile-fix pass." | tee test-output.log
+          # Resolve whatever iPhone this runner actually has rather than
+          # naming one. A hardcoded `name:iPhone 16` is why test-compile
+          # died with "Unable to find a device matching the provided
+          # destination specifier" while a sibling job on another runner
+          # found one — the image's simulator list is not guaranteed.
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; ids=[x['udid'] for r in d.values() for x in r if 'iPhone' in x.get('name','')]; print(ids[0] if ids else '')")
+          if [ -z "$DEVICE_ID" ]; then
+            echo "::error::No iPhone simulator available on this runner image."
+            exit 1
+          fi
+          echo "Running unit tests on simulator $DEVICE_ID"
+
+          set -o pipefail
+          xcodebuild test \
+            -project Peptide.xcodeproj \
+            -scheme Peptide \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -only-testing:PeptideTests \
+            -resultBundlePath UnitTestResults.xcresult \
+            2>&1 | tee test-output.log
 
       - name: Coverage report
         if: always()
@@ -372,6 +404,21 @@ jobs:
           fi
           echo "OK: no proxy secret keys committed."
 
+      - name: Design system check
+        # SwiftLint covers Swift-level problems; this covers design-system
+        # ones — raw colour literals that skip light mode, fixed font sizes
+        # that skip Dynamic Type, glass surfaces that stack two materials,
+        # sub-44pt tap targets, off-grid spacing. Errors fail the build;
+        # warnings are printed for review.
+        run: python3 scripts/design-lint.py --all
+
+      - name: Colour contrast check
+        # The design tokens ship two schemes, and light mode has never been
+        # rendered on a device. Contrast is the part of "is it legible" that
+        # can be settled arithmetically, so every ink/surface pair is held
+        # to WCAG 2.1 AA here rather than waiting for a screenshot.
+        run: python3 scripts/contrast-check.py
+
       - name: Verify bundled peptide dataset integrity
         # PeptideDatabase falls back to a tiny MockPeptides set if
         # peptides.json is missing or corrupt — and in release builds
@@ -480,16 +527,26 @@ jobs:
           xcodebuild build-for-testing \
             -project Peptide.xcodeproj \
             -scheme Peptide \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            2>&1 | tee testbuild.log || true
+            2>&1 | tee testbuild.log || BUILD_FAILED=1
           echo "## Test-target compile errors (unique)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           grep -E "error:" testbuild.log | sed 's#/Users/runner/work/Peptide-ai/Peptide-ai/##' | sort -u | head -300 >> "$GITHUB_STEP_SUMMARY" || echo "(no error: lines — target may compile clean)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+          # The `|| true` this replaces made the job report success while the
+          # test target was failing to compile — a green check for a red
+          # build. It is not in the `pr-checks` aggregate, so failing here
+          # signals honestly without blocking the PR, which is the whole
+          # point of a non-gating diagnostic job.
+          if [ "${BUILD_FAILED:-0}" = "1" ]; then
+            echo "::error::Test build failed. Compile errors (if any) are in the step summary; if that block is empty the failure was environmental — a missing simulator, a toolchain problem — and the log has it."
+            exit 1
+          fi
 
       - name: Upload test build log
         if: always()

@@ -79,7 +79,6 @@ struct MealScanFlow: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .onDisappear {
             inFlightTask?.cancel()
             inFlightTask = nil
@@ -190,26 +189,19 @@ struct MealScanFlow: View {
     nonisolated private func pickerButtonLabel(icon: String, title: LocalizedStringKey, style: PickerButtonStyle) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .bold))
+                .font(AppFont.scaled(13, weight: .bold))
             Text(title)
-                .font(.system(size: 16, weight: .bold))
+                .font(AppFont.scaled(16, weight: .bold))
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(AppColor.onAccent)
         .frame(maxWidth: .infinity)
         .padding(.vertical, Spacing.md)
         .background {
             Capsule()
                 .fill(
-                    LinearGradient(
-                        colors: style == .primary
-                            ? [AppColor.accentPrimary, AppColor.accentLight]
-                            : [
-                                AppColor.surfaceSecondary.opacity(0.85),
-                                AppColor.surfaceSecondary.opacity(0.55),
-                            ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
+                    style == .primary
+                        ? AnyShapeStyle(AppColor.accentFill)
+                        : AnyShapeStyle(AppColor.surfaceSecondary.opacity(0.85))
                 )
                 .overlay {
                     Capsule().strokeBorder(
@@ -297,20 +289,16 @@ struct MealScanFlow: View {
                 MealCategoryPicker(selection: $category)
 
                 HStack(spacing: Spacing.sm) {
-                    Button("Re-scan") {
+                    GlassButton(title: "Re-scan", style: .secondary) {
                         image = nil
                         selectedItem = nil
                         items = []
                         phase = .pickImage
                     }
-                    .buttonStyle(.bordered)
-                    .tint(AppColor.textSecondary)
 
-                    Button(addButtonTitle) {
+                    GlassButton(title: addButtonTitle, style: .primary) {
                         confirm()
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppColor.accentPrimary)
                     .disabled(includedItems.isEmpty)
                 }
                 .padding(.top, Spacing.xs)
@@ -319,10 +307,18 @@ struct MealScanFlow: View {
         .scrollIndicators(.hidden)
     }
 
-    private var addButtonTitle: String {
+    /// `LocalizedStringKey`, not `String`: GlassButton takes a key, and
+    /// interpolating the count produces the same "Add %lld items" key the
+    /// manual `String(format:)` was looking up — so this is the identical
+    /// lookup expressed in the type the button actually wants.
+    ///
+    /// Neither key is in `Localizable.xcstrings` yet, so both fall back to
+    /// the key text itself. That was already true before this change; the
+    /// catalog sits at 13% coverage and is tracked separately.
+    private var addButtonTitle: LocalizedStringKey {
         includedItems.count <= 1
-            ? String(localized: "Add to today")
-            : String(format: String(localized: "Add %lld items"), includedItems.count)
+            ? "Add to today"
+            : "Add \(includedItems.count) items"
     }
 
     private var errorCard: some View {
@@ -338,7 +334,7 @@ struct MealScanFlow: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
-            Button(image == nil ? "Try again" : "Retry") {
+            GlassButton(title: image == nil ? "Try again" : "Retry", style: .primary) {
                 errorText = nil
                 if let image {
                     // Re-run analysis on the photo already loaded —
@@ -351,8 +347,6 @@ struct MealScanFlow: View {
                     phase = .pickImage
                 }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColor.accentPrimary)
             .padding(.top, Spacing.md)
         }
     }
@@ -614,7 +608,7 @@ private struct FoodItemEditCard: View {
                 item.include.toggle()
             } label: {
                 Image(systemName: item.include ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22))
+                    .font(AppFont.scaled(20))
                     .foregroundStyle(item.include ? AppColor.accentPrimary : AppColor.textTertiary)
             }
             .buttonStyle(.plain)
@@ -637,7 +631,7 @@ private struct FoodItemEditCard: View {
 
             VStack(alignment: .trailing, spacing: 0) {
                 Text("\(item.calories)")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .monospacedDigit()
                 Text("kcal")
@@ -722,7 +716,7 @@ private struct FoodItemEditCard: View {
     private func stepperButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 24))
+                .font(AppFont.scaled(24))
                 .foregroundStyle(AppColor.accentLight)
         }
         .buttonStyle(.plain)
@@ -766,7 +760,7 @@ private struct FoodItemEditCard: View {
             item.grams = grams.rounded()
         } label: {
             Text(label)
-                .font(.system(size: 12, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(isActive ? .white : AppColor.textSecondary)
                 .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, 5)
@@ -788,9 +782,9 @@ private struct FoodItemEditCard: View {
         Button(action: onSave) {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: item.savedToLibrary ? "checkmark" : "bookmark")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
                 Text(item.savedToLibrary ? "Saved to library" : "Save to library")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
             }
             .foregroundStyle(item.savedToLibrary ? AppColor.accentPrimary : AppColor.accentLight)
         }

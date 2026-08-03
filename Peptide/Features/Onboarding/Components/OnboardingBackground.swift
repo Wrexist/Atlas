@@ -8,6 +8,7 @@ import SwiftUI
 struct OnboardingBackground: View {
     let step: Int
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var phase: CGFloat = 0
     @State private var appeared = false
 
@@ -36,10 +37,12 @@ struct OnboardingBackground: View {
             .animation(.easeOut(duration: 1.4), value: appeared)
             .animation(.easeInOut(duration: 1.2), value: step)
 
-            // Subtle top→bottom darkening keeps copy readable regardless of
-            // where the orbs drift on a given step.
+            // Subtle top→bottom scrim keeps copy readable regardless of where
+            // the orbs drift on a given step. It's tinted with the backdrop
+            // rather than plain black so it darkens in dark mode and lightens
+            // in light mode instead of muddying the light palette.
             LinearGradient(
-                colors: [Color.black.opacity(0.25), .clear, Color.black.opacity(0.55)],
+                colors: [AppColor.background.opacity(0.25), .clear, AppColor.background.opacity(0.55)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -47,6 +50,7 @@ struct OnboardingBackground: View {
         .ignoresSafeArea()
         .onAppear {
             appeared = true
+            guard !reduceMotion else { return }
             withAnimation(.linear(duration: 32).repeatForever(autoreverses: false)) {
                 phase = .pi * 2
             }

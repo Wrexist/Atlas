@@ -7,6 +7,7 @@ import SwiftUI
 /// stays focused on the state machine.
 struct BarcodeScannerOverlay: View {
     @Binding var torchOn: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isBreathing = false
 
     var body: some View {
@@ -29,6 +30,7 @@ struct BarcodeScannerOverlay: View {
             // on screen. The animation drives a 6 % scale oscillation —
             // visible enough to feel alive, restrained enough not to
             // distract from a real barcode in frame.
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
                 isBreathing = true
             }
@@ -40,7 +42,6 @@ struct BarcodeScannerOverlay: View {
             .strokeBorder(AppColor.accentLight.opacity(0.85), lineWidth: 2)
             .frame(width: 240, height: 140)
             .scaleEffect(isBreathing ? 1.06 : 1.0)
-            .shadow(color: AppColor.accentGlow, radius: 12)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
     }
@@ -52,19 +53,14 @@ struct BarcodeScannerOverlay: View {
             BarcodeHaptics.detected()
         } label: {
             Image(systemName: torchOn ? "flashlight.on.fill" : "flashlight.off.fill")
-                .font(.system(size: 18, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(torchOn ? AppColor.accentLight : .white)
                 .frame(width: 44, height: 44)
-                .background {
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .overlay {
-                            Circle().strokeBorder(
-                                torchOn ? AppColor.accentPrimary.opacity(0.55) : AppColor.glassBorder,
-                                lineWidth: 1
-                            )
-                        }
-                }
+                .glassControl(
+                    .circle,
+                    tint: torchOn ? AppColor.accentPrimary.opacity(0.18) : nil,
+                    border: torchOn ? AppColor.accentPrimary.opacity(0.55) : AppColor.glassBorder
+                )
         }
         .accessibilityLabel(torchOn ? "Turn off flashlight" : "Turn on flashlight")
         .accessibilityAddTraits(torchOn ? [.isButton, .isSelected] : .isButton)

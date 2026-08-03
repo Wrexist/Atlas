@@ -38,8 +38,6 @@ enum KeywordHighlighter {
         "healing",
     ]
 
-    private static let semiboldBody = Font.system(size: 17, weight: .semibold)
-
     static func highlight(_ text: String, accentColor: Color) -> AttributedString {
         var attributed = AttributedString(text)
         attributed.font = AppFont.body
@@ -78,7 +76,7 @@ enum KeywordHighlighter {
                 if let attrRange = AttributedString.Index(range.lowerBound, within: attributed),
                    let attrEnd = AttributedString.Index(range.upperBound, within: attributed) {
                     attributed[attrRange..<attrEnd].foregroundColor = color
-                    attributed[attrRange..<attrEnd].font = semiboldBody
+                    attributed[attrRange..<attrEnd].font = AppFont.body.weight(.semibold)
                 }
                 searchStart = range.upperBound
             }

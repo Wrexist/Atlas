@@ -214,17 +214,17 @@ struct OnboardingView: View {
         }
         var tint: Color {
             switch self {
-            case .buildMuscle:    return Color(hex: 0xCF7272)
-            case .loseFat:        return Color(hex: 0xE88D4F)
-            case .getStronger:    return Color(hex: 0xD4A844)
+            case .buildMuscle:    return AppColor.metricHeartRate
+            case .loseFat:        return AppColor.streak
+            case .getStronger:    return AppColor.achievement
             case .stayConsistent: return AppColor.accentPrimary
-            case .athletic:       return Color(hex: 0x5B8FB9)
-            case .recomp:         return Color(hex: 0x9B72CF)
-            case .betterSleep:    return Color(hex: 0x6B8AFF)
-            case .recovery:       return Color(hex: 0x4CB8C4)
-            case .antiAging:      return Color(hex: 0xC59FFF)
-            case .skinHair:       return Color(hex: 0xE89BC4)
-            case .energy:         return Color(hex: 0xFFB347)
+            case .athletic:       return Color(light: 0x3D6E93, dark: 0x5B8FB9)
+            case .recomp:         return AppColor.metricHRV
+            case .betterSleep:    return Color(light: 0x4460D8, dark: 0x6B8AFF)
+            case .recovery:       return Color(light: 0x2A8792, dark: 0x4CB8C4)
+            case .antiAging:      return Color(light: 0x7B54C4, dark: 0xC59FFF)
+            case .skinHair:       return Color(light: 0xB05585, dark: 0xE89BC4)
+            case .energy:         return AppColor.perceivedEffort
             }
         }
     }
@@ -339,7 +339,6 @@ struct OnboardingView: View {
         .onChange(of: page) { _, newValue in
             lastPage = newValue
         }
-        .preferredColorScheme(.dark)
         .onAppear {
             OnboardingFunnelTracker.recordStepEntered(stepName(for: page), index: page)
             // Re-hydrate goalDate + selected-goal state from a
@@ -475,14 +474,15 @@ struct OnboardingView: View {
             if page > 0 {
                 Button {
                     haptic()
-                    withAnimation { page = max(0, page - 1) }
+                    withAnimation(AppAnimation.springSnappy) { page = max(0, page - 1) }
                 } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
-                        .padding(10)
+                        .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
                         .background(Circle().fill(AppColor.surfaceSecondary.opacity(0.6)))
                 }
+                .accessibilityLabel("Back")
             } else {
                 Color.clear.frame(width: 36, height: 36)
             }
@@ -518,7 +518,7 @@ struct OnboardingView: View {
             .frame(width: 160)
 
             Text("\(min(page + 1, totalPages)) / \(totalPages)")
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .font(AppFont.scaled(11, weight: .semibold, design: .rounded))
                 .foregroundStyle(AppColor.textTertiary)
                 .contentTransition(.numericText())
                 .animation(AppAnimation.springSmooth, value: page)
@@ -606,15 +606,15 @@ struct OnboardingView: View {
                     .font(AppFont.headline)
                 if page < totalPages - 1 {
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                 }
             }
             .foregroundStyle(AppColor.background)
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.md)
             .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(primaryEnabled ? Color.white : AppColor.textTertiary.opacity(0.4))
+                RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous)
+                    .fill(primaryEnabled ? AppColor.textPrimary : AppColor.textTertiary.opacity(0.4))
             )
         }
         .buttonStyle(.plain)
@@ -729,7 +729,7 @@ struct OnboardingView: View {
             return true
         }
         guard trimmed.looksLikeEmail else {
-            withAnimation { emailError = "That doesn't look like an email address." }
+            withAnimation(AppAnimation.fadeIn) { emailError = "That doesn't look like an email address." }
             Haptics.error()
             return false
         }
@@ -765,7 +765,7 @@ struct OnboardingView: View {
             OnboardingFunnelTracker.recordEvent("creator_code_applied")
             Haptics.success()
         } else {
-            withAnimation { creatorError = "Code not found — double-check and try again." }
+            withAnimation(AppAnimation.fadeIn) { creatorError = "Code not found — double-check and try again." }
             OnboardingFunnelTracker.recordEvent("creator_code_invalid")
             Haptics.error()
         }
@@ -795,7 +795,7 @@ struct OnboardingView: View {
         // Tear down the keyboard before the page transition so it can't
         // linger over the next card mid-animation.
         dismissKeyboard()
-        withAnimation { page = min(totalPages - 1, page + 1) }
+        withAnimation(AppAnimation.springSnappy) { page = min(totalPages - 1, page + 1) }
     }
 
     /// Resigns the first responder app-wide. Covers the text fields that
@@ -828,7 +828,7 @@ struct OnboardingView: View {
             )
             VStack(spacing: Spacing.md) {
                 Text("Welcome to\nAtlas.")
-                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(56, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(-4)
@@ -857,7 +857,7 @@ struct OnboardingView: View {
             HeroIcon(symbol: "person.crop.circle.fill", bounceTrigger: bounceTrigger)
             VStack(spacing: Spacing.md) {
                 Text("Save your\nprogress.")
-                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(38, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(-2)
@@ -937,7 +937,7 @@ struct OnboardingView: View {
     private func signInDisclosureRow(icon: String, text: String) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
                 .frame(width: 22)
             Text(text)
@@ -958,7 +958,7 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.lg) {
             VStack(spacing: Spacing.sm) {
                 Text("Where did you hear\nabout Atlas?")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(-2)
@@ -999,16 +999,16 @@ struct OnboardingView: View {
     private func chipLabel(channel: AttributionChannel, isSelected: Bool) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: channel.icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
                 .frame(width: 22)
             Text(channel.displayName)
-                .font(AppFont.callout.weight(.medium))
+                .font(AppFont.callout.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
             Spacer(minLength: 0)
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 14))
+                    .font(AppFont.scaled(13))
                     .foregroundStyle(AppColor.accentPrimary)
             }
         }
@@ -1032,7 +1032,7 @@ struct OnboardingView: View {
                 .padding(.top, Spacing.xl)
             VStack(spacing: Spacing.sm) {
                 Text("What should we call you?")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
             }
@@ -1085,7 +1085,7 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             VStack(spacing: Spacing.xs) {
                 Text(goalHeadline)
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                     .contentTransition(.opacity)
@@ -1197,7 +1197,7 @@ struct OnboardingView: View {
             withAnimation(AppAnimation.springSnappy) { goalDate = candidate }
         } label: {
             Text(label)
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
                 .foregroundStyle(isSelected ? AppColor.background : AppColor.textPrimary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.sm)
@@ -1243,7 +1243,7 @@ struct OnboardingView: View {
             .overlay(alignment: .topTrailing) {
                 if selected {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(AppFont.scaled(16, weight: .bold))
                         .foregroundStyle(goal.tint)
                         .background(Circle().fill(AppColor.background).padding(2))
                         .padding(Spacing.sm)
@@ -1294,7 +1294,7 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.lg) {
             VStack(spacing: Spacing.sm) {
                 Text("How much experience?")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
             }
@@ -1316,7 +1316,7 @@ struct OnboardingView: View {
         } label: {
             HStack(spacing: Spacing.md) {
                 Image(systemName: level.icon)
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: 40)
                 VStack(alignment: .leading, spacing: 2) {
@@ -1362,7 +1362,7 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.lg) {
             VStack(spacing: Spacing.sm) {
                 Text("When do you train?")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
             }
@@ -1478,7 +1478,7 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.lg) {
             VStack(spacing: Spacing.sm) {
                 Text("What gear do you have?")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
             }
@@ -1522,7 +1522,7 @@ struct OnboardingView: View {
         } label: {
             VStack(spacing: Spacing.xs) {
                 Image(systemName: kind.symbolName)
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(AppFont.scaled(24, weight: .semibold))
                     .foregroundStyle(selected ? AppColor.accentPrimary : AppColor.textSecondary)
                 Text(kind.displayName)
                     .font(AppFont.footnote.weight(.semibold))
@@ -1549,7 +1549,7 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     Text("Try logging a set.")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(32, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                     Text("Two taps. That's the whole loop.")
                         .font(AppFont.subheadline)
@@ -1578,7 +1578,7 @@ struct OnboardingView: View {
                         RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                             .fill(AppColor.surfaceSecondary.opacity(0.6))
                         Image(systemName: "figure.strengthtraining.traditional")
-                            .font(.system(size: 22, weight: .semibold))
+                            .font(AppFont.scaled(20, weight: .semibold))
                             .foregroundStyle(AppColor.accentPrimary)
                     }
                     .frame(width: 56, height: 56)
@@ -1596,6 +1596,7 @@ struct OnboardingView: View {
                 SetEditorRow(
                     set: $demoSet,
                     previousSet: SetEntry(index: 0, weightKg: 55, reps: 8, completed: true),
+                    unit: bodyMetrics.unit,
                     onDelete: {}
                 )
                 .onChange(of: demoSet.completed) { _, completed in
@@ -1610,8 +1611,8 @@ struct OnboardingView: View {
                      ? "Nice. That's it — your workouts are this fast."
                      : "Tap the circle to log this set.")
                     .font(AppFont.footnote)
-                    .foregroundStyle(demoCelebrate ? Color(red: 0.30, green: 0.80, blue: 0.50) : AppColor.textTertiary)
-                    .animation(.easeInOut, value: demoCelebrate)
+                    .foregroundStyle(demoCelebrate ? AppColor.positive : AppColor.textTertiary)
+                    .animation(AppAnimation.fadeIn, value: demoCelebrate)
             }
         }
     }
@@ -1619,8 +1620,8 @@ struct OnboardingView: View {
     private var successBanner: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(Color(red: 0.30, green: 0.80, blue: 0.50))
+                .font(AppFont.scaled(20, weight: .semibold))
+                .foregroundStyle(AppColor.positive)
             Text("Set logged. Atlas tracks weight, reps, RPE — and lights up the muscles you trained.")
                 .font(AppFont.callout)
                 .foregroundStyle(AppColor.textPrimary)
@@ -1629,11 +1630,11 @@ struct OnboardingView: View {
         .padding(Spacing.md)
         .background(
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(Color(red: 0.30, green: 0.80, blue: 0.50).opacity(0.12))
+                .fill(AppColor.positive.opacity(0.12))
         )
         .overlay(
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .stroke(Color(red: 0.30, green: 0.80, blue: 0.50).opacity(0.4), lineWidth: 0.5)
+                .stroke(AppColor.positive.opacity(0.4), lineWidth: 0.5)
         )
     }
 
@@ -1677,7 +1678,7 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     Text(projectionHeadline)
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(32, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(projectionSubtitle)
@@ -1714,7 +1715,7 @@ struct OnboardingView: View {
                             label: "Daily targets",
                             value: "\(targets.calories) kcal · \(targets.proteinG)P · \(targets.carbsG)C · \(targets.fatG)F",
                             icon: "fork.knife",
-                            tint: Color(hex: 0xD4A844)
+                            tint: AppColor.achievement
                         )
                     }
                     projectionStatRow(
@@ -1748,8 +1749,8 @@ struct OnboardingView: View {
     private var projectionHeadline: String {
         let weeks = goalWeeks
         switch primaryGoal {
-        case .buildMuscle:    return "+\(min(6, max(2, Int(estimatedMuscleGainKg)))) kg in \(weeks) weeks"
-        case .loseFat:        return "−\(min(10, max(3, Int(estimatedFatLossKg)))) kg in \(weeks) weeks"
+        case .buildMuscle:    return "+\(projectedMuscleGain) in \(weeks) weeks"
+        case .loseFat:        return "−\(projectedFatLoss) in \(weeks) weeks"
         case .getStronger:    return "Stronger every week\nfor \(weeks) weeks"
         case .stayConsistent: return "\(daysPerWeek * weeks) sessions\nin \(weeks) weeks"
         case .athletic:       return "Peak conditioning\nin \(weeks) weeks"
@@ -1790,8 +1791,8 @@ struct OnboardingView: View {
 
     private var projectionStatValue: String {
         switch primaryGoal {
-        case .buildMuscle: return "+\(min(6, max(2, Int(estimatedMuscleGainKg)))) kg lean mass"
-        case .loseFat:     return "−\(min(10, max(3, Int(estimatedFatLossKg)))) kg body weight"
+        case .buildMuscle: return "+\(projectedMuscleGain) lean mass"
+        case .loseFat:     return "−\(projectedFatLoss) body weight"
         case .getStronger: return "+10–15% on your top lifts"
         case .stayConsistent, .athletic: return "\(daysPerWeek * goalWeeks) sessions logged"
         case .recomp:      return "Body recomp tracked weekly"
@@ -1801,6 +1802,17 @@ struct OnboardingView: View {
         case .skinHair:    return "Tracked weekly with photos"
         case .energy:      return "Steadier energy curve"
         }
+    }
+
+    // The realistic-range clamps are expressed in kilograms because the
+    // underlying model is; the label converts afterwards so an imperial
+    // user reads "9 lb", not "4 kg".
+    private var projectedMuscleGain: String {
+        bodyMetrics.unit.weightLabel(Double(min(6, max(2, Int(estimatedMuscleGainKg)))))
+    }
+
+    private var projectedFatLoss: String {
+        bodyMetrics.unit.weightLabel(Double(min(10, max(3, Int(estimatedFatLossKg)))))
     }
 
     private var estimatedMuscleGainKg: Double {
@@ -1815,7 +1827,7 @@ struct OnboardingView: View {
     private func projectionStatRow(label: String, value: String, icon: String, tint: Color) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(tint)
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
@@ -1848,7 +1860,7 @@ struct OnboardingView: View {
                     .padding(.top, Spacing.xl)
                 VStack(spacing: Spacing.sm) {
                     Text("A quick safety note.")
-                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(30, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.center)
                     Text("Atlas is an educational and tracking tool — not a replacement for a clinician.")
@@ -1892,7 +1904,7 @@ struct OnboardingView: View {
     private func disclaimerBullet(icon: String, text: String) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 24)
             Text(.init(text))
@@ -1912,7 +1924,7 @@ struct OnboardingView: View {
                     .padding(.top, Spacing.xl)
                 VStack(spacing: Spacing.sm) {
                     Text("Stay on track.")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(32, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.center)
                     Text("Workout reminders, weekly recaps,\nand rest-timer alerts.")
@@ -1956,14 +1968,14 @@ struct OnboardingView: View {
             VStack(spacing: Spacing.lg) {
                 HeroIcon(
                     symbol: "heart.fill",
-                    color: Color(red: 1.0, green: 0.42, blue: 0.42),
-                    accent: Color(red: 1.0, green: 0.62, blue: 0.62),
+                    color: AppColor.metricHeartRate,
+                    accent: AppColor.negative,
                     bounceTrigger: bounceTrigger
                 )
                 .padding(.top, Spacing.xl)
                 VStack(spacing: Spacing.sm) {
                     Text("Connect Apple Health.")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(32, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.center)
                     Text("Unlock Recovery, HRV trends,\nand sleep-quality insights.")
@@ -2007,14 +2019,14 @@ struct OnboardingView: View {
                 label: "HRV",
                 value: "62",
                 unit: "ms",
-                tint: Color(red: 0.30, green: 0.80, blue: 0.50)
+                tint: AppColor.positive
             )
             healthPreviewCard(
                 icon: "bed.double.fill",
                 label: "Sleep",
                 value: "7.4",
                 unit: "h",
-                tint: Color(hex: 0x9B72CF)
+                tint: AppColor.metricHRV
             )
             healthPreviewCard(
                 icon: "heart.fill",
@@ -2031,11 +2043,11 @@ struct OnboardingView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(tint)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                 Text(unit)
                     .font(AppFont.caption)
@@ -2065,7 +2077,7 @@ struct OnboardingView: View {
             buildingRing
             VStack(spacing: Spacing.sm) {
                 Text("Building your plan…")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(28, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                 Text(buildingStageLabel)
                     .font(AppFont.subheadline)
@@ -2113,7 +2125,8 @@ struct OnboardingView: View {
                 .frame(width: 120, height: 120)
                 .rotationEffect(.degrees(-90))
             Text("\(Int(buildingProgress * 100))%")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(28, weight: .bold, design: .rounded, relativeTo: .largeTitle))
+                .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
                 .animation(.linear(duration: 0.1), value: buildingProgress)
@@ -2163,7 +2176,7 @@ struct OnboardingView: View {
         Button(action: action) {
             HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: 36)
                 VStack(alignment: .leading, spacing: 2) {
@@ -2180,7 +2193,7 @@ struct OnboardingView: View {
                     ProgressView()
                 } else if isOn {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Color(red: 0.30, green: 0.80, blue: 0.50))
+                        .foregroundStyle(AppColor.positive)
                 } else {
                     Image(systemName: "chevron.right")
                         .foregroundStyle(AppColor.textTertiary)
@@ -2252,7 +2265,7 @@ struct OnboardingView: View {
                     .padding(.top, Spacing.xl)
                 if !name.isEmpty {
                     Text("You're set, \(name).")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(28, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.center)
                 }
@@ -2285,7 +2298,7 @@ struct OnboardingView: View {
     private var widgetTipCard: some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: "square.grid.2x2.fill")
-                .font(.system(size: 18, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
@@ -2350,7 +2363,7 @@ struct OnboardingView: View {
 
                 VStack(spacing: Spacing.sm) {
                     Text("Got a creator code?")
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.center)
                     Text("Apply a friend's code or join the Atlas creator program.")
@@ -2402,7 +2415,7 @@ struct OnboardingView: View {
             if let error = creatorError {
                 HStack(spacing: Spacing.xs) {
                     Image(systemName: "exclamationmark.circle.fill")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                     Text(error)
                         .font(AppFont.caption)
                 }
@@ -2416,7 +2429,7 @@ struct OnboardingView: View {
     private func creatorSuccessCard(_ attribution: CreatorAttribution) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 22, weight: .bold))
+                .font(AppFont.scaled(20, weight: .bold))
                 .foregroundStyle(AppColor.accentPrimary)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -2459,7 +2472,7 @@ struct OnboardingView: View {
                 Text("Join the creator program")
                     .font(AppFont.footnote.weight(.semibold))
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
             }
             .foregroundStyle(AppColor.textSecondary)
             .padding(.horizontal, Spacing.md)
@@ -2487,24 +2500,24 @@ struct OnboardingView: View {
 /// user count. Sits under the welcome headline as the first trust
 /// anchor before any data is asked from the user.
 private struct SocialProofPill: View {
-    private let gold = Color(red: 0.961, green: 0.620, blue: 0.043)
+    private let gold = AppColor.achievement
 
     var body: some View {
         HStack(spacing: Spacing.sm) {
             HStack(spacing: 2) {
                 ForEach(0..<5, id: \.self) { _ in
                     Image(systemName: "star.fill")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(gold)
                 }
             }
             Text("4.9")
-                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(13, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
             Text("·")
                 .foregroundStyle(AppColor.textTertiary)
             Text("12k+ athletes")
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
         }
         .padding(.horizontal, Spacing.md)
@@ -2517,6 +2530,10 @@ private struct SocialProofPill: View {
             Capsule()
                 .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
         )
+        // Five separate star glyphs plus a bare "·" is eight meaningless
+        // VoiceOver stops; the rating is one fact, so it's spoken as one.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Rated 4.9 out of 5 by over 12,000 athletes")
     }
 }
 
@@ -2693,8 +2710,8 @@ private struct ThemePickerCover: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, Spacing.md)
                         .background(
-                            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                                .fill(Color.white)
+                            RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous)
+                                .fill(AppColor.textPrimary)
                         )
                 }
                 .buttonStyle(.plain)

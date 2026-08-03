@@ -148,15 +148,7 @@ struct WorkoutDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
+        .glassControl(.rect(cornerRadius: Spacing.cardCornerRadius))
     }
 
     // MARK: - 7-day bar chart
@@ -185,10 +177,10 @@ struct WorkoutDetailView: View {
                 ForEach(bars) { bar in
                     VStack(spacing: Spacing.xs) {
                         ZStack(alignment: .bottom) {
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                                 .fill(AppColor.surfaceElevated)
                                 .frame(width: 22, height: 96)
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                                 .fill(
                                     LinearGradient(
                                         colors: [AppColor.accentLight, AppColor.accentPrimary],
@@ -218,15 +210,7 @@ struct WorkoutDetailView: View {
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
+        .glassControl(.rect(cornerRadius: Spacing.cardCornerRadius))
     }
 
     // MARK: - History grouped by week
@@ -271,7 +255,7 @@ struct WorkoutDetailView: View {
     private func historyRow(_ entry: WorkoutEntry) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: "dumbbell.fill")
-                .font(.system(size: 14, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 32, height: 32)
                 .background {

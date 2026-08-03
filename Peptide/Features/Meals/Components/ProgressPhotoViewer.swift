@@ -101,7 +101,6 @@ struct ProgressPhotoViewer: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     @ViewBuilder
@@ -128,7 +127,7 @@ struct ProgressPhotoViewer: View {
 
     private func dateChip(filename: String) -> some View {
         Text(ProgressPhotoMetadata.displayDate(forFilename: filename))
-            .font(.system(size: 14, weight: .heavy, design: .rounded))
+            .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
             .monospacedDigit()
             .foregroundStyle(.white)
             .padding(.horizontal, Spacing.md)

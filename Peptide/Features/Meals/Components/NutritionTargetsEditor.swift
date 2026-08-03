@@ -100,7 +100,6 @@ struct NutritionTargetsEditor: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear(perform: hydrate)
     }
 
@@ -114,7 +113,7 @@ struct NutritionTargetsEditor: View {
             VStack(spacing: Spacing.md) {
                 VStack(spacing: 2) {
                     Text("\(intValue(calories))")
-                        .font(.system(size: 48, weight: .black, design: .rounded))
+                        .font(AppFont.scaled(48, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
@@ -162,11 +161,11 @@ struct NutritionTargetsEditor: View {
             HStack(spacing: 4) {
                 Circle().fill(tint).frame(width: 7, height: 7)
                 Text(label)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
             }
             Text("\(grams) g")
-                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
         }
@@ -181,7 +180,7 @@ struct NutritionTargetsEditor: View {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack(spacing: Spacing.sm) {
                     Image(systemName: "wand.and.stars")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.accentLight)
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Recommended for you")
@@ -231,11 +230,11 @@ struct NutritionTargetsEditor: View {
     private func recChip(_ value: String, _ unit: LocalizedStringKey, tint: Color) -> some View {
         VStack(spacing: 1) {
             Text(value)
-                .font(.system(size: 17, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
             Text(unit)
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(tint.opacity(0.9))
         }
         .frame(maxWidth: .infinity)
@@ -277,20 +276,20 @@ struct NutritionTargetsEditor: View {
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: preset.icon)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(isSelected ? AppColor.background : AppColor.accentLight)
                 Text(preset.title)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(isSelected ? AppColor.background : AppColor.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                 Text("\(targets.calories)")
-                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(isSelected ? AppColor.background.opacity(0.8) : AppColor.textSecondary)
                 if isRecommended {
                     Text("Recommended")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(AppFont.scaled(8, weight: .bold))
                         .foregroundStyle(isSelected ? AppColor.background.opacity(0.8) : AppColor.accentLight)
                 }
             }
@@ -362,7 +361,7 @@ struct NutritionTargetsEditor: View {
                     .fill(tint.opacity(0.18))
                     .frame(width: 30, height: 30)
                 Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(tint)
             }
             Text(title)
@@ -370,9 +369,10 @@ struct NutritionTargetsEditor: View {
                 .foregroundStyle(AppColor.textPrimary)
             Spacer(minLength: Spacing.sm)
             TextField("0", text: text)
+                .accessibilityLabel(Text(title))
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
-                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .font(AppFont.scaled(16, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .focused($focusedField, equals: field)

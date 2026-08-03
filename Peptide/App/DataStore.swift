@@ -4,13 +4,29 @@ import WidgetKit
 @MainActor @Observable
 final class DataStore: DataServiceProtocol {
     var protocols: [PeptideProtocol] {
-        didSet { cacheVersion &+= 1 }
+        didSet {
+            cacheVersion &+= 1
+            revision &+= 1
+        }
     }
     var entries: [ProtocolEntry] {
-        didSet { cacheVersion &+= 1 }
+        didSet {
+            cacheVersion &+= 1
+            revision &+= 1
+        }
     }
-    var profile: UserProfile
+    var profile: UserProfile {
+        didSet { revision &+= 1 }
+    }
     var customPeptides: [Peptide]
+
+    /// Observable counterpart to the private `cacheVersion`. Views key
+    /// `.task(id:)` / `.onChange(of:)` off this to recompute a derived
+    /// snapshot exactly once per mutation, instead of doing the work inline
+    /// in `body` where it re-runs on every render pass.
+    ///
+    /// It's deliberately *not* `@ObservationIgnored` — that's the whole point.
+    private(set) var revision: Int = 0
 
     /// Non-fatal banner message for the UI. Set when persistence falls back to
     /// in-memory storage so the user knows changes won't survive relaunch.
@@ -1465,6 +1481,10 @@ final class DataStore: DataServiceProtocol {
     func deleteWorkout(id: UUID) {
         repo.deleteWorkoutSession(id: id)
         cacheVersion &+= 1
+        // Same reason as `recordWorkoutFinished`: a repo-level write is
+        // invisible to the property observers, so derived snapshots need
+        // telling explicitly or a deleted workout lingers on Today.
+        revision &+= 1
         updateWidgetData()
         updateWatchData()
     }
@@ -1475,6 +1495,15 @@ final class DataStore: DataServiceProtocol {
     /// count + the PR signal — runs only on this workout event, never on
     /// the generic save hot-path.
     func recordWorkoutFinished(detectedPRCount: Int) {
+        // A structured finish writes StoredWorkoutSession through the repo,
+        // not through `protocols` / `entries` / `profile`, so none of the
+        // `didSet` bumps fire. Views that recompute a derived snapshot off
+        // `.task(id: revision)` — Today's timeline among them — would keep
+        // serving the pre-workout view for as long as they stayed mounted,
+        // until some unrelated mutation happened to bump it. Bumped before
+        // the ephemeral guard: screenshot mode still has to redraw.
+        cacheVersion &+= 1
+        revision &+= 1
         guard !isEphemeral else { return }
         AchievementService.shared.checkTrainingAchievements(
             workoutCount: repo.workoutSessionCount(),
@@ -2056,7 +2085,8 @@ final class DataStore: DataServiceProtocol {
             healthHabitsDone: healthDue.filter(isDone).count,
             healthHabitsTotal: healthDue.count,
             trainingHabitsDone: trainingDue.filter(isDone).count,
-            trainingHabitsTotal: trainingDue.count
+            trainingHabitsTotal: trainingDue.count,
+            measurementUnit: profile.bodyMetrics.unit.rawValue
         )
     }
 

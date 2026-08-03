@@ -337,7 +337,7 @@ struct ProtocolBuilderView: View {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack(spacing: Spacing.md) {
                     Image(systemName: "square.stack.3d.up.fill")
-                        .font(.system(size: 16))
+                        .font(AppFont.scaled(16))
                         .foregroundStyle(AppColor.accentPrimary)
                         .frame(width: 28, height: 28)
                         .background {
@@ -393,7 +393,6 @@ struct ProtocolBuilderView: View {
                 },
                 onCancel: { isShowingAppendPicker = false }
             )
-            .preferredColorScheme(.dark)
         }
     }
 
@@ -407,11 +406,11 @@ struct ProtocolBuilderView: View {
     private var browseLibraryRow: some View {
         HStack(spacing: Spacing.md) {
             ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                     .fill(AppColor.accentPrimary.opacity(0.18))
                     .frame(width: 44, height: 44)
                 Image(systemName: "books.vertical.fill")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(AppFont.scaled(16, weight: .bold))
                     .foregroundStyle(AppColor.accentLight)
             }
             VStack(alignment: .leading, spacing: 2) {
@@ -424,7 +423,7 @@ struct ProtocolBuilderView: View {
             }
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
         }
         .padding(Spacing.md)
@@ -597,7 +596,7 @@ struct ProtocolBuilderView: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     Text("1080 × 1920")
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .font(AppFont.scaled(11, weight: .semibold, design: .monospaced))
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
@@ -611,9 +610,9 @@ struct ProtocolBuilderView: View {
                         width: ShareCardRenderer.canvasSize.width * 0.26,
                         height: ShareCardRenderer.canvasSize.height * 0.26
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
                             .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                     )
                     .frame(maxWidth: .infinity)
@@ -638,7 +637,7 @@ struct ProtocolBuilderView: View {
             timesPerDay = times
         } label: {
             Text(label)
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.xs)
@@ -726,7 +725,7 @@ private struct PeptideScheduleRow: View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
                 Image(systemName: peptide.imageSystemName)
-                    .font(.system(size: 14))
+                    .font(AppFont.scaled(13))
                     .foregroundStyle(peptide.category.color)
                     .frame(width: 32, height: 32)
                     .background {
@@ -738,11 +737,11 @@ private struct PeptideScheduleRow: View {
                     HStack(spacing: Spacing.xs) {
                         Text(peptide.abbreviation)
                             .font(AppFont.subheadline)
-                            .fontWeight(.medium)
+                            .fontWeight(.semibold)
                             .foregroundStyle(AppColor.textPrimary)
                         if isCustom {
                             Text("CUSTOM")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(AppFont.scaled(8, weight: .bold))
                                 .foregroundStyle(AppColor.accentPrimary)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 2)
@@ -772,7 +771,7 @@ private struct PeptideScheduleRow: View {
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(.vertical, Spacing.xs)

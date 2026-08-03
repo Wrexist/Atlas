@@ -18,7 +18,14 @@
 import { clientKey } from './_lib/anthropic-proxy.js';
 import { checkAppAttest } from './_lib/app-attest.js';
 import { authorize } from './_lib/auth.js';
-import { allowRate, withinDailyBudget } from './_lib/rate-limit.js';
+import {
+  allowRate,
+  isBlocked,
+  recordLimitStrike,
+  requestCost,
+  withinDailyBudget,
+  withinDeviceQuota,
+} from './_lib/rate-limit.js';
 
 const MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 360; // ~280 words; 150 ideal, 200 hard ceiling
@@ -46,15 +53,23 @@ const SYSTEM_PROMPT = [
   "Output: plain text, no markdown, no bullet points, no headings. The iOS card renders the paragraphs as-is."
 ].join("\n");
 
-// Per-IP cap via the shared limiter (Redis-backed when configured,
-// per-instance memory otherwise). Weekly summaries fire at most once
-// per week per user, so 6/min is generous — anything higher is
-// retry-loop noise or abuse. `clientKey` lives in
-// `_lib/anthropic-proxy.js` so all three routes share the same
-// Vercel-aware (un-spoofable) IP derivation.
-function checkRateLimit(req) {
+// Per-principal cap via the shared limiter (Redis-backed when
+// configured, per-instance memory otherwise). Weekly summaries fire at
+// most once per week per user, so 6/min is generous — anything higher
+// is retry-loop noise or abuse.
+//
+// The principal is the verified App Attest key when there is one, else
+// the Vercel-derived (un-spoofable) client IP — the same derivation
+// all three routes share. See `principalFor` in `_lib/anthropic-proxy.js`
+// for why an IP alone is a weak identity.
+function principalFor(req, attest) {
+  if (attest?.keyId) return `k:${attest.keyId}`;
+  return `ip:${clientKey(req)}`;
+}
+
+function checkRateLimit(principal, cost) {
   const limit = parseInt(process.env.WEEKLY_RPM || '6', 10);
-  return allowRate({ name: 'weekly-summary', key: clientKey(req), limit, windowSeconds: 60 });
+  return allowRate({ name: 'weekly-summary', key: principal, limit, windowSeconds: 60, cost });
 }
 
 /**
@@ -177,15 +192,33 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (!(await checkRateLimit(req))) {
+  // App Attest runs before throttling — its verified key is the identity
+  // the limits count against. Same semantics as the main proxy routes.
+  const attest = await checkAppAttest(req, { logLabel: 'weekly-summary' });
+  if (!attest.ok) {
+    res.status(401).json({ error: { message: 'Unauthorised', code: 'attest_required' } });
+    return;
+  }
+
+  const principal = principalFor(req, attest);
+  const cost = requestCost(req);
+
+  if (await isBlocked({ principal })) {
     res.status(429).json({ error: { message: 'Too many requests' } });
     return;
   }
 
-  // App Attest gate — same semantics as the main proxy routes.
-  const attest = await checkAppAttest(req, { logLabel: 'weekly-summary' });
-  if (!attest.ok) {
-    res.status(401).json({ error: { message: 'Unauthorised', code: 'attest_required' } });
+  if (!(await checkRateLimit(principal, cost))) {
+    if (await recordLimitStrike({ principal })) {
+      console.warn('[weekly-summary] principal blocked for repeated limit strikes');
+    }
+    res.status(429).json({ error: { message: 'Too many requests' } });
+    return;
+  }
+
+  if (!(await withinDeviceQuota({ principal, cost }))) {
+    console.warn('[weekly-summary] principal exceeded daily quota');
+    res.status(429).json({ error: { message: 'Daily limit reached; try again tomorrow' } });
     return;
   }
 
@@ -215,8 +248,8 @@ export default async function handler(req, res) {
   // so only requests that would actually reach Anthropic consume it.
   // Same generic 503 as the missing-key path — reason stays
   // server-side, and the iOS client already falls back deterministically.
-  if (!(await withinDailyBudget())) {
-    console.error('[weekly-summary] daily Anthropic request budget exhausted');
+  if (!(await withinDailyBudget({ cost }))) {
+    console.error('[weekly-summary] daily Anthropic budget exhausted or unverifiable');
     res.status(503).json({ error: { message: 'Service unavailable' } });
     return;
   }

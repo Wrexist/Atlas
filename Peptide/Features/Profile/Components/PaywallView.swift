@@ -61,7 +61,6 @@ struct PaywallView: View {
             closeButton
                 .padding(Spacing.lg)
         }
-        .preferredColorScheme(.dark)
         .task {
             // Re-check entitlements first: a user who upgraded on another
             // device (or just restored) shouldn't be stranded on the paywall.
@@ -112,12 +111,12 @@ struct PaywallView: View {
                     }
 
                 Text("Atlas")
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(30, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
             }
 
             Text("Unlock your full protocol")
-                .font(.system(size: 16))
+                .font(AppFont.scaled(16))
                 .foregroundStyle(AppColor.textSecondary)
         }
     }
@@ -127,7 +126,7 @@ struct PaywallView: View {
             dismiss()
         } label: {
             Image(systemName: "xmark")
-                .font(.system(size: 14, weight: .bold))
+                .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 32, height: 32)
                 .background {
@@ -137,10 +136,7 @@ struct PaywallView: View {
                             Circle().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                         }
                 }
-                // 44pt tap target while the visible circle stays 32pt
-                // (Deep Audit II B4 — the dismiss control was sub-HIG).
-                .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
+                .minimumHitArea()
         }
         .accessibilityLabel("Close")
     }
@@ -220,11 +216,11 @@ struct PaywallView: View {
     private func featureRow(_ label: LocalizedStringKey) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 22, weight: .bold))
+                .font(AppFont.scaled(20, weight: .bold))
                 .foregroundStyle(AppColor.accentPrimary)
 
             Text(label)
-                .font(.system(size: 17, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.leading)
 
@@ -250,10 +246,10 @@ struct PaywallView: View {
     /// switch the copy back to the "X% off applied — thanks to Y!"
     /// form via the `appliedDiscount` branch below.
     private func creatorBanner(_ attribution: CreatorAttribution) -> some View {
-        let bannerGreen = Color(red: 0.063, green: 0.725, blue: 0.506) // #10B981
+        let bannerGreen = AppColor.positive
         return HStack(spacing: Spacing.sm) {
             Image(systemName: "tag.fill")
-                .font(.system(size: 14, weight: .bold))
+                .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(bannerGreen)
                 .accessibilityHidden(true)              // Text alongside carries the meaning
 
@@ -371,7 +367,7 @@ struct PaywallView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: Spacing.xs) {
                         Text(title)
-                            .font(.system(size: 17, weight: .bold))
+                            .font(AppFont.scaled(16, weight: .bold))
                             .foregroundStyle(AppColor.textPrimary)
                         if let badge {
                             savingsPill(badge)
@@ -389,7 +385,7 @@ struct PaywallView: View {
 
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(primaryPrice)
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(20, weight: .bold, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
                     Text(primaryUnit)
@@ -427,7 +423,7 @@ struct PaywallView: View {
                 .frame(width: 22, height: 22)
             if isSelected {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
                     .foregroundStyle(AppColor.accentPrimary)
             }
         }
@@ -436,19 +432,13 @@ struct PaywallView: View {
 
     private func savingsPill(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .heavy))
-            .foregroundStyle(.white)
+            .font(AppFont.scaled(11, weight: .heavy))
+            .foregroundStyle(AppColor.onAccent)
             .padding(.horizontal, Spacing.sm)
             .padding(.vertical, 4)
             .background {
                 Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [AppColor.accentPrimary, AppColor.accentLight],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
+                    .fill(AppColor.accentFill)
             }
             .shadow(color: AppColor.accentGlow, radius: 6, y: 2)
     }
@@ -507,15 +497,15 @@ struct PaywallView: View {
                 if isPurchasing {
                     ProgressView()
                         .progressViewStyle(.circular)
-                        .tint(.white)
+                        .tint(AppColor.onAccent)
                 } else {
                     Text(ctaTitle)
-                        .font(.system(size: 17, weight: .bold))
+                        .font(AppFont.scaled(16, weight: .bold))
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(AppFont.scaled(13, weight: .bold))
                 }
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(AppColor.onAccent)
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.md)
             .background {
@@ -523,8 +513,8 @@ struct PaywallView: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(red: 0.310, green: 0.275, blue: 0.898), // #4F46E5
-                                Color(red: 0.486, green: 0.227, blue: 0.929), // #7C3AED
+                                AppColor.ctaGradientStart,
+                                AppColor.ctaGradientEnd,
                             ],
                             startPoint: .leading,
                             endPoint: .trailing
@@ -604,7 +594,7 @@ struct PaywallView: View {
     private var autoRenewDisclosure: some View {
         if let product = selectedProduct, product.type != .autoRenewable {
             Text("One-time purchase, charged to your Apple ID. No subscription — nothing to renew or cancel.")
-                .font(.system(size: 11))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
@@ -616,7 +606,7 @@ struct PaywallView: View {
                     Text("Auto-renews unless cancelled. ")
                     + Text("Details").foregroundColor(AppColor.accentLight)
                 )
-                .font(.system(size: 11))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
@@ -658,7 +648,6 @@ struct PaywallView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func termRow(_ label: LocalizedStringKey, price: String) -> some View {

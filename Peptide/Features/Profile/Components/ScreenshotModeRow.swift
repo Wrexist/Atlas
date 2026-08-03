@@ -19,7 +19,7 @@ struct ScreenshotModeRow: View {
     @State private var showConfirmation = false
 
     private var accent: Color {
-        Color(red: 0.55, green: 0.50, blue: 0.92) // indigo
+        AppColor.recap
     }
 
     var body: some View {
@@ -41,7 +41,7 @@ struct ScreenshotModeRow: View {
                         .fill(accent.opacity(0.18))
                         .frame(width: 36, height: 36)
                     Image(systemName: "camera.viewfinder")
-                        .font(.system(size: 16, weight: .heavy))
+                        .font(AppFont.scaled(16, weight: .heavy))
                         .foregroundStyle(accent)
                 }
 
@@ -52,11 +52,11 @@ struct ScreenshotModeRow: View {
                             .fontWeight(.semibold)
                             .foregroundStyle(AppColor.textPrimary)
                         Text("DEMO")
-                            .font(.system(size: 9, weight: .heavy))
+                            .font(AppFont.scaled(8, weight: .heavy))
                             .tracking(0.5)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColor.onAccent)
                             .background {
                                 Capsule().fill(accent)
                             }

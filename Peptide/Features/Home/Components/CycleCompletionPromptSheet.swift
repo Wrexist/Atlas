@@ -28,7 +28,6 @@ struct CycleCompletionPromptSheet: View {
         .padding(.vertical, Spacing.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(AppColor.background.ignoresSafeArea())
-        .preferredColorScheme(.dark)
     }
 
     private var header: some View {
@@ -105,7 +104,7 @@ private struct CompletionAction: View {
         Button(action: onTap) {
             HStack(alignment: .top, spacing: Spacing.md) {
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(style == .primary ? AppColor.accentPrimary : AppColor.accentLight)
                     .frame(width: 32, alignment: .center)
                 VStack(alignment: .leading, spacing: 2) {

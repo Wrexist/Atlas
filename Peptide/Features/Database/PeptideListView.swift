@@ -11,6 +11,27 @@ struct PeptideListView: View {
     var presentedModally = false
     @State private var viewModel = PeptideListViewModel(peptides: PeptideDatabase.shared)
     @State private var showCustomForm = false
+    /// Ties each row to the detail view it pushes, so the push grows out of
+    /// the tapped row instead of sliding in over it. Only the iPhone stack
+    /// uses it — the iPad split view swaps the detail column in place and has
+    /// no push to animate.
+    @Namespace private var zoom
+
+    /// Built here rather than inline: a ternary whose branches are both
+    /// trailing-closure `.init`s is a parse hazard, and the empty state
+    /// should always offer whichever escape actually applies.
+    private var noResultsAction: EmptyStateView.Action {
+        if viewModel.searchText.isEmpty {
+            return EmptyStateView.Action(title: "Add custom peptide",
+                                         icon: "plus.circle.fill") {
+                showCustomForm = true
+            }
+        }
+        return EmptyStateView.Action(title: "Clear search",
+                                     icon: "xmark.circle.fill") {
+            viewModel.searchText = ""
+        }
+    }
     @State private var showResearchAssistant = false
     @State private var selectedPeptide: Peptide?
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
@@ -130,6 +151,7 @@ struct PeptideListView: View {
                 .toolbar { sidebarToolbar }
                 .navigationDestination(for: Peptide.self) { peptide in
                     PeptideDetailView(peptide: peptide)
+                        .navigationTransition(.zoom(sourceID: peptide.id, in: zoom))
                 }
                 .sheet(isPresented: $showCustomForm) {
                     CustomPeptideForm { peptide in
@@ -192,7 +214,10 @@ struct PeptideListView: View {
                         title: "No peptides found",
                         message: viewModel.searchText.isEmpty
                             ? "Add a custom peptide to start building protocols."
-                            : "Try a different search term."
+                            : "Try a different search term.",
+                        // The copy already tells the user what to do next;
+                        // without this it was the only way to do it.
+                        action: noResultsAction
                     )
                     .padding(.top, Spacing.xl)
                 } else {
@@ -225,6 +250,7 @@ struct PeptideListView: View {
                 PeptideRow(peptide: peptide)
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+            .matchedTransitionSource(id: peptide.id, in: zoom)
             .transition(.scale(scale: 0.97).combined(with: .opacity))
         } else {
             Button {
@@ -256,7 +282,7 @@ struct PeptideListView: View {
             } label: {
                 Label("Ask the assistant", systemImage: "sparkles")
                     .labelStyle(.iconOnly)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
             }
             .accessibilityLabel("Open AI research assistant")
@@ -267,7 +293,7 @@ struct PeptideListView: View {
             } label: {
                 Label("Protocols", systemImage: "square.stack.3d.up.fill")
                     .labelStyle(.iconOnly)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentPrimary)
             }
             .accessibilityLabel("Open protocols")
@@ -317,7 +343,7 @@ private struct ProtocolsEntryCard: View {
                         .fill(AppColor.accentPrimary.opacity(0.18))
                         .frame(width: 44, height: 44)
                     Image(systemName: "flask.fill")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(AppFont.scaled(16, weight: .bold))
                         .foregroundStyle(AppColor.accentLight)
                 }
 
@@ -336,11 +362,11 @@ private struct ProtocolsEntryCard: View {
 
                 if isEmpty {
                     Text("Get started")
-                        .font(.system(size: 13, weight: .heavy))
+                        .font(AppFont.scaled(13, weight: .heavy))
                         .foregroundStyle(AppColor.accentPrimary)
                 } else {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }
@@ -376,7 +402,7 @@ private struct AddCustomPeptideCard: View {
                         .fill(AppColor.accentPrimary.opacity(0.18))
                         .frame(width: 44, height: 44)
                     Image(systemName: "plus")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(AppFont.scaled(16, weight: .bold))
                         .foregroundStyle(AppColor.accentLight)
                 }
 
@@ -394,7 +420,7 @@ private struct AddCustomPeptideCard: View {
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(Spacing.md)

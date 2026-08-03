@@ -6,11 +6,11 @@ struct PeptideCategoryBadge: View {
     var body: some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: category.iconName)
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
 
             Text(category.localizedTitle)
                 .font(AppFont.caption)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
         }
         .foregroundStyle(category.color)
         .padding(.horizontal, Spacing.sm)

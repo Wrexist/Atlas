@@ -86,20 +86,20 @@ struct BiometricCorrelationCard: View {
 
     private func headerRow(finding: BiometricCorrelationEngine.Finding) -> some View {
         let tint: Color = finding.isFavourable
-            ? Color(red: 0.40, green: 0.78, blue: 0.55)
-            : Color(red: 0.92, green: 0.55, blue: 0.45)
+            ? AppColor.positive
+            : AppColor.negative
         return HStack(alignment: .top, spacing: Spacing.sm) {
             ZStack {
                 Circle()
                     .fill(tint.opacity(0.18))
                     .frame(width: 36, height: 36)
                 Image(systemName: icon(for: finding.metric))
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(tint)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text("Biometric pattern")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(tint.opacity(0.85))
@@ -110,7 +110,7 @@ struct BiometricCorrelationCard: View {
             }
             Spacer(minLength: 0)
             Text(deltaPhrase(finding: finding))
-                .font(.system(size: 20, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(tint)
         }
@@ -157,8 +157,8 @@ struct BiometricCorrelationCard: View {
                 fraction: finding.onDoseDays / scaleRef,
                 count: finding.doseDayCount,
                 tint: finding.isFavourable
-                    ? Color(red: 0.40, green: 0.78, blue: 0.55)
-                    : Color(red: 0.92, green: 0.55, blue: 0.45)
+                    ? AppColor.positive
+                    : AppColor.negative
             )
             bar(
                 label: String(localized: "Off days"),
@@ -173,7 +173,7 @@ struct BiometricCorrelationCard: View {
     private func bar(label: String, value: Double, fraction: Double, count: Int, tint: Color) -> some View {
         HStack(spacing: Spacing.sm) {
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 84, alignment: .leading)
             GeometryReader { proxy in
@@ -187,12 +187,12 @@ struct BiometricCorrelationCard: View {
             }
             .frame(height: 10)
             Text(formatValue(value))
-                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .frame(width: 38, alignment: .trailing)
             Text("\(count)d")
-                .font(.system(size: 10))
+                .font(AppFont.scaled(11))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textTertiary)
                 .frame(width: 28, alignment: .trailing)
@@ -202,9 +202,9 @@ struct BiometricCorrelationCard: View {
     private func footnote(finding: BiometricCorrelationEngine.Finding) -> some View {
         HStack(spacing: 4) {
             Image(systemName: "info.circle")
-                .font(.system(size: 10))
+                .font(AppFont.scaled(11))
             Text("Pulled from Apple Health over \(windowDays) days. Correlation, not causation.")
-                .font(.system(size: 11))
+                .font(AppFont.scaled(11))
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }

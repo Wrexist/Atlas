@@ -12,6 +12,7 @@ struct WorkoutExerciseCard: View {
     /// row renders as "—". Was previously hard-coded `nil` in this
     /// view, which silently dropped the entire "log a set with last-
     /// weight inline" UX promise (audit Train C1).
+    let unit: MeasurementUnit
     let previousSetLookup: () -> SetEntry?
     let onSetUpdate: (SetEntry) -> Void
     let onAddSet: () -> Void
@@ -57,7 +58,7 @@ struct WorkoutExerciseCard: View {
                 }
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(Spacing.xs)
             }
@@ -78,12 +79,13 @@ struct WorkoutExerciseCard: View {
                         set: { onSetUpdate($0) }
                     ),
                     previousSet: lastSession,
+                    unit: unit,
                     onDelete: { onRemoveSet(setSnapshot.id) }
                 )
                 if setSnapshot.id != entry.sets.last?.id {
                     Divider()
                         .background(AppColor.glassBorder.opacity(0.5))
-                        .padding(.leading, 30)
+                        .padding(.leading, Spacing.xl + Spacing.sm)
                 }
             }
         }

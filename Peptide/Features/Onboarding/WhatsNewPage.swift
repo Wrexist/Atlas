@@ -373,7 +373,7 @@ extension WhatsNewPage {
             accent: Color(red: 0.98, green: 0.78, blue: 0.20),
             bullets: [
                 "Today's calorie ring + meal streak",
-                "Water quick-add (+8 / +16 / +32 oz)",
+                "Water quick-add chips on the nutrition card",
                 "Tap any dose row to mark complete",
             ]
         ),

@@ -28,7 +28,7 @@ struct HomeStickyHeader: View {
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Text(displayText)
-                .font(.system(size: 17, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
                 .lineLimit(1)
                 // Slight upward slide as the bar materialises —
@@ -42,16 +42,8 @@ struct HomeStickyHeader: View {
                 .offset(y: (1 - progress) * 6)
         }
         .padding(.horizontal, Spacing.screenPadding)
-        .padding(.vertical, 10)
-        .background {
-            ZStack {
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                Rectangle()
-                    .fill(AppColor.background.opacity(0.55))
-            }
-            .opacity(progress)
-        }
+        .padding(.vertical, Spacing.sm)
+        .background { GlassBarBackground(opacity: progress) }
         .overlay(alignment: .bottom) {
             // Hairline divider that arrives with the rest of the
             // bar. 0.5pt to read crisp on Retina without looking
@@ -94,7 +86,7 @@ struct HomeStickyHeader: View {
                         .clipShape(Circle())
                 } else {
                     Image(systemName: "person.fill")
-                        .font(.system(size: 14, weight: .heavy))
+                        .font(AppFont.scaled(13, weight: .heavy))
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }

@@ -30,7 +30,7 @@ struct PeptideLibraryEntryCard: View {
                         .fill(AppColor.accentPrimary.opacity(0.18))
                         .frame(width: 44, height: 44)
                     Image(systemName: "books.vertical.fill")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(AppFont.scaled(16, weight: .bold))
                         .foregroundStyle(AppColor.accentLight)
                 }
 
@@ -48,7 +48,7 @@ struct PeptideLibraryEntryCard: View {
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(Spacing.md)

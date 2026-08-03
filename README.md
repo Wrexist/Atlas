@@ -57,6 +57,47 @@ Service convention (`Peptide/Services/`): stateful services are
 caseless `enum`s with static members; pure-computation types are
 named `*Engine`.
 
+## Design system
+
+Everything visual comes from `Peptide/DesignSystem/`. Four rules, all of
+them enforced by SwiftLint (`custom_rules` in `.swiftlint.yml`) or by
+there being exactly one primitive to reach for:
+
+- **Colour** — use an `AppColor` token, never a raw `Color(hex:)` /
+  `Color(red:…)` / `Color.white`. Surface and ink tokens resolve per trait
+  collection through `Color(light:dark:)`, which is what makes light mode
+  work; a literal silently opts that screen out. Ink painted *on* an accent
+  fill is `AppColor.onAccent`; ink on a translucent wash or on the app
+  background is `AppColor.textPrimary`. Domain palettes that must stay
+  constant (macros, HealthKit metrics, anatomy) are listed in
+  `ColorTheme.swift` and excluded from the lint rule.
+- **Type** — use the `AppFont` ramp, or `AppFont.scaled(_:weight:design:)`
+  for a size the ramp doesn't cover. `Font.system(size:)` ignores the
+  content-size category outright, so anything set that way is invisible to
+  Dynamic Type. Sizes above 24pt are display glyphs and stay fixed.
+- **Glass** — `glassSurface(cornerRadius:tinted:)` for cards,
+  `glassControl(_:tint:border:)` for controls. Both render the real iOS 26
+  material *or* the legacy translucent recipe, never both stacked. Keep
+  tints around 0.15–0.20; higher and the control reads as paint, not glass.
+- **Metrics** — radii and hit targets come from `Spacing`. Use
+  `Spacing.concentric(in:inset:)` for a shape nested inside another rather
+  than guessing a second literal, and `.minimumHitArea()` on any control
+  whose artwork is smaller than 44pt.
+
+`.claude/skills/` carries two design skills that load automatically:
+`dna-transplant` (pick the donor idiom before laying out a screen) and
+`atlas-screen` (which donor each Atlas surface already uses, plus the token
+rules). Anthropic's `frontend-design` skill pairs well with both and installs
+via `/plugin marketplace add anthropics/claude-code`.
+
+Run `python3 scripts/design-lint.py --all` to check all of it. It covers
+eleven rules SwiftLint can't see — raw colour, fixed font sizes, stacked
+glass materials, coloured halos behind glyphs, untargeted `.animation`,
+placeholder copy, sub-44pt targets, off-grid spacing, faded ink,
+unlabelled icon buttons, and rows VoiceOver reads as several stops. CI
+fails on any error; warnings are printed for review. It's currently clean
+on both counts — keep it that way rather than growing an exemption list.
+
 ## Secrets
 
 The iOS app does **not** embed an Anthropic key. `MealScannerService`,
@@ -102,7 +143,13 @@ xcodebuild test \
 ```
 
 PR checks run the same command via `.github/workflows/pr-checks.yml`
-with SwiftLint and binary-size delta gating.
+with SwiftLint, the design checker, and binary-size delta gating.
+
+To *look* at the app without a local simulator, dispatch the **Screenshots**
+workflow. It boots the app in demo mode on a macOS runner and captures every
+tab in dark, light, and Accessibility XXXL, then uploads them as an artifact.
+It builds the `PeptideUICapture` scheme so it stays independent of the unit
+test target.
 
 ## TestFlight
 

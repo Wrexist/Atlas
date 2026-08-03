@@ -46,7 +46,7 @@ struct HabitRowCard: View {
                     .fill(habit.tint.opacity(0.18))
                     .frame(width: 28, height: 28)
                 Image(systemName: habit.iconSymbol)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(habit.tint)
             }
             Text(habit.name)
@@ -61,7 +61,7 @@ struct HabitRowCard: View {
 
     private var scheduleBadge: some View {
         Text(habit.schedule.displayName)
-            .font(.system(size: 11, weight: .bold))
+            .font(AppFont.scaled(11, weight: .bold))
             .foregroundStyle(AppColor.accentLight)
             .padding(.horizontal, Spacing.sm)
             .padding(.vertical, 3)
@@ -87,7 +87,7 @@ struct HabitRowCard: View {
                         .fill(habit.tint)
                         .frame(width: 22, height: 22)
                     Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(AppFont.scaled(11, weight: .bold))
                         .foregroundStyle(AppColor.background)
                 } else if summary.todayProgress > 0 {
                     Circle()
@@ -105,9 +105,9 @@ struct HabitRowCard: View {
 
     private var statRow: some View {
         HStack(spacing: Spacing.md) {
-            statChip(icon: "flame.fill",       value: "\(summary.currentStreak)", label: "streak", tint: Color(hex: 0xFFB347))
-            statChip(icon: "trophy.fill",      value: "\(summary.bestStreak)",    label: "best",   tint: Color(hex: 0xD4A844))
-            statChip(icon: "checkmark.circle", value: "\(summary.totalCompletedDays)", label: "days", tint: Color(hex: 0x5BC489))
+            statChip(icon: "flame.fill",       value: "\(summary.currentStreak)", label: "streak", tint: AppColor.perceivedEffort)
+            statChip(icon: "trophy.fill",      value: "\(summary.bestStreak)",    label: "best",   tint: AppColor.achievement)
+            statChip(icon: "checkmark.circle", value: "\(summary.totalCompletedDays)", label: "days", tint: AppColor.positive)
             Spacer(minLength: 0)
         }
     }
@@ -115,13 +115,13 @@ struct HabitRowCard: View {
     private func statChip(icon: String, value: String, label: String, tint: Color) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(tint)
             Text(value)
-                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(11, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
         }
     }

@@ -52,7 +52,6 @@ struct TravelModePromptSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private var hero: some View {
@@ -72,7 +71,7 @@ struct TravelModePromptSheet: View {
                     .frame(width: 68, height: 68)
                 Image(systemName: "airplane.departure")
                     .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColor.textPrimary)
             }
 
             Text("You crossed into a new timezone")
@@ -96,7 +95,7 @@ struct TravelModePromptSheet: View {
                     tint: AppColor.textSecondary
                 )
                 Image(systemName: "arrow.down")
-                    .font(.system(size: 12, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .foregroundStyle(AppColor.textTertiary)
                     .padding(.leading, 6)
                 row(
@@ -107,10 +106,10 @@ struct TravelModePromptSheet: View {
                 Divider().background(AppColor.glassBorder)
                 HStack(spacing: 4) {
                     Image(systemName: "clock.arrow.2.circlepath")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.accentLight)
                     Text(change.deltaPhrase)
-                        .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                 }
@@ -121,7 +120,7 @@ struct TravelModePromptSheet: View {
     private func row(eyebrow: String, title: String, tint: Color) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
             Text(eyebrow)
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(tint.opacity(0.85))
@@ -138,25 +137,25 @@ struct TravelModePromptSheet: View {
         GlassCard(tinted: true, padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("Preview")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.accentLight.opacity(0.85))
                 HStack(spacing: Spacing.sm) {
                     Text(original)
-                        .font(.system(size: 18, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textSecondary)
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                     Text(shifted)
-                        .font(.system(size: 22, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                 }
                 Text("One of your scheduled doses, shifted to local time.")
-                    .font(.system(size: 11))
+                    .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)
             }
         }
@@ -164,38 +163,32 @@ struct TravelModePromptSheet: View {
 
     private var actions: some View {
         VStack(spacing: Spacing.sm) {
-            Button(action: onShift) {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "clock.arrow.2.circlepath")
-                    Text("Shift to local time")
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.sm)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColor.accentPrimary)
+            GlassButton(
+                title: "Shift to local time",
+                icon: "clock.arrow.2.circlepath",
+                style: .primary,
+                isFullWidth: true,
+                action: onShift
+            )
 
-            Button(action: onKeep) {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "house.fill")
-                    Text("Keep origin times")
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.sm)
-            }
-            .buttonStyle(.bordered)
-            .tint(AppColor.textSecondary)
+            GlassButton(
+                title: "Keep origin times",
+                icon: "house.fill",
+                style: .secondary,
+                isFullWidth: true,
+                action: onKeep
+            )
         }
     }
 
     private var disclaimer: some View {
         HStack(alignment: .top, spacing: Spacing.sm) {
             Image(systemName: "info.circle")
-                .font(.system(size: 11))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
                 .padding(.top, 1)
             Text("Shifting moves every active protocol's preferred dose times immediately. Most peptides tolerate the change without issue — consult your provider for compounds that demand strict timing windows.")
-                .font(.system(size: 11))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)

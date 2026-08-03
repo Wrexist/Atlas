@@ -37,15 +37,15 @@ struct LockScreenView: View {
             } label: {
                 HStack(spacing: Spacing.sm) {
                     Image(systemName: biometricService.biometryIcon)
-                        .font(.system(size: 20))
+                        .font(AppFont.scaled(20))
                     Text("Unlock with \(biometricService.biometryName)")
                         .font(AppFont.headline)
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(AppColor.onAccent)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.md)
-                .background(AppColor.accentPrimary)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .background(AppColor.accentFill)
+                .clipShape(RoundedRectangle(cornerRadius: Spacing.controlCornerRadius))
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.97))
             .disabled(isAuthenticating)

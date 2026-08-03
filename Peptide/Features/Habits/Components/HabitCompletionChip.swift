@@ -20,21 +20,21 @@ struct HabitCompletionChip: View {
             HStack(spacing: 6) {
                 marker
                 Text(habit.name)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(isCompleted ? AppColor.textSecondary : AppColor.textPrimary)
                     .lineLimit(1)
                 if let weeklyCount, let weeklyTarget {
                     Text("\(weeklyCount)/\(weeklyTarget)")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(11, weight: .bold, design: .rounded))
                         .foregroundStyle(habit.tint)
                         .monospacedDigit()
                 }
                 if currentStreak >= 3 {
                     HStack(spacing: 2) {
                         Image(systemName: "flame.fill")
-                            .font(.system(size: 9))
+                            .font(AppFont.scaled(8))
                         Text("\(currentStreak)")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .font(AppFont.scaled(11, weight: .bold, design: .rounded))
                     }
                     .foregroundStyle(AppColor.streak)
                 }
@@ -63,11 +63,11 @@ struct HabitCompletionChip: View {
                     .fill(habit.tint)
                     .frame(width: 14, height: 14)
                 Image(systemName: "checkmark")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(AppFont.scaled(8, weight: .bold))
                     .foregroundStyle(AppColor.background)
             } else {
                 Image(systemName: habit.iconSymbol)
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(AppFont.scaled(8, weight: .semibold))
                     .foregroundStyle(habit.tint)
             }
         }

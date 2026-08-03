@@ -52,6 +52,7 @@ final class MealScannerService: Sendable {
     enum ScanError: Error, LocalizedError {
         case proxyNotConfigured
         case unauthorised
+        case rateLimited
         case offline
         case imageTooLarge
         case requestFailed(String)
@@ -64,6 +65,7 @@ final class MealScannerService: Sendable {
             switch self {
             case .proxyNotConfigured:   "Meal scanner isn't configured for this build. Set MEAL_SCANNER_ENDPOINT and MEAL_SCANNER_SECRET in Secrets.xcconfig and rebuild."
             case .unauthorised:         "Couldn't sign in to the meal scanner. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
+            case .rateLimited:          "You've scanned a lot of meals recently. Wait a minute and try again — if you've hit today's limit, scanning resets tomorrow."
             case .offline:              "You're offline — meal scanning needs an internet connection. Reconnect and try again."
             case .imageTooLarge:        "Photo is too large to upload. Try a smaller image."
             case .requestFailed(let m): m
@@ -213,6 +215,12 @@ final class MealScannerService: Sendable {
             // network error.
             if http.statusCode == 401 {
                 throw ScanError.unauthorised
+            }
+            // The proxy throttles per device and caps a daily quota, so 429
+            // is a state the user can act on — not the raw status code they
+            // used to be shown.
+            if http.statusCode == 429 {
+                throw ScanError.rateLimited
             }
             throw ScanError.requestFailed("Meal scanner returned HTTP \(http.statusCode).")
         }

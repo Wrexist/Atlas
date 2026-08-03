@@ -13,6 +13,7 @@ struct TrialOfferView: View {
     let onAccept: () -> Void
     let onDecline: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var storeService = StoreService.shared
     @State private var isPurchasing = false
     @State private var errorMessage: String?
@@ -172,11 +173,13 @@ struct TrialOfferView: View {
 
             await storeService.loadProducts()
             withAnimation(AppAnimation.springBouncy) { didReveal = true }
-            withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) {
-                sparklePhase = 1
-            }
-            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
-                ctaPulse = true
+            if !reduceMotion {
+                withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) {
+                    sparklePhase = 1
+                }
+                withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                    ctaPulse = true
+                }
             }
             Haptics.success()
         }
@@ -212,18 +215,13 @@ struct TrialOfferView: View {
     private var headline: some View {
         VStack(spacing: Spacing.xs) {
             Text("YOUR WELCOME GIFT")
-                .font(.system(size: 12, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(2)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
 
             Text("\(trialDays) Days Free")
-                .font(.system(size: 44, weight: .black, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [AppColor.textPrimary, AppColor.accentLight],
-                        startPoint: .top, endPoint: .bottom
-                    )
-                )
+                .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
 
             Text("Atlas Pro Monthly")
@@ -273,20 +271,20 @@ struct TrialOfferView: View {
             let remaining = max(0, offerDeadline.timeIntervalSince(context.date))
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "bolt.fill")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(AppFont.scaled(13, weight: .bold))
                     .foregroundStyle(AppColor.warning)
                 if remaining > 0 {
                     Text("Welcome offer ends in")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
                     Text(timeString(remaining))
-                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
                 } else {
                     Text("Best value — claim it today")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                 }
             }
@@ -320,15 +318,15 @@ struct TrialOfferView: View {
             HStack(spacing: 1) {
                 ForEach(0..<5, id: \.self) { _ in
                     Image(systemName: "star.fill")
-                        .font(.system(size: 11))
+                        .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.achievement)
                 }
             }
             Text("4.9")
-                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
             Text("· Loved by 12k+ athletes")
-                .font(.system(size: 12, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
         }
         .opacity(didReveal ? 1 : 0)
@@ -342,7 +340,7 @@ struct TrialOfferView: View {
                     .fill(AppColor.accentPrimary.opacity(0.18))
                     .frame(width: 32, height: 32)
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                     .symbolEffect(.bounce, value: didReveal)
             }
@@ -351,7 +349,7 @@ struct TrialOfferView: View {
                 .foregroundStyle(AppColor.textPrimary)
             Spacer()
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 16))
+                .font(AppFont.scaled(16))
                 .foregroundStyle(AppColor.accentPrimary)
         }
         .opacity(didReveal ? 1 : 0)
@@ -402,7 +400,7 @@ struct TrialOfferView: View {
                             .foregroundStyle(AppColor.textPrimary)
                         if isAnnual, let savings = annualSavingsPercent {
                             Text("SAVE \(savings)%")
-                                .font(.system(size: 10, weight: .heavy))
+                                .font(AppFont.scaled(11, weight: .heavy))
                                 .tracking(0.6)
                                 .foregroundStyle(AppColor.background)
                                 .padding(.horizontal, 6)
@@ -419,7 +417,7 @@ struct TrialOfferView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(tierPrimaryPrice(for: tier))
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .bold, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                     Text("/mo")
                         .font(AppFont.caption)
@@ -443,7 +441,7 @@ struct TrialOfferView: View {
             .overlay(alignment: .topTrailing) {
                 if isAnnual {
                     Text("MOST POPULAR")
-                        .font(.system(size: 9, weight: .heavy))
+                        .font(AppFont.scaled(8, weight: .heavy))
                         .tracking(0.8)
                         .foregroundStyle(AppColor.background)
                         .padding(.horizontal, 8)
@@ -492,7 +490,7 @@ struct TrialOfferView: View {
                             .tint(AppColor.textPrimary)
                     } else {
                         Image(systemName: "sparkles")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(AppFont.scaled(16, weight: .bold))
                         Text(ctaTitle)
                             .font(AppFont.headline)
                     }
@@ -500,15 +498,10 @@ struct TrialOfferView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.md + 2)
                 .padding(.horizontal, Spacing.xl)
-                .foregroundStyle(AppColor.textPrimary)
+                .foregroundStyle(AppColor.onAccent)
                 .background {
                     Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [AppColor.accentPrimary, AppColor.accentLight],
-                                startPoint: .leading, endPoint: .trailing
-                            )
-                        )
+                        .fill(AppColor.accentFill)
                         .overlay(Capsule().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5))
                 }
                 .scaleEffect(ctaPulse && !isPurchasing ? 1.02 : 1.0)
@@ -520,10 +513,10 @@ struct TrialOfferView: View {
 
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "checkmark.shield.fill")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                 Text(reassuranceCopy)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
             }
 
@@ -537,7 +530,7 @@ struct TrialOfferView: View {
             .disabled(isPurchasing)
 
             Text(legalCopy)
-                .font(.system(size: 10))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.md)
@@ -547,7 +540,7 @@ struct TrialOfferView: View {
                 Text("·").foregroundStyle(AppColor.textTertiary)
                 Link("Privacy Policy", destination: URL.staticHTTPS("https://wrexist.github.io/Peptide-ai/privacy.html"))
             }
-            .font(.system(size: 10))
+            .font(AppFont.scaled(11))
             .foregroundStyle(AppColor.accentLight)
         }
     }
@@ -573,7 +566,7 @@ struct TrialOfferView: View {
         let y = (yBase + drift).truncatingRemainder(dividingBy: 1)
         let scale = 0.5 + (sin(seed) + 1) / 2 * 0.6
         return Image(systemName: "sparkle")
-            .font(.system(size: 10))
+            .font(AppFont.scaled(11))
             .foregroundStyle(AppColor.accentLight.opacity(0.35))
             .scaleEffect(scale)
             .position(x: size.width * xRatio, y: size.height * (1 - y))
@@ -623,7 +616,7 @@ struct TrialOfferView: View {
         Haptics.impact(.medium)
         errorMessage = nil
         guard let product = productForSelectedTier else {
-            withAnimation { errorMessage = "Plan still loading. Try again in a moment." }
+            withAnimation(AppAnimation.fadeIn) { errorMessage = "Plan still loading. Try again in a moment." }
             return
         }
         isPurchasing = true
@@ -642,14 +635,14 @@ struct TrialOfferView: View {
                     Haptics.success()
                     onAccept()
                 case .pending:
-                    withAnimation {
+                    withAnimation(AppAnimation.fadeIn) {
                         errorMessage = "Purchase pending approval. We'll unlock Pro as soon as it's approved."
                     }
                 case .userCancelled:
                     break // no UI noise on explicit cancel
                 }
             } catch {
-                withAnimation { errorMessage = "Couldn't complete the purchase. Please try again." }
+                withAnimation(AppAnimation.fadeIn) { errorMessage = "Couldn't complete the purchase. Please try again." }
             }
         }
     }

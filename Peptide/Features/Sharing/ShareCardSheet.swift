@@ -173,7 +173,7 @@ struct ShareCardSheet: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
         )
-        .shadow(color: AppColor.accentGlow, radius: 24, x: 0, y: 12)
+        .appShadow(AppShadow.glassDeep)
     }
 
     /// Re-renders the preview off the main runloop tick. Coalesces rapid
@@ -252,7 +252,7 @@ struct ShareCardSheet: View {
 
             HStack(spacing: 6) {
                 Image(systemName: "lock.fill")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                 Text("Both off by default. Injection sites are never shared.")
                     .font(AppFont.caption)
             }

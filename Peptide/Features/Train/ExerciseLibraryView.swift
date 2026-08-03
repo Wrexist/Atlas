@@ -114,7 +114,14 @@ struct ExerciseLibraryView: View {
         EmptyStateView(
             icon: "magnifyingglass",
             title: "No matches",
-            message: "Try a different muscle group or clear the filters to widen your search."
+            message: "Try a different muscle group or clear the filters to widen your search.",
+            // "Clear the filters" also lives in the filter shelf, which by
+            // this point has usually scrolled out of reach.
+            action: .init(title: "Clear filters", icon: "xmark.circle.fill") {
+                query = ""
+                muscleFilter = nil
+                equipmentFilter = nil
+            }
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

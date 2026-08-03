@@ -74,9 +74,9 @@ struct HomeMealsSection: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "slider.horizontal.3")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(AppFont.scaled(11, weight: .semibold))
                             Text("Edit targets")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(AppFont.scaled(11, weight: .semibold))
                         }
                         .foregroundStyle(AppColor.accentLight)
                     }
@@ -89,6 +89,7 @@ struct HomeMealsSection: View {
                 targets: targets,
                 consumed: dataStore.consumption(),
                 breakdown: dailyBreakdown,
+                unit: dataStore.profile.bodyMetrics.unit,
                 onAddWater: { oz in dataStore.logWater(oz: oz) }
             )
             .contextMenu {
@@ -223,7 +224,7 @@ struct HomeMealsSection: View {
     private var targetsPrompt: some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: "sparkles")
-                .font(.system(size: 18, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
                 .frame(width: 36, height: 36)
                 .background {
@@ -242,20 +243,16 @@ struct HomeMealsSection: View {
                 Button("Edit targets") { showTargetsEditor = true }
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.textSecondary)
                     .padding(.top, Spacing.xs)
             }
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.accentPrimary.opacity(0.10))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.accentPrimary.opacity(0.35), lineWidth: 1)
-                }
-        }
-        .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
+        .glassControl(
+            .rect(cornerRadius: Spacing.cardCornerRadius),
+            tint: AppColor.accentPrimary.opacity(0.10),
+            border: AppColor.accentPrimary.opacity(0.35)
+        )
     }
 }

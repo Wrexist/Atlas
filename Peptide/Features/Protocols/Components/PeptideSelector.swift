@@ -74,10 +74,10 @@ struct PeptideSelector: View {
         } label: {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                 Text("Add Custom Peptide")
                     .font(AppFont.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
             }
             .foregroundStyle(AppColor.accentPrimary)
             .frame(maxWidth: .infinity)
@@ -101,7 +101,7 @@ struct PeptideSelector: View {
     private var searchBar: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 14))
+                .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.textTertiary)
 
             TextField("Search peptides...", text: $searchText)
@@ -118,9 +118,12 @@ struct PeptideSelector: View {
                     }
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
+                        .font(AppFont.scaled(13))
                         .foregroundStyle(AppColor.textTertiary)
+                        .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
+                        .contentShape(Rectangle())
                 }
+                .accessibilityLabel("Clear search")
                 .transition(.scale.combined(with: .opacity))
             }
         }
@@ -236,12 +239,12 @@ struct PeptideSelector: View {
 
             HStack(spacing: Spacing.md) {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20))
+                    .font(AppFont.scaled(20))
                     .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
                     .contentTransition(.symbolEffect(.replace))
 
                 Image(systemName: peptide.imageSystemName)
-                    .font(.system(size: 14))
+                    .font(AppFont.scaled(13))
                     .foregroundStyle(peptide.category.color)
                     .frame(width: 28, height: 28)
                     .background {
@@ -252,7 +255,7 @@ struct PeptideSelector: View {
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(peptide.abbreviation)
                         .font(AppFont.subheadline)
-                        .fontWeight(.medium)
+                        .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
 
                     Text(peptide.category.localizedTitle)
@@ -295,10 +298,10 @@ private struct FilterChip: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                 Text(title)
                     .font(AppFont.caption)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
             }
             .foregroundStyle(isSelected ? color : AppColor.textSecondary)
             .padding(.horizontal, Spacing.sm)

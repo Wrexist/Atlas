@@ -14,7 +14,7 @@ struct CommunityStackCard: View {
                             .lineLimit(1)
                         HStack(spacing: 6) {
                             Image(systemName: "person.crop.circle.fill")
-                                .font(.system(size: 11))
+                                .font(AppFont.scaled(11))
                                 .foregroundStyle(AppColor.textTertiary)
                             Text(stack.authorHandle ?? stack.authorName)
                                 .font(AppFont.caption)
@@ -28,7 +28,7 @@ struct CommunityStackCard: View {
                     if stack.featured {
                         Label("Featured", systemImage: "star.fill")
                             .labelStyle(.iconOnly)
-                            .font(.system(size: 12, weight: .bold))
+                            .font(AppFont.scaled(11, weight: .bold))
                             .foregroundStyle(AppColor.accentLight)
                     }
                 }
@@ -48,9 +48,9 @@ struct CommunityStackCard: View {
                     Spacer()
                     HStack(spacing: 3) {
                         Image(systemName: "flame.fill")
-                            .font(.system(size: 10))
+                            .font(AppFont.scaled(11))
                         Text("\(stack.popularityScore)")
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(AppFont.scaled(11, weight: .semibold, design: .rounded))
                     }
                     .foregroundStyle(AppColor.accentLight)
                 }
@@ -61,9 +61,9 @@ struct CommunityStackCard: View {
     private func statChip(icon: String, value: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 10))
+                .font(AppFont.scaled(11))
             Text(value)
-                .font(.system(size: 11, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
         }
         .foregroundStyle(AppColor.textTertiary)
         .padding(.horizontal, 8)

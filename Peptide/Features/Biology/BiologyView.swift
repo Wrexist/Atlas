@@ -239,7 +239,7 @@ struct BiologyView: View {
 
     private var disclaimerFootnote: some View {
         Text("Atlas estimates based on your personal biometrics. Not medical advice.")
-            .font(.system(size: 11))
+            .font(AppFont.scaled(11))
             .foregroundStyle(AppColor.textTertiary)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)

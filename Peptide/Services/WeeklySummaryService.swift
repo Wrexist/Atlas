@@ -52,6 +52,11 @@ final class WeeklySummaryService {
         /// the card.
         case insufficientData
         case proxyNotConfigured
+        /// Throttled or over the daily quota at the proxy. Distinguished
+        /// from a generic failure so the caller can retry later rather
+        /// than treat it as a permanent error — the recap is weekly, so
+        /// tomorrow is always soon enough.
+        case rateLimited
         case requestFailed(String)
     }
 
@@ -175,6 +180,9 @@ final class WeeklySummaryService {
             throw GenerationError.requestFailed("Invalid response")
         }
         guard (200..<300).contains(http.statusCode) else {
+            if http.statusCode == 429 {
+                throw GenerationError.rateLimited
+            }
             throw GenerationError.requestFailed("HTTP \(http.statusCode)")
         }
 

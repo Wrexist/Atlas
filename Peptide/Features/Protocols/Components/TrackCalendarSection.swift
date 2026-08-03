@@ -103,15 +103,7 @@ struct TrackCalendarSection: View {
             }
         }
         .padding(4)
-        .background {
-            Capsule()
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    Capsule()
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.capsule)
+        .glassControl(.capsule)
     }
 
     private func modeChip(_ mode: CalendarDisplayMode) -> some View {
@@ -129,12 +121,11 @@ struct TrackCalendarSection: View {
                 .background {
                     if isSelected {
                         Capsule()
-                            .fill(AppColor.accentPrimary.opacity(0.28))
+                            .fill(AppColor.accentPrimary.opacity(0.18))
                             .overlay {
                                 Capsule()
                                     .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
                             }
-                            .liquidGlass(.capsule)
                     }
                 }
         }
@@ -202,7 +193,7 @@ struct TrackCalendarSection: View {
                 )
 
                 Text(peptide.abbreviation)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(isActive ? AppColor.accentPrimary : AppColor.textSecondary)
                     .lineLimit(1)
             }
@@ -244,11 +235,11 @@ struct TrackCalendarSection: View {
         HStack(alignment: .center, spacing: Spacing.md) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(monthDate.formatted(.dateTime.month(.wide)))
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
                 Text(monthDate.formatted(.dateTime.year()))
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(1)
                     .foregroundStyle(AppColor.textTertiary)
             }
@@ -279,7 +270,7 @@ struct TrackCalendarSection: View {
             Haptics.selection()
         } label: {
             Text("Today")
-                .font(.system(size: 12, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(isOnCurrentMonth ? AppColor.textTertiary : AppColor.accentLight)
                 .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, 6)
@@ -302,7 +293,7 @@ struct TrackCalendarSection: View {
             shiftMonth(by: direction)
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
+                .font(AppFont.scaled(11, weight: .bold))
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 30, height: 30)
                 .background {
@@ -312,7 +303,7 @@ struct TrackCalendarSection: View {
                             Circle().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                         }
                 }
-                .contentShape(Rectangle())
+                .minimumHitArea()
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.9))
         .accessibilityLabel(direction < 0 ? "Previous month" : "Next month")

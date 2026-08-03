@@ -55,7 +55,6 @@ struct EditNutritionSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear(perform: hydrate)
     }
 
@@ -64,6 +63,7 @@ struct EditNutritionSheet: View {
             Text(title)
             Spacer()
             TextField("0", text: text)
+                .accessibilityLabel(Text(title))
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
                 .frame(maxWidth: 100)

@@ -50,7 +50,8 @@ final class WatchSyncService: NSObject {
         healthHabitsDone: Int? = nil,
         healthHabitsTotal: Int? = nil,
         trainingHabitsDone: Int? = nil,
-        trainingHabitsTotal: Int? = nil
+        trainingHabitsTotal: Int? = nil,
+        measurementUnit: String? = nil
     ) {
         guard let url = watchDataURL else { return }
 
@@ -99,7 +100,8 @@ final class WatchSyncService: NSObject {
             healthHabitsDone: healthHabitsDone,
             healthHabitsTotal: healthHabitsTotal,
             trainingHabitsDone: trainingHabitsDone,
-            trainingHabitsTotal: trainingHabitsTotal
+            trainingHabitsTotal: trainingHabitsTotal,
+            measurementUnit: measurementUnit
         )
 
         do {

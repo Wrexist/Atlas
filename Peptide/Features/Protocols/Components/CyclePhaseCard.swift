@@ -62,20 +62,20 @@ struct CyclePhaseCard: View {
                     .fill(tint.opacity(0.22))
                     .frame(width: 38, height: 38)
                 Image(systemName: icon)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(tint)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(cycleNumberCopy)
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(tint.opacity(0.85))
                 Text(labels.title)
-                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                 Text(labels.subtitle)
-                    .font(.system(size: 13))
+                    .font(AppFont.scaled(13))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textSecondary)
             }
@@ -124,10 +124,10 @@ struct CyclePhaseCard: View {
     private var footer: some View {
         HStack(spacing: 4) {
             Image(systemName: "clock")
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
             Text(footerCopy)
-                .font(.system(size: 11))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
                 .monospacedDigit()
             Spacer(minLength: 0)

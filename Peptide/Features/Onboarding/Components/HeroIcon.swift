@@ -11,18 +11,13 @@ struct HeroIcon: View {
     var size: CGFloat = 96
     var bounceTrigger: Int = 0
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
 
     var body: some View {
         ZStack {
             Circle()
-                .fill(color.opacity(0.16))
-                .frame(width: size * 1.9, height: size * 1.9)
-                .blur(radius: 32)
-                .scaleEffect(pulse ? 1.05 : 0.96)
-
-            Circle()
-                .strokeBorder(Color.white.opacity(0.05), lineWidth: 0.5)
+                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                 .frame(width: size * 1.55, height: size * 1.55)
 
             Circle()
@@ -56,6 +51,7 @@ struct HeroIcon: View {
                 .shadow(color: color.opacity(0.45), radius: 8, x: 0, y: 3)
         }
         .onAppear {
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true)) {
                 pulse = true
             }
@@ -73,21 +69,15 @@ struct HeroLogo: View {
     var size: CGFloat = 140
     var bounceTrigger: Int = 0
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
     @State private var bounce = false
 
     var body: some View {
         ZStack {
-            // Wide ambient glow — the "outglow shadow around the circle".
-            Circle()
-                .fill(color.opacity(0.22))
-                .frame(width: size * 1.9, height: size * 1.9)
-                .blur(radius: 38)
-                .scaleEffect(pulse ? 1.06 : 0.96)
-
             // Soft outer ring for depth, matching HeroIcon's framing.
             Circle()
-                .strokeBorder(Color.white.opacity(0.05), lineWidth: 0.5)
+                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                 .frame(width: size * 1.5, height: size * 1.5)
 
             // The logo, filled into the disc.
@@ -99,8 +89,7 @@ struct HeroLogo: View {
                 .overlay {
                     Circle().strokeBorder(AppColor.glassBorderActive, lineWidth: 1)
                 }
-                .shadow(color: color.opacity(0.55), radius: 24, x: 0, y: 6)
-                .shadow(color: color.opacity(0.35), radius: 8, x: 0, y: 2)
+                .appShadow(AppShadow.glassElevated)
                 .scaleEffect(pulse ? 1.015 : 1.0)
                 .scaleEffect(bounce ? 1.06 : 1.0)
         }
@@ -109,6 +98,7 @@ struct HeroLogo: View {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.18)) { bounce = false }
         }
         .onAppear {
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true)) {
                 pulse = true
             }

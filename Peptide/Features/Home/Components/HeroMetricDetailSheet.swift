@@ -58,7 +58,6 @@ struct HeroMetricDetailSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     // MARK: - Header
@@ -70,17 +69,16 @@ struct HeroMetricDetailSheet: View {
                 diameter: 110,
                 strokeWidth: 12,
                 gradient: kind.gradient(active: valueForRing.isAvailable),
-                appearAnimated: true,
-                glow: true
+                appearAnimated: true
             ) {
                 if valueForRing.isAvailable {
                     Text("\(valueForRing.displayPercent)%")
-                        .font(.system(size: 28, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(28, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
                 } else {
                     Text("—")
-                        .font(.system(size: 28, weight: .bold))
+                        .font(AppFont.scaled(28, weight: .bold, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
@@ -136,9 +134,9 @@ struct HeroMetricDetailSheet: View {
     private var explainer: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("WHY IT MATTERS")
-                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .tracking(1.0)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
             Text(explainerBody)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
@@ -173,9 +171,9 @@ struct HeroMetricDetailSheet: View {
     private var adherenceList: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("TODAY'S DOSES")
-                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .tracking(1.0)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
 
             if context.todayEntries.isEmpty {
                 Text("No doses scheduled.")
@@ -195,7 +193,7 @@ struct HeroMetricDetailSheet: View {
     private func doseRow(_ entry: ProtocolEntry) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: entry.completed ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 18, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(entry.completed ? AppColor.success : AppColor.textTertiary)
             VStack(alignment: .leading, spacing: 1) {
                 Text(entry.peptide.name)
@@ -223,9 +221,9 @@ struct HeroMetricDetailSheet: View {
     private var recoveryBreakdown: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("WHAT'S DRIVING IT")
-                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .tracking(1.0)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
 
             if let components = context.recoveryComponents {
                 componentRow(label: "HRV vs baseline",        value: components.hrv,   icon: "waveform.path.ecg")
@@ -243,7 +241,7 @@ struct HeroMetricDetailSheet: View {
     private func componentRow(label: String, value: Double?, icon: String) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
                 .frame(width: 28, height: 28)
                 .background { Circle().fill(AppColor.accentPrimary.opacity(0.15)) }
@@ -280,9 +278,9 @@ struct HeroMetricDetailSheet: View {
     private var sleepDetail: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("LAST NIGHT")
-                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .tracking(1.0)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
 
             HStack(spacing: Spacing.lg) {
                 sleepStat(
@@ -304,7 +302,7 @@ struct HeroMetricDetailSheet: View {
     private func sleepStat(label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value)
-                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
             Text(label)

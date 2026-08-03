@@ -36,7 +36,7 @@ struct AchievementsSection: View {
                 if let next = locked.first {
                     HStack(spacing: Spacing.md) {
                         Image(systemName: next.icon)
-                            .font(.system(size: 16))
+                            .font(AppFont.scaled(16))
                             .foregroundStyle(AppColor.textTertiary)
                             .frame(width: 32, height: 32)
                             .background {
@@ -66,7 +66,7 @@ struct AchievementsSection: View {
     private func achievementBadge(_ achievement: Achievement, unlocked: Bool) -> some View {
         VStack(spacing: Spacing.xs) {
             Image(systemName: achievement.icon)
-                .font(.system(size: 20))
+                .font(AppFont.scaled(20))
                 .foregroundStyle(unlocked ? AppColor.accentLight : AppColor.textTertiary)
                 .frame(width: 44, height: 44)
                 .background {
@@ -111,7 +111,7 @@ struct AchievementsSection: View {
                 .saturation(unlocked ? 1.0 : 0.35)
 
             Text(achievement.title)
-                .font(.system(size: 9, weight: .medium))
+                .font(AppFont.scaled(8, weight: .semibold))
                 .foregroundStyle(unlocked ? AppColor.textPrimary : AppColor.textTertiary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)

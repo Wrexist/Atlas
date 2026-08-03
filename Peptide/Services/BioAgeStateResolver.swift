@@ -61,12 +61,30 @@ enum BioAgeStateResolver {
         // in PerformanceAgeEngine is tuned for actual sample
         // density; feed it the real number, which also obsoletes
         // the `minBaselineDays`-floor workaround on main.
+        //
+        // Coverage is the *union* of days across all three series, not HRV
+        // alone. Plenty of trackers write resting heart rate and sleep but
+        // no HRV at all; keying on HRV left those users pinned at
+        // "building baseline" forever no matter how long they wore the
+        // device.
         async let hrvDaily = kit.dailyHRV(days: 30)
+        async let rhrDaily = kit.dailyRestingHeartRate(days: 30)
+        async let sleepDaily = kit.dailySleepHours(days: 30)
         let hrvValue = await hrv
         let rhrValue = await rhr
         let sleepValue = await sleep
+        let calendar = Calendar.current
+        // Bound separately because Swift rejects `await` to the right of a
+        // non-assignment operator. The three `async let`s are already in
+        // flight, so awaiting them one after another costs nothing.
         let hrvDays = await hrvDaily
-        let dataDays = hrvDays.count
+        let rhrDays = await rhrDaily
+        let sleepDays = await sleepDaily
+        let coveredDays = Set(
+            (hrvDays + rhrDays + sleepDays)
+                .map { calendar.startOfDay(for: $0.date) }
+        )
+        let dataDays = coveredDays.count
 
         let inputs = PerformanceAgeEngine.Inputs(
             chronologicalAge: age,

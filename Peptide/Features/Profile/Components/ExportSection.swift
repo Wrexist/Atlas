@@ -24,13 +24,13 @@ struct ExportSection: View {
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                 + Text("protocol history")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                 + Text(" and ")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                 + Text("tracking data")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight))
 
                 HStack(spacing: Spacing.md) {
@@ -110,7 +110,7 @@ struct ExportSection: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Divider().background(AppColor.glassBorder).padding(.vertical, 2)
                 Text("By section")
-                    .font(.system(size: 10, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)
@@ -138,15 +138,15 @@ struct ExportSection: View {
         Button(action: action) {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                     .frame(width: 18)
                 Text(title)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                 Spacer(minLength: 0)
                 Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
             }
             .padding(.vertical, 8)

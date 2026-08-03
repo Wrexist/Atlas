@@ -122,7 +122,7 @@ struct HabitsView: View {
                         editing = .new
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 22, weight: .semibold))
+                            .font(AppFont.scaled(20, weight: .semibold))
                             .foregroundStyle(AppColor.accentPrimary)
                     }
                     .accessibilityLabel("Add habit")
@@ -190,15 +190,15 @@ struct HabitsView: View {
                 if due > 0 {
                     VStack(spacing: 0) {
                         Text("\(done)/\(due)")
-                            .font(.system(size: 16, weight: .heavy, design: .rounded))
+                            .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                             .foregroundStyle(AppColor.textPrimary)
                         Text("today")
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(AppFont.scaled(8, weight: .semibold))
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 } else {
                     Image(systemName: "leaf.fill")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.accentLight)
                 }
             }
@@ -207,7 +207,7 @@ struct HabitsView: View {
                 if best > 0 {
                     HStack(spacing: 4) {
                         Image(systemName: "flame.fill")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(AppFont.scaled(13, weight: .semibold))
                             .foregroundStyle(AppColor.streak)
                         Text("\(best) day streak")
                             .font(AppFont.headline)
@@ -220,7 +220,7 @@ struct HabitsView: View {
                 }
                 HStack(spacing: 4) {
                     Image(systemName: "bolt.fill")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(AppFont.scaled(11, weight: .bold))
                         .foregroundStyle(AppColor.accentLight)
                     Text("Level \(momentum.level) · \(momentum.score) pts")
                         .font(AppFont.subheadline)
@@ -253,7 +253,7 @@ struct HabitsView: View {
     private var streakFreezeBanner: some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: "snowflake")
-                .font(.system(size: 18, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.macroWater)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Streak at risk")
@@ -297,11 +297,11 @@ struct HabitsView: View {
         Button { showProgress = true } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                 Text("See your progress")
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
             }
             .font(AppFont.subheadline.weight(.semibold))
             .foregroundStyle(AppColor.accentLight)
@@ -318,41 +318,16 @@ struct HabitsView: View {
 
     private var emptyState: some View {
         VStack(spacing: Spacing.lg) {
-            ZStack {
-                Circle()
-                    .fill(AppColor.accentPrimary.opacity(0.18))
-                    .frame(width: 92, height: 92)
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 40, weight: .semibold))
-                    .foregroundStyle(AppColor.accentPrimary)
-            }
-            VStack(spacing: Spacing.sm) {
-                Text("No habits yet")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppColor.textPrimary)
-                Text("Pick something small — 10 push-ups, 5 minutes of stretching, a glass of water. Consistency compounds.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.lg)
-            }
-            Button {
-                editing = .new
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "plus")
-                    Text("Create your first habit")
+            EmptyStateView(
+                icon: "checkmark.seal.fill",
+                title: "No habits yet",
+                message: "Pick something small — 10 push-ups, 5 minutes of stretching, a glass of water. Consistency compounds.",
+                action: .init(title: "Create your first habit", icon: "plus") {
+                    editing = .new
                 }
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.background)
-                .padding(.horizontal, Spacing.xl)
-                .padding(.vertical, Spacing.md)
-                .background(Capsule().fill(Color.white))
-            }
-            .buttonStyle(.plain)
+            )
 
             StarterHabitSuggestions(onPick: addStarter)
-                .padding(.top, Spacing.sm)
         }
     }
 

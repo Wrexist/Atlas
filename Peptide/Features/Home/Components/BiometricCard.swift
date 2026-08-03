@@ -21,21 +21,21 @@ struct BiometricCard: View {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     HStack(spacing: 4) {
                         Image(systemName: icon)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(AppFont.scaled(11, weight: .semibold))
                             .foregroundStyle(AppColor.textSecondary)
                         Text(label)
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(AppFont.scaled(11, weight: .semibold))
                             .foregroundStyle(AppColor.textSecondary)
                     }
 
                     HStack(alignment: .firstTextBaseline, spacing: 3) {
                         Text(value)
-                            .font(.system(size: 22, weight: .heavy, design: .rounded))
+                            .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                             .foregroundStyle(AppColor.textPrimary)
                             .monospacedDigit()
                             .contentTransition(.numericText())
                         Text(unit)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(AppFont.scaled(11, weight: .semibold))
                             .foregroundStyle(AppColor.textSecondary)
                     }
 
@@ -72,14 +72,14 @@ struct BiometricCard: View {
         HStack(spacing: 4) {
             if let sample {
                 Image(systemName: statusIcon(for: sample))
-                    .font(.system(size: 10, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                 Text(statusLabel(for: sample))
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
             } else {
                 Image(systemName: "minus")
-                    .font(.system(size: 10, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                 Text("No data")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
             }
         }
         .foregroundStyle(sample.map { tint(for: $0) } ?? AppColor.textSecondary)

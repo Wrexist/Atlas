@@ -86,10 +86,10 @@ struct GoalCountdownCard: View {
     private var header: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "flag.checkered")
-                .font(.system(size: 14, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
             Text("YOUR GOAL")
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(1.2)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
@@ -115,7 +115,7 @@ struct GoalCountdownCard: View {
                     appearAnimated: true
                 ) {
                     Text("\(Int((fraction * 100).rounded()))%")
-                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                 }
                 .accessibilityHidden(true)
@@ -131,12 +131,12 @@ struct GoalCountdownCard: View {
                     .fill(AppColor.accentPrimary.opacity(0.18))
                     .frame(width: 48, height: 48)
                 Image(systemName: "flag.checkered")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(AppFont.scaled(20, weight: .bold))
                     .foregroundStyle(AppColor.accentLight)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text("Goal reached!")
-                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                 Text("Time to set your next one.")
                     .font(AppFont.caption)
@@ -151,12 +151,13 @@ struct GoalCountdownCard: View {
     private func countdown(weeks: Int, days: Int) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
             Text("\(weeks)")
-                .font(.system(size: 44, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
             VStack(alignment: .leading, spacing: 0) {
                 Text(weeks == 1 ? "week" : "weeks")
-                    .font(AppFont.subheadline.weight(.medium))
+                    .font(AppFont.subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textSecondary)
                 Text("\(days) day\(days == 1 ? "" : "s") remaining")
                     .font(AppFont.caption)
@@ -169,7 +170,7 @@ struct GoalCountdownCard: View {
     private func footer(targetDate: Date) -> some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "calendar")
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
             Text("Target — \(targetDate.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))")
                 .font(AppFont.caption)

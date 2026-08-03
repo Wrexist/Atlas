@@ -31,7 +31,7 @@ struct MealStreakBadge: View {
         case 1...2:    return AppColor.accentPrimary
         case 3...6:    return AppColor.accentLight
         case 7...29:   return AppColor.warning
-        default:       return Color(red: 1.0, green: 0.55, blue: 0.20)
+        default:       return AppColor.streak
         }
     }
 
@@ -88,7 +88,7 @@ struct MealStreakBadge: View {
 
     private var flameIcon: some View {
         Image(systemName: "flame.fill")
-            .font(.system(size: 18, weight: .semibold))
+            .font(AppFont.scaled(16, weight: .semibold))
             .foregroundStyle(flameTint)
             .symbolEffect(.bounce, value: pulseTrigger)
             .scaleEffect(milestoneScale)
@@ -105,17 +105,17 @@ struct MealStreakBadge: View {
         if currentStreak > 0 {
             HStack(spacing: 4) {
                 Text("\(currentStreak)")
-                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
                 Text(currentStreak == 1 ? "day streak" : "day meal streak")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
             }
         } else {
             Text("Streak paused")
-                .font(.system(size: 14, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
         }
     }
@@ -124,19 +124,19 @@ struct MealStreakBadge: View {
     private var subtitleRow: some View {
         if currentStreak == 0 && bestStreak > 0 {
             Text("Best: \(bestStreak) days. Log a meal to restart.")
-                .font(.system(size: 11))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
         } else if isNewBest && currentStreak > 1 {
             Text("New personal best — keep going.")
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(flameTint)
         } else if bestStreak > currentStreak {
             Text("Best: \(bestStreak) days")
-                .font(.system(size: 11))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
         } else if currentStreak >= 7 {
             Text("On fire 🔥")
-                .font(.system(size: 11, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(flameTint)
         }
     }

@@ -69,7 +69,6 @@ struct BiomarkerDetailSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     // MARK: - Hero
@@ -77,12 +76,12 @@ struct BiomarkerDetailSheet: View {
     private var heroBlock: some View {
         HStack(alignment: .lastTextBaseline, spacing: Spacing.sm) {
             Text(latestValueString)
-                .font(.system(size: 48, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(48, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
             if let unitString = biomarker.displayUnit(for: unit) {
                 Text(unitString)
-                    .font(.system(size: 18, weight: .heavy))
+                    .font(AppFont.scaled(16, weight: .heavy))
                     .foregroundStyle(AppColor.textSecondary)
             }
             Spacer(minLength: 0)
@@ -106,9 +105,9 @@ struct BiomarkerDetailSheet: View {
         }()
         return HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
             Text(label)
-                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
         }
         .foregroundStyle(tint)
         .padding(.horizontal, Spacing.sm)
@@ -123,9 +122,9 @@ struct BiomarkerDetailSheet: View {
     private var explainer: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("WHAT THIS TRACKS")
-                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .tracking(1.0)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
             Text(explainerBody)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
@@ -165,9 +164,9 @@ struct BiomarkerDetailSheet: View {
         if snapshot.sparkline.count >= 4 {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("RECENT TREND")
-                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                     .tracking(1.0)
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.textSecondary)
 
                 trendChart
             }
@@ -191,7 +190,7 @@ struct BiomarkerDetailSheet: View {
                 AxisValueLabel {
                     if let day = value.as(Int.self) {
                         Text(dayLabel(daysAgo: day))
-                            .font(.system(size: 10))
+                            .font(AppFont.scaled(11))
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 }
@@ -272,7 +271,7 @@ struct BiomarkerDetailSheet: View {
     private var insufficientChartPlaceholder: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "hourglass")
-                .font(.system(size: 16, weight: .light))
+                .font(AppFont.scaled(16, weight: .light))
                 .foregroundStyle(AppColor.textTertiary)
             Text("Need at least 4 days of data to chart a trend.")
                 .font(AppFont.caption)
@@ -291,9 +290,9 @@ struct BiomarkerDetailSheet: View {
     private var deltaBlock: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("VS RECENT AVERAGE")
-                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .tracking(1.0)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
             Text(deltaLine)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textPrimary)
@@ -337,7 +336,7 @@ struct BiomarkerDetailSheet: View {
 
     private var footnote: some View {
         Text(footnoteText)
-            .font(.system(size: 11))
+            .font(AppFont.scaled(11))
             .foregroundStyle(AppColor.textTertiary)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)

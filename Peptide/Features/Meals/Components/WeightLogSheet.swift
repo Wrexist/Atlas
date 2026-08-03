@@ -24,6 +24,9 @@ struct WeightLogSheet: View {
                         Text(unit == .metric ? "Weight (kg)" : "Weight (lb)")
                         Spacer()
                         TextField("0", text: $input)
+                            .accessibilityLabel(unit == .metric
+                                                ? "Weight in kilograms"
+                                                : "Weight in pounds")
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .frame(maxWidth: 120)
@@ -65,7 +68,6 @@ struct WeightLogSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear { inputFocused = true }
     }
 
@@ -78,10 +80,7 @@ struct WeightLogSheet: View {
             .trimmingCharacters(in: .whitespaces)
             .replacingOccurrences(of: ",", with: ".")
         guard let value = Double(cleaned), value > 0 else { return nil }
-        switch unit {
-        case .metric:   return value
-        case .imperial: return value / 2.20462
-        }
+        return unit.kilograms(fromDisplayed: value)
     }
 
     private func save() {
@@ -91,9 +90,6 @@ struct WeightLogSheet: View {
     }
 
     private func format(_ kg: Double) -> String {
-        switch unit {
-        case .metric:    String(format: "%.1f kg", kg)
-        case .imperial:  String(format: "%.1f lb", kg * 2.20462)
-        }
+        unit.weightLabel(kg, fractionDigits: 1)
     }
 }

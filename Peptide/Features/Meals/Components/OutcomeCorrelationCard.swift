@@ -44,12 +44,12 @@ struct OutcomeCorrelationCard: View {
                     .fill(dimension.tint.opacity(0.18))
                     .frame(width: 36, height: 36)
                 Image(systemName: dimension.icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(dimension.tint)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text("Pattern detected")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(dimension.tint.opacity(0.85))
@@ -60,7 +60,7 @@ struct OutcomeCorrelationCard: View {
             }
             Spacer(minLength: 0)
             Text(deltaPhrase)
-                .font(.system(size: 20, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(dimension.tint)
         }
@@ -101,7 +101,7 @@ struct OutcomeCorrelationCard: View {
     private func bar(label: String, value: Double, fraction: Double, count: Int, tint: Color) -> some View {
         HStack(spacing: Spacing.sm) {
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 84, alignment: .leading)
             GeometryReader { proxy in
@@ -115,12 +115,12 @@ struct OutcomeCorrelationCard: View {
             }
             .frame(height: 10)
             Text(String(format: "%.1f", value))
-                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .frame(width: 32, alignment: .trailing)
             Text("\(count)d")
-                .font(.system(size: 10))
+                .font(AppFont.scaled(11))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textTertiary)
                 .frame(width: 28, alignment: .trailing)
@@ -132,9 +132,9 @@ struct OutcomeCorrelationCard: View {
     private var footnote: some View {
         HStack(spacing: 4) {
             Image(systemName: "info.circle")
-                .font(.system(size: 10))
+                .font(AppFont.scaled(11))
             Text("Based on \(sampleSize) check-ins. Correlations aren't causation — but they're a useful nudge.")
-                .font(.system(size: 11))
+                .font(AppFont.scaled(11))
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }

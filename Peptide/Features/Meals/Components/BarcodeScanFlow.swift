@@ -94,7 +94,6 @@ struct BarcodeScanFlow: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .task { await preflightCheck() }
         .task { await loadRecentlyScanned() }
         // SwiftUI-owned auto-close. Re-running on phase changes
@@ -235,7 +234,7 @@ struct BarcodeScanFlow: View {
                         image.resizable().scaledToFit()
                     default:
                         Image(systemName: "shippingbox.fill")
-                            .font(.system(size: 22, weight: .light))
+                            .font(AppFont.scaled(20, weight: .light))
                             .foregroundStyle(AppColor.textSecondary)
                     }
                 }
@@ -246,7 +245,7 @@ struct BarcodeScanFlow: View {
                 }
 
                 Text(product.name)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -287,7 +286,7 @@ struct BarcodeScanFlow: View {
             TextField("e.g. 5449000000996", text: $manualBarcode)
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.center)
-                .font(.system(size: 22, weight: .semibold, design: .monospaced))
+                .font(AppFont.scaled(20, weight: .semibold, design: .monospaced))
                 .foregroundStyle(AppColor.textPrimary)
                 .padding(Spacing.md)
                 .background {
@@ -299,11 +298,9 @@ struct BarcodeScanFlow: View {
                         }
                 }
 
-            Button("Look up") {
+            GlassButton(title: "Look up", style: .primary) {
                 handleDetected(barcode: manualBarcode)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColor.accentPrimary)
             .disabled(manualBarcode.trimmingCharacters(in: .whitespaces).count < 8)
         }
     }
@@ -356,7 +353,7 @@ struct BarcodeScanFlow: View {
     private func sourceBadge(for product: ScannedProduct) -> some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "globe")
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
             Text("Open Food Facts · \(Self.relativeAge(product.fetchedAt))")
                 .font(AppFont.caption)
@@ -364,7 +361,7 @@ struct BarcodeScanFlow: View {
             Spacer(minLength: 0)
             if manualOverride != nil {
                 Text("✏ Edited")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .foregroundStyle(AppColor.warning)
                     .padding(.horizontal, Spacing.xs)
                     .padding(.vertical, 2)
@@ -380,7 +377,7 @@ struct BarcodeScanFlow: View {
     private var overrideNotice: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "pencil.circle.fill")
-                .font(.system(size: 18))
+                .font(AppFont.scaled(16))
                 .foregroundStyle(AppColor.warning)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Using your manual values")
@@ -395,7 +392,7 @@ struct BarcodeScanFlow: View {
                 manualOverride = nil
             }
             .font(AppFont.subheadline)
-            .foregroundStyle(AppColor.accentLight)
+            .foregroundStyle(AppColor.textSecondary)
         }
         .padding(Spacing.md)
         .background {
@@ -416,7 +413,7 @@ struct BarcodeScanFlow: View {
                     image.resizable().scaledToFit()
                 default:
                     Image(systemName: "shippingbox.fill")
-                        .font(.system(size: 24, weight: .light))
+                        .font(AppFont.scaled(24, weight: .light))
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
@@ -538,7 +535,7 @@ struct BarcodeScanFlow: View {
                     ForEach([50.0, 100.0, 200.0, 500.0], id: \.self) { quick in
                         Button("\(Int(quick))g") { portion = .grams(quick) }
                             .font(AppFont.caption)
-                            .foregroundStyle(AppColor.accentLight)
+                            .foregroundStyle(AppColor.textSecondary)
                             .padding(.horizontal, Spacing.sm)
                             .padding(.vertical, 4)
                             .background {
@@ -570,7 +567,7 @@ struct BarcodeScanFlow: View {
                         Image(systemName: "pencil")
                         Text("Edit")
                     }
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(canEdit ? AppColor.accentLight : AppColor.textSecondary.opacity(0.5))
                 }
                 .buttonStyle(.plain)
@@ -588,17 +585,13 @@ struct BarcodeScanFlow: View {
 
     private var actionButtons: some View {
         HStack(spacing: Spacing.sm) {
-            Button("Scan another") {
+            GlassButton(title: "Scan another", style: .secondary) {
                 resetForRescan()
             }
-            .buttonStyle(.bordered)
-            .tint(AppColor.textSecondary)
 
-            Button("Add to today") {
+            GlassButton(title: "Add to today", style: .primary) {
                 confirm()
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColor.accentPrimary)
             .disabled(currentMacros(for: product) == nil)
         }
     }
@@ -629,20 +622,11 @@ struct BarcodeScanFlow: View {
             }
 
             VStack(spacing: Spacing.sm) {
-                Button {
+                GlassButton(title: "Undo", icon: "arrow.uturn.backward", style: .destructive) {
                     undoLastLog()
-                } label: {
-                    HStack(spacing: Spacing.sm) {
-                        Image(systemName: "arrow.uturn.backward")
-                        Text("Undo")
-                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColor.destructive.opacity(0.85))
 
-                Button("Done") { onClose() }
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
+                GlassButton(title: "Done", style: .ghost) { onClose() }
             }
             .padding(.top, Spacing.sm)
         }
@@ -671,36 +655,39 @@ struct BarcodeScanFlow: View {
                     matching: .images,
                     photoLibrary: .shared()
                 ) {
-                    HStack(spacing: Spacing.sm) {
+                    // PhotosPicker owns its label, so it can't be a
+                    // GlassButton — dress the label in the same capsule so
+                    // the three options read as one set.
+                    HStack(spacing: Spacing.xs) {
                         Image(systemName: "doc.text.viewfinder")
+                            .font(AppFont.scaled(13, weight: .semibold))
                         Text("Scan the nutrition label")
+                            .font(AppFont.headline)
                     }
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.md)
+                    .frame(minHeight: Spacing.minimumHitTarget)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .glassControl(
+                        .capsule,
+                        tint: AppColor.accentPrimary.opacity(0.18),
+                        border: AppColor.glassBorderActive
+                    )
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColor.accentPrimary)
 
                 // Secondary fallback: AI vision on a meal photo.
                 // Costs an API call; better for "what did I eat"
                 // (a plate of food) than "what's in this jar".
-                Button {
+                GlassButton(title: "Use the AI meal scanner", icon: "camera.fill", style: .secondary) {
                     onRequestPhotoFallback()
-                } label: {
-                    HStack(spacing: Spacing.sm) {
-                        Image(systemName: "camera.fill")
-                        Text("Use the AI meal scanner")
-                    }
                 }
-                .buttonStyle(.bordered)
-                .tint(AppColor.accentLight)
 
-                Button("Try another barcode") {
+                GlassButton(title: "Try another barcode", style: .ghost) {
                     product = nil
                     manualBarcode = ""
                     errorText = nil
                     phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
                 }
-                .buttonStyle(.bordered)
-                .tint(AppColor.textSecondary)
             }
             .padding(.top, Spacing.sm)
         }
@@ -725,23 +712,19 @@ struct BarcodeScanFlow: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
             VStack(spacing: Spacing.sm) {
-                Button("Try again") {
+                GlassButton(title: "Try again", style: .primary) {
                     errorText = nil
                     product = nil
                     manualBarcode = ""
                     phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColor.accentPrimary)
 
                 // Network / rate-limit / decode failures shouldn't trap
                 // the user — give them the same photo escape hatch the
                 // notFound card offers.
-                Button("Snap a photo instead") {
+                GlassButton(title: "Snap a photo instead", style: .secondary) {
                     onRequestPhotoFallback()
                 }
-                .buttonStyle(.bordered)
-                .tint(AppColor.textSecondary)
             }
             .padding(.top, Spacing.md)
         }
@@ -774,8 +757,8 @@ struct BarcodeScanFlow: View {
 
     private func nutriScorePill(_ score: String) -> some View {
         Text(score.uppercased())
-            .font(.system(size: 14, weight: .heavy))
-            .foregroundStyle(.white)
+            .font(AppFont.scaled(13, weight: .heavy))
+            .foregroundStyle(AppColor.onAccent)
             .frame(width: 28, height: 28)
             .background {
                 Circle().fill(Self.nutriScoreColor(score))

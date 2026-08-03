@@ -81,7 +81,7 @@ struct BioAgeDial: View {
         let opacity: Double = isCenter ? 0.85 : 0.4
         let degrees = angle(for: age)
         return Capsule()
-            .fill(Color.white.opacity(opacity))
+            .fill(AppColor.textPrimary.opacity(opacity))
             .frame(width: 1.2, height: length)
             .offset(y: -(size / 2 - length / 2 - 6))
             .rotationEffect(.degrees(degrees))
@@ -111,8 +111,8 @@ struct BioAgeDial: View {
         let x = sin(radians) * radius
         let y = -cos(radians) * radius
         return Text(formatted(value))
-            .font(.system(size: 13, weight: .heavy, design: .rounded))
-            .foregroundStyle(Color.white.opacity(0.55))
+            .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
+            .foregroundStyle(AppColor.textPrimary.opacity(0.55))
             .offset(x: x, y: y)
     }
 
@@ -124,7 +124,7 @@ struct BioAgeDial: View {
         let clamped = max(lowerBound, min(upperBound, age))
         let degrees = angle(for: clamped)
         return Circle()
-            .fill(Color.white)
+            .fill(AppColor.textPrimary)
             .frame(width: 12, height: 12)
             .overlay {
                 Circle().stroke(AppColor.accentLight, lineWidth: 1)

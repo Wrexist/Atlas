@@ -76,6 +76,78 @@ enum MeasurementUnit: String, Codable, Sendable {
     case imperial  // lb, in
 }
 
+/// Weight is persisted canonically in kilograms everywhere (`BodyMetrics`,
+/// `SetEntry`, session volume) so the stored history survives a unit
+/// toggle. These are the read/write boundary that contract depends on:
+/// convert on the way to the screen, convert back on the way in.
+extension MeasurementUnit {
+    private static let poundsPerKilogram = 2.20462
+
+    /// Suffix for a numeral the user reads. Deliberately unlocalised —
+    /// "kg" and "lb" are the symbols in every locale Atlas ships.
+    var weightSuffix: String {
+        self == .metric ? "kg" : "lb"
+    }
+
+    /// Spelled out for VoiceOver, which reads "kg" as the letters.
+    var weightSpokenUnit: String {
+        self == .metric
+            ? String(localized: "kilograms")
+            : String(localized: "pounds")
+    }
+
+    /// Canonical kilograms → the number to put on screen.
+    func weightForDisplay(_ kilograms: Double) -> Double {
+        self == .metric ? kilograms : kilograms * Self.poundsPerKilogram
+    }
+
+    /// A number the user typed → canonical kilograms.
+    func kilograms(fromDisplayed value: Double) -> Double {
+        self == .metric ? value : value / Self.poundsPerKilogram
+    }
+
+    /// Rounded display value plus its suffix — the common case.
+    func weightLabel(_ kilograms: Double, fractionDigits: Int = 0) -> String {
+        let value = weightForDisplay(kilograms)
+        return "\(String(format: "%.\(fractionDigits)f", value)) \(weightSuffix)"
+    }
+
+    // MARK: - Volume
+
+    /// Water is persisted in fluid ounces, so these are its read/write
+    /// boundary. Without them the nutrition card showed a target in
+    /// ounces above quick-add chips labelled in millilitres.
+    private static let millilitresPerFluidOunce = 29.5735
+
+    var volumeSuffix: String {
+        self == .metric ? "mL" : "oz"
+    }
+
+    /// Spelled out for VoiceOver, which reads "oz" as two letters.
+    var volumeSpokenUnit: String {
+        self == .metric
+            ? String(localized: "millilitres")
+            : String(localized: "ounces")
+    }
+
+    /// Fluid ounces → the number to show, in the user's unit. Metric
+    /// promotes to litres past 1000 mL so a 3 L target doesn't read as
+    /// "2960 mL".
+    func volumeLabel(_ fluidOunces: Int) -> String {
+        guard self == .metric else { return "\(fluidOunces) oz" }
+        let millilitres = Int((Double(fluidOunces) * Self.millilitresPerFluidOunce).rounded())
+        guard millilitres >= 1_000 else { return "\(millilitres) mL" }
+        return String(format: "%.1f L", Double(millilitres) / 1_000)
+    }
+
+    /// Bare number, for a value shown next to a separate unit suffix.
+    func volumeValue(_ fluidOunces: Int) -> Int {
+        self == .metric
+            ? Int((Double(fluidOunces) * Self.millilitresPerFluidOunce).rounded())
+            : fluidOunces
+    }
+}
+
 /// Optional body metrics displayed alongside the user's compliance trends
 /// on the Profile screen. All fields are optional — users can skip the
 /// metrics step. Stored canonically in metric units; the UI converts on

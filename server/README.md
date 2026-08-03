@@ -91,12 +91,25 @@ endpoint.
   key attested against Apple's pinned root; per-request assertions
   with a strictly-increasing counter. In enforce mode an extracted
   shared secret is no longer sufficient to relay to Anthropic.
-- **Per-IP rate limit**, 20 req/min default per route, backed by
-  Upstash Redis when configured (global across instances); falls back
-  to in-memory per warm instance otherwise.
-- **Daily request budget** (`ANTHROPIC_DAILY_REQUEST_BUDGET`) across
-  all routes — fails closed with 503 once spent, the hard ceiling on
-  spend if a secret leaks.
+- **Per-principal rate limit**, 20 req/min default per route
+  (`RATE_LIMIT_RPM`), backed by Upstash Redis when configured (global
+  across instances); falls back to in-memory per warm instance.
+- **Per-principal daily quota** (`DEVICE_DAILY_QUOTA`, default 300).
+  The control that keeps one abuser from taking everyone down: without
+  it, a single scripted client can spend the whole shared budget and
+  every paying user gets 503s for the rest of the day.
+- **Abuse cooldown** (`ABUSE_STRIKES` / `ABUSE_BLOCK_SECONDS`,
+  defaults 20 per hour / 900s). A limited client that keeps retrying
+  is still making 28,800 requests a day; after enough refusals the
+  principal is blocked outright. Well-behaved clients never
+  accumulate strikes.
+- **Daily spend budget** (`ANTHROPIC_DAILY_REQUEST_BUDGET`) across all
+  routes — 503 once spent. Counts **cost units**, not requests: one
+  unit per 256 KB of payload, so a 5 MB meal-scan image costs ~20× a
+  chat turn, which is roughly how Anthropic bills it.
+  **Fails closed** when Redis is configured but unreachable — a spend
+  ceiling that silently stops applying during an outage isn't a
+  ceiling. `BUDGET_FAIL_OPEN=1` opts out.
 - **Body sanitisation**: only `model`, `max_tokens`, `messages`, and
   optional `system` are forwarded; everything else is stripped so a
   compromised client can't smuggle alternate prompts or `tools`.
@@ -130,9 +143,29 @@ iOS client config: `APP_ATTEST_ENDPOINT` = the attest-register URL,
 like the other endpoint/secret pairs). Without them the client sends
 no assertion headers and report mode just logs their absence.
 
+### What counts as a "principal"
+
+Every limit above is counted per principal: **the verified App Attest
+key ID when one is present, otherwise the client IP**.
+
+This is why enforcing App Attest matters beyond authentication. A
+client IP is not an identity — mobile carriers rotate it per request
+and a VPN makes it free to change, so an IP-keyed quota is a speed
+bump for anyone deliberately working around it. An attested key is one
+physical install and can't be rotated without re-attesting to Apple,
+which is what makes a real per-user quota possible.
+
+Until `APP_ATTEST_MODE=enforce`, limits fall back to IP. The quota and
+cooldown still bound casual abuse and accidental retry storms, and the
+global budget still bounds the bill — but the per-user ceiling is only
+as strong as the identity underneath it.
+
 ## Known follow-ups
 
 - **CORS / Origin** allowlist as defense in depth.
+- **Per-principal spend attribution** from Anthropic's `usage` in the
+  response, rather than the payload-size proxy `requestCost` uses.
+  Would let the quota track real tokens instead of bytes.
 
 ## Tests
 

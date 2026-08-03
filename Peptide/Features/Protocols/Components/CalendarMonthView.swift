@@ -79,7 +79,7 @@ struct CalendarMonthView: View {
         HStack(spacing: 0) {
             ForEach(Array(weekdays.enumerated()), id: \.offset) { _, symbol in
                 Text(symbol.prefix(3).uppercased())
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(0.8)
                     .foregroundStyle(AppColor.textTertiary)
                     .frame(maxWidth: .infinity)
@@ -111,7 +111,7 @@ struct CalendarMonthView: View {
                             .frame(width: 34, height: 34)
                     }
                     Text(dayNumber(for: date))
-                        .font(.system(size: 15, weight: dayWeight(isSelected: isSelected, isToday: isToday), design: .rounded))
+                        .font(AppFont.scaled(16, weight: dayWeight(isSelected: isSelected, isToday: isToday), design: .rounded))
                         .foregroundStyle(dateColor(isCurrentMonth: isCurrentMonth, isSelected: isSelected, isToday: isToday))
                         .monospacedDigit()
                 }
@@ -143,8 +143,8 @@ struct CalendarMonthView: View {
             }
             if marks.count > Self.maxDots {
                 Text("+\(marks.count - Self.maxDots)")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(isSelected ? Color.white.opacity(0.8) : AppColor.textTertiary)
+                    .font(AppFont.scaled(8, weight: .bold))
+                    .foregroundStyle(isSelected ? AppColor.onAccent.opacity(0.8) : AppColor.textTertiary)
                     .monospacedDigit()
             }
         }
@@ -152,7 +152,7 @@ struct CalendarMonthView: View {
 
     private func doseDot(for mark: CalendarDoseMark, dimmed: Bool) -> some View {
         let palette = VialPalette.colors(for: mark.peptideName)
-        let tint = dimmed ? Color.white.opacity(0.9) : palette.fill
+        let tint = dimmed ? AppColor.onAccent.opacity(0.9) : palette.fill
         return Group {
             switch mark.kind {
             case .logged:

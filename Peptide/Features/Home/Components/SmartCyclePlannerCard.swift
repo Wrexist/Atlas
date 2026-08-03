@@ -36,12 +36,12 @@ struct SmartCyclePlannerCard: View {
     private var header: some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "sparkles")
-                .font(.system(size: 13, weight: .bold))
+                .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(AppColor.accentLight)
             Text("SMART PLANNER")
-                .font(.system(size: 11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(1.5)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
             Spacer(minLength: 0)
         }
     }
@@ -49,7 +49,7 @@ struct SmartCyclePlannerCard: View {
     private func row(for suggestion: SmartCyclePlanner.Suggestion) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: glyph(for: suggestion.kind))
-                .font(.system(size: 16, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 28, height: 28)
                 .background {

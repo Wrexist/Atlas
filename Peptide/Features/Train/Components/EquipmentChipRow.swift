@@ -62,7 +62,7 @@ struct EquipmentChipRow: View {
             Button(action: action) {
                 HStack(spacing: 4) {
                     Image(systemName: kind.symbolName)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                     Text(kind.displayName)
                         .font(AppFont.chipText)
                 }

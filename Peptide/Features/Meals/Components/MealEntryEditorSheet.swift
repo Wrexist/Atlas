@@ -88,7 +88,6 @@ struct MealEntryEditorSheet: View {
                 Text("Subtracts \(initial.calories) kcal from today's totals. This can't be undone.")
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private var summaryCard: some View {
@@ -99,7 +98,7 @@ struct MealEntryEditorSheet: View {
                         .fill(initial.category.tint.opacity(0.20))
                         .frame(width: 44, height: 44)
                     Image(systemName: initial.category.icon)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(initial.category.tint)
                 }
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -109,7 +108,7 @@ struct MealEntryEditorSheet: View {
                         .lineLimit(2)
                     HStack(spacing: 6) {
                         Image(systemName: initial.source.icon)
-                            .font(.system(size: 10))
+                            .font(AppFont.scaled(11))
                             .foregroundStyle(AppColor.textSecondary)
                         Text(Self.timeFormatter.string(from: initial.date))
                             .font(AppFont.caption)
@@ -178,18 +177,14 @@ struct MealEntryEditorSheet: View {
     }
 
     private var deleteButton: some View {
-        Button(role: .destructive) {
+        GlassButton(
+            title: "Delete this entry",
+            icon: "trash",
+            style: .destructive,
+            isFullWidth: true
+        ) {
             showDeleteConfirm = true
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "trash")
-                Text("Delete this entry")
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.sm)
         }
-        .buttonStyle(.bordered)
-        .tint(AppColor.destructive)
     }
 
     private func commit() {

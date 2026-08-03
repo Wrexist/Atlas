@@ -7,17 +7,21 @@ name: Screenshots
 #
 # workflow_dispatch only — never gates a PR, so it can't block merges.
 #
-# NOTE: this builds the test bundle, which currently also compiles the
-# PeptideTests target. If that target has outstanding compile errors (see
-# the Unit Tests note in pr-checks.yml), this job fails at build until
-# those are fixed. The capture logic itself is independent of that.
+# Uses the `PeptideUICapture` scheme, which builds the app and the UI tests
+# and nothing else. The main `Peptide` scheme's test action also compiles
+# `PeptideTests`, which currently doesn't build — that would gate the one job
+# whose purpose is to let a human look at the app behind an unrelated backlog.
+#
+# Captures three passes per tab: dark, light, and Accessibility XXXL. Light
+# and XXXL exist because the trait-resolving colour tokens and the six-step
+# type scale are both invisible to a single default-appearance run.
 on:
   workflow_dispatch:
     inputs:
       simulator:
-        description: "Simulator device to capture on"
+        description: "Simulator device to capture on (blank = first available iPhone)"
         required: false
-        default: "iPhone 16"
+        default: ""
         type: string
 
 permissions:
@@ -40,12 +44,34 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
+      - name: Pick a simulator
+        # This workflow has never once run, so its hardcoded "iPhone 16"
+        # default was never verified to exist on the runner's Xcode — and an
+        # empty `inputs.simulator` would produce `name=,OS=latest`. Resolve a
+        # real device and fail loudly with the device list if there is none.
+        id: sim
+        run: |
+          WANT="${{ inputs.simulator }}"
+          if [ -n "$WANT" ] && xcrun simctl list devices available | grep -q "$WANT ("; then
+            echo "name=$WANT" >> "$GITHUB_OUTPUT"
+          else
+            FOUND=$(xcrun simctl list devices available \
+              | grep -oE '^\s+iPhone [^(]+' | sed 's/^ *//;s/ *$//' | tail -1)
+            if [ -z "$FOUND" ]; then
+              echo "::error::No iPhone simulator available on this runner."
+              xcrun simctl list devices available
+              exit 1
+            fi
+            echo "Using $FOUND"
+            echo "name=$FOUND" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run screenshot UI test
         run: |
           xcodebuild test \
             -project Peptide.xcodeproj \
-            -scheme Peptide \
-            -destination "platform=iOS Simulator,name=${{ inputs.simulator }},OS=latest" \
+            -scheme PeptideUICapture \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.name }},OS=latest" \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \

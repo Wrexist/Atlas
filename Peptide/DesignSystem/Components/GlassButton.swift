@@ -7,6 +7,9 @@ enum GlassButtonStyle {
     case destructive
 }
 
+/// The app's one button. Every CTA — paywall, sheets, empty states, settings
+/// rows — routes through this so there's a single press response, a single
+/// glass recipe, and a single set of accent weights.
 struct GlassButton: View {
     let title: LocalizedStringKey
     var icon: String?
@@ -14,66 +17,66 @@ struct GlassButton: View {
     var isFullWidth: Bool = false
     var action: () -> Void
 
+    /// Set by any ancestor `.disabled(true)`. Without reading it the button
+    /// looks fully enabled while silently ignoring taps — the state the
+    /// bordered-prominent CTAs it replaced got for free from the system.
+    @Environment(\.isEnabled) private var isEnabled
+
     var body: some View {
         Button(action: action) {
-            HStack(spacing: Spacing.xs) {
-                if let icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 14, weight: .semibold))
-                }
-                Text(title)
-                    .font(AppFont.headline)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .truncationMode(.tail)
-                    .fixedSize(horizontal: false, vertical: true)
+            // `.ghost` is a bare text button — it gets no surface at all, so
+            // it skips `glassControl` rather than passing a clear tint (which
+            // would still paint the pre-iOS-26 fill).
+            if style == .ghost {
+                label
+            } else {
+                label.glassControl(.capsule, tint: tint, border: border)
             }
-            .frame(maxWidth: isFullWidth ? .infinity : nil)
-            .padding(.horizontal, isFullWidth ? Spacing.xl : Spacing.md)
-            .padding(.vertical, Spacing.md)
-            .foregroundStyle(foregroundColor)
-            .background {
-                switch style {
-                case .primary:
-                    Capsule()
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                        .overlay {
-                            Capsule()
-                                .fill(AppColor.accentPrimary.opacity(0.3))
-                        }
-                        .overlay {
-                            Capsule()
-                                .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
-                        }
-                case .secondary:
-                    Capsule()
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                        .overlay {
-                            Capsule()
-                                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                        }
-                case .ghost:
-                    Color.clear
-                case .destructive:
-                    Capsule()
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                        .overlay {
-                            Capsule()
-                                .fill(AppColor.destructive.opacity(0.2))
-                        }
-                        .overlay {
-                            Capsule()
-                                .strokeBorder(AppColor.destructive.opacity(0.3), lineWidth: 0.5)
-                        }
-                }
-            }
-            .liquidGlass(
-                .capsule,
-                tint: style == .primary ? AppColor.accentPrimary.opacity(0.35) : nil,
-                interactive: true
-            )
         }
         .buttonStyle(GlassPressStyle())
+    }
+
+    private var label: some View {
+        HStack(spacing: Spacing.xs) {
+            if let icon {
+                Image(systemName: icon)
+                    .font(AppFont.scaled(13, weight: .semibold))
+                    .accessibilityHidden(true)
+            }
+            Text(title)
+                .font(AppFont.headline)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .truncationMode(.tail)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: isFullWidth ? .infinity : nil)
+        .padding(.horizontal, isFullWidth ? Spacing.xl : Spacing.md)
+        .padding(.vertical, Spacing.md)
+        .frame(minHeight: Spacing.minimumHitTarget)
+        .foregroundStyle(foregroundColor)
+        .opacity(isEnabled ? 1 : 0.4)
+    }
+
+    /// Kept at ~0.15–0.18. Above that the tint stops reading as coloured glass
+    /// and starts reading as a flat painted button — the previous 0.30–0.35
+    /// values were the reason tinted controls looked opaque on iOS 26.
+    private var tint: Color? {
+        switch style {
+        case .primary: AppColor.accentPrimary.opacity(0.18)
+        case .secondary: nil
+        case .ghost: nil
+        case .destructive: AppColor.destructive.opacity(0.15)
+        }
+    }
+
+    private var border: Color {
+        switch style {
+        case .primary: AppColor.glassBorderActive
+        case .secondary: AppColor.glassBorder
+        case .ghost: .clear
+        case .destructive: AppColor.destructive.opacity(0.3)
+        }
     }
 
     private var foregroundColor: Color {
@@ -89,35 +92,21 @@ struct GlassButton: View {
 struct GlassIconButton: View {
     let icon: String
     let accessibilityLabel: LocalizedStringKey
-    var size: CGFloat = 44
+    var size: CGFloat = Spacing.minimumHitTarget
     var tinted: Bool = false
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(tinted ? AppColor.accentLight : AppColor.textPrimary)
-                .frame(width: size, height: size)
-                .background {
-                    Circle()
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                        .overlay {
-                            Circle()
-                                .fill(tinted ? AppColor.glassTint : AppColor.cardOverlay)
-                        }
-                        .overlay {
-                            Circle()
-                                .strokeBorder(
-                                    tinted ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                    lineWidth: 0.5
-                                )
-                        }
-                }
-                .liquidGlass(
+                .frame(width: max(size, Spacing.minimumHitTarget),
+                       height: max(size, Spacing.minimumHitTarget))
+                .glassControl(
                     .circle,
-                    tint: tinted ? AppColor.accentPrimary.opacity(0.32) : nil,
-                    interactive: true
+                    tint: tinted ? AppColor.accentPrimary.opacity(0.18) : nil,
+                    border: tinted ? AppColor.glassBorderActive : AppColor.glassBorder
                 )
         }
         .buttonStyle(GlassPressStyle())
@@ -151,5 +140,4 @@ private struct GlassPressStyle: ButtonStyle {
         }
         .padding(Spacing.screenPadding)
     }
-    .preferredColorScheme(.dark)
 }

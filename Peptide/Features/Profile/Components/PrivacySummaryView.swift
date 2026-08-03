@@ -119,7 +119,7 @@ private struct PrivacyRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: Spacing.lg) {
             Image(systemName: row.icon)
-                .font(.system(size: 22, weight: .semibold))
+                .font(AppFont.scaled(20, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 32, height: 32)
 
@@ -134,6 +134,7 @@ private struct PrivacyRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .accessibilityElement(children: .combine)
     }
 
     struct Row {

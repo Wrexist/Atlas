@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import UserNotifications
 
@@ -17,7 +18,13 @@ import UserNotifications
 struct RestTimerOverlay: View {
     @Binding var state: RestTimerState
 
-    private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+    /// Connected on appear and cancelled on disappear. `.autoconnect()`
+    /// starts the publisher the moment the view value is *created*, which
+    /// for an `.overlay` on ActiveWorkoutView means 10 ticks a second for
+    /// the whole workout — including the long stretches between sets when
+    /// no timer is running and nothing consumes them.
+    private let timer = Timer.publish(every: 0.1, on: .main, in: .common)
+    @State private var connection: (any Cancellable)?
 
     var body: some View {
         if state.isRunning {
@@ -26,6 +33,11 @@ struct RestTimerOverlay: View {
                 .padding(.bottom, Spacing.lg)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .onReceive(timer) { _ in tick() }
+                .onAppear { connection = timer.connect() }
+                .onDisappear {
+                    connection?.cancel()
+                    connection = nil
+                }
         }
     }
 
@@ -34,11 +46,11 @@ struct RestTimerOverlay: View {
             ring
             VStack(alignment: .leading, spacing: 2) {
                 Text("Rest")
-                    .font(.system(size: 10, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(1.2)
                     .foregroundStyle(AppColor.textTertiary)
                 Text(remainingLabel)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(28, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .monospacedDigit()
                     .contentTransition(.numericText())
@@ -90,9 +102,9 @@ struct RestTimerOverlay: View {
     private func tinyButton(label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
-                .padding(.horizontal, 10)
+                .padding(.horizontal, Spacing.md)
                 .padding(.vertical, 8)
                 .background(
                     Capsule().fill(AppColor.surfaceSecondary.opacity(0.8))

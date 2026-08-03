@@ -4,6 +4,11 @@ import XCTest
 /// `HealthRangeService.build()` is HealthKit-bound and hard to test
 /// in isolation, but the percentile + sample-from-series helpers
 /// are pure and where the actual logic lives. Lock those down here.
+///
+/// `@MainActor` because `HealthRangeService` is a `@MainActor enum`; without
+/// it every call below is a Swift 6 actor-isolation error, which is part of
+/// why the test target stopped compiling.
+@MainActor
 final class HealthRangeServiceTests: XCTestCase {
 
     // MARK: - percentile

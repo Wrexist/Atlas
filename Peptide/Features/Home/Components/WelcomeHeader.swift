@@ -85,7 +85,7 @@ struct WelcomeHeader: View {
 
                 if displayName.isEmpty {
                     Image(systemName: "person.fill")
-                        .font(.system(size: 22))
+                        .font(AppFont.scaled(20))
                         .foregroundStyle(AppColor.accentLight)
                         .symbolEffect(.bounce, value: iconBounce)
                 } else {
@@ -126,7 +126,7 @@ struct WelcomeHeader: View {
     /// announce "pencil" as a separate (non-actionable) element.
     private var editIndicator: some View {
         Image(systemName: "pencil")
-            .font(.system(size: 9, weight: .bold))
+            .font(AppFont.scaled(8, weight: .bold))
             .foregroundStyle(AppColor.background)
             .frame(width: 18, height: 18)
             .accessibilityHidden(true)

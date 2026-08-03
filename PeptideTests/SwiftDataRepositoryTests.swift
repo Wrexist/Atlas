@@ -141,7 +141,10 @@ final class SwiftDataRepositoryTests: XCTestCase {
         repo.saveProfile(input)
         let loaded = repo.loadProfile()
         XCTAssertNotNil(loaded)
-        XCTAssertEqual(loaded?.id, input.id)
+        // UserProfile has no id — there is only ever one profile row, so
+        // identity is not the thing under test; fidelity of the round trip is.
+        XCTAssertEqual(loaded?.name, input.name)
+        XCTAssertEqual(loaded?.goals, input.goals)
     }
 
     func test_saveProfile_overwritesExistingRow_notDuplicate() {
@@ -168,7 +171,7 @@ final class SwiftDataRepositoryTests: XCTestCase {
 
     func test_hasAnyData_isFalse_afterDeleteAll() {
         repo.saveProtocols(MockProtocols.all)
-        repo.saveEntries(MockEntries.entries)
+        repo.saveEntries(sampleEntries())
         repo.saveProfile(MockProfile.current)
         XCTAssertTrue(repo.hasAnyData)
 
@@ -188,7 +191,7 @@ final class SwiftDataRepositoryTests: XCTestCase {
     }
 
     func test_saveEntries_withEmptyInput_clearsAllEntries() {
-        repo.saveEntries(MockEntries.entries)
+        repo.saveEntries(sampleEntries())
         repo.saveEntries([])
         XCTAssertEqual(repo.loadEntries(), [])
     }

@@ -257,8 +257,14 @@ function attestMode() {
 
 /**
  * Checks the App Attest assertion headers on a proxied request.
- * Returns `{ ok, reason? }`; `ok: false` only ever in enforce mode.
- * Callers reject with 401 when `ok` is false.
+ *
+ * Returns `{ ok, reason?, keyId? }`; `ok: false` only ever in enforce
+ * mode, and callers reject with 401 when it is. `keyId` is set only
+ * when an assertion actually verified — it's the one per-install
+ * identity the server can trust, so the rate limiter keys on it in
+ * preference to the client IP (which rotates freely on mobile data
+ * and behind VPNs, making per-IP limits close to meaningless for a
+ * determined caller).
  */
 export async function checkAppAttest(req, { logLabel }) {
   const mode = attestMode();
@@ -313,7 +319,7 @@ export async function checkAppAttest(req, { logLabel }) {
     });
     await persistCounter(String(keyIdB64), record, counter);
     if (!enforce) console.log(`[${logLabel}] app-attest ok (counter ${counter})`);
-    return { ok: true };
+    return { ok: true, keyId: String(keyIdB64) };
   } catch (err) {
     return deny(err?.appAttest ? err.message : 'assertion verification error');
   }

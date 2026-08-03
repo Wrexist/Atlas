@@ -46,7 +46,6 @@ struct RecipeLogConfirmSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private var headerCard: some View {
@@ -62,8 +61,8 @@ struct RecipeLogConfirmSheet: View {
                     )
                     .frame(width: 56, height: 56)
                 Image(systemName: "list.bullet.rectangle.fill")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(AppFont.scaled(20, weight: .semibold))
+                    .foregroundStyle(AppColor.textPrimary)
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text(recipe.name)
@@ -82,7 +81,7 @@ struct RecipeLogConfirmSheet: View {
         GlassCard(tinted: true, padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Logs as")
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.accentLight.opacity(0.85))
@@ -110,18 +109,14 @@ struct RecipeLogConfirmSheet: View {
     }
 
     private var confirmButton: some View {
-        Button {
+        GlassButton(
+            title: "Log to today",
+            icon: "checkmark.circle.fill",
+            style: .primary,
+            isFullWidth: true
+        ) {
             onLog(category)
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "checkmark.circle.fill")
-                Text("Log to today")
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.sm)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(AppColor.accentPrimary)
         .disabled(totals.calories == 0)
     }
 }

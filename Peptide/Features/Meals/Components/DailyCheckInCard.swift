@@ -57,13 +57,13 @@ struct DailyCheckInCard: View {
                     .frame(width: 44, height: 44)
                     .scaleEffect(promptPulse ? 1.06 : 1.0)
                 Image(systemName: "heart.text.square.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(AppFont.scaled(16, weight: .semibold))
+                    .foregroundStyle(AppColor.textPrimary)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Daily check-in")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.accentLight.opacity(0.85))
@@ -71,7 +71,7 @@ struct DailyCheckInCard: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text("30 seconds. Powers your correlation insights.")
-                    .font(.system(size: 11))
+                    .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -79,7 +79,7 @@ struct DailyCheckInCard: View {
             Spacer(minLength: 0)
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
         }
         .padding(Spacing.md)
@@ -95,13 +95,13 @@ struct DailyCheckInCard: View {
                     .fill(AppColor.accentLight.opacity(0.22))
                     .frame(width: 44, height: 44)
                 Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Today's check-in")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.accentLight.opacity(0.85))
@@ -111,7 +111,7 @@ struct DailyCheckInCard: View {
             Spacer(minLength: 0)
 
             Text("Edit")
-                .font(.system(size: 12, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
         }
         .padding(Spacing.md)
@@ -124,10 +124,10 @@ struct DailyCheckInCard: View {
                 let value = dim.value(in: entry)
                 VStack(spacing: 2) {
                     Image(systemName: dim.icon)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(dim.tint)
                     Text("\(value)")
-                        .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                 }

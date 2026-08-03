@@ -99,7 +99,7 @@ struct CycleCardView: View {
             }
             Spacer()
             Text(model.subjectTitle)
-                .font(.system(size: 22, weight: .semibold))
+                .font(AppFont.scaled(20, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.55))
                 .lineLimit(1)
         }
@@ -114,14 +114,14 @@ struct CycleCardView: View {
 
             if !model.peptides.isEmpty {
                 Text(peptideNamesLine)
-                    .font(.system(size: 22, weight: .medium))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(Color.white.opacity(0.65))
                     .lineLimit(2)
             }
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Active since \(activeSinceFormatted)")
-                    .font(.system(size: 22, weight: .medium))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(Color.white.opacity(0.55))
                 Text("Day \(model.cycleDay) of \(model.cycleTotalDays) cycle")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
@@ -216,7 +216,7 @@ struct CycleCardView: View {
                 }
             }
             Text(label)
-                .font(.system(size: 18, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.55))
                 .textCase(.uppercase)
                 .tracking(1.2)
@@ -238,7 +238,7 @@ struct CycleCardView: View {
     private func healthSection(_ summary: CycleCardModel.HealthSummary) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Health signals")
-                .font(.system(size: 18, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.55))
                 .textCase(.uppercase)
                 .tracking(1.2)
@@ -274,7 +274,7 @@ struct CycleCardView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(Color(red: 0.78, green: 0.74, blue: 0.96))
                 Text(value)
                     .font(.system(size: 26, weight: .bold, design: .rounded))
@@ -283,16 +283,16 @@ struct CycleCardView: View {
                     .minimumScaleFactor(0.7)
             }
             Text(label)
-                .font(.system(size: 16, weight: .medium))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.55))
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                 .fill(Color.white.opacity(0.06))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                         .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
                 }
         }
@@ -314,10 +314,10 @@ struct CycleCardView: View {
             Spacer()
             HStack(spacing: 12) {
                 Image(systemName: "flask.fill")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(AppFont.scaled(16, weight: .bold))
                     .foregroundStyle(.white.opacity(0.7))
                 Text(AppConstants.watermarkText)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.7))
             }
         }
@@ -331,14 +331,14 @@ struct CycleCardView: View {
                     .resizable()
                     .frame(width: 96, height: 96)
             } else {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                     .fill(.white)
                     .frame(width: 96, height: 96)
             }
         }
         .padding(8)
         .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                 .fill(.white)
         }
     }

@@ -40,7 +40,7 @@ struct MealCategoriesCard: View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Meals today")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(0.8)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.accentLight.opacity(0.85))
@@ -76,7 +76,7 @@ struct MealCategoriesCard: View {
                     .fill(tint.opacity(0.18))
                     .frame(width: 32, height: 32)
                 Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(tint)
             }
 
@@ -84,11 +84,11 @@ struct MealCategoriesCard: View {
                 HStack {
                     Text(label)
                         .font(AppFont.subheadline)
-                        .fontWeight(.medium)
+                        .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer(minLength: 0)
                     Text("\(totals.calories) kcal")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(totals.calories == 0 ? AppColor.textSecondary : AppColor.textPrimary)
                         .contentTransition(.numericText())
@@ -96,7 +96,7 @@ struct MealCategoriesCard: View {
                 progressBar(width: barWidth(for: totals.calories), tint: tint)
                 if totals.entryCount > 0 {
                     Text(macroLine(for: totals))
-                        .font(.system(size: 11))
+                        .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.textSecondary)
                         .monospacedDigit()
                 }

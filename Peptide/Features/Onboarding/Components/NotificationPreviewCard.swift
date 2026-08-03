@@ -17,7 +17,7 @@ struct NotificationPreviewCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(appName)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
                         .textCase(.uppercase)
                         .tracking(0.5)
@@ -38,32 +38,18 @@ struct NotificationPreviewCard: View {
             }
         }
         .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.8))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
+        .glassControl(.rect(cornerRadius: Spacing.cardCornerRadius))
         .accessibilityElement(children: .combine)
     }
 
     private var iconBadge: some View {
         Image(systemName: "flask.fill")
-            .font(.system(size: 14, weight: .bold))
-            .foregroundStyle(.white)
+            .font(AppFont.scaled(13, weight: .bold))
+            .foregroundStyle(AppColor.onAccent)
             .frame(width: 28, height: 28)
             .background {
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [AppColor.accentLight, AppColor.accentPrimary],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(AppColor.accentFill)
             }
     }
 }

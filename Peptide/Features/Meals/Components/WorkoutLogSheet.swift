@@ -37,6 +37,7 @@ struct WorkoutLogSheet: View {
                         Text("Sets")
                         Spacer()
                         TextField("0", text: $sets)
+                            .accessibilityLabel("Sets")
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .frame(maxWidth: 80)
@@ -45,6 +46,7 @@ struct WorkoutLogSheet: View {
                         Text("Reps")
                         Spacer()
                         TextField("0", text: $reps)
+                            .accessibilityLabel("Reps")
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .frame(maxWidth: 80)
@@ -53,6 +55,7 @@ struct WorkoutLogSheet: View {
                         Text("Duration (min)")
                         Spacer()
                         TextField("0", text: $minutes)
+                            .accessibilityLabel("Duration in minutes")
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .frame(maxWidth: 80)
@@ -98,7 +101,6 @@ struct WorkoutLogSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear { nameFocused = true }
     }
 

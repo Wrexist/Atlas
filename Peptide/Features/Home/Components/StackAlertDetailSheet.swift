@@ -90,19 +90,15 @@ struct StackAlertDetailSheet: View {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(AppFont.scaled(13, weight: .semibold))
                             .foregroundStyle(AppColor.textSecondary)
                             .frame(width: 30, height: 30)
-                            .background {
-                                Circle()
-                                    .fill(AppColor.surfaceSecondary.opacity(0.7))
-                                    .overlay {
-                                        Circle()
-                                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                                    }
-                            }
-                            .liquidGlass(.circle)
+                            .glassControl(.circle)
+                            .frame(width: Spacing.minimumHitTarget,
+                                   height: Spacing.minimumHitTarget)
+                            .contentShape(Rectangle())
                     }
+                    .accessibilityLabel("Close")
                 }
             }
             .navigationTitle("Alert Details")
@@ -132,7 +128,7 @@ struct StackAlertDetailSheet: View {
                     .font(.system(size: 30, weight: .semibold))
                     .foregroundStyle(severityColor)
             }
-            .shadow(color: severityColor.opacity(0.35), radius: 18, x: 0, y: 0)
+            .shadow(color: .black.opacity(0.25), radius: 10, x: 0, y: 4)
 
             Text(warning.title)
                 .font(AppFont.title2)
@@ -152,21 +148,17 @@ struct StackAlertDetailSheet: View {
                 .frame(width: 6, height: 6)
 
             Text(severityLabel.uppercased())
-                .font(.system(size: 11, weight: .bold))
+                .font(AppFont.scaled(11, weight: .bold))
                 .tracking(0.8)
                 .foregroundStyle(severityColor)
         }
         .padding(.horizontal, Spacing.md)
         .padding(.vertical, 6)
-        .background {
-            Capsule()
-                .fill(severityColor.opacity(0.12))
-                .overlay {
-                    Capsule()
-                        .strokeBorder(severityColor.opacity(0.25), lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.capsule)
+        .glassControl(
+            .capsule,
+            tint: severityColor.opacity(0.12),
+            border: severityColor.opacity(0.25)
+        )
     }
 
     private var detailSection: some View {
@@ -226,21 +218,17 @@ struct StackAlertDetailSheet: View {
 
             if navigable {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(AppFont.scaled(8, weight: .bold))
                     .foregroundStyle(severityColor.opacity(0.7))
             }
         }
         .padding(.horizontal, Spacing.md)
         .padding(.vertical, Spacing.sm)
-        .background {
-            Capsule()
-                .fill(severityColor.opacity(0.14))
-                .overlay {
-                    Capsule()
-                        .strokeBorder(severityColor.opacity(0.28), lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.capsule)
+        .glassControl(
+            .capsule,
+            tint: severityColor.opacity(0.14),
+            border: severityColor.opacity(0.28)
+        )
     }
 
     @ViewBuilder
@@ -253,11 +241,11 @@ struct StackAlertDetailSheet: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: iconName)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(tint)
 
                 Text(title.uppercased())
-                    .font(.system(size: 11, weight: .bold))
+                    .font(AppFont.scaled(11, weight: .bold))
                     .tracking(0.6)
                     .foregroundStyle(AppColor.textSecondary)
             }
@@ -266,20 +254,7 @@ struct StackAlertDetailSheet: View {
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius + 4, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius + 4, style: .continuous)
-                        .fill(AppColor.cardOverlay)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius + 4, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius + 4, style: .continuous))
-        .liquidGlass(.rect(cornerRadius: Spacing.smallCornerRadius + 4))
+        .glassSurface(cornerRadius: Spacing.smallCornerRadius + 4)
     }
 
     private var actionFooter: some View {
@@ -300,7 +275,7 @@ struct StackAlertDetailSheet: View {
             } label: {
                 Text("Got it")
                     .font(AppFont.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textSecondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, Spacing.sm)

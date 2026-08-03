@@ -40,12 +40,12 @@ struct GoalsSectionCard: View {
                             HStack(spacing: Spacing.xs) {
                                 if isSelected {
                                     Image(systemName: "checkmark")
-                                        .font(.system(size: 10, weight: .bold))
+                                        .font(AppFont.scaled(11, weight: .bold))
                                         .transition(.scale.combined(with: .opacity))
                                 }
                                 Text(entry.displayName)
                                     .font(AppFont.footnote)
-                                    .fontWeight(.medium)
+                                    .fontWeight(.semibold)
                             }
                             .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                             .padding(.horizontal, Spacing.md)

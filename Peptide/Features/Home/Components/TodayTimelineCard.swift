@@ -44,7 +44,7 @@ struct TodayTimelineCard: View {
                     Circle()
                         .fill(tint.opacity(0.18))
                     Image(systemName: event.icon)
-                        .font(.system(size: 12, weight: .bold))
+                        .font(AppFont.scaled(11, weight: .bold))
                         .foregroundStyle(tint)
                 }
                 .frame(width: 26, height: 26)
@@ -61,7 +61,7 @@ struct TodayTimelineCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                     Text(Self.timeFormatter.string(from: event.date))
-                        .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                        .font(AppFont.scaled(11, weight: .heavy, design: .monospaced))
                         .foregroundStyle(AppColor.textSecondary)
                     Text(event.title)
                         .font(AppFont.subheadline)
@@ -71,11 +71,11 @@ struct TodayTimelineCard: View {
                     Spacer(minLength: 0)
                     if event.isCompleted {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(AppFont.scaled(11, weight: .bold))
                             .foregroundStyle(AppColor.success)
                     } else if event.isPending {
                         Text("PENDING")
-                            .font(.system(size: 9, weight: .heavy))
+                            .font(AppFont.scaled(8, weight: .heavy))
                             .tracking(0.5)
                             .foregroundStyle(AppColor.warning)
                             .padding(.horizontal, 5)

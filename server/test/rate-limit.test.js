@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { allowRate, withinDailyBudget } from '../api/_lib/rate-limit.js';
+import {
+  allowRate,
+  isBlocked,
+  recordLimitStrike,
+  costForBytes,
+  requestCost,
+  withinDailyBudget,
+  withinDeviceQuota,
+} from '../api/_lib/rate-limit.js';
 
 // The module keeps one in-memory Map for the life of the process, so
 // every test uses its own `name` to stay isolated. Tests that mock
@@ -97,7 +105,9 @@ test('redis: post-increment count governs allow/deny', async (t) => {
   assert.equal(url, 'https://fake.upstash.test/pipeline');
   assert.equal(init.headers.Authorization, 'Bearer tok');
   const [incr, expire] = JSON.parse(init.body);
-  assert.equal(incr[0], 'INCR');
+  // INCRBY, not INCR: a request can consume more than one unit so the
+  // budget tracks payload size rather than bare request count.
+  assert.deepEqual([incr[0], incr[2]], ['INCRBY', '1']);
   assert.match(incr[1], /^rl:redis-basic:1\.2\.3\.4:\d+$/);
   assert.deepEqual(expire, ['EXPIRE', incr[1], '120']);
 });
@@ -131,4 +141,166 @@ test('budget: unset env disables; set env caps per UTC day', async (t) => {
   assert.equal(await withinDailyBudget(), false);
   t.mock.timers.tick(86_400_001); // next day → fresh budget
   assert.equal(await withinDailyBudget(), true);
+});
+
+test('budget: a rejected request does not consume the shared allowance', async (t) => {
+  // The failure this guards: an oversized request arriving with one
+  // unit left is rejected, but if it still charges its cost the
+  // counter is pushed past the budget and every small request behind
+  // it 503s for the rest of the day — without a single upstream token
+  // having been spent.
+  setEnv(t, { ...NO_REDIS, ANTHROPIC_DAILY_REQUEST_BUDGET: '3' });
+  // Day 9: the memory fallback keys on one global bucket, so each test
+  // touching it needs its own day or it inherits the previous test's count.
+  t.mock.timers.enable({ apis: ['Date'], now: 9 * 86_400_000 });
+
+  assert.equal(await withinDailyBudget({ cost: 2 }), true);   // 2/3
+  assert.equal(await withinDailyBudget({ cost: 5 }), false);  // would be 7 — refunded
+  assert.equal(await withinDailyBudget({ cost: 1 }), true);   // 3/3, still fits
+  assert.equal(await withinDailyBudget({ cost: 1 }), false);  // genuinely full
+});
+
+test('cost: a large body costs more than a small one', () => {
+  assert.equal(costForBytes(0), 1);
+  assert.equal(costForBytes(1024), 1);
+  assert.equal(costForBytes(256 * 1024), 1);
+  assert.equal(costForBytes(256 * 1024 + 1), 2);
+  assert.equal(costForBytes(7 * 1024 * 1024), 28);
+  // A client that omits content-length reads as one unit from the
+  // header alone — which is why the proxy re-charges on the parsed
+  // body rather than trusting this number.
+  assert.equal(requestCost({ headers: {} }), 1);
+  assert.equal(requestCost({ headers: { 'content-length': 'not-a-number' } }), 1);
+});
+
+// ---------------------------------------------------------------------------
+// Abuse controls
+//
+// These are the limits that decide whether one caller with an extracted
+// secret can (a) run the bill up and (b) take the service down for everyone
+// else. Each test states the abuse it's preventing.
+// ---------------------------------------------------------------------------
+
+test('requestCost scales with payload so an image costs more than a text turn', () => {
+  assert.equal(requestCost({ headers: {} }), 1);
+  assert.equal(requestCost({ headers: { 'content-length': '1000' } }), 1);
+  // A ~5 MB meal-scan JPEG shouldn't spend the same budget as a chat turn.
+  assert.equal(requestCost({ headers: { 'content-length': String(5 * 1024 * 1024) } }), 20);
+});
+
+test('device quota bounds one principal without touching another', async (t) => {
+  setEnv(t, { ...NO_REDIS, DEVICE_DAILY_QUOTA: '3' });
+  const abuser = { principal: 'quota-test-abuser' };
+  const bystander = { principal: 'quota-test-bystander' };
+
+  assert.equal(await withinDeviceQuota(abuser), true);
+  assert.equal(await withinDeviceQuota(abuser), true);
+  assert.equal(await withinDeviceQuota(abuser), true);
+  assert.equal(await withinDeviceQuota(abuser), false, 'fourth request is over quota');
+  // The whole point: one bad actor must not consume anyone else's allowance.
+  assert.equal(await withinDeviceQuota(bystander), true);
+});
+
+test('device quota charges the request cost, not one per call', async (t) => {
+  setEnv(t, { ...NO_REDIS, DEVICE_DAILY_QUOTA: '10' });
+  const principal = 'quota-cost-test';
+  assert.equal(await withinDeviceQuota({ principal, cost: 8 }), true);
+  assert.equal(await withinDeviceQuota({ principal, cost: 8 }), false);
+});
+
+test('device quota disabled at 0', async (t) => {
+  setEnv(t, { ...NO_REDIS, DEVICE_DAILY_QUOTA: '0' });
+  for (let i = 0; i < 50; i += 1) {
+    assert.equal(await withinDeviceQuota({ principal: 'quota-off' }), true);
+  }
+});
+
+test('daily budget fails CLOSED when redis is configured but unreachable', async (t) => {
+  setEnv(t, {
+    ...NO_REDIS,
+    UPSTASH_REDIS_REST_URL: 'https://fake.upstash.test',
+    UPSTASH_REDIS_REST_TOKEN: 'tok',
+    ANTHROPIC_DAILY_REQUEST_BUDGET: '100',
+    BUDGET_FAIL_OPEN: undefined,
+  });
+  stubFetch(t, async () => {
+    throw new Error('redis down');
+  });
+  // A spend ceiling that stops applying during an outage is not a ceiling:
+  // an outage is exactly when a runaway client would go unnoticed.
+  assert.equal(await withinDailyBudget({ cost: 1 }), false);
+});
+
+test('daily budget fail-closed is opt-out for deployments that accept the risk', async (t) => {
+  setEnv(t, {
+    ...NO_REDIS,
+    UPSTASH_REDIS_REST_URL: 'https://fake.upstash.test',
+    UPSTASH_REDIS_REST_TOKEN: 'tok',
+    ANTHROPIC_DAILY_REQUEST_BUDGET: '100',
+    BUDGET_FAIL_OPEN: '1',
+  });
+  stubFetch(t, async () => {
+    throw new Error('redis down');
+  });
+  assert.equal(await withinDailyBudget({ cost: 1 }), true);
+});
+
+test('daily budget still uses the memory window when redis was never configured', async (t) => {
+  setEnv(t, { ...NO_REDIS, ANTHROPIC_DAILY_REQUEST_BUDGET: '2', BUDGET_FAIL_OPEN: undefined });
+  // The memory fallback keys on a single global bucket, so pin a distinct
+  // day the way the budget test above does — otherwise this inherits
+  // whatever count earlier tests left in the current window.
+  t.mock.timers.enable({ apis: ['Date'], now: 5 * 86_400_000 }); // 1970-01-06
+  // No Redis configured is not an outage — small deployments keep the
+  // best-effort per-instance behaviour rather than being locked out.
+  assert.equal(await withinDailyBudget({ cost: 1 }), true);
+  assert.equal(await withinDailyBudget({ cost: 1 }), true);
+  assert.equal(await withinDailyBudget({ cost: 1 }), false);
+});
+
+test('repeat limit strikes escalate to a block', async (t) => {
+  setEnv(t, {
+    ...NO_REDIS,
+    UPSTASH_REDIS_REST_URL: 'https://fake.upstash.test',
+    UPSTASH_REDIS_REST_TOKEN: 'tok',
+    ABUSE_STRIKES: '3',
+    ABUSE_BLOCK_SECONDS: '900',
+  });
+  let counter = 0;
+  const calls = stubFetch(t, async (_url, init) => {
+    const [cmd] = JSON.parse(init.body);
+    if (cmd[0] === 'INCRBY') {
+      counter += 1;
+      return new Response(JSON.stringify([{ result: counter }, { result: 1 }]), { status: 200 });
+    }
+    return new Response(JSON.stringify([{ result: 'OK' }]), { status: 200 });
+  });
+
+  const principal = 'striker';
+  assert.equal(await recordLimitStrike({ principal }), false);
+  assert.equal(await recordLimitStrike({ principal }), false);
+  assert.equal(await recordLimitStrike({ principal }), false);
+  // Fourth strike crosses the threshold and writes the block key.
+  assert.equal(await recordLimitStrike({ principal }), true);
+
+  const setCall = calls.map(([, init]) => JSON.parse(init.body)[0]).find((c) => c[0] === 'SET');
+  assert.deepEqual(setCall, ['SET', 'block:striker', '1', 'EX', '900']);
+});
+
+test('isBlocked reports an active cooldown and is off when disabled', async (t) => {
+  setEnv(t, {
+    ...NO_REDIS,
+    UPSTASH_REDIS_REST_URL: 'https://fake.upstash.test',
+    UPSTASH_REDIS_REST_TOKEN: 'tok',
+    ABUSE_BLOCK_SECONDS: '900',
+  });
+  let stored = null;
+  stubFetch(t, async () => new Response(JSON.stringify([{ result: stored }]), { status: 200 }));
+
+  assert.equal(await isBlocked({ principal: 'p' }), false);
+  stored = '1';
+  assert.equal(await isBlocked({ principal: 'p' }), true);
+
+  process.env.ABUSE_BLOCK_SECONDS = '0';
+  assert.equal(await isBlocked({ principal: 'p' }), false, 'disabled by config');
 });

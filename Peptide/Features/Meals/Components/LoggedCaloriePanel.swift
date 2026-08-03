@@ -35,12 +35,12 @@ struct LoggedCaloriePanel: View {
                     .rotationEffect(.degrees(-90))
                 VStack(spacing: Spacing.xxs) {
                     Text("\(Int(displayed))")
-                        .font(.system(size: 22, weight: .heavy))
+                        .font(AppFont.scaled(20, weight: .heavy))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
                     Text("of \(targetCalories) kcal")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                         .monospacedDigit()
                 }
@@ -52,7 +52,7 @@ struct LoggedCaloriePanel: View {
 
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                     .accessibilityHidden(true)
                 Text("\(deltaCalories) kcal · \(productName)")

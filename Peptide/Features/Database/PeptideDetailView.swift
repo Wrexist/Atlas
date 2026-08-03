@@ -155,7 +155,7 @@ struct PeptideDetailView: View {
 
                 // Dosage Info
                 DosageInfoSection(peptide: peptide) {
-                    withAnimation { proxy.scrollTo(Section.research, anchor: .top) }
+                    withAnimation(AppAnimation.springSmooth) { proxy.scrollTo(Section.research, anchor: .top) }
                 }
                 .sectionAppear(index: staggerIndex(.dosage))
 
@@ -176,7 +176,7 @@ struct PeptideDetailView: View {
                                 ForEach(peptide.sideEffects, id: \.self) { effect in
                                     HStack(alignment: .top, spacing: Spacing.sm) {
                                         Image(systemName: "circle.fill")
-                                            .font(.system(size: 6))
+                                            .font(AppFont.scaled(8))
                                             .foregroundStyle(Color.orange.opacity(0.7))
                                             .shadow(color: Color.orange.opacity(0.3), radius: 3)
                                             .padding(.top, 7)
@@ -210,7 +210,7 @@ struct PeptideDetailView: View {
                                 ForEach(peptide.contraindications, id: \.self) { item in
                                     HStack(alignment: .top, spacing: Spacing.sm) {
                                         Image(systemName: "xmark.circle.fill")
-                                            .font(.system(size: 12))
+                                            .font(AppFont.scaled(11))
                                             .foregroundStyle(AppColor.destructive.opacity(0.7))
                                             .shadow(color: AppColor.destructive.opacity(0.3), radius: 3)
                                             .padding(.top, 3)
@@ -328,7 +328,7 @@ struct PeptideDetailView: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     Text("\(memberProtocols.count)")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(AppFont.scaled(11, weight: .bold))
                         .foregroundStyle(AppColor.accentLight)
                         .padding(.horizontal, Spacing.sm)
                         .padding(.vertical, 2)
@@ -358,7 +358,7 @@ struct PeptideDetailView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(proto.name)
                     .font(AppFont.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
 
@@ -371,20 +371,12 @@ struct PeptideDetailView: View {
             Spacer()
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
         }
         .padding(.horizontal, Spacing.md)
         .padding(.vertical, Spacing.sm)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceElevated.opacity(0.8))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .liquidGlass(.rect(cornerRadius: Spacing.smallCornerRadius))
+        .glassControl(.rect(cornerRadius: Spacing.smallCornerRadius))
     }
 
     private func statusColor(_ status: ProtocolStatus) -> Color {
@@ -398,7 +390,7 @@ struct PeptideDetailView: View {
     private var disclaimerFooter: some View {
         HStack(alignment: .top, spacing: Spacing.sm) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 12))
+                .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
             Text(PeptideDatabase.disclaimer)
                 .font(AppFont.caption)
@@ -453,7 +445,7 @@ struct MolecularInfoSection: View {
                                 HStack {
                                     HStack(spacing: Spacing.sm) {
                                         Image(systemName: "link")
-                                            .font(.system(size: 12))
+                                            .font(AppFont.scaled(11))
                                             .foregroundStyle(AppColor.accentPrimary)
                                             .frame(width: 20)
 
@@ -466,11 +458,11 @@ struct MolecularInfoSection: View {
 
                                     Text("CID: \(cid)")
                                         .font(AppFont.subheadline)
-                                        .fontWeight(.medium)
+                                        .fontWeight(.semibold)
                                         .foregroundStyle(AppColor.accentPrimary)
 
                                     Image(systemName: "arrow.up.right")
-                                        .font(.system(size: 10, weight: .semibold))
+                                        .font(AppFont.scaled(11, weight: .semibold))
                                         .foregroundStyle(AppColor.accentPrimary)
                                 }
                             }
@@ -492,7 +484,7 @@ private struct MolecularRow: View {
         HStack {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
-                    .font(.system(size: 12))
+                    .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: 20)
 
@@ -505,11 +497,12 @@ private struct MolecularRow: View {
 
             Text(value)
                 .font(AppFont.subheadline)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 

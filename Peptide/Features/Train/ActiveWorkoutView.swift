@@ -31,6 +31,8 @@ struct ActiveWorkoutView: View {
     /// notification so the user gets a buzz even when the phone is
     /// face-down (audit Train H2).
     @State private var restTimer = RestTimerState.inactive
+
+    private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -41,6 +43,7 @@ struct ActiveWorkoutView: View {
                 WorkoutFinishView(
                     session: finished,
                     detectedPRs: finishedPRs,
+                    unit: unit,
                     onClose: { dismiss() }
                 )
             } else {
@@ -159,8 +162,8 @@ struct ActiveWorkoutView: View {
                         label: "Sets done"
                     )
                     statTile(
-                        value: "\(Int(session.totalVolumeKg.rounded()))",
-                        label: "Volume (kg)"
+                        value: "\(Int(unit.weightForDisplay(session.totalVolumeKg).rounded()))",
+                        label: "Volume (\(unit.weightSuffix))"
                     )
                 }
             }
@@ -209,6 +212,7 @@ struct ActiveWorkoutView: View {
                     WorkoutExerciseCard(
                         entry: entry,
                         exercise: library.lookup(id: entry.exerciseID),
+                        unit: unit,
                         previousSetLookup: {
                             sessionService.lastCompletedSet(forExerciseID: entry.exerciseID)
                         },
