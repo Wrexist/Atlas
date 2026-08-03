@@ -82,7 +82,7 @@ struct WeeklySummaryHeroCard: View {
                     )
 
                     Text(truncated(summary.text, to: 280))
-                        .font(AppFont.scaled(13, weight: .medium))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.leading)
                         .lineSpacing(3)

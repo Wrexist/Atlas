@@ -114,14 +114,14 @@ struct CycleCardView: View {
 
             if !model.peptides.isEmpty {
                 Text(peptideNamesLine)
-                    .font(AppFont.scaled(20, weight: .medium))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(Color.white.opacity(0.65))
                     .lineLimit(2)
             }
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Active since \(activeSinceFormatted)")
-                    .font(AppFont.scaled(20, weight: .medium))
+                    .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(Color.white.opacity(0.55))
                 Text("Day \(model.cycleDay) of \(model.cycleTotalDays) cycle")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
@@ -283,7 +283,7 @@ struct CycleCardView: View {
                     .minimumScaleFactor(0.7)
             }
             Text(label)
-                .font(AppFont.scaled(16, weight: .medium))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.55))
         }
         .padding(20)

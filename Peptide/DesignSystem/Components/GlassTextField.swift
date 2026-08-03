@@ -8,7 +8,7 @@ struct GlassTextField: View {
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
-                .font(AppFont.scaled(16, weight: .medium))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
 
             TextField(placeholder, text: $text)

@@ -121,7 +121,7 @@ struct HabitRowCard: View {
                 .font(AppFont.scaled(11, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
             Text(label)
-                .font(AppFont.scaled(11, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
         }
     }

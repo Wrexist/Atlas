@@ -24,13 +24,13 @@ struct ExportSection: View {
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                 + Text("protocol history")
-                    .font(AppFont.scaled(11, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                 + Text(" and ")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                 + Text("tracking data")
-                    .font(AppFont.scaled(11, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight))
 
                 HStack(spacing: Spacing.md) {

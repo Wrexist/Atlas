@@ -173,7 +173,7 @@ struct BiometricCorrelationCard: View {
     private func bar(label: String, value: Double, fraction: Double, count: Int, tint: Color) -> some View {
         HStack(spacing: Spacing.sm) {
             Text(label)
-                .font(AppFont.scaled(11, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 84, alignment: .leading)
             GeometryReader { proxy in

@@ -246,7 +246,7 @@ struct BarcodeScanFlow: View {
                 }
 
                 Text(product.name)
-                    .font(AppFont.scaled(11, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
                     .truncationMode(.tail)

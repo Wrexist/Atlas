@@ -125,7 +125,7 @@ struct AtlasProgressView: View {
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
             Text("best \(best)")
-                .font(AppFont.scaled(11, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
         }
         .frame(maxWidth: .infinity)

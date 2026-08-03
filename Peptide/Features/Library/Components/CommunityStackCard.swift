@@ -63,7 +63,7 @@ struct CommunityStackCard: View {
             Image(systemName: icon)
                 .font(AppFont.scaled(11))
             Text(value)
-                .font(AppFont.scaled(11, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
         }
         .foregroundStyle(AppColor.textTertiary)
         .padding(.horizontal, 8)

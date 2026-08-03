@@ -243,7 +243,7 @@ struct LabSummaryRow: View {
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                 Text(panel.canonicalUnit)
-                    .font(AppFont.scaled(8, weight: .medium))
+                    .font(AppFont.scaled(8, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
             }
             trendBadge

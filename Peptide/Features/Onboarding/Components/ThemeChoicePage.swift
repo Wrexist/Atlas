@@ -50,7 +50,7 @@ struct ThemeChoicePage: View {
         } label: {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: mode.iconName)
-                    .font(AppFont.scaled(24, weight: .medium))
+                    .font(AppFont.scaled(24, weight: .semibold))
                     .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
                     .symbolEffect(.bounce, value: isSelected)
                     .frame(height: 28)

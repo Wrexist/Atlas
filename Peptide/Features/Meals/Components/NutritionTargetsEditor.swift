@@ -114,7 +114,7 @@ struct NutritionTargetsEditor: View {
             VStack(spacing: Spacing.md) {
                 VStack(spacing: 2) {
                     Text("\(intValue(calories))")
-                        .font(.system(size: 48, weight: .black, design: .rounded))
+                        .font(.system(size: 48, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
@@ -162,7 +162,7 @@ struct NutritionTargetsEditor: View {
             HStack(spacing: 4) {
                 Circle().fill(tint).frame(width: 7, height: 7)
                 Text(label)
-                    .font(AppFont.scaled(11, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
             }
             Text("\(grams) g")

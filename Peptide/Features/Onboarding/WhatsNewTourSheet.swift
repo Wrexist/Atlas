@@ -221,7 +221,7 @@ struct WhatsNewTourSheet: View {
                     .foregroundStyle(tint)
             }
             Text(text)
-                .font(AppFont.scaled(13, weight: .medium))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .lineSpacing(2)

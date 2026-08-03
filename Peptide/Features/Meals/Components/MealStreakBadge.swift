@@ -110,7 +110,7 @@ struct MealStreakBadge: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
                 Text(currentStreak == 1 ? "day streak" : "day meal streak")
-                    .font(AppFont.scaled(11, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
             }
         } else {
@@ -136,7 +136,7 @@ struct MealStreakBadge: View {
                 .foregroundStyle(AppColor.textTertiary)
         } else if currentStreak >= 7 {
             Text("On fire 🔥")
-                .font(AppFont.scaled(11, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(flameTint)
         }
     }

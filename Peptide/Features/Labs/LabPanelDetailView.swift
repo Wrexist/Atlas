@@ -91,7 +91,7 @@ struct LabPanelDetailView: View {
                                     .foregroundStyle(AppColor.textPrimary)
                                     .contentTransition(.numericText())
                                 Text(panel.canonicalUnit)
-                                    .font(AppFont.scaled(13, weight: .medium))
+                                    .font(AppFont.scaled(13, weight: .semibold))
                                     .foregroundStyle(AppColor.textSecondary)
                             }
                             Text(Self.dateFormatter.string(from: latest.date))
@@ -258,7 +258,7 @@ struct LabPanelDetailView: View {
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                     Text(panel.canonicalUnit)
-                        .font(AppFont.scaled(11, weight: .medium))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }

@@ -124,7 +124,7 @@ struct AccountSection: View {
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
             + Text("Apple ID")
-                .font(AppFont.scaled(16, weight: .medium))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
             + Text(" to keep your Atlas account associated with your device. All your protocols, entries, and settings stay on this device.")
                 .font(AppFont.subheadline)

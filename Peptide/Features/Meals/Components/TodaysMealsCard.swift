@@ -130,7 +130,7 @@ struct MealEntryRow: View {
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                     Text("\(entry.proteinG)P · \(entry.carbsG)C · \(entry.fatG)F")
-                        .font(AppFont.scaled(11, weight: .medium))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textSecondary)
                 }

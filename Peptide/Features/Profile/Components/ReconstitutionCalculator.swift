@@ -305,7 +305,7 @@ struct SyringeDiagram: View {
 
                     if tick > 0 && tick < 10 {
                         Text("\(tick * majorTickEvery)")
-                            .font(AppFont.scaled(8, weight: .medium))
+                            .font(AppFont.scaled(8, weight: .semibold))
                             .monospacedDigit()
                             .foregroundStyle(AppColor.textTertiary)
                             .position(x: x, y: centerY + plungerHeight / 2 + 8)

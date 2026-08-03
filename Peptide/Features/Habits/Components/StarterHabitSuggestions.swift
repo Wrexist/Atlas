@@ -70,7 +70,7 @@ struct StarterHabitSuggestions: View {
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(Color(hex: UInt(template.tintHex)))
                 Text(template.name)
-                    .font(AppFont.scaled(13, weight: .medium))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                 Image(systemName: "plus.circle.fill")
                     .font(AppFont.scaled(11))

@@ -386,7 +386,7 @@ struct FoodLibraryFlow: View {
     private var searchHeader: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "magnifyingglass")
-                .font(AppFont.scaled(16, weight: .medium))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
 
             TextField("Search foods, brands, meals…", text: $query)
@@ -695,7 +695,7 @@ struct FoodLibraryFlow: View {
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                 Text(title)
-                    .font(AppFont.scaled(11, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
             }
             .frame(maxWidth: .infinity)
@@ -955,7 +955,7 @@ struct FoodLibraryFlow: View {
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
             Text(label)
-                .font(AppFont.scaled(8, weight: .medium))
+                .font(AppFont.scaled(8, weight: .semibold))
                 .foregroundStyle(tint.opacity(0.85))
         }
         .padding(.horizontal, 6)

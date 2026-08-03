@@ -43,7 +43,7 @@ struct TodayContextRow: View {
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
                     Text(cycleSubtitle(for: proto))
-                        .font(AppFont.scaled(11, weight: .medium))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 Image(systemName: "chevron.right")

@@ -217,7 +217,7 @@ struct TrialOfferView: View {
                 .foregroundStyle(AppColor.accentLight)
 
             Text("\(trialDays) Days Free")
-                .font(.system(size: 44, weight: .black, design: .rounded))
+                .font(.system(size: 44, weight: .heavy, design: .rounded))
                 .foregroundStyle(
                     LinearGradient(
                         colors: [AppColor.textPrimary, AppColor.accentLight],
@@ -328,7 +328,7 @@ struct TrialOfferView: View {
                 .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
             Text("· Loved by 12k+ athletes")
-                .font(AppFont.scaled(11, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
         }
         .opacity(didReveal ? 1 : 0)
@@ -523,7 +523,7 @@ struct TrialOfferView: View {
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                 Text(reassuranceCopy)
-                    .font(AppFont.scaled(11, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
             }
 

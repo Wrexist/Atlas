@@ -20,7 +20,7 @@ struct HabitCompletionChip: View {
             HStack(spacing: 6) {
                 marker
                 Text(habit.name)
-                    .font(AppFont.scaled(13, weight: .medium))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(isCompleted ? AppColor.textSecondary : AppColor.textPrimary)
                     .lineLimit(1)
                 if let weeklyCount, let weeklyTarget {

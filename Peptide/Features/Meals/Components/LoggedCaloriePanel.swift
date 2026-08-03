@@ -40,7 +40,7 @@ struct LoggedCaloriePanel: View {
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
                     Text("of \(targetCalories) kcal")
-                        .font(AppFont.scaled(11, weight: .medium))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                         .monospacedDigit()
                 }

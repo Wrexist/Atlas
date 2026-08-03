@@ -50,7 +50,7 @@ struct BioAgeHeroSection: View {
                 .font(.system(size: 28, weight: .heavy, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
             Text("As of \(Self.asOfFormatter.string(from: asOfDate))")
-                .font(AppFont.scaled(16, weight: .medium))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary.opacity(0.55))
         }
     }
@@ -172,7 +172,7 @@ struct BioAgeHeroSection: View {
         let total = BioAgeStateResolver.minBaselineDays
         let days = max(0, min(total, Int((progress * Double(total)).rounded())))
         return Text("\(days) of \(total) days of data collected")
-            .font(AppFont.scaled(13, weight: .medium))
+            .font(AppFont.scaled(13, weight: .semibold))
             .foregroundStyle(AppColor.textPrimary.opacity(0.55))
     }
 

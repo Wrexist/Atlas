@@ -164,7 +164,7 @@ struct MacroSummaryRow: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(title)
-                    .font(AppFont.scaled(11, weight: .medium))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .textCase(.uppercase)
                     .tracking(0.6)
@@ -175,7 +175,7 @@ struct MacroSummaryRow: View {
                         .monospacedDigit()
                         .contentTransition(.numericText())
                     Text(target)
-                        .font(AppFont.scaled(11, weight: .medium))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                         .monospacedDigit()
                 }

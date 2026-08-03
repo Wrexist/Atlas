@@ -112,7 +112,7 @@ struct HeroMetricTrio: View {
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
             Text("Connect Apple Health for Recovery & Sleep scores")
-                .font(AppFont.scaled(11, weight: .medium))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
