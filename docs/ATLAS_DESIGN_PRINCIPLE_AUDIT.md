@@ -155,9 +155,9 @@ pass above acted on independently, and the two agree.
 | 2 Responsiveness | **partial** — the Screenshots workflow captures Accessibility XXXL, which is where the type-scale change would show as truncation. Not yet run. |
 | 3 Visual polish | **covered statically** by `design-lint` |
 | 4 Accessibility (WCAG 2.1 AA) | **covered statically** by `contrast-check` + the hit-target, unlabelled-icon and uncombined-row rules |
-| 5 Robustness | **open** |
+| 5 Robustness | **run, clean** — all 18 screens across 3 sets checked for horizontal overflow, text clipped by its own box, and failed asset requests. Zero. |
 | 6 Code health | covered by SwiftLint + the parse/signature checks |
-| 7 Content and console | **open** |
+| 7 Content and console | **run — found a factual error** — zero console errors and zero failed requests across 18 screens, but reading the copy caught the Atlas Score screen claiming *"LEVEL 14 · GOLD"* and *"1,240 pts to Level 15 · Diamond"*. The app's own ladder (`MomentumEngine.Tier.forLevel`) puts level 14 in **Silver**, and Diamond at level 70 — 56 levels away, not one. The primary progression screenshot misrepresented the product's own system. Now Level 39 · Gold with Platinum next, which is a real tier boundary. Watch score and face screens carried the same 14. |
 
 The subagent itself drives a browser through Playwright MCP and has no path
 to a native iOS view, so phases 1, 2, 5 and 7 stay open until someone runs
