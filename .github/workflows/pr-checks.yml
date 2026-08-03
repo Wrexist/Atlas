@@ -230,16 +230,23 @@ jobs:
         run: swiftlint lint --reporter github-actions-logging
 
       - name: Unit Tests
-        # Temporarily skipped: the PeptideTests target does not compile
-        # on the current toolchain (Xcode 26.3) — a backlog of stale
-        # API references and Swift-6 actor-isolation issues. The "Build
-        # app" step above gates app-code compilation. Re-enable this
-        # (xcodebuild test-without-building, restoring build-for-testing
-        # above) once the test target is repaired.
+        # Still skipped, but the reason recorded here was wrong and worth
+        # correcting: the last `test-compile` run that actually executed
+        # (run 27603514542, Xcode 26.3) reported exactly **two** errors,
+        # both `type 'AppTab' has no member 'protocols'` in
+        # AppStateTests.swift — not "a backlog of stale API references and
+        # Swift-6 actor-isolation issues". Those two are fixed.
+        #
+        # Left skipped rather than re-enabled because Xcode batches Swift
+        # compilation: that error killed the A–C batch, so the D–Z files
+        # were never compiled and may hold more. `test-compile` is
+        # non-gating and runs `build-for-testing`, so the next run on this
+        # branch reports the truth. Re-enable this step (and restore
+        # build-for-testing above) once it comes back clean.
         continue-on-error: true
         run: |
           touch test-output.log
-          echo "Unit tests skipped — PeptideTests target needs a compile-fix pass." | tee test-output.log
+          echo "Unit tests skipped — see the test-compile job for the current state." | tee test-output.log
 
       - name: Coverage report
         if: always()

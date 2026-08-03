@@ -26,8 +26,23 @@ final class AppStateTests: XCTestCase {
 
     func test_selectedTab_canBeSetIndependentlyOfDeepLink() {
         let state = AppState()
-        state.selectedTab = .protocols
-        XCTAssertEqual(state.selectedTab, .protocols)
+        state.selectedTab = .train
+        XCTAssertEqual(state.selectedTab, .train)
         XCTAssertNil(state.pendingProtocolDeepLink)
+    }
+
+    /// Protocols lost its tab slot when Habits was promoted — it reaches
+    /// the user as a modal over whatever tab they are on. This test used
+    /// to assert `selectedTab = .protocols`, which is what stopped the
+    /// whole test target compiling.
+    func test_library_opensOverTheCurrentTabRatherThanSwitchingToIt() {
+        let state = AppState()
+        state.pendingProtocolList = true
+        state.showLibrary = true
+
+        XCTAssertTrue(state.showLibrary)
+        XCTAssertTrue(state.pendingProtocolList)
+        XCTAssertEqual(state.selectedTab, .today,
+                       "Opening Library must not move the user off their tab")
     }
 }

@@ -126,13 +126,32 @@ receiver-type resolution, `Calendar.date(byAdding:)` is indistinguishable
 from an app-target `date(...)`, and the noise floor swamps the signal.
 That backlog needs a type checker.
 
-**CI skips the unit tests.** `.github/workflows/pr-checks.yml` has the
-`Unit Tests` step stubbed out with a note that `PeptideTests` doesn't
-compile on Xcode 26.3. Two blockers were removed on this branch (a Swift 6
-isolation error in `HealthRangeServiceTests` and a stale assertion in
-`AppThemeColorTests` that contradicted the shipped default theme), but the
-rest of that backlog is still there. Re-enabling that step is the single
-highest-value next task — it's why a wrong assertion sat green indefinitely.
+**The `PeptideTests` "backlog" was two lines.** The CI comment and this
+document both described "a backlog of stale API references and Swift-6
+actor-isolation issues". That was never measured. Reading the last
+`test-compile` job that actually ran (run 27603514542, Xcode 26.3, June)
+shows the build failed on exactly **two** errors, both in one file:
+
+    PeptideTests/AppStateTests.swift:29:30: error: type 'AppTab' has no member 'protocols'
+    PeptideTests/AppStateTests.swift:30:44: error: type 'AppTab' has no member 'protocols'
+
+`.protocols` stopped existing when Habits was promoted and Protocols became
+the Library modal. Both are fixed on this branch, and the test now also
+covers the routing that replaced it.
+
+**This may not be the whole story, and the reason matters.** Xcode batches
+Swift compilation. That error killed the batch holding `AIResearchServiceTests`
+through `CreatorCodeServiceTests` (alphabetically A–C), so everything from
+D onward was never compiled and could hold more errors. What can be said is
+narrower than "the target compiles": the *known* blocker is gone, and the
+next `test-compile` run reports what is actually left. That job is
+non-gating and already runs `build-for-testing`, so it costs nothing.
+
+Two things were checked statically alongside it: every type referenced in
+`PeptideTests` resolves against an app-target declaration (784 declarations,
+zero unresolved), and no test constructs any of the initialisers changed on
+this branch. So the remaining risk is method-signature and inference errors,
+not missing symbols.
 
 ## Before merging branch work
 
