@@ -307,10 +307,18 @@ struct MealScanFlow: View {
         .scrollIndicators(.hidden)
     }
 
-    private var addButtonTitle: String {
+    /// `LocalizedStringKey`, not `String`: GlassButton takes a key, and
+    /// interpolating the count produces the same "Add %lld items" key the
+    /// manual `String(format:)` was looking up — so this is the identical
+    /// lookup expressed in the type the button actually wants.
+    ///
+    /// Neither key is in `Localizable.xcstrings` yet, so both fall back to
+    /// the key text itself. That was already true before this change; the
+    /// catalog sits at 13% coverage and is tracked separately.
+    private var addButtonTitle: LocalizedStringKey {
         includedItems.count <= 1
-            ? String(localized: "Add to today")
-            : String(format: String(localized: "Add %lld items"), includedItems.count)
+            ? "Add to today"
+            : "Add \(includedItems.count) items"
     }
 
     private var errorCard: some View {
