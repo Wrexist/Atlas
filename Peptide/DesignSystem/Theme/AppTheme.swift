@@ -40,34 +40,36 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
     // render pass, and each `Color(light:dark:)` allocates a UIColor with a
     // trait-resolving closure — cheap once, wasteful per frame.
     private static let tealRamp = Ramp(
-        primary:   Color(light: 0x0A8F63, dark: 0x10B981),   // emerald-500
+        primary:   Color(light: 0x077A55, dark: 0x10B981),   // emerald-500
         light:     Color(light: 0x0E7490, dark: 0x22D3EE),   // cyan-400
         dark:      Color(light: 0x065F46, dark: 0x047857),   // emerald-700
         highlight: Color(light: 0x047857, dark: 0xA7F3D0)    // emerald-200
     )
     private static let purpleRamp = Ramp(
         primary:   Color(light: 0x5B52B8, dark: 0x7F77DD),
-        light:     Color(light: 0xB03060, dark: 0xD4537E),
+        light:     Color(light: 0xB03060, dark: 0xE2769A),
         dark:      Color(light: 0x3E3773, dark: 0x534B96),
         highlight: Color(light: 0x534B96, dark: 0xE8D2E2)
     )
     private static let oceanRamp = Ramp(
         primary:   Color(light: 0x1F6FC0, dark: 0x378ADD),
-        light:     Color(light: 0x2F7FC8, dark: 0x6CA9E6),
+        light:     Color(light: 0x1E6AB4, dark: 0x6CA9E6),
         dark:      Color(light: 0x1A5386, dark: 0x256AAA),
         highlight: Color(light: 0x256AAA, dark: 0xC4DCF1)
     )
     private static let amberRamp = Ramp(
         primary:   Color(light: 0x9A6112, dark: 0xBA7517),
-        light:     Color(light: 0xB07A1E, dark: 0xD89438),
+        light:     Color(light: 0x8A5F14, dark: 0xD89438),
         dark:      Color(light: 0x714810, dark: 0x8E5A12),
         highlight: Color(light: 0x8E5A12, dark: 0xF1D8B0)
     )
-    /// Graphite already reads on either surface, so it's the one ramp whose
-    /// first three stops don't shift between schemes.
+    /// Graphite's ink stops have to invert like every other ramp: pinning
+    /// them to one value put accent ink at 1.8:1 on the dark background,
+    /// which is what "reads on either surface" was assumed to avoid. Only
+    /// `dark` — the fill stop that carries `onAccent` — stays put.
     private static let onyxRamp = Ramp(
-        primary:   Color(hex: 0x3F3F3D),
-        light:     Color(hex: 0x5C5C5A),
+        primary:   Color(light: 0x3F3F3D, dark: 0xC9C9C7),
+        light:     Color(light: 0x5C5C5A, dark: 0xDEDEDC),
         dark:      Color(hex: 0x1F1F1D),
         highlight: Color(light: 0x3F3F3D, dark: 0xC9C9C7)
     )

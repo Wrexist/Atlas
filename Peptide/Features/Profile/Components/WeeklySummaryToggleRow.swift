@@ -59,7 +59,7 @@ struct WeeklySummaryToggleRow: View {
                                 .padding(.vertical, 2)
                                 .foregroundStyle(AppColor.onAccent)
                                 .background {
-                                    Capsule().fill(AppColor.accentPrimary)
+                                    Capsule().fill(AppColor.accentFill)
                                 }
                         }
                     }

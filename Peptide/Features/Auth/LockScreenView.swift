@@ -44,7 +44,7 @@ struct LockScreenView: View {
                 .foregroundStyle(AppColor.onAccent)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.md)
-                .background(AppColor.accentPrimary)
+                .background(AppColor.accentFill)
                 .clipShape(RoundedRectangle(cornerRadius: Spacing.controlCornerRadius))
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.97))

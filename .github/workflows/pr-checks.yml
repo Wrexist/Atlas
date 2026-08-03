@@ -380,6 +380,13 @@ jobs:
         # warnings are printed for review.
         run: python3 scripts/design-lint.py --all
 
+      - name: Colour contrast check
+        # The design tokens ship two schemes, and light mode has never been
+        # rendered on a device. Contrast is the part of "is it legible" that
+        # can be settled arithmetically, so every ink/surface pair is held
+        # to WCAG 2.1 AA here rather than waiting for a screenshot.
+        run: python3 scripts/contrast-check.py
+
       - name: Verify bundled peptide dataset integrity
         # PeptideDatabase falls back to a tiny MockPeptides set if
         # peptides.json is missing or corrupt — and in release builds

@@ -59,7 +59,7 @@ private struct DayCircle: View {
         case .completed:
             ZStack {
                 Circle()
-                    .fill(AppColor.accentPrimary)
+                    .fill(AppColor.accentFill)
 
                 Image(systemName: "checkmark")
                     .font(AppFont.scaled(11, weight: .bold))

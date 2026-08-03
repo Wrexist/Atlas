@@ -46,7 +46,7 @@ enum AppColor {
     static let textSecondary = Color(light: 0x5B5B63, dark: 0xA0A0A0)
     /// Deepened from `#666666` to clear WCAG AA (4.5:1) against the dark
     /// background and elevated surfaces. The previous value sat at ~3:1.
-    static let textTertiary = Color(light: 0x76767E, dark: 0x888888)
+    static let textTertiary = Color(light: 0x6E6E76, dark: 0x888888)
     static var textHighlight: Color { ThemeManager.shared.theme.highlight }
 
     /// Ink for content painted **on top of** an accent-filled or photographic
@@ -57,6 +57,15 @@ enum AppColor {
     /// against a saturated fill is harsher than it needs to be, and the
     /// difference is the kind you feel rather than see.
     static let onAccent = Color(hex: 0xFCFCFD)
+
+    /// The accent stop to *fill* with when `onAccent` is printed on top.
+    ///
+    /// `accentPrimary` can't do this job in both schemes: it's read as ink
+    /// on the background 280 times, so the dark-scheme value is a bright
+    /// brand colour — and near-white on emerald-500 is 2.5:1. The ramp's
+    /// dark stop carries `onAccent` at 5.3:1 or better in every theme and
+    /// both schemes, which is why filled accent surfaces use this instead.
+    static var accentFill: Color { ThemeManager.shared.theme.dark }
 
     // MARK: - Status
 
@@ -111,7 +120,7 @@ enum AppColor {
     /// Sleep get their own hues so the three rings stay tellable apart at a
     /// glance even in a screenshot. Stops run light → deep so the arc reads
     /// as having direction.
-    static let ringRecoveryStart = Color(light: 0x6FA328, dark: 0xB8F557)
+    static let ringRecoveryStart = Color(light: 0x5E8A1F, dark: 0xB8F557)
     static let ringRecoveryEnd = Color(light: 0x2F7A3B, dark: 0x47C75C)
     static let ringSleepStart = Color(light: 0x6B63C4, dark: 0xA89EF5)
     static let ringSleepEnd = Color(light: 0x453FA8, dark: 0x7366D9)
@@ -135,7 +144,7 @@ enum AppColor {
     /// Canonical macro colors. Match the rings + legend on the Nutrition card
     /// so the same idea reads consistently across the app.
     static let macroProtein = Color(light: 0xB56F0B, dark: 0xEF9F27)
-    static let macroProteinLight = Color(light: 0xD08F2E, dark: 0xF5C56C)
+    static let macroProteinLight = Color(light: 0xB8791E, dark: 0xF5C56C)
     static let macroWater = Color(light: 0x1F6FC0, dark: 0x378ADD)
     static let macroWaterLight = Color(light: 0x3F8BD6, dark: 0x7CC5FF)
 

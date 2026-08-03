@@ -403,7 +403,7 @@ private struct PrimaryButtonLabel: View {
         .frame(maxWidth: .infinity)
         .background {
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.accentPrimary)
+                .fill(AppColor.accentFill)
         }
     }
 }
