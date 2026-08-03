@@ -197,10 +197,17 @@ jobs:
         # Restore `build-for-testing` here once the test target
         # compiles again.
         run: |
+          # `generic/platform=iOS Simulator` compiles without requiring any
+          # particular simulator to exist. Naming iPhone 16 made this step
+          # depend on the runner image happening to ship that device — and
+          # it does not always: test-compile failed on exactly this line
+          # with "Unable to find a device matching the provided destination
+          # specifier" while build-check, on a different runner in the same
+          # workflow, found one. A gating job must not be a coin flip.
           xcodebuild build \
             -project Peptide.xcodeproj \
             -scheme Peptide \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -502,7 +509,7 @@ jobs:
           xcodebuild build-for-testing \
             -project Peptide.xcodeproj \
             -scheme Peptide \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -519,7 +526,7 @@ jobs:
           # signals honestly without blocking the PR, which is the whole
           # point of a non-gating diagnostic job.
           if [ "${BUILD_FAILED:-0}" = "1" ]; then
-            echo "::error::Test target does not compile — see the step summary for the unique errors."
+            echo "::error::Test build failed. Compile errors (if any) are in the step summary; if that block is empty the failure was environmental — a missing simulator, a toolchain problem — and the log has it."
             exit 1
           fi
 
