@@ -1749,8 +1749,8 @@ struct OnboardingView: View {
     private var projectionHeadline: String {
         let weeks = goalWeeks
         switch primaryGoal {
-        case .buildMuscle:    return "+\(min(6, max(2, Int(estimatedMuscleGainKg)))) kg in \(weeks) weeks"
-        case .loseFat:        return "−\(min(10, max(3, Int(estimatedFatLossKg)))) kg in \(weeks) weeks"
+        case .buildMuscle:    return "+\(projectedMuscleGain) in \(weeks) weeks"
+        case .loseFat:        return "−\(projectedFatLoss) in \(weeks) weeks"
         case .getStronger:    return "Stronger every week\nfor \(weeks) weeks"
         case .stayConsistent: return "\(daysPerWeek * weeks) sessions\nin \(weeks) weeks"
         case .athletic:       return "Peak conditioning\nin \(weeks) weeks"
@@ -1791,8 +1791,8 @@ struct OnboardingView: View {
 
     private var projectionStatValue: String {
         switch primaryGoal {
-        case .buildMuscle: return "+\(min(6, max(2, Int(estimatedMuscleGainKg)))) kg lean mass"
-        case .loseFat:     return "−\(min(10, max(3, Int(estimatedFatLossKg)))) kg body weight"
+        case .buildMuscle: return "+\(projectedMuscleGain) lean mass"
+        case .loseFat:     return "−\(projectedFatLoss) body weight"
         case .getStronger: return "+10–15% on your top lifts"
         case .stayConsistent, .athletic: return "\(daysPerWeek * goalWeeks) sessions logged"
         case .recomp:      return "Body recomp tracked weekly"
@@ -1802,6 +1802,17 @@ struct OnboardingView: View {
         case .skinHair:    return "Tracked weekly with photos"
         case .energy:      return "Steadier energy curve"
         }
+    }
+
+    // The realistic-range clamps are expressed in kilograms because the
+    // underlying model is; the label converts afterwards so an imperial
+    // user reads "9 lb", not "4 kg".
+    private var projectedMuscleGain: String {
+        bodyMetrics.unit.weightLabel(Double(min(6, max(2, Int(estimatedMuscleGainKg)))))
+    }
+
+    private var projectedFatLoss: String {
+        bodyMetrics.unit.weightLabel(Double(min(10, max(3, Int(estimatedFatLossKg)))))
     }
 
     private var estimatedMuscleGainKg: Double {
