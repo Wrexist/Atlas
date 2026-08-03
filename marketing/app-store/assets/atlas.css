@@ -5,8 +5,8 @@
    ============================================================ */
 
 :root {
-  --bg-0:#0A0A10; --bg-1:#0E0B18; --ink:#FFFFFF; --muted:#9CA1B4; --faint:#646982;
-  --mint:#34D399; --violet:#7B5CFF; --amber:#F59E0B; --coral:#F87171;
+  --bg-0:#0A0A10; --bg-1:#0E0B18; --ink:#FFFFFF; --muted:#9CA1B4; --faint:#7C8199;
+  --mint:#34D399; --violet:#8F76FF; --amber:#F59E0B; --coral:#F87171;
   --blue:#60A5FA; --orange:#FB923C; --yellow:#FACC15;
   --glass:rgba(255,255,255,0.05); --glass-2:rgba(255,255,255,0.08);
   --hair:rgba(255,255,255,0.09); --hair-2:rgba(255,255,255,0.15);
@@ -71,7 +71,7 @@ body{font-family:"Inter",system-ui,-apple-system,sans-serif;background:var(--bg-
 /* ---------- tab bar (native iOS) ---------- */
 .tabbar{position:absolute;left:0;right:0;bottom:0;height:158px;display:flex;align-items:flex-start;justify-content:space-around;
   padding:22px 30px 0;background:rgba(12,12,18,0.72);backdrop-filter:blur(28px);border-top:1px solid rgba(255,255,255,0.07);}
-.tab{display:flex;flex-direction:column;align-items:center;gap:10px;color:#6A6F84;font-size:22px;font-weight:600;width:160px;}
+.tab{display:flex;flex-direction:column;align-items:center;gap:10px;color:#7F849A;font-size:22px;font-weight:600;width:160px;}
 .tab svg{display:block;}
 .tab.active{color:var(--violet);}
 .homebar{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);width:300px;height:10px;border-radius:6px;background:rgba(255,255,255,0.4);}

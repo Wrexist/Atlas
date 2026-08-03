@@ -187,3 +187,19 @@ shot list for the listing's autoplay video. It must be **real on-device capture*
       against frame 2 (Atlas Score) as the lead; that's the highest-leverage test.
 - [ ] iPad: the phone-framed layout letterboxes at iPad aspect. For an iPad set, widen
       `.device`/`.cap` in `atlas.css` (or render two-up) before generating 2064 × 2752.
+
+
+## Checking contrast
+
+`render.mjs` produces the PNGs; `measure.mjs` checks them the way a browser
+sees them — every text node's computed colour resolved against its actual
+background, held to WCAG 2.1 AA.
+
+```sh
+GROOT=$(npm root -g) node measure.mjs
+```
+
+It found five real failures the first time it was run, including the medical
+disclaimer at 2.6:1 and the subscription terms at 3.4:1 — the two pieces of
+copy on these screens that most need to be readable. Re-run it after any
+palette change and re-render before committing PNGs.
