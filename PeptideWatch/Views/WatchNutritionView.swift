@@ -12,6 +12,33 @@ struct WatchNutritionView: View {
 
     private var nutrition: WatchNutritionSnapshot? { store.watchData.nutrition }
 
+    /// Water is stored in fluid ounces, so the labels have to follow the
+    /// phone's unit setting or the two surfaces disagree about the same
+    /// number. Defaults to imperial when an older phone build hasn't
+    /// synced the field — that is what the watch showed before.
+    private var isMetric: Bool { store.watchData.measurementUnit == "metric" }
+
+    private var waterOptions: [WaterOption] {
+        isMetric
+            ? [.init(label: "+250mL", spoken: "Add 250 millilitres of water", oz: 8),
+               .init(label: "+500mL", spoken: "Add 500 millilitres of water", oz: 17),
+               .init(label: "+1L", spoken: "Add 1 litre of water", oz: 34)]
+            : [.init(label: "+8oz", spoken: "Add 8 ounces of water", oz: 8),
+               .init(label: "+16oz", spoken: "Add 16 ounces of water", oz: 16),
+               .init(label: "+32oz", spoken: "Add 32 ounces of water", oz: 32)]
+    }
+
+    /// `spoken` is carried rather than derived: the metric labels are the
+    /// nearest whole ounce to a round millilitre figure, so computing the
+    /// announcement from `oz` would say "237 millilitres" for the button
+    /// that reads "+250mL".
+    private struct WaterOption: Identifiable {
+        let label: String
+        let spoken: String
+        let oz: Int
+        var id: Int { oz }
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
@@ -47,14 +74,14 @@ struct WatchNutritionView: View {
                     .foregroundStyle(.secondary)
             }
             HStack(spacing: 6) {
-                waterButton(label: "+8oz",  oz: 8)
-                waterButton(label: "+16oz", oz: 16)
-                waterButton(label: "+32oz", oz: 32)
+                ForEach(waterOptions) { option in
+                    waterButton(label: option.label, spoken: option.spoken, oz: option.oz)
+                }
             }
         }
     }
 
-    private func waterButton(label: String, oz: Int) -> some View {
+    private func waterButton(label: String, spoken: String, oz: Int) -> some View {
         Button {
             store.logWater(oz: oz)
         } label: {
@@ -70,6 +97,8 @@ struct WatchNutritionView: View {
                 )
         }
         .buttonStyle(.plain)
+        // VoiceOver reads "+8oz" as letters otherwise.
+        .accessibilityLabel(spoken)
         .disabled(store.isSending)
         .accessibilityLabel("Log \(oz) ounces of water")
     }

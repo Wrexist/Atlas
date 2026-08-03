@@ -57,6 +57,8 @@ struct WatchStatsView: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Weekly compliance \(weeklyComplianceDisplay) over 7 days")
     }
 
     private var weeklyComplianceFraction: Double {

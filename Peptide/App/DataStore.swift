@@ -2072,7 +2072,8 @@ final class DataStore: DataServiceProtocol {
             healthHabitsDone: healthDue.filter(isDone).count,
             healthHabitsTotal: healthDue.count,
             trainingHabitsDone: trainingDue.filter(isDone).count,
-            trainingHabitsTotal: trainingDue.count
+            trainingHabitsTotal: trainingDue.count,
+            measurementUnit: profile.bodyMetrics.unit.rawValue
         )
     }
 

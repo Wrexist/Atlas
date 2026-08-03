@@ -79,6 +79,12 @@ struct WatchData: Codable, Sendable {
     let healthHabitsTotal: Int?
     let trainingHabitsDone: Int?
     let trainingHabitsTotal: Int?
+    /// `MeasurementUnit` rawValue — "metric" or "imperial". A String for
+    /// the same reason `atlasTier` is: this file is shared with the watch
+    /// and widget targets, which cannot see the app target's model types.
+    /// Water is stored in fluid ounces, so without this the watch showed
+    /// ounces to a user whose phone was set to millilitres.
+    let measurementUnit: String?
 
     var compliance: Double {
         totalToday > 0 ? Double(completedToday) / Double(totalToday) : 0
@@ -101,7 +107,8 @@ struct WatchData: Codable, Sendable {
         healthHabitsDone: Int? = nil,
         healthHabitsTotal: Int? = nil,
         trainingHabitsDone: Int? = nil,
-        trainingHabitsTotal: Int? = nil
+        trainingHabitsTotal: Int? = nil,
+        measurementUnit: String? = nil
     ) {
         self.todayEntries = todayEntries
         self.completedToday = completedToday
@@ -120,6 +127,7 @@ struct WatchData: Codable, Sendable {
         self.healthHabitsTotal = healthHabitsTotal
         self.trainingHabitsDone = trainingHabitsDone
         self.trainingHabitsTotal = trainingHabitsTotal
+        self.measurementUnit = measurementUnit
     }
 
     init(from decoder: Decoder) throws {
@@ -141,6 +149,7 @@ struct WatchData: Codable, Sendable {
         healthHabitsTotal = try c.decodeIfPresent(Int.self, forKey: .healthHabitsTotal)
         trainingHabitsDone = try c.decodeIfPresent(Int.self, forKey: .trainingHabitsDone)
         trainingHabitsTotal = try c.decodeIfPresent(Int.self, forKey: .trainingHabitsTotal)
+        measurementUnit = try c.decodeIfPresent(String.self, forKey: .measurementUnit)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -150,6 +159,7 @@ struct WatchData: Codable, Sendable {
         case atlasScore, atlasLevel, atlasTier, atlasProgress, atlasTodayEarned
         case healthHabitsDone, healthHabitsTotal
         case trainingHabitsDone, trainingHabitsTotal
+        case measurementUnit
     }
 
     static let empty = WatchData(
