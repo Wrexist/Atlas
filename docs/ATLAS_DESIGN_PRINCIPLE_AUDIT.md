@@ -7,9 +7,12 @@ Every number here is reproducible from the two checkers in `scripts/`.
 Reproduce:
 
 ```sh
-python3 scripts/design-lint.py --all     # 16 rules, gates CI
+python3 scripts/design-lint.py --all     # 17 rules, gates CI on errors
 python3 scripts/contrast-check.py        # 244 colour pairs, gates CI
 ```
+
+Current state: **0 errors, 7 warnings** — all 7 are R2 accent halos, listed
+below. Errors gate the build; warnings do not.
 
 **The limit of this document.** Nothing here has been rendered. These four
 resources split cleanly into rules that are arithmetic (contrast, spacing
@@ -27,7 +30,7 @@ simulator.
 | # | Rule | Status | Evidence |
 |---|------|--------|----------|
 | R1 | No gradients | **partial — enforced where it bites** | 84 gradient sites classified by what they fill: 53 surface fills, 20 illustration/other, 6 ring or chart strokes, 3 overlay masks. The rule's actual target — a fade applied to buttons and pills alike — was **6 CTA capsules** filling with `[accentPrimary → accentLight]`; all now flat `accentFill`, which also fixed a 1.3–3.7:1 contrast failure the token checker could not see (see below). Gradient-filled *text* was 2 sites: the promo numeral (flattened) and the "Atlas" wordmark (R1's explicit brand exception, kept). `design-lint: accent-gradient-fill` holds the line. The remaining fills are illustrations, charts and ambient backdrops — classifying those still needs renders. |
-| R2 | No glow | **enforced** | `design-lint: glow` — a coloured shadow at radius ≥10 behind a *glyph*. Two neon halos found and removed. Tinted elevation under a filled shape is a deliberate system and is exempt. |
+| R2 | No glow | **reported, 7 open** | The rule claimed a clean bill it could not deliver: it matched only literal `.shadow(color:)`, so it never saw `AppShadow.accentGlow` — the token the glows actually use — and it skipped any glow anchored to a `.stroke()` rather than a fill. Both holes are fixed, and **7 accent halos** now surface: the `MetricRing` `glow: true` arc and its callers, the onboarding hero icon, the scanner reticle, the share card. They are left in place deliberately — a glowing recovery ring is the idiom in this category (Whoop, Oura) and the codebase opts into it per call site — but they are warnings on the record now rather than invisible. A render settles whether they read as emphasis or as neon. |
 | R3 | No `transition: all` | **enforced** | `design-lint: untargeted-animation` — the SwiftUI analogue is `.animation(x)` without a `value:`, which animates every change in the subtree. |
 | R4 | Kill visual monotony | **open** | Not statically checkable. Squint test needs renders. |
 | R5 | No placeholder text | **enforced** | `design-lint: placeholder-copy` — lorem ipsum, "coming soon", "TBD". Zero hits. |

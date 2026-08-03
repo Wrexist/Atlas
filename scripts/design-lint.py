@@ -185,6 +185,16 @@ def rule_glow(path, source, code) -> list[Finding]:
     system, not an accident, and the rule doesn't touch it.
     """
     out = []
+
+    # `AppShadow.accentGlow` is a coloured glow by construction — accent at
+    # 30%, radius 12. The old pattern only matched literal `.shadow(color:)`
+    # and so was blind to every site that used the token, which is where the
+    # glows actually live.
+    for m in re.finditer(r"\.appShadow\(\s*AppShadow\.accentGlow\s*\)", code):
+        out.append(Finding(path, line_of(code, m.start()), "glow",
+                           "AppShadow.accentGlow is an accent halo; emphasis should "
+                           "come from size, weight and contrast", "warning"))
+
     for m in re.finditer(r"\.shadow\(\s*color:\s*([^,]+),[^)]*radius:\s*(\d+(?:\.\d+)?)", code):
         colour, radius = m.group(1).strip(), float(m.group(2))
         if re.search(r"\.black|\.clear|Color\.black|AppShadow", colour):
@@ -192,19 +202,25 @@ def rule_glow(path, source, code) -> list[Finding]:
         if radius < 10:
             continue
         # What is the shadow attached to? Walk back to the nearest construct.
+        # A stroked ring counts: a halo around an arc is the neon look this
+        # rule exists for, and treating "not a fill, not a glyph" as "skip"
+        # is what let nine accent glows sit under a clean report.
         before = code[max(0, m.start() - 500):m.start()]
         anchor = None
         for kind, pattern in (("shape", r"\.fill\(|\.background\s*\{|Image\(uiImage:|Image\(\""),
-                              ("glyph", r"\bText\(|Image\(systemName:")):
+                              ("glyph", r"\bText\(|Image\(systemName:"),
+                              ("stroke", r"\.stroke\(|\.strokeBorder\(|\.trim\(")):
             found = list(re.finditer(pattern, before))
             if found and (anchor is None or found[-1].start() > anchor[1]):
                 anchor = (kind, found[-1].start())
+        # A coloured shadow under a *filled* shape is tinted elevation, which
+        # is a deliberate system here. Everything else is a halo.
         if anchor is None or anchor[0] == "shape":
             continue
         out.append(Finding(path, line_of(code, m.start()), "glow",
-                           f"coloured shadow at radius {radius:g} behind a glyph is a "
-                           "halo; contrast should come from the ink, not a glow",
-                           "warning"))
+                           f"coloured shadow at radius {radius:g} behind a "
+                           f"{anchor[0]} is a halo; contrast should come from the "
+                           "ink, not a glow", "warning"))
     return out
 
 
