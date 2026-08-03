@@ -1,6 +1,10 @@
 import SwiftUI
 
+/// Slow opacity breathe for "this is live" affordances. Honours Reduce
+/// Motion: a loop that never stops is the motion type WCAG 2.2.2 is about,
+/// so with it on the content simply renders at full opacity.
 struct PulseModifier: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulsing = false
 
     func body(content: Content) -> some View {
@@ -12,6 +16,7 @@ struct PulseModifier: ViewModifier {
                 value: pulsing
             )
             .onAppear {
+                guard !reduceMotion else { return }
                 pulsing = true
             }
     }

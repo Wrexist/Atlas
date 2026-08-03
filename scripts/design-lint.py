@@ -476,8 +476,30 @@ def rule_forced_color_scheme(path, source, code) -> list[Finding]:
     return out
 
 
+def rule_unguarded_loop(path, source, code) -> list[Finding]:
+    """R12 — a looping animation must stop under Reduce Motion.
+
+    WCAG 2.2.2 is about motion that never ends: a view that starts a
+    `repeatForever` in `onAppear` and never checks
+    `accessibilityReduceMotion` keeps moving for a user who asked the
+    system to stop moving things. Declaring the environment value is
+    enough to satisfy this — the guard itself is a judgement the rule
+    can't make, but the file that never reads it definitely isn't
+    making it.
+    """
+    if "repeatForever" not in code:
+        return []
+    if re.search(r"accessibilityReduceMotion|isReduceMotionEnabled", code):
+        return []
+    m = re.search(r"repeatForever", code)
+    return [Finding(path, line_of(code, m.start()), "unguarded-loop",
+                    "looping animation with no Reduce Motion check; gate it on "
+                    "@Environment(\\.accessibilityReduceMotion)", "error")]
+
+
 RULES = [
     rule_forced_color_scheme,
+    rule_unguarded_loop,
     rule_raw_colour,
     rule_type_scale,
     rule_pure_neutral,

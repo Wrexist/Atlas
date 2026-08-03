@@ -13,6 +13,7 @@ struct TrialOfferView: View {
     let onAccept: () -> Void
     let onDecline: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var storeService = StoreService.shared
     @State private var isPurchasing = false
     @State private var errorMessage: String?
@@ -172,11 +173,13 @@ struct TrialOfferView: View {
 
             await storeService.loadProducts()
             withAnimation(AppAnimation.springBouncy) { didReveal = true }
-            withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) {
-                sparklePhase = 1
-            }
-            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
-                ctaPulse = true
+            if !reduceMotion {
+                withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) {
+                    sparklePhase = 1
+                }
+                withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                    ctaPulse = true
+                }
             }
             Haptics.success()
         }

@@ -11,6 +11,7 @@ struct HeroIcon: View {
     var size: CGFloat = 96
     var bounceTrigger: Int = 0
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
 
     var body: some View {
@@ -56,6 +57,7 @@ struct HeroIcon: View {
                 .shadow(color: color.opacity(0.45), radius: 8, x: 0, y: 3)
         }
         .onAppear {
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true)) {
                 pulse = true
             }
@@ -73,6 +75,7 @@ struct HeroLogo: View {
     var size: CGFloat = 140
     var bounceTrigger: Int = 0
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
     @State private var bounce = false
 
@@ -109,6 +112,7 @@ struct HeroLogo: View {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.18)) { bounce = false }
         }
         .onAppear {
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true)) {
                 pulse = true
             }

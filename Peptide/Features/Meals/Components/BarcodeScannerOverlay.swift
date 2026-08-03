@@ -7,6 +7,7 @@ import SwiftUI
 /// stays focused on the state machine.
 struct BarcodeScannerOverlay: View {
     @Binding var torchOn: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isBreathing = false
 
     var body: some View {
@@ -29,6 +30,7 @@ struct BarcodeScannerOverlay: View {
             // on screen. The animation drives a 6 % scale oscillation —
             // visible enough to feel alive, restrained enough not to
             // distract from a real barcode in frame.
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
                 isBreathing = true
             }

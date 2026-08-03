@@ -8,6 +8,7 @@ import SwiftUI
 struct OnboardingBackground: View {
     let step: Int
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var phase: CGFloat = 0
     @State private var appeared = false
 
@@ -49,6 +50,7 @@ struct OnboardingBackground: View {
         .ignoresSafeArea()
         .onAppear {
             appeared = true
+            guard !reduceMotion else { return }
             withAnimation(.linear(duration: 32).repeatForever(autoreverses: false)) {
                 phase = .pi * 2
             }
