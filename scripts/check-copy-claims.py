@@ -142,6 +142,43 @@ def main() -> int:
         if not ok:
             failures.append(f"tier in {file}")
 
+    # Privacy purpose strings vs the APIs the code actually touches. A missing
+    # one is a hard TCC termination on first access; a wrong one is what the
+    # user reads at the consent prompt.
+    plist = (REPO / "project.yml").read_text()
+    declared = set(re.findall(r"(NS\w+UsageDescription):", plist))
+    required = {
+        "NSHealthShareUsageDescription": r"HKHealthStore|HealthKit",
+        "NSHealthUpdateUsageDescription": r"toShare:",
+        "NSCameraUsageDescription": r"AVCaptureDevice|AVCaptureSession|UIImagePickerController",
+        "NSPhotoLibraryUsageDescription": r"PHAsset|PHPhotoLibrary|PHImageManager",
+        "NSFaceIDUsageDescription": r"LAContext|LocalAuthentication",
+        "NSMicrophoneUsageDescription": r"AVAudioRecorder",
+        "NSLocationWhenInUseUsageDescription": r"CLLocationManager",
+        "NSMotionUsageDescription": r"CMMotionManager|CMPedometer",
+    }
+    swift = "\n".join(
+        p.read_text()
+        for root in ("Peptide", "PeptideWatch")
+        if (REPO / root).exists()
+        for p in (REPO / root).rglob("*.swift")
+    )
+    for key, pat in required.items():
+        used = re.search(pat, swift) is not None
+        if used and key not in declared:
+            print(f"  FAIL {key}: code uses this API but no usage string is declared")
+            failures.append(key)
+        elif used:
+            print(f"  ok   {key}: declared and used")
+
+    # The write description must not claim the app does not write.
+    m = re.search(r"NSHealthUpdateUsageDescription:\s*\"(.*?)\"\s*$", plist, re.M)
+    if m and re.search(r"does not write|never writes", m.group(1), re.I):
+        if "toShare:" in swift and "toShare: []" != swift:
+            print("  FAIL NSHealthUpdateUsageDescription claims the app does not "
+                  "write, but requestAuthorization(toShare:) is called")
+            failures.append("health-write-claim")
+
     if failures:
         print(f"\n{len(failures)} copy claim(s) no longer match the source")
         return 1

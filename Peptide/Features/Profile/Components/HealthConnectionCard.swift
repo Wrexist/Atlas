@@ -98,7 +98,7 @@ struct HealthConnectionCard: View {
                 Text("Write meals to Apple Health")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("Logged calories, protein, carbs, fat, and fiber will appear in the Health app's nutrition timeline.")
+                Text("Logged calories, protein, carbs and fat will appear in the Health app's nutrition timeline.")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
