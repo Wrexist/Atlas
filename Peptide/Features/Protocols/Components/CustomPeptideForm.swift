@@ -173,7 +173,7 @@ struct CustomPeptideForm: View {
                     .font(AppFont.scaled(11, weight: .semibold))
                 Text(option.localizedTitle)
                     .font(AppFont.caption)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
             }
             .foregroundStyle(isSelected ? option.color : AppColor.textSecondary)
             .padding(.horizontal, Spacing.sm)

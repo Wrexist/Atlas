@@ -137,7 +137,7 @@ private struct LanguageRow: View {
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(nativeName)
-                            .font(AppFont.body.weight(.medium))
+                            .font(AppFont.body.weight(.semibold))
                             .foregroundStyle(AppColor.textPrimary)
                             .lineLimit(1)
 

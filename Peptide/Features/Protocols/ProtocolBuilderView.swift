@@ -737,7 +737,7 @@ private struct PeptideScheduleRow: View {
                     HStack(spacing: Spacing.xs) {
                         Text(peptide.abbreviation)
                             .font(AppFont.subheadline)
-                            .fontWeight(.medium)
+                            .fontWeight(.semibold)
                             .foregroundStyle(AppColor.textPrimary)
                         if isCustom {
                             Text("CUSTOM")

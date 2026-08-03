@@ -97,7 +97,7 @@ struct DailyPlanCard: View {
 
             Text(plan.headline)
                 .font(AppFont.subheadline)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
 
             Text(plan.summary)
@@ -248,7 +248,7 @@ private struct DailyPlanDoseRow: View {
 
             Text(dose.entry.date.formatted(.dateTime.hour().minute()))
                 .font(AppFont.caption)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
                 .foregroundStyle(
                     dose.entry.completed ? AppColor.textTertiary : AppColor.accentLight
                 )

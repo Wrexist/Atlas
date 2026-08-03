@@ -659,7 +659,7 @@ struct ProfileCustomizationSheet: View {
                     .font(AppFont.scaled(11, weight: .semibold))
                 Text(goal)
                     .font(AppFont.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
             }
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)

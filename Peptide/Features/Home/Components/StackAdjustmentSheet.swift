@@ -179,7 +179,7 @@ struct StackAdjustmentSheet: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(proto.name)
                     .font(AppFont.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
                 Text("\(proto.peptides.count) peptides · \(hits) flagged")
                     .font(AppFont.caption)
@@ -299,7 +299,7 @@ struct StackAdjustmentSheet: View {
                             .font(AppFont.scaled(13, weight: .semibold))
                         Text("Add peptide")
                             .font(AppFont.subheadline)
-                            .fontWeight(.medium)
+                            .fontWeight(.semibold)
                     }
                     .foregroundStyle(AppColor.accentPrimary)
                     .padding(.horizontal, Spacing.md)
@@ -412,7 +412,7 @@ struct StackAdjustmentSheet: View {
                             .font(AppFont.scaled(11, weight: .semibold))
                         Text(current.label)
                             .font(AppFont.caption)
-                            .fontWeight(.medium)
+                            .fontWeight(.semibold)
                             .lineLimit(1)
                         Image(systemName: "chevron.down")
                             .font(AppFont.scaled(8, weight: .bold))

@@ -150,7 +150,7 @@ struct ProfileStacksCard: View {
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(stack.name)
                             .font(AppFont.subheadline)
-                            .fontWeight(.medium)
+                            .fontWeight(.semibold)
                             .foregroundStyle(AppColor.textPrimary)
                             .lineLimit(1)
 
@@ -164,7 +164,7 @@ struct ProfileStacksCard: View {
 
                     Text(stack.status.displayName)
                         .font(AppFont.caption)
-                        .fontWeight(.medium)
+                        .fontWeight(.semibold)
                         .foregroundStyle(color(for: stack.status))
                         .padding(.horizontal, Spacing.sm)
                         .padding(.vertical, 4)

@@ -84,7 +84,7 @@ struct MealCategoriesCard: View {
                 HStack {
                     Text(label)
                         .font(AppFont.subheadline)
-                        .fontWeight(.medium)
+                        .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer(minLength: 0)
                     Text("\(totals.calories) kcal")

@@ -100,7 +100,7 @@ private struct StatusBadge: View {
                 .font(AppFont.scaled(8))
             Text(status.displayName)
                 .font(AppFont.caption)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
         }
         .foregroundStyle(status.color)
         .padding(.horizontal, Spacing.sm)

@@ -275,7 +275,7 @@ struct StackAlertDetailSheet: View {
             } label: {
                 Text("Got it")
                     .font(AppFont.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textSecondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, Spacing.sm)

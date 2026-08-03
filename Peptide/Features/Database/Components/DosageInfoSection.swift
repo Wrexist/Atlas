@@ -125,7 +125,7 @@ private struct DosageRow: View {
 
             Text(value)
                 .font(AppFont.subheadline)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.trailing)
                 .lineLimit(3)

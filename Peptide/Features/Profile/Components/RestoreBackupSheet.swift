@@ -332,7 +332,7 @@ private struct BackupSummaryCard: View {
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
             Text(value)
-                .font(AppFont.subheadline.weight(.medium))
+                .font(AppFont.subheadline.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
         }
     }

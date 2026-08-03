@@ -21,7 +21,7 @@ struct DoseLogRow: View {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(entry.peptide.abbreviation)
                     .font(AppFont.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
 
                 Text(entry.dose)

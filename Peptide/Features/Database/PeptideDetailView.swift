@@ -358,7 +358,7 @@ struct PeptideDetailView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(proto.name)
                     .font(AppFont.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
 
@@ -458,7 +458,7 @@ struct MolecularInfoSection: View {
 
                                     Text("CID: \(cid)")
                                         .font(AppFont.subheadline)
-                                        .fontWeight(.medium)
+                                        .fontWeight(.semibold)
                                         .foregroundStyle(AppColor.accentPrimary)
 
                                     Image(systemName: "arrow.up.right")
@@ -497,7 +497,7 @@ private struct MolecularRow: View {
 
             Text(value)
                 .font(AppFont.subheadline)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)

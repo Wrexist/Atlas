@@ -54,7 +54,7 @@ private struct FilterChip: View {
                 }
                 Text(title)
                     .font(AppFont.footnote)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
             }
             .foregroundStyle(isSelected ? color : AppColor.textSecondary)
             .padding(.horizontal, Spacing.md)

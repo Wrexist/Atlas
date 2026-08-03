@@ -157,7 +157,7 @@ struct GoalCountdownCard: View {
                 .contentTransition(.numericText())
             VStack(alignment: .leading, spacing: 0) {
                 Text(weeks == 1 ? "week" : "weeks")
-                    .font(AppFont.subheadline.weight(.medium))
+                    .font(AppFont.subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textSecondary)
                 Text("\(days) day\(days == 1 ? "" : "s") remaining")
                     .font(AppFont.caption)

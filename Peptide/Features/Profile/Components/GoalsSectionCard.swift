@@ -45,7 +45,7 @@ struct GoalsSectionCard: View {
                                 }
                                 Text(entry.displayName)
                                     .font(AppFont.footnote)
-                                    .fontWeight(.medium)
+                                    .fontWeight(.semibold)
                             }
                             .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                             .padding(.horizontal, Spacing.md)

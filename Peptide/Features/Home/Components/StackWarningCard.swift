@@ -94,7 +94,7 @@ struct StackWarningCard: View {
                         let color = severityColor(warning.severity)
                         Text(name)
                             .font(AppFont.caption)
-                            .fontWeight(.medium)
+                            .fontWeight(.semibold)
                             .foregroundStyle(color)
                             .padding(.horizontal, Spacing.sm)
                             .padding(.vertical, Spacing.xxs)

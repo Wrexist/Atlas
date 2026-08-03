@@ -10,7 +10,7 @@ struct PeptideCategoryBadge: View {
 
             Text(category.localizedTitle)
                 .font(AppFont.caption)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
         }
         .foregroundStyle(category.color)
         .padding(.horizontal, Spacing.sm)

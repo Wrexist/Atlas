@@ -63,7 +63,7 @@ struct BodyMetricsPage: View {
         } label: {
             Text(label)
                 .font(AppFont.subheadline)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
                 .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.xs)
@@ -173,7 +173,7 @@ struct BodyMetricsPage: View {
         } label: {
             Text(option.localizedShortLabel)
                 .font(AppFont.subheadline)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
                 .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.sm)

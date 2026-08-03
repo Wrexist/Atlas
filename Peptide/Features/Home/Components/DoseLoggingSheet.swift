@@ -107,7 +107,7 @@ struct DoseLoggingSheet: View {
                                         } label: {
                                             Text(site.rawValue)
                                                 .font(AppFont.caption)
-                                                .fontWeight(.medium)
+                                                .fontWeight(.semibold)
                                                 .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, Spacing.sm)

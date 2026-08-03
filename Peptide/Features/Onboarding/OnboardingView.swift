@@ -1003,7 +1003,7 @@ struct OnboardingView: View {
                 .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
                 .frame(width: 22)
             Text(channel.displayName)
-                .font(AppFont.callout.weight(.medium))
+                .font(AppFont.callout.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
             Spacer(minLength: 0)
             if isSelected {

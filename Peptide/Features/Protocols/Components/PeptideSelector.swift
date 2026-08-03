@@ -77,7 +77,7 @@ struct PeptideSelector: View {
                     .font(AppFont.scaled(16, weight: .semibold))
                 Text("Add Custom Peptide")
                     .font(AppFont.subheadline)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
             }
             .foregroundStyle(AppColor.accentPrimary)
             .frame(maxWidth: .infinity)
@@ -255,7 +255,7 @@ struct PeptideSelector: View {
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(peptide.abbreviation)
                         .font(AppFont.subheadline)
-                        .fontWeight(.medium)
+                        .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
 
                     Text(peptide.category.localizedTitle)
@@ -301,7 +301,7 @@ private struct FilterChip: View {
                     .font(AppFont.scaled(11, weight: .semibold))
                 Text(title)
                     .font(AppFont.caption)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
             }
             .foregroundStyle(isSelected ? color : AppColor.textSecondary)
             .padding(.horizontal, Spacing.sm)

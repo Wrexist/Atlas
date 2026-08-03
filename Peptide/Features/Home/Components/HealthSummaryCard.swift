@@ -71,7 +71,7 @@ struct HealthSummaryCard: View {
                 .foregroundStyle(AppColor.accentPrimary.opacity(0.7))
             Text("No recent Health data")
                 .font(AppFont.subheadline)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
             Text("Make sure Atlas has access in Settings → Health → Data Access.")
                 .font(AppFont.caption)
