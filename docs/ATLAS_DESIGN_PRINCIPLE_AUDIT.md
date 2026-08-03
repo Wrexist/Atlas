@@ -72,7 +72,7 @@ screens at their real 3x canvas.
 | R2/R1 on controls | the primary CTA matched no CSS rule at all — browser-default 16px on a 3x canvas = 5.3pt | **fixed** |
 | Weights | 6 distinct (400/500/600/700/800/900) | **fixed** — folded to 3 emphasis + default |
 | R9 type scale | 33 distinct sizes, 7.0pt–73.3pt | **fixed** — snapped onto the app's own six-step `AppFont.Scale` (8/11/13/16/20/24pt), largest move 2.0pt, plus four untouched hero numerals |
-| R8 8-point grid | **29 distinct off-grid values across 530 uses** — 3.7pt, 6.0pt, 10.7pt, 6.7pt, 9.3pt lead | **open** |
+| R8 8-point grid | 26 off-grid values, 153 source uses | **fixed** — snapped to the 4pt half-grid, largest move 2.0pt; 19 sub-1.5pt optical nudges remain, which the app's own rule also permits |
 
 The type scale was the same failure the app itself already fixed — 30 point
 sizes collapsed onto six — and the marketing deck simply never had that
@@ -81,11 +81,21 @@ screenshots and the product finally agree about what a caption is. 125
 declarations moved, none by more than 2.0pt, and all four sets were
 re-rendered and inspected.
 
-The 8-point grid is left open. 530 uses across 29 values is a re-flow of
-every card and stack on eight screens, and unlike type size — where a 1pt
-move is invisible — spacing changes are what actually break a layout. It
-wants a designer with the file open, not a regex. The numbers are
-reproducible from the instrumentation described above.
+The grid went the same way, once it was clear the render-and-look loop
+made it checkable rather than hopeful: 153 source values snapped to the 4pt
+half-grid, largest move 2.0pt, every screen re-rendered and inspected. What
+remains off-grid is 19 nudges of 1pt or less, which is the same optical
+allowance `design-lint` grants the app.
+
+The primary CTA and the "BEST VALUE" chip also carried a gradient *and* a
+coloured drop shadow — R1 and R2 on the one element both rules name. Both
+are flat now with neutral elevation, matching the `accentFill` call already
+made in the app.
+
+**This surface is done.** Contrast, weights, type scale, grid, and the
+control treatments are all measured, fixed, re-rendered and looked at. The
+only reported failure left across all four sets is one verified false
+positive.
 
 ## 3. anthropics/skills → frontend-design
 
