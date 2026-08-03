@@ -75,6 +75,13 @@ the base commit) and every changed API's call sites had their argument
 labels checked against the declaration. That catches syntax and
 signatures, not types. Build first.
 
+**Run `scripts/check.sh` before you push.** It is every check that works
+without Xcode — the design system, the 244 colour pairs, SwiftLint if it is
+installed, the bundled dataset, and the four App Store screen sets — in one
+command, exiting non-zero on failure so it works as a `pre-push` hook. It
+exists because of the next paragraph: with CI down, these checks run only if
+a human runs them.
+
 **CI has not run since 2026-06-20 — check this first.** Every push to this
 branch creates a workflow run that immediately reports `startup_failure`,
 with no workflow name and `path: BuildFailed` (35 of them so far). All six
