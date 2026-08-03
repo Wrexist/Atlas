@@ -141,13 +141,27 @@ shows the build failed on exactly **two** errors, both in one file:
 the Library modal. Both are fixed on this branch, and the test now also
 covers the routing that replaced it.
 
-**This may not be the whole story, and the reason matters.** Xcode batches
-Swift compilation. That error killed the batch holding `AIResearchServiceTests`
-through `CreatorCodeServiceTests` (alphabetically A–C), so everything from
-D onward was never compiled and could hold more errors. What can be said is
-narrower than "the target compiles": the *known* blocker is gone, and the
-next `test-compile` run reports what is actually left. That job is
-non-gating and already runs `build-for-testing`, so it costs nothing.
+**The rest of the target was compiled too — by an older run.** `.protocols`
+only broke on 2026-06-09, and `test-compile` was added on 06-04, so the runs
+in between got past the A–C batch. Run **27013636545** (June 5) reached the
+D–P batch and failed on exactly two files:
+
+    DataStoreTests.swift:167:9        'async' call in a function that does not support concurrency
+    HealthRangeServiceTests.swift     11x  main actor-isolated ... in a synchronous nonisolated context
+
+`HealthRangeServiceTests` was already fixed on this branch (`@MainActor` on
+the class). `DataStoreTests` was not: `toggleHealthConnection()` is
+`async -> Bool` and the test called it synchronously, then asserted a flip
+that would not have happened in either direction — connecting awaits a real
+HealthKit grant a unit test cannot obtain. It now tests the disconnect path,
+which is pure state.
+
+So every error any real run has ever reported is now fixed. That is still
+not "the target compiles" — a compiler finds the *next* error only once the
+previous one is gone, and no run has ever got past these — but the list of
+known-outstanding errors is empty for the first time. `test-compile` is
+non-gating and runs `build-for-testing`, so the next run says what, if
+anything, is behind them.
 
 Two things were checked statically alongside it: every type referenced in
 `PeptideTests` resolves against an app-target declaration (784 declarations,
