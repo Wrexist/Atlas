@@ -36,8 +36,8 @@ final class MuscleGainsEngineTests: XCTestCase {
     // MARK: - totalFrequencies
 
     func test_totalFrequencies_includesSessionsOutsideWeeklyWindow() {
-        let old = session(daysAgo: 100, exerciseID: "Barbell_Bench_Press", workingSets: 4)
-        let recent = session(daysAgo: 1, exerciseID: "Barbell_Bench_Press", workingSets: 3)
+        let old = session(daysAgo: 100, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 4)
+        let recent = session(daysAgo: 1, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 3)
         let totals = MuscleGainsEngine.totalFrequencies(from: [old, recent], library: library)
         XCTAssertEqual(totals[.pecSternal], 7,
                        "All-time totals should accumulate across the entire history")
@@ -46,7 +46,7 @@ final class MuscleGainsEngineTests: XCTestCase {
     func test_totalFrequencies_matchesWeeklyWeighting() {
         // Same session must produce identical per-head stimulus in both
         // aggregations — they share stimulusHeads.
-        let s = session(daysAgo: 1, exerciseID: "Barbell_Bench_Press", workingSets: 4)
+        let s = session(daysAgo: 1, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 4)
         let weekly = WeeklyMuscleHeatmap.frequencies(from: [s], library: library)
         let totals = MuscleGainsEngine.totalFrequencies(from: [s], library: library)
         XCTAssertEqual(weekly, totals)
@@ -62,7 +62,7 @@ final class MuscleGainsEngineTests: XCTestCase {
         // Bench in four distinct calendar weeks (each pair 7 days apart)
         // → sternal pec trained 4 of the last 12 weeks.
         let sessions = [1.0, 8.0, 15.0, 22.0].map {
-            session(daysAgo: $0, exerciseID: "Barbell_Bench_Press", workingSets: 3)
+            session(daysAgo: $0, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 3)
         }
         let regularity = MuscleGainsEngine.weeklyRegularity(from: sessions, library: library)
         XCTAssertEqual(regularity[.pecSternal] ?? 0, 4.0 / 12.0, accuracy: 0.0001)
@@ -70,8 +70,8 @@ final class MuscleGainsEngineTests: XCTestCase {
 
     func test_weeklyRegularity_sameWeekSessionsCountOnce() {
         let sessions = [
-            session(daysAgo: 0.01, exerciseID: "Barbell_Bench_Press", workingSets: 3),
-            session(daysAgo: 0.02, exerciseID: "Barbell_Bench_Press", workingSets: 3),
+            session(daysAgo: 0.01, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 3),
+            session(daysAgo: 0.02, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 3),
         ]
         let regularity = MuscleGainsEngine.weeklyRegularity(from: sessions, library: library)
         XCTAssertEqual(regularity[.pecSternal] ?? 0, 1.0 / 12.0, accuracy: 0.0001,
@@ -79,7 +79,7 @@ final class MuscleGainsEngineTests: XCTestCase {
     }
 
     func test_weeklyRegularity_excludesSessionsOlderThanWindow() {
-        let s = session(daysAgo: 100, exerciseID: "Barbell_Bench_Press", workingSets: 3)
+        let s = session(daysAgo: 100, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 3)
         let regularity = MuscleGainsEngine.weeklyRegularity(from: [s], library: library)
         XCTAssertTrue(regularity.isEmpty,
                       "Sessions before the 12-week window should not count")

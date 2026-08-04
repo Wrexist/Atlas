@@ -43,7 +43,7 @@ final class WorkoutSessionServiceTests: XCTestCase {
 
     func test_startWorkout_fromRoutine_seedsExerciseSlots() {
         let routine = Routine(name: "Push", exercises: [
-            RoutineExercise(exerciseID: "Barbell_Bench_Press", index: 0,
+            RoutineExercise(exerciseID: "Barbell_Bench_Press_-_Medium_Grip", index: 0,
                             targetSets: 5, targetReps: 5),
             RoutineExercise(exerciseID: "Standing_Military_Press", index: 1,
                             targetSets: 3, targetReps: 8),
@@ -84,7 +84,7 @@ final class WorkoutSessionServiceTests: XCTestCase {
 
     private func bench() -> Exercise {
         Exercise(
-            id: "Barbell_Bench_Press",
+            id: "Barbell_Bench_Press_-_Medium_Grip",
             name: "Barbell Bench Press",
             force: .push, level: .intermediate, mechanic: .compound,
             equipment: "barbell",
