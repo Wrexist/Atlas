@@ -321,11 +321,18 @@ struct OnboardingView: View {
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: page)
-            }
-
-            VStack {
-                Spacer()
-                footer
+                // `safeAreaInset`, not a floating overlay. The footer used
+                // to be `VStack { Spacer(); footer }` layered in this
+                // ZStack, which reserves no space whatsoever: every
+                // scrolling step ran its content underneath the CTA
+                // permanently. On the body-metrics step that put the Gender
+                // row under the button with no way to scroll it clear —
+                // the field simply could not be reached. An inset gives
+                // each page's ScrollView real bottom room, so the last row
+                // always clears the button.
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    footer
+                }
             }
         }
         .onAppear {
@@ -568,7 +575,7 @@ struct OnboardingView: View {
             LinearGradient(
                 colors: [
                     AppColor.background.opacity(0),
-                    AppColor.background.opacity(0.9),
+                    AppColor.background,
                     AppColor.background,
                 ],
                 startPoint: .top,
