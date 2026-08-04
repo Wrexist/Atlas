@@ -138,6 +138,12 @@ final class PersistenceRoundTripTests: XCTestCase {
         )
         original.addProtocol(testProtocol)
 
+        // A restart is only safe after the app flushes — `save()` debounces,
+        // and the real app calls this on `scenePhase == .background` before
+        // the OS suspends it. Constructing the next DataStore without it
+        // races the debounce, which is what these five tests were doing.
+        original.flushPendingSave()
+
         // Create a brand new DataStore — should load from persisted files
         let reloaded = DataStore()
         XCTAssertEqual(reloaded.protocols.count, originalProtocolCount + 1)
@@ -1423,6 +1429,12 @@ final class PersistenceRoundTripTests: XCTestCase {
         )
         store.addProtocol(newProtocol)
 
+        // A restart is only safe after the app flushes — `save()` debounces,
+        // and the real app calls this on `scenePhase == .background` before
+        // the OS suspends it. Constructing the next DataStore without it
+        // races the debounce, which is what these five tests were doing.
+        store.flushPendingSave()
+
         let reloaded = DataStore()
         XCTAssertEqual(reloaded.protocols.count, before + 1)
         XCTAssertTrue(reloaded.protocols.contains(where: { $0.name == "Persisted Protocol" }))
@@ -1434,6 +1446,7 @@ final class PersistenceRoundTripTests: XCTestCase {
         let before = store.protocols.count
 
         store.deleteProtocol(id: target.id)
+        store.flushPendingSave()
 
         let reloaded = DataStore()
         XCTAssertEqual(reloaded.protocols.count, before - 1)
@@ -1451,6 +1464,12 @@ final class PersistenceRoundTripTests: XCTestCase {
         let wasDone = entry.completed
         store.toggleEntry(entry.id)
 
+        // A restart is only safe after the app flushes — `save()` debounces,
+        // and the real app calls this on `scenePhase == .background` before
+        // the OS suspends it. Constructing the next DataStore without it
+        // races the debounce, which is what these five tests were doing.
+        store.flushPendingSave()
+
         let reloaded = DataStore()
         let reloadedEntry = reloaded.entries.first(where: { $0.id == entry.id })
         XCTAssertNotNil(reloadedEntry)
@@ -1460,6 +1479,12 @@ final class PersistenceRoundTripTests: XCTestCase {
     func test_updateProfile_persistsAcrossRestart() {
         let store = DataStore(seedSampleData: true)
         store.updateGoals(Set(["Longevity", "Performance"]))
+
+        // A restart is only safe after the app flushes — `save()` debounces,
+        // and the real app calls this on `scenePhase == .background` before
+        // the OS suspends it. Constructing the next DataStore without it
+        // races the debounce, which is what these five tests were doing.
+        store.flushPendingSave()
 
         let reloaded = DataStore()
         XCTAssertEqual(reloaded.profile.goals, ["Longevity", "Performance"])
