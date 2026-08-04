@@ -1528,14 +1528,24 @@ struct OnboardingView: View {
             }
         } label: {
             VStack(spacing: Spacing.xs) {
+                // Fixed slot, not the glyph's own size. `figure.*` symbols
+                // are much taller than `dumbbell.fill` or `wave.3.right`,
+                // so letting each icon set its own height made every card
+                // in the grid a different size — Barbell taller than
+                // Dumbbell beside it, and so on down the two columns.
                 Image(systemName: kind.symbolName)
                     .font(AppFont.scaled(24, weight: .semibold))
                     .foregroundStyle(selected ? AppColor.accentPrimary : AppColor.textSecondary)
+                    .frame(height: 32)
                 Text(kind.displayName)
                     .font(AppFont.footnote.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
             }
-            .frame(maxWidth: .infinity)
+            // A floor rather than a fixed height, so the cards stay uniform
+            // at default type sizes but can still grow for Dynamic Type
+            // instead of clipping the label.
+            .frame(maxWidth: .infinity, minHeight: 96)
             .padding(.vertical, Spacing.md)
             .background(
                 RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
