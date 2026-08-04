@@ -127,19 +127,26 @@ struct TrialOfferView: View {
                     .padding(.horizontal, Spacing.screenPadding)
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.md)
-                    // Opaque-to-clear backdrop so the scrolling tier
-                    // cards fade out behind the pinned CTA instead of
-                    // bleeding through and colliding with the legal copy.
+                    // `safeAreaInset` only reserves resting space — scrolled
+                    // content still travels underneath it. The previous
+                    // backdrop opened at `.opacity(0)`, so it was fully
+                    // transparent exactly where the CTA sits: the tier cards
+                    // and the ratings row showed straight through and
+                    // collided with the button and the legal copy.
+                    //
+                    // The fade now completes inside the first 16pt, above the
+                    // button, so there is a soft edge where content passes
+                    // under and solid ground everywhere text is drawn.
                     .background {
-                        LinearGradient(
-                            colors: [
-                                AppColor.background.opacity(0),
-                                AppColor.background.opacity(0.85),
-                                AppColor.background,
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+                        ZStack(alignment: .top) {
+                            AppColor.background
+                            LinearGradient(
+                                colors: [AppColor.background.opacity(0), AppColor.background],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 16)
+                        }
                         .ignoresSafeArea()
                     }
             }
