@@ -137,7 +137,11 @@ final class NutritionLabelOCRTests: XCTestCase {
         ]
         let parsed = NutritionLabelParser.parse(lines: lines)
         XCTAssertEqual(parsed?.servingSizeText, "Serving size 1 muffin")
-        XCTAssertEqual(parsed?.servingGrams, 1)        // "1 muffin" produces a 1g servingGrams
+        // Nil, not 1. This asserted a 1g serving, which was the same
+        // first-number-on-the-line bug that read "1 cup (240g)" as one gram —
+        // and it contradicted the test's own name. The grams are genuinely
+        // missing here, and the field is optional so it can say so.
+        XCTAssertNil(parsed?.servingGrams)
     }
 
     // MARK: - Returns nil on non-nutrition-label text
