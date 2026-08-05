@@ -351,7 +351,7 @@ struct TrialOfferView: View {
                 .foregroundStyle(AppColor.warning)
 
                 Text(timeString(remaining))
-                    .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .title))
+                    .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .title1))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
