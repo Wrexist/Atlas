@@ -715,9 +715,26 @@ struct EditableFoodItem: Identifiable, Hashable {
     var quantityLabel: String
     var include: Bool
     var savedToLibrary: Bool
+    /// The model's own probability that it named this food correctly.
+    ///
+    /// It has always come back on the wire and was always thrown away,
+    /// which is why a shaky guess looked exactly like a certain one —
+    /// "Tomato slices" on a plate of melon read as settled fact. Keeping
+    /// it lets the row say so.
+    let confidence: Double
     /// Whether the portion controls step in whole servings or raw grams.
     /// Defaults to servings — most people think "1 sandwich", not "180 g".
     var portionMode: PortionMode = .serving
+
+    /// Below this the row asks the user to confirm the name.
+    ///
+    /// 0.6 rather than 0.5: the cost of a false alarm is one glance at a
+    /// name the user was going to read anyway, and the cost of a miss is
+    /// a wrong food silently entering their day. The asymmetry says flag
+    /// early.
+    static let uncertaintyThreshold: Double = 0.6
+
+    var isUncertain: Bool { confidence < Self.uncertaintyThreshold }
 
     enum PortionMode: String, CaseIterable, Identifiable, CustomStringConvertible {
         case serving, grams
@@ -742,6 +759,7 @@ struct EditableFoodItem: Identifiable, Hashable {
         quantityLabel = item.quantityLabel
         include = true
         savedToLibrary = false
+        confidence = item.confidence
         per100g = ScannedProduct.Nutriments(
             calories: Double(item.calories) / basis * 100,
             proteinG: Double(item.proteinG) / basis * 100,
@@ -770,6 +788,10 @@ private struct FoodItemEditCard: View {
     let onSave: () -> Void
     /// Drives the sliding selection pill on the Servings/Grams control.
     @Namespace private var portionNS
+    /// Lets the low-confidence hint put the cursor in the name field —
+    /// telling the user the name might be wrong is only half a feature
+    /// if fixing it is a separate hunt for the tap target.
+    @FocusState private var nameFocused: Bool
 
     /// Quick-pick portion presets for each mode.
     private static let gramPresets: [Double] = [50, 100, 150, 200, 300]
@@ -798,16 +820,23 @@ private struct FoodItemEditCard: View {
                 .fill(AppColor.surfaceSecondary.opacity(0.6))
                 .overlay {
                     RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(
-                            item.include ? AppColor.accentPrimary.opacity(0.30) : AppColor.glassBorder,
-                            lineWidth: item.include ? 1 : 0.5
-                        )
+                        .strokeBorder(borderColor, lineWidth: item.include ? 1 : 0.5)
                 }
         }
         .opacity(item.include ? 1 : 0.55)
         // Only the include state animates. Binding this to the whole card
         // would re-animate every portion tap and every macro recount.
         .animation(AppAnimation.springSnappy, value: item.include)
+    }
+
+    /// Amber edge on a row the scanner wasn't sure of, so an uncertain
+    /// item is findable while scrolling a long plate rather than only
+    /// once you read its caption.
+    private var borderColor: Color {
+        guard item.include else { return AppColor.glassBorder }
+        return item.isUncertain
+            ? AppColor.warning.opacity(0.45)
+            : AppColor.accentPrimary.opacity(0.30)
     }
 
     private var header: some View {
@@ -832,11 +861,15 @@ private struct FoodItemEditCard: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                     .textInputAutocapitalization(.words)
+                    .focused($nameFocused)
                 if !item.quantityLabel.isEmpty {
                     Text(item.quantityLabel)
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
                         .lineLimit(1)
+                }
+                if item.isUncertain {
+                    uncertaintyHint
                 }
             }
 
@@ -855,6 +888,29 @@ private struct FoodItemEditCard: View {
                     .foregroundStyle(AppColor.textSecondary)
             }
         }
+    }
+
+    /// Shown when the model wasn't sure what it was looking at.
+    ///
+    /// The scanner cannot be made reliably right about a melon that
+    /// looks like a tomato — but it already knows when it's guessing,
+    /// and saying so turns a wrong number the user never questions into
+    /// one they glance at and correct. Amber, not red: this is "worth a
+    /// look", not "something failed".
+    private var uncertaintyHint: some View {
+        Button {
+            nameFocused = true
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "questionmark.circle.fill")
+                    .font(AppFont.scaled(11))
+                Text("Not certain — check the name")
+                    .font(AppFont.caption)
+            }
+            .foregroundStyle(AppColor.warning)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("The scanner wasn't confident about this name. Tap to edit it.")
     }
 
     private var modePicker: some View {

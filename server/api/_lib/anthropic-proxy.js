@@ -13,7 +13,11 @@
  *   PROXY_SHARED_SECRET  — random 32+ byte string the iOS client
  *                          echoes as `X-Peptide-Proxy`.
  *   ALLOWED_MODELS       — comma-separated Anthropic model IDs.
- *                          Default: claude-sonnet-4-6.
+ *                          Default: claude-sonnet-5,claude-sonnet-4-6.
+ *                          A deployment that sets this explicitly must
+ *                          list every model the app sends, or the
+ *                          sanitiser rewrites the missing ones to the
+ *                          first entry — silently, with no client error.
  *   RATE_LIMIT_RPM       — requests per minute per principal per
  *                          route. Default 20.
  *   DEVICE_DAILY_QUOTA   — upstream requests per principal per UTC
@@ -57,7 +61,12 @@ import {
   withinDeviceQuota,
 } from './rate-limit.js';
 
-const DEFAULT_ALLOWED_MODEL = 'claude-sonnet-4-6';
+// Meal scanning runs on Sonnet 5 (vision quality is the product);
+// ai-research and weekly-summary are still on 4.6, so both have to be
+// allowed or the sanitiser would silently rewrite one of them. Index 0
+// is also the fallback for an unrecognised model, which is why the
+// stronger one leads.
+const DEFAULT_ALLOWED_MODELS = ['claude-sonnet-5', 'claude-sonnet-4-6'];
 const MAX_TOKENS_HARDCAP = 800;
 // Cap large enough for the AI research multi-turn chat flow (history +
 // new turn). 4 was too small — the third user turn already produced 5
@@ -70,7 +79,7 @@ const MAX_BODY_BYTES = 7 * 1024 * 1024;
 
 function getAllowedModels() {
   const raw = process.env.ALLOWED_MODELS;
-  if (!raw) return [DEFAULT_ALLOWED_MODEL];
+  if (!raw) return DEFAULT_ALLOWED_MODELS;
   return raw.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
