@@ -182,36 +182,49 @@ final class PerformanceAgeEngineTests: XCTestCase {
         XCTAssertEqual(result.biologicalAge, 41.3, accuracy: 0.05)
     }
 
-    /// Sum of negative deltas below -maxDriftYears must clamp.
-    /// Construct unrealistically saturating positive inputs and
-    /// verify the result lands exactly at `chronologicalAge -
-    /// maxDriftYears` — proving the clamp is doing its job, not
-    /// just that the constant exists.
-    func test_estimate_extremePositivePush_clampsToCap() {
-        // Best-case-everything inputs: very high HRV, very low RHR,
-        // long sleep, and ongoing weight loss. Each driver
-        // contributes its full negative-delta share; the sum will
-        // exceed -8 years without the cap.
+    /// The two tests here used to assert that saturating inputs land
+    /// *exactly* on `chronologicalAge ∓ maxDriftYears`, "proving the clamp is
+    /// doing its job". They could not: the four drivers sum to at most +6.3
+    /// and -4.3, against a ±8 cap, so the clamp is unreachable by
+    /// construction. Both failed on the real numbers (46.2 vs 42, 36.3 vs 38)
+    /// and the test directly above them already asserts the +6.3 sum lands
+    /// unclamped — the suite contradicted itself.
+    ///
+    /// The cap is a safety belt, not a target: it exists so a future constant
+    /// change or a bad input can't age someone a decade. So these now pin the
+    /// two things that are actually true and worth defending — what the
+    /// extremes reach, and that nothing can escape the belt.
+
+    /// Best-case-everything: very high HRV, very low RHR, long sleep.
+    ///
+    /// Note the weight input. This test used to pass -4kg believing weight
+    /// loss reads as younger; `weightContribution` penalises rapid change in
+    /// *either* direction, so -4kg adds +0.5 and the "best case" was scoring
+    /// itself worse. Stable weight is the real optimum.
+    func test_estimate_bestCaseInputs_reachFullNegativeSwing() {
         let inputs = PerformanceAgeEngine.Inputs(
             chronologicalAge: 50,
             hrvMedian30d: 120,
             rhrMedian30d: 40,
             sleepHoursMedian30d: 9,
-            weightDeltaKg30d: -4,
+            weightDeltaKg30d: 0,
             healthDataDays: 30
         )
         guard let result = PerformanceAgeEngine.estimate(inputs: inputs) else {
             return XCTFail("Engine should accept fully-loaded inputs")
         }
-        // chronologicalAge - maxDriftYears = 50 - 8 = 42.
-        XCTAssertEqual(result.biologicalAge, 42.0, accuracy: 0.01,
-                       "Biological age should clamp at chronologicalAge - maxDriftYears")
+        // -2.5 (HRV) + -1.8 (RHR) + 0 (sleep at target is neutral, never a
+        // bonus) + 0 (stable weight) = -4.3.
+        XCTAssertEqual(result.biologicalAge, 45.7, accuracy: 0.01)
+        XCTAssertGreaterThanOrEqual(
+            result.biologicalAge,
+            50 - PerformanceAgeEngine.maxDriftYears,
+            "Nothing may drift past the cap"
+        )
     }
 
-    /// Symmetric clamp on the worst-case side: low HRV, high RHR,
-    /// poor sleep, weight gain. Sum exceeds +maxDriftYears; result
-    /// must clamp at `chronologicalAge + maxDriftYears`.
-    func test_estimate_extremeNegativePush_clampsToCap() {
+    /// Worst-case-everything: low HRV, high RHR, poor sleep, rapid weight gain.
+    func test_estimate_worstCaseInputs_reachFullPositiveSwing() {
         let inputs = PerformanceAgeEngine.Inputs(
             chronologicalAge: 30,
             hrvMedian30d: 15,
@@ -223,8 +236,37 @@ final class PerformanceAgeEngineTests: XCTestCase {
         guard let result = PerformanceAgeEngine.estimate(inputs: inputs) else {
             return XCTFail("Engine should accept fully-loaded inputs")
         }
-        // chronologicalAge + maxDriftYears = 30 + 8 = 38.
-        XCTAssertEqual(result.biologicalAge, 38.0, accuracy: 0.01,
-                       "Biological age should clamp at chronologicalAge + maxDriftYears")
+        // +2.5 + 1.8 + 1.5 + 0.5 = +6.3.
+        XCTAssertEqual(result.biologicalAge, 36.3, accuracy: 0.01)
+        XCTAssertLessThanOrEqual(
+            result.biologicalAge,
+            30 + PerformanceAgeEngine.maxDriftYears,
+            "Nothing may drift past the cap"
+        )
+    }
+
+    /// The belt itself. Saturating every driver in the same direction is the
+    /// most the engine can produce today; if a constant is raised past the
+    /// cap later, this is what catches it.
+    func test_estimate_saturatedDrivers_stayWithinMaxDrift() {
+        for age in [20, 45, 70] {
+            for inputs in [
+                PerformanceAgeEngine.Inputs(chronologicalAge: age, hrvMedian30d: 200,
+                                            rhrMedian30d: 30, sleepHoursMedian30d: 12,
+                                            weightDeltaKg30d: 0, healthDataDays: 30),
+                PerformanceAgeEngine.Inputs(chronologicalAge: age, hrvMedian30d: 1,
+                                            rhrMedian30d: 200, sleepHoursMedian30d: 1,
+                                            weightDeltaKg30d: 50, healthDataDays: 30),
+            ] {
+                guard let result = PerformanceAgeEngine.estimate(inputs: inputs) else {
+                    return XCTFail("Engine should accept fully-loaded inputs")
+                }
+                XCTAssertLessThanOrEqual(
+                    abs(result.biologicalAge - Double(age)),
+                    PerformanceAgeEngine.maxDriftYears,
+                    "Drift from \(age) exceeded the ±\(PerformanceAgeEngine.maxDriftYears)y cap"
+                )
+            }
+        }
     }
 }

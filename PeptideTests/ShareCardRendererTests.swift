@@ -9,8 +9,12 @@ final class ShareCardRendererTests: XCTestCase {
 
         let data = try Data(contentsOf: url)
         let image = try XCTUnwrap(UIImage(data: data))
-        XCTAssertEqual(image.size.width, 1080, accuracy: 0.5)
-        XCTAssertEqual(image.size.height, 1350, accuracy: 0.5)
+        // Against the renderer's own constant, not a second copy of the
+        // number. These two asserted 1080×1350 — a 4:5 feed post — while
+        // `canvasSize` has been 1080×1920 since the renderer was written, so
+        // the expectation was never right about the code it was testing.
+        XCTAssertEqual(image.size.width, ShareCardRenderer.canvasSize.width, accuracy: 0.5)
+        XCTAssertEqual(image.size.height, ShareCardRenderer.canvasSize.height, accuracy: 0.5)
         XCTAssertGreaterThan(data.count, 10_000, "PNG should be non-trivially large")
     }
 
@@ -40,10 +44,10 @@ final class ShareCardRendererTests: XCTestCase {
 
         let image = try XCTUnwrap(UIImage(data: Data(contentsOf: url)))
         // The watermark is rendered inline in the same view tree, so single
-        // and many-peptide stacks both produce a fully populated 1080×1350
-        // PNG with no detached overlay.
-        XCTAssertEqual(image.size.width, 1080, accuracy: 0.5)
-        XCTAssertEqual(image.size.height, 1350, accuracy: 0.5)
+        // and many-peptide stacks both produce a fully populated canvas with
+        // no detached overlay.
+        XCTAssertEqual(image.size.width, ShareCardRenderer.canvasSize.width, accuracy: 0.5)
+        XCTAssertEqual(image.size.height, ShareCardRenderer.canvasSize.height, accuracy: 0.5)
     }
 
     /// Builds a CycleCardModel for a given protocol with deterministic

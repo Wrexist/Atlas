@@ -72,7 +72,7 @@ final class WeeklySummaryEngineTests: XCTestCase {
 
     // MARK: - Compliance math
 
-    func test_compliance_partial_reportsExactPct() {
+    func test_compliance_partial_reportsExactPct() throws {
         let entries = [
             entry(daysFromMonday: 0, completed: true),
             entry(daysFromMonday: 0, completed: true),
@@ -88,10 +88,10 @@ final class WeeklySummaryEngineTests: XCTestCase {
         )
         XCTAssertEqual(agg?.compliance.completed, 4)
         XCTAssertEqual(agg?.compliance.total, 5)
-        XCTAssertEqual(agg?.compliance.pct ?? 0, 0.8, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(agg?.compliance.pct), 0.8, accuracy: 0.001)
     }
 
-    func test_compliance_bestDay_reportsHighestDayFraction() {
+    func test_compliance_bestDay_reportsHighestDayFraction() throws {
         // Day 0: 2/2 = 100%. Day 1: 0/1 = 0%. Day 2: 1/2 = 50%.
         let entries = [
             entry(daysFromMonday: 0, completed: true),
@@ -106,7 +106,7 @@ final class WeeklySummaryEngineTests: XCTestCase {
             entries: entries,
             referenceDate: weekMonday
         )
-        XCTAssertEqual(agg?.compliance.bestDayPct ?? 0, 1.0, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(agg?.compliance.bestDayPct), 1.0, accuracy: 0.001)
     }
 
     // MARK: - Outcomes
@@ -128,7 +128,7 @@ final class WeeklySummaryEngineTests: XCTestCase {
         XCTAssertNil(agg?.outcomes)
     }
 
-    func test_outcomes_threeCheckIns_reportsAverages() {
+    func test_outcomes_threeCheckIns_reportsAverages() throws {
         var profile = UserProfile.fresh
         profile.outcomeHistory = (0..<3).map { offset in
             OutcomeEntry(
@@ -143,8 +143,8 @@ final class WeeklySummaryEngineTests: XCTestCase {
             entries: entries,
             referenceDate: weekMonday
         )
-        XCTAssertEqual(agg?.outcomes?.energyAvg ?? 0, 4.0, accuracy: 0.001)
-        XCTAssertEqual(agg?.outcomes?.sleepAvg ?? 0, 5.0, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(agg?.outcomes?.energyAvg), 4.0, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(agg?.outcomes?.sleepAvg), 5.0, accuracy: 0.001)
         XCTAssertEqual(agg?.outcomes?.checkInsCount, 3)
     }
 

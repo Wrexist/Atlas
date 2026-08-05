@@ -37,11 +37,11 @@ final class RecoveryScoreEngineTests: XCTestCase {
 
     // MARK: - HRV component
 
-    func test_hrvComponent_atBaseline_isMidRange() {
+    func test_hrvComponent_atBaseline_isMidRange() throws {
         // ratio = 1.0 sits in the middle of the floor=0.70 / ceiling=1.20 range.
         // (1.0 - 0.70) / (1.20 - 0.70) = 0.60.
         let value = RecoveryScoreEngine.hrvComponent(recent: 50, baseline: 50)
-        XCTAssertEqual(value ?? 0, 0.60, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(value), 0.60, accuracy: 0.01)
     }
 
     func test_hrvComponent_wellAboveBaseline_caps() {
@@ -67,8 +67,8 @@ final class RecoveryScoreEngineTests: XCTestCase {
         XCTAssertEqual(RecoveryScoreEngine.sleepComponent(hours: 8.0, target: 8.0), 1.0)
     }
 
-    func test_sleepComponent_halfTarget_isHalf() {
-        XCTAssertEqual(RecoveryScoreEngine.sleepComponent(hours: 4.0, target: 8.0) ?? 0, 0.5, accuracy: 0.001)
+    func test_sleepComponent_halfTarget_isHalf() throws {
+        XCTAssertEqual(try XCTUnwrap(RecoveryScoreEngine.sleepComponent(hours: 4.0, target: 8.0)), 0.5, accuracy: 0.001)
     }
 
     func test_sleepComponent_overTarget_clamps() {
@@ -81,23 +81,23 @@ final class RecoveryScoreEngineTests: XCTestCase {
 
     // MARK: - RHR component (inverted: lower is better)
 
-    func test_rhrComponent_belowBaseline_scoresHigh() {
+    func test_rhrComponent_belowBaseline_scoresHigh() throws {
         // ratio = 0.85 (15% lower) should hit the ceiling (1.0).
         let value = RecoveryScoreEngine.rhrComponent(recent: 51, baseline: 60)
-        XCTAssertEqual(value ?? 0, 1.0, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(value), 1.0, accuracy: 0.01)
     }
 
-    func test_rhrComponent_aboveBaseline_scoresLow() {
+    func test_rhrComponent_aboveBaseline_scoresLow() throws {
         // ratio = 1.15 (15% higher) should hit the floor (0.0).
         let value = RecoveryScoreEngine.rhrComponent(recent: 69, baseline: 60)
-        XCTAssertEqual(value ?? 0, 0.0, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(value), 0.0, accuracy: 0.01)
     }
 
-    func test_rhrComponent_atBaseline_isMidRange() {
+    func test_rhrComponent_atBaseline_isMidRange() throws {
         // ratio = 1.0 → inverted to (1.0 - 0.85) / (1.15 - 0.85) = 0.50.
         // Inverted: 1 - 0.50 = 0.50.
         let value = RecoveryScoreEngine.rhrComponent(recent: 60, baseline: 60)
-        XCTAssertEqual(value ?? 0, 0.5, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(value), 0.5, accuracy: 0.01)
     }
 
     // MARK: - Weighting

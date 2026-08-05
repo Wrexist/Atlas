@@ -23,7 +23,15 @@ final class MuscleGroupAndEquipmentTests: XCTestCase {
         XCTAssertEqual(MuscleGroup.fromRaw("hamstrings"), .legs)
         XCTAssertEqual(MuscleGroup.fromRaw("calves"),     .legs)
         XCTAssertEqual(MuscleGroup.fromRaw("adductors"),  .legs)
-        XCTAssertEqual(MuscleGroup.fromRaw("abductors"),  .legs)
+    }
+
+    /// Abductors are the gluteus medius/minimus, so they collapse to `.glutes`
+    /// rather than `.legs` — `AnatomicalMuscle.fromRaw` already maps them that
+    /// way and the two have to agree (audit Train M5). This test still
+    /// expected `.legs` from before that change.
+    func test_muscleGroup_fromRaw_collapsesGluteMuscles() {
+        XCTAssertEqual(MuscleGroup.fromRaw("glutes"),    .glutes)
+        XCTAssertEqual(MuscleGroup.fromRaw("abductors"), .glutes)
     }
 
     func test_muscleGroup_fromRaw_isCaseInsensitive() {

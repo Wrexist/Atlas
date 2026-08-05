@@ -23,16 +23,16 @@ final class WorkoutSessionTests: XCTestCase {
                        "Warm-up sets should not contribute to working volume")
     }
 
-    func test_setEntry_estimatedOneRepMax_singleRep_returnsExactWeight() {
+    func test_setEntry_estimatedOneRepMax_singleRep_returnsExactWeight() throws {
         let set = SetEntry(index: 1, weightKg: 140, reps: 1, completed: true)
-        XCTAssertEqual(set.estimatedOneRepMaxKg ?? 0, 140, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(set.estimatedOneRepMaxKg), 140, accuracy: 0.0001)
     }
 
-    func test_setEntry_estimatedOneRepMax_followsEpleyFormula() {
+    func test_setEntry_estimatedOneRepMax_followsEpleyFormula() throws {
         // Epley: 1RM ≈ w * (1 + r/30). 100kg × 5 → 100 × (1 + 5/30) = 116.66…
         let set = SetEntry(index: 1, weightKg: 100, reps: 5, completed: true)
         let expected = 100.0 * (1.0 + 5.0 / 30.0)
-        XCTAssertEqual(set.estimatedOneRepMaxKg ?? 0, expected, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(set.estimatedOneRepMaxKg), expected, accuracy: 0.0001)
     }
 
     func test_setEntry_estimatedOneRepMax_nilForWarmupOrIncomplete() {
@@ -109,7 +109,7 @@ final class WorkoutSessionTests: XCTestCase {
 
     // MARK: - WorkoutExerciseEntry
 
-    func test_exerciseEntry_topEstimatedOneRepMax_pickHighestValid() {
+    func test_exerciseEntry_topEstimatedOneRepMax_pickHighestValid() throws {
         let entry = WorkoutExerciseEntry(
             exerciseID: "Squat",
             index: 0,
@@ -128,6 +128,6 @@ final class WorkoutSessionTests: XCTestCase {
         //   130 × 1     = 130.00
         // → 132.00 from set 3.
         let expected = 120.0 * (1.0 + 3.0 / 30.0)
-        XCTAssertEqual(entry.topEstimatedOneRepMaxKg ?? 0, expected, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(entry.topEstimatedOneRepMaxKg), expected, accuracy: 0.0001)
     }
 }

@@ -341,10 +341,17 @@ struct BarcodeScanFlow: View {
                     }
                     MealCategoryPicker(selection: $category)
                     macroPanel(for: product)
-                    actionButtons
                 }
             }
             .scrollIndicators(.hidden)
+            // Matches the photo scanner: the primary action reserves its own
+            // space instead of sitting at the end of the scroll. The two
+            // scanners are the same journey and were drifting apart.
+            .pinnedFooter {
+                actionButtons
+                    .padding(.top, Spacing.lg)
+                    .padding(.bottom, Spacing.sm)
+            }
         } else {
             errorCard            // defensive — phase guarantees product is set
         }

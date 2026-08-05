@@ -143,13 +143,13 @@ final class WeeklyMuscleHeatmapTests: XCTestCase {
                        "Only working (non-warmup, completed) sets count")
     }
 
-    func test_frequencies_secondaryMusclesGetHalfWeight() {
+    func test_frequencies_secondaryMusclesGetHalfWeight() throws {
         // Bench Press secondary muscles include triceps (default head
         // weight 0.85): 4 sets × 0.5 × 0.85 = 1.7 per triceps head.
         let s = session(daysAgo: 1, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 4)
         let freqs = WeeklyMuscleHeatmap.frequencies(from: [s], library: library)
-        XCTAssertEqual(freqs[.tricepsLong] ?? 0, 1.7, accuracy: 0.0001)
-        XCTAssertEqual(freqs[.tricepsLateral] ?? 0, 1.7, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(freqs[.tricepsLong]), 1.7, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(freqs[.tricepsLateral]), 1.7, accuracy: 0.0001)
     }
 
     func test_frequencies_emptySessionsListReturnsEmpty() {

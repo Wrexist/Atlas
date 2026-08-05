@@ -318,38 +318,38 @@ final class HabitsServiceTests: XCTestCase {
         XCTAssertNil(HabitsService.completionRate(habits: [habit], entries: [], days: 7))
     }
 
-    func test_completionRate_full_whenEveryDueDayCompleted() {
+    func test_completionRate_full_whenEveryDueDayCompleted() throws {
         let habit = makeHabit() // daily
         let entries = (0..<7).map { HabitEntry(habitId: habit.id, date: day($0), value: 1) }
         let rate = HabitsService.completionRate(habits: [habit], entries: entries, days: 7)
-        XCTAssertEqual(rate ?? 0, 1.0, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(rate), 1.0, accuracy: 0.0001)
     }
 
-    func test_completionRate_half_whenHalfOfDueDaysCompleted() {
+    func test_completionRate_half_whenHalfOfDueDaysCompleted() throws {
         let habit = makeHabit() // daily, 6-day window → 6 due-days
         let entries = [0, 2, 4].map { HabitEntry(habitId: habit.id, date: day($0), value: 1) }
         let rate = HabitsService.completionRate(habits: [habit], entries: entries, days: 6)
-        XCTAssertEqual(rate ?? 0, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(rate), 0.5, accuracy: 0.0001)
     }
 
-    func test_completionRate_countable_requiresTarget() {
+    func test_completionRate_countable_requiresTarget() throws {
         let habit = makeHabit(target: 8) // daily countable
         let entries = [
             HabitEntry(habitId: habit.id, date: day(0), value: 8), // hit target
             HabitEntry(habitId: habit.id, date: day(1), value: 3), // partial — not counted
         ]
         let rate = HabitsService.completionRate(habits: [habit], entries: entries, days: 2)
-        XCTAssertEqual(rate ?? 0, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(rate), 0.5, accuracy: 0.0001)
     }
 
-    func test_completionRate_excludesTimesPerWeekHabitFromDenominator() {
+    func test_completionRate_excludesTimesPerWeekHabitFromDenominator() throws {
         let daily = makeHabit()
         let weekly = makeHabit(schedule: .timesPerWeek(3))
         // Daily completed every day; the weekly habit (never completed)
         // must not drag the rate down since it's excluded.
         let entries = (0..<5).map { HabitEntry(habitId: daily.id, date: day($0), value: 1) }
         let rate = HabitsService.completionRate(habits: [daily, weekly], entries: entries, days: 5)
-        XCTAssertEqual(rate ?? 0, 1.0, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(rate), 1.0, accuracy: 0.0001)
     }
 
     // MARK: - Streak freeze

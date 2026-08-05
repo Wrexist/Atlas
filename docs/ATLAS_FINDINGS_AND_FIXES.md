@@ -1,12 +1,19 @@
 # Atlas — findings och lösningar
 
-Skriven 2026-08-04. Överlämning från sessionen som fick CI att fungera
-igen, fixade PR #154 och #155, och gick igenom appen på TestFlight.
+Skriven 2026-08-04, uppdaterad 2026-08-05. Överlämning från sessionen som
+fick CI att fungera igen, fixade PR #154 och #155, och gick igenom appen
+på TestFlight.
 
-**Läs först:** kontrollera att [PR #155](https://github.com/Wrexist/Peptide-ai/pull/155)
-är grön. Sju commits ligger där och **ingen av dem var kompilerad när de
-skrevs** — `c122915` introducerar `AppColor` i `MuscleMapView` för första
-gången, och just den sortens typ-/API-krock har brutit bygget fyra gånger.
+**PR #155 är mergad och grön.** Byggen och lintsteg passerade.
+
+**Läs först:** testlistan i "Kvarvarande arbete" punkt 1 var fel. Den
+byggde på en tidigare körning och sa 17. Den verkliga siffran — hämtad ur
+jobbloggen — var **32**; skillnaden var nästan helt `StoreServiceTests`,
+femton stycken som föll på samma saknade fil och som ingen räknade.
+**Nu 7 kvar**, och de är uppräknade där med vad var och en kräver.
+
+Hämta alltid listan ur loggen, aldrig ur det här dokumentet — det här är
+en ögonblicksbild och den ruttnar. Kommandot står i punkt 1.
 
 ---
 
@@ -35,10 +42,17 @@ som reserverar **noll** utrymme. Gender-fältet var inte avklippt, det var
 oåtkomligt. Paywallens bakgrund började dessutom på `.opacity(0)`, alltså
 helt genomskinlig exakt där knappen sitter.
 
-**Kvar att göra:** lyft mönstret till en `pinnedFooter(_:)`-modifier i
-designsystemet — `safeAreaInset` + ogenomskinlig botten + fade som
-*avslutas ovanför* knappen — och en lint-regel mot `VStack { Spacer(); X }`
-i en ZStack över en ScrollView. Symptomen är fixade; mönstret kan återkomma.
+**Klart.** `pinnedFooter(_:)` finns i designsystemet — `safeAreaInset` +
+ogenomskinlig botten + fade som *avslutas ovanför* knappen — och
+`rule_floating_footer` gatar mönstret.
+
+Två saker föll ut av det. Onboarding hade bara halva fixen: dess gradient
+öppnade på opacity 0 och blev opak först runt mitten av knappen, alltså
+samma genomlysning som paywallen hade. Och regeln hittade en tredje
+förekomst direkt — datumchippet över fotobläddraren. Den är den
+*legitima* användningen av formen, så regeln är avgränsad till footers
+som håller en kontroll: en bildtext kan inte göra något oåtkomligt, och
+en regel som skriker på den blir ignorerad.
 
 ### A2. Ett steg som inte kan misslyckas får inte rapportera grönt
 `test-compile` slutade på `|| true` och var grönt i månader medan
@@ -46,6 +60,11 @@ testmålet inte kompilerade. `Unit Tests` var en attrapp som körde
 `touch test-output.log` och laddade upp 211 byte.
 
 **Kvar:** ta bort `continue-on-error` från `Unit Tests` när sviten är grön.
+Sju tester kvar (se punkt 1). Ta bort flaggan i samma commit som det
+sista av dem — annars är det enda som håller sviten grön att ingen tittar.
+
+Att den här PR:en rapporterade **success** med nio fallerande tester är
+precis den lögnen: bygget och linten passerade, `Unit Tests` "kördes".
 
 ### A3. Repo-data som sanning för testfixturer
 `exerciseID: "Barbell_Bench_Press"` finns inte — datasetet kallar den
@@ -53,9 +72,12 @@ testmålet inte kompilerade. `Unit Tests` var en attrapp som körde
 **Värst:** testerna som asserterar tomhet passerade perfekt på två tomma
 dictionaries. Trasig fixtur fick negativa tester att passera av fel skäl.
 
-**Kvar:** lägg i `check-copy-claims.py` att varje `exerciseID:` i
-`PeptideTests/` måste finnas i `exercises.json`, med allowlist för
-avsiktliga negativfall (`definitely_not_real`). Körs utan Xcode.
+**Klart.** `check-copy-claims.py` verifierar varje `exerciseID:` mot
+`exercises.json`, avgränsat till testfiler som faktiskt slår mot
+`ExerciseLibrary` — på övriga ställen är id:t en ogenomskinlig nyckel och
+`"Squat"` duger för en 1RM-uträkning som aldrig konsulterar datasetet.
+Allowlistan för avsiktliga negativfall kontrolleras åt båda hållen. Körs
+utan Xcode.
 
 ### A4. Generiska destinationer för allt som bara kompilerar
 `name:iPhone 16` finns inte på alla runner-images. Samma workflow, två
@@ -68,24 +90,84 @@ där tester körs.
 
 ## Kvarvarande arbete, i ordning
 
-### 1. De 17 återstående testfelen
-11 av 28 fixade. Kvar: `ShareCardRenderer` ×2, `PerformanceAgeEngine`
-clamp ×2, `NutritionLabelOCR` ×2, plus enstaka i `AIResearchService`,
-`AchievementService`, `BarcodeScanHistory`, `BiomarkerSeries`,
-`ExerciseLibrary`, `GoalCountdownCard`, `LifestyleDataStore`,
-`MuscleGroupAndEquipment`, `PeptideProtocolAuthorship`,
-`SmartCyclePlanner`, `WorkoutSessionService`.
+### 1. De återstående testfelen — 7 kvar av 32
 
-**Smart approach:** gruppera på felmeddelandets *form*, inte per fil. De
-två kluster som är lösta var vardera **en** rotorsak som täckte 5 och 6
-tester. Ställ alltid frågan: regresserade appen, eller ruttnade förväntan?
-De kräver motsatta fixar.
+Hämta alltid listan ur loggen, inte ur ett dokument. Så här:
 
-### 2. `?? 0` i accuracy-assertions (~9 st)
-`XCTAssertEqual(x?.y ?? 0, 251, accuracy: 1)` passerar tyst när parsningen
-ger nil — den jämför mot noll. Byt till `XCTUnwrap`. Finns i
-`NutritionLabelOCRTests`, `WeeklySummaryEngineTests`,
-`TodayOverviewSnapshotTests`, `MuscleGainsEngineTests`.
+```
+gh run view <run-id> --log --job <build-check-id> | grep 'PeptideTests/.*error:'
+```
+
+**Åtgärdade den 5 aug (20 tester):**
+
+| Kluster | Antal | Rotorsak |
+|---|---|---|
+| `StoreServiceTests` | 15 | `Products.storekit` fanns i varken app- eller testbundle. `SKTestSession(configurationFileNamed:)` läser ur *testbundlen*; app-targetet exkluderar filen med flit. Nu kopierad till testtargetet. |
+| `ShareCardRenderer` | 2 | Förväntade 1080×1350. Renderaren har alltid varit 1080×1920 — förväntan stämde aldrig. Asserterar mot `canvasSize` nu. |
+| `PerformanceAgeEngine` clamp | 2 | Testade en clamp som **inte går att nå**: drivarna summerar till max +6.3 / −4.3 mot ett tak på ±8. Taket är ett skyddsnät, inte ett mål. |
+| `MuscleGroupAndEquipment` | 1 | `abductors` → `.glutes` sedan audit Train M5; testet låg kvar på `.legs`. |
+| `PeptideProtocolAuthorship` | 1 | ISO8601 skriver hela sekunder; testet krävde millisekundprecision. |
+
+Två av de här var värda mer än sin fix. `PerformanceAgeEngine`-paret
+asserterade beteende motoren aldrig kunnat producera — och testet
+*direkt ovanför* dem asserterade redan att summan landar oklampad.
+Sviten motsade sig själv och ingen läste den. `ShareCardRenderer` hade
+tredje testet i samma fil rätt (mot `canvasSize`) medan två höll en egen
+kopia av siffran.
+
+**Verifierat i run `30973576412` (94aec30): 32 → 9 kvar.** StoreKit-fixen
+tog 13 av 15; de två som är kvar där kör nu på riktigt och faller på nya,
+äkta fel. Alla sju förväntansfixar håller.
+
+Sedan dess åtgärdade (`28dcd74`), inte omkörda än:
+
+- **`NutritionLabelOCR` ×2 — äkta defekt i appen.** `parseServingGrams` tog
+  *första* talet på raden. På FDA-standardlayouten "Serving size 1 cup
+  (240g)" är det portionsantalet, så skannern noterade ett gram per portion
+  för i praktiken varje amerikansk etikett — och granskningskortet räknar
+  per portion utifrån just det fältet. Ankrat till gram-enheten nu.
+  Tredje portionstestet asserterade det där 1-grammet och motsade sitt eget
+  namn (`_evenWhenGramsMissing`): buggen var nedskriven som förväntan.
+- **`ExerciseLibrary` — data, inte kod.** Testet asserterade `isEmpty` mot
+  ett dataset som levererar fem rader utan instruktioner, alltså föll det
+  likadant varje körning och sa ingen någonting. De fem är namngivna nu
+  (`Iron_Cross`, `One-Arm_Kettlebell_Swings`, `Push_Press`, `Side_Bridge`,
+  `Side_Jackknife`) och testet faller bara när mängden *ändras* — åt något
+  håll. Gapen är uppströms i `free-exercise-db`.
+
+**Kvar (7), grupperade på felets form — inte per fil:**
+
+*Äkta defekter (appen, inte förväntan):*
+- `AchievementService` — `latestUnlock` är inte nil vid andra anropet.
+- `LifestyleDataStore` — 4 istället för 2; dagsisoleringen läcker.
+- `BarcodeScanHistory` — decay ger 0.736 mot förväntat 1.0.
+
+*Går inte att avgöra utan mer information:*
+- `SmartCyclePlanner` — naken `XCTAssertTrue`, ingen text. Ge den ett
+  meddelande först, annars går det inte att se vad som faktiskt brast.
+
+*StoreKit-Test-isolering, inte appdefekter:*
+- `test_startMonthlyTrial_returnsFalse_whenProductNotLoaded` — kommentaren
+  säger "Don't call loadProducts — monthlyProduct is nil", men `StoreService`
+  är en singleton och produkterna ligger kvar från ett tidigare test. Testet
+  passerar i isolering och faller i svit. `products` är `private(set)`, så
+  det går **inte** att nolla från testet utan ny produktionsyta. Antingen
+  lägg till en reset avsedd för test, eller ta bort testet — det asserterar
+  ett förtillstånd som en singleton inte kan ha mitt i en svit.
+- `test_canAccessGetters_mirrorIsProUser` — `failedVerification` på köpet.
+  Varje test bygger en ny `SKTestSession` mot samma singleton. Notera att
+  `test_purchase_monthly_setsIsProUser` gör samma köp och passerar, så det
+  är ordningsberoende, inte köpvägen i sig. Kräver en körning med StoreKit
+  Test för att gå vidare — gissa inte.
+
+Ställ alltid frågan: **regresserade appen, eller ruttnade förväntan?** De
+kräver motsatta fixar, och fem av de tjugo som är lösta var det senare.
+
+### 2. `?? 0` i accuracy-assertions — **klart**
+`XCTAssertEqual(x?.y ?? 0, 0.0, accuracy: 0.01)` passerar tyst när
+parsningen ger nil — den jämför noll mot noll. Tre av dem asserterade
+mot ett förväntat värde på just noll, alltså passerade de i tysthet
+redan. Alla 30 förekomster i 11 filer går genom `XCTUnwrap` nu.
 
 ### 3. Muskelkartan — assets
 Paletten är fixad i `c122915` (neutral baslinje, accent-drivna toner).
@@ -100,22 +182,51 @@ Fitbod, Hevy och Strong löser det identiskt: grått = otränat, färg = data.
    det som läser som medicinsk lärobok.
 3. **Lägg till en legend.** Värmeramp utan nyckel är dekoration, inte data.
 
-### 4. Paywallens komposition
-Överlappet och säljtexten är fixade (`b9ffd86`, `b1c2043`). Kvar: ge
-nedräkningen verklig tyngd (den är en tunn pill som inte bär en deadline),
-och **flytta priset ovanför fold** — tier-väljaren ligger under, så beloppet
-är osynligt i viloläge. Ett paywall där man måste scrolla för att se priset
-konverterar sämre.
+### 4. Paywallens komposition — **klart**
+Rubriken var hårdkodad till månadspitchen — "3 Days Free", "Atlas Pro
+Monthly", "Then $9.99/month" — medan `.annual` är det som laddas valt och
+det som CTA:n rakt under säger att den startar. Enda priset ovanför fold
+gällde alltså en plan knappen inte skulle köpa, och det riktiga beloppet
+låg i tier-kortet under fold. Rubriken följer valt tier nu.
 
-### 5. Död yta på App Store-skärmarna
-760–880px under sista elementet på `07-protocols.html` och `08-paywall.html`.
-Fyll med innehåll som säljer, inte luft. Rendera med `node render.mjs`,
-verifiera med `node measure.mjs phone` (mäter numera geometri, inte bara färg).
+Nedräkningen bar en deadline med samma visuella tyngd som ett filterchip.
+Den är ett kort nu, med klockan i display-storlek på egen rad och fönstret
+som tömmer sig under — stapeln är det som får den att läsas som tid som
+rinner ut istället för en siffra som råkar ändra sig.
+
+### 5. Död yta på App Store-skärmarna — **klart**
+932px respektive 822px under sista elementet. Nu 224px och 162px, i linje
+med de övriga sex.
+
+Paywallen öppnar på nedräkningen appen faktiskt visar, och funktionslistan
+är appens egna fem rader — utfall istället för delsystem. Den namngav
+maskineri ("full Biology tab", "Weekly Summary"), vilket säger vad man
+köper men inte vad som blir bättre, och den beskrev ett paywall användaren
+inte landar på. Protokollskärmen fick de två sakerna den handlade om men
+aldrig visade: cykeln den är 14 dagar in i, och vad Atlas gör med
+följsamhetssiffran den leder med.
+
+**Kvar:** `02-score`, `03-train` och `04-meals` har 480–550px under sista
+elementet — mindre än de två ovan, men de saknar också tabbar. Värt en
+titt, inte samma akuta storlek.
+
+Rendera med `node render.mjs` (`--ipad` för iPad-varianterna), verifiera
+med `node measure.mjs phone`. Obs: `02-score` och `06-habits` renderar
+inte deterministiskt — de ger en ny PNG varje körning utan att HTML:en
+ändrats. Committa dem inte i onödan.
 
 ### 6. Verifiera på riktig enhet
 - `03f7853` byggde om layout-containern för **alla 18 onboarding-steg**
 - `NSPhotoLibraryUsageDescription` (i #154) förhindrar en hård
   TCC-terminering i foto-scannern
+- `pinnedFooter` rör nu **både** onboarding-footern och paywallens — samma
+  modifier, två skärmar. Onboardingens bakgrund ändrades från en gradient
+  över hela footerhöjden till opak botten + 16px fade, och den slutade
+  sätta `allowsHitTesting(false)`. Titta på ett scrollande steg (mål,
+  kroppsmått) och kontrollera att sista raden går fri från knappen.
+- Paywallens rubrik byter innehåll när man växlar tier. Kontrollera att
+  övergången inte hoppar i höjd — `annualPrice` och `"3 Days Free"` är
+  olika långa strängar i samma 44pt-rad.
 
 ---
 

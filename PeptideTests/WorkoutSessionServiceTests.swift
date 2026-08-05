@@ -32,8 +32,28 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(repo.loadWorkoutSessions().count, 1)
     }
 
-    func test_startWorkout_discardsPriorActive() {
+    /// Two starts back-to-back are one workout, not two.
+    ///
+    /// This is the behaviour the service documents and the case that actually
+    /// happens — a deep link plus a tab tap, two taps on the CTA. It was
+    /// untested, and the test below it asserted the opposite because it
+    /// predates the collapse window.
+    func test_startWorkout_rapidSecondCall_collapsesIntoExisting() {
         let first = service.startWorkout()
+        let second = service.startWorkout()
+        XCTAssertEqual(first.id, second.id,
+                       "A re-start inside the duplicate window is the same workout")
+        XCTAssertEqual(repo.loadWorkoutSessions().count, 1)
+    }
+
+    /// Past the window it is a genuine fresh start, and the stale session —
+    /// typically one restored from a previous launch — is discarded.
+    ///
+    /// The wait is derived from the production constant rather than a literal,
+    /// so moving the window moves the test with it.
+    func test_startWorkout_afterDuplicateWindow_discardsPriorActive() {
+        let first = service.startWorkout()
+        Thread.sleep(forTimeInterval: WorkoutSessionService.duplicateStartWindow + 0.2)
         let second = service.startWorkout()
         XCTAssertNotEqual(first.id, second.id)
         let stored = repo.loadWorkoutSessions()

@@ -241,16 +241,40 @@ enum NutritionLabelParser {
         return nil
     }
 
+    /// The number attached to a gram unit, not the first number on the line.
+    ///
+    /// This took whatever number came first, which on the standard FDA layout
+    /// — "Serving size 1 cup (240g)" — is the portion *count*. Every US label
+    /// written that way reported a 1-gram serving, and the review card does
+    /// its per-serving maths from this.
+    ///
+    /// Anchoring to the unit also drops "1 muffin" to nil rather than 1 gram.
+    /// The grams really are unknown there, and `servingGrams` is optional so
+    /// the caller can say so; a fabricated 1 is worse than nothing.
+    ///
+    /// `mg` does not match — the `g` has to start the unit — so a
+    /// "Serving size 500mg" line will not be read as 500 grams.
     private static func parseServingGrams(in lines: [String]) -> Double? {
-        // "Serving size 30 g" / "Per 30g serving" / "Servings: 1 (30g)"
+        // "Serving size 1 cup (240g)" / "Serving size 30 g" / "Per 30g serving"
         for line in lines where line.contains("serving") || line.contains("portion") {
-            if let value = firstNumber(in: line, allowingDecimals: true) {
-                // Reject suspiciously large or zero serving sizes —
-                // OCR sometimes picks up calorie counts in this row.
-                if value > 0 && value < 2000 { return value }
-            }
+            guard let value = gramValue(in: line) else { continue }
+            // Reject suspiciously large or zero serving sizes — OCR
+            // sometimes picks up calorie counts in this row.
+            if value > 0 && value < 2000 { return value }
         }
         return nil
+    }
+
+    private static let gramValueRegex = try? NSRegularExpression(
+        pattern: #"(\d+(?:[.,]\d+)?)\s*g(?:ram|rams)?\b"#
+    )
+
+    private static func gramValue(in line: String) -> Double? {
+        guard let regex = Self.gramValueRegex else { return nil }
+        let ns = line as NSString
+        let match = regex.firstMatch(in: line, range: NSRange(location: 0, length: ns.length))
+        guard let range = match?.range(at: 1) else { return nil }
+        return Double(ns.substring(with: range).replacingOccurrences(of: ",", with: "."))
     }
 
     private static func parseServingSizeText(in lines: [String]) -> String? {

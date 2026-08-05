@@ -321,18 +321,17 @@ struct OnboardingView: View {
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: page)
-                // `safeAreaInset`, not a floating overlay. The footer used
+                // `pinnedFooter`, not a floating overlay. The footer used
                 // to be `VStack { Spacer(); footer }` layered in this
                 // ZStack, which reserves no space whatsoever: every
                 // scrolling step ran its content underneath the CTA
                 // permanently. On the body-metrics step that put the Gender
                 // row under the button with no way to scroll it clear —
-                // the field simply could not be reached. An inset gives
+                // the field simply could not be reached. The modifier gives
                 // each page's ScrollView real bottom room, so the last row
-                // always clears the button.
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    footer
-                }
+                // always clears the button, and lands the backdrop's fade
+                // above the button instead of behind it.
+                .pinnedFooter { footer }
             }
         }
         .onAppear {
@@ -568,22 +567,6 @@ struct OnboardingView: View {
         .padding(.horizontal, Spacing.screenPadding)
         .padding(.top, Spacing.lg)
         .padding(.bottom, Spacing.xl)
-        // The footer floats over the paged content. A clear-to-background
-        // fade keeps the CTA legible and stops a scrolling step's last
-        // row (e.g. the goal grid) from colliding with the button.
-        .background {
-            LinearGradient(
-                colors: [
-                    AppColor.background.opacity(0),
-                    AppColor.background,
-                    AppColor.background,
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-        }
     }
 
     /// Skip is shown only on optional informational pages. Data-input

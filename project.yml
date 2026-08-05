@@ -26,6 +26,28 @@ options:
     iOS: "18.0"
   generateEmptyDirectories: true
   developmentLanguage: en
+  # English only, deliberately.
+  #
+  # `Localizable.xcstrings` carries 170 keys translated into nine languages,
+  # but only 45 of the app's 349 UI sentences are in the catalog at all — 13%.
+  # The other 87% render in English whatever the device is set to, and that
+  # includes dosing and safety copy.
+  #
+  # Shipping the nine anyway would put those languages on the App Store
+  # listing and hand, say, a Japanese user a mostly-English medical app. So
+  # the build compiles English only until coverage is real.
+  #
+  # What actually decides this is the *catalog*, not any setting here.
+  # Xcode derives the project's known regions from the localizations it finds,
+  # so `Localizable.xcstrings` having nine languages is what would compile nine
+  # `.lproj` folders — and those folders, not `CFBundleLocalizations`, are what
+  # the App Store reads for the listing.
+  #
+  # So the shipped catalog carries its 170 keys with no non-English
+  # localizations. The full nine-language version is preserved verbatim at
+  # `localization/Localizable.translated.xcstrings`, outside every target's
+  # source path: withheld, not discarded. Restoring a language means copying
+  # its block back and adding it to CFBundleLocalizations below.
 settings:
   base:
     # Swift 5 language mode. The codebase is not yet clean under Swift 6
@@ -68,17 +90,11 @@ targets:
         CFBundleDisplayName: Atlas
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Matches `options.knownRegions`. Declaring a language here that the
+        # binary does not actually localize advertises it on the App Store
+        # listing regardless. See the note on knownRegions above.
         CFBundleLocalizations:
           - en
-          - es
-          - zh-Hans
-          - ja
-          - de
-          - fr
-          - pt-BR
-          - ko
-          - ru
-          - ar
         ITSAppUsesNonExemptEncryption: false
         NSSupportsLiveActivities: true
         NSCameraUsageDescription: "Atlas uses the camera to scan food barcodes, take a profile photo (stored locally), and photograph meals for nutrition estimation. Meal photos are sent securely to our AI service for analysis and are not retained after the response. Barcode and profile photos stay on your device."
@@ -216,6 +232,17 @@ targets:
       - path: PeptideTests
         excludes:
           - "**/.DS_Store"
+      # `SKTestSession(configurationFileNamed: "Products")` resolves the
+      # file out of the *test* bundle, and the app target deliberately
+      # excludes it (see above) so a device build can't transact against
+      # the fake catalog. It was in neither bundle, so all fifteen
+      # StoreServiceTests failed setUp with SKTestErrorDomain Code=4
+      # "File not found" — the whole suite, on a missing resource.
+      #
+      # Copying it here keeps the app-bundle exclusion intact: the
+      # config ships to the test runner only.
+      - path: Peptide/Resources/Products.storekit
+        buildPhase: resources
     dependencies:
       - target: Peptide
       # StoreKitTest is needed by StoreServiceTests so SKTestSession

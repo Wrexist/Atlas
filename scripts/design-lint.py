@@ -108,6 +108,36 @@ def line_of(source: str, index: int) -> int:
     return source.count("\n", 0, index) + 1
 
 
+def enclosing_block(code: str, index: int) -> tuple[int, str]:
+    """The innermost `{ … }` containing `index`, as (brace position, text).
+
+    Used by rules that need structural context — "is this VStack sitting in a
+    ZStack next to a ScrollView?" — which no single regex can answer. The
+    position is returned because the construct that owns a block is written
+    *before* its brace, so the caller has to look back past it.
+    """
+    depth, start = 0, None
+    for i in range(index - 1, -1, -1):
+        if code[i] == "}":
+            depth += 1
+        elif code[i] == "{":
+            if depth == 0:
+                start = i
+                break
+            depth -= 1
+    if start is None:
+        return -1, ""
+    depth = 0
+    for i in range(start, len(code)):
+        if code[i] == "{":
+            depth += 1
+        elif code[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return start, code[start:i + 1]
+    return start, code[start:]
+
+
 # --------------------------------------------------------------------------
 # Rules
 # --------------------------------------------------------------------------
@@ -491,6 +521,85 @@ def rule_raw_material(path, source, code) -> list[Finding]:
     return out
 
 
+# Every case of `UIFont.TextStyle`, which is what `AppFont.scaled(relativeTo:)`
+# takes. `Font.TextStyle` — the SwiftUI one — has a bare `.title`, so writing it
+# here is a natural mistake and a build break.
+UI_TEXT_STYLES = {
+    "largeTitle", "title1", "title2", "title3", "headline", "subheadline",
+    "body", "callout", "footnote", "caption1", "caption2",
+}
+
+
+def rule_text_style(path, source, code) -> list[Finding]:
+    """`relativeTo:` names a `UIFont.TextStyle` case that exists.
+
+    `AppFont.scaled(34, relativeTo: .title)` broke the build: `UIFont.TextStyle`
+    has title1/title2/title3 and no bare `.title`. The two TextStyle types read
+    identically at the call site and only one of them has that case.
+
+    This is an enum-membership check on a closed set, not type inference — the
+    same shape as the spacing-grid and type-scale rules. Nobody should wait six
+    minutes for CI to learn they typed a case name that does not exist.
+    """
+    out = []
+    for m in re.finditer(r"relativeTo:\s*\.(\w+)", code):
+        if m.group(1) in UI_TEXT_STYLES:
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "text-style",
+                           f".{m.group(1)} is not a UIFont.TextStyle case "
+                           f"({', '.join(sorted(UI_TEXT_STYLES))})", "error"))
+    return out
+
+
+SCROLL_CONTAINERS = re.compile(r"\b(?:ScrollView|List|TabView|Form)\b")
+
+# What makes a floating footer a *defect* rather than decoration: it holds
+# something the user is meant to reach.
+INTERACTIVE = re.compile(r"\b(?:Button|Toggle|TextField|Picker|Stepper|Slider|Menu|NavigationLink)\b"
+                         r"|\.onTapGesture\b")
+
+
+def rule_floating_footer(path, source, code) -> list[Finding]:
+    """`VStack { Spacer(); footer }` layered over a scroll view in a ZStack is
+    a floating overlay: it reserves **zero** layout space, so the scrolling
+    content ends at its own natural bottom and its last row stops permanently
+    behind the footer.
+
+    This shipped twice. In onboarding it parked the Gender row under the CTA
+    with no way to scroll it clear — the field could not be reached at all.
+    On the paywall the tier cards ran under the button. Neither was visible to
+    any other rule, because every colour, font and spacing token was correct.
+
+    Use `.pinnedFooter { … }`, which reserves the space via `safeAreaInset`
+    and lands an opaque backdrop whose fade ends above the button.
+
+    Scoped to footers that hold a control. A decorative overlay — the date
+    chip floating over the photo pager — is the legitimate use of this shape
+    and cannot strand anything, so firing on it would only teach people to
+    ignore the rule.
+    """
+    out = []
+    for m in re.finditer(r"\bVStack\b[^{\n]*\{\s*Spacer\(\)", code):
+        brace, block = enclosing_block(code, m.start())
+        if brace < 0:
+            continue
+        # Only the ZStack-overlay form is the bug. A `VStack { Spacer() }`
+        # that *is* the layout — pushing its own content down — is fine, and
+        # so is one inside a ScrollView, where it sizes to the content.
+        owner = code[max(0, brace - 60):brace]
+        if not re.search(r"\bZStack\b[^{]*$", owner):
+            continue
+        if not SCROLL_CONTAINERS.search(block):
+            continue
+        _, floating = enclosing_block(code, m.end())
+        if not INTERACTIVE.search(floating):
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "floating-footer",
+                           "a VStack opening with Spacer() over a scroll view in a ZStack "
+                           "floats without reserving space; use .pinnedFooter { }", "error"))
+    return out
+
+
 def rule_uncombined_row(path, source, code) -> list[Finding]:
     """A repeated list row that mixes an icon with text is one piece of
     information, but VoiceOver reads it as several — an icon stop, then each
@@ -670,6 +779,8 @@ RULES = [
     rule_unlabelled_icon_button,
     rule_stacked_glass,
     rule_raw_material,
+    rule_text_style,
+    rule_floating_footer,
     rule_uncombined_row,
 ]
 

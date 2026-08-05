@@ -76,6 +76,59 @@ def marketing_says(pattern: str) -> list[tuple[str, str]]:
     return found
 
 
+# Ids a test deliberately expects to be *absent*, so `lookup` returns nil and
+# the empty-result path gets exercised. Each one must stay unfindable.
+DELIBERATE_MISSING_IDS = {
+    "definitely_not_real",
+    "definitely_not_a_real_exercise_id_123",
+}
+
+
+def check_exercise_fixtures() -> list[str]:
+    """Every `exerciseID` a test resolves through `ExerciseLibrary` must exist.
+
+    `exerciseID: "Barbell_Bench_Press"` was written into the training fixtures;
+    the dataset calls it `Barbell_Bench_Press_-_Medium_Grip`. The lookup
+    returned nothing and six tests fell over — but the *worse* half is that the
+    tests asserting emptiness went green, because comparing two empty
+    dictionaries passes for any reason at all. A broken fixture made negative
+    tests pass for the wrong reason, which is the failure mode that hides.
+
+    Scoped to test files that actually touch `ExerciseLibrary`. Everywhere else
+    an exercise id is an opaque key — `"Squat"` is a perfectly good one for a
+    1RM calculation that never consults the dataset — and demanding real ids
+    there would be noise nobody keeps paying.
+    """
+    tests = REPO / "PeptideTests"
+    if not tests.exists():
+        return []
+    real = {e["id"] for e in json.loads(
+        (REPO / "Peptide" / "Resources" / "exercises.json").read_text())}
+
+    failures = []
+    for p in sorted(tests.rglob("*.swift")):
+        source = p.read_text()
+        if "ExerciseLibrary" not in source:
+            continue
+        for m in re.finditer(r'(?:exerciseID:|lookup\(id:)\s*"([^"]+)"', source):
+            ident = m.group(1)
+            if ident in DELIBERATE_MISSING_IDS:
+                if ident in real:
+                    line = source.count("\n", 0, m.start()) + 1
+                    print(f"  FAIL {p.name}:{line}: {ident!r} is allowlisted as "
+                          "missing but the dataset now has it")
+                    failures.append(f"exercise-fixture:{ident}")
+                continue
+            if ident not in real:
+                line = source.count("\n", 0, m.start()) + 1
+                print(f"  FAIL {p.name}:{line}: exerciseID {ident!r} is not in "
+                      "exercises.json — the lookup will return nil")
+                failures.append(f"exercise-fixture:{ident}")
+    if not failures:
+        print(f"  ok   exercise fixtures resolve against {len(real)} dataset ids")
+    return failures
+
+
 def tier_for_level(level: int) -> str:
     """Mirror of MomentumEngine.Tier.forLevel, parsed from the source so it
     cannot drift from it."""
@@ -225,6 +278,8 @@ def main() -> int:
         failures.append("live-activities")
     elif "NSSupportsLiveActivities" in plist:
         print("  ok   Live Activities: declared and used")
+
+    failures += check_exercise_fixtures()
 
     if failures:
         print(f"\n{len(failures)} copy claim(s) no longer match the source")
