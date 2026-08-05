@@ -143,6 +143,26 @@ final class MealScannerService: Sendable {
 
     private struct ItemsEnvelope: Codable {
         let items: [ScannedFoodItem]
+        /// Name for the plate as a whole when the items clearly form one
+        /// dish. Nil for a tray of unrelated things.
+        let mealName: String?
+
+        enum CodingKeys: String, CodingKey {
+            case items
+            case mealName = "meal_name"
+        }
+    }
+
+    /// What a photo scan came back with: the individual items, plus a name
+    /// for the dish they add up to when they add up to one.
+    ///
+    /// Spaghetti and a bolognese sauce are two rows the user may want to
+    /// re-portion separately, *and* one meal called "Spaghetti Bolognese"
+    /// they may want in their diary as a single line. The scanner returns
+    /// both readings and the review screen lets the user pick.
+    struct ScannedMeal {
+        let items: [ScannedFoodItem]
+        let mealName: String?
     }
 
     /// Single-aggregate estimate for the whole plate. Retained for the
@@ -156,7 +176,7 @@ final class MealScannerService: Sendable {
     /// Per-item breakdown of the photo — each distinct food/drink the
     /// model can see, so the review UI can let the user adjust portions
     /// and drop misfires before logging.
-    func analyzeItems(image: UIImage) async throws -> [ScannedFoodItem] {
+    func analyzeItems(image: UIImage) async throws -> ScannedMeal {
         let data = try await performVision(image: image, prompt: Self.itemsPrompt)
         return try parseItems(from: data)
     }
@@ -349,9 +369,15 @@ final class MealScannerService: Sendable {
     that is visibly depicted. If the image shows no food, return \
     {"items":[]}.
 
+    Also name the plate as a whole in meal_name when the items clearly \
+    form one recognisable dish — spaghetti plus a bolognese sauce plus a \
+    basil garnish is "Spaghetti Bolognese". Use null when the items are \
+    unrelated, such as a sandwich next to a can of soda.
+
     For every item, estimate the portion that is actually shown and its \
     nutrition. Return JSON only in exactly this shape:
-    {"items":[{"name": string, "quantity_label": string (a short serving \
+    {"meal_name": string or null, \
+    "items":[{"name": string, "quantity_label": string (a short serving \
     description such as "1 can (330 ml)" or "1 sandwich"), "grams": number \
     (estimated weight of the shown portion in grams), "calories": integer \
     kcal, "protein_g": integer grams, "carbs_g": integer grams, "fat_g": \
@@ -397,7 +423,7 @@ final class MealScannerService: Sendable {
             && (0...500).contains(fatG)
     }
 
-    private func parseItems(from data: Data) throws -> [ScannedFoodItem] {
+    private func parseItems(from data: Data) throws -> ScannedMeal {
         let cleaned = try extractModelText(from: data)
         guard let payloadData = cleaned.data(using: .utf8) else { throw ScanError.parseFailure }
 
@@ -427,7 +453,13 @@ final class MealScannerService: Sendable {
                 )
         }
         guard !valid.isEmpty else { throw ScanError.implausibleResult }
-        return valid
+        let dish = decoded.mealName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ScannedMeal(
+            items: valid,
+            // A single-item plate is already its own name; offering to
+            // "combine" one row into a meal would be a no-op control.
+            mealName: (dish?.isEmpty == false && valid.count > 1) ? dish : nil
+        )
     }
 
     private func parseEstimate(from data: Data) throws -> MealEstimate {

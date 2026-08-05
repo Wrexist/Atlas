@@ -26,6 +26,14 @@ struct MealScanFlow: View {
     @State private var items: [EditableFoodItem] = []
     @State private var errorText: String?
     @State private var category: MealCategory = MealCategory.auto(for: Date())
+    /// The dish the model thinks these items add up to, when they add up to
+    /// one. Nil for a tray of unrelated things, which is what keeps the
+    /// combine control from appearing where it would make no sense.
+    @State private var suggestedMealName: String?
+    /// Editable because the model's name is a guess. Seeded from
+    /// `suggestedMealName` and only ever shown when combining.
+    @State private var mealName: String = ""
+    @State private var logAsOneMeal = false
     @State private var isShowingCamera = false
     @State private var cameraDeniedAlert: CameraDeniedReason?
     /// Tracks the in-flight image-load and Anthropic analysis tasks so
@@ -372,6 +380,10 @@ struct MealScanFlow: View {
                     fatG: totalFat
                 )
 
+                if suggestedMealName != nil {
+                    combineControl
+                }
+
                 MealCategoryPicker(selection: $category)
             }
             .animation(AppAnimation.springSnappy, value: includedItems.count)
@@ -387,6 +399,41 @@ struct MealScanFlow: View {
             .padding(.top, Spacing.lg)
             .padding(.bottom, Spacing.sm)
         }
+    }
+
+    /// Offered only when the model recognised the plate as one dish.
+    ///
+    /// Spaghetti, a bolognese sauce and a basil garnish are three rows worth
+    /// re-portioning separately, and one thing the user ate. The diary wants
+    /// the second reading; the portion controls want the first. So both exist
+    /// and this picks which one gets written — defaulting to the single line,
+    /// because "Spaghetti Bolognese" is the honest answer to "what did you
+    /// eat" and three rows is bookkeeping nobody asked for.
+    private var combineControl: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Toggle(isOn: $logAsOneMeal.animation(AppAnimation.springSnappy)) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Log as one meal")
+                        .font(AppFont.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(logAsOneMeal
+                         ? "One diary entry with the combined macros."
+                         : "\(includedItems.count) separate entries, one per item.")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+            }
+            .tint(AppColor.accentPrimary)
+
+            if logAsOneMeal {
+                GlassTextField(placeholder: "Meal name", text: $mealName, icon: "fork.knife")
+                    .textInputAutocapitalization(.words)
+                    .accessibilityLabel("Meal name")
+            }
+        }
+        .padding(Spacing.lg)
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
     /// Sits on the photo, where the count belongs — it describes the picture.
@@ -444,7 +491,8 @@ struct MealScanFlow: View {
     /// the key text itself. That was already true before this change; the
     /// catalog sits at 13% coverage and is tracked separately.
     private var addButtonTitle: LocalizedStringKey {
-        includedItems.count <= 1
+        if logAsOneMeal { return "Add to today" }
+        return includedItems.count <= 1
             ? "Add to today"
             : "Add \(includedItems.count) items"
     }
@@ -535,7 +583,13 @@ struct MealScanFlow: View {
         do {
             let result = try await MealScannerService.shared.analyzeItems(image: image)
             await MainActor.run {
-                items = result.map(EditableFoodItem.init(from:))
+                items = result.items.map(EditableFoodItem.init(from:))
+                suggestedMealName = result.mealName
+                mealName = result.mealName ?? ""
+                // Default to one line in the diary when the plate is clearly
+                // one dish. "Spaghetti Bolognese" is what the user ate; three
+                // rows is bookkeeping they did not ask for.
+                logAsOneMeal = result.mealName != nil
                 // Auto-categorise from the PHOTO's capture time, not
                 // the analyze-finished time. Otherwise a yesterday-
                 // dinner photo picked at 10am gets bucketed as snack
@@ -561,6 +615,29 @@ struct MealScanFlow: View {
     private func confirm() {
         let toLog = includedItems
         guard !toLog.isEmpty else { return }
+
+        if logAsOneMeal {
+            let name = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
+            dataStore.logMealEntry(
+                MealEntry(
+                    date: capturedAtDate,
+                    category: category,
+                    // Falls back to the model's suggestion, then to a generic
+                    // label — an empty diary row would be worse than either.
+                    name: name.isEmpty ? (suggestedMealName ?? "Meal") : name,
+                    calories: totalCalories,
+                    proteinG: totalProtein,
+                    carbsG: totalCarbs,
+                    fatG: totalFat,
+                    sourceID: nil,
+                    source: .photo
+                )
+            )
+            Haptics.success()
+            onClose()
+            return
+        }
+
         for item in toLog {
             dataStore.logMealEntry(
                 MealEntry(
