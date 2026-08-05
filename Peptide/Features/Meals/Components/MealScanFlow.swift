@@ -215,69 +215,148 @@ struct MealScanFlow: View {
         .padding(.horizontal, Spacing.lg)
     }
 
-    private var previewBox: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
-            } else {
-                VStack(spacing: Spacing.sm) {
-                    Image(systemName: "camera.viewfinder")
-                        .font(.system(size: 56, weight: .light))
-                        .foregroundStyle(AppColor.accentLight)
-                    Text("No photo selected")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
+    /// The photo, sized once and clipped at that size.
+    ///
+    /// This was a fixed 220pt box that the review screen re-framed to 130pt.
+    /// The clip ran at the *inner* size, so ninety points of photograph drew
+    /// straight over "Detected items" and the first result card — the heading,
+    /// the instructions and the first row were all painted on top of a
+    /// photograph, and none of the three could be read.
+    private func photoCard<Overlay: View>(
+        height: CGFloat,
+        @ViewBuilder overlay: () -> Overlay
+    ) -> some View {
+        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+            .fill(AppColor.surfaceSecondary)
+            .frame(height: height)
+            .overlay {
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .accessibilityHidden(true)
+                } else {
+                    VStack(spacing: Spacing.sm) {
+                        Image(systemName: "camera.viewfinder")
+                            .font(AppFont.scaled(56, weight: .light))
+                            .foregroundStyle(AppColor.accentLight)
+                        Text("No photo selected")
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
                 }
             }
-        }
-        .frame(height: 220)
+            .overlay(alignment: .bottom) { overlay() }
+            // Clip *after* the frame and the overlays, so nothing can escape
+            // the card's real bounds again.
+            .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+            }
     }
 
+    private var previewBox: some View {
+        photoCard(height: 220) { EmptyView() }
+    }
+
+    // MARK: - Analysing
+
+    /// A bare `ProgressView` over the photo, with its caption in grey on top
+    /// of the picture, is what this was. Neither could be read and neither
+    /// said what was happening.
+    ///
+    /// Now: the photo keeps its card, the bar sweeps underneath it, and three
+    /// skeleton rows stand where the results will land so the wait shows the
+    /// shape of what is coming rather than a spinner.
     private var analyzing: some View {
         VStack(spacing: Spacing.lg) {
-            previewBox
-            ProgressView()
-                .progressViewStyle(.circular)
-                .tint(AppColor.accentLight)
-            Text("Reading the plate…")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
+            photoCard(height: 200) {
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "sparkles")
+                        .font(AppFont.scaled(13, weight: .bold))
+                    Text("Analysing your meal")
+                        .font(AppFont.scaled(13, weight: .semibold))
+                }
+                .foregroundStyle(AppColor.textPrimary)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
+                .glassSurfaceCapsule()
+                .padding(.bottom, Spacing.md)
+            }
+
+            ScanProgressBar()
+
+            VStack(spacing: Spacing.sm) {
+                ForEach(0..<3, id: \.self) { _ in skeletonRow }
+            }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Analysing your meal")
     }
+
+    private var skeletonRow: some View {
+        HStack(spacing: Spacing.md) {
+            Circle()
+                .fill(AppColor.surfaceSecondary)
+                .frame(width: 22, height: 22)
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
+                    .fill(AppColor.surfaceSecondary)
+                    .frame(height: 12)
+                RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
+                    .fill(AppColor.surfaceSecondary)
+                    .frame(width: 120, height: 8)
+            }
+            RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary)
+                .frame(width: 44, height: 20)
+        }
+        .padding(Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.4))
+        }
+        .shimmer()
+        .accessibilityHidden(true)
+    }
+
+    // MARK: - Review
 
     private var includedItems: [EditableFoodItem] { items.filter(\.include) }
     private var totalCalories: Int { includedItems.reduce(0) { $0 + $1.calories } }
+    private var totalProtein: Int { includedItems.reduce(0) { $0 + $1.proteinG } }
+    private var totalCarbs: Int { includedItems.reduce(0) { $0 + $1.carbsG } }
+    private var totalFat: Int { includedItems.reduce(0) { $0 + $1.fatG } }
 
     private var reviewCard: some View {
         ScrollView {
-            VStack(spacing: Spacing.lg) {
-                previewBox
-                    .frame(height: 130)
+            VStack(alignment: .leading, spacing: Spacing.lg) {
+                photoCard(height: 200) {
+                    HStack(alignment: .bottom) {
+                        detectedBadge
+                        Spacer(minLength: Spacing.sm)
+                        retakeButton
+                    }
+                    .padding(Spacing.md)
+                }
 
-                HStack {
+                HStack(alignment: .firstTextBaseline) {
                     Text("Detected items")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
-                    Text("\(includedItems.count) selected · \(totalCalories) kcal")
+                    Text("\(includedItems.count) selected")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
                         .monospacedDigit()
+                        .contentTransition(.numericText())
                 }
 
                 Text("Tap a row to adjust the portion, untick anything that isn't yours, or save an item to your food library for next time.")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 ForEach($items) { $item in
                     FoodItemEditCard(
@@ -286,25 +365,74 @@ struct MealScanFlow: View {
                     )
                 }
 
+                MealScanTotalsCard(
+                    calories: totalCalories,
+                    proteinG: totalProtein,
+                    carbsG: totalCarbs,
+                    fatG: totalFat
+                )
+
                 MealCategoryPicker(selection: $category)
-
-                HStack(spacing: Spacing.sm) {
-                    GlassButton(title: "Re-scan", style: .secondary) {
-                        image = nil
-                        selectedItem = nil
-                        items = []
-                        phase = .pickImage
-                    }
-
-                    GlassButton(title: addButtonTitle, style: .primary) {
-                        confirm()
-                    }
-                    .disabled(includedItems.isEmpty)
-                }
-                .padding(.top, Spacing.xs)
             }
+            .animation(AppAnimation.springSnappy, value: includedItems.count)
         }
         .scrollIndicators(.hidden)
+        // The CTA reserves its own space rather than floating, so the last
+        // card always scrolls clear of it.
+        .pinnedFooter {
+            GlassButton(title: addButtonTitle, style: .primary, isFullWidth: true) {
+                confirm()
+            }
+            .disabled(includedItems.isEmpty)
+            .padding(.top, Spacing.lg)
+            .padding(.bottom, Spacing.sm)
+        }
+    }
+
+    /// Sits on the photo, where the count belongs — it describes the picture.
+    private var detectedBadge: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(AppFont.scaled(13, weight: .bold))
+                    .foregroundStyle(AppColor.positive)
+                Text("\(items.count) items detected")
+                    .font(AppFont.scaled(13, weight: .semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+            }
+            Text("\(totalCalories) kcal")
+                .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                .foregroundStyle(AppColor.textPrimary)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+        }
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.sm)
+        .glassSurface(cornerRadius: Spacing.smallCornerRadius)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var retakeButton: some View {
+        Button {
+            Haptics.impact(.soft)
+            image = nil
+            selectedItem = nil
+            items = []
+            phase = .pickImage
+        } label: {
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: "arrow.counterclockwise")
+                Text("Retake")
+            }
+            .font(AppFont.scaled(13, weight: .semibold))
+            .foregroundStyle(AppColor.textPrimary)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.sm)
+            .glassSurfaceCapsule()
+        }
+        .buttonStyle(.plain)
+        .minimumHitArea()
+        .accessibilityLabel("Retake photo")
     }
 
     /// `LocalizedStringKey`, not `String`: GlassButton takes a key, and
@@ -600,18 +728,26 @@ private struct FoodItemEditCard: View {
                 }
         }
         .opacity(item.include ? 1 : 0.55)
+        // Only the include state animates. Binding this to the whole card
+        // would re-animate every portion tap and every macro recount.
+        .animation(AppAnimation.springSnappy, value: item.include)
     }
 
     private var header: some View {
         HStack(spacing: Spacing.sm) {
             Button {
-                item.include.toggle()
+                Haptics.selection()
+                withAnimation(AppAnimation.springSnappy) { item.include.toggle() }
             } label: {
                 Image(systemName: item.include ? "checkmark.circle.fill" : "circle")
                     .font(AppFont.scaled(20))
                     .foregroundStyle(item.include ? AppColor.accentPrimary : AppColor.textTertiary)
+                    // The glyph swap alone was invisible at a glance on a
+                    // dense list; the scale gives the tap a moment.
+                    .scaleEffect(item.include ? 1 : 0.88)
             }
             .buttonStyle(.plain)
+            .minimumHitArea()
             .accessibilityLabel(item.include ? "Exclude item" : "Include item")
 
             VStack(alignment: .leading, spacing: 2) {
@@ -634,6 +770,9 @@ private struct FoodItemEditCard: View {
                     .font(AppFont.scaled(20, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                     .monospacedDigit()
+                    // Rolls rather than cuts when the portion changes, so the
+                    // stepper visibly drives this number.
+                    .contentTransition(.numericText())
                 Text("kcal")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
