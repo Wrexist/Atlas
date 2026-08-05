@@ -7,10 +7,13 @@ på TestFlight.
 **PR #155 är mergad och grön.** Byggen och lintsteg passerade.
 
 **Läs först:** testlistan i "Kvarvarande arbete" punkt 1 var fel. Den
-byggde på en tidigare körning. Den faktiska listan — hämtad ur
-jobbloggen för run `30971354484` — står nu där, och den är **32 tester,
-inte 17**. Skillnaden är nästan helt `StoreServiceTests`, femton stycken
-som föll på samma saknade fil och som ingen räknade.
+byggde på en tidigare körning och sa 17. Den verkliga siffran — hämtad ur
+jobbloggen — var **32**; skillnaden var nästan helt `StoreServiceTests`,
+femton stycken som föll på samma saknade fil och som ingen räknade.
+**Nu 7 kvar**, och de är uppräknade där med vad var och en kräver.
+
+Hämta alltid listan ur loggen, aldrig ur det här dokumentet — det här är
+en ögonblicksbild och den ruttnar. Kommandot står i punkt 1.
 
 ---
 
@@ -57,8 +60,11 @@ testmålet inte kompilerade. `Unit Tests` var en attrapp som körde
 `touch test-output.log` och laddade upp 211 byte.
 
 **Kvar:** ta bort `continue-on-error` från `Unit Tests` när sviten är grön.
-Tolv tester kvar (se punkt 1). Ta bort flaggan i samma commit som det
+Sju tester kvar (se punkt 1). Ta bort flaggan i samma commit som det
 sista av dem — annars är det enda som håller sviten grön att ingen tittar.
+
+Att den här PR:en rapporterade **success** med nio fallerande tester är
+precis den lögnen: bygget och linten passerade, `Unit Tests` "kördes".
 
 ### A3. Repo-data som sanning för testfixturer
 `exerciseID: "Barbell_Bench_Press"` finns inte — datasetet kallar den
@@ -84,7 +90,7 @@ där tester körs.
 
 ## Kvarvarande arbete, i ordning
 
-### 1. De återstående testfelen — 12 kvar av 32
+### 1. De återstående testfelen — 7 kvar av 32
 
 Hämta alltid listan ur loggen, inte ur ett dokument. Så här:
 
@@ -109,30 +115,50 @@ Sviten motsade sig själv och ingen läste den. `ShareCardRenderer` hade
 tredje testet i samma fil rätt (mot `canvasSize`) medan två höll en egen
 kopia av siffran.
 
-**Kvar (12), grupperade på felets form — inte per fil:**
+**Verifierat i run `30973576412` (94aec30): 32 → 9 kvar.** StoreKit-fixen
+tog 13 av 15; de två som är kvar där kör nu på riktigt och faller på nya,
+äkta fel. Alla sju förväntansfixar håller.
 
-*Ser ut som riktiga defekter (appen, inte förväntan):*
-- `WorkoutSessionService.test_startWorkout_discardsPriorActive` — samma
-  UUID före och efter. Den föregående aktiva passet kastas inte.
+Sedan dess åtgärdade (`28dcd74`), inte omkörda än:
+
+- **`NutritionLabelOCR` ×2 — äkta defekt i appen.** `parseServingGrams` tog
+  *första* talet på raden. På FDA-standardlayouten "Serving size 1 cup
+  (240g)" är det portionsantalet, så skannern noterade ett gram per portion
+  för i praktiken varje amerikansk etikett — och granskningskortet räknar
+  per portion utifrån just det fältet. Ankrat till gram-enheten nu.
+  Tredje portionstestet asserterade det där 1-grammet och motsade sitt eget
+  namn (`_evenWhenGramsMissing`): buggen var nedskriven som förväntan.
+- **`ExerciseLibrary` — data, inte kod.** Testet asserterade `isEmpty` mot
+  ett dataset som levererar fem rader utan instruktioner, alltså föll det
+  likadant varje körning och sa ingen någonting. De fem är namngivna nu
+  (`Iron_Cross`, `One-Arm_Kettlebell_Swings`, `Push_Press`, `Side_Bridge`,
+  `Side_Jackknife`) och testet faller bara när mängden *ändras* — åt något
+  håll. Gapen är uppströms i `free-exercise-db`.
+
+**Kvar (7), grupperade på felets form — inte per fil:**
+
+*Äkta defekter (appen, inte förväntan):*
 - `AchievementService` — `latestUnlock` är inte nil vid andra anropet.
-- `NutritionLabelOCR` ×2 — parsern ger `1.0` där etiketten säger `240`
-  respektive `30`. Den plockar troligen portionsantalet.
 - `LifestyleDataStore` — 4 istället för 2; dagsisoleringen läcker.
 - `BarcodeScanHistory` — decay ger 0.736 mot förväntat 1.0.
 
-*Ser ut som ruttnad förväntan:*
-- `BiomarkerSeries.formatValue` — 72.0 mot 72.1.
-- `GoalCountdownCard` — 0 mot 1 vecka.
-- `AIResearchService` — `.serviceUnavailable` istället för
-  `.requestFailed`; felmappningen är förmodligen medvetet finare nu.
+*Går inte att avgöra utan mer information:*
 - `SmartCyclePlanner` — naken `XCTAssertTrue`, ingen text. Ge den ett
-  meddelande först, annars går det inte att avgöra.
+  meddelande först, annars går det inte att se vad som faktiskt brast.
 
-*Datafel, inte kodfel:*
-- `ExerciseLibrary.test_load_everyExercise_hasInstructions` — fem poster
-  i `exercises.json` saknar instruktioner (`Iron_Cross`,
-  `One-Arm_Kettlebell_Swings`, `Push_Press`, m.fl.). Antingen fyll dem
-  eller allowlista dem uttryckligen — datasetet är uppströms.
+*StoreKit-Test-isolering, inte appdefekter:*
+- `test_startMonthlyTrial_returnsFalse_whenProductNotLoaded` — kommentaren
+  säger "Don't call loadProducts — monthlyProduct is nil", men `StoreService`
+  är en singleton och produkterna ligger kvar från ett tidigare test. Testet
+  passerar i isolering och faller i svit. `products` är `private(set)`, så
+  det går **inte** att nolla från testet utan ny produktionsyta. Antingen
+  lägg till en reset avsedd för test, eller ta bort testet — det asserterar
+  ett förtillstånd som en singleton inte kan ha mitt i en svit.
+- `test_canAccessGetters_mirrorIsProUser` — `failedVerification` på köpet.
+  Varje test bygger en ny `SKTestSession` mot samma singleton. Notera att
+  `test_purchase_monthly_setsIsProUser` gör samma köp och passerar, så det
+  är ordningsberoende, inte köpvägen i sig. Kräver en körning med StoreKit
+  Test för att gå vidare — gissa inte.
 
 Ställ alltid frågan: **regresserade appen, eller ruttnade förväntan?** De
 kräver motsatta fixar, och fem av de tjugo som är lösta var det senare.
