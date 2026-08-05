@@ -202,15 +202,33 @@ final class AIResearchServiceTests: XCTestCase {
 
     // MARK: - HTTP failures
 
+    /// 500 rather than 502. The gateway codes were broken out of the generic
+    /// envelope so a transient upstream outage reads as "try again in a few
+    /// minutes" instead of a bare status code — this test kept using 502 and
+    /// so was asserting against the case it no longer lands in.
     func test_reply_throwsRequestFailedOnNon2xx() async {
         MockURLProtocol.handler = { request in
-            (Self.response(for: request, status: 502), Data())
+            (Self.response(for: request, status: 500), Data())
         }
         await XCTAssertThrowsErrorAsyncResearch(try await service.reply(history: [], newUserPrompt: "hi", in: [])) { error in
             if case .requestFailed(let message) = error as? AIResearchService.ChatError {
-                XCTAssertTrue(message.contains("502"))
+                XCTAssertTrue(message.contains("500"))
             } else {
                 XCTFail("Expected .requestFailed, got \(error)")
+            }
+        }
+    }
+
+    /// The gateway codes that get the friendlier message.
+    func test_reply_throwsServiceUnavailableOnGatewayErrors() async {
+        for status in [502, 503, 504] {
+            MockURLProtocol.handler = { request in
+                (Self.response(for: request, status: status), Data())
+            }
+            await XCTAssertThrowsErrorAsyncResearch(try await service.reply(history: [], newUserPrompt: "hi", in: [])) { error in
+                guard case .serviceUnavailable = error as? AIResearchService.ChatError else {
+                    return XCTFail("Expected .serviceUnavailable for HTTP \(status), got \(error)")
+                }
             }
         }
     }

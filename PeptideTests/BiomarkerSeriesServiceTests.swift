@@ -60,8 +60,17 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
 
     // MARK: - formatValue
 
+    /// The contract is one decimal place, not a rounding mode.
+    ///
+    /// This asserted `72.05 → "72.1"`, which `%.1f` does not promise: 72.05 is
+    /// not representable in binary and the nearest Double is a hair *below*
+    /// it, so it formats as "72.0". The test was pinning the C library's
+    /// half-even behaviour on a non-representable boundary value rather than
+    /// anything the app decided. Both sides of the boundary are unambiguous.
     func test_formatValue_weightOneDecimal() {
-        XCTAssertEqual(BiomarkerSeriesService.formatValue(72.05, for: .weight), "72.1")
+        XCTAssertEqual(BiomarkerSeriesService.formatValue(72.06, for: .weight), "72.1")
+        XCTAssertEqual(BiomarkerSeriesService.formatValue(72.04, for: .weight), "72.0")
+        XCTAssertEqual(BiomarkerSeriesService.formatValue(72.0, for: .weight), "72.0")
     }
 
     func test_formatValue_hrvNoDecimal() {

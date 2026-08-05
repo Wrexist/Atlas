@@ -35,10 +35,16 @@ final class GoalCountdownCardTests: XCTestCase {
 
     // MARK: - Time math (mirrors GoalCountdownCard's private computeds)
 
+    /// Derived from `daysRemaining`, exactly as the card does it.
+    ///
+    /// This used to divide raw seconds by a week. A goal date built as
+    /// `Date() + 7 days` is already a few microseconds in the past by the time
+    /// the helper calls `Date()` again, so the quotient is 6.9999… and `Int`
+    /// truncates it to 0 — the card, which buckets by calendar day, says 1.
+    /// The mirror had drifted into being a second, different implementation,
+    /// and it was the one under test.
     private func weeksRemaining(for goalDate: Date) -> Int {
-        let seconds = goalDate.timeIntervalSince(Date())
-        guard seconds > 0 else { return 0 }
-        return max(0, Int(seconds / (60 * 60 * 24 * 7)))
+        max(0, daysRemaining(for: goalDate) / 7)
     }
 
     private func daysRemaining(for goalDate: Date) -> Int {
@@ -63,11 +69,12 @@ final class GoalCountdownCardTests: XCTestCase {
     }
 
     func test_oneWeekOut_returnsOneWeekSevenDays() {
-        let oneWeek = Date().addingTimeInterval(60 * 60 * 24 * 7)
+        // Added as a calendar day, not as 604800 seconds. Both the card and
+        // the mirror bucket by `startOfDay`, so a goal seven calendar days out
+        // is seven days out at any hour and across a DST transition — where
+        // the seconds version can land on six and read as zero weeks.
+        let oneWeek = Calendar.current.date(byAdding: .day, value: 7, to: Date())!
+        XCTAssertEqual(daysRemaining(for: oneWeek), 7)
         XCTAssertEqual(weeksRemaining(for: oneWeek), 1)
-        // Day-bucket arithmetic depends on the current time of day; the
-        // floor is 6 days, the ceiling is 7. Both are valid.
-        let days = daysRemaining(for: oneWeek)
-        XCTAssertTrue(days == 6 || days == 7, "Got \(days) — expected 6 or 7")
     }
 }

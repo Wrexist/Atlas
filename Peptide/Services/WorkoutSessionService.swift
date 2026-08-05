@@ -16,6 +16,11 @@ final class WorkoutSessionService {
     /// "one active session at a time" invariant.
     private(set) var activeSession: WorkoutSession?
 
+    /// How recently a session must have started for a second `startWorkout`
+    /// to be treated as a duplicate tap rather than a fresh workout. Roughly
+    /// the SwiftUI re-render window.
+    static let duplicateStartWindow: TimeInterval = 2
+
     private init() {
         // Re-hydrate any session that was active when the process was
         // suspended so the user picks up where they left off.
@@ -35,7 +40,7 @@ final class WorkoutSessionService {
     @discardableResult
     func startWorkout(routine: Routine? = nil) -> WorkoutSession {
         if let existing = activeSession {
-            if existing.startedAt.timeIntervalSinceNow > -2 {
+            if existing.startedAt.timeIntervalSinceNow > -Self.duplicateStartWindow {
                 // Recently-started session — collapse the duplicate
                 // start (deep link + tab tap, two finger taps on the
                 // CTA, etc.) into the existing session instead of
