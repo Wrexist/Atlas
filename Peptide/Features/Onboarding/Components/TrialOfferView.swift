@@ -324,68 +324,88 @@ struct TrialOfferView: View {
     /// how much is left without reading anything.
     private var countdownBanner: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
-            let remaining = max(0, offerDeadline.timeIntervalSince(context.date))
-            VStack(spacing: Spacing.sm) {
-                if remaining > 0 {
-                    HStack(spacing: Spacing.xs) {
-                        Image(systemName: "bolt.fill")
-                            .font(AppFont.scaled(11, weight: .bold))
-                        Text("WELCOME OFFER ENDS IN")
-                            .font(AppFont.scaled(11, weight: .heavy))
-                            .tracking(1.5)
-                    }
-                    .foregroundStyle(AppColor.warning)
-
-                    Text(timeString(remaining))
-                        .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .title))
-                        .monospacedDigit()
-                        .foregroundStyle(AppColor.textPrimary)
-                        .contentTransition(.numericText())
-
-                    // Drains left-to-right over the offer window. Capsule
-                    // rather than ProgressView so the track reads as part of
-                    // the card instead of a system control dropped into it.
-                    GeometryReader { geo in
-                        Capsule()
-                            .fill(AppColor.warning)
-                            .frame(width: geo.size.width * remaining / Self.offerWindow)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(height: 4)
-                    .background {
-                        Capsule().fill(AppColor.warning.opacity(0.18))
-                    }
-                    .animation(.linear(duration: 1), value: remaining)
-                } else {
-                    HStack(spacing: Spacing.xs) {
-                        Image(systemName: "bolt.fill")
-                            .font(AppFont.scaled(13, weight: .bold))
-                            .foregroundStyle(AppColor.warning)
-                        Text("Best value — claim it today")
-                            .font(AppFont.scaled(13, weight: .semibold))
-                            .foregroundStyle(AppColor.textPrimary)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
-                    .fill(AppColor.warning.opacity(0.14))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.warning.opacity(0.35), lineWidth: 1)
-                    }
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(remaining > 0
-                                ? "Welcome offer ends in \(timeString(remaining))"
-                                : "Best value — claim it today")
+            countdownCard(remaining: max(0, offerDeadline.timeIntervalSince(context.date)))
         }
         .opacity(didReveal ? 1 : 0)
         .offset(y: didReveal ? 0 : 10)
         .animation(AppAnimation.springSmooth.delay(0.1), value: didReveal)
+    }
+
+    /// Split out of the `TimelineView` closure rather than written inline.
+    /// Inline, the closure was large enough that one ambiguity inside it —
+    /// an `accessibilityLabel` ternary the compiler could not resolve between
+    /// the `LocalizedStringKey` and `StringProtocol` overloads — surfaced as
+    /// "generic parameter 'Content' could not be inferred" on the
+    /// `TimelineView` line, pointing nowhere near the actual problem.
+    @ViewBuilder
+    private func countdownCard(remaining: TimeInterval) -> some View {
+        VStack(spacing: Spacing.sm) {
+            if remaining > 0 {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "bolt.fill")
+                        .font(AppFont.scaled(11, weight: .bold))
+                    Text("WELCOME OFFER ENDS IN")
+                        .font(AppFont.scaled(11, weight: .heavy))
+                        .tracking(1.5)
+                }
+                .foregroundStyle(AppColor.warning)
+
+                Text(timeString(remaining))
+                    .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .title))
+                    .monospacedDigit()
+                    .foregroundStyle(AppColor.textPrimary)
+                    .contentTransition(.numericText())
+
+                countdownDrainBar(remaining: remaining)
+            } else {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "bolt.fill")
+                        .font(AppFont.scaled(13, weight: .bold))
+                        .foregroundStyle(AppColor.warning)
+                    Text("Best value — claim it today")
+                        .font(AppFont.scaled(13, weight: .semibold))
+                        .foregroundStyle(AppColor.textPrimary)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
+                .fill(AppColor.warning.opacity(0.14))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.warning.opacity(0.35), lineWidth: 1)
+                }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(countdownAccessibilityLabel(remaining: remaining))
+    }
+
+    /// Drains left-to-right over the offer window. A Capsule rather than a
+    /// ProgressView so the track reads as part of the card instead of a
+    /// system control dropped into it.
+    private func countdownDrainBar(remaining: TimeInterval) -> some View {
+        GeometryReader { geo in
+            Capsule()
+                .fill(AppColor.warning)
+                .frame(width: geo.size.width * remaining / Self.offerWindow)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(height: 4)
+        .background {
+            Capsule().fill(AppColor.warning.opacity(0.18))
+        }
+        .animation(.linear(duration: 1), value: remaining)
+    }
+
+    /// A plain `String`, not a ternary at the call site — the two branches
+    /// pick different `accessibilityLabel` overloads otherwise.
+    private func countdownAccessibilityLabel(remaining: TimeInterval) -> String {
+        remaining > 0
+            ? "Welcome offer ends in \(timeString(remaining))"
+            : "Best value — claim it today"
     }
 
     private func timeString(_ seconds: TimeInterval) -> String {
