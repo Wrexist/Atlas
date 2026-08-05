@@ -218,7 +218,12 @@ final class MealScannerService: Sendable {
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.timeoutInterval = 30
+        // 60s, not 30. This covers the upload as well as the model's
+        // thinking time, and the photo we send is now several times
+        // larger than it was — on a weak cellular link the old ceiling
+        // would have started failing scans that used to squeak through,
+        // then burned the single retry doing it again.
+        request.timeoutInterval = 60
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
         // App Attest assertion headers when available — the proxy
@@ -328,21 +333,55 @@ final class MealScannerService: Sendable {
     /// lever once every deployment is off 4.6.
     private static let maxImageEdge: CGFloat = 1568
 
-    /// 0.85, up from 0.7. JPEG spends its error budget on exactly the
-    /// high-frequency detail this scan depends on, so a quality that
-    /// looks fine to a human was quietly sanding off the evidence the
-    /// model needed. Costs roughly 2× the bytes at the same resolution.
-    private static let jpegQuality: CGFloat = 0.85
+    /// Quality ladder, best first. 0.85 replaces the old flat 0.7 —
+    /// JPEG spends its error budget on exactly the high-frequency detail
+    /// this scan depends on, so a quality that looks fine to a human was
+    /// quietly sanding off the evidence the model needed.
+    ///
+    /// The lower rungs exist for busy photos. A cluttered plate at 0.85
+    /// can encode several times larger than a plain one, and the user on
+    /// the worst connection is not the one who should pay for that.
+    private static let jpegQualityLadder: [CGFloat] = [0.85, 0.72, 0.6]
 
-    /// JPEG-compress so we stay well under Anthropic's 5 MB image-size
-    /// limit even on 48-megapixel originals. Throws when compression
-    /// fails or the result is still too big — the UI surfaces the error
-    /// instead of timing out.
+    /// Soft ceiling for the encoded JPEG, chosen against the upload
+    /// rather than the API limit.
+    ///
+    /// Anthropic's hard limit is 5 MB, and a 1568 px photo never comes
+    /// close — but bytes are seconds on a bad connection, and raising
+    /// the resolution roughly tripled them. 700 KB keeps the base64 body
+    /// near 950 KB, which is a few seconds on LTE and survives the
+    /// request timeout on something much worse.
+    private static let targetByteBudget = 700 * 1024
+
+    /// Floor for the resize when even the lowest quality overshoots.
+    /// Still 25% more linear detail than the 1024 px this replaced.
+    private static let fallbackImageEdge: CGFloat = 1280
+
+    /// Encodes at the best quality that fits the byte budget, stepping
+    /// down only as far as it has to.
+    ///
+    /// Ordinary photos take the first rung and never pay for the rest.
+    /// Throws when encoding fails outright or the result is still over
+    /// Anthropic's hard limit — better a clear error than a request that
+    /// hangs and times out.
     private func compress(_ image: UIImage) throws -> Data {
         let resized = image.resizedTo(maxEdge: Self.maxImageEdge) ?? image
-        guard let data = resized.jpegData(compressionQuality: Self.jpegQuality) else {
-            throw ScanError.imageTooLarge
+
+        var smallest: Data?
+        for quality in Self.jpegQualityLadder {
+            guard let data = resized.jpegData(compressionQuality: quality) else { continue }
+            if data.count <= Self.targetByteBudget { return data }
+            smallest = data
         }
+
+        // Every quality overshot, so the photo is detailed enough that
+        // resolution — not quality — is what's costing the bytes.
+        if let shrunk = resized.resizedTo(maxEdge: Self.fallbackImageEdge)?
+            .jpegData(compressionQuality: Self.jpegQualityLadder[0]) {
+            smallest = shrunk
+        }
+
+        guard let data = smallest else { throw ScanError.imageTooLarge }
         guard data.count <= 5 * 1024 * 1024 else { throw ScanError.imageTooLarge }
         return data
     }

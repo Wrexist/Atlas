@@ -36,6 +36,18 @@ final class EditableFoodItemTests: XCTestCase {
         XCTAssertEqual(item.calories, 100)
     }
 
+    /// Mirrors the review card's "most of the plate is a guess" rule, so
+    /// the majority threshold can't drift without a test noticing.
+    func test_uncertainMajority_needsMoreThanHalf() {
+        func uncertainCount(_ confidences: [Double]) -> Int {
+            confidences.map { EditableFoodItem(from: scanned(confidence: $0)) }
+                .filter(\.isUncertain).count
+        }
+        // Two of four is not a majority; three of four is.
+        XCTAssertFalse(uncertainCount([0.1, 0.2, 0.9, 0.9]) * 2 > 4)
+        XCTAssertTrue(uncertainCount([0.1, 0.2, 0.3, 0.9]) * 2 > 4)
+    }
+
     private func scanned(confidence: Double) -> MealScannerService.ScannedFoodItem {
         MealScannerService.ScannedFoodItem(
             name: "watermelon",

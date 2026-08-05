@@ -337,6 +337,32 @@ struct MealScanFlow: View {
     private var totalCarbs: Int { includedItems.reduce(0) { $0 + $1.carbsG } }
     private var totalFat: Int { includedItems.reduce(0) { $0 + $1.fatG } }
 
+    /// True when the model was unsure about most of what it saw.
+    ///
+    /// One shaky row among four is a normal scan and the per-row marker
+    /// handles it. Three shaky rows out of four is not an item problem —
+    /// it's the photo, and no amount of renaming fixes that.
+    private var isMostlyUncertain: Bool {
+        guard !items.isEmpty else { return false }
+        return items.filter(\.isUncertain).count * 2 > items.count
+    }
+
+    /// Offered instead of the usual how-to line when the whole plate came
+    /// back shaky. Points at the fix that actually works — a better
+    /// photo — rather than leaving the user to correct every row by hand.
+    private var retakeSuggestion: some View {
+        HStack(alignment: .top, spacing: Spacing.xs) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .font(AppFont.scaled(11))
+                .foregroundStyle(AppColor.warning)
+            Text("Most of these are guesses. A photo taken straight on, in better light, usually sorts it — or rename the rows yourself.")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var reviewCard: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -361,10 +387,14 @@ struct MealScanFlow: View {
                         .contentTransition(.numericText())
                 }
 
-                Text("Tap a row to adjust the portion, untick anything that isn't yours, or save an item to your food library for next time.")
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if isMostlyUncertain {
+                    retakeSuggestion
+                } else {
+                    Text("Tap a row to adjust the portion, untick anything that isn't yours, or save an item to your food library for next time.")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 ForEach($items) { $item in
                     FoodItemEditCard(
