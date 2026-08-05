@@ -38,8 +38,13 @@ final class PeptideProtocolAuthorshipTests: XCTestCase {
         XCTAssertEqual(decoded.authorName, original.authorName)
         XCTAssertEqual(decoded.authorHandle, original.authorHandle)
         XCTAssertEqual(decoded.forkedFromStackId, original.forkedFromStackId)
+        // One second, not one millisecond. `.iso8601` writes whole seconds —
+        // no fractional component — so the round trip truncates sub-second
+        // precision by design and a 0.001 tolerance could never pass. The
+        // assertion is that the timestamp survives at the resolution the wire
+        // format actually carries.
         XCTAssertEqual(decoded.createdAt.timeIntervalSince1970,
-                       original.createdAt.timeIntervalSince1970, accuracy: 0.001)
+                       original.createdAt.timeIntervalSince1970, accuracy: 1.0)
     }
 
     func testLegacyProtocolWithoutAuthorshipDecodes() throws {

@@ -216,6 +216,17 @@ targets:
       - path: PeptideTests
         excludes:
           - "**/.DS_Store"
+      # `SKTestSession(configurationFileNamed: "Products")` resolves the
+      # file out of the *test* bundle, and the app target deliberately
+      # excludes it (see above) so a device build can't transact against
+      # the fake catalog. It was in neither bundle, so all fifteen
+      # StoreServiceTests failed setUp with SKTestErrorDomain Code=4
+      # "File not found" — the whole suite, on a missing resource.
+      #
+      # Copying it here keeps the app-bundle exclusion intact: the
+      # config ships to the test runner only.
+      - path: Peptide/Resources/Products.storekit
+        buildPhase: resources
     dependencies:
       - target: Peptide
       # StoreKitTest is needed by StoreServiceTests so SKTestSession
