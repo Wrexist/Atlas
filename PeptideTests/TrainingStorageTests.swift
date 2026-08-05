@@ -34,7 +34,7 @@ final class TrainingStorageTests: XCTestCase {
             finishedAt: Date(timeIntervalSince1970: 1_700_003_600),
             exercises: [
                 WorkoutExerciseEntry(
-                    exerciseID: "Barbell_Bench_Press",
+                    exerciseID: "Barbell_Bench_Press_-_Medium_Grip",
                     index: 0,
                     sets: [
                         SetEntry(index: 1, weightKg: 60, reps: 10,
@@ -184,7 +184,7 @@ final class TrainingStorageTests: XCTestCase {
             name: "Upper A",
             subtitle: "Strength",
             exercises: [
-                RoutineExercise(exerciseID: "Barbell_Bench_Press",
+                RoutineExercise(exerciseID: "Barbell_Bench_Press_-_Medium_Grip",
                                 index: 0, targetSets: 5, targetReps: 5,
                                 targetRPE: 8.0, restSeconds: 180),
                 RoutineExercise(exerciseID: "Pullups",
@@ -218,7 +218,7 @@ final class TrainingStorageTests: XCTestCase {
 
     func test_personalRecord_roundTrips() {
         let original = PersonalRecord(
-            exerciseID: "Barbell_Bench_Press",
+            exerciseID: "Barbell_Bench_Press_-_Medium_Grip",
             bestEstimatedOneRepMaxKg: 140,
             bestEstimatedOneRepMaxAt: Date(timeIntervalSince1970: 1_000),
             bestAbsoluteWeightKg: 135,
@@ -229,7 +229,7 @@ final class TrainingStorageTests: XCTestCase {
         repo.upsertPersonalRecord(original)
         let loaded = repo.loadPersonalRecords()
         XCTAssertEqual(loaded.count, 1)
-        XCTAssertEqual(loaded.first?.exerciseID, "Barbell_Bench_Press")
+        XCTAssertEqual(loaded.first?.exerciseID, "Barbell_Bench_Press_-_Medium_Grip")
         XCTAssertEqual(loaded.first?.bestEstimatedOneRepMaxKg, 140)
         XCTAssertEqual(loaded.first?.bestSessionVolumeKg, 5400)
     }

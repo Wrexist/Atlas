@@ -36,7 +36,11 @@ enum EquipmentKind: String, CaseIterable, Codable, Identifiable, Sendable {
         switch self {
         case .barbell, .smith: return "figure.strengthtraining.traditional"
         case .dumbbell:        return "dumbbell.fill"
-        case .kettlebell:      return "figure.kettlebell"
+        // Not `figure.kettlebell` — no such SF Symbol. It resolved to
+        // nothing, so the Kettlebell card in onboarding drew no icon and
+        // collapsed to roughly half the height of its neighbours, which
+        // is what made that grid look ragged.
+        case .kettlebell:      return "figure.strengthtraining.functional"
         case .cable, .machine: return "gearshape.2.fill"
         case .band:            return "wave.3.right"
         case .bodyweight:      return "figure.run"

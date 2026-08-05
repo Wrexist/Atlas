@@ -321,11 +321,18 @@ struct OnboardingView: View {
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.springSmooth, value: page)
-            }
-
-            VStack {
-                Spacer()
-                footer
+                // `safeAreaInset`, not a floating overlay. The footer used
+                // to be `VStack { Spacer(); footer }` layered in this
+                // ZStack, which reserves no space whatsoever: every
+                // scrolling step ran its content underneath the CTA
+                // permanently. On the body-metrics step that put the Gender
+                // row under the button with no way to scroll it clear —
+                // the field simply could not be reached. An inset gives
+                // each page's ScrollView real bottom room, so the last row
+                // always clears the button.
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    footer
+                }
             }
         }
         .onAppear {
@@ -568,7 +575,7 @@ struct OnboardingView: View {
             LinearGradient(
                 colors: [
                     AppColor.background.opacity(0),
-                    AppColor.background.opacity(0.9),
+                    AppColor.background,
                     AppColor.background,
                 ],
                 startPoint: .top,
@@ -1521,14 +1528,24 @@ struct OnboardingView: View {
             }
         } label: {
             VStack(spacing: Spacing.xs) {
+                // Fixed slot, not the glyph's own size. `figure.*` symbols
+                // are much taller than `dumbbell.fill` or `wave.3.right`,
+                // so letting each icon set its own height made every card
+                // in the grid a different size — Barbell taller than
+                // Dumbbell beside it, and so on down the two columns.
                 Image(systemName: kind.symbolName)
                     .font(AppFont.scaled(24, weight: .semibold))
                     .foregroundStyle(selected ? AppColor.accentPrimary : AppColor.textSecondary)
+                    .frame(height: 32)
                 Text(kind.displayName)
                     .font(AppFont.footnote.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
             }
-            .frame(maxWidth: .infinity)
+            // A floor rather than a fixed height, so the cards stay uniform
+            // at default type sizes but can still grow for Dynamic Type
+            // instead of clipping the label.
+            .frame(maxWidth: .infinity, minHeight: 96)
             .padding(.vertical, Spacing.md)
             .background(
                 RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)

@@ -39,22 +39,34 @@ struct MuscleMapView: View {
 
     let highlights: [AnatomicalMuscle: MuscleHighlight]
     var orientation: Orientation = .both
-    var primaryColor: Color = Color(red: 0.93, green: 0.27, blue: 0.30)
-    var secondaryColor: Color = Color(red: 0.42, green: 0.58, blue: 0.95)
+    // The app's accent, not a hardcoded red/blue pair. Atlas ships five
+    // brand ramps and the user picks one in onboarding; a fixed red
+    // primary and blue secondary meant this screen disagreed with the tab
+    // bar and every other surface the moment anyone chose a theme.
+    var primaryColor: Color = AppColor.accentPrimary
+    var secondaryColor: Color = AppColor.accentPrimary.opacity(0.45)
     var silhouetteFill: Color = Color.white.opacity(0.06)
     var silhouetteStroke: Color = Color.white.opacity(0.18)
     /// Faint skeletal scaffold drawn under the muscles so the figure
     /// reads as an anatomy chart rather than a flat blob.
     var showsSkeleton: Bool = true
     var skeletonColor: Color = Color.white.opacity(0.14)
-    /// Resting tint for an untrained muscle — a flesh red so the whole
-    /// figure reads as an écorché anatomy model even before anything is
-    /// trained; the load ramp then re-paints each muscle it touches.
-    var muscleBaseline: Color = Color(red: 0.78, green: 0.34, blue: 0.30).opacity(0.80)
-    /// Light tendon-coloured edge line around resting muscles, standing
-    /// in for the pale connective tissue between bellies on a real
-    /// anatomical model.
-    var tendonStroke: Color = Color(red: 0.95, green: 0.58, blue: 0.52).opacity(0.38)
+    /// Resting tint for an untrained muscle — neutral, not flesh.
+    ///
+    /// This was a flesh red, chosen so the figure read as an écorché
+    /// anatomy model before anything was trained. In practice it made the
+    /// whole screen look like a medical diagram, and it spent the one
+    /// thing this view has to communicate: colour. Every muscle arrived
+    /// pre-painted, so a trained muscle had nothing to stand out against.
+    ///
+    /// Fitbod, Hevy and Strong all resolve it the same way — untrained is
+    /// grey, and colour means data. A neutral baseline gives the load ramp
+    /// the entire range to work in, so "this week" is legible at a glance
+    /// instead of being a shade of red among other shades of red.
+    var muscleBaseline: Color = Color.white.opacity(0.10)
+    /// Edge line around resting muscles. Neutral for the same reason as
+    /// the baseline: it separates the bellies without tinting the figure.
+    var tendonStroke: Color = Color.white.opacity(0.16)
     /// Shadow colour for the muscle-separation grooves that give the
     /// figure its defined, three-dimensional read.
     var grooveColor: Color = Color.black.opacity(0.32)

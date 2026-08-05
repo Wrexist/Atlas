@@ -122,21 +122,21 @@ final class WeeklyMuscleHeatmapTests: XCTestCase {
 
     func test_frequencies_sessionInsideWindow_contributesToPrimaryHead() {
         // Flat bench press: chest primary → sternal head at full weight.
-        let s = session(daysAgo: 2, exerciseID: "Barbell_Bench_Press", workingSets: 4)
+        let s = session(daysAgo: 2, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 4)
         let freqs = WeeklyMuscleHeatmap.frequencies(from: [s], library: library)
         XCTAssertEqual(freqs[.pecSternal], 4,
                        "Each working set on flat bench should fully light the sternal pec")
     }
 
     func test_frequencies_sessionOutsideWindow_isExcluded() {
-        let s = session(daysAgo: 14, exerciseID: "Barbell_Bench_Press", workingSets: 4)
+        let s = session(daysAgo: 14, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 4)
         let freqs = WeeklyMuscleHeatmap.frequencies(from: [s], library: library)
         XCTAssertTrue(freqs.isEmpty,
                       "Sessions older than the window should not contribute")
     }
 
     func test_frequencies_warmupAndIncompleteSets_excluded() {
-        let s = session(daysAgo: 1, exerciseID: "Barbell_Bench_Press",
+        let s = session(daysAgo: 1, exerciseID: "Barbell_Bench_Press_-_Medium_Grip",
                         workingSets: 3, warmupSets: 5)
         let freqs = WeeklyMuscleHeatmap.frequencies(from: [s], library: library)
         XCTAssertEqual(freqs[.pecSternal], 3,
@@ -146,7 +146,7 @@ final class WeeklyMuscleHeatmapTests: XCTestCase {
     func test_frequencies_secondaryMusclesGetHalfWeight() {
         // Bench Press secondary muscles include triceps (default head
         // weight 0.85): 4 sets × 0.5 × 0.85 = 1.7 per triceps head.
-        let s = session(daysAgo: 1, exerciseID: "Barbell_Bench_Press", workingSets: 4)
+        let s = session(daysAgo: 1, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 4)
         let freqs = WeeklyMuscleHeatmap.frequencies(from: [s], library: library)
         XCTAssertEqual(freqs[.tricepsLong] ?? 0, 1.7, accuracy: 0.0001)
         XCTAssertEqual(freqs[.tricepsLateral] ?? 0, 1.7, accuracy: 0.0001)
@@ -172,7 +172,7 @@ final class WeeklyMuscleHeatmapTests: XCTestCase {
             finishedAt: nil,
             exercises: [
                 WorkoutExerciseEntry(
-                    exerciseID: "Barbell_Bench_Press",
+                    exerciseID: "Barbell_Bench_Press_-_Medium_Grip",
                     index: 0,
                     sets: [
                         SetEntry(index: 1, weightKg: 80, reps: 8, completed: false),

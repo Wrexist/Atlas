@@ -127,19 +127,26 @@ struct TrialOfferView: View {
                     .padding(.horizontal, Spacing.screenPadding)
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.md)
-                    // Opaque-to-clear backdrop so the scrolling tier
-                    // cards fade out behind the pinned CTA instead of
-                    // bleeding through and colliding with the legal copy.
+                    // `safeAreaInset` only reserves resting space — scrolled
+                    // content still travels underneath it. The previous
+                    // backdrop opened at `.opacity(0)`, so it was fully
+                    // transparent exactly where the CTA sits: the tier cards
+                    // and the ratings row showed straight through and
+                    // collided with the button and the legal copy.
+                    //
+                    // The fade now completes inside the first 16pt, above the
+                    // button, so there is a soft edge where content passes
+                    // under and solid ground everywhere text is drawn.
                     .background {
-                        LinearGradient(
-                            colors: [
-                                AppColor.background.opacity(0),
-                                AppColor.background.opacity(0.85),
-                                AppColor.background,
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+                        ZStack(alignment: .top) {
+                            AppColor.background
+                            LinearGradient(
+                                colors: [AppColor.background.opacity(0), AppColor.background],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 16)
+                        }
                         .ignoresSafeArea()
                     }
             }
@@ -197,15 +204,14 @@ struct TrialOfferView: View {
                     .opacity(didReveal ? 0.55 - Double(ring) * 0.15 : 0)
             }
 
-            Image(systemName: "gift.fill")
-                .font(.system(size: 56, weight: .bold))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [AppColor.accentLight, AppColor.accentPrimary],
-                        startPoint: .top, endPoint: .bottom
-                    )
-                )
-                .symbolEffect(.bounce, value: didReveal)
+            // The app's own mark, not `gift.fill`. This is the screen that
+            // asks for money — a stock SF Symbol here says "generic upsell",
+            // while the logo the user has been looking at since the welcome
+            // screen says "the thing you have been setting up". HeroLogo
+            // already renders it as the brand disc and respects
+            // reduce-motion, so the paywall uses the same treatment the
+            // rest of onboarding does rather than inventing a parallel one.
+            HeroLogo(size: 96)
                 .scaleEffect(didReveal ? 1 : 0.4)
                 .opacity(didReveal ? 1 : 0)
         }
@@ -252,12 +258,22 @@ struct TrialOfferView: View {
         .offset(y: didReveal ? 0 : 16)
     }
 
+    /// Outcomes, not features. The previous list named the machinery —
+    /// "AI photo + barcode meal scanner", "Cloud sync across all your
+    /// devices" — which tells someone what they are buying but not what
+    /// changes for them. Each line now leads with the result and keeps the
+    /// mechanism as the short half, so the column scans as a list of things
+    /// that get better.
+    ///
+    /// Nothing here promises an outcome the app does not measure: every
+    /// claim maps to a surface that exists (auto-progression, the scanner,
+    /// Performance Age, the cited-research chat, CloudKit sync).
     private let benefits: [(String, LocalizedStringKey)] = [
-        ("figure.strengthtraining.traditional", "Unlimited training plans & auto-progression"),
-        ("camera.viewfinder", "AI photo + barcode meal scanner"),
-        ("heart.text.square.fill", "Recovery, HRV & Performance Age"),
-        ("brain.head.profile.fill", "AI coach with cited research"),
-        ("icloud.fill", "Cloud sync across all your devices"),
+        ("figure.strengthtraining.traditional", "Lift more every week — plans that progress you automatically"),
+        ("camera.viewfinder", "Log a meal in one photo — no weighing, no searching"),
+        ("heart.text.square.fill", "Know before you train — recovery, HRV and Performance Age"),
+        ("brain.head.profile.fill", "Ask anything, get cited research — not guesswork"),
+        ("icloud.fill", "Never lose a session — synced across every device"),
     ]
 
     // MARK: - Urgency countdown
