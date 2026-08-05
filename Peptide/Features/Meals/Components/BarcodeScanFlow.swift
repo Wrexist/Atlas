@@ -43,6 +43,10 @@ struct BarcodeScanFlow: View {
     /// while the sibling catalogues are still being asked, and nil for
     /// good if none of them recognise it either.
     @State private var identity: BarcodeIdentity?
+    /// Set when the camera read something that isn't a product code at
+    /// all — a QR code, a shipping label — so the screen can say what it
+    /// was instead of blaming the scan.
+    @State private var unsupportedPayload: BarcodePayload?
     @State private var isIdentifying = false
     /// Held so "Try another barcode" can cancel an in-flight
     /// identification instead of letting it land on the next scan's card.
@@ -57,6 +61,7 @@ struct BarcodeScanFlow: View {
         case review          // product + portion + macros
         case logged          // success screen with Undo + auto-close
         case notFound        // barcode looked up cleanly but no product
+        case unsupportedCode // read fine, but it isn't a product code at all
         case error           // any other terminal failure
     }
 
@@ -88,6 +93,7 @@ struct BarcodeScanFlow: View {
                 case .review:           reviewCard
                 case .logged:           loggedCard
                 case .notFound:         notFoundCard
+                case .unsupportedCode:  unsupportedCodeCard
                 case .error:            errorCard
                 }
             }
@@ -716,7 +722,7 @@ struct BarcodeScanFlow: View {
                     product = nil
                     manualBarcode = ""
                     errorText = nil
-                    resetIdentification()
+                    resetScanResults()
                     phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
                 }
             }
@@ -793,6 +799,66 @@ struct BarcodeScanFlow: View {
         }
     }
 
+    /// For a code that read perfectly and simply isn't a product code.
+    ///
+    /// The camera accepts every symbology iOS supports, so QR codes,
+    /// shipping labels and ticket codes all scan cleanly and then hit a
+    /// validator that wants digits. Telling the user "that barcode
+    /// doesn't look right" blames them for a scan that worked. Naming
+    /// what it read, and what a product barcode looks like instead, is
+    /// the difference between a dead end and a correction.
+    private var unsupportedCodeCard: some View {
+        VStack(spacing: Spacing.md) {
+            Image(systemName: "qrcode.viewfinder")
+                .font(.system(size: 48, weight: .light))
+                .foregroundStyle(AppColor.accentLight)
+            Text("That's not a product barcode")
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.center)
+            Text(unsupportedCodeDetail)
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.lg)
+            Text("Product barcodes are the striped ones with the digits printed underneath.")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textTertiary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.lg)
+
+            VStack(spacing: Spacing.sm) {
+                GlassButton(title: "Scan another code", style: .primary) {
+                    errorText = nil
+                    resetScanResults()
+                    phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
+                }
+                GlassButton(title: "Use the AI meal scanner", icon: "camera.fill", style: .secondary) {
+                    onRequestPhotoFallback()
+                }
+            }
+            .padding(.top, Spacing.sm)
+        }
+    }
+
+    /// Says what was read without ever echoing it at length — a scanned
+    /// payload is arbitrary external content, so it gets truncated and
+    /// stays inside quotation marks rather than being presented as the
+    /// app's own copy.
+    private var unsupportedCodeDetail: String {
+        let unreadable = "The camera read it cleanly, but there's no product code in it."
+        guard let unsupportedPayload else { return unreadable }
+        switch unsupportedPayload {
+        case .link(let url):
+            return "It's a QR code pointing to \(url.host ?? url.absoluteString)."
+        case .text(let raw):
+            let shown = raw.count > 40 ? String(raw.prefix(40)) + "…" : raw
+            return "It reads “\(shown)” — a label or tracking code rather than a product."
+        case .gtin:
+            return unreadable
+        }
+    }
+
     private var errorCard: some View {
         VStack(spacing: Spacing.md) {
             Image(systemName: "exclamationmark.triangle.fill")
@@ -811,7 +877,7 @@ struct BarcodeScanFlow: View {
                     errorText = nil
                     product = nil
                     manualBarcode = ""
-                    resetIdentification()
+                    resetScanResults()
                     phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
                 }
 
@@ -926,9 +992,21 @@ struct BarcodeScanFlow: View {
         // trigger this from any phase. Only start a new lookup when
         // we're actually waiting for one.
         guard phase == .scanning || phase == .manualEntry else { return }
-        resetIdentification()
+        resetScanResults()
+
+        // Classification is pure string work, so deciding here rather
+        // than inside the network task keeps a QR code from flashing the
+        // lookup skeleton on its way to a screen that never needed one.
+        let payload = BarcodePayload.classify(barcode)
+        guard case .gtin(let candidates) = payload else {
+            unsupportedPayload = payload
+            phase = .unsupportedCode
+            BarcodeHaptics.lookupFailure()
+            return
+        }
+
         phase = .lookingUp
-        Task { await lookup(barcode: barcode) }
+        Task { await lookupProduct(candidates: candidates) }
     }
 
     /// OCR fallback: load the picked image, run on-device text
@@ -976,42 +1054,77 @@ struct BarcodeScanFlow: View {
         }
     }
 
-    private func lookup(barcode: String) async {
-        do {
-            let result = try await OpenFoodFactsService.shared.fetch(barcode: barcode)
-            // History-aware default: if the user has logged this
-            // barcode before, restore their previous portion choice.
-            // Falls through to the product's own default for first-
-            // time scans. The lookup is async (actor read), so it
-            // happens here before we hop to main.
-            let remembered = await BarcodeScanHistory.shared.lastPortion(for: result.barcode)
+    /// Tries each GTIN form in turn.
+    ///
+    /// A miss on the scanned form is not the end of it: the same product
+    /// is often filed under its 13-digit or 12-digit twin, and a case
+    /// code's inner GTIN is a different string again. Only when every
+    /// form comes back empty is this genuinely a not-found. Any other
+    /// failure — offline, rate-limited, a bad gateway — stops the walk
+    /// immediately, because retrying the same outage under a different
+    /// number just spends the user's time.
+    private func lookupProduct(candidates: [String]) async {
+        // Never leave the caller on the loading skeleton: an empty list
+        // would fall out of the loop below without ever setting a phase.
+        guard let primary = candidates.first else {
             await MainActor.run {
-                product = result
-                portion = remembered ?? result.defaultPortion
-                category = MealCategory.auto(for: Date())
-                phase = .review
-                BarcodeHaptics.lookupSuccess()
-            }
-        } catch let lookupError as OpenFoodFactsService.LookupError {
-            await MainActor.run {
-                errorText = lookupError.errorDescription
-                phase = (lookupError == .notFound) ? .notFound : .error
-                BarcodeHaptics.lookupFailure()
-                // A clean miss means the barcode scanned fine and Open
-                // Food Facts simply has no food under it — which is
-                // exactly what a non-food article looks like. Ask the
-                // sibling catalogues what it actually is, in the
-                // background, while the card is already on screen.
-                if lookupError == .notFound {
-                    startIdentifying(barcode: barcode)
-                }
-            }
-        } catch {
-            await MainActor.run {
-                errorText = error.localizedDescription
+                errorText = OpenFoodFactsService.LookupError.invalidBarcode.errorDescription
                 phase = .error
                 BarcodeHaptics.lookupFailure()
             }
+            return
+        }
+
+        for (index, candidate) in candidates.enumerated() {
+            do {
+                try await lookupOne(barcode: candidate)
+                return
+            } catch let lookupError as OpenFoodFactsService.LookupError {
+                let isLastCandidate = index == candidates.count - 1
+                guard lookupError == .notFound, !isLastCandidate else {
+                    await MainActor.run {
+                        errorText = lookupError.errorDescription
+                        phase = (lookupError == .notFound) ? .notFound : .error
+                        BarcodeHaptics.lookupFailure()
+                        if lookupError == .notFound {
+                            // A clean miss means the barcode scanned fine
+                            // and Open Food Facts simply has no food under
+                            // it — which is exactly what a non-food article
+                            // looks like. Ask the sibling catalogues what
+                            // it actually is, in the background, while the
+                            // card is already on screen.
+                            startIdentifying(barcode: primary)
+                        }
+                    }
+                    return
+                }
+            } catch {
+                await MainActor.run {
+                    errorText = error.localizedDescription
+                    phase = .error
+                    BarcodeHaptics.lookupFailure()
+                }
+                return
+            }
+        }
+    }
+
+    /// One round-trip for one GTIN form. Throws so the walk above can
+    /// decide whether a miss is worth another form or is the final word.
+    private func lookupOne(barcode: String) async throws {
+        let result = try await OpenFoodFactsService.shared.fetch(barcode: barcode)
+        // History-aware default: if the user has logged this barcode
+        // before, restore their previous portion choice. Falls through
+        // to the product's own default for first-time scans. The lookup
+        // is async (actor read), so it happens here before we hop to
+        // main.
+        let remembered = await BarcodeScanHistory.shared.lastPortion(for: result.barcode)
+        await MainActor.run {
+            product = result
+            portion = remembered ?? result.defaultPortion
+            category = MealCategory.auto(for: Date())
+            phase = .review
+            BarcodeHaptics.lookupSuccess()
         }
     }
 
@@ -1033,13 +1146,15 @@ struct BarcodeScanFlow: View {
         }
     }
 
-    /// Clears identification state when the user leaves the not-found
-    /// card, so a stale answer can't surface over the next scan.
-    private func resetIdentification() {
+    /// Clears everything the previous scan concluded — the sibling-
+    /// catalogue answer and the "that wasn't a product code" payload —
+    /// so a stale result can't surface over the next scan.
+    private func resetScanResults() {
         identifyTask?.cancel()
         identifyTask = nil
         identity = nil
         isIdentifying = false
+        unsupportedPayload = nil
     }
 
     private func confirm() {
