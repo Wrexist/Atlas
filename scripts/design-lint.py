@@ -521,6 +521,36 @@ def rule_raw_material(path, source, code) -> list[Finding]:
     return out
 
 
+# Every case of `UIFont.TextStyle`, which is what `AppFont.scaled(relativeTo:)`
+# takes. `Font.TextStyle` — the SwiftUI one — has a bare `.title`, so writing it
+# here is a natural mistake and a build break.
+UI_TEXT_STYLES = {
+    "largeTitle", "title1", "title2", "title3", "headline", "subheadline",
+    "body", "callout", "footnote", "caption1", "caption2",
+}
+
+
+def rule_text_style(path, source, code) -> list[Finding]:
+    """`relativeTo:` names a `UIFont.TextStyle` case that exists.
+
+    `AppFont.scaled(34, relativeTo: .title)` broke the build: `UIFont.TextStyle`
+    has title1/title2/title3 and no bare `.title`. The two TextStyle types read
+    identically at the call site and only one of them has that case.
+
+    This is an enum-membership check on a closed set, not type inference — the
+    same shape as the spacing-grid and type-scale rules. Nobody should wait six
+    minutes for CI to learn they typed a case name that does not exist.
+    """
+    out = []
+    for m in re.finditer(r"relativeTo:\s*\.(\w+)", code):
+        if m.group(1) in UI_TEXT_STYLES:
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "text-style",
+                           f".{m.group(1)} is not a UIFont.TextStyle case "
+                           f"({', '.join(sorted(UI_TEXT_STYLES))})", "error"))
+    return out
+
+
 SCROLL_CONTAINERS = re.compile(r"\b(?:ScrollView|List|TabView|Form)\b")
 
 # What makes a floating footer a *defect* rather than decoration: it holds
@@ -749,6 +779,7 @@ RULES = [
     rule_unlabelled_icon_button,
     rule_stacked_glass,
     rule_raw_material,
+    rule_text_style,
     rule_floating_footer,
     rule_uncombined_row,
 ]

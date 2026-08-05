@@ -114,6 +114,12 @@ CASES = [
      'ZStack {\n  List { rows }\n  VStack(spacing: Spacing.md) {\n    Spacer()\n    Toggle("Metric", isOn: $metric)\n  }\n}',
      'ZStack {\n  TabView { pages }\n  VStack(spacing: Spacing.md) {\n    Spacer()\n    dateChip(filename: selected)\n  }\n}'),
 
+    # `.title` is a `Font.TextStyle` case, not a `UIFont.TextStyle` one. The
+    # call sites read identically and this one broke the build.
+    ("rule_text_style", "Foo.swift",
+     'Text("8:14").font(AppFont.scaled(34, weight: .heavy, relativeTo: .title))',
+     'Text("8:14").font(AppFont.scaled(34, weight: .heavy, relativeTo: .title1))'),
+
     ("rule_pure_neutral", "ColorTheme.swift",
      'static let ink = Color(light: 0x000000, dark: 0xFFFFFF)',
      'static let ink = Color(light: 0x111114, dark: 0xF7F7FA)'),
