@@ -25,21 +25,25 @@ CATALOG = REPO / "Peptide" / "Resources" / "Localizable.xcstrings"
 PROJECT = REPO / "project.yml"
 
 
-def shipped_languages() -> set[str]:
+def shipped_languages(catalog: dict) -> set[str]:
     """Languages the built binary will actually contain.
 
-    `knownRegions` decides which languages the string catalog compiles into
-    `.lproj` folders, and those folders are what the App Store reads for the
-    listing's language list — `CFBundleLocalizations` alone does not control
-    it. Both are parsed so a mismatch between them is visible too.
+    Measured from the catalog, because that is what Xcode compiles into
+    `.lproj` folders and those folders are what the App Store reads. A first
+    attempt at this pinned `options.knownRegions` in project.yml instead —
+    which is not an XcodeGen key at all, so it would have declared English
+    while still shipping nine languages, and the check would have agreed with
+    itself while being wrong.
+
+    `CFBundleLocalizations` is unioned in so a stale declaration there shows
+    up rather than sitting unnoticed next to a catalog that disagrees.
     """
-    text = PROJECT.read_text()
-    out: set[str] = set()
-    for key in ("knownRegions", "CFBundleLocalizations"):
-        m = re.search(rf"^\s*{key}:\s*\n((?:\s*#[^\n]*\n|\s*-\s*[\w-]+\s*\n)+)",
-                      text, re.MULTILINE)
-        if m:
-            out |= set(re.findall(r"-\s*([\w-]+)", m.group(1)))
+    out = {loc for v in catalog.get("strings", {}).values()
+           for loc in (v.get("localizations") or {})}
+    m = re.search(r"^\s*CFBundleLocalizations:\s*\n((?:\s*#[^\n]*\n|\s*-\s*[\w-]+\s*\n)+)",
+                  PROJECT.read_text(), re.MULTILINE)
+    if m:
+        out |= set(re.findall(r"-\s*([\w-]+)", m.group(1)))
     return out
 
 
@@ -101,21 +105,23 @@ def main() -> int:
         print(f"  languages in catalog:    {len(langs)}  (min {worst}/{len(keys)} translated)")
     print(f"  catalog keys no longer in the UI: {len(orphans)}")
 
-    shipped = shipped_languages()
+    shipped = shipped_languages(catalog)
     print(f"  languages the build ships: {len(shipped)}  ({', '.join(sorted(shipped))})")
 
     # A language is only worth shipping if the app is actually in it. The
-    # catalog is fully translated but covers 13% of the UI, so declaring the
-    # other eight put them on the App Store listing while handing those users
-    # a mostly-English app — including the dosing and safety copy.
+    # withheld catalog is fully translated but covers 13% of the UI, so
+    # shipping the other nine would have put them on the App Store listing
+    # while handing those users a mostly-English app — dosing and safety
+    # copy included.
     overreach = shipped - {"en", "Base"}
     if overreach and pct < args.min_coverage_per_language:
         print(f"\n{len(overreach)} non-English language(s) declared — "
               f"{', '.join(sorted(overreach))} — but only {pct:.0f}% of the UI is "
               f"in the catalog, below the {args.min_coverage_per_language:.0f}% "
               "needed to claim a localization.\n"
-              "Either raise coverage or trim `options.knownRegions` and "
-              "`CFBundleLocalizations` in project.yml.")
+              "Either raise coverage, or move those localizations back out to "
+              "localization/Localizable.translated.xcstrings and drop them from "
+              "CFBundleLocalizations.")
         return 1
 
     if pct < args.min_coverage:

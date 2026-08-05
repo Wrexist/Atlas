@@ -37,14 +37,17 @@ options:
   # listing and hand, say, a Japanese user a mostly-English medical app. So
   # the build compiles English only until coverage is real.
   #
-  # `knownRegions` is what does the work: it decides which languages the
-  # string catalog compiles into `.lproj` folders, and those folders — not
-  # `CFBundleLocalizations` — are what the App Store reads. The translations
-  # stay in the catalog; they are withheld, not discarded, and restoring them
-  # is this list plus the Info.plist entry below.
-  knownRegions:
-    - en
-    - Base
+  # What actually decides this is the *catalog*, not any setting here.
+  # Xcode derives the project's known regions from the localizations it finds,
+  # so `Localizable.xcstrings` having nine languages is what would compile nine
+  # `.lproj` folders — and those folders, not `CFBundleLocalizations`, are what
+  # the App Store reads for the listing.
+  #
+  # So the shipped catalog carries its 170 keys with no non-English
+  # localizations. The full nine-language version is preserved verbatim at
+  # `localization/Localizable.translated.xcstrings`, outside every target's
+  # source path: withheld, not discarded. Restoring a language means copying
+  # its block back and adding it to CFBundleLocalizations below.
 settings:
   base:
     # Swift 5 language mode. The codebase is not yet clean under Swift 6
