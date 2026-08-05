@@ -93,15 +93,15 @@ final class BarcodeScanHistoryTests: XCTestCase {
         )
     }
 
-    func test_scores_bulkRead_matchesIndividualReads() async {
+    func test_scores_bulkRead_matchesIndividualReads() async throws {
         let now = Date()
         await history.recordLog(barcode: "A", portion: .grams(100), at: now)
         await history.recordLog(barcode: "A", portion: .grams(100), at: now)
         await history.recordLog(barcode: "B", portion: .grams(100), at: now)
 
         let bulk = await history.scores(for: ["A", "B", "MISSING"], now: now)
-        XCTAssertEqual(bulk["A"] ?? 0, 2, accuracy: 0.001)
-        XCTAssertEqual(bulk["B"] ?? 0, 1, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(bulk["A"]), 2, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(bulk["B"]), 1, accuracy: 0.001)
         XCTAssertEqual(bulk["MISSING"] ?? -1, 0, accuracy: 0.001)
     }
 

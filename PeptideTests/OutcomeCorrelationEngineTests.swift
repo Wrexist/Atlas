@@ -94,7 +94,7 @@ final class OutcomeCorrelationEngineTests: XCTestCase {
 
     // MARK: - Headline selection
 
-    func test_headline_picksStrongestPositiveDelta() {
+    func test_headline_picksStrongestPositiveDelta() throws {
         let entries = (0...3).map { makeEntry(daysAgo: $0) }
         // Energy moves +2.0 on dose days; mood +0.5; others flat.
         let outcomes = (0...3).map { makeOutcome(daysAgo: $0, energy: 5, mood: 4) } + [
@@ -106,7 +106,7 @@ final class OutcomeCorrelationEngineTests: XCTestCase {
 
         let headline = OutcomeCorrelationEngine.headline(outcomes: outcomes, entries: entries)
         XCTAssertEqual(headline?.dimension, .energy)
-        XCTAssertEqual(headline?.delta ?? 0, 2.0, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(headline?.delta), 2.0, accuracy: 0.0001)
     }
 
     func test_headline_nil_whenDeltaBelowNoiseFloor() {
@@ -141,7 +141,7 @@ final class OutcomeCorrelationEngineTests: XCTestCase {
 
     // MARK: - Trend points
 
-    func test_trendPoints_windowsSortsAndFlagsDoseDays() {
+    func test_trendPoints_windowsSortsAndFlagsDoseDays() throws {
         let outcomes = (0...9).map { makeOutcome(daysAgo: $0, energy: 4) }
         let entries = [makeEntry(daysAgo: 2)]
 
@@ -151,7 +151,7 @@ final class OutcomeCorrelationEngineTests: XCTestCase {
         XCTAssertEqual(points.first?.date, day(6))
         XCTAssertEqual(points.last?.date, day(0))
         XCTAssertEqual(points.map(\.onDoseDay), [false, false, false, false, true, false, false])
-        XCTAssertEqual(points.first?.composite ?? 0, (4 + 3 + 3 + 3 + 3) / 5.0, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(points.first?.composite), (4 + 3 + 3 + 3 + 3) / 5.0, accuracy: 0.0001)
     }
 
     func test_trendPoints_skipsDaysWithoutCheckIn() {

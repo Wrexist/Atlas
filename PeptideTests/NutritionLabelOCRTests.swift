@@ -76,14 +76,14 @@ final class NutritionLabelOCRTests: XCTestCase {
         XCTAssertEqual(parsed?.nutriments.calories, 250)
     }
 
-    func test_parse_convertsKjToKcal_whenOnlyKjPresent() {
+    func test_parse_convertsKjToKcal_whenOnlyKjPresent() throws {
         let lines = [
             "Energy 1050 kJ",
             "Protein 5g",
         ]
         let parsed = NutritionLabelParser.parse(lines: lines)
         // 1050 kJ / 4.184 ≈ 250.96 kcal
-        XCTAssertEqual(parsed?.nutriments.calories ?? 0, 251, accuracy: 1)
+        XCTAssertEqual(try XCTUnwrap(parsed?.nutriments.calories), 251, accuracy: 1)
     }
 
     // MARK: - Percent daily value column
@@ -104,7 +104,7 @@ final class NutritionLabelOCRTests: XCTestCase {
 
     // MARK: - Decimal handling (European comma)
 
-    func test_parse_acceptsCommaAsDecimalSeparator() {
+    func test_parse_acceptsCommaAsDecimalSeparator() throws {
         // Many EU labels write "12,5g" instead of "12.5g".
         let lines = [
             "Energy 1050 kJ / 250 kcal",
@@ -113,9 +113,9 @@ final class NutritionLabelOCRTests: XCTestCase {
             "Protein 5,8g",
         ]
         let parsed = NutritionLabelParser.parse(lines: lines)
-        XCTAssertEqual(parsed?.nutriments.fatG ?? 0, 12.5, accuracy: 0.01)
-        XCTAssertEqual(parsed?.nutriments.carbsG ?? 0, 31.2, accuracy: 0.01)
-        XCTAssertEqual(parsed?.nutriments.proteinG ?? 0, 5.8, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(parsed?.nutriments.fatG), 12.5, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(parsed?.nutriments.carbsG), 31.2, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(parsed?.nutriments.proteinG), 5.8, accuracy: 0.01)
     }
 
     // MARK: - Serving size parsing

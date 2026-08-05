@@ -40,14 +40,14 @@ final class TodayOverviewSnapshotTests: XCTestCase {
 
     // MARK: - Check-in
 
-    func test_build_withTodayOutcome_populatesCompositeScore() {
+    func test_build_withTodayOutcome_populatesCompositeScore() throws {
         let store = DataStore(seedSampleData: false)
         store.logOutcome(
             OutcomeEntry(date: Date(), energy: 4, sleepQuality: 5, recovery: 4, mood: 4, focus: 3)
         )
         let snapshot = TodayOverviewSnapshot.build(from: store)
         XCTAssertNotNil(snapshot.checkInScore)
-        XCTAssertEqual(snapshot.checkInScore ?? 0, 4.0, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(snapshot.checkInScore), 4.0, accuracy: 0.001)
     }
 
     func test_build_outcomeFromYesterday_doesNotPopulateTodayScore() {

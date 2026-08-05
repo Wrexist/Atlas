@@ -58,23 +58,23 @@ final class MuscleGainsEngineTests: XCTestCase {
 
     // MARK: - weeklyRegularity
 
-    func test_weeklyRegularity_countsDistinctWeeksOverWindow() {
+    func test_weeklyRegularity_countsDistinctWeeksOverWindow() throws {
         // Bench in four distinct calendar weeks (each pair 7 days apart)
         // → sternal pec trained 4 of the last 12 weeks.
         let sessions = [1.0, 8.0, 15.0, 22.0].map {
             session(daysAgo: $0, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 3)
         }
         let regularity = MuscleGainsEngine.weeklyRegularity(from: sessions, library: library)
-        XCTAssertEqual(regularity[.pecSternal] ?? 0, 4.0 / 12.0, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(regularity[.pecSternal]), 4.0 / 12.0, accuracy: 0.0001)
     }
 
-    func test_weeklyRegularity_sameWeekSessionsCountOnce() {
+    func test_weeklyRegularity_sameWeekSessionsCountOnce() throws {
         let sessions = [
             session(daysAgo: 0.01, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 3),
             session(daysAgo: 0.02, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 3),
         ]
         let regularity = MuscleGainsEngine.weeklyRegularity(from: sessions, library: library)
-        XCTAssertEqual(regularity[.pecSternal] ?? 0, 1.0 / 12.0, accuracy: 0.0001,
+        XCTAssertEqual(try XCTUnwrap(regularity[.pecSternal]), 1.0 / 12.0, accuracy: 0.0001,
                        "Two sessions in the same week are one trained week, not two")
     }
 

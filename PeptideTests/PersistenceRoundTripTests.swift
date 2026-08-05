@@ -885,7 +885,7 @@ final class PersistenceRoundTripTests: XCTestCase {
                        "Freeze should bridge the gap and extend the streak across 3 days")
     }
 
-    func test_biometricCorrelation_findsPositiveHRVDelta() {
+    func test_biometricCorrelation_findsPositiveHRVDelta() throws {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         var hrvSeries: [(Date, Double)] = []
@@ -914,7 +914,7 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(findings.count, 1)
         let finding = try? XCTUnwrap(findings.first)
         XCTAssertEqual(finding?.metric, .hrv)
-        XCTAssertEqual(finding?.delta ?? 0, 15, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(finding?.delta), 15, accuracy: 0.001)
         XCTAssertTrue(finding?.isFavourable ?? false)
 
         let headline = BiometricCorrelationEngine.headline(from: findings)
