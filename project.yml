@@ -26,6 +26,25 @@ options:
     iOS: "18.0"
   generateEmptyDirectories: true
   developmentLanguage: en
+  # English only, deliberately.
+  #
+  # `Localizable.xcstrings` carries 170 keys translated into nine languages,
+  # but only 45 of the app's 349 UI sentences are in the catalog at all — 13%.
+  # The other 87% render in English whatever the device is set to, and that
+  # includes dosing and safety copy.
+  #
+  # Shipping the nine anyway would put those languages on the App Store
+  # listing and hand, say, a Japanese user a mostly-English medical app. So
+  # the build compiles English only until coverage is real.
+  #
+  # `knownRegions` is what does the work: it decides which languages the
+  # string catalog compiles into `.lproj` folders, and those folders — not
+  # `CFBundleLocalizations` — are what the App Store reads. The translations
+  # stay in the catalog; they are withheld, not discarded, and restoring them
+  # is this list plus the Info.plist entry below.
+  knownRegions:
+    - en
+    - Base
 settings:
   base:
     # Swift 5 language mode. The codebase is not yet clean under Swift 6
@@ -68,17 +87,11 @@ targets:
         CFBundleDisplayName: Atlas
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Matches `options.knownRegions`. Declaring a language here that the
+        # binary does not actually localize advertises it on the App Store
+        # listing regardless. See the note on knownRegions above.
         CFBundleLocalizations:
           - en
-          - es
-          - zh-Hans
-          - ja
-          - de
-          - fr
-          - pt-BR
-          - ko
-          - ru
-          - ar
         ITSAppUsesNonExemptEncryption: false
         NSSupportsLiveActivities: true
         NSCameraUsageDescription: "Atlas uses the camera to scan food barcodes, take a profile photo (stored locally), and photograph meals for nutrition estimation. Meal photos are sent securely to our AI service for analysis and are not retained after the response. Barcode and profile photos stay on your device."
