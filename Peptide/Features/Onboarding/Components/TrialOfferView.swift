@@ -122,33 +122,19 @@ struct TrialOfferView: View {
                 .padding(.horizontal, Spacing.screenPadding)
             }
             .scrollBounceBehavior(.basedOnSize)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            // `pinnedFooter` reserves the footer's space *and* lands an
+            // opaque backdrop under it. The previous hand-rolled version
+            // opened at `.opacity(0)`, so it was fully transparent exactly
+            // where the CTA sits: the tier cards and the ratings row showed
+            // straight through and collided with the button and the legal
+            // copy. The fade now completes inside the top padding, above the
+            // button — a soft edge where content passes under, solid ground
+            // everywhere text is drawn.
+            .pinnedFooter {
                 footer
                     .padding(.horizontal, Spacing.screenPadding)
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.md)
-                    // `safeAreaInset` only reserves resting space — scrolled
-                    // content still travels underneath it. The previous
-                    // backdrop opened at `.opacity(0)`, so it was fully
-                    // transparent exactly where the CTA sits: the tier cards
-                    // and the ratings row showed straight through and
-                    // collided with the button and the legal copy.
-                    //
-                    // The fade now completes inside the first 16pt, above the
-                    // button, so there is a soft edge where content passes
-                    // under and solid ground everywhere text is drawn.
-                    .background {
-                        ZStack(alignment: .top) {
-                            AppColor.background
-                            LinearGradient(
-                                colors: [AppColor.background.opacity(0), AppColor.background],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            .frame(height: 16)
-                        }
-                        .ignoresSafeArea()
-                    }
             }
         }
         .task {

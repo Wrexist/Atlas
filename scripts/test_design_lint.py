@@ -100,6 +100,20 @@ CASES = [
      'VStack { Text("hi") }.background(.regularMaterial)',
      'VStack { Text("hi") }.presentationBackground(.ultraThinMaterial)'),
 
+    # The real defect: the footer floats, so the ScrollView's last row is
+    # unreachable behind it. The negative is the same screen done right —
+    # the footer reserves its space through the design-system modifier.
+    ("rule_floating_footer", "Foo.swift",
+     'ZStack {\n  ScrollView { content }\n  VStack {\n    Spacer()\n    Button("Continue") { advance() }\n  }\n}',
+     'ZStack {\n  ScrollView { content }\n}\n.pinnedFooter { Button("Continue") { advance() } }'),
+
+    # A VStack that opens with a Spacer is only the bug when it strands a
+    # control. Over a photo pager it is a caption, and firing on that would
+    # only teach people to ignore the rule.
+    ("rule_floating_footer", "Foo.swift",
+     'ZStack {\n  List { rows }\n  VStack(spacing: Spacing.md) {\n    Spacer()\n    Toggle("Metric", isOn: $metric)\n  }\n}',
+     'ZStack {\n  TabView { pages }\n  VStack(spacing: Spacing.md) {\n    Spacer()\n    dateChip(filename: selected)\n  }\n}'),
+
     ("rule_pure_neutral", "ColorTheme.swift",
      'static let ink = Color(light: 0x000000, dark: 0xFFFFFF)',
      'static let ink = Color(light: 0x111114, dark: 0xF7F7FA)'),
