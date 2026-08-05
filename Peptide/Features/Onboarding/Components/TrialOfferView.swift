@@ -20,12 +20,14 @@ struct TrialOfferView: View {
     @State private var sparklePhase = 0.0
     @State private var ctaPulse = false
     @State private var didReveal = false
-    /// Soft urgency deadline for the welcome offer. A 10-minute window
-    /// is long enough to read the screen without feeling like a scam,
-    /// short enough to nudge a decision now rather than "later" (which
-    /// converts far worse). Set once on first render so it counts down
-    /// from when the user actually lands on the paywall.
-    @State private var offerDeadline = Date().addingTimeInterval(10 * 60)
+    /// Length of the soft urgency window. Long enough to read the screen
+    /// without feeling like a scam, short enough to nudge a decision now
+    /// rather than "later" (which converts far worse). The countdown's
+    /// drain bar divides by this, so the two cannot drift apart.
+    private static let offerWindow: TimeInterval = 10 * 60
+    /// Deadline for the welcome offer, set once on first render so it counts
+    /// down from when the user actually lands on the paywall.
+    @State private var offerDeadline = Date().addingTimeInterval(TrialOfferView.offerWindow)
     /// Selected billing cadence. Initialised to `.annual` then re-assigned
     /// from `OnboardingExperiment.variant(for: .paywallTierOrder)` inside
     /// the view's `.task` modifier — the experiment service is
@@ -204,30 +206,73 @@ struct TrialOfferView: View {
         .frame(height: 140)
     }
 
+    /// The headline follows `selectedTier`, and that is the whole point of it.
+    ///
+    /// It used to be hard-coded to the monthly pitch — "3 Days Free", "Atlas
+    /// Pro Monthly", "Then $9.99/month" — while `.annual` is what loads
+    /// selected and what the CTA underneath says it will start. So the only
+    /// price above the fold was for a plan the button was not going to buy,
+    /// and the actual amount lived in the tier card, below the fold, invisible
+    /// at rest. A paywall you have to scroll to find the price on converts
+    /// worse, and one that shows the *wrong* price converts worse still.
+    private var headlineEyebrow: String {
+        switch selectedTier {
+        case .annual:  return "YOUR WELCOME OFFER"
+        case .monthly: return "YOUR WELCOME GIFT"
+        }
+    }
+
+    private var headlineHero: String {
+        switch selectedTier {
+        case .annual:  return annualPrice
+        case .monthly: return "\(trialDays) Days Free"
+        }
+    }
+
+    private var headlinePlan: String {
+        switch selectedTier {
+        case .annual:  return "Atlas Pro Yearly"
+        case .monthly: return "Atlas Pro Monthly"
+        }
+    }
+
+    private var headlineSupport: String {
+        switch selectedTier {
+        case .annual:
+            guard let saved = annualSavingsPercent else {
+                return "\(annualPerMonthPrice)/month — cancel anytime"
+            }
+            return "\(annualPerMonthPrice)/month — save \(saved)%"
+        case .monthly:
+            return "Then \(monthlyPrice)/month — cancel anytime"
+        }
+    }
+
     private var headline: some View {
         VStack(spacing: Spacing.xs) {
-            Text("YOUR WELCOME GIFT")
+            Text(headlineEyebrow)
                 .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(2)
                 .foregroundStyle(AppColor.textSecondary)
 
-            Text("\(trialDays) Days Free")
+            Text(headlineHero)
                 .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
 
-            Text("Atlas Pro Monthly")
+            Text(headlinePlan)
                 .font(AppFont.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
 
-            Text("Then \(monthlyPrice)/month — cancel anytime")
+            Text(headlineSupport)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .multilineTextAlignment(.center)
         .opacity(didReveal ? 1 : 0)
         .offset(y: didReveal ? 0 : 12)
+        .animation(AppAnimation.springSnappy, value: selectedTier)
     }
 
     // MARK: - Benefits
@@ -268,37 +313,75 @@ struct TrialOfferView: View {
     /// decision a deadline. `TimelineView` re-renders every second without
     /// any timer plumbing; once the window elapses it flips to a calmer
     /// "best value — today only" line rather than showing 00:00.
+    /// A deadline has to look like one. This was a thin capsule with the clock
+    /// set at 16pt inline with its own label — the same visual weight as a
+    /// filter chip, which is to say none. Nothing about it read as time
+    /// running out, so the urgency it was there to create did not land.
+    ///
+    /// It is now a card: the digits get display size and their own line, and
+    /// the window drains visibly underneath. The bar is what makes it read as
+    /// a deadline rather than a number that happens to change — you can see
+    /// how much is left without reading anything.
     private var countdownBanner: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             let remaining = max(0, offerDeadline.timeIntervalSince(context.date))
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "bolt.fill")
-                    .font(AppFont.scaled(13, weight: .bold))
-                    .foregroundStyle(AppColor.warning)
+            VStack(spacing: Spacing.sm) {
                 if remaining > 0 {
-                    Text("Welcome offer ends in")
-                        .font(AppFont.scaled(13, weight: .semibold))
-                        .foregroundStyle(AppColor.textSecondary)
+                    HStack(spacing: Spacing.xs) {
+                        Image(systemName: "bolt.fill")
+                            .font(AppFont.scaled(11, weight: .bold))
+                        Text("WELCOME OFFER ENDS IN")
+                            .font(AppFont.scaled(11, weight: .heavy))
+                            .tracking(1.5)
+                    }
+                    .foregroundStyle(AppColor.warning)
+
                     Text(timeString(remaining))
-                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .title))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
+
+                    // Drains left-to-right over the offer window. Capsule
+                    // rather than ProgressView so the track reads as part of
+                    // the card instead of a system control dropped into it.
+                    GeometryReader { geo in
+                        Capsule()
+                            .fill(AppColor.warning)
+                            .frame(width: geo.size.width * remaining / Self.offerWindow)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(height: 4)
+                    .background {
+                        Capsule().fill(AppColor.warning.opacity(0.18))
+                    }
+                    .animation(.linear(duration: 1), value: remaining)
                 } else {
-                    Text("Best value — claim it today")
-                        .font(AppFont.scaled(13, weight: .semibold))
-                        .foregroundStyle(AppColor.textPrimary)
+                    HStack(spacing: Spacing.xs) {
+                        Image(systemName: "bolt.fill")
+                            .font(AppFont.scaled(13, weight: .bold))
+                            .foregroundStyle(AppColor.warning)
+                        Text("Best value — claim it today")
+                            .font(AppFont.scaled(13, weight: .semibold))
+                            .foregroundStyle(AppColor.textPrimary)
+                    }
                 }
             }
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
             .background {
-                Capsule()
+                RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
                     .fill(AppColor.warning.opacity(0.14))
                     .overlay {
-                        Capsule().strokeBorder(AppColor.warning.opacity(0.35), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
+                            .strokeBorder(AppColor.warning.opacity(0.35), lineWidth: 1)
                     }
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(remaining > 0
+                                ? "Welcome offer ends in \(timeString(remaining))"
+                                : "Best value — claim it today")
         }
         .opacity(didReveal ? 1 : 0)
         .offset(y: didReveal ? 0 : 10)
