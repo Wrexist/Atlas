@@ -37,10 +37,18 @@ struct WorkoutFinishView: View {
                     prsCard
                 }
                 exercisesList
-                doneButton
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.vertical, Spacing.lg)
+        }
+        // Done was the last item inside the scroll view, so after a long
+        // session you scrolled past the muscle map, the stats, the PR card
+        // and every exercise to reach the only way out of the screen.
+        .pinnedFooter {
+            doneButton
+                .padding(.horizontal, Spacing.screenPadding)
+                .padding(.top, Spacing.lg)
+                .padding(.bottom, Spacing.sm)
         }
         .background(AppColor.background.ignoresSafeArea())
         .navigationTitle("Workout complete")
@@ -72,12 +80,31 @@ struct WorkoutFinishView: View {
         }
     }
 
+    /// One card, not three loose tiles.
+    ///
+    /// These are peers — no one of them is "the" number — so they keep equal
+    /// weight rather than being given a headline. What changes is that they
+    /// now read as a single summary of the session instead of three separate
+    /// boxes that happen to sit in a row.
     private var statsRow: some View {
-        HStack(spacing: Spacing.sm) {
+        HStack(spacing: 0) {
             stat(label: "Duration", value: durationFormatted)
+            divider
             stat(label: "Sets", value: "\(session.completedSetCount)")
+            divider
             stat(label: "Volume", value: unit.weightLabel(session.totalVolumeKg))
         }
+        .padding(.vertical, Spacing.md)
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(AppColor.glassBorder)
+            .frame(width: 0.5)
+            .frame(maxHeight: .infinity)
+            .padding(.vertical, Spacing.xs)
     }
 
     private func stat(label: String, value: String) -> some View {
@@ -86,20 +113,13 @@ struct WorkoutFinishView: View {
                 .font(AppFont.statValueSmall)
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
+                .contentTransition(.numericText())
             Text(label)
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+        .padding(.horizontal, Spacing.sm)
     }
 
     private var prsCard: some View {
@@ -166,19 +186,13 @@ struct WorkoutFinishView: View {
         }
     }
 
+    /// `GlassButton`, not a hand-rolled one. This was a bare `Button` with its
+    /// own rounded rectangle and `AppColor.background` used as the ink on an
+    /// accent fill — every token legal on its own, which is why no lint rule
+    /// caught it, but the wrong ink (`onAccent` is the token for that) and a
+    /// second implementation of the primary button.
     private var doneButton: some View {
-        Button(action: onClose) {
-            Text("Done")
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.background)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.md)
-                .background(
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.accentPrimary)
-                )
-        }
-        .buttonStyle(.plain)
+        GlassButton(title: "Done", style: .primary, isFullWidth: true) { onClose() }
     }
 
     private var durationFormatted: String {
