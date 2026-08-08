@@ -22,6 +22,23 @@ final class LifestyleDataStoreTests: XCTestCase {
     }
 
     override func tearDown() {
+        // Drop the store before wiping the container.
+        //
+        // `DataStore.init` registers `Self.current = self`, so every
+        // `makeStore()` installs a process-wide strong reference that
+        // outlives the test method — and with it any 350 ms debounced
+        // save that `logWeight` / `logMeal` / `logWater` / `deleteWeight`
+        // left pending. That task resolves `repo` to the shared
+        // repository, whose container the next `setUp` replaces, so a
+        // save queued here could wake inside the *next* test and write
+        // this test's profile into its supposedly fresh store: the same
+        // cross-test leak the setUp above exists to close, one layer
+        // down. Clearing the reference releases the store, and the
+        // task's `[weak self]` then makes it a no-op.
+        //
+        // `handleIdentityChange` cancels the same task for the same
+        // reason when the iCloud container swaps underneath it.
+        DataStore.current = nil
         SwiftDataRepository.shared.deleteAll()
         super.tearDown()
     }
