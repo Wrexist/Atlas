@@ -237,16 +237,21 @@ jobs:
         run: swiftlint lint --reporter github-actions-logging
 
       - name: Unit Tests
-        # Enabled again. It had been a stub since the test target stopped
-        # compiling; `test-compile` on 89587a3 came back
-        # `** TEST BUILD SUCCEEDED **` with zero errors, which is the
-        # condition the previous note set for turning it back on.
+        # Gating, as of 2026-08-08. This step spent its first outings on
+        # `continue-on-error` because the suite had not run in months and
+        # a failure was information rather than a verdict. Those runs
+        # found five genuinely broken tests — three asserting things the
+        # code could not produce, one reporting a real decay bug, one
+        # missing the store isolation its ten sibling suites had. With
+        # those fixed the suite reached 1039 tests / 0 failures on
+        # dd5b054, so the flag has done its job and is gone.
         #
-        # Still `continue-on-error` for its first outings: these tests have
-        # not run in months, so a failure here is information about the
-        # suite rather than a reason to block the PR. Drop the flag once a
-        # few runs have gone green.
-        continue-on-error: true
+        # It should not come back. While it was set, `build-check`
+        # reported success with `** TEST FAILED **` sitting in its log,
+        # and a green badge meant nothing — the failures were only
+        # visible to someone who opened the annotations. If the suite
+        # goes red, fix the test or fix the code; muting the signal
+        # again just recreates months of invisible rot.
         run: |
           # Resolve whatever iPhone this runner actually has rather than
           # naming one. A hardcoded `name:iPhone 16` is why test-compile
@@ -313,9 +318,12 @@ jobs:
           fi
 
       - name: Print test failures
-        # Tests are continue-on-error: true so `failure()` won't trigger
-        # for runtime test failures. Use always() and grep the log
-        # directly so failures still surface as PR annotations.
+        # `always()`, not `failure()`. The Unit Tests step now fails the
+        # job on a red suite, so `failure()` would mostly work — but this
+        # also has to run when an earlier step blew up, and grepping the
+        # log is what turns "Executed N tests, with M failures" into
+        # inline PR annotations rather than something you find by
+        # scrolling a 9,000-line log.
         if: always()
         run: |
           if [ ! -f test-output.log ]; then
@@ -360,9 +368,9 @@ jobs:
             -resultBundlePath UITestResults.xcresult
 
       - name: Upload test results
-        # Unit Tests is continue-on-error; without always() the artifact
-        # never uploads on a soft test failure, so we lose the xcresult
-        # bundle exactly when we need it most.
+        # `always()` because a red suite now fails the job, and without
+        # this the xcresult bundle would stop uploading exactly when
+        # someone needs it to diagnose the failure.
         if: always()
         uses: actions/upload-artifact@v4
         with:
