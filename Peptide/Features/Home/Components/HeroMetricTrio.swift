@@ -135,6 +135,28 @@ enum HeroMetricKind: Hashable, CaseIterable {
         }
     }
 
+    /// Glyph shown inside the ring on the detail sheet, above the
+    /// number. The ring alone says "a percentage of something"; this
+    /// says which something, before the eye reaches the title.
+    var icon: String {
+        switch self {
+        case .adherence: "checkmark.shield.fill"
+        case .recovery:  "bolt.heart.fill"
+        case .sleep:     "moon.fill"
+        }
+    }
+
+    /// Glyph on the "why it matters" medallion. Deliberately not `icon`
+    /// — repeating the same symbol twelve points below itself reads as a
+    /// rendering mistake.
+    var explainerIcon: String {
+        switch self {
+        case .adherence: "calendar.badge.checkmark"
+        case .recovery:  "bolt.fill"
+        case .sleep:     "bed.double.fill"
+        }
+    }
+
     /// Gradient stops drawn into the ring's angular gradient. The
     /// dimmed variant kicks in when the metric has no data so the
     /// "—" centre reads as inactive without being invisible.

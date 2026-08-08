@@ -668,6 +668,8 @@ struct HomeView: View {
                         sleepTargetHours: 8.0
                     )
                 )
+                .environment(dataStore)
+                .environment(appState)
                 .liquidGlassPresentation()
             }
             .confirmationDialog(
