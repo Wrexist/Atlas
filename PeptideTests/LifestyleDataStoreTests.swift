@@ -4,10 +4,29 @@ import XCTest
 @MainActor
 final class LifestyleDataStoreTests: XCTestCase {
 
+    /// Point the shared repository at a fresh in-memory store before
+    /// each test.
+    ///
+    /// This file was the only `DataStore` suite without a setUp, and the
+    /// old comment on `makeStore` explained why it thought it could skip
+    /// one: every assertion reads the in-memory `profile` snapshot, so a
+    /// real persistence service "doesn't matter". That holds for the
+    /// weight and habit cases, which assert on deltas. It does not hold
+    /// for `workoutSummary`, which asserts absolute counts for a day —
+    /// `DataStore.init` loads whatever the on-disk store already holds,
+    /// so workouts left by an earlier test counted toward today's total
+    /// and the day-isolation test failed on every run.
+    override func setUp() {
+        super.setUp()
+        SwiftDataRepository.shared.configureForTesting()
+    }
+
+    override func tearDown() {
+        SwiftDataRepository.shared.deleteAll()
+        super.tearDown()
+    }
+
     private func makeStore() -> DataStore {
-        // The default DataStore initializer attaches a real persistence
-        // service; we don't mind because every assertion below operates
-        // on the in-memory `profile` snapshot before any save round-trip.
         DataStore(seedSampleData: false)
     }
 
