@@ -90,7 +90,25 @@ jobs:
     # 15-min skip saves ~$0.93.
     if: needs.filter.outputs.ios == 'true' && github.event.pull_request.draft == false
     runs-on: macos-15
-    timeout-minutes: 25
+    # 40, up from 25, because 25 killed a run whose tests were all
+    # passing. Observed job wall-clock across five runs: 7.5, 12.8, 18.0,
+    # 22.8, and 26.1 minutes — the last cut off mid-suite by the old
+    # ceiling with every reported suite at zero failures.
+    #
+    # ~7-9 min of that is fixed overhead (checkout, xcodegen, build,
+    # swiftlint, coverage, upload). The rest is the suite, which has
+    # swung 138s to 841s, and the swing is almost entirely
+    # StoreServiceTests: 95s, 263s, 578s, 777s for the same 15 tests.
+    # Each builds its own `SKTestSession`, and that setup cost is at the
+    # mercy of a shared macOS runner.
+    #
+    # A per-class session would collapse it, but sharing StoreKit
+    # transaction state across tests is the exact cross-test bleed the
+    # rest of this suite has been fixing, and this is the purchase path
+    # — not a trade worth making for wall-clock. So: give the job room
+    # to finish. This is a ceiling, not a duration; a normal run still
+    # costs what it always did.
+    timeout-minutes: 40
 
     steps:
       - uses: actions/checkout@v4
