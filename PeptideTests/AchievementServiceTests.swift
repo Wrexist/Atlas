@@ -113,9 +113,25 @@ final class AchievementServiceTests: XCTestCase {
         XCTAssertEqual(service.unlockedCount, 1)
     }
 
-    func test_checkAchievements_secondCall_latestUnlockIsNilIfNothingNew() {
+    /// A repeat check must not re-queue an achievement already awarded.
+    ///
+    /// This used to assert `latestUnlock == nil` after the second call,
+    /// which encoded a contract the service deliberately abandoned:
+    /// `latestUnlock` is the head of a *pending queue* that drains on
+    /// `acknowledgeLatestUnlock()`, not "what unlocked on this call".
+    /// `checkAchievements` even carries a comment explaining why it must
+    /// not clear the queue — so the old assertion could only ever fail,
+    /// and it did, on every run. What is actually worth protecting is
+    /// that the second pass adds nothing: acknowledge once and the queue
+    /// is empty.
+    func test_checkAchievements_secondCall_queuesNoDuplicate() {
         service.checkAchievements(totalDoses: 1, currentStreak: 0, bestStreak: 0, protocolCount: 0, daysLogged: 0)
         service.checkAchievements(totalDoses: 1, currentStreak: 0, bestStreak: 0, protocolCount: 0, daysLogged: 0)
+
+        XCTAssertEqual(service.pendingUnlocks.count, 1, "the same milestone must only queue once")
+        XCTAssertEqual(service.latestUnlock?.id, "first_dose")
+
+        service.acknowledgeLatestUnlock()
         XCTAssertNil(service.latestUnlock)
     }
 

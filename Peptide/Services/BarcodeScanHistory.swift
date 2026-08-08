@@ -44,6 +44,18 @@ actor BarcodeScanHistory {
     /// suppressing brand-new products forever.
     private static let recencyHalfLife: TimeInterval = 14 * 24 * 60 * 60
 
+    /// Decay multiplier for a scan of the given age.
+    ///
+    /// This was `exp(-age / recencyHalfLife)`, which is an exponential
+    /// *time constant*, not a half-life: at 14 days it returns 0.368 and
+    /// at 28 days 0.135, where the constant's name, the comment above it
+    /// and the test all say 0.5 and 0.25. Three statements of intent
+    /// against one line of arithmetic — the arithmetic was the outlier,
+    /// and the recents row was decaying about 1.4× faster than designed.
+    private static func recencyDecay(age: TimeInterval) -> Double {
+        pow(0.5, max(0, age) / recencyHalfLife)
+    }
+
     /// One record per barcode the user has scanned + logged. Codable
     /// so the whole map serialises to UserDefaults as a single Data
     /// blob — atomic writes, no key-namespace bookkeeping.
@@ -103,7 +115,7 @@ actor BarcodeScanHistory {
 
     /// Frequency-weighted score for ordering the recents row. Higher
     /// = should appear earlier. Computed as
-    /// `scanCount × exp(-age/halfLife)` so a daily product steadily
+    /// `scanCount × 0.5^(age/halfLife)` so a daily product steadily
     /// outranks a one-off no matter how recent the one-off is.
     /// Returns 0 for unknown barcodes, which sinks them to the end
     /// of any sort.
@@ -111,8 +123,7 @@ actor BarcodeScanHistory {
         guard let entry = load()[barcode] else { return 0 }
         let age = now.timeIntervalSince(entry.lastScanned)
         guard age >= 0 else { return Double(entry.scanCount) }
-        let decay = exp(-age / Self.recencyHalfLife)
-        return Double(entry.scanCount) * decay
+        return Double(entry.scanCount) * Self.recencyDecay(age: age)
     }
 
     /// Bulk-score a list of barcodes in one read so the recents row
@@ -125,8 +136,8 @@ actor BarcodeScanHistory {
                 out[barcode] = 0
                 continue
             }
-            let age = max(0, now.timeIntervalSince(entry.lastScanned))
-            out[barcode] = Double(entry.scanCount) * exp(-age / Self.recencyHalfLife)
+            let age = now.timeIntervalSince(entry.lastScanned)
+            out[barcode] = Double(entry.scanCount) * Self.recencyDecay(age: age)
         }
         return out
     }
