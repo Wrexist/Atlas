@@ -41,18 +41,15 @@ struct BiomarkerRow: View {
                     )
                     .frame(width: 64)
                 } else {
-                    // Compact "no series" tile sits where the
-                    // sparkline would. Keeps the row's right
-                    // edge anchored so the list reads as a grid
-                    // rather than a ragged column.
-                    Text(snapshot.latest == nil ? "Add" : "—")
-                        .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                    // Nothing to plot yet, so the right edge carries the
+                    // affordance instead: this row opens a screen where
+                    // the user can add the reading.
+                    Image(systemName: "chevron.right")
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
-                        .frame(width: 64, height: 24, alignment: .trailing)
                 }
             }
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
+            .padding(Spacing.md)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                     .fill(AppColor.surfaceSecondary.opacity(0.55))
@@ -68,12 +65,20 @@ struct BiomarkerRow: View {
 
     // MARK: - Trend badge
 
+    /// Rounded-square tile rather than a disc: it sits in a column of
+    /// rounded-rectangle rows, and the concentric radius makes the tile
+    /// read as part of the row instead of a sticker on top of it.
     private var trendBadge: some View {
         ZStack {
-            Circle()
-                .fill(badgeTint.opacity(0.18))
+            RoundedRectangle(
+                cornerRadius: Spacing.concentric(in: Spacing.cardCornerRadius,
+                                                 inset: Spacing.md),
+                style: .continuous
+            )
+            .fill(badgeTint.opacity(0.20))
+
             Image(systemName: snapshot.biomarker.icon)
-                .font(AppFont.scaled(13, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(badgeTint)
 
             // Direction arrow in a tiny notch — only when there's
@@ -83,14 +88,14 @@ struct BiomarkerRow: View {
                 Image(systemName: arrow)
                     .font(AppFont.scaled(8, weight: .heavy))
                     .foregroundStyle(AppColor.background)
-                    .padding(3)
+                    .padding(2)
                     .background {
                         Circle().fill(badgeTint)
                     }
-                    .offset(x: 12, y: 12)
+                    .offset(x: 14, y: 14)
             }
         }
-        .frame(width: 36, height: 36)
+        .frame(width: 40, height: 40)
     }
 
     /// Direction arrow shown in the badge corner. `nil` for flat

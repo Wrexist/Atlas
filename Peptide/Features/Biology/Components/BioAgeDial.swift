@@ -1,98 +1,127 @@
 import SwiftUI
 
-/// Bevel-style Bio Age dial. A 240° arc spanning chronological-
-/// age ±5 years, with scale markers at each integer, a left
-/// label (lower bound) + right label (upper bound), and a needle
-/// dot at the user's estimated bio age.
+/// Bio Age dial. A 240° arc spanning chronological-age ±5 years, with a
+/// bound label at each end and a marker at the user's estimated bio age.
 ///
-/// The dial draws geometry only — no number text inside, no
-/// title above. Those live on `BioAgeHeroSection` so the dial
-/// can host a particle cluster (locked state) or a big number
-/// (unlocked state) in its centre without conditional plumbing
-/// at this layer.
+/// Two strokes, not one. The full sweep is a hairline track — the scale
+/// the number is read against. On top of it, from the younger bound up to
+/// the user's value, sits the accent arc: a progress stroke, the one place
+/// the craft rules sanction a gradient, because the fade *is* the reading.
+/// The marker rides its head.
+///
+/// The dial draws geometry only — no number text inside, no title above.
+/// Those live on `BioAgeHeroSection` so the dial can host a particle
+/// cluster (locked state) or a big number (unlocked state) in its centre
+/// without conditional plumbing at this layer.
 struct BioAgeDial: View {
     let chronologicalAge: Int
-    /// Position of the needle in years. Pass `nil` to render the
-    /// dial without a needle — used by the locked / building
-    /// states where there's nothing to point at yet.
+    /// Position of the marker in years. Pass `nil` to render the dial
+    /// without one — used by the locked / building states where there's
+    /// nothing to point at yet.
     let bioAge: Double?
     var size: CGFloat = 280
     /// How far the scale stretches in either direction from
-    /// `chronologicalAge`. Bevel uses ±5; the dial's labels
-    /// reflect this.
+    /// `chronologicalAge`. The dial's bound labels reflect this.
     var rangeHalfSpan: Int = 5
 
     private var lowerBound: Double { Double(chronologicalAge - rangeHalfSpan) }
     private var upperBound: Double { Double(chronologicalAge + rangeHalfSpan) }
-    /// Arc sweep in degrees. 240° gives the open-mouth-up look
-    /// Bevel uses (180° = exactly horizontal, 270° = too tight at
-    /// the top, 240° splits the difference).
+    /// Arc sweep in degrees. 240° gives the open-mouth-up look (180° =
+    /// exactly horizontal, 270° = too tight at the top, 240° splits the
+    /// difference).
     private var sweep: Double { 240 }
     private var startAngle: Double { -90 - sweep / 2 }
-    private var endAngle: Double { -90 + sweep / 2 }
+
+    /// Where the marker actually sits, clamped into the dial's range so an
+    /// out-of-scale estimate parks at the end rather than off the arc.
+    private var markerValue: Double? {
+        bioAge.map { max(lowerBound, min(upperBound, $0)) }
+    }
+
+    /// The value's position along the sweep, 0…1 from the younger bound.
+    private var progress: Double {
+        guard let markerValue, upperBound > lowerBound else { return 0 }
+        return (markerValue - lowerBound) / (upperBound - lowerBound)
+    }
+
+    private var lineWidth: CGFloat { 3 }
 
     var body: some View {
         ZStack {
-            arc
-            tickMarks
+            track
+            if bioAge != nil {
+                progressArc
+                marker
+            }
             boundLabels
-            if let bioAge { needle(at: bioAge) }
         }
         .frame(width: size, height: size)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityDescription)
     }
 
-    // MARK: - Arc
+    // MARK: - Arcs
 
-    private var arc: some View {
+    private var track: some View {
         Circle()
             .trim(from: trimStart, to: trimEnd)
             .stroke(
-                AppColor.glassBorder.opacity(0.55),
-                style: StrokeStyle(lineWidth: 1, lineCap: .round)
+                AppColor.glassBorder,
+                style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
             )
             .rotationEffect(.degrees(startAngle + 90))
     }
 
-    /// Convert sweep angle to a trim range. SwiftUI's Circle
-    /// trim runs 0…1 clockwise from the right; we want our arc
-    /// centred at the top with a 240° sweep, so trim covers
-    /// `(360 - sweep) / 720` to `1 - that`.
+    private var progressArc: some View {
+        Circle()
+            .trim(from: trimStart, to: trimStart + (trimEnd - trimStart) * CGFloat(progress))
+            .stroke(
+                AngularGradient(
+                    colors: [AppColor.accentPrimary, AppColor.accentLight],
+                    center: .center,
+                    startAngle: .degrees(startAngle),
+                    endAngle: .degrees(startAngle + sweep)
+                ),
+                style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+            )
+            .rotationEffect(.degrees(startAngle + 90))
+            .animation(AppAnimation.springSmooth, value: progress)
+    }
+
+    /// Convert sweep angle to a trim range. SwiftUI's Circle trim runs 0…1
+    /// clockwise from the right; we want our arc centred at the top with a
+    /// 240° sweep, so trim covers `(360 - sweep) / 720` to `1 - that`.
     private var trimStart: CGFloat { CGFloat((360 - sweep) / 720) }
     private var trimEnd: CGFloat { 1 - trimStart }
 
-    // MARK: - Tick marks
+    // MARK: - Marker
 
-    /// One short radial tick per year across the range. Center
-    /// ticks (cohort age) get extra weight; the rest are quiet
-    /// hairlines.
-    private var tickMarks: some View {
-        ZStack {
-            ForEach(0...(rangeHalfSpan * 2), id: \.self) { offset in
-                tickMark(at: Double(chronologicalAge - rangeHalfSpan + offset))
-            }
+    /// A disc at the head of the progress arc, ringed in the app
+    /// background so it stays legible where it overlaps the track. The
+    /// coloured drop is elevation under a filled shape, which is how every
+    /// accent medallion in the app reads as floating — not a halo behind a
+    /// glyph.
+    @ViewBuilder
+    private var marker: some View {
+        if let markerValue {
+            Circle()
+                .fill(AppColor.accentLight)
+                .frame(width: 14, height: 14)
+                .overlay {
+                    Circle().strokeBorder(AppColor.background, lineWidth: 2)
+                }
+                .shadow(color: AppColor.accentGlow, radius: 8)
+                .offset(y: -(size / 2))
+                .rotationEffect(.degrees(angle(for: markerValue)))
+                .animation(AppAnimation.springSmooth, value: markerValue)
         }
-    }
-
-    private func tickMark(at age: Double) -> some View {
-        let isCenter = Int(age) == chronologicalAge
-        let length: CGFloat = isCenter ? 14 : 8
-        let opacity: Double = isCenter ? 0.85 : 0.4
-        let degrees = angle(for: age)
-        return Capsule()
-            .fill(AppColor.textPrimary.opacity(opacity))
-            .frame(width: 1.2, height: length)
-            .offset(y: -(size / 2 - length / 2 - 6))
-            .rotationEffect(.degrees(degrees))
     }
 
     // MARK: - Bound labels
 
-    /// "21,1" / "31,1" labels at the arc's ends — comma decimal
-    /// matches Bevel's screenshot (which is from a locale using
-    /// comma decimal). The localized number formatter handles
-    /// the right separator per user locale.
+    /// The two ends of the scale, so the number in the middle has something
+    /// to be read against. The localized number formatter picks the right
+    /// decimal separator per locale.
     private var boundLabels: some View {
         ZStack {
             labelAt(angle: angle(for: lowerBound), value: lowerBound)
@@ -101,44 +130,26 @@ struct BioAgeDial: View {
     }
 
     private func labelAt(angle deg: Double, value: Double) -> some View {
-        // Drop labels slightly outside the arc so the radial
-        // tick marks don't collide with the digits.
-        let radius = size / 2 + 14
+        // Drop labels outside the arc so the stroke doesn't collide with
+        // the digits.
+        let radius = size / 2 + 16
         let radians = deg * .pi / 180
-        // Standard polar-to-cartesian, then adjust for the fact
-        // that 0° in our angle system points up (-90° in screen
-        // coords).
+        // Standard polar-to-cartesian, then adjust for the fact that 0° in
+        // our angle system points up (-90° in screen coords).
         let x = sin(radians) * radius
         let y = -cos(radians) * radius
-        return Text(formatted(value))
-            .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
-            .foregroundStyle(AppColor.textPrimary.opacity(0.55))
+        return Text(Self.boundFormatter.string(from: NSNumber(value: value))
+                    ?? String(format: "%.1f", value))
+            .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
+            .foregroundStyle(AppColor.textSecondary)
             .offset(x: x, y: y)
-    }
-
-    // MARK: - Needle
-
-    /// Filled circle at the bioAge position, sized to read
-    /// without needing a stem. Bevel just uses a dot — no stem.
-    private func needle(at age: Double) -> some View {
-        let clamped = max(lowerBound, min(upperBound, age))
-        let degrees = angle(for: clamped)
-        return Circle()
-            .fill(AppColor.textPrimary)
-            .frame(width: 12, height: 12)
-            .overlay {
-                Circle().stroke(AppColor.accentLight, lineWidth: 1)
-            }
-            .offset(y: -(size / 2 - 18))
-            .rotationEffect(.degrees(degrees))
-            .animation(.spring(response: 0.7, dampingFraction: 0.85), value: clamped)
     }
 
     // MARK: - Helpers
 
-    /// Maps a bio-age value to its angle in the dial's coordinate
-    /// system. `startAngle`…`endAngle` is the sweep; we
-    /// interpolate the value across it.
+    /// Maps a bio-age value to its angle in the dial's coordinate system.
+    /// `startAngle` + the sweep is the arc; we interpolate the value across
+    /// it.
     private func angle(for age: Double) -> Double {
         let range = upperBound - lowerBound
         guard range > 0 else { return -90 }
@@ -146,35 +157,35 @@ struct BioAgeDial: View {
         return startAngle + 90 + fraction * sweep
     }
 
-    private func formatted(_ value: Double) -> String {
-        // One decimal to match Bevel's "21,1" / "31,1" reading.
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 1
-        formatter.maximumFractionDigits = 1
-        return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.1f", value)
-    }
+    private static let boundFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.minimumFractionDigits = 1
+        f.maximumFractionDigits = 1
+        return f
+    }()
 
     private var accessibilityDescription: String {
+        let low = String(format: "%.1f", lowerBound)
+        let high = String(format: "%.1f", upperBound)
         guard let bioAge else {
-            return "Bio age range \(lowerBound) to \(upperBound)"
+            return String(format: String(localized: "Bio age scale, %@ to %@ years"), low, high)
         }
-        return "Bio age \(String(format: "%.1f", bioAge)), range \(lowerBound) to \(upperBound)"
+        return String(format: String(localized: "Bio age %@, on a scale from %@ to %@ years"),
+                      String(format: "%.1f", bioAge), low, high)
     }
 }
 
-#Preview("Locked (no needle)") {
+#Preview("Locked (no marker)") {
     ZStack {
         CosmicBackdrop(intensity: 0.55).ignoresSafeArea()
         BioAgeDial(chronologicalAge: 26, bioAge: nil)
     }
-    .preferredColorScheme(.dark)
 }
 
-#Preview("Unlocked, needle at 26.1") {
+#Preview("Unlocked, marker at 24.5") {
     ZStack {
         CosmicBackdrop(intensity: 0.55).ignoresSafeArea()
-        BioAgeDial(chronologicalAge: 26, bioAge: 26.1)
+        BioAgeDial(chronologicalAge: 26, bioAge: 24.5)
     }
-    .preferredColorScheme(.dark)
 }

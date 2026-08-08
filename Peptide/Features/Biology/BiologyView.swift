@@ -17,6 +17,7 @@ struct BiologyView: View {
     @State private var showPaywall = false
     @State private var showEditSheet = false
     @State private var showLabs = false
+    @State private var showBioAgeExplainer = false
     /// Drives the per-biomarker detail sheet. Identifiable wrapper
     /// so `.sheet(item:)` lifecycle is clean across taps.
     @State private var detailItem: BiomarkerDetailItem?
@@ -35,7 +36,10 @@ struct BiologyView: View {
                         state: resolved.state,
                         chronologicalAge: resolved.chronologicalAge,
                         asOfDate: Date(),
-                        onUnlockTapped: { presentPaywall() }
+                        onUnlockTapped: { presentPaywall() },
+                        metricShortcuts: visibleBiomarkers,
+                        onSelectMetric: { openDetail(for: $0) },
+                        onExplainTapped: { showBioAgeExplainer = true }
                     )
 
                     if case .locked = resolved.state {
@@ -50,16 +54,7 @@ struct BiologyView: View {
                     }
 
                     BiomarkerListSection(
-                        // Pro biomarkers stay in profile.biologyConfig
-                        // after a subscription lapse so the user's
-                        // selection is preserved across re-up — but
-                        // we filter them out of the visible list when
-                        // !isProUser (audit Biology MED 11).
-                        // EditBiomarkersSheet already blocks adding
-                        // new Pro entries; this closes the rendering
-                        // side of the gate.
-                        visibleBiomarkers: dataStore.profile.biologyConfig.visibleBiomarkers
-                            .filter { storeService.isProUser || !$0.requiresPro },
+                        visibleBiomarkers: visibleBiomarkers,
                         onEditTapped: { showEditSheet = true },
                         onSelectBiomarker: { biomarker in openDetail(for: biomarker) }
                     )
@@ -110,6 +105,10 @@ struct BiologyView: View {
                     .environment(dataStore)
                     .liquidGlassPresentation()
             }
+            .sheet(isPresented: $showBioAgeExplainer) {
+                BioAgeExplainerSheet()
+                    .liquidGlassPresentation(detents: [.medium, .large])
+            }
             .onAppear { consumePendingLabsDeepLink() }
             .onChange(of: appState.pendingLabsOpen) { _, _ in
                 consumePendingLabsDeepLink()
@@ -123,6 +122,17 @@ struct BiologyView: View {
                              age: dataStore.profile.bodyMetrics.age)) {
             await refreshState()
         }
+    }
+
+    /// Pro biomarkers stay in `profile.biologyConfig` after a subscription
+    /// lapse so the user's selection survives a re-up — but they're filtered
+    /// out of every visible surface while `!isProUser` (audit Biology MED 11).
+    /// `EditBiomarkersSheet` already blocks *adding* new Pro entries; this
+    /// closes the rendering side of the gate, for both the list and the
+    /// hero's metric menu.
+    private var visibleBiomarkers: [Biomarker] {
+        dataStore.profile.biologyConfig.visibleBiomarkers
+            .filter { storeService.isProUser || !$0.requiresPro }
     }
 
     /// Equatable key for the Bio Age refresh `.task(id:)`.
