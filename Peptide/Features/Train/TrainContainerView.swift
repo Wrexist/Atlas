@@ -10,6 +10,7 @@ struct TrainContainerView: View {
     @State private var section: Section = .overview
     @State private var sessionService = WorkoutSessionService.shared
     @State private var showActiveWorkout = false
+    @Namespace private var sectionIndicator
 
     enum Section: String, CaseIterable, Identifiable {
         case overview, exercises, history
@@ -115,17 +116,19 @@ struct TrainContainerView: View {
     }
 
     private var sectionPicker: some View {
-        // Using a raw HStack of buttons — `.segmented` Picker reads
-        // visually too "system settings" and the Train tab wants a
-        // softer chrome. Underline indicator matches the Lyfta
-        // reference shots and reads cleanly on the dark background.
-        HStack(spacing: Spacing.lg) {
+        // A filled capsule under the selected section rather than an
+        // underline: Train's sections are peers you switch between, and a
+        // filled pill says "you are here" at a glance where a 3pt rule
+        // under one word does not. `.segmented` Picker still reads too
+        // "system settings" for this surface.
+        HStack(spacing: Spacing.sm) {
             ForEach(Section.allCases) { item in
                 SectionTab(
                     title: item.displayName,
-                    isSelected: section == item
+                    isSelected: section == item,
+                    namespace: sectionIndicator
                 ) {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(AppAnimation.springSnappy) {
                         section = item
                     }
                 }
@@ -173,22 +176,30 @@ struct TrainContainerView: View {
     private struct SectionTab: View {
         let title: String
         let isSelected: Bool
+        let namespace: Namespace.ID
         let action: () -> Void
 
         var body: some View {
             Button(action: action) {
-                VStack(spacing: 6) {
-                    Text(title)
-                        .font(AppFont.headline)
-                        .foregroundStyle(
-                            isSelected ? AppColor.textPrimary : AppColor.textSecondary
-                        )
-                    Capsule()
-                        .fill(isSelected ? AppColor.accentPrimary : Color.clear)
-                        .frame(height: 3)
-                        .frame(width: 32)
-                }
-                .contentShape(Rectangle())
+                Text(title)
+                    .font(AppFont.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textSecondary)
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.sm)
+                    .background {
+                        // Only the selected pill draws a surface, and it
+                        // travels between sections rather than cross-fading
+                        // — the movement is what tells the user the two are
+                        // the same control.
+                        if isSelected {
+                            Capsule()
+                                .fill(AppColor.accentFill)
+                                .matchedGeometryEffect(id: "section", in: namespace)
+                        }
+                    }
+                    .frame(minHeight: Spacing.minimumHitTarget)
+                    .contentShape(Capsule())
             }
             .buttonStyle(.plain)
             .accessibilityAddTraits(isSelected ? .isSelected : [])
