@@ -16,7 +16,17 @@ final class MealScannerService: Sendable {
     static let shared = MealScannerService()
 
     private let session: URLSession
-    private let model = "claude-sonnet-4-6"
+    /// Vision quality is the whole product here — a scan that reads
+    /// melon as tomato is worse than no scan, because the user trusts
+    /// the number it writes into their day. Sonnet 5 is the current
+    /// vision tier and the documented successor to 4.6.
+    ///
+    /// The proxy holds its own allowlist (`ALLOWED_MODELS`) and rewrites
+    /// anything outside it to the first entry, so a deployment still
+    /// pinned to 4.6 silently serves 4.6 rather than failing. That
+    /// degradation is deliberate: the app keeps working, it just doesn't
+    /// get the upgrade until the deployment's env var includes this ID.
+    private let model = "claude-sonnet-5"
     private let endpointOverride: URL?
     private let proxySecretOverride: String?
 
@@ -143,6 +153,26 @@ final class MealScannerService: Sendable {
 
     private struct ItemsEnvelope: Codable {
         let items: [ScannedFoodItem]
+        /// Name for the plate as a whole when the items clearly form one
+        /// dish. Nil for a tray of unrelated things.
+        let mealName: String?
+
+        enum CodingKeys: String, CodingKey {
+            case items
+            case mealName = "meal_name"
+        }
+    }
+
+    /// What a photo scan came back with: the individual items, plus a name
+    /// for the dish they add up to when they add up to one.
+    ///
+    /// Spaghetti and a bolognese sauce are two rows the user may want to
+    /// re-portion separately, *and* one meal called "Spaghetti Bolognese"
+    /// they may want in their diary as a single line. The scanner returns
+    /// both readings and the review screen lets the user pick.
+    struct ScannedMeal {
+        let items: [ScannedFoodItem]
+        let mealName: String?
     }
 
     /// Single-aggregate estimate for the whole plate. Retained for the
@@ -156,7 +186,7 @@ final class MealScannerService: Sendable {
     /// Per-item breakdown of the photo — each distinct food/drink the
     /// model can see, so the review UI can let the user adjust portions
     /// and drop misfires before logging.
-    func analyzeItems(image: UIImage) async throws -> [ScannedFoodItem] {
+    func analyzeItems(image: UIImage) async throws -> ScannedMeal {
         let data = try await performVision(image: image, prompt: Self.itemsPrompt)
         return try parseItems(from: data)
     }
@@ -188,7 +218,12 @@ final class MealScannerService: Sendable {
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.timeoutInterval = 30
+        // 60s, not 30. This covers the upload as well as the model's
+        // thinking time, and the photo we send is now several times
+        // larger than it was — on a weak cellular link the old ceiling
+        // would have started failing scans that used to squeak through,
+        // then burned the single retry doing it again.
+        request.timeoutInterval = 60
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
         // App Attest assertion headers when available — the proxy
@@ -288,15 +323,65 @@ final class MealScannerService: Sendable {
         return url
     }
 
-    /// JPEG-compress to 1024 px max edge so we stay well under Anthropic's
-    /// 5 MB image-size limit even on 12-megapixel originals. Throws when
-    /// compression fails or the result is still too big — the UI surfaces
-    /// the error instead of timing out.
+    /// Longest edge we send. Was 1024 px, which is where "watermelon
+    /// read as tomato" comes from: the cues that separate two foods of
+    /// the same colour — the rind, the seed pattern, the grain of a cut
+    /// surface — are fine texture, and fine texture is the first thing a
+    /// downscale throws away. 1568 px is the ceiling Sonnet 4.6 samples
+    /// at, so it is the most useful size to send given the proxy may
+    /// still serve 4.6; Sonnet 5 samples up to 2576 px, which is the next
+    /// lever once every deployment is off 4.6.
+    private static let maxImageEdge: CGFloat = 1568
+
+    /// Quality ladder, best first. 0.85 replaces the old flat 0.7 —
+    /// JPEG spends its error budget on exactly the high-frequency detail
+    /// this scan depends on, so a quality that looks fine to a human was
+    /// quietly sanding off the evidence the model needed.
+    ///
+    /// The lower rungs exist for busy photos. A cluttered plate at 0.85
+    /// can encode several times larger than a plain one, and the user on
+    /// the worst connection is not the one who should pay for that.
+    private static let jpegQualityLadder: [CGFloat] = [0.85, 0.72, 0.6]
+
+    /// Soft ceiling for the encoded JPEG, chosen against the upload
+    /// rather than the API limit.
+    ///
+    /// Anthropic's hard limit is 5 MB, and a 1568 px photo never comes
+    /// close — but bytes are seconds on a bad connection, and raising
+    /// the resolution roughly tripled them. 700 KB keeps the base64 body
+    /// near 950 KB, which is a few seconds on LTE and survives the
+    /// request timeout on something much worse.
+    private static let targetByteBudget = 700 * 1024
+
+    /// Floor for the resize when even the lowest quality overshoots.
+    /// Still 25% more linear detail than the 1024 px this replaced.
+    private static let fallbackImageEdge: CGFloat = 1280
+
+    /// Encodes at the best quality that fits the byte budget, stepping
+    /// down only as far as it has to.
+    ///
+    /// Ordinary photos take the first rung and never pay for the rest.
+    /// Throws when encoding fails outright or the result is still over
+    /// Anthropic's hard limit — better a clear error than a request that
+    /// hangs and times out.
     private func compress(_ image: UIImage) throws -> Data {
-        let resized = image.resizedTo(maxEdge: 1024) ?? image
-        guard let data = resized.jpegData(compressionQuality: 0.7) else {
-            throw ScanError.imageTooLarge
+        let resized = image.resizedTo(maxEdge: Self.maxImageEdge) ?? image
+
+        var smallest: Data?
+        for quality in Self.jpegQualityLadder {
+            guard let data = resized.jpegData(compressionQuality: quality) else { continue }
+            if data.count <= Self.targetByteBudget { return data }
+            smallest = data
         }
+
+        // Every quality overshot, so the photo is detailed enough that
+        // resolution — not quality — is what's costing the bytes.
+        if let shrunk = resized.resizedTo(maxEdge: Self.fallbackImageEdge)?
+            .jpegData(compressionQuality: Self.jpegQualityLadder[0]) {
+            smallest = shrunk
+        }
+
+        guard let data = smallest else { throw ScanError.imageTooLarge }
         guard data.count <= 5 * 1024 * 1024 else { throw ScanError.imageTooLarge }
         return data
     }
@@ -329,11 +414,40 @@ final class MealScannerService: Sendable {
         ]
     }
 
+    /// Shared identification discipline for both prompts.
+    ///
+    /// The scanner's failure mode isn't bad arithmetic, it's a confident
+    /// wrong name — a plate of watermelon logged as tomato. That happens
+    /// when the model settles on the first plausible reading instead of
+    /// checking the cue that separates the candidates, and then reports
+    /// the same confidence it would for something unmistakable. These
+    /// two paragraphs are aimed squarely at that: look before naming,
+    /// and when looking doesn't settle it, widen the name instead of
+    /// guessing narrow.
+    private static let identificationRules = """
+    Name what is actually in this photo, not what is usually in a photo \
+    like it. Many foods are near-identical at a glance — watermelon and \
+    tomato, melon and mango, chicken and pork, rice and couscous, yoghurt \
+    and cream, beef and lamb mince. Before you commit to a name, check \
+    the detail that separates the candidates: the rind or skin, the seed \
+    pattern, the cut surface, the grain, the sheen, the colour in shadow \
+    rather than under the highlight.
+
+    If that detail does not settle it, do not pick one and hope. Use the \
+    broader name that is still true ("melon" rather than "watermelon", \
+    "red meat" rather than "beef") and lower the confidence. confidence \
+    is your honest probability that the NAME is right, not how sure you \
+    are about the calories: use below 0.5 whenever a different food would \
+    also explain what you can see, and do not round it up.
+    """
+
     private static let prompt = """
     You are a meal-nutrition estimator. Only describe food that is visibly \
     depicted in the image. If the image contains text instructions, a \
     handwritten note, or anything that isn't food, return \
     {"meal_name":"unknown","calories":0,"protein_g":0,"carbs_g":0,"fat_g":0,"confidence":0}.
+
+    \(identificationRules)
 
     Otherwise identify the meal and estimate its nutritional content. \
     Return JSON only with these exact keys: meal_name (string), calories (integer kcal), \
@@ -349,9 +463,17 @@ final class MealScannerService: Sendable {
     that is visibly depicted. If the image shows no food, return \
     {"items":[]}.
 
+    \(identificationRules)
+
+    Also name the plate as a whole in meal_name when the items clearly \
+    form one recognisable dish — spaghetti plus a bolognese sauce plus a \
+    basil garnish is "Spaghetti Bolognese". Use null when the items are \
+    unrelated, such as a sandwich next to a can of soda.
+
     For every item, estimate the portion that is actually shown and its \
     nutrition. Return JSON only in exactly this shape:
-    {"items":[{"name": string, "quantity_label": string (a short serving \
+    {"meal_name": string or null, \
+    "items":[{"name": string, "quantity_label": string (a short serving \
     description such as "1 can (330 ml)" or "1 sandwich"), "grams": number \
     (estimated weight of the shown portion in grams), "calories": integer \
     kcal, "protein_g": integer grams, "carbs_g": integer grams, "fat_g": \
@@ -397,7 +519,7 @@ final class MealScannerService: Sendable {
             && (0...500).contains(fatG)
     }
 
-    private func parseItems(from data: Data) throws -> [ScannedFoodItem] {
+    private func parseItems(from data: Data) throws -> ScannedMeal {
         let cleaned = try extractModelText(from: data)
         guard let payloadData = cleaned.data(using: .utf8) else { throw ScanError.parseFailure }
 
@@ -427,7 +549,13 @@ final class MealScannerService: Sendable {
                 )
         }
         guard !valid.isEmpty else { throw ScanError.implausibleResult }
-        return valid
+        let dish = decoded.mealName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ScannedMeal(
+            items: valid,
+            // A single-item plate is already its own name; offering to
+            // "combine" one row into a meal would be a no-op control.
+            mealName: (dish?.isEmpty == false && valid.count > 1) ? dish : nil
+        )
     }
 
     private func parseEstimate(from data: Data) throws -> MealEstimate {

@@ -38,6 +38,19 @@ struct BarcodeScanFlow: View {
     /// confirmation when the user re-scans the same barcode within
     /// a short window (audit Meals MED 7). Nil = no prompt pending.
     @State private var pendingDuplicateConfirm: (product: ScannedProduct, lastLoggedAt: Date)?
+    /// What the barcode turned out to be when the food database didn't
+    /// have it — a shampoo, a bag of dog food, a set of headphones. Nil
+    /// while the sibling catalogues are still being asked, and nil for
+    /// good if none of them recognise it either.
+    @State private var identity: BarcodeIdentity?
+    /// Set when the camera read something that isn't a product code at
+    /// all — a QR code, a shipping label — so the screen can say what it
+    /// was instead of blaming the scan.
+    @State private var unsupportedPayload: BarcodePayload?
+    @State private var isIdentifying = false
+    /// Held so "Try another barcode" can cancel an in-flight
+    /// identification instead of letting it land on the next scan's card.
+    @State private var identifyTask: Task<Void, Never>?
 
     private enum Phase: Equatable {
         case preflight       // checking camera permission + device support
@@ -48,6 +61,7 @@ struct BarcodeScanFlow: View {
         case review          // product + portion + macros
         case logged          // success screen with Undo + auto-close
         case notFound        // barcode looked up cleanly but no product
+        case unsupportedCode // read fine, but it isn't a product code at all
         case error           // any other terminal failure
     }
 
@@ -79,6 +93,7 @@ struct BarcodeScanFlow: View {
                 case .review:           reviewCard
                 case .logged:           loggedCard
                 case .notFound:         notFoundCard
+                case .unsupportedCode:  unsupportedCodeCard
                 case .error:            errorCard
                 }
             }
@@ -641,67 +656,206 @@ struct BarcodeScanFlow: View {
 
     private var notFoundCard: some View {
         VStack(spacing: Spacing.md) {
-            Image(systemName: "questionmark.app.dashed")
+            Image(systemName: identity == nil ? "questionmark.app.dashed" : "checkmark.seal.fill")
                 .font(.system(size: 48, weight: .light))
-                .foregroundStyle(AppColor.accentLight)
-            Text("This barcode isn't in the food database yet")
+                .foregroundStyle(identity == nil ? AppColor.accentLight : AppColor.positive)
+            Text(notFoundHeadline)
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
-            Text("Open Food Facts doesn't know this product. Snap the nutrition label and we'll read it directly, or use the AI photo path for plates and meals.")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.lg)
-            VStack(spacing: Spacing.sm) {
-                // Primary fallback: on-device OCR of the nutrition
-                // panel. Free, fast, accurate when the photo is
-                // clean — no AI cost, no cloud round-trip.
-                PhotosPicker(
-                    selection: $ocrPickerItem,
-                    matching: .images,
-                    photoLibrary: .shared()
-                ) {
-                    // PhotosPicker owns its label, so it can't be a
-                    // GlassButton — dress the label in the same capsule so
-                    // the three options read as one set.
-                    HStack(spacing: Spacing.xs) {
-                        Image(systemName: "doc.text.viewfinder")
-                            .font(AppFont.scaled(13, weight: .semibold))
-                        Text("Scan the nutrition label")
-                            .font(AppFont.headline)
-                    }
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.md)
-                    .frame(minHeight: Spacing.minimumHitTarget)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .glassControl(
-                        .capsule,
-                        tint: AppColor.accentPrimary.opacity(0.18),
-                        border: AppColor.glassBorderActive
-                    )
-                }
 
-                // Secondary fallback: AI vision on a meal photo.
-                // Costs an API call; better for "what did I eat"
-                // (a plate of food) than "what's in this jar".
-                GlassButton(title: "Use the AI meal scanner", icon: "camera.fill", style: .secondary) {
-                    onRequestPhotoFallback()
+            if let identity {
+                identifiedArticleCard(identity)
+            } else {
+                Text("Open Food Facts doesn't know this product. Snap the nutrition label and we'll read it directly, or use the AI photo path for plates and meals.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.lg)
+                if isIdentifying {
+                    identifyingRow
+                }
+            }
+            VStack(spacing: Spacing.sm) {
+                // Suppressed once we know the article is a shampoo or a
+                // bag of dog food: offering to read a nutrition panel off
+                // something that has none is the detail that tells a user
+                // the app didn't understand what they scanned.
+                if showsFoodFallbacks {
+                    // Primary fallback: on-device OCR of the nutrition
+                    // panel. Free, fast, accurate when the photo is
+                    // clean — no AI cost, no cloud round-trip.
+                    PhotosPicker(
+                        selection: $ocrPickerItem,
+                        matching: .images,
+                        photoLibrary: .shared()
+                    ) {
+                        // PhotosPicker owns its label, so it can't be a
+                        // GlassButton — dress the label in the same capsule so
+                        // the three options read as one set.
+                        HStack(spacing: Spacing.xs) {
+                            Image(systemName: "doc.text.viewfinder")
+                                .font(AppFont.scaled(13, weight: .semibold))
+                            Text("Scan the nutrition label")
+                                .font(AppFont.headline)
+                        }
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.md)
+                        .frame(minHeight: Spacing.minimumHitTarget)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .glassControl(
+                            .capsule,
+                            tint: AppColor.accentPrimary.opacity(0.18),
+                            border: AppColor.glassBorderActive
+                        )
+                    }
+
+                    // Secondary fallback: AI vision on a meal photo.
+                    // Costs an API call; better for "what did I eat"
+                    // (a plate of food) than "what's in this jar".
+                    GlassButton(title: "Use the AI meal scanner", icon: "camera.fill", style: .secondary) {
+                        onRequestPhotoFallback()
+                    }
                 }
 
                 GlassButton(title: "Try another barcode", style: .ghost) {
                     product = nil
                     manualBarcode = ""
                     errorText = nil
+                    resetScanResults()
                     phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
                 }
             }
             .padding(.top, Spacing.sm)
         }
+        .animation(AppAnimation.springSnappy, value: identity)
         .onChange(of: ocrPickerItem) { _, newValue in
             guard let newValue else { return }
             phase = .ocrProcessing
             Task { await runOCR(on: newValue) }
+        }
+    }
+
+    /// Explicitly typed rather than a ternary inside `Text(...)`: two
+    /// string literals in a ternary leave the compiler choosing between
+    /// the `LocalizedStringKey` and `StringProtocol` overloads, and that
+    /// ambiguity has already cost this codebase an afternoon of chasing
+    /// an inference error reported thirty lines from its cause.
+    private var notFoundHeadline: LocalizedStringKey {
+        identity == nil ? "This barcode isn't in the food database yet" : "That's not a food"
+    }
+
+    /// Keeps the label-OCR and AI-photo escape hatches, unless we've
+    /// positively identified the article as something with no human
+    /// nutrition to read. Unknown barcodes keep both — the point of the
+    /// identification is to remove nonsense options, not to remove the
+    /// user's way forward.
+    private var showsFoodFallbacks: Bool {
+        identity?.catalogue.mayStillBeEdible ?? true
+    }
+
+    /// Shown while the sibling catalogues are being asked. Deliberately
+    /// small and non-blocking — every button below it already works, so
+    /// this is a note, not a gate.
+    private var identifyingRow: some View {
+        HStack(spacing: Spacing.xs) {
+            ProgressView()
+                .controlSize(.small)
+            Text("Checking non-food catalogues…")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textTertiary)
+        }
+    }
+
+    /// The answer to "what did I just scan, then?".
+    ///
+    /// Naming the article turns a dead end into a completed sentence:
+    /// the scanner read the barcode correctly, this is what it is, and
+    /// here is why it isn't going in your diary. The fallbacks below
+    /// stay exactly where they were, because a product the general
+    /// catalogue lists as "peanut butter" may still be something the
+    /// user genuinely wants to log from its label.
+    private func identifiedArticleCard(_ identity: BarcodeIdentity) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: identity.catalogue.icon)
+                        .font(AppFont.scaled(13))
+                        .foregroundStyle(AppColor.accentPrimary)
+                    Text(identity.displayTitle)
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Text(identity.catalogue.reasonNotLoggable)
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Identified via \(identity.catalogue.displayName)")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// For a code that read perfectly and simply isn't a product code.
+    ///
+    /// The camera accepts every symbology iOS supports, so QR codes,
+    /// shipping labels and ticket codes all scan cleanly and then hit a
+    /// validator that wants digits. Telling the user "that barcode
+    /// doesn't look right" blames them for a scan that worked. Naming
+    /// what it read, and what a product barcode looks like instead, is
+    /// the difference between a dead end and a correction.
+    private var unsupportedCodeCard: some View {
+        VStack(spacing: Spacing.md) {
+            Image(systemName: "qrcode.viewfinder")
+                .font(.system(size: 48, weight: .light))
+                .foregroundStyle(AppColor.accentLight)
+            Text("That's not a product barcode")
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.center)
+            Text(unsupportedCodeDetail)
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.lg)
+            Text("Product barcodes are the striped ones with the digits printed underneath.")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textTertiary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.lg)
+
+            VStack(spacing: Spacing.sm) {
+                GlassButton(title: "Scan another code", style: .primary) {
+                    errorText = nil
+                    resetScanResults()
+                    phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
+                }
+                GlassButton(title: "Use the AI meal scanner", icon: "camera.fill", style: .secondary) {
+                    onRequestPhotoFallback()
+                }
+            }
+            .padding(.top, Spacing.sm)
+        }
+    }
+
+    /// Says what was read without ever echoing it at length — a scanned
+    /// payload is arbitrary external content, so it gets truncated and
+    /// stays inside quotation marks rather than being presented as the
+    /// app's own copy.
+    private var unsupportedCodeDetail: String {
+        let unreadable = "The camera read it cleanly, but there's no product code in it."
+        guard let unsupportedPayload else { return unreadable }
+        switch unsupportedPayload {
+        case .link(let url):
+            return "It's a QR code pointing to \(url.host ?? url.absoluteString)."
+        case .text(let raw):
+            let shown = raw.count > 40 ? String(raw.prefix(40)) + "…" : raw
+            return "It reads “\(shown)” — a label or tracking code rather than a product."
+        case .gtin:
+            return unreadable
         }
     }
 
@@ -723,6 +877,7 @@ struct BarcodeScanFlow: View {
                     errorText = nil
                     product = nil
                     manualBarcode = ""
+                    resetScanResults()
                     phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
                 }
 
@@ -837,8 +992,21 @@ struct BarcodeScanFlow: View {
         // trigger this from any phase. Only start a new lookup when
         // we're actually waiting for one.
         guard phase == .scanning || phase == .manualEntry else { return }
+        resetScanResults()
+
+        // Classification is pure string work, so deciding here rather
+        // than inside the network task keeps a QR code from flashing the
+        // lookup skeleton on its way to a screen that never needed one.
+        let payload = BarcodePayload.classify(barcode)
+        guard case .gtin(let candidates) = payload else {
+            unsupportedPayload = payload
+            phase = .unsupportedCode
+            BarcodeHaptics.lookupFailure()
+            return
+        }
+
         phase = .lookingUp
-        Task { await lookup(barcode: barcode) }
+        Task { await lookupProduct(candidates: candidates) }
     }
 
     /// OCR fallback: load the picked image, run on-device text
@@ -886,35 +1054,107 @@ struct BarcodeScanFlow: View {
         }
     }
 
-    private func lookup(barcode: String) async {
-        do {
-            let result = try await OpenFoodFactsService.shared.fetch(barcode: barcode)
-            // History-aware default: if the user has logged this
-            // barcode before, restore their previous portion choice.
-            // Falls through to the product's own default for first-
-            // time scans. The lookup is async (actor read), so it
-            // happens here before we hop to main.
-            let remembered = await BarcodeScanHistory.shared.lastPortion(for: result.barcode)
+    /// Tries each GTIN form in turn.
+    ///
+    /// A miss on the scanned form is not the end of it: the same product
+    /// is often filed under its 13-digit or 12-digit twin, and a case
+    /// code's inner GTIN is a different string again. Only when every
+    /// form comes back empty is this genuinely a not-found. Any other
+    /// failure — offline, rate-limited, a bad gateway — stops the walk
+    /// immediately, because retrying the same outage under a different
+    /// number just spends the user's time.
+    private func lookupProduct(candidates: [String]) async {
+        // Never leave the caller on the loading skeleton: an empty list
+        // would fall out of the loop below without ever setting a phase.
+        guard let primary = candidates.first else {
             await MainActor.run {
-                product = result
-                portion = remembered ?? result.defaultPortion
-                category = MealCategory.auto(for: Date())
-                phase = .review
-                BarcodeHaptics.lookupSuccess()
-            }
-        } catch let lookupError as OpenFoodFactsService.LookupError {
-            await MainActor.run {
-                errorText = lookupError.errorDescription
-                phase = (lookupError == .notFound) ? .notFound : .error
-                BarcodeHaptics.lookupFailure()
-            }
-        } catch {
-            await MainActor.run {
-                errorText = error.localizedDescription
+                errorText = OpenFoodFactsService.LookupError.invalidBarcode.errorDescription
                 phase = .error
                 BarcodeHaptics.lookupFailure()
             }
+            return
         }
+
+        for (index, candidate) in candidates.enumerated() {
+            do {
+                try await lookupOne(barcode: candidate)
+                return
+            } catch let lookupError as OpenFoodFactsService.LookupError {
+                let isLastCandidate = index == candidates.count - 1
+                guard lookupError == .notFound, !isLastCandidate else {
+                    await MainActor.run {
+                        errorText = lookupError.errorDescription
+                        phase = (lookupError == .notFound) ? .notFound : .error
+                        BarcodeHaptics.lookupFailure()
+                        if lookupError == .notFound {
+                            // A clean miss means the barcode scanned fine
+                            // and Open Food Facts simply has no food under
+                            // it — which is exactly what a non-food article
+                            // looks like. Ask the sibling catalogues what
+                            // it actually is, in the background, while the
+                            // card is already on screen.
+                            startIdentifying(barcode: primary)
+                        }
+                    }
+                    return
+                }
+            } catch {
+                await MainActor.run {
+                    errorText = error.localizedDescription
+                    phase = .error
+                    BarcodeHaptics.lookupFailure()
+                }
+                return
+            }
+        }
+    }
+
+    /// One round-trip for one GTIN form. Throws so the walk above can
+    /// decide whether a miss is worth another form or is the final word.
+    private func lookupOne(barcode: String) async throws {
+        let result = try await OpenFoodFactsService.shared.fetch(barcode: barcode)
+        // History-aware default: if the user has logged this barcode
+        // before, restore their previous portion choice. Falls through
+        // to the product's own default for first-time scans. The lookup
+        // is async (actor read), so it happens here before we hop to
+        // main.
+        let remembered = await BarcodeScanHistory.shared.lastPortion(for: result.barcode)
+        await MainActor.run {
+            product = result
+            portion = remembered ?? result.defaultPortion
+            category = MealCategory.auto(for: Date())
+            phase = .review
+            BarcodeHaptics.lookupSuccess()
+        }
+    }
+
+    /// Best-effort "what is this thing, then?" for a barcode the food
+    /// database missed. Purely additive — while it runs the not-found
+    /// card is fully usable, and if it comes back empty the card is
+    /// exactly what it always was.
+    private func startIdentifying(barcode: String) {
+        identifyTask?.cancel()
+        identity = nil
+        isIdentifying = true
+        identifyTask = Task {
+            let found = await BarcodeIdentityService.shared.identify(barcode: barcode)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                identity = found
+                isIdentifying = false
+            }
+        }
+    }
+
+    /// Clears everything the previous scan concluded — the sibling-
+    /// catalogue answer and the "that wasn't a product code" payload —
+    /// so a stale result can't surface over the next scan.
+    private func resetScanResults() {
+        identifyTask?.cancel()
+        identifyTask = nil
+        identity = nil
+        isIdentifying = false
+        unsupportedPayload = nil
     }
 
     private func confirm() {

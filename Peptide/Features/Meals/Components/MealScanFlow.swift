@@ -26,6 +26,14 @@ struct MealScanFlow: View {
     @State private var items: [EditableFoodItem] = []
     @State private var errorText: String?
     @State private var category: MealCategory = MealCategory.auto(for: Date())
+    /// The dish the model thinks these items add up to, when they add up to
+    /// one. Nil for a tray of unrelated things, which is what keeps the
+    /// combine control from appearing where it would make no sense.
+    @State private var suggestedMealName: String?
+    /// Editable because the model's name is a guess. Seeded from
+    /// `suggestedMealName` and only ever shown when combining.
+    @State private var mealName: String = ""
+    @State private var logAsOneMeal = false
     @State private var isShowingCamera = false
     @State private var cameraDeniedAlert: CameraDeniedReason?
     /// Tracks the in-flight image-load and Anthropic analysis tasks so
@@ -329,6 +337,32 @@ struct MealScanFlow: View {
     private var totalCarbs: Int { includedItems.reduce(0) { $0 + $1.carbsG } }
     private var totalFat: Int { includedItems.reduce(0) { $0 + $1.fatG } }
 
+    /// True when the model was unsure about most of what it saw.
+    ///
+    /// One shaky row among four is a normal scan and the per-row marker
+    /// handles it. Three shaky rows out of four is not an item problem —
+    /// it's the photo, and no amount of renaming fixes that.
+    private var isMostlyUncertain: Bool {
+        guard !items.isEmpty else { return false }
+        return items.filter(\.isUncertain).count * 2 > items.count
+    }
+
+    /// Offered instead of the usual how-to line when the whole plate came
+    /// back shaky. Points at the fix that actually works — a better
+    /// photo — rather than leaving the user to correct every row by hand.
+    private var retakeSuggestion: some View {
+        HStack(alignment: .top, spacing: Spacing.xs) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .font(AppFont.scaled(11))
+                .foregroundStyle(AppColor.warning)
+            Text("Most of these are guesses. A photo taken straight on, in better light, usually sorts it — or rename the rows yourself.")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var reviewCard: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -353,10 +387,14 @@ struct MealScanFlow: View {
                         .contentTransition(.numericText())
                 }
 
-                Text("Tap a row to adjust the portion, untick anything that isn't yours, or save an item to your food library for next time.")
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if isMostlyUncertain {
+                    retakeSuggestion
+                } else {
+                    Text("Tap a row to adjust the portion, untick anything that isn't yours, or save an item to your food library for next time.")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 ForEach($items) { $item in
                     FoodItemEditCard(
@@ -371,6 +409,10 @@ struct MealScanFlow: View {
                     carbsG: totalCarbs,
                     fatG: totalFat
                 )
+
+                if suggestedMealName != nil {
+                    combineControl
+                }
 
                 MealCategoryPicker(selection: $category)
             }
@@ -387,6 +429,41 @@ struct MealScanFlow: View {
             .padding(.top, Spacing.lg)
             .padding(.bottom, Spacing.sm)
         }
+    }
+
+    /// Offered only when the model recognised the plate as one dish.
+    ///
+    /// Spaghetti, a bolognese sauce and a basil garnish are three rows worth
+    /// re-portioning separately, and one thing the user ate. The diary wants
+    /// the second reading; the portion controls want the first. So both exist
+    /// and this picks which one gets written — defaulting to the single line,
+    /// because "Spaghetti Bolognese" is the honest answer to "what did you
+    /// eat" and three rows is bookkeeping nobody asked for.
+    private var combineControl: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Toggle(isOn: $logAsOneMeal.animation(AppAnimation.springSnappy)) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Log as one meal")
+                        .font(AppFont.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(logAsOneMeal
+                         ? "One diary entry with the combined macros."
+                         : "\(includedItems.count) separate entries, one per item.")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+            }
+            .tint(AppColor.accentPrimary)
+
+            if logAsOneMeal {
+                GlassTextField(placeholder: "Meal name", text: $mealName, icon: "fork.knife")
+                    .textInputAutocapitalization(.words)
+                    .accessibilityLabel("Meal name")
+            }
+        }
+        .padding(Spacing.lg)
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
     /// Sits on the photo, where the count belongs — it describes the picture.
@@ -444,7 +521,8 @@ struct MealScanFlow: View {
     /// the key text itself. That was already true before this change; the
     /// catalog sits at 13% coverage and is tracked separately.
     private var addButtonTitle: LocalizedStringKey {
-        includedItems.count <= 1
+        if logAsOneMeal { return "Add to today" }
+        return includedItems.count <= 1
             ? "Add to today"
             : "Add \(includedItems.count) items"
     }
@@ -535,7 +613,13 @@ struct MealScanFlow: View {
         do {
             let result = try await MealScannerService.shared.analyzeItems(image: image)
             await MainActor.run {
-                items = result.map(EditableFoodItem.init(from:))
+                items = result.items.map(EditableFoodItem.init(from:))
+                suggestedMealName = result.mealName
+                mealName = result.mealName ?? ""
+                // Default to one line in the diary when the plate is clearly
+                // one dish. "Spaghetti Bolognese" is what the user ate; three
+                // rows is bookkeeping they did not ask for.
+                logAsOneMeal = result.mealName != nil
                 // Auto-categorise from the PHOTO's capture time, not
                 // the analyze-finished time. Otherwise a yesterday-
                 // dinner photo picked at 10am gets bucketed as snack
@@ -561,6 +645,29 @@ struct MealScanFlow: View {
     private func confirm() {
         let toLog = includedItems
         guard !toLog.isEmpty else { return }
+
+        if logAsOneMeal {
+            let name = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
+            dataStore.logMealEntry(
+                MealEntry(
+                    date: capturedAtDate,
+                    category: category,
+                    // Falls back to the model's suggestion, then to a generic
+                    // label — an empty diary row would be worse than either.
+                    name: name.isEmpty ? (suggestedMealName ?? "Meal") : name,
+                    calories: totalCalories,
+                    proteinG: totalProtein,
+                    carbsG: totalCarbs,
+                    fatG: totalFat,
+                    sourceID: nil,
+                    source: .photo
+                )
+            )
+            Haptics.success()
+            onClose()
+            return
+        }
+
         for item in toLog {
             dataStore.logMealEntry(
                 MealEntry(
@@ -638,9 +745,26 @@ struct EditableFoodItem: Identifiable, Hashable {
     var quantityLabel: String
     var include: Bool
     var savedToLibrary: Bool
+    /// The model's own probability that it named this food correctly.
+    ///
+    /// It has always come back on the wire and was always thrown away,
+    /// which is why a shaky guess looked exactly like a certain one —
+    /// "Tomato slices" on a plate of melon read as settled fact. Keeping
+    /// it lets the row say so.
+    let confidence: Double
     /// Whether the portion controls step in whole servings or raw grams.
     /// Defaults to servings — most people think "1 sandwich", not "180 g".
     var portionMode: PortionMode = .serving
+
+    /// Below this the row asks the user to confirm the name.
+    ///
+    /// 0.6 rather than 0.5: the cost of a false alarm is one glance at a
+    /// name the user was going to read anyway, and the cost of a miss is
+    /// a wrong food silently entering their day. The asymmetry says flag
+    /// early.
+    static let uncertaintyThreshold: Double = 0.6
+
+    var isUncertain: Bool { confidence < Self.uncertaintyThreshold }
 
     enum PortionMode: String, CaseIterable, Identifiable, CustomStringConvertible {
         case serving, grams
@@ -665,6 +789,7 @@ struct EditableFoodItem: Identifiable, Hashable {
         quantityLabel = item.quantityLabel
         include = true
         savedToLibrary = false
+        confidence = item.confidence
         per100g = ScannedProduct.Nutriments(
             calories: Double(item.calories) / basis * 100,
             proteinG: Double(item.proteinG) / basis * 100,
@@ -693,6 +818,10 @@ private struct FoodItemEditCard: View {
     let onSave: () -> Void
     /// Drives the sliding selection pill on the Servings/Grams control.
     @Namespace private var portionNS
+    /// Lets the low-confidence hint put the cursor in the name field —
+    /// telling the user the name might be wrong is only half a feature
+    /// if fixing it is a separate hunt for the tap target.
+    @FocusState private var nameFocused: Bool
 
     /// Quick-pick portion presets for each mode.
     private static let gramPresets: [Double] = [50, 100, 150, 200, 300]
@@ -721,16 +850,23 @@ private struct FoodItemEditCard: View {
                 .fill(AppColor.surfaceSecondary.opacity(0.6))
                 .overlay {
                     RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(
-                            item.include ? AppColor.accentPrimary.opacity(0.30) : AppColor.glassBorder,
-                            lineWidth: item.include ? 1 : 0.5
-                        )
+                        .strokeBorder(borderColor, lineWidth: item.include ? 1 : 0.5)
                 }
         }
         .opacity(item.include ? 1 : 0.55)
         // Only the include state animates. Binding this to the whole card
         // would re-animate every portion tap and every macro recount.
         .animation(AppAnimation.springSnappy, value: item.include)
+    }
+
+    /// Amber edge on a row the scanner wasn't sure of, so an uncertain
+    /// item is findable while scrolling a long plate rather than only
+    /// once you read its caption.
+    private var borderColor: Color {
+        guard item.include else { return AppColor.glassBorder }
+        return item.isUncertain
+            ? AppColor.warning.opacity(0.45)
+            : AppColor.accentPrimary.opacity(0.30)
     }
 
     private var header: some View {
@@ -755,11 +891,15 @@ private struct FoodItemEditCard: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                     .textInputAutocapitalization(.words)
+                    .focused($nameFocused)
                 if !item.quantityLabel.isEmpty {
                     Text(item.quantityLabel)
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
                         .lineLimit(1)
+                }
+                if item.isUncertain {
+                    uncertaintyHint
                 }
             }
 
@@ -778,6 +918,29 @@ private struct FoodItemEditCard: View {
                     .foregroundStyle(AppColor.textSecondary)
             }
         }
+    }
+
+    /// Shown when the model wasn't sure what it was looking at.
+    ///
+    /// The scanner cannot be made reliably right about a melon that
+    /// looks like a tomato — but it already knows when it's guessing,
+    /// and saying so turns a wrong number the user never questions into
+    /// one they glance at and correct. Amber, not red: this is "worth a
+    /// look", not "something failed".
+    private var uncertaintyHint: some View {
+        Button {
+            nameFocused = true
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "questionmark.circle.fill")
+                    .font(AppFont.scaled(11))
+                Text("Not certain — check the name")
+                    .font(AppFont.caption)
+            }
+            .foregroundStyle(AppColor.warning)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("The scanner wasn't confident about this name. Tap to edit it.")
     }
 
     private var modePicker: some View {

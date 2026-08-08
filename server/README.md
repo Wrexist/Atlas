@@ -35,7 +35,14 @@ forward to `api.anthropic.com/v1/messages` live there.
      `openssl rand -hex 32` is fine.
    - Optional:
      - `ALLOWED_MODELS` — comma-separated Anthropic model IDs.
-       Defaults to `claude-sonnet-4-6`.
+       Defaults to `claude-sonnet-5,claude-sonnet-4-6`.
+       **If you set this, list every model the app sends.** The meal
+       scanner asks for `claude-sonnet-5`; ai-research and
+       weekly-summary ask for `claude-sonnet-4-6`. A model that isn't
+       on the list is rewritten to the first entry rather than
+       rejected, so an incomplete list looks like it works and just
+       quietly serves the wrong model. Existing deployments pinned to
+       `claude-sonnet-4-6` keep scanning on 4.6 until this is updated.
      - `RATE_LIMIT_RPM` — per-IP request cap per minute per route.
        Default 20 (`WEEKLY_RPM`, default 6, for weekly-summary).
      - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` — add the
@@ -178,7 +185,7 @@ The proxy is a sanitised forward to `api.anthropic.com/v1/messages`:
 
 ```json
 {
-  "model": "claude-sonnet-4-6",
+  "model": "claude-sonnet-5",
   "max_tokens": 400,
   "messages": [
     {

@@ -119,7 +119,14 @@ final class StoreServiceTests: XCTestCase {
     }
 
     func test_startMonthlyTrial_returnsFalse_whenProductNotLoaded() async throws {
-        // Don't call loadProducts — monthlyProduct is nil.
+        // "Don't call loadProducts" was not enough on its own: the
+        // service is a process-lifetime singleton, so any earlier test
+        // that loaded the catalogue left it loaded here and this test
+        // actually completed a purchase — failing both assertions below
+        // for a reason that had nothing to do with the guard.
+        service.resetLoadedProductsForTesting()
+        XCTAssertNil(service.monthlyProduct, "precondition: the catalogue must be empty")
+
         let started = try await service.startMonthlyTrial()
         XCTAssertFalse(started)
         XCTAssertFalse(service.isProUser)

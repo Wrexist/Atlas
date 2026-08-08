@@ -39,7 +39,22 @@ struct PinnedFooterModifier<Footer: View>: ViewModifier {
                             )
                             .frame(height: fadeHeight)
                         }
-                        .ignoresSafeArea()
+                        // Both of these are load-bearing, and dropping either
+                        // one killed the CTA on every screen using this.
+                        //
+                        // `edges: .bottom` — an unscoped `ignoresSafeArea()`
+                        // grows the backdrop in *every* direction, well past
+                        // the footer it is meant to sit behind.
+                        //
+                        // `allowsHitTesting(false)` — `AppColor.background`
+                        // is a `Color`, and a Color is a hit-testable view.
+                        // Expanded beyond the footer's bounds inside a
+                        // `safeAreaInset`, it swallowed the taps meant for the
+                        // button in front of it: "Add 3 items" rendered
+                        // perfectly and did nothing. The backdrop is
+                        // decoration and must never take a touch.
+                        .ignoresSafeArea(edges: .bottom)
+                        .allowsHitTesting(false)
                     }
             }
     }

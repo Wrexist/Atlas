@@ -39,15 +39,25 @@ final class SmartCyclePlannerTests: XCTestCase {
     // MARK: - Decaying compliance
 
     func test_decayingCompliance_recommendsShorterCycle() {
-        let proto = makeProtocol(daysAgo: 28, weeks: 8) // mid-cycle
-        // First half: 10 entries, all completed.
-        // Second half: 10 entries, only 4 completed.
+        // 50 days into a 56-day cycle, so the cycle's midpoint (day 28,
+        // i.e. 22 days ago) is safely in the past.
+        //
+        // This used to start the protocol 28 days ago and was asserting
+        // something the engine cannot produce: the engine splits on the
+        // *cycle's* midpoint, and for an 8-week cycle begun 28 days ago
+        // that midpoint is today — every entry landed in the first half,
+        // the second half was empty, and the `secondHalf.count >= 10`
+        // guard correctly returned nil. The rule needs a cycle that has
+        // actually entered its second half, not one standing on the line.
+        let proto = makeProtocol(daysAgo: 50, weeks: 8)
+        // First half (days 40-49 ago): 10 entries, all completed.
+        // Second half (days 12-21 ago): 10 entries, only 4 completed.
         var entries: [ProtocolEntry] = []
         for i in 0..<10 {
-            entries.append(entry(for: proto, daysAgo: 27 - i, completed: true))
+            entries.append(entry(for: proto, daysAgo: 49 - i, completed: true))
         }
         for i in 0..<10 {
-            entries.append(entry(for: proto, daysAgo: 13 - i, completed: i < 4))
+            entries.append(entry(for: proto, daysAgo: 21 - i, completed: i < 4))
         }
         let result = SmartCyclePlanner.suggestions(protocols: [proto], entries: entries)
         XCTAssertTrue(result.contains {
