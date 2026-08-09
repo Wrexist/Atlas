@@ -4,10 +4,46 @@ import XCTest
 @MainActor
 final class LifestyleDataStoreTests: XCTestCase {
 
+    /// Point the shared repository at a fresh in-memory store before
+    /// each test.
+    ///
+    /// This file was the only `DataStore` suite without a setUp, and the
+    /// old comment on `makeStore` explained why it thought it could skip
+    /// one: every assertion reads the in-memory `profile` snapshot, so a
+    /// real persistence service "doesn't matter". That holds for the
+    /// weight and habit cases, which assert on deltas. It does not hold
+    /// for `workoutSummary`, which asserts absolute counts for a day —
+    /// `DataStore.init` loads whatever the on-disk store already holds,
+    /// so workouts left by an earlier test counted toward today's total
+    /// and the day-isolation test failed on every run.
+    override func setUp() {
+        super.setUp()
+        SwiftDataRepository.shared.configureForTesting()
+    }
+
+    override func tearDown() {
+        // Drop the store before wiping the container.
+        //
+        // `DataStore.init` registers `Self.current = self`, so every
+        // `makeStore()` installs a process-wide strong reference that
+        // outlives the test method — and with it any 350 ms debounced
+        // save that `logWeight` / `logMeal` / `logWater` / `deleteWeight`
+        // left pending. That task resolves `repo` to the shared
+        // repository, whose container the next `setUp` replaces, so a
+        // save queued here could wake inside the *next* test and write
+        // this test's profile into its supposedly fresh store: the same
+        // cross-test leak the setUp above exists to close, one layer
+        // down. Clearing the reference releases the store, and the
+        // task's `[weak self]` then makes it a no-op.
+        //
+        // `handleIdentityChange` cancels the same task for the same
+        // reason when the iCloud container swaps underneath it.
+        DataStore.current = nil
+        SwiftDataRepository.shared.deleteAll()
+        super.tearDown()
+    }
+
     private func makeStore() -> DataStore {
-        // The default DataStore initializer attaches a real persistence
-        // service; we don't mind because every assertion below operates
-        // on the in-memory `profile` snapshot before any save round-trip.
         DataStore(seedSampleData: false)
     }
 

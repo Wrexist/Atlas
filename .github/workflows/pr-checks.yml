@@ -90,7 +90,25 @@ jobs:
     # 15-min skip saves ~$0.93.
     if: needs.filter.outputs.ios == 'true' && github.event.pull_request.draft == false
     runs-on: macos-15
-    timeout-minutes: 25
+    # 40, up from 25, because 25 killed a run whose tests were all
+    # passing. Observed job wall-clock across five runs: 7.5, 12.8, 18.0,
+    # 22.8, and 26.1 minutes — the last cut off mid-suite by the old
+    # ceiling with every reported suite at zero failures.
+    #
+    # ~7-9 min of that is fixed overhead (checkout, xcodegen, build,
+    # swiftlint, coverage, upload). The rest is the suite, which has
+    # swung 138s to 841s, and the swing is almost entirely
+    # StoreServiceTests: 95s, 263s, 578s, 777s for the same 15 tests.
+    # Each builds its own `SKTestSession`, and that setup cost is at the
+    # mercy of a shared macOS runner.
+    #
+    # A per-class session would collapse it, but sharing StoreKit
+    # transaction state across tests is the exact cross-test bleed the
+    # rest of this suite has been fixing, and this is the purchase path
+    # — not a trade worth making for wall-clock. So: give the job room
+    # to finish. This is a ceiling, not a duration; a normal run still
+    # costs what it always did.
+    timeout-minutes: 40
 
     steps:
       - uses: actions/checkout@v4
@@ -237,16 +255,21 @@ jobs:
         run: swiftlint lint --reporter github-actions-logging
 
       - name: Unit Tests
-        # Enabled again. It had been a stub since the test target stopped
-        # compiling; `test-compile` on 89587a3 came back
-        # `** TEST BUILD SUCCEEDED **` with zero errors, which is the
-        # condition the previous note set for turning it back on.
+        # Gating, as of 2026-08-08. This step spent its first outings on
+        # `continue-on-error` because the suite had not run in months and
+        # a failure was information rather than a verdict. Those runs
+        # found five genuinely broken tests — three asserting things the
+        # code could not produce, one reporting a real decay bug, one
+        # missing the store isolation its ten sibling suites had. With
+        # those fixed the suite reached 1039 tests / 0 failures on
+        # dd5b054, so the flag has done its job and is gone.
         #
-        # Still `continue-on-error` for its first outings: these tests have
-        # not run in months, so a failure here is information about the
-        # suite rather than a reason to block the PR. Drop the flag once a
-        # few runs have gone green.
-        continue-on-error: true
+        # It should not come back. While it was set, `build-check`
+        # reported success with `** TEST FAILED **` sitting in its log,
+        # and a green badge meant nothing — the failures were only
+        # visible to someone who opened the annotations. If the suite
+        # goes red, fix the test or fix the code; muting the signal
+        # again just recreates months of invisible rot.
         run: |
           # Resolve whatever iPhone this runner actually has rather than
           # naming one. A hardcoded `name:iPhone 16` is why test-compile
@@ -313,9 +336,12 @@ jobs:
           fi
 
       - name: Print test failures
-        # Tests are continue-on-error: true so `failure()` won't trigger
-        # for runtime test failures. Use always() and grep the log
-        # directly so failures still surface as PR annotations.
+        # `always()`, not `failure()`. The Unit Tests step now fails the
+        # job on a red suite, so `failure()` would mostly work — but this
+        # also has to run when an earlier step blew up, and grepping the
+        # log is what turns "Executed N tests, with M failures" into
+        # inline PR annotations rather than something you find by
+        # scrolling a 9,000-line log.
         if: always()
         run: |
           if [ ! -f test-output.log ]; then
@@ -360,9 +386,9 @@ jobs:
             -resultBundlePath UITestResults.xcresult
 
       - name: Upload test results
-        # Unit Tests is continue-on-error; without always() the artifact
-        # never uploads on a soft test failure, so we lose the xcresult
-        # bundle exactly when we need it most.
+        # `always()` because a red suite now fails the job, and without
+        # this the xcresult bundle would stop uploading exactly when
+        # someone needs it to diagnose the failure.
         if: always()
         uses: actions/upload-artifact@v4
         with:
