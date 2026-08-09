@@ -80,6 +80,7 @@ struct TodayHabitsHero: View {
             HabitEditSheet(editing: nil) { habit in
                 dataStore.addHabit(habit)
             } onDelete: { _ in }
+                .liquidGlassPresentation()
         }
     }
 

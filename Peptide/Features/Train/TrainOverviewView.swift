@@ -84,23 +84,9 @@ struct TrainOverviewView: View {
     @ViewBuilder
     private var startWorkoutButton: some View {
         if sessionService.activeSession == nil {
-            Button {
+            PrimaryCTAButton(title: "Start workout", icon: "play.fill", shape: .rounded) {
                 sessionService.startWorkout()
-            } label: {
-                HStack(spacing: Spacing.xs) {
-                    Image(systemName: "play.fill")
-                    Text("Start workout")
-                }
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.background)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.md)
-                .background(
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.accentPrimary)
-                )
             }
-            .buttonStyle(.plain)
         }
     }
 
@@ -129,15 +115,26 @@ struct TrainOverviewView: View {
     private var weeklyMuscleCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("This week")
-                        .font(AppFont.title)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text(weekHasTraining
-                         ? "Muscles you trained over the past 7 days."
-                         : "Log a workout and watch your body light up.")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
+                HStack(alignment: .top, spacing: Spacing.md) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("This week")
+                            .font(AppFont.title)
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text(weekHasTraining
+                             ? "Muscles you trained over the past 7 days."
+                             : "Log a workout and watch your body light up.")
+                            .font(AppFont.subheadline)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                    Spacer(minLength: 0)
+                    NavigationLink(value: TrainNavigation.workoutHistory) {
+                        Image(systemName: "calendar")
+                            .font(AppFont.scaled(16, weight: .semibold))
+                            .foregroundStyle(AppColor.textSecondary)
+                            .minimumHitArea()
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Workout history")
                 }
 
                 MuscleMapView(
@@ -146,13 +143,15 @@ struct TrainOverviewView: View {
                 )
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 320)
-                .animation(.easeInOut(duration: 0.4), value: frequencies)
+                .animation(AppAnimation.fadeInSlow, value: frequencies)
 
-                Text("Tap a muscle to see what you've trained it with.")
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textTertiary)
-
+                // Both of these describe heat that isn't there yet on a
+                // fresh install, where the subtitle above is already
+                // carrying the message.
                 if weekHasTraining {
+                    Text("Tap a muscle to see what you've trained it with.")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
                     intensityLegend
                 }
             }

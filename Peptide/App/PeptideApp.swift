@@ -342,7 +342,7 @@ struct PeptideApp: App {
             Tab("Today", systemImage: "house.fill", value: .today) {
                 HomeContainerView()
             }
-            Tab("Train", systemImage: "figure.strengthtraining.traditional", value: .train) {
+            Tab("Train", systemImage: "dumbbell.fill", value: .train) {
                 TrainContainerView()
             }
             Tab("Meals", systemImage: "fork.knife", value: .meals) {
@@ -351,7 +351,7 @@ struct PeptideApp: App {
             Tab("Biology", systemImage: "heart.fill", value: .biology) {
                 BiologyView()
             }
-            Tab("Habits", systemImage: "checkmark.seal.fill", value: .habits) {
+            Tab("Habits", systemImage: "star.fill", value: .habits) {
                 HabitsView()
             }
         }
@@ -363,7 +363,9 @@ struct PeptideApp: App {
     @ViewBuilder
     private var tabViewWithAccessory: some View {
         if #available(iOS 26.0, *) {
-            coreTabView.tabViewBottomAccessory { NextDoseAccessoryView() }
+            coreTabView.tabViewBottomAccessory {
+                TabAccessoryView(tab: appState.selectedTab)
+            }
         } else {
             coreTabView
         }
@@ -461,6 +463,64 @@ struct PeptideApp: App {
 
             NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols)
         }
+    }
+}
+
+/// The strip above the tab bar. It answers "is today done?" for whatever
+/// the user is currently looking at — workouts on Train, doses everywhere
+/// else — because a dose reminder under the muscle map is answering a
+/// question nobody on that screen asked.
+struct TabAccessoryView: View {
+    let tab: AppTab
+
+    var body: some View {
+        switch tab {
+        case .train:
+            WorkoutAccessoryView()
+        case .today, .meals, .biology, .habits:
+            NextDoseAccessoryView()
+        }
+    }
+}
+
+/// Train's counterpart to `NextDoseAccessoryView`. The session count is
+/// held in state rather than read in `body`: `workoutSummary` faults
+/// SwiftData, and the accessory re-renders on every tab change.
+struct WorkoutAccessoryView: View {
+    @Environment(DataStore.self) private var dataStore
+    @State private var sessionService = WorkoutSessionService.shared
+    @State private var loggedToday = 0
+
+    var body: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundStyle(AppColor.accentPrimary)
+                .contentTransition(.symbolEffect(.replace))
+            Text(label)
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+            Spacer()
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.xs)
+        .animation(AppAnimation.springSnappy, value: loggedToday)
+        .accessibilityElement(children: .combine)
+        .task(id: dataStore.revision) {
+            loggedToday = dataStore.workoutSummary().count
+        }
+    }
+
+    private var icon: String {
+        if sessionService.activeSession != nil { return "figure.run" }
+        return loggedToday > 0 ? "checkmark.circle.fill" : "dumbbell.fill"
+    }
+
+    private var label: LocalizedStringKey {
+        if sessionService.activeSession != nil { return "Workout in progress" }
+        return loggedToday > 0
+            ? "All workouts logged for today"
+            : "No workout logged yet today"
     }
 }
 

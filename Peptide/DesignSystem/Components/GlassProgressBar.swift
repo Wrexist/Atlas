@@ -6,6 +6,11 @@ import SwiftUI
 struct GlassProgressBar: View {
     let progress: Double
     var height: CGFloat = 6
+    /// Stops for the filled portion, matching `MetricRing`'s `gradient`
+    /// parameter. Defaults to the brand ramp; pass a metric's own colour
+    /// when the bar sits in a row that is already identified by it, so
+    /// the row reads as one thing rather than a label and an accent.
+    var gradient: [Color]?
 
     @State private var animatedProgress: Double = 0
     @State private var hasAppeared = false
@@ -23,7 +28,9 @@ struct GlassProgressBar: View {
                 RoundedRectangle(cornerRadius: height / 2, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
+                            colors: gradient ?? [AppColor.accentDark,
+                                                 AppColor.accentPrimary,
+                                                 AppColor.accentLight],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
