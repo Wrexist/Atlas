@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # Every check that can run without Xcode, in one command.
 #
-# This exists because CI cannot currently start on this repository — every
-# push since 2026-06-20 produces a `startup_failure` with no workflow name,
-# which is what GitHub does when Actions is disabled or spending-limited.
-# Until that is resolved, `pr-checks.yml` gates nothing, and the only way
-# these checks run at all is if a human runs them.
+# This was written when CI could not start on this repository — every push
+# from 2026-06-20 produced a `startup_failure` with no workflow name, which
+# is what GitHub does when Actions is disabled or spending-limited, so
+# `pr-checks.yml` gated nothing and a human running this script was the only
+# way these checks ran at all.
+#
+# Actions runs again as of 2026-08-21 (PR #160, run 32526209520), so
+# `pr-checks.yml` does gate now. Running this before pushing is still the
+# faster loop: it is the same checkers, seconds instead of a queue.
 #
 #   scripts/check.sh            # everything available
 #   scripts/check.sh --quick    # skip the browser-based screen measurement
