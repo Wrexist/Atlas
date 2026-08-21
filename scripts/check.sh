@@ -49,6 +49,11 @@ fi
 # Store screenshot for an app whose engine puts level 14 in Silver.
 run "Copy claims vs source" python3 scripts/check-copy-claims.py
 
+# The App Store description is metadata under Guideline 3.1.2: with an
+# auto-renewable subscription on sale it must carry the Terms of Use (EULA)
+# and privacy links. 1.2.0 (135) was rejected for missing the first one.
+run "App Store metadata (3.1.2)" python3 scripts/check-store-metadata.py
+
 # Informational, not gating. Coverage is 13% today; making that a hard gate
 # would just fail every run until someone commissions the translations.
 printf '\n\033[1m── Localization coverage\033[0m\n'

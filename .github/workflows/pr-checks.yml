@@ -438,6 +438,15 @@ jobs:
         # warnings are printed for review.
         run: python3 scripts/design-lint.py --all
 
+      - name: App Store metadata check
+        # Guideline 3.1.2: an app selling auto-renewable subscriptions must
+        # link the Terms of Use (EULA) from its metadata, and the App
+        # Description is the only place the standard EULA link can live —
+        # App Store Connect has no field for it. Build 1.2.0 (135) was
+        # rejected for exactly that. Pinned here so a copy edit cannot drop
+        # the links again.
+        run: python3 scripts/check-store-metadata.py
+
       - name: Colour contrast check
         # The design tokens ship two schemes, and light mode has never been
         # rendered on a device. Contrast is the part of "is it legible" that
