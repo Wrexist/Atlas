@@ -42,13 +42,26 @@
 | Marketing URL | `https://wrexist.github.io/Peptide-ai/` |
 | Privacy Policy URL | `https://wrexist.github.io/Peptide-ai/privacy.html` |
 | Support URL | `https://wrexist.github.io/Peptide-ai/support.html` |
+| Terms of Use (EULA) | `https://www.apple.com/legal/internet-services/itunes/dev/stdeula/` |
 
 ```bash
 # Verify before submitting — each must return HTTP/2 200
 curl -sI https://wrexist.github.io/Peptide-ai/             | head -1
 curl -sI https://wrexist.github.io/Peptide-ai/privacy.html | head -1
 curl -sI https://wrexist.github.io/Peptide-ai/support.html | head -1
+curl -sI https://www.apple.com/legal/internet-services/itunes/dev/stdeula/ | head -1
+curl -sI https://wrexist.github.io/Peptide-ai/terms.html   | head -1
 ```
+
+> **Terms of Use is not an App Store Connect field.** App Store Connect
+> only exposes a EULA field for *custom* agreements
+> (App Information → License Agreement). Atlas uses Apple's **standard**
+> EULA, so Guideline 3.1.2 is satisfied by putting the link in the
+> **App Description** — which the SUBSCRIPTION TERMS block below does.
+> `terms.html` on the marketing site points at the same Apple EULA so the
+> website footer has a real destination; it is a pointer page, not a
+> custom agreement, so nothing needs to be pasted into the License
+> Agreement field.
 
 ---
 
@@ -170,6 +183,17 @@ ATLAS PRO
 Monthly $9.99 · Annual $49.99 (save 58%) · Lifetime $169
 Free trial: 3 days (monthly) · 14 days (annual) · Cancel anytime
 
+SUBSCRIPTION TERMS
+Atlas Pro Monthly ($9.99, renews monthly) and Atlas Pro Annual ($49.99, renews
+yearly) are auto-renewable. Atlas Pro Lifetime ($169) is a one-time purchase and
+does not renew. Payment is charged to your Apple Account at confirmation.
+Subscriptions renew unless auto-renew is turned off at least 24 hours before the
+period ends. Manage or cancel in Settings > Apple Account > Subscriptions.
+Unused free-trial time is forfeited on purchase.
+
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Privacy Policy: https://wrexist.github.io/Peptide-ai/privacy.html
+
 ——
 
 PRIVATE BY DEFAULT
@@ -188,7 +212,9 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 198 / 4 000 — 802 chars of headroom for future localisation or feature additions)*
+*(3 888 / 4 000 — 112 chars of headroom. The SUBSCRIPTION TERMS block and
+both links are required by Guideline 3.1.2 — do not trim them to make room
+for copy.)*
 
 ---
 
@@ -354,6 +380,25 @@ No further export-compliance questions will be asked.
 > Product IDs keep the `com.peptidesai.app` prefix so existing
 > subscribers and StoreKit sandbox history are not disrupted.
 > Only the display names switch from "PeptideX Pro" to "Atlas Pro".
+
+### Guideline 3.1.2 disclosure requirements
+
+Because two of these products auto-renew, **every one** of the following
+must appear in the App Description (see the SUBSCRIPTION TERMS block) —
+having them only on the in-app paywall is what got build 1.2.0 (135)
+rejected:
+
+| Required | Where it lives in the description |
+|---|---|
+| Subscription title | `Atlas Pro Monthly` / `Atlas Pro Annual` |
+| Length of subscription | "renews monthly" / "renews yearly" |
+| Price per period | `$9.99` / `$49.99` |
+| Functional Terms of Use (EULA) link | `https://www.apple.com/legal/internet-services/itunes/dev/stdeula/` |
+| Functional Privacy Policy link | `https://wrexist.github.io/Peptide-ai/privacy.html` |
+
+The same two links must also stay tappable on the paywall
+(`PaywallView.swift`) and the onboarding trial offer
+(`TrialOfferView.swift`).
 
 ### Localization copy
 
@@ -705,6 +750,15 @@ Run through every item before hitting Submit in App Store Connect.
 - [ ] `https://wrexist.github.io/Peptide-ai/` returns HTTP/2 200
 - [ ] `https://wrexist.github.io/Peptide-ai/privacy.html` returns HTTP/2 200 and renders readable text without JavaScript
 - [ ] `https://wrexist.github.io/Peptide-ai/support.html` returns HTTP/2 200
+- [ ] `https://wrexist.github.io/Peptide-ai/terms.html` returns HTTP/2 200
+- [ ] `https://www.apple.com/legal/internet-services/itunes/dev/stdeula/` returns HTTP/2 200
+
+**Guideline 3.1.2 — subscription metadata** *(cause of the 1.2.0 (135) rejection)*
+- [ ] Description contains the SUBSCRIPTION TERMS block with title, length, and price for both auto-renewable products
+- [ ] Description contains the Terms of Use (EULA) URL as plain text so App Store Connect renders it as a tappable link
+- [ ] Description contains the Privacy Policy URL
+- [ ] Both links open in Safari from the live App Store listing after the description is saved
+- [ ] Paywall and onboarding trial offer still show Terms + Privacy links
 
 **Build & Device**
 - [ ] TestFlight build uploaded and installable

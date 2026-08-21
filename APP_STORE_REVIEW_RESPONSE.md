@@ -432,3 +432,99 @@ tapping "Continue without an account" at launch.
 — The Atlas team
 support@peptidesai.com
 ```
+
+---
+
+## 10. Guideline 3.1.2 — Terms of Use (EULA) link  *(build 1.2.0 (135))*
+
+### What Apple said
+
+> The submission offers auto-renewable subscriptions but does not include
+> a functional link to the Terms of Use (EULA) in the app's metadata.
+
+This is a **metadata** rejection, not a binary one. Nothing in the app is
+wrong — the paywall (`PaywallView.swift`) and the onboarding trial offer
+(`TrialOfferView.swift`) already link to Apple's standard EULA and to the
+privacy policy, and the auto-renew disclosure sheet already states price,
+period, and how to cancel. What was missing is the same EULA link in the
+**App Description**, which is the field Apple means by "metadata."
+
+### Why it happened
+
+App Store Connect has no "Terms of Use" URL field. The
+App Information → License Agreement field only accepts a **custom** EULA.
+Atlas uses Apple's **standard** EULA, and Apple's rule for that case is:
+put the link in the App Description. The description had the pricing and
+the trial lengths but no links.
+
+### The fix (no new build required)
+
+1. **App Store Connect → your app → the rejected 1.2.0 version →
+   Description.** Replace the description with the copy in
+   `APP_STORE_METADATA.md` → *Description*. It now ends with:
+
+   ```
+   SUBSCRIPTION TERMS
+   Atlas Pro Monthly ($9.99, renews monthly) and Atlas Pro Annual ($49.99, renews
+   yearly) are auto-renewable. Atlas Pro Lifetime ($169) is a one-time purchase and
+   does not renew. Payment is charged to your Apple Account at confirmation.
+   Subscriptions renew unless auto-renew is turned off at least 24 hours before the
+   period ends. Manage or cancel in Settings > Apple Account > Subscriptions.
+   Unused free-trial time is forfeited on purchase.
+
+   Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+   Privacy Policy: https://wrexist.github.io/Peptide-ai/privacy.html
+   ```
+
+   Paste the URLs as **plain text** — App Store Connect linkifies them.
+   Do not shorten, redirect, or wrap them in markup; a redirect is the
+   most common cause of a repeat 3.1.2 rejection.
+
+2. **Leave App Information → License Agreement on the standard EULA.**
+   Do not paste a custom agreement — a custom EULA has to be reviewed and
+   must then be the thing you link to, which is more surface to get wrong.
+
+3. **Confirm the Privacy Policy URL** is still
+   `https://wrexist.github.io/Peptide-ai/privacy.html` and returns 200.
+
+4. **Save**, then reply in the Resolution Center with §10.1 and click
+   **Submit for Review** on the same build. No new binary, no new build
+   number.
+
+### 10.1 Resolution Center reply
+
+```
+Hello App Review,
+
+Thank you for the note. We have added a functional link to the Terms of
+Use (EULA) to the app's metadata.
+
+The App Description now ends with a SUBSCRIPTION TERMS section stating the
+subscription title, length, and price for each auto-renewable product,
+followed by:
+
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Privacy Policy: https://wrexist.github.io/Peptide-ai/privacy.html
+
+Atlas uses Apple's standard EULA, so the link points to Apple's standard
+Terms of Use as described in Schedule 1. Both links are also present and
+tappable inside the app on the subscription purchase screen and on the
+onboarding trial offer, alongside the auto-renewal disclosure.
+
+No binary changes were needed, so we have resubmitted the same build for
+review.
+
+— The Atlas team
+support@peptidesai.com
+```
+
+### 10.2 Verify before resubmitting
+
+- [ ] `curl -sI https://www.apple.com/legal/internet-services/itunes/dev/stdeula/ | head -1` → 200
+- [ ] `curl -sI https://wrexist.github.io/Peptide-ai/privacy.html | head -1` → 200
+- [ ] Description saved and under 4 000 characters (it is 3 888)
+- [ ] Both URLs render as tappable links in the App Store Connect preview
+- [ ] Every localization of the description carries the same two links —
+      a localization missing them re-triggers 3.1.2
+- [ ] Promotional Text was **not** used for the links (it is not part of
+      the description Apple checks)
