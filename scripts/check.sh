@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # Every check that can run without Xcode, in one command.
 #
-# This exists because CI cannot currently start on this repository — every
-# push since 2026-06-20 produces a `startup_failure` with no workflow name,
-# which is what GitHub does when Actions is disabled or spending-limited.
-# Until that is resolved, `pr-checks.yml` gates nothing, and the only way
-# these checks run at all is if a human runs them.
+# This was written when CI could not start on this repository — every push
+# from 2026-06-20 produced a `startup_failure` with no workflow name, which
+# is what GitHub does when Actions is disabled or spending-limited, so
+# `pr-checks.yml` gated nothing and a human running this script was the only
+# way these checks ran at all.
+#
+# Actions runs again as of 2026-08-21 (PR #160, run 32526209520), so
+# `pr-checks.yml` does gate now. Running this before pushing is still the
+# faster loop: it is the same checkers, seconds instead of a queue.
 #
 #   scripts/check.sh            # everything available
 #   scripts/check.sh --quick    # skip the browser-based screen measurement
@@ -48,6 +52,11 @@ fi
 # here compares the two, which is how "LEVEL 14 · GOLD" shipped into an App
 # Store screenshot for an app whose engine puts level 14 in Silver.
 run "Copy claims vs source" python3 scripts/check-copy-claims.py
+
+# The App Store description is metadata under Guideline 3.1.2: with an
+# auto-renewable subscription on sale it must carry the Terms of Use (EULA)
+# and privacy links. 1.2.0 (135) was rejected for missing the first one.
+run "App Store metadata (3.1.2)" python3 scripts/check-store-metadata.py
 
 # Informational, not gating. Coverage is 13% today; making that a hard gate
 # would just fail every run until someone commissions the translations.

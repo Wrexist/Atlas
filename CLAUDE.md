@@ -28,6 +28,23 @@ This file configures Claude Code for the codebase's conventions.
 - Error handling at system boundaries only (user input, external APIs, file I/O). Trust internal code.
 - IMPORTANT: Never commit secrets, API keys, or credentials. Use environment variables.
 
+## App Store Metadata
+- IMPORTANT: The App Description in `APP_STORE_METADATA.md` MUST always
+  carry the Terms of Use (EULA) link
+  `https://www.apple.com/legal/internet-services/itunes/dev/stdeula/`, the
+  Privacy Policy link, and the title, length, and price of every
+  auto-renewable product. Apple rejects under Guideline 3.1.2 without them —
+  it happened to build 1.2.0 (135).
+- App Store Connect has no Terms of Use field for Apple's standard EULA.
+  The App Description is the only place that link can live, so it is not
+  optional copy — it is the compliance artifact.
+- The 4 000-character limit is met by trimming feature copy, never the
+  SUBSCRIPTION TERMS block or the two links.
+- The same two links must stay tappable on every purchase surface:
+  `PaywallView.swift` and `TrialOfferView.swift`.
+- Run `python3 scripts/check-store-metadata.py` after touching store copy,
+  paywall links, or IAP pricing. It gates CI.
+
 ## Git Workflow
 - Branch naming: `feature/<name>`, `fix/<name>`, `refactor/<name>`
 - Commit messages: imperative mood, under 72 chars, explain WHY not WHAT
