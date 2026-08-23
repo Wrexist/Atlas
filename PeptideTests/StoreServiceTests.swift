@@ -10,7 +10,8 @@ import StoreKitTest
 ///
 /// What's covered:
 /// - Product loading by ID (monthly / annual / lifetime resolve)
-/// - Trial-display formatting (P3D → "3 days free", P2W → "14 days free")
+/// - Trial-display formatting (P7D → "7 days free") and the
+///   eligibility gate that stops the paywall promising a redeemed trial
 /// - Purchase round-trip: monthly subscription updates `isProUser` and
 ///   the `purchasedProductIDs` set
 /// - Lifetime non-consumable purchase also flips `isProUser`
@@ -72,17 +73,59 @@ final class StoreServiceTests: XCTestCase {
 
     // MARK: - Trial display
 
-    func test_monthlyTrialDisplay_formatsP3D_asThreeDaysFree() async {
+    func test_monthlyTrialDisplay_formatsP7D_asSevenDaysFree() async {
         await service.loadProducts()
-        XCTAssertEqual(service.monthlyTrialDisplay, "3 days free")
+        XCTAssertEqual(service.monthlyTrialDisplay, "7 days free")
     }
 
-    func test_annualTrialDisplay_formatsP2W_asFourteenDaysFree() async {
-        // The intro offer is P2W. trialDisplay's "days for ≤4 weeks"
-        // rule converts that to "14 days free" — reads better on a
-        // paywall than "2 weeks free".
+    func test_annualTrialDisplay_formatsP7D_asSevenDaysFree() async {
+        // Both plans launch with the same 7-day trial, so the annual row
+        // must advertise it too — it used to read "Billed $49.99/yr" with
+        // no mention of the trial the user was actually getting.
         await service.loadProducts()
-        XCTAssertEqual(service.annualTrialDisplay, "14 days free")
+        XCTAssertEqual(service.annualTrialDisplay, "7 days free")
+    }
+
+    func test_trialDays_returnsSeven_forBothSubscriptions() async {
+        await service.loadProducts()
+        XCTAssertEqual(StoreService.trialDays(for: service.monthlyProduct), 7)
+        XCTAssertEqual(StoreService.trialDays(for: service.annualProduct), 7)
+    }
+
+    func test_trialDays_isNil_forLifetime_whichHasNoIntroOffer() async {
+        // The paywall drives its "$0.00 today" copy off this. A non-nil
+        // answer here would put a free-trial promise on a one-time
+        // purchase, which is a 3.1.2(a) accuracy problem.
+        await service.loadProducts()
+        XCTAssertNil(StoreService.trialDays(for: service.lifetimeProduct))
+    }
+
+    func test_isEligibleForTrial_isFalse_forLifetime() async {
+        await service.loadProducts()
+        guard let lifetime = service.lifetimeProduct else {
+            XCTFail("lifetime product missing — .storekit not loaded?")
+            return
+        }
+        XCTAssertFalse(service.isEligibleForTrial(lifetime))
+        XCTAssertNil(service.redeemableTrialDays(for: lifetime))
+    }
+
+    func test_redeemableTrialDays_isNil_onceTheTrialIsRedeemed() async throws {
+        // Monthly and annual share a subscription group, so buying either
+        // one burns the intro offer for both. The CTA must stop saying
+        // "free" at that point rather than charging someone a price the
+        // button told them was zero.
+        await service.loadProducts()
+        guard let monthly = service.monthlyProduct,
+              let annual = service.annualProduct
+        else {
+            XCTFail("subscription products missing — .storekit not loaded?")
+            return
+        }
+        try await service.purchase(monthly)
+
+        XCTAssertNil(service.redeemableTrialDays(for: monthly))
+        XCTAssertNil(service.redeemableTrialDays(for: annual))
     }
 
     // MARK: - Purchase round-trip

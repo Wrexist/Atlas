@@ -83,25 +83,23 @@ struct TrialOfferView: View {
         return Int((Double(truncating: saved as NSNumber) * 100).rounded())
     }
 
-    /// Trial length in days. Must convert through the intro offer's
-    /// `period.unit` — Apple may configure a 1-week trial as
-    /// `(value: 1, unit: .week)` rather than `(value: 7, unit: .day)`,
-    /// and the legacy `period.value * periodCount` math returned `1` in
-    /// that case (audit code-review #7). Falls back to 3 when products
-    /// haven't loaded yet so the headline reads sensibly during the
-    /// brief StoreKit warm-up.
-    private var trialDays: Int {
-        guard let intro = storeService.monthlyProduct?.subscription?.introductoryOffer,
-              intro.paymentMode == .freeTrial
-        else { return 3 }
-        let count = intro.period.value * intro.periodCount
-        switch intro.period.unit {
-        case .day:   return count
-        case .week:  return count * 7
-        case .month: return count * 30
-        case .year:  return count * 365
-        @unknown default: return count
-        }
+    /// Trial length in days for the selected tier, or `nil` when this Apple
+    /// ID can no longer redeem it. Both plans ship a free trial, so the
+    /// headline, the CTA and the legal copy all have to ask per tier rather
+    /// than assume the trial belongs to monthly.
+    ///
+    /// Eligibility-gated on purpose: monthly and annual share a subscription
+    /// group, so once either trial is redeemed neither is free, and copy that
+    /// still says "free" would be charging someone who was promised zero.
+    private var trialDays: Int? { trialDays(for: selectedTier) }
+
+    /// Redeemable trial length for a specific tier. Per-tier rather than
+    /// per-selection because the tier cards each state their own offer — a
+    /// row that borrowed the selected tier's trial length would advertise
+    /// the annual trial on the monthly card.
+    private func trialDays(for tier: Tier) -> Int? {
+        guard let product = product(for: tier) else { return nil }
+        return storeService.redeemableTrialDays(for: product)
     }
 
     var body: some View {
@@ -216,17 +214,15 @@ struct TrialOfferView: View {
     /// at rest. A paywall you have to scroll to find the price on converts
     /// worse, and one that shows the *wrong* price converts worse still.
     private var headlineEyebrow: String {
-        switch selectedTier {
-        case .annual:  return "YOUR WELCOME OFFER"
-        case .monthly: return "YOUR WELCOME GIFT"
-        }
+        guard let days = trialDays else { return "YOUR WELCOME OFFER" }
+        return "YOUR \(days)-DAY FREE TRIAL"
     }
 
     private var headlineHero: String {
-        switch selectedTier {
-        case .annual:  return annualPrice
-        case .monthly: return "\(trialDays) Days Free"
+        guard let days = trialDays else {
+            return selectedTier == .annual ? annualPrice : monthlyPrice
         }
+        return "\(days) Days Free"
     }
 
     private var headlinePlan: String {
@@ -237,14 +233,17 @@ struct TrialOfferView: View {
     }
 
     private var headlineSupport: String {
+        // "Then …" only reads correctly when something comes first. Once the
+        // trial is spent it's just the price, so the lead-in has to go.
+        let lead = trialDays == nil ? "" : "Then "
         switch selectedTier {
         case .annual:
             guard let saved = annualSavingsPercent else {
-                return "\(annualPerMonthPrice)/month — cancel anytime"
+                return "\(lead)\(annualPerMonthPrice)/month, billed yearly"
             }
-            return "\(annualPerMonthPrice)/month — save \(saved)%"
+            return "\(lead)\(annualPerMonthPrice)/month — save \(saved)%"
         case .monthly:
-            return "Then \(monthlyPrice)/month — cancel anytime"
+            return "\(lead)\(monthlyPrice)/month — cancel anytime"
         }
     }
 
@@ -568,12 +567,9 @@ struct TrialOfferView: View {
     }
 
     private func tierSubtitle(for tier: Tier) -> String {
-        switch tier {
-        case .annual:
-            return "Billed \(annualPrice)/yr"
-        case .monthly:
-            return "\(trialDays) days free, then \(monthlyPrice)/mo"
-        }
+        let billed = tier == .annual ? "\(annualPrice)/yr" : "\(monthlyPrice)/mo"
+        guard let days = trialDays(for: tier) else { return "Billed \(billed)" }
+        return "\(days) days free, then \(billed)"
     }
 
     // MARK: - Footer
@@ -589,18 +585,27 @@ struct TrialOfferView: View {
             }
 
             Button(action: startTrial) {
-                HStack(spacing: Spacing.sm) {
+                VStack(spacing: 2) {
                     if isPurchasing {
                         ProgressView()
                             .tint(AppColor.textPrimary)
                     } else {
-                        Image(systemName: "sparkles")
-                            .font(AppFont.scaled(16, weight: .bold))
-                        Text(ctaTitle)
-                            .font(AppFont.headline)
+                        HStack(spacing: Spacing.sm) {
+                            Image(systemName: "sparkles")
+                                .font(AppFont.scaled(16, weight: .bold))
+                            Text(ctaTitle)
+                                .font(AppFont.headline)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
+                        }
+                        Text(ctaDetail)
+                            .font(AppFont.scaled(11, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                            .opacity(0.85)
                     }
                 }
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: 40)
                 .padding(.vertical, Spacing.md + 2)
                 .padding(.horizontal, Spacing.xl)
                 .foregroundStyle(AppColor.onAccent)
@@ -614,7 +619,7 @@ struct TrialOfferView: View {
             }
             .buttonStyle(.plain)
             .disabled(isPurchasing)
-            .accessibilityLabel(ctaTitle)
+            .accessibilityLabel("\(ctaTitle). \(ctaDetail)")
 
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "checkmark.shield.fill")
@@ -677,8 +682,10 @@ struct TrialOfferView: View {
             .position(x: size.width * xRatio, y: size.height * (1 - y))
     }
 
-    private var productForSelectedTier: Product? {
-        switch selectedTier {
+    private var productForSelectedTier: Product? { product(for: selectedTier) }
+
+    private func product(for tier: Tier) -> Product? {
+        switch tier {
         case .annual:  return storeService.annualProduct
         case .monthly: return storeService.monthlyProduct
         }
@@ -686,32 +693,47 @@ struct TrialOfferView: View {
 
     // MARK: - CTA / legal copy
 
+    /// Top line of the CTA: what the tap gets you, never "Continue".
     private var ctaTitle: String {
-        switch selectedTier {
-        case .annual:
-            return "Start Yearly Plan"
-        case .monthly:
-            return "Start My \(trialDays)-Day Free Trial"
+        guard let days = trialDays else {
+            return selectedTier == .annual ? "Get Atlas Pro Yearly" : "Get Atlas Pro Monthly"
         }
+        return "Start My \(days)-Day Free Trial"
     }
 
-    /// Friction-reducing line under the CTA. Accurate per tier — only
-    /// the monthly trial means "no charge today"; the annual plan bills
-    /// immediately, so it leans on the cancel-anytime guarantee.
+    /// Second line of the CTA: the charge, in the user's own currency. A
+    /// trial button that doesn't say "\(zeroPriceToday) today" leaves the
+    /// user to guess whether tapping it bills them, and the ones who guess
+    /// wrong cancel within the hour.
+    private var ctaDetail: String {
+        let price = selectedTier == .annual
+            ? "\(annualPrice)/yr"
+            : "\(monthlyPrice)/mo"
+        guard trialDays != nil else { return "\(price) · cancel anytime" }
+        return "\(zeroPriceToday) today, then \(price)"
+    }
+
+    /// A localised zero in the selected plan's currency — "$0.00", "0,00 kr".
+    private var zeroPriceToday: String {
+        guard let product = productForSelectedTier else { return "$0.00" }
+        return Decimal.zero.formatted(product.priceFormatStyle)
+    }
+
+    /// Friction-reducing line under the CTA. Gated on a *redeemable* trial,
+    /// not on the tier: "no charge today" is a promise about this Apple ID,
+    /// and it stops being true the moment the shared intro offer is spent.
     private var reassuranceCopy: String {
-        switch selectedTier {
-        case .annual:  return "Cancel anytime · Secured by the App Store"
-        case .monthly: return "No charge today · Cancel anytime"
-        }
+        guard trialDays != nil else { return "Cancel anytime · Secured by the App Store" }
+        return "No charge today · Cancel anytime"
     }
 
     private var legalCopy: String {
-        switch selectedTier {
-        case .annual:
-            return "Billed \(annualPrice) per year for the Atlas Pro Yearly subscription. Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → Apple ID → Subscriptions."
-        case .monthly:
-            return "No charge for \(trialDays) days. Then \(monthlyPrice)/month for the Atlas Pro Monthly subscription. Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → Apple ID → Subscriptions."
-        }
+        let plan = selectedTier == .annual
+            ? "\(annualPrice) per year for the Atlas Pro Yearly subscription"
+            : "\(monthlyPrice) per month for the Atlas Pro Monthly subscription"
+        let renewal = "Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → Apple ID → Subscriptions."
+        guard let days = trialDays else { return "Billed \(plan). \(renewal)" }
+        return "No charge for \(days) days. Then \(plan). \(renewal)"
     }
 
     // MARK: - Actions

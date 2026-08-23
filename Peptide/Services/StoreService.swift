@@ -89,16 +89,57 @@ final class StoreService {
     }
     #endif
 
-    /// Display string for the monthly intro offer ("3 days free"). `nil` when
+    /// Display string for the monthly intro offer ("7 days free"). `nil` when
     /// there is no intro offer or the product hasn't loaded yet.
     var monthlyTrialDisplay: String? { trialDisplay(for: monthlyProduct) }
 
-    /// Display string for the annual intro offer ("14 days free"). Surfaced
-    /// as a "Best value · 14 days free" badge on slot 10. `nil` when no
+    /// Display string for the annual intro offer ("7 days free"). Surfaced
+    /// on the annual plan row as "Billed $49.99/yr after 7 days free". `nil` when no
     /// intro offer is configured or the product hasn't loaded yet.
     var annualTrialDisplay: String? { trialDisplay(for: annualProduct) }
 
-    private func trialDisplay(for product: Product?) -> String? {
+    /// Free-trial length in days, or `nil` when the product carries no
+    /// free-trial introductory offer.
+    ///
+    /// The conversion has to go through `period.unit`: App Store Connect
+    /// stores a one-week trial as `(value: 1, unit: .week)`, so the naive
+    /// `period.value * periodCount` reads `1` and every "N days free"
+    /// string on the paywall lies by a factor of seven.
+    static func trialDays(for product: Product?) -> Int? {
+        guard let intro = product?.subscription?.introductoryOffer,
+              intro.paymentMode == .freeTrial
+        else { return nil }
+        let count = intro.period.value * intro.periodCount
+        switch intro.period.unit {
+        case .day:   return count
+        case .week:  return count * 7
+        case .month: return count * 30
+        case .year:  return count * 365
+        @unknown default: return count
+        }
+    }
+
+    /// Whether `product` will actually apply its free trial for this Apple
+    /// ID. Monthly and annual share a subscription group, so redeeming
+    /// either trial makes both ineligible — the paywall must stop
+    /// advertising "free" the moment that happens.
+    func isEligibleForTrial(_ product: Product) -> Bool {
+        switch product.id {
+        case Self.annualID:  return isEligibleForAnnualTrial
+        case Self.monthlyID: return isEligibleForMonthlyTrial
+        default:             return false
+        }
+    }
+
+    /// Trial length in days for `product`, but only when the user can still
+    /// redeem it. Copy that promises a free trial must be driven by this,
+    /// never by `trialDays(for:)` alone.
+    func redeemableTrialDays(for product: Product) -> Int? {
+        guard isEligibleForTrial(product) else { return nil }
+        return Self.trialDays(for: product)
+    }
+
+    func trialDisplay(for product: Product?) -> String? {
         guard let intro = product?.subscription?.introductoryOffer,
               intro.paymentMode == .freeTrial
         else { return nil }
@@ -156,7 +197,7 @@ final class StoreService {
     }
 
     /// Starts the monthly subscription, which auto-applies the configured
-    /// 3-day free trial intro offer when the user is eligible. After the
+    /// free trial intro offer when the user is eligible. After the
     /// trial Apple auto-renews monthly until the user cancels.
     @discardableResult
     func startMonthlyTrial() async throws -> Bool {
