@@ -11,12 +11,12 @@ import XCTest
 /// Three passes, because the two most recent design changes are invisible to
 /// a single default-appearance run:
 ///
-///  - **Dark, default type** — the appearance the app shipped with.
-///  - **Light** — every `AppColor` surface and ink token became
-///    trait-resolving, and no screen had ever been rendered in light mode.
-///  - **Accessibility XXXL** — 393 call sites moved onto a six-step type
-///    scale, and `AppFont.scaled` routes through `UIFontMetrics`; the largest
-///    content-size category is where truncation would show up.
+/// - **Dark, default type** — the appearance the app shipped with.
+/// - **Light** — every `AppColor` surface and ink token became
+///   trait-resolving, and no screen had ever been rendered in light mode.
+/// - **Accessibility XXXL** — 393 call sites moved onto a six-step type
+///   scale, and `AppFont.scaled` routes through `UIFontMetrics`; the largest
+///   content-size category is where truncation would show up.
 ///
 /// Opt-in only: run via the dedicated `Screenshots` workflow (or the
 /// `run-ui-tests` label). See `.github/workflows/screenshots.yml`.
@@ -80,7 +80,8 @@ final class ScreenshotTests: XCTestCase {
 
     /// Walks the five tabs and captures each. Tabs that don't appear are
     /// skipped rather than failing, so one renamed tab can't lose the
-    /// whole run.
+    /// whole run. The Biology tab additionally opens the paywall — see
+    /// `capturePaywall`.
     private func captureAllTabs(prefix: String) {
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
         capture(named: "\(prefix)-01-Today")
@@ -90,7 +91,45 @@ final class ScreenshotTests: XCTestCase {
             guard button.waitForExistence(timeout: 5) else { continue }
             button.tap()
             capture(named: String(format: "%@-%02d-%@", prefix, offset + 2, tab))
+
+            if tab == "Biology" {
+                capturePaywall(prefix: prefix, slot: offset + 3)
+            }
         }
+    }
+
+    /// The paywall (App Store screenshot slot 8). Demo mode always renders
+    /// Bio Age locked — `ScreenshotMode` seeds no HealthKit history — so
+    /// `BioAgeHeroSection`'s "Unlock with Pro" pill is on screen right
+    /// after the Biology capture above. Its `accessibilityLabel` is
+    /// "Unlock biological age with Pro" (`BioAgeHeroSection.unlockPill`);
+    /// tapping it calls `BiologyView.presentPaywall()`, which presents
+    /// `PaywallView` as a sheet.
+    ///
+    /// `PaywallView`'s `.task` awaits `StoreService.loadProducts()` before
+    /// the pricing rows render. The `PeptideUICapture` scheme wires
+    /// `Peptide/Resources/Products.storekit` as its test action's
+    /// `storeKitConfiguration` (see `project.yml`), so the three real
+    /// product IDs resolve locally, in-process, with no network or
+    /// sandbox account — the sleep below just gives that local resolution
+    /// (and the async trial-eligibility check that follows it) time to
+    /// land before the capture.
+    ///
+    /// Skips rather than fails if the button or the sheet doesn't show,
+    /// matching `captureAllTabs`'s per-tab tolerance: a renamed control on
+    /// this one screen shouldn't fail the whole capture run.
+    private func capturePaywall(prefix: String, slot: Int) {
+        let unlockButton = app.buttons["Unlock biological age with Pro"]
+        guard unlockButton.waitForExistence(timeout: 5) else { return }
+        unlockButton.tap()
+
+        let closeButton = app.buttons["Close"]
+        guard closeButton.waitForExistence(timeout: 5) else { return }
+        Thread.sleep(forTimeInterval: 2.0)
+        capture(named: String(format: "%@-%02d-Paywall", prefix, slot))
+
+        // Dismiss so the loop above can go on to try the Library tab.
+        closeButton.tap()
     }
 
     private func capture(named name: String) {
