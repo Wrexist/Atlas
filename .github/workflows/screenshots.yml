@@ -49,6 +49,12 @@ jobs:
         # default was never verified to exist on the runner's Xcode — and an
         # empty `inputs.simulator` would produce `name=,OS=latest`. Resolve a
         # real device and fail loudly with the device list if there is none.
+        #
+        # The device-name extraction below matches the trailing UDID in
+        # parens rather than truncating at the first "(" — several real
+        # device names (e.g. "iPhone SE (3rd generation)") have their own
+        # parens before the UDID, and cutting at the first one silently
+        # produced a bogus "iPhone SE" that no destination matches.
         id: sim
         run: |
           WANT="${{ inputs.simulator }}"
@@ -56,7 +62,10 @@ jobs:
             echo "name=$WANT" >> "$GITHUB_OUTPUT"
           else
             FOUND=$(xcrun simctl list devices available \
-              | grep -oE '^\s+iPhone [^(]+' | sed 's/^ *//;s/ *$//' | tail -1)
+              | grep -E '^\s+iPhone .*\([0-9A-Fa-f-]{36}\)' \
+              | sed -E 's/ *\([0-9A-Fa-f-]{36}\).*$//' \
+              | sed 's/^ *//;s/ *$//' \
+              | tail -1)
             if [ -z "$FOUND" ]; then
               echo "::error::No iPhone simulator available on this runner."
               xcrun simctl list devices available
