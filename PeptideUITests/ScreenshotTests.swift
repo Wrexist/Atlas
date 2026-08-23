@@ -82,19 +82,44 @@ final class ScreenshotTests: XCTestCase {
     /// skipped rather than failing, so one renamed tab can't lose the
     /// whole run. The Biology tab additionally opens the paywall — see
     /// `capturePaywall`.
+    ///
+    /// A first-launch system dialog (the notifications permission prompt)
+    /// can appear at any point in this sequence — it isn't gated on a
+    /// specific screen, so it can land between a tab tap and its capture.
+    /// Left unhandled, the alert doesn't block the *next* tap (the tab bar
+    /// sits underneath it and still receives touches), so the tap silently
+    /// switches tabs while the alert stays on top for one more capture,
+    /// pushing every subsequent screenshot's label one tab out of sync and
+    /// dropping the last tab (and the paywall step) off the end entirely.
+    /// `dismissSystemAlertIfNeeded()` clears it before it can do that.
     private func captureAllTabs(prefix: String) {
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+        dismissSystemAlertIfNeeded()
         capture(named: "\(prefix)-01-Today")
 
         for (offset, tab) in Self.secondaryTabs.enumerated() {
             let button = app.tabBars.buttons[tab]
             guard button.waitForExistence(timeout: 5) else { continue }
             button.tap()
+            dismissSystemAlertIfNeeded()
             capture(named: String(format: "%@-%02d-%@", prefix, offset + 2, tab))
 
             if tab == "Biology" {
                 capturePaywall(prefix: prefix, slot: offset + 3)
             }
+        }
+    }
+
+    /// Dismisses a system permission alert (e.g. the notifications prompt)
+    /// if one is currently on screen. Cheap to call speculatively — the
+    /// wait only costs real time when an alert is actually present.
+    private func dismissSystemAlertIfNeeded() {
+        let alert = app.alerts.firstMatch
+        guard alert.waitForExistence(timeout: 0.5) else { return }
+        if alert.buttons["Allow"].exists {
+            alert.buttons["Allow"].tap()
+        } else if alert.buttons["Don't Allow"].exists {
+            alert.buttons["Don't Allow"].tap()
         }
     }
 
@@ -126,6 +151,7 @@ final class ScreenshotTests: XCTestCase {
         let closeButton = app.buttons["Close"]
         guard closeButton.waitForExistence(timeout: 5) else { return }
         Thread.sleep(forTimeInterval: 2.0)
+        dismissSystemAlertIfNeeded()
         capture(named: String(format: "%@-%02d-Paywall", prefix, slot))
 
         // Dismiss so the loop above can go on to try the Library tab.
