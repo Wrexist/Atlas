@@ -105,7 +105,7 @@
             "internalID" : "B7E3F2A1-C8D4-4E5F-9A2B-1D3E4F5A6B7C",
             "numberOfPeriods" : 1,
             "paymentMode" : "free",
-            "subscriptionPeriod" : "P3D"
+            "subscriptionPeriod" : "P7D"
           },
           "localizations" : [
             {
@@ -136,7 +136,7 @@
             "internalID" : "A2C4D6E8-1B3F-4A5C-9D7E-2F8B6C4A1D3E",
             "numberOfPeriods" : 1,
             "paymentMode" : "free",
-            "subscriptionPeriod" : "P2W"
+            "subscriptionPeriod" : "P7D"
           },
           "localizations" : [
             {

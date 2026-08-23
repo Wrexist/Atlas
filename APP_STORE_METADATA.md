@@ -181,7 +181,7 @@ ATLAS PRO
 • Full data export (CSV and JSON)
 
 Monthly $9.99 · Annual $49.99 (save 58%) · Lifetime $169
-Free trial: 3 days (monthly) · 14 days (annual) · Cancel anytime
+Free trial: 7 days on Monthly and Annual · Cancel anytime
 
 SUBSCRIPTION TERMS
 Atlas Pro Monthly ($9.99, renews monthly) and Atlas Pro Annual ($49.99, renews
@@ -212,7 +212,7 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 888 / 4 000 — 112 chars of headroom. The SUBSCRIPTION TERMS block and
+*(3 881 / 4 000 — 119 chars of headroom. The SUBSCRIPTION TERMS block and
 both links are required by Guideline 3.1.2 — do not trim them to make room
 for copy.)*
 
@@ -371,8 +371,8 @@ No further export-compliance questions will be asked.
 
 | Product | Product ID | Type | Price | Trial |
 |---|---|---|---|---|
-| Atlas Pro Monthly | `com.peptidesai.app.pro.monthly` | Auto-Renewable | $9.99 / mo | 3 days |
-| Atlas Pro Annual | `com.peptidesai.app.pro.annual` | Auto-Renewable | $49.99 / yr | 14 days |
+| Atlas Pro Monthly | `com.peptidesai.app.pro.monthly` | Auto-Renewable | $9.99 / mo | 7 days |
+| Atlas Pro Annual | `com.peptidesai.app.pro.annual` | Auto-Renewable | $49.99 / yr | 7 days |
 | Atlas Pro Lifetime | `com.peptidesai.app.pro.lifetime` | Non-Consumable | $169.00 | — |
 
 **Subscription group name:** `Atlas Pro`
@@ -628,9 +628,9 @@ to App Review that the disclaimer is in-app, not just in the description.
 
 **What to show**
 Paywall full screen. Three plan rows stacked full-width:
-- Annual · $49.99/year · "14-day free trial" · "BEST VALUE" chip
-- Monthly · $9.99/month · "3-day free trial"
-- Lifetime · $169 · "One-time purchase"
+- Annual · $49.99/year · "7-day free trial" · "SAVE 58%" chip
+- Monthly · $9.99/month · "7-day free trial"
+- Lifetime · $169 · "FOREVER" chip · "One-time purchase"
 
 Auto-renew disclosure visible above the CTA. Terms of Use and Privacy
 Policy links visible at the bottom. "Atlas Pro" headline at top with 5–6
@@ -642,7 +642,7 @@ Sandbox — prices auto-populate.
 
 **Overlay copy**
 - Headline: `Try free. Upgrade when ready.`
-- Sub-caption: `14-day free trial on annual · Cancel anytime in Settings`
+- Sub-caption: `7-day free trial · Cancel anytime in Settings`
 - Pro badge: **none** (this IS the paywall screen)
 
 **Critical:** This screenshot is checked by App Review. The disclosure
@@ -724,7 +724,7 @@ such as "buy," "order," "vendor," or "source" does not appear in the app.
 
 SUBSCRIPTIONS
 Profile → Upgrade opens the paywall. Sandbox accounts work without
-setup. Trial lengths: Monthly 3 days, Annual 14 days. Lifetime is a
+setup. Trial lengths: 7 days on both Monthly and Annual. Lifetime is a
 one-time non-consumable IAP. Restore Purchases is on the paywall.
 All three products (Monthly, Annual, Lifetime) must be approved in App
 Store Connect before submission.
@@ -785,8 +785,8 @@ Run through every item before hitting Submit in App Store Connect.
 - [ ] No screenshots show a splash, login, or empty state
 
 **IAPs**
-- [ ] Atlas Pro Monthly (`com.peptidesai.app.pro.monthly`) — approved, 3-day trial set
-- [ ] Atlas Pro Annual (`com.peptidesai.app.pro.annual`) — approved, 14-day trial set
+- [ ] Atlas Pro Monthly (`com.peptidesai.app.pro.monthly`) — approved, 7-day trial set
+- [ ] Atlas Pro Annual (`com.peptidesai.app.pro.annual`) — approved, 7-day trial set
 - [ ] Atlas Pro Lifetime (`com.peptidesai.app.pro.lifetime`) — approved
 - [ ] Subscription group named `Atlas Pro`
 

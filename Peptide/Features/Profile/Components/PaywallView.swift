@@ -6,6 +6,15 @@ import StoreKit
 /// onboarding `TrialOfferView` is intentionally separate — that lives
 /// inside the onboarding TabView and renders without dismiss chrome.
 ///
+/// Layout rule for this screen: the plan picker sits above the fold and the
+/// CTA never scrolls. The previous version put the phone mockups (230pt) and
+/// the feature list between the header and the prices, so on every iPhone the
+/// buy button and the third plan were below the fold — the user had to scroll
+/// to find out what they'd pay and scroll again to pay it. Prices now sit
+/// directly under the offer headline and the button lives in a `pinnedFooter`,
+/// so "decide" and "buy" are one gesture apart. The mockups and the longer
+/// pitch moved below the prices, where they convince whoever keeps reading.
+///
 /// Constructor stays no-arg so the six existing call sites don't break;
 /// callers also keep wrapping it in `.liquidGlassPresentation()` where
 /// they want the system-glass sheet treatment.
@@ -28,35 +37,40 @@ struct PaywallView: View {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     header
-                        .padding(.top, Spacing.xxl)
+                        .padding(.top, Spacing.xxxl)
 
-                    PaywallPhoneMockupRow()
+                    offerHeadline
 
-                    featureList
+                    pricingCardsRow
+
+                    socialProof
 
                     if let attribution = creatorAttribution {
                         creatorBanner(attribution)
                     }
 
-                    pricingCardsRow
+                    trialTimeline
 
-                    primaryCTA
+                    featureList
 
-                    subCTA
+                    PaywallPhoneMockupRow()
 
-                    if let errorMessage {
-                        purchaseErrorBanner(message: errorMessage)
-                    }
-
-                    footerLinks
-                        .padding(.top, Spacing.sm)
-
-                    autoRenewDisclosure
-                        .padding(.bottom, Spacing.lg)
+                    reassuranceNote
+                        .padding(.bottom, Spacing.sm)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
             }
             .scrollBounceBehavior(.basedOnSize)
+            // The CTA is the point of the screen, so it is pinned rather than
+            // scrolled: `pinnedFooter` reserves its space *and* lays an opaque
+            // backdrop under it, so the last card clears the button instead of
+            // stopping behind it.
+            .pinnedFooter {
+                purchaseFooter
+                    .padding(.horizontal, Spacing.screenPadding)
+                    .padding(.top, Spacing.lg)
+                    .padding(.bottom, Spacing.sm)
+            }
 
             closeButton
                 .padding(Spacing.lg)
@@ -89,35 +103,29 @@ struct PaywallView: View {
     // MARK: - Header
 
     private var header: some View {
-        VStack(spacing: Spacing.sm) {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "flask.fill")
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [AppColor.accentLight, AppColor.accentPrimary],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "flask.fill")
+                .font(AppFont.scaled(20, weight: .bold))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [AppColor.accentLight, AppColor.accentPrimary],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
-                    .frame(width: 40, height: 40)
-                    .background {
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .fill(AppColor.surfaceElevated)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                    .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                            }
-                    }
+                )
+                .frame(width: 32, height: 32)
+                .background {
+                    RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
+                        .fill(AppColor.surfaceElevated)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
+                                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                        }
+                }
 
-                Text("Atlas")
-                    .font(AppFont.scaled(30, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                    .foregroundStyle(AppColor.textPrimary)
-            }
-
-            Text("Unlock your full protocol")
-                .font(AppFont.scaled(16))
-                .foregroundStyle(AppColor.textSecondary)
+            Text("Atlas Pro")
+                .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .title1))
+                .foregroundStyle(AppColor.textPrimary)
         }
     }
 
@@ -141,14 +149,223 @@ struct PaywallView: View {
         .accessibilityLabel("Close")
     }
 
+    // MARK: - Offer headline
+
+    /// The one line that has to land before anything else: what it costs to
+    /// say yes right now. It follows the selected plan, because a headline
+    /// quoting a plan the button won't buy is worse than no headline.
+    private var offerHeadline: some View {
+        VStack(spacing: Spacing.xs) {
+            Text(headlineEyebrow)
+                .font(AppFont.scaled(11, weight: .heavy))
+                .tracking(2)
+                .foregroundStyle(AppColor.accentLight)
+
+            Text(headlineHero)
+                .font(AppFont.scaled(38, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                .foregroundStyle(AppColor.textPrimary)
+                .contentTransition(.numericText())
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+
+            Text(headlineSupport)
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .animation(AppAnimation.springSnappy, value: selectedProductID)
+    }
+
+    private var headlineEyebrow: String {
+        guard let product = selectedProduct else { return "EVERYTHING UNLOCKED" }
+        if let days = storeService.redeemableTrialDays(for: product) {
+            return "YOUR \(days)-DAY FREE TRIAL"
+        }
+        return product.type == .autoRenewable ? "EVERYTHING UNLOCKED" : "ONE PAYMENT, YOURS FOREVER"
+    }
+
+    private var headlineHero: String {
+        guard let product = selectedProduct else { return "Atlas Pro" }
+        if let days = storeService.redeemableTrialDays(for: product) {
+            return "\(days) days free"
+        }
+        return product.displayPrice
+    }
+
+    private var headlineSupport: String {
+        guard let product = selectedProduct else {
+            return "Training, nutrition and recovery — one app, everything on."
+        }
+        guard product.type == .autoRenewable else {
+            return "Pay once. No subscription, nothing to cancel."
+        }
+        let price = "\(product.displayPrice)\(periodSuffix(for: product))"
+        if storeService.redeemableTrialDays(for: product) != nil {
+            return "Then \(price). Cancel any time before it starts."
+        }
+        return "\(price) — cancel any time."
+    }
+
+    // MARK: - Social proof
+
+    /// Rating + athlete count sit directly under the prices, where the user is
+    /// weighing the number. Same claim as the welcome screen and the
+    /// onboarding offer, so the story doesn't change between screens.
+    private var socialProof: some View {
+        HStack(spacing: Spacing.sm) {
+            HStack(spacing: 2) {
+                ForEach(0..<5, id: \.self) { _ in
+                    Image(systemName: "star.fill")
+                        .font(AppFont.scaled(11, weight: .semibold))
+                        .foregroundStyle(AppColor.achievement)
+                }
+            }
+            Text("4.9")
+                .font(AppFont.scaled(13, weight: .bold, design: .rounded))
+                .foregroundStyle(AppColor.textPrimary)
+            Text("· Loved by 12k+ athletes")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Rated 4.9 out of 5 by more than 12,000 athletes")
+    }
+
+    // MARK: - Trial timeline
+
+    /// Walks the user through what actually happens across the trial. This is
+    /// the objection the free-trial CTA raises and doesn't answer on its own —
+    /// "when do I get charged, and can I get out?" — and answering it in
+    /// three lines is worth more than another feature bullet.
+    ///
+    /// Every claim here is one the app can keep: no promise of a reminder
+    /// email we don't send, and no cancel path other than the real one.
+    @ViewBuilder
+    private var trialTimeline: some View {
+        if let product = selectedProduct,
+           let days = storeService.redeemableTrialDays(for: product) {
+            GlassCard(tinted: true) {
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    Text("How your \(days) free days work")
+                        .font(AppFont.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundStyle(AppColor.textPrimary)
+
+                    timelineRow(
+                        icon: "lock.open.fill",
+                        title: "Today",
+                        detail: "Everything unlocks. You pay \(zeroPrice(for: product))."
+                    )
+                    timelineRow(
+                        icon: "gearshape.fill",
+                        title: "Day \(max(days - 1, 1))",
+                        detail: "Still not for you? Cancel in Settings — one tap, keep the rest of the trial."
+                    )
+                    timelineRow(
+                        icon: "checkmark.seal.fill",
+                        title: "Day \(days)",
+                        detail: "Your plan starts at \(product.displayPrice)\(periodSuffix(for: product))."
+                    )
+                }
+            }
+        }
+    }
+
+    private func timelineRow(icon: String, title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: Spacing.md) {
+            ZStack {
+                Circle()
+                    .fill(AppColor.accentPrimary.opacity(0.18))
+                    .frame(width: 32, height: 32)
+                Image(systemName: icon)
+                    .font(AppFont.scaled(13, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
+            }
+            .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(AppFont.scaled(13, weight: .bold))
+                    .foregroundStyle(AppColor.textPrimary)
+                Text(detail)
+                    .font(AppFont.scaled(13))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+
     // MARK: - Feature list
 
+    /// Outcomes, not machinery, and in the order the product is positioned:
+    /// training, nutrition and recovery lead; protocol tracking stays for the
+    /// advanced audience it was built for. The old list opened on "Unlimited
+    /// peptide stacks & cycles" and never mentioned a workout or a meal, so
+    /// the paywall was selling a different app than the one onboarding sold.
     private var featureList: some View {
-        VStack(spacing: Spacing.md) {
-            featureRow("Unlimited peptide stacks & cycles")
-            featureRow("Half-life decay overlays for any stack")
-            featureRow("Reconstitution calculator for every vial")
-            featureRow("Protocol insights & shareable cycle cards")
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("What you get")
+                .font(AppFont.scaled(13, weight: .heavy))
+                .tracking(1)
+                .foregroundStyle(AppColor.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            ForEach(features, id: \.icon) { feature in
+                featureRow(icon: feature.icon, title: feature.title)
+            }
+        }
+    }
+
+    private var features: [(icon: String, title: LocalizedStringKey)] {
+        [
+            ("figure.strengthtraining.traditional", "Lift more every week — plans that progress you automatically"),
+            ("camera.viewfinder", "Log a meal in one photo — no weighing, no searching"),
+            ("heart.text.square.fill", "Know before you train — recovery, HRV and Performance Age"),
+            ("brain.head.profile.fill", "Ask anything, get cited research — not guesswork"),
+            ("chart.line.uptrend.xyaxis", "Unlimited protocols — half-life, dosing and reconstitution"),
+            ("icloud.fill", "Never lose a session — synced across iPhone, Watch and widgets"),
+        ]
+    }
+
+    private func featureRow(icon: String, title: LocalizedStringKey) -> some View {
+        HStack(spacing: Spacing.md) {
+            Image(systemName: icon)
+                .font(AppFont.scaled(16, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+                .frame(width: 24)
+                .accessibilityHidden(true)
+
+            Text(title)
+                .font(AppFont.scaled(16, weight: .semibold))
+                .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    /// Closing line under the pitch. Restates the escape hatch after the
+    /// user has read the whole page — the last thing between them and the
+    /// button should be the reason not to worry about it.
+    private var reassuranceNote: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "checkmark.shield.fill")
+                .font(AppFont.scaled(16, weight: .semibold))
+                .foregroundStyle(AppColor.positive)
+                .accessibilityHidden(true)
+            Text("Cancel in two taps from Settings. Your logs, workouts and photos stay yours either way.")
+                .font(AppFont.scaled(13))
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
         }
     }
 
@@ -210,21 +427,6 @@ struct PaywallView: View {
                     RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                         .strokeBorder(AppColor.destructive.opacity(0.30), lineWidth: 0.5)
                 }
-        }
-    }
-
-    private func featureRow(_ label: LocalizedStringKey) -> some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(AppFont.scaled(20, weight: .bold))
-                .foregroundStyle(AppColor.accentPrimary)
-
-            Text(label)
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.textPrimary)
-                .multilineTextAlignment(.leading)
-
-            Spacer(minLength: 0)
         }
     }
 
@@ -326,7 +528,7 @@ struct PaywallView: View {
                     title: "Monthly",
                     primaryPrice: monthly.displayPrice,
                     primaryUnit: "/mo",
-                    subtitle: "Billed \(monthly.displayPrice)/mo",
+                    subtitle: monthlySubtitle(for: monthly),
                     badge: nil
                 )
             }
@@ -340,7 +542,10 @@ struct PaywallView: View {
                     primaryPrice: lifetime.displayPrice,
                     primaryUnit: "once",
                     subtitle: "Pay once. Yours forever.",
-                    badge: "BEST VALUE"
+                    // "BEST VALUE" is two words and it was pushing the
+                    // title into a mid-word wrap ("Lifet / ime") on the
+                    // narrowest phones. One word, same promise.
+                    badge: "FOREVER"
                 )
             }
         }
@@ -364,11 +569,16 @@ struct PaywallView: View {
             HStack(spacing: Spacing.md) {
                 radioMark(isSelected: isSelected)
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: Spacing.xs) {
                         Text(title)
                             .font(AppFont.scaled(16, weight: .bold))
                             .foregroundStyle(AppColor.textPrimary)
+                            .lineLimit(1)
+                            // Without `fixedSize` the badge alongside wins the
+                            // width negotiation and the plan name — the one
+                            // word that has to stay readable — wraps mid-word.
+                            .fixedSize()
                         if let badge {
                             savingsPill(badge)
                         }
@@ -420,7 +630,7 @@ struct PaywallView: View {
         ZStack {
             Circle()
                 .strokeBorder(isSelected ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: isSelected ? 2 : 1)
-                .frame(width: 22, height: 22)
+                .frame(width: 24, height: 24)
             if isSelected {
                 Image(systemName: "checkmark")
                     .font(AppFont.scaled(11, weight: .bold))
@@ -434,8 +644,10 @@ struct PaywallView: View {
         Text(text)
             .font(AppFont.scaled(11, weight: .heavy))
             .foregroundStyle(AppColor.onAccent)
+            .lineLimit(1)
+            .fixedSize()
             .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 4)
+            .padding(.vertical, 2)
             .background {
                 Capsule()
                     .fill(AppColor.accentFill)
@@ -443,13 +655,22 @@ struct PaywallView: View {
             .shadow(color: AppColor.accentGlow, radius: 6, y: 2)
     }
 
-    /// "Billed €24.99/yr after 3-day free trial" when intro offer is live;
+    /// "Billed €24.99/yr after 7 days free" when the intro offer is live;
     /// downgrades to plain "Billed €24.99/yr" once the user is no longer
     /// eligible (already redeemed an intro in this group).
     private func yearlySubtitle(for product: Product) -> String {
         let priceLine = "Billed \(product.displayPrice)/yr"
         if storeService.isEligibleForAnnualTrial,
            let trial = storeService.annualTrialDisplay {
+            return "\(priceLine) after \(trial)"
+        }
+        return priceLine
+    }
+
+    private func monthlySubtitle(for product: Product) -> String {
+        let priceLine = "Billed \(product.displayPrice)/mo"
+        if storeService.isEligibleForMonthlyTrial,
+           let trial = storeService.monthlyTrialDisplay {
             return "\(priceLine) after \(trial)"
         }
         return priceLine
@@ -462,6 +683,27 @@ struct PaywallView: View {
         guard annual.price > 0 else { return nil }
         let monthly = annual.price / 12
         return monthly.formatted(annual.priceFormatStyle)
+    }
+
+    /// A localised zero in the product's own currency — "$0.00", "0,00 kr".
+    /// Hard-coding "$0" would be wrong in every non-dollar storefront, and
+    /// this string is the whole risk-reversal argument on the button.
+    private func zeroPrice(for product: Product) -> String {
+        Decimal.zero.formatted(product.priceFormatStyle)
+    }
+
+    /// "/yr", "/mo" — read from the product's own renewal period rather
+    /// than its identifier, so a future weekly plan can't render as a
+    /// yearly one.
+    private func periodSuffix(for product: Product) -> String {
+        guard let period = product.subscription?.subscriptionPeriod else { return "" }
+        switch period.unit {
+        case .year:  return "/yr"
+        case .month: return "/mo"
+        case .week:  return "/wk"
+        case .day:   return "/day"
+        @unknown default: return ""
+        }
     }
 
     /// Dynamic "X% OFF" pill computed from the live product prices. Falls
@@ -483,17 +725,41 @@ struct PaywallView: View {
         // negligible saving doesn't ship a "5% OFF" badge that
         // makes the annual tier look weak.
         let percent = Int(((saved as NSDecimalNumber).doubleValue * 100).rounded())
-        return percent >= 5 ? "\(percent)% OFF" : nil
+        return percent >= 5 ? "SAVE \(percent)%" : nil
     }
 
-    // MARK: - CTA
+    // MARK: - Pinned purchase footer
 
+    private var purchaseFooter: some View {
+        VStack(spacing: Spacing.sm) {
+            if let errorMessage {
+                purchaseErrorBanner(message: errorMessage)
+            }
+
+            primaryCTA
+
+            autoRenewDisclosure
+
+            footerLinks
+        }
+    }
+
+    /// Two-line CTA: the action on top, the money underneath.
+    ///
+    /// The old label was "Continue", which is the weakest thing a paywall
+    /// button can say — it names the gesture, not what the user gets, and it
+    /// hides the one fact that removes the risk of tapping it. The top line
+    /// now states the offer ("Start My 7-Day Free Trial") and the bottom line
+    /// states the charge in the user's own currency ("$0.00 today, then
+    /// $49.99/yr"). Both halves matter: trial-first framing is what lifts
+    /// tap-through, and the explicit price is what stops the day-0 cancel
+    /// from someone who tapped without knowing what came next.
     private var primaryCTA: some View {
         Button {
             guard let product = selectedProduct, !isPurchasing else { return }
             Task { await purchase(product) }
         } label: {
-            HStack(spacing: Spacing.sm) {
+            VStack(spacing: 2) {
                 if isPurchasing {
                     ProgressView()
                         .progressViewStyle(.circular)
@@ -501,12 +767,19 @@ struct PaywallView: View {
                 } else {
                     Text(ctaTitle)
                         .font(AppFont.scaled(16, weight: .bold))
-                    Image(systemName: "arrow.right")
-                        .font(AppFont.scaled(13, weight: .bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    if let ctaDetail {
+                        Text(ctaDetail)
+                            .font(AppFont.scaled(11, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                            .opacity(0.85)
+                    }
                 }
             }
             .foregroundStyle(AppColor.onAccent)
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, minHeight: 40)
             .padding(.vertical, Spacing.md)
             .background {
                 Capsule()
@@ -526,70 +799,71 @@ struct PaywallView: View {
         .buttonStyle(ScalePressStyle(pressedScale: 0.97))
         .disabled(selectedProduct == nil || isPurchasing)
         .opacity(selectedProduct == nil ? 0.5 : 1)
+        .accessibilityLabel(ctaAccessibilityLabel)
     }
 
     private var ctaTitle: LocalizedStringKey {
-        guard let product = selectedProduct else { return "Choose a Plan" }
-        if product.id == StoreService.annualID,
-           storeService.isEligibleForAnnualTrial {
-            return "Get started for free"
+        guard let product = selectedProduct else { return "Choose a plan" }
+        guard product.type == .autoRenewable else { return "Get Lifetime Access" }
+        if let days = storeService.redeemableTrialDays(for: product) {
+            return "Start My \(days)-Day Free Trial"
         }
-        if product.id == StoreService.monthlyID,
-           storeService.isEligibleForMonthlyTrial {
-            return "Get started for free"
-        }
-        return "Continue"
+        return "Unlock Atlas Pro"
     }
 
-    private var subCTA: some View {
-        Text(subCTAText)
-            .font(AppFont.caption)
-            .foregroundStyle(AppColor.textTertiary)
-            .multilineTextAlignment(.center)
-    }
-
-    private var subCTAText: String {
-        guard let product = selectedProduct else { return "Cancel any time" }
-        // Lifetime is a one-time non-consumable — never claim it can be
-        // cancelled or that it auto-renews (App Store 3.1.2(a)).
+    /// The money line. Never promises a free trial the user can't redeem —
+    /// `redeemableTrialDays` is eligibility-gated, so a returning subscriber
+    /// sees the real price on the button instead of a zero they won't get.
+    private var ctaDetail: String? {
+        guard let product = selectedProduct else { return nil }
         guard product.type == .autoRenewable else {
-            return "One-time purchase · no subscription"
+            return "\(product.displayPrice) once · no subscription"
         }
-        if product.id == StoreService.annualID,
-           storeService.isEligibleForAnnualTrial,
-           let trial = storeService.annualTrialDisplay {
-            return "\(trial) · Cancel any time"
+        let price = "\(product.displayPrice)\(periodSuffix(for: product))"
+        if storeService.redeemableTrialDays(for: product) != nil {
+            return "\(zeroPrice(for: product)) today, then \(price)"
         }
-        if product.id == StoreService.monthlyID,
-           storeService.isEligibleForMonthlyTrial,
-           let trial = storeService.monthlyTrialDisplay {
-            return "\(trial) · Cancel any time"
+        return "\(price) · cancel any time"
+    }
+
+    private var ctaAccessibilityLabel: String {
+        guard let product = selectedProduct else { return "Choose a plan" }
+        let action: String
+        if product.type != .autoRenewable {
+            action = "Get lifetime access"
+        } else if let days = storeService.redeemableTrialDays(for: product) {
+            action = "Start my \(days) day free trial"
+        } else {
+            action = "Unlock Atlas Pro"
         }
-        return "Cancel any time"
+        guard let ctaDetail else { return action }
+        return "\(action). \(ctaDetail)"
     }
 
     // MARK: - Footer
 
     private var footerLinks: some View {
-        HStack(spacing: Spacing.xl) {
-            Button("Restore Purchases", action: restore)
+        HStack(spacing: Spacing.lg) {
+            Button("Restore", action: restore)
                 .disabled(isRestoring)
 
-            Link("Terms",
+            Link("Terms of Use",
                  destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"))
 
-            Link("Privacy",
+            Link("Privacy Policy",
                  destination: URL.staticHTTPS("https://wrexist.github.io/Peptide-ai/privacy.html"))
         }
-        .font(AppFont.caption)
+        .font(AppFont.scaled(11))
         .foregroundStyle(AppColor.textSecondary)
     }
 
     /// Required by App Store guideline 3.1.2(a) — for a subscription the user
     /// must see length, auto-renewal, and where to cancel before they tap
-    /// purchase. The Lifetime plan is a one-time non-consumable, so the
-    /// auto-renew/cancel copy must NOT apply to it (showing it on a one-time
-    /// purchase is itself a 3.1.2(a) accuracy problem).
+    /// purchase, so it rides in the pinned footer with the button rather than
+    /// somewhere down the scroll. The Lifetime plan is a one-time
+    /// non-consumable, so the auto-renew/cancel copy must NOT apply to it
+    /// (showing it on a one-time purchase is itself a 3.1.2(a) accuracy
+    /// problem).
     @ViewBuilder
     private var autoRenewDisclosure: some View {
         if let product = selectedProduct, product.type != .autoRenewable {
