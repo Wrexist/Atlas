@@ -15,12 +15,19 @@ platform :ios do
     )
 
     # ─── Version regression guardrail ─────────────────────────────
-    # The TestFlight tester app sorts builds by marketing version, not
-    # build number. A version <= the highest already on TestFlight
-    # therefore lands *beneath* the existing builds and testers are
-    # never offered it — exactly how 1.0.2 (118) got buried under
-    # 1.0.115. Compare the resolved version against every pre-release
-    # version Apple already has and refuse to ship a regression.
+    # Two Apple rules make a stale version fatal:
+    #   1. The TestFlight tester app sorts builds by marketing version,
+    #      not build number. A version <= the highest already on
+    #      TestFlight lands *beneath* the existing builds and testers
+    #      are never offered it — how 1.0.2 (118) got buried under
+    #      1.0.115.
+    #   2. Once a version is approved for the App Store its train is
+    #      closed for good: altool rejects any upload whose
+    #      CFBundleShortVersionString is not strictly higher — how
+    #      1.2.0 died after 1.2.0 shipped.
+    # Compare the resolved version against every pre-release train AND
+    # the live App Store version, and refuse to ship a regression
+    # before paying for a 4-minute build.
     #
     # Fail-open: if the App Store Connect lookup itself errors (network
     # blip, API shape change) we warn and continue rather than wedge a
@@ -37,22 +44,38 @@ platform :ios do
           key:       ENV["ASC_KEY_P8"]
         )
 
-        app    = Spaceship::ConnectAPI::App.find("com.peptidesai.app")
-        latest = app.get_pre_release_versions
-                    .map(&:version).compact
-                    .map { |v| Gem::Version.new(v) }.max
+        app = Spaceship::ConnectAPI::App.find("com.peptidesai.app")
 
-        if latest && Gem::Version.new(marketing_version) <= latest
+        # Walk every page explicitly — a partial train listing is
+        # exactly how a stale max slips past this guard.
+        prerelease = Spaceship::ConnectAPI
+                     .get_pre_release_versions(filter: { app: app.id }, limit: 200)
+                     .all_pages
+                     .flat_map(&:to_models)
+                     .map(&:version)
+                     .compact
+
+        live = begin
+          app.get_live_app_store_version&.version_string
+        rescue StandardError
+          nil
+        end
+
+        ceiling = (prerelease + [live]).compact
+                                       .map { |v| Gem::Version.new(v) }.max
+
+        if ceiling && Gem::Version.new(marketing_version) <= ceiling
           UI.user_error!(
             "Marketing version #{marketing_version} is not greater than the " \
-            "latest already on TestFlight (#{latest}). Builds sort by marketing " \
-            "version in the tester app, so this one would land beneath #{latest} " \
-            "and testers would never see it. Re-run with a higher version " \
-            "(e.g. 1.1.0, or any version above #{latest})."
+            "highest version Apple already has (#{ceiling}, across TestFlight " \
+            "trains and the live App Store version). An approved version " \
+            "closes its train for new uploads, and TestFlight sorts builds " \
+            "by marketing version, so this build would be rejected or " \
+            "buried. Re-run with any version above #{ceiling}."
           )
         end
 
-        UI.success("Version check OK: #{marketing_version} > #{latest || 'no prior TestFlight build'}")
+        UI.success("Version check OK: #{marketing_version} > #{ceiling || 'no prior version at Apple'}")
       rescue FastlaneCore::Interface::FastlaneError
         raise # a real regression — let it fail the build
       rescue => e
