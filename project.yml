@@ -48,6 +48,10 @@ options:
   # `localization/Localizable.translated.xcstrings`, outside every target's
   # source path: withheld, not discarded. Restoring a language means copying
   # its block back and adding it to CFBundleLocalizations below.
+packages:
+  RevenueCat:
+    url: https://github.com/RevenueCat/purchases-ios
+    from: 5.0.0
 settings:
   base:
     # Swift 5 language mode. The codebase is not yet clean under Swift 6
@@ -130,6 +134,7 @@ targets:
       - target: PeptideWidgets
       - target: PeptideWatch
         embed: true
+      - package: RevenueCat
   PeptideWidgets:
     type: app-extension
     platform: iOS
