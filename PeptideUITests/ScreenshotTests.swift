@@ -102,25 +102,34 @@ final class ScreenshotTests: XCTestCase {
     /// whole run. The Biology tab additionally opens the paywall — see
     /// `capturePaywall`.
     ///
-    /// A first-launch system dialog (the notifications permission prompt)
-    /// can appear at any point in this sequence — it isn't gated on a
-    /// specific screen, so it can land between a tab tap and its capture.
-    /// Left unhandled, the alert doesn't block the *next* tap (the tab bar
-    /// sits underneath it and still receives touches), so the tap silently
-    /// switches tabs while the alert stays on top for one more capture,
-    /// pushing every subsequent screenshot's label one tab out of sync and
+    /// Two different first-launch overlays can appear at any point in
+    /// this sequence, neither gated on a specific screen:
+    ///
+    /// - The system notification-permission alert.
+    /// - `HomeView`'s `CycleMilestonePromptSheet` ("Share your week 1
+    ///   snapshot?"), triggered by `CycleMilestoneService` once the demo
+    ///   protocol's seeded start date crosses the day-7 mark. It's a
+    ///   `.sheet`, not an `.alert`, and its "Not now" `GlassButton` sits
+    ///   low enough on screen to overlap the tab bar.
+    ///
+    /// Left unhandled, either one silently absorbs the *next* tap instead
+    /// of blocking it (the control underneath still receives touches, or
+    /// the tap lands on the overlay's own button by screen-position
+    /// coincidence), so a tab switch silently no-ops or the overlay
+    /// dismisses one tap later than expected — pushing every subsequent
+    /// screenshot's label out of sync with what's actually on screen, and
     /// dropping the last tab (and the paywall step) off the end entirely.
-    /// `dismissSystemAlertIfNeeded()` clears it before it can do that.
+    /// `dismissOverlaysIfNeeded()` clears both before they can do that.
     private func captureAllTabs(prefix: String) {
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
-        dismissSystemAlertIfNeeded()
+        dismissOverlaysIfNeeded()
         capture(named: "\(prefix)-01-Today")
 
         for (offset, tab) in Self.secondaryTabs.enumerated() {
             let button = app.tabBars.buttons[tab]
             guard button.waitForExistence(timeout: 5) else { continue }
             button.tap()
-            dismissSystemAlertIfNeeded()
+            dismissOverlaysIfNeeded()
             capture(named: String(format: "%@-%02d-%@", prefix, offset + 2, tab))
 
             if tab == "Biology" {
@@ -129,16 +138,23 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
-    /// Dismisses a system permission alert (e.g. the notifications prompt)
-    /// if one is currently on screen. Cheap to call speculatively — the
-    /// wait only costs real time when an alert is actually present.
-    private func dismissSystemAlertIfNeeded() {
+    /// Dismisses whichever first-launch overlay (if any) is currently on
+    /// screen — see `captureAllTabs`'s doc comment for why both need
+    /// clearing before every capture. Cheap to call speculatively: each
+    /// wait only costs real time when that overlay is actually present.
+    private func dismissOverlaysIfNeeded() {
         let alert = app.alerts.firstMatch
-        guard alert.waitForExistence(timeout: 0.5) else { return }
-        if alert.buttons["Allow"].exists {
-            alert.buttons["Allow"].tap()
-        } else if alert.buttons["Don't Allow"].exists {
-            alert.buttons["Don't Allow"].tap()
+        if alert.waitForExistence(timeout: 0.5) {
+            if alert.buttons["Allow"].exists {
+                alert.buttons["Allow"].tap()
+            } else if alert.buttons["Don't Allow"].exists {
+                alert.buttons["Don't Allow"].tap()
+            }
+        }
+
+        let notNow = app.buttons["Not now"]
+        if notNow.waitForExistence(timeout: 0.5) {
+            notNow.tap()
         }
     }
 
@@ -170,7 +186,7 @@ final class ScreenshotTests: XCTestCase {
         let closeButton = app.buttons["Close"]
         guard closeButton.waitForExistence(timeout: 5) else { return }
         Thread.sleep(forTimeInterval: 2.0)
-        dismissSystemAlertIfNeeded()
+        dismissOverlaysIfNeeded()
         capture(named: String(format: "%@-%02d-Paywall", prefix, slot))
 
         // Dismiss so the loop above can go on to try the Library tab.
