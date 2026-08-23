@@ -1,6 +1,7 @@
 import SwiftUI
 import UserNotifications
 import CoreSpotlight
+import RevenueCat
 
 @main
 struct PeptideApp: App {
@@ -22,6 +23,19 @@ struct PeptideApp: App {
     @State private var showWhatsNewTour: Bool = false
 
     init() {
+        // RevenueCat observes the app's own StoreKit 2 purchases here
+        // (StoreService / PaywallView keep their existing purchase flow
+        // untouched) so the dashboard, webhooks, and entitlement
+        // analytics stay accurate without changing what actually
+        // charges the user. Must run before any StoreKit product or
+        // purchase call, so it's the first thing App.init() does.
+        Purchases.logLevel = .warn
+        Purchases.configure(
+            with: Configuration.Builder(withAPIKey: "appl_PnJfoICofSeTSftseVMMMnonafC")
+                .with(purchasesAreCompletedBy: .myApp, storeKitVersion: .storeKit2)
+                .build()
+        )
+
         // SwiftUI's `AsyncImage` reads through `URLCache.shared`. The
         // default cap is ~5 MB memory / 20 MB disk, which gets evicted
         // before the food library's 25-row search results finish
