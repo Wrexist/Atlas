@@ -70,10 +70,29 @@ final class ScreenshotTests: XCTestCase {
         // back through UserDefaults at launch: skip onboarding, flip
         // ScreenshotMode on (its key is read by ScreenshotMode.init), and
         // pin the appearance (read by ThemeManager.init).
+        //
+        // Also pre-stamp WhatsNewService's "last seen tour version" key
+        // (`WhatsNewService.currentTourVersion`, currently "v3.1-biology").
+        // `bootstrapForFreshInstallIfNeeded` only stamps this on launch when
+        // `hasCompletedOnboarding` is still false, but this suite launches
+        // with onboarding pre-completed above — so on a fresh simulator the
+        // stamp is never written, `shouldShowTour` sees a nil last-seen
+        // version, and PeptideApp presents the full-screen, drag-to-dismiss-
+        // disabled WhatsNewTourSheet ~450ms after the first `.active` scene
+        // phase. That sheet then silently absorbs every subsequent tab tap
+        // in `captureAllTabs` (each tap lands on the sheet's own "Continue"
+        // control, which happens to sit in the same screen region as the
+        // real tab bar), so every capture past the first ends up showing a
+        // tour page instead of the tab it's named after, and the Library
+        // tab / paywall step are never reached. Stamping the key up front
+        // matches how a real existing user (the only audience this tour
+        // targets) would already have it set, and keeps the suite in sync
+        // if `currentTourVersion` is bumped again.
         app.launchArguments = [
             "-hasCompletedOnboarding", "YES",
             "-com.peptidesai.app.screenshotMode.enabled", "YES",
             "-appDisplayMode", appearance,
+            "-com.peptidesai.app.whatsNew.lastSeenVersion", "v3.1-biology",
         ] + extraArguments
         app.launch()
     }
