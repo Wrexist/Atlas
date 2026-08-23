@@ -2,236 +2,80 @@
 
 ## Current in-flight state
 
-Branch: `claude/app-review-design-polish-s14ish`.
+Branch: `claude/paywall-ux-messaging-v1ut4w`, merged into `main` as PR #161.
 
-The authoritative remediation plan lives in
-[`docs/ATLAS_AUDIT_AND_POLISH_PLAN.md`](docs/ATLAS_AUDIT_AND_POLISH_PLAN.md),
-with a second-wave hardening audit in
-[`docs/ATLAS_DEEP_AUDIT_II.md`](docs/ATLAS_DEEP_AUDIT_II.md) and a
-file-by-file coverage sweep in
-[`docs/ATLAS_DEEP_AUDIT_III.md`](docs/ATLAS_DEEP_AUDIT_III.md). Each ends
-with an execution log recording what actually landed.
+This branch rebuilt the in-app paywall (`PaywallView`) and the onboarding
+trial offer (`TrialOfferView`) for the 7-day-trial launch: both
+subscriptions moved from a 3-day monthly / 14-day annual split to a single
+`P7D` intro offer, `Products.storekit` and `APP_STORE_METADATA.md` were
+updated to match, and `StoreService` grew an eligibility layer
+(`isEligibleForTrial`, `redeemableTrialDays(for:)`) so the "free" copy on
+both screens stops being true the instant either subscription's trial is
+redeemed — monthly and annual share one subscription group, so redeeming
+either burns both. The buy button now lives in a `pinnedFooter` (never
+scrolls) and states what it charges on its second line, formatted through
+the product's own currency style rather than a hard-coded `$`.
 
-### What this branch changed
+Unlike the audit work this document used to describe, this branch was
+actually compiled: PR #161's `build-check` ran a real `xcodebuild build`
+plus `-only-testing:PeptideTests` on a macOS runner and both succeeded — 79
+tests, zero failures. `proxy-checks` ran the three gates that matter for a
+store launch — `design-lint.py --all`, `check-store-metadata.py`,
+`contrast-check.py` — and all three passed on the merge commit. So the code
+compiles and the automated gates are clean; what CI cannot tell anyone is
+whether the screen looks right on a real phone.
 
-- **Light mode is real.** Every `AppColor` surface and ink token resolves
-  per trait collection. `DisplayMode` is now Auto / Light / Dark, the
-  `.light → .dark` clamp is gone, and Profile → Settings has a live
-  appearance picker and a real Metric/Imperial unit picker in place of the
-  two static info rows that stood there.
-- **Dynamic Type works.** `AppFont.scaled(_:weight:design:)` replaced 737
-  fixed `Font.system(size:)` call sites. A `fixed_font_size` SwiftLint rule
-  keeps new ones out; `raw_color_literal` does the same for inline colours
-  in `Features/`.
-- **One button, one glass surface.** `glassControl(_:tint:border:)` makes
-  the real iOS 26 material and the legacy recipe mutually exclusive, and
-  every `bordered` / `borderedProminent` CTA is now a `GlassButton`.
-- **Correctness.** `HomeView` stopped doing a SwiftData fetch and three
-  engine passes per render; `PersistenceService` serializes its coders;
-  the rest timer no longer ticks at 10Hz all workout; peptide search is
-  debounced; Bio Age counts baseline coverage across all three health
-  signals; Pro members can manage their subscription in-app.
-- **A six-step type scale.** The app had thirty distinct point sizes,
-  thirteen inside a 12pt band. Below the display range there are now six
-  (`AppFont.Scale`), lint-enforced. 393 call sites moved, all by ≤2pt.
-- **A design checker that gates CI.** `scripts/design-lint.py` covers
-  thirteen rules SwiftLint can't see. Running it found 25 surfaces still
-  stacking two glass materials outside the primitives, two neon halos,
-  nine sub-44pt controls, and five rows VoiceOver read as eight stops —
-  all fixed. It sits at **zero errors and zero warnings**. Getting there
-  meant finding the glow rule blind three separate times — to
-  `AppShadow.accentGlow`, to stroke-anchored shadows, and finally to a
-  blurred coloured disc stacked behind a medallion, which is a halo built
-  from a shape rather than a shadow. Twelve halos in total, including
-  `MetricRing`'s `glow` parameter, which is now deleted rather than
-  defaulted off. `scripts/test_design_lint.py` pins all three forms.
-- **Light mode is no longer optional per screen.** 44 shipping views —
-  every sheet, both editors, the paywall, onboarding — pinned
-  `.preferredColorScheme(.dark)` on their own root. That was invisible
-  until this branch made light mode real, at which point picking Light
-  would have turned the tabs light and left every sheet dark. All 44 are
-  gone and a `forced-color-scheme` lint rule keeps the literal out of
-  shipping code (previews are blanked before rules run).
-- **Contrast is measured, not assumed.** `scripts/contrast-check.py`
-  reads the hex literals out of `ColorTheme.swift` / `AppTheme.swift`
-  and holds all 244 ink/surface pairs to WCAG 2.1 AA, in both schemes and
-  all five themes. It found 30 failures, two of them structural: the
-  Graphite ramp pinned its ink stops to one value and sat at 1.8:1 on the
-  dark background, and `onAccent` was printed on `accentPrimary` — a stop
-  tuned as *ink*, so near-white on it was 2.5:1 on the lock screen's
-  unlock button. Filled accent surfaces now use `AppColor.accentFill`.
-  It gates CI at zero failures.
-- **Training weights honour the unit setting.** `SetEntry.weightKg` is
-  documented as canonical kilograms the UI converts on read and write;
-  the Train feature never did the conversion, so an imperial user typing
-  225 stored 225 kg. The conversion now lives on `MeasurementUnit` and
-  retired the `2.20462` literal that six other files had each copied.
+**Nothing has been seen rendered.** Every "does it fit on an iPhone SE",
+"does Dynamic Type clip it", "does VoiceOver read the button correctly"
+question from the original brief is still open, because answering it needs
+a simulator or device and this pass had neither. The `Screenshots` workflow
+(Actions → Screenshots → Run workflow) can render the app in demo mode on a
+macOS runner without a local Mac, but its one run to date (Aug 9, on an
+older commit, predating this branch) failed with exit code 70 — that
+failure is unrelated to the paywall and hasn't been re-investigated here.
 
-### Read this before picking the branch up
+**The trial length is not actually 7 days for a real user yet.** The
+`.storekit` file only controls the Simulator; App Store Connect has its own,
+separate introductory-offer configuration for
+`com.peptidesai.app.pro.monthly` and `com.peptidesai.app.pro.annual`, and
+nobody has confirmed on screen that both are set to the one-week offer
+(App Store Connect has no literal "7 days" option — one week is the
+equivalent, and the app converts week→days for display). Until that's set
+and confirmed, the code is ready but the actual subscriber offer hasn't
+moved.
 
-**There is no compile verification.** The session that produced these
-changes had no Xcode, and the Swift toolchain download is blocked by the
-environment's proxy allowlist, so this was not a matter of not trying.
-Every changed file was parsed with `tree-sitter-swift` (the only 5 parse
-errors in the repo are pre-existing grammar limitations, byte-identical to
-the base commit) and every changed API's call sites had their argument
-labels checked against the declaration. That catches syntax and
-signatures, not types. Build first.
+**Sandbox purchase testing has not run.** The one behavior that would catch
+a real bug — a returning subscriber who already redeemed a trial seeing
+`Unlock Atlas Pro` at full price instead of a second "free" offer — only
+shows up on a real device against a fresh Sandbox Apple ID.
+`StoreServiceTests` covers the equivalent logic against `SKTestSession`,
+including `test_redeemableTrialDays_isNil_onceTheTrialIsRedeemed`, and that
+test passed in CI, but a passing unit test and a correct on-device purchase
+flow are not the same claim.
 
-**One part of this repo is genuinely tested: the proxy.** `server/` has 48
-Node tests covering the rate limiter, the per-device quota, App Attest and
-the CBOR decoder, and they *execute* — no Xcode needed. All 48 pass. That
-is worth knowing precisely because nothing on the Swift side can say the
-same.
+**Two small things fell out of a code read, not a build, so treat them as
+leads rather than confirmed bugs.** `TrialOfferView.swift`'s file-header
+comment still describes "the 3-day free trial" — stale from before this
+branch, harmless since it's only a comment, but worth fixing in the next
+pass that touches this file. And the two paywalls disagree on when to show
+a "SAVE X%" badge: `PaywallView` suppresses it below a 5% saving,
+`TrialOfferView` shows any positive number — probably not intentional, not
+verified against design intent.
 
-**The language picker offers ten languages; the catalog covers 13% of the
-UI.** `scripts/check-localization.py` measures it. The translations that
-exist are complete — all 170 catalog keys are present in all nine
-non-English languages — but the app renders **351** distinct user-facing
-sentences and only **45** of them are keys. The rest fall back to the
-English source string, silently: a missing key is not a build error.
+The repo's SwiftLint pass also surfaces about ten pre-existing
+colon/brace/comma findings in `VialPalette.swift`, `Haptics.swift`, and
+`ShimmerModifier.swift` — all three untouched by this branch, and
+`pr-checks.yml` already documents why they're deliberately out of scope for
+a feature PR (`--strict` is withheld from the SwiftLint step for exactly
+this reason, pending a dedicated cleanup pass). They are not part of what
+this branch needs fixed, and folding them into a paywall commit would break
+the one-logical-change rule this repo otherwise holds to.
 
-This is a product decision, not a bug to patch. Either the remaining ~306
-sentences get translated, or the picker should offer only what is actually
-covered. Machine-translating them was not on the table — this app carries
-dosing and safety copy, and a plausible-but-wrong translation there is worse
-than English. 72 stale keys that no longer appear in the UI are also
-reported; three orphaned Swedish entries were removed outright.
-
-**Everything the app claims is checked against what it does.**
-`scripts/check-copy-claims.py` audits four kinds of assertion: counts in copy
-(exercises, compounds, lab panels), the Atlas Score level/tier pairing,
-`Info.plist` privacy purpose strings against the APIs actually called, and
-entitlements / App Group IDs against code and against each other.
-
-That last group is why it exists in this shape. The plist claimed *"Atlas
-does not write to Apple Health"* while shipping a toggle that writes
-nutrition, and `NSPhotoLibraryUsageDescription` was missing entirely while
-`MealScanFlow` calls `PHAsset.fetchAssets` — a hard TCC termination on the
-photo meal-scan path. Neither was visible to any other check, because a
-claim is only false *relative to something else*.
-
-**Numbers in copy are checked against their source.**
-`scripts/check-copy-claims.py` compares every count the marketing and app
-copy asserts — exercises, compounds, lab panels and categories, and the
-Atlas Score level/tier pairing — against the dataset or engine it comes
-from. It exists because a screenshot shipped claiming "LEVEL 14 · GOLD"
-for an app whose `MomentumEngine` puts level 14 in Silver, and nothing
-caught it: a claim is only wrong *relative to something else*, and no
-checker was comparing the two.
-
-**Run `scripts/check.sh` before you push.** It is every check that works
-without Xcode — the design system, the 244 colour pairs, SwiftLint if it is
-installed, the bundled dataset, the 48 proxy tests, and the four App Store
-screen sets — in one command, exiting non-zero on failure so it works as a `pre-push` hook. It
-exists because of the next paragraph: with CI down, these checks run only if
-a human runs them.
-
-**CI has not run since 2026-06-20 — check this first.** Every push to this
-branch creates a workflow run that immediately reports `startup_failure`,
-with no workflow name and `path: BuildFailed` (35 of them so far). All six
-files in `.github/workflows/` parse as valid YAML and none but `release.yml`
-(tags only) even triggers on a branch push, so the cause is not in the repo.
-The last run of any workflow that *succeeded* was 2026-06-20, six weeks ago,
-across a period of active development. That pattern — runs failing before a
-job starts, no name resolved — is what GitHub does when Actions cannot start
-on a repository at all, most commonly a spending limit on a private repo or
-a disabled-Actions policy. Until that is resolved, no CI check on this branch
-means anything, including the two checkers added here.
-
-**Nothing has been seen rendered — but you can fix that in one click.**
-Dispatch the **Screenshots** workflow (Actions → Screenshots → Run
-workflow). It now captures every tab in three passes — dark, light, and
-Accessibility XXXL — and uploads them as an artifact. Those three are
-chosen deliberately: light mode had never been rendered at all, and XXXL
-is where the type-scale change would show up as truncation.
-
-It runs on a macOS runner, so it needs no local machine, and it no longer
-depends on the `PeptideTests` backlog: it builds the new `PeptideUICapture`
-scheme, which compiles the app and the UI tests only. Reviewing those
-screenshots is the fastest way to validate this branch.
-
-`OneRedOak/claude-code-workflows → design-review` was read and is the
-right tool for this loop, but it drives a browser through Playwright MCP;
-it has no path to a native iOS view. Its Phase 3–4 checklist (visual
-polish, WCAG 2.1 AA) is what `scripts/design-lint.py` and
-`scripts/contrast-check.py` now cover statically. The rendered-screen half
-of that loop still needs a human with a simulator.
-
-**Two things were deliberately reported rather than changed**, because
-both are judgment calls that need a rendered screen:
-
-1. *Accent is over-spent.* 671 accent references, 280 of them ink —
-   roughly 27% of coloured surface against the 60/30/10 target of ~10%.
-   Thinning it is per-site taste, not a mechanical edit.
-2. *Display numerals don't scale.* The 16 sites above 24pt use
-   `Font.system(size:)` and so ignore Dynamic Type entirely; at
-   Accessibility XXXL body text grows past some of them and the hierarchy
-   inverts. `AppFont.scaled(_:relativeTo:)` fixes it, but capping the
-   growth without seeing the XXXL screenshots risks truncation instead.
-
-**What still needs a compiler.** The `PeptideTests` backlog and the
-native-chrome migration. Everything else on this branch is either landed
-or enforced by a check.
-
-**Two things were proven un-doable here, not assumed.** The `@MainActor`
-conversion of `ThemeManager` was measured, not guessed: 231 reads of the
-ThemeManager-backed `AppColor` accessors sit outside an obviously isolated
-context, so the isolation propagates far past what inspection can verify.
-Both it and `LocalizationManager` now enforce the invariant at runtime
-(`assertMainActor()`, debug-only) so a stray background write traps with a
-stack trace instead of silently racing the `@Observable` registrar — the
-audit's own second option, and what makes their `@unchecked Sendable`
-honest. Do the type-level conversion when you have a compiler and delete
-the assertions.
-
-Separately, a signature checker was built to find the `PeptideTests`
-compile backlog statically. It works for initializers (zero mismatches
-once memberwise inits are modelled) but not for method calls: without
-receiver-type resolution, `Calendar.date(byAdding:)` is indistinguishable
-from an app-target `date(...)`, and the noise floor swamps the signal.
-That backlog needs a type checker.
-
-**The `PeptideTests` "backlog" was two lines.** The CI comment and this
-document both described "a backlog of stale API references and Swift-6
-actor-isolation issues". That was never measured. Reading the last
-`test-compile` job that actually ran (run 27603514542, Xcode 26.3, June)
-shows the build failed on exactly **two** errors, both in one file:
-
-    PeptideTests/AppStateTests.swift:29:30: error: type 'AppTab' has no member 'protocols'
-    PeptideTests/AppStateTests.swift:30:44: error: type 'AppTab' has no member 'protocols'
-
-`.protocols` stopped existing when Habits was promoted and Protocols became
-the Library modal. Both are fixed on this branch, and the test now also
-covers the routing that replaced it.
-
-**The rest of the target was compiled too — by an older run.** `.protocols`
-only broke on 2026-06-09, and `test-compile` was added on 06-04, so the runs
-in between got past the A–C batch. Run **27013636545** (June 5) reached the
-D–P batch and failed on exactly two files:
-
-    DataStoreTests.swift:167:9        'async' call in a function that does not support concurrency
-    HealthRangeServiceTests.swift     11x  main actor-isolated ... in a synchronous nonisolated context
-
-`HealthRangeServiceTests` was already fixed on this branch (`@MainActor` on
-the class). `DataStoreTests` was not: `toggleHealthConnection()` is
-`async -> Bool` and the test called it synchronously, then asserted a flip
-that would not have happened in either direction — connecting awaits a real
-HealthKit grant a unit test cannot obtain. It now tests the disconnect path,
-which is pure state.
-
-So every error any real run has ever reported is now fixed. That is still
-not "the target compiles" — a compiler finds the *next* error only once the
-previous one is gone, and no run has ever got past these — but the list of
-known-outstanding errors is empty for the first time. `test-compile` is
-non-gating and runs `build-for-testing`, so the next run says what, if
-anything, is behind them.
-
-Two things were checked statically alongside it: every type referenced in
-`PeptideTests` resolves against an app-target declaration (784 declarations,
-zero unresolved), and no test constructs any of the initialisers changed on
-this branch. So the remaining risk is method-signature and inference errors,
-not missing symbols.
+Everything after "compiles and passes CI" — device QA on an iPhone SE and a
+16 Pro Max, the App Store Connect trial-duration change, Sandbox purchase
+testing, the slot-8 paywall screenshot, and the pre-submission checklist —
+is still open, and needs a Mac with Xcode plus App Store Connect access
+that neither this pass nor the one before it had.
 
 ## Before merging branch work
 
