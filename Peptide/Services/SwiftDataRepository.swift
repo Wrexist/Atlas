@@ -455,10 +455,61 @@ final class SwiftDataRepository {
     }
 
     func loadEntries() -> [ProtocolEntry] {
+        fetchEntries(FetchDescriptor<StoredEntry>())
+    }
+
+    /// Recent-window fetch with the date filter pushed into SQLite —
+    /// the cold-launch path uses this so first frame doesn't pay a
+    /// full-table decode (one JSON `Peptide` decode per row) for
+    /// history the UI can't show anyway. Mirrors
+    /// `loadWorkoutSessions(startedBetween:)`.
+    func loadEntries(onOrAfter cutoff: Date) -> [ProtocolEntry] {
+        fetchEntries(FetchDescriptor<StoredEntry>(
+            predicate: #Predicate { $0.date >= cutoff }
+        ))
+    }
+
+    /// Complement of `loadEntries(onOrAfter:)` — the post-launch
+    /// backfill that hydrates the long tail (exports, lifetime totals,
+    /// multi-year streaks) without blocking first frame.
+    func loadEntries(before cutoff: Date) -> [ProtocolEntry] {
+        fetchEntries(FetchDescriptor<StoredEntry>(
+            predicate: #Predicate { $0.date < cutoff }
+        ))
+    }
+
+    /// ID-only projection for set-difference bookkeeping (backup
+    /// import) — avoids materializing and JSON-decoding every row just
+    /// to read UUIDs.
+    func loadEntryIDs() -> [UUID] {
+        guard let context else { return [] }
+        var descriptor = FetchDescriptor<StoredEntry>()
+        descriptor.propertiesToFetch = [\.id]
+        do {
+            return try context.fetch(descriptor).map(\.id)
+        } catch {
+            AppLog.swiftData.error("Load entry IDs failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    /// Cheap lifetime entry count via `fetchCount` (no row
+    /// materialization).
+    func entryCount() -> Int {
+        guard let context else { return 0 }
+        do {
+            return try context.fetchCount(FetchDescriptor<StoredEntry>())
+        } catch {
+            AppLog.swiftData.error("entryCount failed: \(error.localizedDescription, privacy: .public)")
+            return 0
+        }
+    }
+
+    private func fetchEntries(_ descriptor: FetchDescriptor<StoredEntry>) -> [ProtocolEntry] {
         guard let context else { return [] }
         let stored: [StoredEntry]
         do {
-            stored = try context.fetch(FetchDescriptor<StoredEntry>())
+            stored = try context.fetch(descriptor)
         } catch {
             AppLog.swiftData.error("Load entries failed: \(error.localizedDescription, privacy: .public)")
             return []
