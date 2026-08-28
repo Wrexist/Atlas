@@ -135,6 +135,89 @@ final class MigrationServiceTests: XCTestCase {
                       "Other JSON files must also remain for next-launch retry")
     }
 
+    // MARK: - Verification (audit Data Integrity 04, Phase 4)
+
+    /// A commit failure during import must neither archive the source
+    /// files nor leave a half-imported store behind — the next launch
+    /// retries from the intact JSON.
+    func test_migration_commitFailure_rollsBackAndLeavesJSONForRetry() {
+        persistence.saveProtocols(MockProtocols.all)
+        repo.forceCommitFailureForTesting = true
+
+        migration.migrateIfNeeded()
+
+        XCTAssertTrue(persistence.hasPersistedData,
+                      "Source JSON must survive a failed import")
+        XCTAssertFalse(repo.hasAnyData,
+                       "Partial import must be rolled back so the retry gate stays open")
+
+        // Retry succeeds once the store recovers.
+        repo.forceCommitFailureForTesting = false
+        migration.migrateIfNeeded()
+        XCTAssertEqual(repo.loadProtocols().count, MockProtocols.all.count)
+        XCTAssertFalse(persistence.hasPersistedData,
+                       "Verified retry should archive the source files")
+    }
+
+    func test_migrationVerification_detectsMissingProtocols() {
+        let all = MockProtocols.all
+        repo.saveProtocols([all[0]])
+        XCTAssertNotNil(
+            migration.verificationFailure(protocols: all, entries: nil, profile: nil),
+            "An import that landed fewer protocols than the source must fail verification"
+        )
+    }
+
+    func test_migrationVerification_detectsIDMismatch() {
+        // Same count (one row each side) but different identity.
+        let stored = MockProtocols.all[0]
+        let expected = MockProtocols.all[1]
+        repo.saveProtocols([stored])
+        XCTAssertNotNil(
+            migration.verificationFailure(protocols: [expected], entries: nil, profile: nil),
+            "Same count but different identity must fail verification"
+        )
+    }
+
+    func test_migrationVerification_passesOnFaithfulImport() {
+        repo.saveProtocols(MockProtocols.all)
+        XCTAssertNil(
+            migration.verificationFailure(protocols: MockProtocols.all, entries: nil, profile: nil)
+        )
+    }
+
+    // MARK: - Legacy archive retention
+
+    func test_archivedLegacyFiles_expireAfterRetentionWindow() throws {
+        persistence.saveProtocols(MockProtocols.all)
+        migration.migrateIfNeeded()
+        XCTAssertTrue(persistence.hasArchivedLegacyFiles)
+
+        // Inside the window: retained.
+        persistence.cleanUpExpiredArchivedLegacyFiles()
+        XCTAssertTrue(persistence.hasArchivedLegacyFiles,
+                      "A fresh archive must survive cleanup")
+
+        // Past the window: removed.
+        let pastCutoff = Date().addingTimeInterval(
+            TimeInterval(PersistenceService.archivedLegacyRetentionDays + 1) * 86_400
+        )
+        persistence.cleanUpExpiredArchivedLegacyFiles(now: pastCutoff)
+        XCTAssertFalse(persistence.hasArchivedLegacyFiles,
+                       "Archives must not accumulate past the retention window")
+    }
+
+    func test_clearAll_removesArchivedLegacyFiles() {
+        persistence.saveProtocols(MockProtocols.all)
+        migration.migrateIfNeeded()
+        XCTAssertTrue(persistence.hasArchivedLegacyFiles)
+
+        persistence.clearAll()
+
+        XCTAssertFalse(persistence.hasArchivedLegacyFiles,
+                       "Account deletion / data reset must erase the archived legacy files too")
+    }
+
     // MARK: - SwiftData round-trip
 
     func test_swiftData_protocolRoundTrip_preservesAllFields() {

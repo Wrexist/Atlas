@@ -235,6 +235,15 @@ final class AuthService {
             return
         }
         SwiftDataRepository.shared.deleteAll()
+        // Guideline 5.1.1(v) erasure has to reach every user-generated
+        // artifact, not just the SwiftData store: legacy JSON and the
+        // archived `.migrated` safety nets (name, email, body metrics),
+        // custom peptides, the widget snapshot, and progress photos.
+        // HealthKit samples are deliberately untouched — Health data
+        // belongs to the user's Health app, and deleting it there is
+        // theirs to decide (see docs/DATA_ERASURE_POLICY.md).
+        PersistenceService.shared.clearAll()
+        ProgressPhotoStorage.deleteAll()
         signOut()
     }
 

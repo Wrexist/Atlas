@@ -89,6 +89,17 @@ enum ProgressPhotoStorage {
         try ensureDirectory().appendingPathComponent(filename)
     }
 
+    /// Removes the entire ProgressPhotos folder. Account-deletion path —
+    /// photos are user-generated content and must not survive an erase.
+    static func deleteAll() {
+        guard let documents = FileManager.default.urls(
+            for: .documentDirectory,
+            in: .userDomainMask
+        ).first else { return }
+        let folder = documents.appendingPathComponent(folderName, isDirectory: true)
+        try? FileManager.default.removeItem(at: folder)
+    }
+
     // MARK: - Internals
 
     private static func ensureDirectory() throws -> URL {
