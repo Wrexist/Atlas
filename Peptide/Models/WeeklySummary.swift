@@ -116,6 +116,13 @@ struct WeeklySummary: Codable, Hashable, Sendable, Identifiable {
     let keyStats: KeyStats
     let kind: Kind
     let generatedAt: Date
+    /// Hash of the user-editable source data (compliance, streak,
+    /// outcomes, nutrition, labs) the summary was generated from.
+    /// `WeeklySummaryService` treats a mismatch as a cache miss so an
+    /// edit within the week (a dose un-logged, a meal deleted) can't be
+    /// served a frozen summary. Optional: summaries cached before this
+    /// field existed decode as nil and are treated as stale once.
+    var sourceFingerprint: String? = nil
 
     enum Kind: String, Codable, Hashable, Sendable {
         /// Sent through the AI proxy and rendered from the model.

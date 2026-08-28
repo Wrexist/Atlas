@@ -892,11 +892,16 @@ struct HomeView: View {
             return
         }
 
-        // Cached value short-circuits unless the caller asked for
-        // a refresh. `cached(in:for:)` is a synchronous read so the
+        // Cached value short-circuits unless the caller asked for a
+        // refresh — but only when its source fingerprint still matches
+        // the week's current data. A summary generated before the user
+        // edited a dose/meal/lab within the same week falls through to
+        // `generate(...)`, which regenerates. Synchronous read so the
         // .ready state lands before `generate(...)` returns.
-        if !forceRefresh, let cached = WeeklySummaryService.shared.cached(
-            in: dataStore.profile, for: Date()
+        if !forceRefresh, let cached = WeeklySummaryService.shared.cachedIfFresh(
+            profile: dataStore.profile,
+            protocols: dataStore.protocols,
+            entries: dataStore.entries
         ) {
             weeklySummaryState = .ready(cached)
             return
