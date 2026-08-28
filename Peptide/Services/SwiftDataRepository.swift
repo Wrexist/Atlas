@@ -583,6 +583,49 @@ final class SwiftDataRepository {
         }
     }
 
+    /// Fetches one historical session by id. Used by `DataStore.deleteWorkout`
+    /// to learn which exercises a session touched before the row goes away,
+    /// so the affected personal records can be recomputed.
+    func loadWorkoutSession(id: UUID) -> WorkoutSession? {
+        guard let context else { return nil }
+        var descriptor = FetchDescriptor<StoredWorkoutSession>(
+            predicate: #Predicate { $0.id == id }
+        )
+        descriptor.fetchLimit = 1
+        do {
+            return try context.fetch(descriptor).first.flatMap { try? $0.toWorkoutSession() }
+        } catch {
+            AppLog.swiftData.error("Load workout session by id failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    /// Uncapped full-history fetch, oldest first. Exists for correctness
+    /// passes that must see everything — PR recomputation after a deleted
+    /// session would silently lose records older than the 200-row UI cap
+    /// if it went through `loadWorkoutSessions(limit:)`. Not for render
+    /// paths.
+    func loadAllWorkoutSessions() -> [WorkoutSession] {
+        guard let context else { return [] }
+        let descriptor = FetchDescriptor<StoredWorkoutSession>(
+            sortBy: [SortDescriptor(\.startedAt, order: .forward)]
+        )
+        do {
+            let stored = try context.fetch(descriptor)
+            return stored.compactMap {
+                do {
+                    return try $0.toWorkoutSession()
+                } catch {
+                    AppLog.swiftData.error("Decode StoredWorkoutSession (full) failed: \(error.localizedDescription, privacy: .public)")
+                    return nil
+                }
+            }
+        } catch {
+            AppLog.swiftData.error("Load all workout sessions failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
     /// Cheap lifetime count of workout sessions via `fetchCount` (no row
     /// materialization). Used by the training-achievement check so it
     /// doesn't load the whole session table on a workout finish.

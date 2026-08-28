@@ -189,6 +189,11 @@ final class WorkoutSessionService {
               let setIdx = session.exercises[exIdx].sets.firstIndex(where: { $0.id == set.id })
         else { return }
         var updated = set
+        // The service is the persistence boundary for set values — the
+        // decimal-pad keyboard hint is bypassable (paste, hardware
+        // keyboard), so clamp here rather than trusting the UI.
+        updated.weightKg = SetEntryLimits.clampWeightKg(updated.weightKg)
+        updated.reps = SetEntryLimits.clampReps(updated.reps)
         // Stamp completedAt when transitioning to completed; clear on un-check.
         if set.completed && session.exercises[exIdx].sets[setIdx].completedAt == nil {
             updated.completedAt = Date()

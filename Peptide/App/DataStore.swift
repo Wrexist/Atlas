@@ -1502,8 +1502,15 @@ final class DataStore: DataServiceProtocol {
     /// as `WorkoutSessionService.discardWorkout` for the active path —
     /// here it targets the historical row directly.
     func deleteWorkout(id: UUID) {
+        // Capture which exercises the session touched before the row is
+        // gone — its PRs are derived data and must be recomputed from
+        // the surviving history, or a deleted workout's record would
+        // stand forever with no path to ever correct it.
+        let affectedExercises = repo.loadWorkoutSession(id: id)
+            .map { Set($0.exercises.map(\.exerciseID)) } ?? []
         repo.beginSaveBatch()
         repo.deleteWorkoutSession(id: id)
+        PRDetectionEngine.shared.recompute(exerciseIDs: affectedExercises)
         cacheVersion &+= 1
         // Same reason as `recordWorkoutFinished`: a repo-level write is
         // invisible to the property observers, so derived snapshots need
