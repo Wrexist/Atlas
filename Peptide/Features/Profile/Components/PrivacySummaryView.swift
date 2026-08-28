@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Slot 8 of the App Store screenshot deck: a single-glance privacy
-/// summary that turns Atlas's "no analytics, no backend" posture into
+/// summary that turns Atlas's "no ads, no tracking, no user-data backend" posture into
 /// a marketing-ready surface. Reachable from Profile → About →
 /// "Privacy at a glance."
 ///
@@ -52,12 +52,12 @@ struct PrivacySummaryView: View {
                 )
                 .padding(.top, Spacing.md)
 
-            Text("Your data doesn't leave your phone")
+            Text("Your logs stay on your phone")
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Text("Zero analytics SDKs. Zero advertising. Verified by privacy manifest.")
+            Text("No ads. No tracking. No data sold. Verified by privacy manifest.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -70,7 +70,7 @@ struct PrivacySummaryView: View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "checkmark.seal.fill")
                 .foregroundStyle(AppColor.accentPrimary)
-            Text("Privacy Nutrition Label: No data collected")
+            Text("Privacy Nutrition Label: no tracking, nothing linked to you")
                 .font(AppFont.footnote.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
         }
@@ -87,13 +87,13 @@ struct PrivacySummaryView: View {
     fileprivate static let rows: [PrivacyRow.Row] = [
         .init(
             icon: "shield.checkered",
-            title: "No analytics. No trackers.",
-            detail: "Atlas does not embed Firebase, Mixpanel, or any third-party analytics or advertising SDK."
+            title: "No ads. No trackers.",
+            detail: "Atlas embeds no advertising or cross-app tracking SDK, and never sells or shares your data."
         ),
         .init(
             icon: "network.slash",
-            title: "No backend. No remote push.",
-            detail: "There's no Atlas server. Your protocols, doses, and notes never leave your device."
+            title: "No user-data backend.",
+            detail: "Atlas runs no server that stores your logs. AI features you invoke send only what they need — a meal photo, weekly averages — and nothing is kept."
         ),
         .init(
             icon: "key.fill",
