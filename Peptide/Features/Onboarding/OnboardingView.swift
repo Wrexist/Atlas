@@ -2496,27 +2496,24 @@ struct OnboardingView: View {
     }
 }
 
-/// Compact social-proof pill — five gold stars, a 4.9 score, and a
-/// user count. Sits under the welcome headline as the first trust
-/// anchor before any data is asked from the user.
+/// Compact trust pill under the welcome headline — the first trust
+/// anchor before any data is asked from the user. Verifiable claims
+/// only: the previous five-star "4.9 · 12k+ athletes" version had no
+/// App Store source behind it, and fabricated ratings are a Guideline
+/// 2.3.1 problem. Reinstate a rating pill only when it renders the
+/// real, current App Store figure.
 private struct SocialProofPill: View {
-    private let gold = AppColor.achievement
-
     var body: some View {
         HStack(spacing: Spacing.sm) {
-            HStack(spacing: 2) {
-                ForEach(0..<5, id: \.self) { _ in
-                    Image(systemName: "star.fill")
-                        .font(AppFont.scaled(11, weight: .semibold))
-                        .foregroundStyle(gold)
-                }
-            }
-            Text("4.9")
+            Image(systemName: "lock.shield.fill")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.accentPrimary)
+            Text("Private by design")
                 .font(AppFont.scaled(13, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
             Text("·")
                 .foregroundStyle(AppColor.textTertiary)
-            Text("12k+ athletes")
+            Text("no ads, no tracking")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
         }
@@ -2530,10 +2527,10 @@ private struct SocialProofPill: View {
             Capsule()
                 .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
         )
-        // Five separate star glyphs plus a bare "·" is eight meaningless
-        // VoiceOver stops; the rating is one fact, so it's spoken as one.
+        // A glyph plus a bare "·" is several meaningless VoiceOver
+        // stops; the claim is one fact, so it's spoken as one.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Rated 4.9 out of 5 by over 12,000 athletes")
+        .accessibilityLabel("Private by design. No ads, no tracking.")
     }
 }
 

@@ -252,6 +252,8 @@ jobs:
           MEAL_SCANNER_SECRET:   ${{ secrets.MEAL_SCANNER_SECRET }}
           AI_RESEARCH_ENDPOINT:  ${{ secrets.AI_RESEARCH_ENDPOINT }}
           AI_RESEARCH_SECRET:    ${{ secrets.AI_RESEARCH_SECRET }}
+          WEEKLY_SUMMARY_ENDPOINT: ${{ secrets.WEEKLY_SUMMARY_ENDPOINT }}
+          WEEKLY_SUMMARY_SECRET:   ${{ secrets.WEEKLY_SUMMARY_SECRET }}
         run: |
           PLIST=Peptide/Resources/Info.plist
           # Strip every flavor of whitespace (spaces, tabs, CR, LF) from
@@ -267,12 +269,14 @@ jobs:
           MEAL_SCANNER_SECRET=$(trim "$MEAL_SCANNER_SECRET")
           AI_RESEARCH_ENDPOINT=$(trim "$AI_RESEARCH_ENDPOINT")
           AI_RESEARCH_SECRET=$(trim "$AI_RESEARCH_SECRET")
+          WEEKLY_SUMMARY_ENDPOINT=$(trim "$WEEKLY_SUMMARY_ENDPOINT")
+          WEEKLY_SUMMARY_SECRET=$(trim "$WEEKLY_SUMMARY_SECRET")
 
           # Fail loudly rather than ship a build with the AI features
           # silently disabled — a missing secret here means GitHub repo
           # secrets weren't configured. Fix the secrets, re-run the
           # workflow.
-          for VAR in MEAL_SCANNER_ENDPOINT MEAL_SCANNER_SECRET AI_RESEARCH_ENDPOINT AI_RESEARCH_SECRET; do
+          for VAR in MEAL_SCANNER_ENDPOINT MEAL_SCANNER_SECRET AI_RESEARCH_ENDPOINT AI_RESEARCH_SECRET WEEKLY_SUMMARY_ENDPOINT WEEKLY_SUMMARY_SECRET; do
             if [ -z "${!VAR}" ]; then
               echo "::error::Repository secret $VAR is empty or missing. Add it under Settings → Secrets and variables → Actions."
               exit 1
@@ -284,12 +288,12 @@ jobs:
           # length in the dashboard. The lengths themselves are not
           # sensitive — they're already implied by every 200/401 round
           # trip.
-          for VAR in MEAL_SCANNER_ENDPOINT MEAL_SCANNER_SECRET AI_RESEARCH_ENDPOINT AI_RESEARCH_SECRET; do
+          for VAR in MEAL_SCANNER_ENDPOINT MEAL_SCANNER_SECRET AI_RESEARCH_ENDPOINT AI_RESEARCH_SECRET WEEKLY_SUMMARY_ENDPOINT WEEKLY_SUMMARY_SECRET; do
             VALUE="${!VAR}"
             echo "  $VAR length: ${#VALUE} bytes"
           done
 
-          for KEY in MEAL_SCANNER_ENDPOINT MEAL_SCANNER_SECRET AI_RESEARCH_ENDPOINT AI_RESEARCH_SECRET; do
+          for KEY in MEAL_SCANNER_ENDPOINT MEAL_SCANNER_SECRET AI_RESEARCH_ENDPOINT AI_RESEARCH_SECRET WEEKLY_SUMMARY_ENDPOINT WEEKLY_SUMMARY_SECRET; do
             VALUE="${!KEY}"
             /usr/libexec/PlistBuddy -c "Set :$KEY $VALUE" "$PLIST" 2>/dev/null \
               || /usr/libexec/PlistBuddy -c "Add :$KEY string $VALUE" "$PLIST"

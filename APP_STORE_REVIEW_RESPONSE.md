@@ -72,7 +72,7 @@ device."
 | 7 | Today tab → log a dose (amount, site, notes) | Core feature |
 | 8 | Allow the **Notifications** permission prompt when it appears | Sensitive permission |
 | 9 | Open Analytics → show heatmap, streak, day-of-week chart | Core feature |
-| 10 | Profile → "Connect Health" → allow **HealthKit** read access | Sensitive permission + read-only confirmation |
+| 10 | Profile → "Connect Health" → allow **HealthKit** access | Sensitive permission prompt |
 | 11 | Back to Analytics → show HRV/sleep correlation populated | Proves HealthKit integration works |
 | 12 | Profile → Upgrade → show the paywall (Monthly / Annual / Lifetime), point out trial length, Terms, Privacy links | Subscription flow |
 | 13 | Tap a plan → cancel the StoreKit sheet (don't actually buy) | Demonstrates the paywall, no charge |
@@ -82,8 +82,12 @@ device."
 
 ### 1.2 If a flow does not exist, say so
 
-Atlas has no UGC, no camera, no contacts, no location, no microphone.
-Mention this in the Notes (§4) so the reviewer does not look for them.
+Atlas has no UGC, no contacts, no location, no microphone. The camera
+IS used — three flows: barcode scanning, nutrition-label OCR, and AI
+meal-photo scanning (plus an optional local profile photo). Demo at
+least one camera flow in the recording so the prompt is shown, and say
+in the Notes (§4) which flows exist so the reviewer does not look for
+anything else.
 
 ---
 
@@ -96,8 +100,8 @@ PURPOSE
 Atlas is a private, native iOS companion for training, nutrition,
 recovery, and (for advanced users) clinician-advised supplementation
 protocols. Everything the user logs stays on their device or syncs
-through their own iCloud — there is no developer backend, no analytics,
-and no tracking.
+through their own iCloud — there is no developer backend for user data,
+no ads, and no tracking.
 
 PROBLEM IT SOLVES
 Fitness-focused users juggle separate apps for workout logging, macro
@@ -155,20 +159,25 @@ Sign-in:
   Guideline 5.1.1(v) compliant).
 
 HealthKit:
-• HealthKit is requested ONLY when you tap "Connect Health" in the
-  Profile tab. It is never asked automatically. Atlas is read-only
-  against Apple Health (NSHealthShareUsageDescription only;
-  NSHealthUpdateUsageDescription is intentionally absent in Info.plist).
-• Denying HealthKit hides the correlation card. No other feature is
+• HealthKit access is requested from the optional "Connect Health"
+  step in onboarding, or later from the Profile tab — always
+  user-initiated, never automatic. Atlas reads heart rate, HRV,
+  resting heart rate, sleep, body mass, steps, and active energy.
+  It writes ONLY meal macros (calories, protein, carbs, fat), and only
+  if the user turns on "Sync to Apple Health" (off by default). Both
+  NSHealthShareUsageDescription and NSHealthUpdateUsageDescription are
+  declared in Info.plist.
+• Denying HealthKit hides the recovery surfaces. No other feature is
   blocked.
 
 Notifications:
-• Asked the first time you save a protocol with a reminder. Denying
-  notifications disables reminders only; nothing else is blocked.
+• Asked from the optional onboarding step, or the first time a
+  reminder is enabled. Denying notifications disables reminders only;
+  nothing else is blocked.
 
 Subscriptions:
 • Profile → Upgrade opens the paywall. Sandbox accounts work without
-  additional setup. Trial lengths: Monthly 3 days, Annual 14 days,
+  additional setup. Trial length: 7 days on both Monthly and Annual;
   Lifetime is a one-time non-consumable.
 • Restoring purchases: Profile → Upgrade → "Restore Purchases."
 ```
@@ -195,36 +204,58 @@ This is the question the reviewer most often re-asks if the answer is
 vague. Be exhaustive. Paste verbatim:
 
 ```
-EXTERNAL SERVICES USED BY PEPTIDEX
+EXTERNAL SERVICES USED BY ATLAS
 
-Atlas has NO developer-operated backend. No analytics SDKs, no
-crash reporters, no advertising identifiers, no third-party AI APIs,
-no remote config. The full list of external systems the app talks to:
+Atlas has NO developer-operated backend for user data. No ad or
+tracking SDKs, no crash reporters, no advertising identifiers, no
+remote config. The full list of external systems the app talks to:
 
 1. Apple StoreKit 2 — in-app purchases (Monthly, Annual, Lifetime).
    Used for purchase, restore, transaction verification.
 
-2. Sign in with Apple (optional) — authentication only. Identifier
+2. RevenueCat SDK (observer mode) — subscription infrastructure only.
+   Purchases complete through StoreKit 2 in our own code; RevenueCat
+   receives transaction/entitlement data under an anonymous app-user
+   ID. Declared on the privacy label as Purchase History and User ID
+   (not linked to identity, no tracking).
+
+3. Sign in with Apple (optional) — authentication only. Identifier
    and cached email/name stored in iOS Keychain. No external user
    directory of our own.
 
-3. Apple HealthKit (optional, read-only) — heart rate, HRV, resting
-   heart rate, body mass, step count, active energy. Read on-device
-   only; never transmitted off the device.
+4. Apple HealthKit (optional) — reads heart rate, HRV, resting heart
+   rate, sleep, body mass, step count, active energy; optionally
+   writes meal macros if the user enables "Sync to Apple Health".
+   Analysis happens on-device, with one disclosed exception: the
+   opt-in Pro weekly summary sends weekly AVERAGES of HRV, resting
+   heart rate, and sleep hours (no raw samples, no identifiers) to
+   our AI proxy (below) to generate the recap.
 
-4. Apple CloudKit (private database, optional) — used as a sync
+5. Apple CloudKit (private database, optional) — used as a sync
    backend if the user is signed into iCloud. Per Apple's privacy-
    manifest spec, the developer cannot read the user's private
    CloudKit zone, so this is not "collected data."
 
-5. Apple Push Notification Service — NOT USED. All reminders are
-   local notifications scheduled on-device via UNUserNotificationCenter.
+6. Atlas AI proxy (our Vercel deployment) → Anthropic Claude API —
+   powers three optional AI features: meal photo scanning (sends the
+   meal photo only), the Pro AI research assistant (sends the chat
+   text), and the Pro weekly summary (sends the aggregates in item 4).
+   The proxy holds the API key; requests are authenticated,
+   rate-limited, processed transiently, and not stored. Nothing is
+   sent unless the user invokes the feature.
+
+7. Open Food Facts (public API) — barcode and food-name lookups for
+   the Meals tab. The barcode string is the only user input sent.
+
+8. Apple Push Notification Service — used only for Live Activity
+   updates; all reminders are local notifications scheduled on-device
+   via UNUserNotificationCenter.
 
 "AI Insights" clarification:
-The "AI insights" feature advertised on the paywall is a deterministic,
-on-device rule engine (InsightEngine / StackRecommendationEngine /
-OnboardingRecommendationEngine in the source). It does NOT call any
-external LLM or AI service. No data leaves the device for AI processing.
+The daily insight/recommendation cards are a deterministic, on-device
+rule engine (InsightEngine / StackRecommendationEngine in the source)
+— those do NOT call any external service. The three genuinely
+AI-backed features are exactly the ones in item 6, each user-invoked.
 
 Static educational content shipped in the binary:
 The 208-peptide database is a bundled JSON file
@@ -240,8 +271,8 @@ listed for completeness because the App Store listing links to them):
 
 ### 4.1 Verify the claim before sending
 
-- [ ] `git grep -n "URLSession\|URLRequest\|Alamofire\|fetch(" Peptide/` returns nothing outside StoreKit / SwiftUI internals.
-- [ ] `git grep -nE "OpenAI|Anthropic|Firebase|Sentry|AppsFlyer|Amplitude|Segment|Mixpanel|GoogleService"` returns zero matches.
+- [ ] `git grep -nE "Firebase|Sentry|AppsFlyer|Amplitude|Segment|Mixpanel|GoogleService"` returns zero matches (ad/analytics SDKs stay absent).
+- [ ] The only networking call sites in `Peptide/` are the ones §4 lists: `MealScannerService` / `AIResearchService` / `WeeklySummaryService` (Atlas AI proxy), `OpenFoodFactsService`, `AppAttestService`, RevenueCat configuration in `PeptideApp.swift`, and the dormant consent-gated drains (`AffiliateIntakeService`, `OnboardingFunnelTracker`).
 - [ ] `git grep -n "advertisingIdentifier\|ASIdentifierManager"` returns zero matches.
 
 ---
@@ -424,10 +455,13 @@ Hello App Review,
 Thank you for the detailed feedback. Below is the requested
 information; the §1 screen recording is attached to this reply.
 Atlas is a fitness, nutrition, and recovery tracking app — no
-developer backend, no third-party SDKs, and no external AI services.
-Every feature runs on the user's device. Sign-in is optional, so no
-demo credentials are required; the recording demonstrates this by
-tapping "Continue without an account" at launch.
+developer backend for user data, no ads, and no tracking. Optional AI
+features (meal photo scanning, research assistant, weekly summary) run
+through our own key-holding proxy as described in the External
+Services section below; everything else runs on the user's device.
+Sign-in is optional, so no demo credentials are required; the
+recording demonstrates this by tapping "Continue without an account"
+at launch.
 
 — The Atlas team
 support@peptidesai.com

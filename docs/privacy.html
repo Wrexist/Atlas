@@ -29,25 +29,25 @@
     <span class="eyebrow">Legal</span>
     <h1>Privacy Policy</h1>
     <p class="meta">
-      Effective date: April 30, 2026 &nbsp;·&nbsp;
+      Effective date: April 30, 2026 &nbsp;·&nbsp; Last updated: August 28, 2026 &nbsp;·&nbsp;
       App: Atlas (iOS) &nbsp;·&nbsp;
       Developer: Peptides AI
     </p>
 
     <h2>Summary</h2>
     <p>
-      Atlas is designed to be private by default. As of version 1.0, all of
-      your data stays on your device: we do not operate any backend servers of
-      our own for app functionality, do not run analytics, do not use
-      advertising SDKs, and do not share data with third parties. Nothing you
-      enter in the app — protocols, doses, journal entries, health metrics,
-      achievements — leaves your device unless you explicitly export it
-      yourself. The only network services the app uses are Apple's StoreKit
-      (for subscription purchases) and Apple's Sign in with Apple (only if you
-      choose to sign in); both are governed by Apple's own privacy policy. If
-      you have iCloud enabled, your protocol data may sync through your
+      Atlas is designed to be private by default. Your logs — workouts,
+      meals, protocols, doses, journal entries, health metrics, achievements
+      — are stored on your device and, if you have iCloud enabled, in your
       <em>private</em> iCloud database, which is between you and Apple — we
-      cannot access it.
+      cannot access it. We run no ads, no tracking, and no user-data backend
+      of our own. A small number of network services are used, each described
+      in its own section below: Apple's StoreKit and optional Sign in with
+      Apple; the RevenueCat SDK for subscription infrastructure; Open Food
+      Facts for barcode lookups; and — only when you invoke them — three
+      optional AI features (meal photo scanning, the research assistant, and
+      the weekly summary) that send the minimum needed to our own proxy
+      server, which forwards it to Anthropic's Claude API and stores nothing.
     </p>
 
     <h2>What data the app handles</h2>
@@ -77,31 +77,74 @@
       this in <strong>Settings → [Your Name] → iCloud → Atlas</strong>.
     </p>
 
-    <h3>Apple Health (HealthKit) — read-only</h3>
+    <h3>Apple Health (HealthKit)</h3>
     <p>
       With your permission, Atlas reads the following metrics from Apple
-      Health to correlate them with your protocol adherence:
+      Health to show recovery trends and correlate them with what you log:
     </p>
     <ul>
       <li>Heart rate</li>
       <li>Heart rate variability (HRV, SDNN)</li>
       <li>Resting heart rate</li>
+      <li>Sleep</li>
       <li>Body mass</li>
       <li>Step count</li>
       <li>Active energy burned</li>
     </ul>
     <p>
-      Atlas does <strong>not</strong> write to Apple Health. The app
-      requests <em>read-only</em> authorization
-      (<code>NSHealthShareUsageDescription</code>); no
-      <code>NSHealthUpdateUsageDescription</code> is declared because no
-      write access is needed.
+      If you turn on <strong>"Write meals to Apple Health"</strong> (off by
+      default), Atlas also writes the calories, protein, carbohydrates, and
+      fat of meals you log into Apple Health. Nothing else is written.
     </p>
     <p>
-      HealthKit data is processed entirely on your device. It is never
-      uploaded, and it is never combined with any identifier that leaves
-      your device. You can revoke HealthKit access at any time in
+      HealthKit data is analyzed on your device, with one opt-in exception:
+      if you enable the <strong>AI weekly summary</strong> (an Atlas Pro
+      feature with its own toggle), weekly <em>averages</em> of HRV, resting
+      heart rate, and sleep hours — no raw samples, no identifiers — are sent
+      to our AI proxy to generate your recap and are not stored. Turning the
+      toggle off stops that flow entirely. You can revoke HealthKit access at
+      any time in
       <strong>Settings → Privacy &amp; Security → Health → Atlas</strong>.
+    </p>
+
+    <h3>Camera, photos, and AI meal scanning (optional)</h3>
+    <p>
+      The camera is used for three things you start yourself: scanning food
+      barcodes, reading nutrition labels (processed on-device), and
+      photographing meals for AI nutrition estimation. A meal photo you
+      submit is sent over HTTPS to our proxy server, forwarded to Anthropic's
+      Claude API for analysis, and not retained after the response. Barcode
+      images and label scans never leave your device; an optional profile
+      photo is stored locally. If you pick a meal photo from your library,
+      Atlas reads only that photo and its capture date.
+    </p>
+
+    <h3>AI research assistant and weekly summary (optional, Atlas Pro)</h3>
+    <p>
+      The research assistant sends your chat messages (plus relevant entries
+      from the bundled research database) to the same proxy → Claude API
+      path. The weekly summary sends the aggregate described in the
+      HealthKit section plus adherence and nutrition averages. Requests are
+      authenticated and rate-limited, are processed transiently, and are not
+      used to train models. If you never invoke these features, nothing is
+      ever sent.
+    </p>
+
+    <h3>Subscription infrastructure (RevenueCat)</h3>
+    <p>
+      Atlas uses the RevenueCat SDK in observer mode to keep subscription
+      status reliable. RevenueCat receives purchase/entitlement information
+      from Apple's StoreKit under an anonymous app-user identifier — not
+      your name, email, or health data — and acts as our processor for that
+      purpose. See
+      <a href="https://www.revenuecat.com/privacy/">RevenueCat's privacy policy</a>.
+    </p>
+
+    <h3>Open Food Facts</h3>
+    <p>
+      Barcode and food-name lookups query the public Open Food Facts
+      database. The barcode or search text you enter is the only user input
+      sent.
     </p>
 
     <h3>Sign in with Apple (optional)</h3>
@@ -144,24 +187,30 @@
 
     <h2>What we do NOT collect</h2>
     <ul>
-      <li>No analytics, telemetry, or crash reporting SDKs</li>
       <li>No advertising or tracking identifiers (IDFA or otherwise)</li>
-      <li>No third-party SDKs that phone home</li>
+      <li>No ad networks, data brokers, or cross-app tracking SDKs</li>
+      <li>No crash-reporting or telemetry uploads (diagnostics stay on-device)</li>
       <li>No precise or coarse location</li>
-      <li>No contacts, photos, microphone, or camera access</li>
-      <li>No proprietary cloud storage of your data on our servers</li>
+      <li>No contacts and no microphone</li>
+      <li>No storage of your logs, photos, or health data on our servers</li>
     </ul>
     <p>
       Atlas's App Privacy manifest (<code>PrivacyInfo.xcprivacy</code>)
-      declares <code>NSPrivacyTracking = false</code> and an empty
-      <code>NSPrivacyCollectedDataTypes</code> list.
+      declares <code>NSPrivacyTracking = false</code>. Its collected-data
+      list contains exactly two entries — Purchase History and an anonymous
+      User ID — reflecting the RevenueCat subscription infrastructure
+      described above; neither is linked to your identity or used for
+      tracking.
     </p>
 
     <h2>Data sharing</h2>
     <p>
-      We do not sell, rent, or share your personal data with third parties.
-      We do not have the ability to — your data never leaves your device or
-      your private iCloud database.
+      We do not sell, rent, or share your personal data. The only parties
+      that process data on our behalf are the ones this policy names —
+      Anthropic (transient AI request processing) and RevenueCat
+      (subscription status) — each limited to the specific data described
+      above. Your logs and health history never leave your device or your
+      private iCloud database.
     </p>
 
     <h2>Data export and deletion</h2>

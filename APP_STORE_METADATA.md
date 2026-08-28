@@ -197,10 +197,10 @@ Privacy Policy: https://wrexist.github.io/Peptide-ai/privacy.html
 ——
 
 PRIVATE BY DEFAULT
-• Zero analytics, trackers, or third-party SDKs
-• All data on-device or in your private iCloud — we cannot see it
+• No ads, no tracking, no data brokers — NSPrivacyTracking = false
+• Your logs stay on-device or in your private iCloud — we cannot see them
 • No account required — every feature works without signing in
-• Privacy manifest: NSPrivacyTracking = false, zero collected data types
+• AI features send only what's needed (a meal photo, weekly averages), never stored
 
 ——
 
@@ -212,7 +212,7 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 881 / 4 000 — 119 chars of headroom. The SUBSCRIPTION TERMS block and
+*(3 919 / 4 000 — 81 chars of headroom. The SUBSCRIPTION TERMS block and
 both links are required by Guideline 3.1.2 — do not trim them to make room
 for copy.)*
 
@@ -223,7 +223,7 @@ for copy.)*
 ```
 PeptideX is now Atlas — rebuilt into a complete health & fitness app.
 
-Everything you used for protocol tracking is still here. On top of it we added training, nutrition, recovery, and a daily momentum system that ties it all together — five tabs in one private app. No backend, no analytics. Your data stays on your device.
+Everything you used for protocol tracking is still here. On top of it we added training, nutrition, recovery, and a daily momentum system that ties it all together — five tabs in one private app. No backend, no ads, no tracking. Your data stays on your device.
 
 ——
 
@@ -289,14 +289,14 @@ Fixes iCloud sync (it was silently falling back to local-only storage), dose dup
 ——
 
 PRIVATE BY DEFAULT
-No backend. No analytics. No third-party SDKs. Data lives on-device or in your private iCloud — we can't see it. No account required.
+No backend, no ads, no tracking. Your logs live on-device or in your private iCloud — we can't see them. No account required.
 
 Atlas is an educational reference and tracking journal, not medical advice. Always consult a licensed healthcare provider before changing any training, nutrition, supplement, or protocol.
 
 Feedback → support@peptidesai.com
 ```
 
-*(3 588 / 4 000)*
+*(3 479 / 4 000)*
 
 ---
 
@@ -324,12 +324,25 @@ Feedback → support@peptidesai.com
 
 | Question | Answer |
 |---|---|
-| Do you or your third-party partners collect data from this app? | **No** |
+| Do you or your third-party partners collect data from this app? | **Yes** |
 | Tracking (ATT)? | **No** |
 
-No data categories need to be disclosed. If App Review questions the
-HealthKit entitlement: HealthKit data is read and used on-device only —
-not transmitted, not linked to an identity, not used for tracking.
+Declare exactly two categories, both collected by the RevenueCat SDK
+(observer mode, subscription infrastructure — configured in
+`PeptideApp.swift`):
+
+| Category | Data type | Linked to identity | Tracking | Purpose |
+|---|---|---|---|---|
+| Purchases | Purchase History | No | No | App Functionality |
+| Identifiers | User ID (anonymous RevenueCat app-user ID) | No | No | App Functionality |
+
+If App Review questions the HealthKit entitlement: HealthKit data is
+analyzed on-device and is not retained off-device. The one exception is
+the opt-in Pro weekly summary, which sends weekly *averages* of HRV,
+resting heart rate, and sleep hours (no raw samples, no identifiers) to
+our AI proxy to generate the recap; the request is processed transiently
+and not stored, which is why it is not a collected-data category. Meal
+photos sent to the AI meal scanner are handled the same way.
 
 ### Before configuring any data drain in a shipped build
 
@@ -700,19 +713,24 @@ Delete Account wipes all SwiftData records and the Keychain entry, then
 propagates the delete through the user's private CloudKit zone.
 
 HEALTHKIT
-HealthKit is requested only when you tap "Connect Health" in the Profile
-tab — never automatically. Atlas reads six metrics from Apple Health:
-heart rate, HRV, resting heart rate, body mass, step count, active
-energy. It optionally writes meal macros (calories, protein, carbs, fat)
-if the user enables "Sync to Apple Health" from Profile. Both
+HealthKit access is requested from the optional "Connect Health" step in
+onboarding, or later from the Profile tab — the user always initiates
+it. Atlas reads seven metrics from Apple Health: heart rate, HRV,
+resting heart rate, sleep, body mass, step count, active energy. It
+optionally writes meal macros (calories, protein, carbs, fat) if the
+user enables "Sync to Apple Health" from Profile. Both
 NSHealthShareUsageDescription and NSHealthUpdateUsageDescription are
-declared in Info.plist with strings describing their exact use.
-Denying Health access hides the Recovery correlation section only — no
+declared in Info.plist with strings describing their exact use,
+including the one off-device flow: the opt-in Pro weekly summary sends
+weekly averages of HRV, resting heart rate, and sleep hours (no raw
+samples, no identifiers) to our AI proxy to write the recap; nothing is
+stored. Denying Health access hides the recovery surfaces only — no
 other feature is blocked.
 
 NOTIFICATIONS
-Requested the first time a protocol with a reminder is saved. Denying
-disables reminders only; nothing else is blocked.
+Requested from the optional notifications step in onboarding, or the
+first time a reminder is enabled. Denying disables reminders only;
+nothing else is blocked.
 
 PEPTIDE CONTENT
 The peptide database is educational — 208 compounds with research
@@ -730,12 +748,20 @@ All three products (Monthly, Annual, Lifetime) must be approved in App
 Store Connect before submission.
 
 PRIVACY
-No developer-operated backend. No analytics SDKs, crash reporters,
-advertising identifiers, or third-party AI APIs. Network use is limited
-to Apple's own services: StoreKit 2, Sign in with Apple (optional),
-HealthKit (read/write, on-device only), CloudKit (user's private zone,
-developer cannot access). Each binary ships its own PrivacyInfo.xcprivacy
-declaring NSPrivacyTracking = false and an empty collected-data-types array.
+No developer-operated backend for user data; no advertising or tracking
+SDKs, no crash reporters, no advertising identifiers. Three optional AI
+features (meal photo scanning, the Pro research assistant, the Pro
+weekly summary) call our proxy server, which forwards the request to
+Anthropic's Claude API — the proxy holds the API key, requests are
+processed transiently and not stored, and the weekly summary sends only
+weekly averages (no raw Health samples, no identifiers). The RevenueCat
+SDK runs in observer mode for subscription infrastructure and receives
+StoreKit transaction data under an anonymous ID; the app's privacy
+label and PrivacyInfo.xcprivacy declare Purchase History and User ID
+(not linked to identity, no tracking). Other network use: StoreKit 2,
+Sign in with Apple (optional), CloudKit (user's private zone, developer
+cannot access), and Open Food Facts for barcode lookups. Each binary
+ships its own PrivacyInfo.xcprivacy with NSPrivacyTracking = false.
 
 Support: support@peptidesai.com
 ```

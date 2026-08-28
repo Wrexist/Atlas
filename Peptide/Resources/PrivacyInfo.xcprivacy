@@ -6,8 +6,43 @@
 	<false/>
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
+	<!-- The RevenueCat SDK (observer mode, configured at launch in
+	     PeptideApp.swift) transmits an anonymous app-user ID and StoreKit
+	     purchase/entitlement data to api.revenuecat.com. Per RevenueCat's
+	     App Store privacy guidance those are declared here as Purchase
+	     History and User ID — not linked to identity, not used for
+	     tracking. Meal photos and weekly biometric averages sent to the
+	     Atlas AI proxy are processed transiently to service the request
+	     and are not retained, so they fall under Apple's ephemeral-
+	     processing carve-out and are not "collected" in label terms; the
+	     purpose strings and App Store privacy notes disclose them. -->
 	<key>NSPrivacyCollectedDataTypes</key>
-	<array/>
+	<array>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePurchaseHistory</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeUserID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>
