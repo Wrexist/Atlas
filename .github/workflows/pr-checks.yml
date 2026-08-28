@@ -438,6 +438,20 @@ jobs:
         # warnings are printed for review.
         run: python3 scripts/design-lint.py --all
 
+      - name: Design checker self-tests
+        # design-lint.py once went blind on a rule (rule_glow) without
+        # anything noticing — its own unit suite exists for exactly that
+        # reason, but until now only ran locally via scripts/check.sh.
+        # Run it here so a checker regression fails the PR, not a later
+        # human review.
+        run: python3 scripts/test_design_lint.py
+
+      - name: Copy claims vs source
+        # Pins numeric marketing copy (exercise counts, compound counts,
+        # tier tables), purpose strings vs API use, and entitlements vs
+        # code. Previously local-only via scripts/check.sh.
+        run: python3 scripts/check-copy-claims.py
+
       - name: App Store metadata check
         # Guideline 3.1.2: an app selling auto-renewable subscriptions must
         # link the Terms of Use (EULA) from its metadata, and the App
@@ -490,6 +504,14 @@ jobs:
         # commas, missing brackets, top-level await typos, etc.
         working-directory: server
         run: node --check api/meal-scan.js
+
+      - name: Run proxy test suite
+        # The auth / rate-limit / App Attest / sanitisation logic guarding
+        # the Anthropic key has a full node:test suite (50 tests) that
+        # until now only ran locally via scripts/check.sh. Zero deps —
+        # node --test discovers server/test/ on the stock runner.
+        working-directory: server
+        run: node --test
 
       - name: Sanity-check exports
         # The Vercel runtime expects `default export` to be a function.

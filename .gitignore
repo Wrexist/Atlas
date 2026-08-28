@@ -16,6 +16,10 @@ target/
 *.key
 credentials.json
 service_account.json
+# README instructs putting the six AI-proxy Info.plist slots in a local
+# Secrets.xcconfig — keep every xcconfig out of source control so a
+# `git add .` can never commit the live proxy secrets.
+*.xcconfig
 
 # Xcode
 *.xcodeproj
