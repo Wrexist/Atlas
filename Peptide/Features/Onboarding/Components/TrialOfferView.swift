@@ -6,7 +6,8 @@ import UIKit
 
 /// Conversion-optimized paywall surfaced at the end of onboarding. The
 /// user picks Yearly (anchored as best value with savings vs 12× monthly)
-/// or Monthly (with the 3-day free trial); the CTA delegates to
+/// or Monthly — both carry the 7-day intro offer while this Apple ID is
+/// still trial-eligible; the CTA delegates to
 /// `StoreService.purchase(_:)` which calls `Product.purchase()` and lets
 /// Apple present the intro-offer sheet or charge immediately as appropriate.
 struct TrialOfferView: View {
@@ -20,14 +21,6 @@ struct TrialOfferView: View {
     @State private var sparklePhase = 0.0
     @State private var ctaPulse = false
     @State private var didReveal = false
-    /// Length of the soft urgency window. Long enough to read the screen
-    /// without feeling like a scam, short enough to nudge a decision now
-    /// rather than "later" (which converts far worse). The countdown's
-    /// drain bar divides by this, so the two cannot drift apart.
-    private static let offerWindow: TimeInterval = 10 * 60
-    /// Deadline for the welcome offer, set once on first render so it counts
-    /// down from when the user actually lands on the paywall.
-    @State private var offerDeadline = Date().addingTimeInterval(TrialOfferView.offerWindow)
     /// Selected billing cadence. Initialised to `.annual` then re-assigned
     /// from `OnboardingExperiment.variant(for: .paywallTierOrder)` inside
     /// the view's `.task` modifier — the experiment service is
@@ -72,6 +65,9 @@ struct TrialOfferView: View {
 
     /// Savings percent of annual vs 12× monthly. Returns nil while
     /// products are loading or when annual isn't actually cheaper.
+    /// Sub-5% savings are suppressed to match `PaywallView` — the two
+    /// screens previously disagreed ("SAVE 1%" here, nothing there),
+    /// and a single-digit badge reads as a gimmick, not a saving.
     private var annualSavingsPercent: Int? {
         guard let annual = storeService.annualProduct,
               let monthly = storeService.monthlyProduct,
@@ -80,7 +76,8 @@ struct TrialOfferView: View {
         let yearAtMonthly = monthly.price * 12
         guard yearAtMonthly > annual.price else { return nil }
         let saved = (yearAtMonthly - annual.price) / yearAtMonthly
-        return Int((Double(truncating: saved as NSNumber) * 100).rounded())
+        let percent = Int((Double(truncating: saved as NSNumber) * 100).rounded())
+        return percent >= 5 ? percent : nil
     }
 
     /// Trial length in days for the selected tier, or `nil` when this Apple
@@ -112,7 +109,7 @@ struct TrialOfferView: View {
 
                     heroBadge
                     headline
-                    countdownBanner
+                    valueBanner
                     benefitsCard
                     socialProof
                     tierPicker
@@ -306,66 +303,30 @@ struct TrialOfferView: View {
         ("icloud.fill", "Never lose a session — synced across every device"),
     ]
 
-    // MARK: - Urgency countdown
+    // MARK: - Value banner
 
-    /// Live "offer ends in mm:ss" banner. Drives conversion by giving the
-    /// decision a deadline. `TimelineView` re-renders every second without
-    /// any timer plumbing; once the window elapses it flips to a calmer
-    /// "best value — today only" line rather than showing 00:00.
-    /// A deadline has to look like one. This was a thin capsule with the clock
-    /// set at 16pt inline with its own label — the same visual weight as a
-    /// filter chip, which is to say none. Nothing about it read as time
-    /// running out, so the urgency it was there to create did not land.
-    ///
-    /// It is now a card: the digits get display size and their own line, and
-    /// the window drains visibly underneath. The bar is what makes it read as
-    /// a deadline rather than a number that happens to change — you can see
-    /// how much is left without reading anything.
-    private var countdownBanner: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            countdownCard(remaining: max(0, offerDeadline.timeIntervalSince(context.date)))
-        }
-        .opacity(didReveal ? 1 : 0)
-        .offset(y: didReveal ? 0 : 10)
-        .animation(AppAnimation.springSmooth.delay(0.1), value: didReveal)
-    }
-
-    /// Split out of the `TimelineView` closure rather than written inline.
-    /// Inline, the closure was large enough that one ambiguity inside it —
-    /// an `accessibilityLabel` ternary the compiler could not resolve between
-    /// the `LocalizedStringKey` and `StringProtocol` overloads — surfaced as
-    /// "generic parameter 'Content' could not be inferred" on the
-    /// `TimelineView` line, pointing nowhere near the actual problem.
-    @ViewBuilder
-    private func countdownCard(remaining: TimeInterval) -> some View {
-        VStack(spacing: Spacing.sm) {
-            if remaining > 0 {
-                HStack(spacing: Spacing.xs) {
-                    Image(systemName: "bolt.fill")
-                        .font(AppFont.scaled(11, weight: .bold))
-                    Text("WELCOME OFFER ENDS IN")
-                        .font(AppFont.scaled(11, weight: .heavy))
-                        .tracking(1.5)
-                }
+    /// Static "best value" banner. This used to be a live 10-minute
+    /// "WELCOME OFFER ENDS IN mm:ss" countdown with a draining bar — but
+    /// nothing actually changed at 0:00: the price, the trial, and the
+    /// products were identical before and after, which makes it exactly the
+    /// misleading-urgency pattern App Review has been rejecting under
+    /// Guidelines 2.3.1/3.1.2, and dishonest besides. If a real
+    /// time-limited offer ever ships (a genuine promotional offer with a
+    /// server/StoreKit-enforced expiry), a countdown can return — driven by
+    /// that offer's actual deadline, never a synthetic one.
+    private var valueBanner: some View {
+        // "Free trial" only while this Apple ID can still redeem one —
+        // same eligibility gate as the headline and the CTA.
+        let caption = trialDays != nil
+            ? "Best value — start with a free trial"
+            : "Best value — full access, cancel anytime"
+        return HStack(spacing: Spacing.xs) {
+            Image(systemName: "bolt.fill")
+                .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(AppColor.warning)
-
-                Text(timeString(remaining))
-                    .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .title1))
-                    .monospacedDigit()
-                    .foregroundStyle(AppColor.textPrimary)
-                    .contentTransition(.numericText())
-
-                countdownDrainBar(remaining: remaining)
-            } else {
-                HStack(spacing: Spacing.xs) {
-                    Image(systemName: "bolt.fill")
-                        .font(AppFont.scaled(13, weight: .bold))
-                        .foregroundStyle(AppColor.warning)
-                    Text("Best value — claim it today")
-                        .font(AppFont.scaled(13, weight: .semibold))
-                        .foregroundStyle(AppColor.textPrimary)
-                }
-            }
+            Text(caption)
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.textPrimary)
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, Spacing.lg)
@@ -379,60 +340,30 @@ struct TrialOfferView: View {
                 }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(countdownAccessibilityLabel(remaining: remaining))
+        .accessibilityLabel(caption)
+        .opacity(didReveal ? 1 : 0)
+        .offset(y: didReveal ? 0 : 10)
+        .animation(AppAnimation.springSmooth.delay(0.1), value: didReveal)
     }
 
-    /// Drains left-to-right over the offer window. A Capsule rather than a
-    /// ProgressView so the track reads as part of the card instead of a
-    /// system control dropped into it.
-    private func countdownDrainBar(remaining: TimeInterval) -> some View {
-        GeometryReader { geo in
-            Capsule()
-                .fill(AppColor.warning)
-                .frame(width: geo.size.width * remaining / Self.offerWindow)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .frame(height: 4)
-        .background {
-            Capsule().fill(AppColor.warning.opacity(0.18))
-        }
-        .animation(.linear(duration: 1), value: remaining)
-    }
+    // MARK: - Trust line
 
-    /// A plain `String`, not a ternary at the call site — the two branches
-    /// pick different `accessibilityLabel` overloads otherwise.
-    private func countdownAccessibilityLabel(remaining: TimeInterval) -> String {
-        remaining > 0
-            ? "Welcome offer ends in \(timeString(remaining))"
-            : "Best value — claim it today"
-    }
-
-    private func timeString(_ seconds: TimeInterval) -> String {
-        let total = Int(seconds.rounded())
-        return String(format: "%d:%02d", total / 60, total % 60)
-    }
-
-    // MARK: - Social proof
-
-    /// Star rating + athlete count directly under the feature list. Trust
-    /// signal right where the user is weighing the price — mirrors the
-    /// welcome screen's `SocialProofPill` so the claim is consistent.
+    /// Trust signal directly under the feature list, right where the user is
+    /// weighing the price. Verifiable claims only — the previous fabricated
+    /// "4.9 · 12k+ athletes" rating is gone (Guideline 2.3.1; no App Store
+    /// source existed). Mirrors PaywallView's trust line so the story stays
+    /// consistent between screens.
     private var socialProof: some View {
         HStack(spacing: Spacing.sm) {
-            HStack(spacing: 1) {
-                ForEach(0..<5, id: \.self) { _ in
-                    Image(systemName: "star.fill")
-                        .font(AppFont.scaled(11))
-                        .foregroundStyle(AppColor.achievement)
-                }
-            }
-            Text("4.9")
-                .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
-                .foregroundStyle(AppColor.textPrimary)
-            Text("· Loved by 12k+ athletes")
+            Image(systemName: "lock.shield.fill")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.accentPrimary)
+            Text("Private by design — no ads, no tracking, cancel anytime")
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Private by design. No ads, no tracking. Cancel anytime.")
         .opacity(didReveal ? 1 : 0)
         .animation(AppAnimation.springSmooth.delay(0.45), value: didReveal)
     }

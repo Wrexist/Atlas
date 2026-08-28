@@ -206,29 +206,25 @@ struct PaywallView: View {
         return "\(price) — cancel any time."
     }
 
-    // MARK: - Social proof
+    // MARK: - Trust line
 
-    /// Rating + athlete count sit directly under the prices, where the user is
-    /// weighing the number. Same claim as the welcome screen and the
-    /// onboarding offer, so the story doesn't change between screens.
+    /// Sits directly under the prices, where the user is weighing the number.
+    /// A verifiable claim only: the app's privacy posture. The previous
+    /// "4.9 · 12k+ athletes" rating had no App Store source behind it —
+    /// fabricated social proof inside a purchase flow is a Guideline 2.3.1
+    /// problem and beneath the app's honesty bar. Reinstate a rating pill
+    /// only when it renders the real, current App Store figure.
     private var socialProof: some View {
         HStack(spacing: Spacing.sm) {
-            HStack(spacing: 2) {
-                ForEach(0..<5, id: \.self) { _ in
-                    Image(systemName: "star.fill")
-                        .font(AppFont.scaled(11, weight: .semibold))
-                        .foregroundStyle(AppColor.achievement)
-                }
-            }
-            Text("4.9")
-                .font(AppFont.scaled(13, weight: .bold, design: .rounded))
-                .foregroundStyle(AppColor.textPrimary)
-            Text("· Loved by 12k+ athletes")
+            Image(systemName: "lock.shield.fill")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.accentPrimary)
+            Text("Private by design — no ads, no tracking, cancel anytime")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Rated 4.9 out of 5 by more than 12,000 athletes")
+        .accessibilityLabel("Private by design. No ads, no tracking. Cancel anytime.")
     }
 
     // MARK: - Trial timeline
