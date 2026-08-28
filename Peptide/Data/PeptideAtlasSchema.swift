@@ -39,29 +39,18 @@ enum PeptideAtlasSchemaV2: VersionedSchema {
     }
 }
 
-/// V3: `StoredProfile` grew the split feature-area columns (mealsData,
-/// habitsData, momentumData, weightHistoryData, labsData, outcomesData,
-/// foodLibraryData, summariesData) plus `singletonKey` / `updatedAt`.
-/// Purely additive — every new attribute is optional or defaulted, so
-/// the V2→V3 stage is lightweight and CloudKit accepts the new record
-/// fields without redeploying the container schema by hand.
-enum PeptideAtlasSchemaV3: VersionedSchema {
-    static var versionIdentifier: Schema.Version {
-        Schema.Version(3, 0, 0)
-    }
-
-    static var models: [any PersistentModel.Type] {
-        [
-            StoredProtocol.self,
-            StoredEntry.self,
-            StoredProfile.self,
-            StoredWorkoutSession.self,
-            StoredCustomExercise.self,
-            StoredRoutine.self,
-            StoredPersonalRecord.self,
-        ]
-    }
-}
+// NOTE on the profile column split (Data Integrity 04): `StoredProfile`
+// gained additive optional/defaulted columns (mealsData … summariesData,
+// singletonKey, updatedAt) WITHOUT a version bump. A declared V3 whose
+// model list shares the same live `@Model` classes as V2 makes SwiftData
+// compute two version checksums from one editable model and abort at
+// container creation ("Attempting to retrieve an NSManagedObjectModel
+// version checksum while the model is still editable" → signal abrt in
+// CI run 416). Additive optional columns ride Apple's inferred
+// lightweight migration instead — the same path the `.unique` removal
+// and the original `extensionData` column shipped through. Bump to V3
+// only for a structural change, and then with distinct model types per
+// version, not shared classes.
 
 /// Migration plan for the SwiftData store. Today this is single-stage
 /// (V2 only) because the V1→V2 transition predates this scaffold —
@@ -82,19 +71,10 @@ enum PeptideAtlasSchemaV3: VersionedSchema {
 ///      needs both endpoints declared.
 enum PeptideAtlasMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [PeptideAtlasSchemaV2.self, PeptideAtlasSchemaV3.self]
+        [PeptideAtlasSchemaV2.self]
     }
 
     static var stages: [MigrationStage] {
-        [
-            // Additive-only profile column split — no data transform.
-            // Existing rows keep everything in `extensionData`; the new
-            // columns stay nil until the next save, and reads fall back
-            // to the blob in the meantime (see StoredProfile).
-            .lightweight(
-                fromVersion: PeptideAtlasSchemaV2.self,
-                toVersion: PeptideAtlasSchemaV3.self
-            ),
-        ]
+        []  // No staged migrations; additive column changes are inferred.
     }
 }

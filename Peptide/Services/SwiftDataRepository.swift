@@ -169,7 +169,7 @@ final class SwiftDataRepository {
     /// the V2 declaration and the migration plan template that a
     /// future V3 will extend.
     private static var versionedSchema: Schema {
-        Schema(versionedSchema: PeptideAtlasSchemaV3.self)
+        Schema(versionedSchema: PeptideAtlasSchemaV2.self)
     }
 
     private static func makeCloudContainer() -> ModelContainer? {

@@ -12,7 +12,7 @@ import XCTest
 final class CloudKitSchemaCompatibilityTests: XCTestCase {
 
     func test_schema_hasNoUniqueAttributes() {
-        let schema = Schema(versionedSchema: PeptideAtlasSchemaV3.self)
+        let schema = Schema(versionedSchema: PeptideAtlasSchemaV2.self)
         for entity in schema.entities {
             for attribute in entity.attributes {
                 XCTAssertFalse(
@@ -24,7 +24,7 @@ final class CloudKitSchemaCompatibilityTests: XCTestCase {
     }
 
     func test_schema_declaresEveryStoredModel() {
-        let schema = Schema(versionedSchema: PeptideAtlasSchemaV3.self)
+        let schema = Schema(versionedSchema: PeptideAtlasSchemaV2.self)
         let names = Set(schema.entities.map(\.name))
         for expected in ["StoredProtocol", "StoredEntry", "StoredProfile",
                          "StoredWorkoutSession", "StoredCustomExercise",
@@ -42,7 +42,7 @@ final class CloudKitSchemaCompatibilityTests: XCTestCase {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         XCTAssertNoThrow(
             try ModelContainer(
-                for: Schema(versionedSchema: PeptideAtlasSchemaV3.self),
+                for: Schema(versionedSchema: PeptideAtlasSchemaV2.self),
                 migrationPlan: PeptideAtlasMigrationPlan.self,
                 configurations: config
             )
@@ -54,7 +54,7 @@ final class CloudKitSchemaCompatibilityTests: XCTestCase {
         XCTAssertEqual(versions.count, Set(versions).count, "Duplicate schema versions in the plan")
         XCTAssertEqual(
             PeptideAtlasMigrationPlan.schemas.last?.versionIdentifier,
-            PeptideAtlasSchemaV3.versionIdentifier,
+            PeptideAtlasSchemaV2.versionIdentifier,
             "The live schema must be the last link in the migration chain"
         )
     }
