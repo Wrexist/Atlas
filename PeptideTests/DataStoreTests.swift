@@ -318,4 +318,66 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(saved?.peptideSchedules[peptide.id], override,
                        "peptideSchedules must survive an updateProtocol round-trip when explicitly passed")
     }
+
+    // MARK: - Watch delivery idempotency
+
+    func test_watchMarkCompleteDuplicateDelivery_doesNotUncomplete() {
+        guard let entry = store.entries.first(where: { !$0.completed }) else {
+            XCTFail("No incomplete entries in seed data")
+            return
+        }
+        store.markEntryComplete(entry.id)
+        XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, true)
+
+        // WCSession can deliver the same action twice (sendMessage error
+        // fallback re-sends via transferUserInfo). The duplicate must not
+        // flip the entry back to incomplete.
+        store.markEntryComplete(entry.id)
+        XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, true)
+    }
+
+    func test_watchMarkIncompleteDuplicateDelivery_doesNotComplete() {
+        guard let entry = store.entries.first(where: { !$0.completed }) else {
+            XCTFail("No incomplete entries in seed data")
+            return
+        }
+        store.markEntryComplete(entry.id)
+        store.markEntryIncomplete(entry.id)
+        XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, false)
+
+        store.markEntryIncomplete(entry.id)
+        XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, false)
+    }
+
+    // MARK: - Persistence failure must not update projections
+
+    func test_performSaveNow_widgetAndWatchNotUpdated_whenCommitFails() {
+        let repo = SwiftDataRepository.shared
+        guard let entry = store.entries.first else {
+            XCTFail("No entries in store")
+            return
+        }
+
+        repo.forceCommitFailureForTesting = true
+        store.toggleEntry(entry.id)
+        let widgetBaseline = store.widgetUpdateCountForTesting
+        let watchBaseline = store.watchUpdateCountForTesting
+        store.flushPendingSave()
+
+        XCTAssertTrue(repo.commitDidFail, "Forced commit failure must be reported")
+        XCTAssertEqual(store.widgetUpdateCountForTesting, widgetBaseline,
+                       "Widget projection must not update when persistence fails")
+        XCTAssertEqual(store.watchUpdateCountForTesting, watchBaseline,
+                       "Watch projection must not update when persistence fails")
+        XCTAssertEqual(store.lastError, DataStore.saveFailureMessage,
+                       "The user-visible save-failure banner must still surface")
+
+        // Recovery: once persistence succeeds again the projections push
+        // and the banner clears.
+        repo.forceCommitFailureForTesting = false
+        store.flushPendingSave()
+        XCTAssertGreaterThan(store.widgetUpdateCountForTesting, widgetBaseline)
+        XCTAssertGreaterThan(store.watchUpdateCountForTesting, watchBaseline)
+        XCTAssertNil(store.lastError)
+    }
 }

@@ -402,6 +402,24 @@ final class DataStore: DataServiceProtocol {
         }
     }
 
+    /// Idempotent completion setters for externally delivered commands
+    /// (WatchConnectivity, widget intents). WCSession can deliver the same
+    /// action twice — the Watch's `sendOrQueue` falls back to
+    /// `transferUserInfo` when `sendMessage`'s error handler fires, which
+    /// can happen after the phone already processed the message — so these
+    /// only mutate when the entry is actually in the opposite state. A
+    /// blind toggle would flip an already-completed dose back to
+    /// incomplete on the duplicate delivery.
+    func markEntryComplete(_ entryId: UUID) {
+        guard entries.first(where: { $0.id == entryId })?.completed == false else { return }
+        toggleEntry(entryId)
+    }
+
+    func markEntryIncomplete(_ entryId: UUID) {
+        guard entries.first(where: { $0.id == entryId })?.completed == true else { return }
+        toggleEntry(entryId)
+    }
+
     func logDose(entryId: UUID, actualDose: String?, actualTime: Date?, injectionSite: String?, notes: String) {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
         let existing = entries[index]
@@ -1463,14 +1481,19 @@ final class DataStore: DataServiceProtocol {
             note: "Quick-log · \(entry.sets) sets × \(entry.reps) reps",
             perceivedEffort: nil
         )
+        repo.beginSaveBatch()
         repo.upsertWorkoutSession(session)
         // Invalidate caches and refresh the widget/Watch surfaces.
         // `bumpVersionIfDayChanged()` was a no-op on the common
         // same-day path, so the Today widget's workout count went
         // stale until an unrelated mutation happened to bump it.
         cacheVersion &+= 1
-        updateWidgetData()
-        updateWatchData()
+        if repo.commitDidFail {
+            lastError = Self.saveFailureMessage
+        } else {
+            updateWidgetData()
+            updateWatchData()
+        }
         // Quick-log sessions have no exercises, so no PRs are possible.
         recordWorkoutFinished(detectedPRCount: 0)
     }
@@ -1479,14 +1502,19 @@ final class DataStore: DataServiceProtocol {
     /// as `WorkoutSessionService.discardWorkout` for the active path —
     /// here it targets the historical row directly.
     func deleteWorkout(id: UUID) {
+        repo.beginSaveBatch()
         repo.deleteWorkoutSession(id: id)
         cacheVersion &+= 1
         // Same reason as `recordWorkoutFinished`: a repo-level write is
         // invisible to the property observers, so derived snapshots need
         // telling explicitly or a deleted workout lingers on Today.
         revision &+= 1
-        updateWidgetData()
-        updateWatchData()
+        if repo.commitDidFail {
+            lastError = Self.saveFailureMessage
+        } else {
+            updateWidgetData()
+            updateWatchData()
+        }
     }
 
     /// Fired when a workout is finalized (structured finish via
@@ -1982,7 +2010,15 @@ final class DataStore: DataServiceProtocol {
         // serious init-time "Storage unavailable" messages.
         if repo.commitDidFail {
             lastError = Self.saveFailureMessage
-        } else if lastError == Self.saveFailureMessage {
+            // Persistence failed — the in-memory state is ahead of the
+            // store. Do NOT push it to the widget/Watch projections: after
+            // a relaunch the app reloads the older persisted state, and a
+            // projection written now would show "completed" for a dose the
+            // source of truth never recorded. The banner above tells the
+            // user; the projections keep their last-good snapshot.
+            return
+        }
+        if lastError == Self.saveFailureMessage {
             lastError = nil
         }
 
@@ -2040,7 +2076,19 @@ final class DataStore: DataServiceProtocol {
     /// standing up `DataStore` + `PersistenceService`. Nutrition is
     /// pulled live from the profile so the nutrition widget reflects
     /// the same numbers the Meals tab shows.
+    #if DEBUG
+    /// Test-only observability: bumped every time a projection push
+    /// actually runs, so tests can assert the widget/Watch surfaces were
+    /// (or were not) updated without reaching into the App Group
+    /// container or a live WCSession.
+    @ObservationIgnored private(set) var widgetUpdateCountForTesting = 0
+    @ObservationIgnored private(set) var watchUpdateCountForTesting = 0
+    #endif
+
     private func updateWidgetData() {
+        #if DEBUG
+        widgetUpdateCountForTesting += 1
+        #endif
         let data = WidgetSnapshotBuilder.build(
             today: todayEntries,
             next: nextDose,
@@ -2057,6 +2105,9 @@ final class DataStore: DataServiceProtocol {
     /// definitions are shared with any future watch / widget / share-card
     /// surface that needs the same numbers.
     private func updateWatchData() {
+        #if DEBUG
+        watchUpdateCountForTesting += 1
+        #endif
         // Surface the same stats the Stats page on the watch reads —
         // streak, week compliance, total logged — plus the Atlas Score
         // and today's health/training habit split for the Watch

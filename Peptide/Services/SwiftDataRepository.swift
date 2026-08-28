@@ -221,6 +221,10 @@ final class SwiftDataRepository {
         container = Self.makeInMemoryContainer()
         isUsingFallbackStore = false
         isInoperable = container == nil
+        commitDidFail = false
+        #if DEBUG
+        forceCommitFailureForTesting = false
+        #endif
     }
 
     /// Removes all records. Call in test tearDown only.
@@ -841,11 +845,24 @@ final class SwiftDataRepository {
     /// Resets the commit-failure flag at the start of a save batch.
     func beginSaveBatch() { commitDidFail = false }
 
+    #if DEBUG
+    /// Test-only: makes every `commit()` report failure without needing a
+    /// genuinely broken store, so persistence-failure handling (banner,
+    /// projection gating) is testable deterministically.
+    var forceCommitFailureForTesting = false
+    #endif
+
     // MARK: - Private
 
     @discardableResult
     private func commit() -> Bool {
         guard let context else { return false }
+        #if DEBUG
+        if forceCommitFailureForTesting {
+            commitDidFail = true
+            return false
+        }
+        #endif
         do {
             try context.save()
             return true

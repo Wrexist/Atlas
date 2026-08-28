@@ -63,12 +63,10 @@ struct PeptideApp: App {
             MigrationService.shared.migrateIfNeeded()
             let store = DataStore()
             WatchSyncService.shared.onMarkComplete = { entryId, _ in
-                store.toggleEntry(entryId)
+                store.markEntryComplete(entryId)
             }
             WatchSyncService.shared.onMarkIncomplete = { entryId, _ in
-                if store.entries.first(where: { $0.id == entryId })?.completed == true {
-                    store.toggleEntry(entryId)
-                }
+                store.markEntryIncomplete(entryId)
             }
             WatchSyncService.shared.onLogWater = { oz in
                 store.logWater(oz: oz)
