@@ -6,6 +6,13 @@ import SwiftData
 private let sdEncoder: JSONEncoder = {
     let e = JSONEncoder()
     e.dateEncodingStrategy = .iso8601
+    // Deterministic output: `StoredProfile.update(from:)` compares the
+    // fresh encoding against the stored bytes to decide whether a
+    // column actually changed (an untouched column is what lets
+    // CloudKit merge concurrent edits). Without sorted keys, dictionary
+    // fields re-encode in random order and every save looks like a
+    // change.
+    e.outputFormatting = [.sortedKeys]
     return e
 }()
 
@@ -263,11 +270,53 @@ final class StoredProfile {
     var primaryGoal: String?
     /// JSON-encoded `ProfileExtension` carrying the long-tail Meals /
     /// Biology / onboarding fields that don't warrant their own columns
-    /// (nutrition targets, weight + workout history, daily consumption
-    /// buckets, biology config, etc.).
+    /// (nutrition targets, biology config, training prefs, etc.).
     /// Optional so existing rows decode cleanly — `toUserProfile` falls
     /// back to empty collections on a missing/legacy blob.
+    ///
+    /// High-churn feature areas are deliberately NOT in this blob any
+    /// more — see the split columns below. CloudKit resolves conflicts
+    /// per record field, so two devices editing independent features
+    /// inside one opaque blob meant one device's blob silently
+    /// overwrote the other's. Splitting the frequently-and-
+    /// independently-edited areas into their own columns confines a
+    /// last-writer-wins conflict to the one feature actually edited on
+    /// both devices.
     var extensionData: Data?
+
+    // Split high-churn feature areas (audit Data Integrity 04, Phase 3).
+    // All optional so existing rows decode without migration; reads fall
+    // back to the same key inside the legacy `extensionData` blob, so no
+    // up-front data migration runs and no legacy value is discarded.
+    /// JSON `MealsSlice` — meal log + per-day consumption buckets.
+    var mealsData: Data?
+    /// JSON `HabitsSlice` — habit definitions + check-ins.
+    var habitsData: Data?
+    /// JSON `MomentumSlice` — Atlas Score state + history.
+    var momentumData: Data?
+    /// JSON `[WeightEntry]` — weigh-in history.
+    var weightHistoryData: Data?
+    /// JSON `[LabValue]` — lab/biomarker entries.
+    var labsData: Data?
+    /// JSON `[OutcomeEntry]` — daily outcome check-ins.
+    var outcomesData: Data?
+    /// JSON `FoodLibrarySlice` — custom foods + favorite food IDs.
+    var foodLibraryData: Data?
+    /// JSON `[String: WeeklySummary]` — weekly recap cache.
+    var summariesData: Data?
+
+    /// Deterministic singleton marker (audit Phase 8) — the same value
+    /// on every device, so the profile row is identified by declared
+    /// role rather than "whatever fetch returned first". Not a unique
+    /// constraint (CloudKit forbids those); duplicate rows created by
+    /// two devices racing first-launch are reconciled in
+    /// `SwiftDataRepository.canonicalProfileRow`.
+    var singletonKey: String = StoredProfile.canonicalSingletonKey
+    /// Stamped on every content-changing local save. Duplicate-row
+    /// reconciliation keeps the newest row as the winner.
+    var updatedAt: Date = Date()
+
+    static let canonicalSingletonKey = "atlas.profile.primary"
 
     init(name: String, memberSince: Date, healthConnected: Bool,
          hapticFeedbackEnabled: Bool, doseRemindersEnabled: Bool,
@@ -289,13 +338,15 @@ final class StoredProfile {
         self.bio = bio
         self.primaryGoal = primaryGoal
         self.extensionData = extensionData
+        self.singletonKey = Self.canonicalSingletonKey
+        self.updatedAt = Date()
     }
 
     static func make(from profile: UserProfile) throws -> StoredProfile {
         let goalsData = try sdEncoder.encode(profile.goals)
         let metricsData = try sdEncoder.encode(profile.bodyMetrics)
-        let extData = try sdEncoder.encode(ProfileExtension.snapshot(of: profile))
-        return StoredProfile(
+        let extData = try sdEncoder.encode(ProfileExtension.residual(of: profile))
+        let stored = StoredProfile(
             name: profile.name,
             memberSince: profile.memberSince,
             healthConnected: profile.healthConnected,
@@ -309,21 +360,87 @@ final class StoredProfile {
             primaryGoal: profile.primaryGoal,
             extensionData: extData
         )
+        try stored.writeSlices(from: profile)
+        return stored
     }
 
     func update(from profile: UserProfile) throws {
-        name = profile.name
-        memberSince = profile.memberSince
-        healthConnected = profile.healthConnected
-        hapticFeedbackEnabled = profile.hapticFeedbackEnabled
-        doseRemindersEnabled = profile.doseRemindersEnabled
-        biometricLockEnabled = profile.biometricLockEnabled
-        goalsData = try sdEncoder.encode(profile.goals)
-        bodyMetricsData = try sdEncoder.encode(profile.bodyMetrics)
-        avatarImageData = profile.avatarImageData
-        bio = profile.bio.isEmpty ? nil : profile.bio
-        primaryGoal = profile.primaryGoal
-        extensionData = try sdEncoder.encode(ProfileExtension.snapshot(of: profile))
+        // Assign only what actually changed. Every property assignment
+        // marks its CloudKit record field dirty and ships it on the next
+        // sync — and an untouched field is exactly what lets CloudKit
+        // merge two devices' concurrent edits instead of clobbering.
+        var contentChanged = false
+        func assign<T: Equatable>(
+            _ keyPath: ReferenceWritableKeyPath<StoredProfile, T>, _ value: T
+        ) {
+            guard self[keyPath: keyPath] != value else { return }
+            self[keyPath: keyPath] = value
+            contentChanged = true
+        }
+        assign(\.name, profile.name)
+        assign(\.memberSince, profile.memberSince)
+        assign(\.healthConnected, profile.healthConnected)
+        assign(\.hapticFeedbackEnabled, profile.hapticFeedbackEnabled)
+        assign(\.doseRemindersEnabled, profile.doseRemindersEnabled)
+        assign(\.biometricLockEnabled, profile.biometricLockEnabled)
+        assign(\.goalsData, try sdEncoder.encode(profile.goals))
+        assign(\.bodyMetricsData, try sdEncoder.encode(profile.bodyMetrics))
+        assign(\.avatarImageData, profile.avatarImageData)
+        assign(\.bio, profile.bio.isEmpty ? nil : profile.bio)
+        assign(\.primaryGoal, profile.primaryGoal)
+        assign(\.extensionData, try sdEncoder.encode(ProfileExtension.residual(of: profile)))
+        try writeSlices(from: profile, assign: { keyPath, value in
+            assign(keyPath, value)
+        })
+        assign(\.singletonKey, Self.canonicalSingletonKey)
+        if contentChanged { updatedAt = Date() }
+    }
+
+    /// Encodes each split feature area into its own column.
+    private func writeSlices(
+        from profile: UserProfile,
+        assign: ((ReferenceWritableKeyPath<StoredProfile, Data?>, Data?) -> Void)? = nil
+    ) throws {
+        let set: (ReferenceWritableKeyPath<StoredProfile, Data?>, Data?) -> Void =
+            assign ?? { self[keyPath: $0] = $1 }
+        set(\.mealsData, try sdEncoder.encode(MealsSlice(
+            mealHistory: profile.mealHistory,
+            dailyConsumption: profile.dailyConsumption
+        )))
+        set(\.habitsData, try sdEncoder.encode(HabitsSlice(
+            habits: profile.habits,
+            habitEntries: profile.habitEntries
+        )))
+        set(\.momentumData, try sdEncoder.encode(MomentumSlice(
+            atlasScore: profile.atlasScore,
+            atlasLevel: profile.atlasLevel,
+            momentumAwardedToday: profile.momentumAwardedToday,
+            lastMomentumAwardDay: profile.lastMomentumAwardDay,
+            momentumHistory: profile.momentumHistory
+        )))
+        set(\.weightHistoryData, try sdEncoder.encode(profile.weightHistory))
+        set(\.labsData, try sdEncoder.encode(profile.labHistory))
+        set(\.outcomesData, try sdEncoder.encode(profile.outcomeHistory))
+        set(\.foodLibraryData, try sdEncoder.encode(FoodLibrarySlice(
+            customFoods: profile.customFoods,
+            favoriteFoodIDs: Array(profile.favoriteFoodIDs).sorted()
+        )))
+        set(\.summariesData, try sdEncoder.encode(profile.weeklySummaries))
+    }
+
+    /// Decodes an optional slice column, falling back to the legacy
+    /// blob's value when the column is nil (a row written before the
+    /// split) and logging — never silently wiping — on corruption.
+    private func slice<T: Decodable>(_ data: Data?, legacy: @autoclosure () -> T) -> T {
+        guard let data else { return legacy() }
+        do {
+            return try sdDecoder.decode(T.self, from: data)
+        } catch {
+            AppLog.swiftData.error(
+                "Profile slice decode failed (\(String(describing: T.self), privacy: .public)); falling back to legacy blob: \(error.localizedDescription, privacy: .public)"
+            )
+            return legacy()
+        }
     }
 
     func toUserProfile() throws -> UserProfile {
@@ -370,6 +487,25 @@ final class StoredProfile {
         } else {
             ext = .empty
         }
+        // Split columns take precedence; a nil column means the row was
+        // written before the split, so the legacy blob's value carries
+        // through untouched.
+        let meals = slice(mealsData, legacy: MealsSlice(
+            mealHistory: ext.mealHistory, dailyConsumption: ext.dailyConsumption
+        ))
+        let habitsSlice = slice(habitsData, legacy: HabitsSlice(
+            habits: ext.habits, habitEntries: ext.habitEntries
+        ))
+        let momentum = slice(momentumData, legacy: MomentumSlice(
+            atlasScore: ext.atlasScore,
+            atlasLevel: ext.atlasLevel,
+            momentumAwardedToday: ext.momentumAwardedToday,
+            lastMomentumAwardDay: ext.lastMomentumAwardDay,
+            momentumHistory: ext.momentumHistory
+        ))
+        let foodLibrary = slice(foodLibraryData, legacy: FoodLibrarySlice(
+            customFoods: ext.customFoods, favoriteFoodIDs: ext.favoriteFoodIDs
+        ))
         return UserProfile(
             name: name,
             goals: goals,
@@ -383,37 +519,68 @@ final class StoredProfile {
             creatorAttribution: ext.creatorAttribution,
             affiliateApplication: ext.affiliateApplication,
             emailSubscription: ext.emailSubscription,
-            weightHistory: ext.weightHistory,
+            weightHistory: slice(weightHistoryData, legacy: ext.weightHistory),
             progressPhotoFilenames: ext.progressPhotoFilenames,
-            dailyConsumption: ext.dailyConsumption,
+            dailyConsumption: meals.dailyConsumption,
             workoutHistory: ext.workoutHistory,
             avatarImageData: avatarImageData,
             bio: bio ?? "",
             primaryGoal: primaryGoal,
-            customFoods: ext.customFoods,
-            favoriteFoodIDs: Set(ext.favoriteFoodIDs),
-            mealHistory: ext.mealHistory,
+            customFoods: foodLibrary.customFoods,
+            favoriteFoodIDs: Set(foodLibrary.favoriteFoodIDs),
+            mealHistory: meals.mealHistory,
             healthKitNutritionEnabled: ext.healthKitNutritionEnabled,
-            outcomeHistory: ext.outcomeHistory,
-            labHistory: ext.labHistory,
+            outcomeHistory: slice(outcomesData, legacy: ext.outcomeHistory),
+            labHistory: slice(labsData, legacy: ext.labHistory),
             lastKnownTimezoneIdentifier: ext.lastKnownTimezoneIdentifier,
             streakFreezeDays: Set(ext.streakFreezeDays),
             recipes: ext.recipes,
             protocolNotes: ext.protocolNotes,
             weeklySummaryEnabled: ext.weeklySummaryEnabled ?? true,
-            weeklySummaries: ext.weeklySummaries ?? [:],
+            weeklySummaries: slice(summariesData, legacy: ext.weeklySummaries ?? [:]),
             biologyConfig: ext.biologyConfig,
             trainingPreferences: ext.trainingPreferences,
             goalDate: ext.goalDate,
-            habits: ext.habits,
-            habitEntries: ext.habitEntries,
-            atlasScore: ext.atlasScore,
-            atlasLevel: ext.atlasLevel,
-            momentumAwardedToday: ext.momentumAwardedToday,
-            lastMomentumAwardDay: ext.lastMomentumAwardDay,
-            momentumHistory: ext.momentumHistory
+            habits: habitsSlice.habits,
+            habitEntries: habitsSlice.habitEntries,
+            atlasScore: momentum.atlasScore,
+            atlasLevel: momentum.atlasLevel,
+            momentumAwardedToday: momentum.momentumAwardedToday,
+            lastMomentumAwardDay: momentum.lastMomentumAwardDay,
+            momentumHistory: momentum.momentumHistory
         )
     }
+}
+
+// MARK: - Profile slices
+
+/// Per-feature-area containers for the split `StoredProfile` columns.
+/// Each groups only fields that are always edited together, so a
+/// CloudKit field-level merge preserves unrelated features edited on
+/// another device.
+struct MealsSlice: Codable {
+    var mealHistory: [MealEntry] = []
+    var dailyConsumption: [String: DailyConsumption] = [:]
+}
+
+struct HabitsSlice: Codable {
+    var habits: [Habit] = []
+    var habitEntries: [HabitEntry] = []
+}
+
+struct MomentumSlice: Codable {
+    var atlasScore: Int = 0
+    var atlasLevel: Int = 1
+    var momentumAwardedToday: Int = 0
+    var lastMomentumAwardDay: Date? = nil
+    var momentumHistory: [MomentumDayPoint] = []
+}
+
+struct FoodLibrarySlice: Codable {
+    var customFoods: [CustomFood] = []
+    /// `[String]` (sorted) for a deterministic on-disk shape; collapsed
+    /// back to `Set<String>` on read.
+    var favoriteFoodIDs: [String] = []
 }
 
 /// Sidecar blob persisted on `StoredProfile.extensionData`. Holds the
@@ -481,22 +648,22 @@ private struct ProfileExtension: Codable {
 
     static let empty = ProfileExtension()
 
-    static func snapshot(of profile: UserProfile) -> ProfileExtension {
+    /// Snapshot of everything that still lives in the blob. The split
+    /// areas (meals, habits, momentum, weight, labs, outcomes, food
+    /// library, weekly summaries) are deliberately left at their
+    /// defaults — their canonical home is the dedicated `StoredProfile`
+    /// columns, and duplicating them here would resurrect the whole-
+    /// blob conflict this split exists to remove. Reads still honour a
+    /// legacy blob that carries them (rows written before the split).
+    static func residual(of profile: UserProfile) -> ProfileExtension {
         ProfileExtension(
             nutritionTargets: profile.nutritionTargets,
             creatorAttribution: profile.creatorAttribution,
             affiliateApplication: profile.affiliateApplication,
             emailSubscription: profile.emailSubscription,
-            weightHistory: profile.weightHistory,
             progressPhotoFilenames: profile.progressPhotoFilenames,
-            dailyConsumption: profile.dailyConsumption,
             workoutHistory: profile.workoutHistory,
-            customFoods: profile.customFoods,
-            favoriteFoodIDs: Array(profile.favoriteFoodIDs).sorted(),
-            mealHistory: profile.mealHistory,
             healthKitNutritionEnabled: profile.healthKitNutritionEnabled,
-            outcomeHistory: profile.outcomeHistory,
-            labHistory: profile.labHistory,
             lastKnownTimezoneIdentifier: profile.lastKnownTimezoneIdentifier,
             streakFreezeDays: Array(profile.streakFreezeDays).sorted(),
             recipes: profile.recipes,
@@ -504,15 +671,7 @@ private struct ProfileExtension: Codable {
             biologyConfig: profile.biologyConfig,
             trainingPreferences: profile.trainingPreferences,
             weeklySummaryEnabled: profile.weeklySummaryEnabled,
-            weeklySummaries: profile.weeklySummaries,
-            goalDate: profile.goalDate,
-            habits: profile.habits,
-            habitEntries: profile.habitEntries,
-            atlasScore: profile.atlasScore,
-            atlasLevel: profile.atlasLevel,
-            momentumAwardedToday: profile.momentumAwardedToday,
-            lastMomentumAwardDay: profile.lastMomentumAwardDay,
-            momentumHistory: profile.momentumHistory
+            goalDate: profile.goalDate
         )
     }
 }

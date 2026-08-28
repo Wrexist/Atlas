@@ -169,7 +169,7 @@ final class SwiftDataRepository {
     /// the V2 declaration and the migration plan template that a
     /// future V3 will extend.
     private static var versionedSchema: Schema {
-        Schema(versionedSchema: PeptideAtlasSchemaV2.self)
+        Schema(versionedSchema: PeptideAtlasSchemaV3.self)
     }
 
     private static func makeCloudContainer() -> ModelContainer? {
@@ -215,6 +215,13 @@ final class SwiftDataRepository {
     }
 
     // MARK: - Test Support
+
+    #if DEBUG
+    /// Test-only: direct context access so tests can assert on and
+    /// construct row-level fixtures (e.g. duplicate profile rows) that
+    /// the public API rightly refuses to create.
+    var contextForTesting: ModelContext? { context }
+    #endif
 
     /// Replaces the container with an in-memory store. Call in test setUp only.
     func configureForTesting() {
@@ -468,11 +475,44 @@ final class SwiftDataRepository {
 
     // MARK: - Profile
 
+    /// Returns the canonical profile row, reconciling duplicates.
+    /// Two devices that each ran the "no row yet → insert" branch before
+    /// CloudKit converged leave two rows behind, and an unsorted
+    /// `.first` fetch then flip-flops between them across launches.
+    /// Reconciliation is deterministic: newest `updatedAt` wins; any
+    /// split-area column the winner is missing is adopted from a loser
+    /// (fills gaps only, never overwrites the winner's data); losers
+    /// are deleted so every device converges on one row.
+    private func canonicalProfileRow(in context: ModelContext) throws -> StoredProfile? {
+        var rows = try context.fetch(FetchDescriptor<StoredProfile>(
+            sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
+        ))
+        guard rows.count > 1 else { return rows.first }
+        AppLog.swiftData.warning("Reconciling \(rows.count, privacy: .public) StoredProfile rows to the newest")
+        let winner = rows.removeFirst()
+        for loser in rows {
+            if winner.extensionData == nil { winner.extensionData = loser.extensionData }
+            if winner.bodyMetricsData == nil { winner.bodyMetricsData = loser.bodyMetricsData }
+            if winner.avatarImageData == nil { winner.avatarImageData = loser.avatarImageData }
+            if winner.mealsData == nil { winner.mealsData = loser.mealsData }
+            if winner.habitsData == nil { winner.habitsData = loser.habitsData }
+            if winner.momentumData == nil { winner.momentumData = loser.momentumData }
+            if winner.weightHistoryData == nil { winner.weightHistoryData = loser.weightHistoryData }
+            if winner.labsData == nil { winner.labsData = loser.labsData }
+            if winner.outcomesData == nil { winner.outcomesData = loser.outcomesData }
+            if winner.foodLibraryData == nil { winner.foodLibraryData = loser.foodLibraryData }
+            if winner.summariesData == nil { winner.summariesData = loser.summariesData }
+            context.delete(loser)
+        }
+        commit()
+        return winner
+    }
+
     func saveProfile(_ profile: UserProfile) {
         guard let context else { return }
         let existing: StoredProfile?
         do {
-            existing = try context.fetch(FetchDescriptor<StoredProfile>()).first
+            existing = try canonicalProfileRow(in: context)
         } catch {
             AppLog.swiftData.error("Fetch profile failed: \(error.localizedDescription, privacy: .public)")
             existing = nil
@@ -499,7 +539,7 @@ final class SwiftDataRepository {
         guard let context else { return nil }
         let stored: StoredProfile?
         do {
-            stored = try context.fetch(FetchDescriptor<StoredProfile>()).first
+            stored = try canonicalProfileRow(in: context)
         } catch {
             AppLog.swiftData.error("Load profile failed: \(error.localizedDescription, privacy: .public)")
             return nil

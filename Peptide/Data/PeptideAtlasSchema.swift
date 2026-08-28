@@ -39,6 +39,30 @@ enum PeptideAtlasSchemaV2: VersionedSchema {
     }
 }
 
+/// V3: `StoredProfile` grew the split feature-area columns (mealsData,
+/// habitsData, momentumData, weightHistoryData, labsData, outcomesData,
+/// foodLibraryData, summariesData) plus `singletonKey` / `updatedAt`.
+/// Purely additive — every new attribute is optional or defaulted, so
+/// the V2→V3 stage is lightweight and CloudKit accepts the new record
+/// fields without redeploying the container schema by hand.
+enum PeptideAtlasSchemaV3: VersionedSchema {
+    static var versionIdentifier: Schema.Version {
+        Schema.Version(3, 0, 0)
+    }
+
+    static var models: [any PersistentModel.Type] {
+        [
+            StoredProtocol.self,
+            StoredEntry.self,
+            StoredProfile.self,
+            StoredWorkoutSession.self,
+            StoredCustomExercise.self,
+            StoredRoutine.self,
+            StoredPersonalRecord.self,
+        ]
+    }
+}
+
 /// Migration plan for the SwiftData store. Today this is single-stage
 /// (V2 only) because the V1→V2 transition predates this scaffold —
 /// every running install is already at V2 via Apple's inferred
@@ -58,10 +82,19 @@ enum PeptideAtlasSchemaV2: VersionedSchema {
 ///      needs both endpoints declared.
 enum PeptideAtlasMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [PeptideAtlasSchemaV2.self]
+        [PeptideAtlasSchemaV2.self, PeptideAtlasSchemaV3.self]
     }
 
     static var stages: [MigrationStage] {
-        []  // No migrations yet; V2 is the current and only declared shape.
+        [
+            // Additive-only profile column split — no data transform.
+            // Existing rows keep everything in `extensionData`; the new
+            // columns stay nil until the next save, and reads fall back
+            // to the blob in the meantime (see StoredProfile).
+            .lightweight(
+                fromVersion: PeptideAtlasSchemaV2.self,
+                toVersion: PeptideAtlasSchemaV3.self
+            ),
+        ]
     }
 }
