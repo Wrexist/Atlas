@@ -79,9 +79,17 @@ final class EntryLoadingScaleTests: XCTestCase {
                        "The synchronous window must contain all recent entries")
 
         await store.awaitEntryBackfillForTesting()
-        XCTAssertEqual(Set(store.entries.map(\.id)),
-                       Set((recentRows + oldRows).map(\.id)),
-                       "After backfill the store must hold the full history")
+        // Superset, not exact equality: the repository is a process-wide
+        // singleton shared with the app host and neighbouring suites,
+        // whose debounced saves can land unrelated rows mid-test (seen
+        // as a 1-in-N CI flake). The property under test is that the
+        // backfill hydrates every seeded row exactly once.
+        let ids = store.entries.map(\.id)
+        let seededIDs = Set((recentRows + oldRows).map(\.id))
+        XCTAssertTrue(Set(ids).isSuperset(of: seededIDs),
+                      "After backfill the store must hold the full seeded history")
+        XCTAssertEqual(ids.filter { seededIDs.contains($0) }.count, seededIDs.count,
+                       "Backfill must not duplicate any seeded row")
     }
 
     func test_loadEntryIDs_matchesFullLoad() {
