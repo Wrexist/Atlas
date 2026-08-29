@@ -429,7 +429,7 @@ struct PeptideApp: App {
                 .environment(appState)
         }
         .task {
-            let delegate = NotificationDelegate(dataStore: dataStore)
+            let delegate = NotificationDelegate(dataStore: dataStore, appState: appState)
             notificationDelegate = delegate
             UNUserNotificationCenter.current().delegate = delegate
             NotificationService.shared.registerCategories()

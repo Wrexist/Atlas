@@ -187,10 +187,18 @@ final class NotificationService {
         // owns their lifecycle so we must not sweep them here.
         let preservedSnoozes = currentIDs.filter { $0.hasPrefix(Self.snoozeIDPrefix) }
         let preservedHabits = currentIDs.filter { $0.hasPrefix(Self.habitIDPrefix) }
+        // The Sunday weekly-recap request lives in its own scheduler but
+        // shares the pending-request pool. `reconcilePendingState()` absorbs
+        // its fixed ID into `currentIDs` on launch, and without this carve-out
+        // the next protocol edit's set-diff cancelled it — edit a protocol on
+        // Saturday evening, never reopen, and the Sunday 09:00 push silently
+        // vanished.
+        let preservedWeekly = currentIDs.intersection([WeeklySummaryNotificationScheduler.identifier])
         let toRemove = currentIDs
             .subtracting(newIDs)
             .subtracting(preservedSnoozes)
             .subtracting(preservedHabits)
+            .subtracting(preservedWeekly)
 
         if !toRemove.isEmpty {
             center.removePendingNotificationRequests(withIdentifiers: Array(toRemove))
@@ -199,7 +207,7 @@ final class NotificationService {
             center.add(entry.request)
         }
 
-        currentIDs = newIDs.union(preservedSnoozes).union(preservedHabits)
+        currentIDs = newIDs.union(preservedSnoozes).union(preservedHabits).union(preservedWeekly)
         requestedCount = pendingRequests.count
         scheduledCount = kept.count
 
