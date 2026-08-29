@@ -2356,10 +2356,22 @@ final class DataStore: DataServiceProtocol {
     /// pending deletion sets are cleared so the next save doesn't
     /// inadvertently delete CloudKit-side data that came in via
     /// the restore.
+    // MARK: - Backup accessors
+
+    // Read-through accessors for the backup pipeline. ExportSection and
+    // BackupImportService need the full training store, and `repo` is
+    // private by design — these keep the single-facade rule intact
+    // instead of handing views the repository singleton.
+    func allWorkoutSessionsForBackup() -> [WorkoutSession] { repo.loadAllWorkoutSessions() }
+    func routinesForBackup() -> [Routine] { repo.loadRoutines() }
+    func customExercisesForBackup() -> [CustomExercise] { repo.loadCustomExercises() }
+    func personalRecordsForBackup() -> [PersonalRecord] { repo.loadPersonalRecords() }
+
     func applyImport(
         protocols newProtocols: [PeptideProtocol],
         entries newEntries: [ProtocolEntry],
-        profile newProfile: UserProfile
+        profile newProfile: UserProfile,
+        training: BackupImportService.TrainingImport? = nil
     ) throws {
         guard !isEphemeral else {
             throw NSError(
@@ -2411,6 +2423,45 @@ final class DataStore: DataServiceProtocol {
         }
 
         repo.saveProfile(newProfile)
+
+        // v2 training + custom-peptide payload. `nil` = the backup
+        // predates these sections; leave the live stores untouched.
+        if let training {
+            let liveSessionIDs = Set(repo.loadAllWorkoutSessions().map(\.id))
+            let liveRoutineIDs = Set(repo.loadRoutines().map(\.id))
+            let liveExerciseIDs = Set(repo.loadCustomExercises().map(\.id))
+            let liveRecordIDs = Set(repo.loadPersonalRecords().map(\.exerciseID))
+
+            for session in training.workoutSessions { repo.upsertWorkoutSession(session) }
+            for routine in training.routines { repo.upsertRoutine(routine) }
+            for exercise in training.customExercises { repo.upsertCustomExercise(exercise) }
+            for record in training.personalRecords { repo.upsertPersonalRecord(record) }
+
+            if training.deletesUncarried {
+                for id in liveSessionIDs.subtracting(training.workoutSessions.map(\.id)) {
+                    repo.deleteWorkoutSession(id: id)
+                }
+                for id in liveRoutineIDs.subtracting(training.routines.map(\.id)) {
+                    repo.deleteRoutine(id: id)
+                }
+                for id in liveExerciseIDs.subtracting(training.customExercises.map(\.id)) {
+                    repo.deleteCustomExercise(id: id)
+                }
+                for id in liveRecordIDs.subtracting(training.personalRecords.map(\.exerciseID)) {
+                    repo.deletePersonalRecord(exerciseID: id)
+                }
+            }
+
+            customPeptides = training.customPeptides
+            PersistenceService.shared.saveCustomPeptides(training.customPeptides)
+
+            // Training rows bypass the `protocols`/`entries`/`profile`
+            // didSet bumps, same as recordWorkoutFinished — bump so
+            // Train/Today snapshots recompute against the restored data.
+            cacheVersion &+= 1
+            revision &+= 1
+        }
+
         regenerateTodayEntries()
         updateWidgetData()
         updateWatchData()
