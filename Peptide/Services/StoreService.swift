@@ -330,7 +330,10 @@ final class StoreService {
         }
     }
 
-    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+    // Module-qualified: `import RevenueCat` brings RevenueCat's own
+    // non-generic `VerificationResult` into scope, and the bare name
+    // resolved to it ("cannot specialize non-generic type").
+    private func checkVerified<T>(_ result: StoreKit.VerificationResult<T>) throws -> T {
         switch result {
         case .unverified(let value, let verificationError):
             let productID = (value as? Transaction)?.productID ?? "unknown"
