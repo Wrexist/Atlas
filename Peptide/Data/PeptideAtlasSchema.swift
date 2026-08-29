@@ -39,6 +39,19 @@ enum PeptideAtlasSchemaV2: VersionedSchema {
     }
 }
 
+// NOTE on the profile column split (Data Integrity 04): `StoredProfile`
+// gained additive optional/defaulted columns (mealsData … summariesData,
+// singletonKey, updatedAt) WITHOUT a version bump. A declared V3 whose
+// model list shares the same live `@Model` classes as V2 makes SwiftData
+// compute two version checksums from one editable model and abort at
+// container creation ("Attempting to retrieve an NSManagedObjectModel
+// version checksum while the model is still editable" → signal abrt in
+// CI run 416). Additive optional columns ride Apple's inferred
+// lightweight migration instead — the same path the `.unique` removal
+// and the original `extensionData` column shipped through. Bump to V3
+// only for a structural change, and then with distinct model types per
+// version, not shared classes.
+
 /// Migration plan for the SwiftData store. Today this is single-stage
 /// (V2 only) because the V1→V2 transition predates this scaffold —
 /// every running install is already at V2 via Apple's inferred
@@ -62,6 +75,6 @@ enum PeptideAtlasMigrationPlan: SchemaMigrationPlan {
     }
 
     static var stages: [MigrationStage] {
-        []  // No migrations yet; V2 is the current and only declared shape.
+        []  // No staged migrations; additive column changes are inferred.
     }
 }

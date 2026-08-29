@@ -9,6 +9,27 @@ import Foundation
 /// Weight is canonicalized to **kilograms** so the persisted history
 /// survives a metric/imperial unit toggle. The UI converts on read /
 /// write using `MeasurementUnit` from the user's profile.
+/// Sanity bounds for manually entered set values. Lower bounds are hard
+/// floors — negative weight or reps are never legitimate and would
+/// silently subtract from session volume. Upper bounds sit far beyond
+/// elite performance (world-record squat ≈ 505 kg) so no real lift is
+/// ever rejected; they exist to stop a fat-fingered or pasted "9999"
+/// from becoming a permanent personal record. Weight 0 stays valid —
+/// it is the bodyweight track (audit Train H3).
+enum SetEntryLimits {
+    static let weightKg: ClosedRange<Double> = 0...1000
+    static let reps: ClosedRange<Int> = 0...500
+
+    static func clampWeightKg(_ value: Double) -> Double {
+        guard value.isFinite else { return weightKg.lowerBound }
+        return min(max(value, weightKg.lowerBound), weightKg.upperBound)
+    }
+
+    static func clampReps(_ value: Int) -> Int {
+        min(max(value, reps.lowerBound), reps.upperBound)
+    }
+}
+
 struct SetEntry: Codable, Hashable, Identifiable, Sendable {
     let id: UUID
     /// Position within the parent exercise's set list — 1-indexed for

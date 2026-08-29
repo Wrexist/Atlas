@@ -84,7 +84,7 @@ struct SetEditorRow: View {
         TextField(unit.weightSuffix,
                   value: Binding(
                     get: { unit.weightForDisplay(set.weightKg) },
-                    set: { set.weightKg = unit.kilograms(fromDisplayed: $0) }
+                    set: { set.weightKg = SetEntryLimits.clampWeightKg(unit.kilograms(fromDisplayed: $0)) }
                   ),
                   format: .number.precision(.fractionLength(0...1)))
             .keyboardType(.decimalPad)
@@ -111,7 +111,7 @@ struct SetEditorRow: View {
         TextField("reps",
                   value: Binding(
                     get: { set.reps },
-                    set: { set.reps = $0 }
+                    set: { set.reps = SetEntryLimits.clampReps($0) }
                   ),
                   format: .number)
             .keyboardType(.numberPad)

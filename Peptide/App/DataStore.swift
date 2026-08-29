@@ -136,11 +136,18 @@ final class DataStore: DataServiceProtocol {
         } else if repo.isUsingFallbackStore {
             self.lastError = "Storage unavailable — changes won't be saved between launches."
         }
+        // Cold launch loads only the recent entry window synchronously —
+        // every first-frame surface (Today, calendar month, 13-week
+        // detail, streaks) reads inside it — and backfills the long
+        // tail (exports, lifetime totals) right after, so a multi-year
+        // history doesn't decode row-by-row before first frame.
+        let entryWindowStart = Self.recentEntryWindowStart()
         let savedProtocols = repo.loadProtocols()
-        let savedEntries   = repo.loadEntries()
+        let savedEntries   = repo.loadEntries(onOrAfter: entryWindowStart)
         let savedProfile   = repo.loadProfile()
+        let hasOlderEntries = repo.entryCount() > savedEntries.count
 
-        if !savedProtocols.isEmpty || !savedEntries.isEmpty || savedProfile != nil {
+        if !savedProtocols.isEmpty || !savedEntries.isEmpty || hasOlderEntries || savedProfile != nil {
             // Returning user: recover what we can. Using || (not &&) so a single
             // corrupt record doesn't erase the user's entire dataset.
             self.protocols = savedProtocols
@@ -177,6 +184,10 @@ final class DataStore: DataServiceProtocol {
             performSaveNow()
         }
         // else: clean slate — already set to [] and .fresh above
+
+        if hasOlderEntries {
+            scheduleEntryBackfill(before: entryWindowStart)
+        }
 
         // If screenshot mode is currently enabled (set in
         // UserDefaults from a previous session before this cold
@@ -400,6 +411,24 @@ final class DataStore: DataServiceProtocol {
         } else {
             DoseLiveActivityService.shared.reconcile(entries: entries)
         }
+    }
+
+    /// Idempotent completion setters for externally delivered commands
+    /// (WatchConnectivity, widget intents). WCSession can deliver the same
+    /// action twice — the Watch's `sendOrQueue` falls back to
+    /// `transferUserInfo` when `sendMessage`'s error handler fires, which
+    /// can happen after the phone already processed the message — so these
+    /// only mutate when the entry is actually in the opposite state. A
+    /// blind toggle would flip an already-completed dose back to
+    /// incomplete on the duplicate delivery.
+    func markEntryComplete(_ entryId: UUID) {
+        guard entries.first(where: { $0.id == entryId })?.completed == false else { return }
+        toggleEntry(entryId)
+    }
+
+    func markEntryIncomplete(_ entryId: UUID) {
+        guard entries.first(where: { $0.id == entryId })?.completed == true else { return }
+        toggleEntry(entryId)
     }
 
     func logDose(entryId: UUID, actualDose: String?, actualTime: Date?, injectionSite: String?, notes: String) {
@@ -1463,14 +1492,19 @@ final class DataStore: DataServiceProtocol {
             note: "Quick-log · \(entry.sets) sets × \(entry.reps) reps",
             perceivedEffort: nil
         )
+        repo.beginSaveBatch()
         repo.upsertWorkoutSession(session)
         // Invalidate caches and refresh the widget/Watch surfaces.
         // `bumpVersionIfDayChanged()` was a no-op on the common
         // same-day path, so the Today widget's workout count went
         // stale until an unrelated mutation happened to bump it.
         cacheVersion &+= 1
-        updateWidgetData()
-        updateWatchData()
+        if repo.commitDidFail {
+            lastError = Self.saveFailureMessage
+        } else {
+            updateWidgetData()
+            updateWatchData()
+        }
         // Quick-log sessions have no exercises, so no PRs are possible.
         recordWorkoutFinished(detectedPRCount: 0)
     }
@@ -1479,14 +1513,26 @@ final class DataStore: DataServiceProtocol {
     /// as `WorkoutSessionService.discardWorkout` for the active path —
     /// here it targets the historical row directly.
     func deleteWorkout(id: UUID) {
+        // Capture which exercises the session touched before the row is
+        // gone — its PRs are derived data and must be recomputed from
+        // the surviving history, or a deleted workout's record would
+        // stand forever with no path to ever correct it.
+        let affectedExercises = repo.loadWorkoutSession(id: id)
+            .map { Set($0.exercises.map(\.exerciseID)) } ?? []
+        repo.beginSaveBatch()
         repo.deleteWorkoutSession(id: id)
+        PRDetectionEngine.shared.recompute(exerciseIDs: affectedExercises)
         cacheVersion &+= 1
         // Same reason as `recordWorkoutFinished`: a repo-level write is
         // invisible to the property observers, so derived snapshots need
         // telling explicitly or a deleted workout lingers on Today.
         revision &+= 1
-        updateWidgetData()
-        updateWatchData()
+        if repo.commitDidFail {
+            lastError = Self.saveFailureMessage
+        } else {
+            updateWidgetData()
+            updateWatchData()
+        }
     }
 
     /// Fired when a workout is finalized (structured finish via
@@ -1944,6 +1990,50 @@ final class DataStore: DataServiceProtocol {
         performSaveNow()
     }
 
+    // MARK: - Entry window + backfill
+
+    /// Cold-launch entry window. 400 days covers every synchronous
+    /// render surface — Today, the calendar month, the 13-week protocol
+    /// detail, and streaks past a full year — while bounding the
+    /// launch-path decode for long-lived accounts. Everything older
+    /// arrives via `scheduleEntryBackfill` immediately after init, so
+    /// exports and lifetime totals still see the full history.
+    static let recentEntryWindowDays = 400
+
+    static func recentEntryWindowStart(now: Date = Date()) -> Date {
+        Calendar.current.date(
+            byAdding: .day, value: -recentEntryWindowDays,
+            to: Calendar.current.startOfDay(for: now)
+        ) ?? now
+    }
+
+    @ObservationIgnored private var entryBackfillTask: Task<Void, Never>?
+
+    /// Hydrates entries older than the launch window. High priority —
+    /// the sooner the tail lands, the smaller the window in which a
+    /// lifetime stat or an export could read a partial history.
+    private func scheduleEntryBackfill(before cutoff: Date) {
+        entryBackfillTask?.cancel()
+        entryBackfillTask = Task(priority: .userInitiated) { @MainActor [weak self] in
+            guard let self, !Task.isCancelled, !self.isEphemeral else { return }
+            let older = self.repo.loadEntries(before: cutoff)
+            guard !older.isEmpty, !Task.isCancelled, !self.isEphemeral else { return }
+            let known = Set(self.entries.map(\.id))
+            let missing = older.filter { !known.contains($0.id) }
+            guard !missing.isEmpty else { return }
+            // Append-only merge: the backfill by construction holds only
+            // rows outside the in-memory window, so nothing the user
+            // touched since launch can be overwritten.
+            self.entries.append(contentsOf: missing)
+        }
+    }
+
+    /// Test-only synchronous wait for the backfill (async by design in
+    /// production).
+    func awaitEntryBackfillForTesting() async {
+        await entryBackfillTask?.value
+    }
+
     private func performSaveNow() {
         // Ephemeral mode (screenshot capture) — never write to disk.
         // The demo state lives entirely in memory and dies when the
@@ -1982,7 +2072,15 @@ final class DataStore: DataServiceProtocol {
         // serious init-time "Storage unavailable" messages.
         if repo.commitDidFail {
             lastError = Self.saveFailureMessage
-        } else if lastError == Self.saveFailureMessage {
+            // Persistence failed — the in-memory state is ahead of the
+            // store. Do NOT push it to the widget/Watch projections: after
+            // a relaunch the app reloads the older persisted state, and a
+            // projection written now would show "completed" for a dose the
+            // source of truth never recorded. The banner above tells the
+            // user; the projections keep their last-good snapshot.
+            return
+        }
+        if lastError == Self.saveFailureMessage {
             lastError = nil
         }
 
@@ -2013,6 +2111,9 @@ final class DataStore: DataServiceProtocol {
         entries newEntries: [ProtocolEntry]
     ) {
         isEphemeral = true
+        // A late-landing backfill would append real history on top of
+        // the demo seed mid-screenshot.
+        entryBackfillTask?.cancel()
         self.profile = newProfile
         self.protocols = newProtocols
         self.entries = newEntries
@@ -2040,7 +2141,19 @@ final class DataStore: DataServiceProtocol {
     /// standing up `DataStore` + `PersistenceService`. Nutrition is
     /// pulled live from the profile so the nutrition widget reflects
     /// the same numbers the Meals tab shows.
+    #if DEBUG
+    /// Test-only observability: bumped every time a projection push
+    /// actually runs, so tests can assert the widget/Watch surfaces were
+    /// (or were not) updated without reaching into the App Group
+    /// container or a live WCSession.
+    @ObservationIgnored private(set) var widgetUpdateCountForTesting = 0
+    @ObservationIgnored private(set) var watchUpdateCountForTesting = 0
+    #endif
+
     private func updateWidgetData() {
+        #if DEBUG
+        widgetUpdateCountForTesting += 1
+        #endif
         let data = WidgetSnapshotBuilder.build(
             today: todayEntries,
             next: nextDose,
@@ -2057,6 +2170,9 @@ final class DataStore: DataServiceProtocol {
     /// definitions are shared with any future watch / widget / share-card
     /// surface that needs the same numbers.
     private func updateWatchData() {
+        #if DEBUG
+        watchUpdateCountForTesting += 1
+        #endif
         // Surface the same stats the Stats page on the watch reads —
         // streak, week compliance, total logged — plus the Atlas Score
         // and today's health/training habit split for the Watch
@@ -2200,8 +2316,16 @@ final class DataStore: DataServiceProtocol {
     /// device shows up without an app relaunch. Falls back to the existing
     /// in-memory state if the repo returns nil for that resource.
     func reloadFromDisk() {
+        // Same two-phase shape as init: the recent window synchronously
+        // (this runs on pull-to-refresh and CloudKit pulls, where a
+        // full-table decode would jank the refresh gesture), the tail
+        // backfilled immediately after.
+        let entryWindowStart = Self.recentEntryWindowStart()
         protocols = repo.loadProtocols()
-        entries = repo.loadEntries()
+        entries = repo.loadEntries(onOrAfter: entryWindowStart)
+        if repo.entryCount() > entries.count {
+            scheduleEntryBackfill(before: entryWindowStart)
+        }
         if let saved = repo.loadProfile() { profile = saved }
         regenerateTodayEntries()
         // CloudKit-driven pulls land here; without these the lock-
@@ -2237,7 +2361,10 @@ final class DataStore: DataServiceProtocol {
 
         // Drop any pending deletion bookkeeping — those IDs belong to
         // the pre-import world and would otherwise propagate as
-        // CloudKit deletions against the just-restored rows.
+        // CloudKit deletions against the just-restored rows. Same for
+        // an in-flight entry backfill: its rows predate the import and
+        // must not be appended on top of the restored state.
+        entryBackfillTask?.cancel()
         pendingProtocolDeletions.removeAll()
         pendingEntryDeletions.removeAll()
 
@@ -2253,7 +2380,7 @@ final class DataStore: DataServiceProtocol {
         // saveProfile is the simple replace.
         let liveProtocolIDs = Set(repo.loadProtocols().map(\.id))
         let importProtocolIDs = Set(newProtocols.map(\.id))
-        let liveEntryIDs = Set(repo.loadEntries().map(\.id))
+        let liveEntryIDs = Set(repo.loadEntryIDs())
         let importEntryIDs = Set(newEntries.map(\.id))
 
         repo.upsertProtocols(newProtocols)

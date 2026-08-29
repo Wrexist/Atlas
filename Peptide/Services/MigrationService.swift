@@ -18,8 +18,14 @@ final class MigrationService {
 
     /// Runs the migration if legacy JSON files exist and SwiftData has no data yet.
     func migrateIfNeeded() {
-        // Skip if SwiftData already has data (migration already ran)
-        guard !repo.hasAnyData else { return }
+        // Skip if SwiftData already has data (migration already ran).
+        // This is also the safe moment to expire old `.migrated` safety
+        // nets — cleanup only ever touches archives, which by definition
+        // exist only after a verified migration, never source files.
+        guard !repo.hasAnyData else {
+            persistence.cleanUpExpiredArchivedLegacyFiles()
+            return
+        }
 
         // Skip if there are no legacy JSON files to migrate
         guard persistence.hasPersistedData else { return }
@@ -53,20 +59,65 @@ final class MigrationService {
         }
 
         // Decode succeeded for everything we expected. Now import.
+        repo.beginSaveBatch()
         if let protocols { repo.saveProtocols(protocols) }
         if let entries   { repo.saveEntries(entries)     }
         if let profile   { repo.saveProfile(profile)     }
 
-        // Sanity check: if we expected data but SwiftData ended up empty, something
-        // went wrong silently. Don't archive in that case.
-        let expectedData = (protocols ?? []).isEmpty == false
-            || (entries ?? []).isEmpty == false
-            || profile != nil
-        if expectedData && !repo.hasAnyData {
-            AppLog.persistence.error("Migration imported nothing despite source files — leaving JSON files in place")
+        // Verify the import by reading it back — counts and identities,
+        // not just "some data exists". A partial import (a swallowed
+        // repo save error, a failed commit) previously passed the old
+        // `hasAnyData` check and archived the only remaining copy of
+        // the user's data.
+        if let failure = verificationFailure(
+            protocols: protocols, entries: entries, profile: profile
+        ) {
+            AppLog.persistence.error(
+                "Migration verification failed (\(failure, privacy: .public)) — rolling back partial import, leaving JSON files in place for retry"
+            )
+            // Return to the empty pre-migration state (`hasAnyData` was
+            // false on entry, so nothing but this import is deleted) so
+            // the next launch retries instead of orphaning the JSON.
+            // Pending (uncommitted) inserts are discarded first — the
+            // bulk delete only reaches the store, and deleteAll's save
+            // would otherwise persist the very rows being rolled back.
+            repo.discardPendingChanges()
+            repo.deleteAll()
             return
         }
 
         persistence.archiveLegacyFiles()
+    }
+
+    /// Read-back verification of an import that just ran. Returns a
+    /// diagnostic string on the first mismatch, nil when everything the
+    /// source files carried is present in SwiftData with matching IDs.
+    /// Internal (not private) so the mismatch branches are unit-testable
+    /// without forcing a real partial import.
+    func verificationFailure(
+        protocols: [PeptideProtocol]?,
+        entries: [ProtocolEntry]?,
+        profile: UserProfile?
+    ) -> String? {
+        if repo.commitDidFail { return "commit failed" }
+        if let protocols {
+            let stored = Set(repo.loadProtocols().map(\.id))
+            let expected = Set(protocols.map(\.id))
+            if stored != expected {
+                return "protocol IDs mismatch (\(stored.count)/\(expected.count))"
+            }
+        }
+        if let entries {
+            let stored = Set(repo.loadEntries().map(\.id))
+            let expected = Set(entries.map(\.id))
+            if stored != expected {
+                return "entry IDs mismatch (\(stored.count)/\(expected.count))"
+            }
+        }
+        if let profile {
+            guard let stored = repo.loadProfile() else { return "profile missing after import" }
+            if stored.name != profile.name { return "profile name mismatch" }
+        }
+        return nil
     }
 }

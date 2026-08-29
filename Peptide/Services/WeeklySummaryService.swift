@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// Coordinates the AI weekly summary lifecycle. Owns the network
@@ -94,9 +95,16 @@ final class WeeklySummaryService {
             throw GenerationError.insufficientData
         }
 
-        // Cache hit — return without re-firing the API call unless
-        // the caller explicitly asked for a refresh.
-        if !forceRefresh, let cached = profile.weeklySummaries[aggregate.weekStart] {
+        // Cache hit — return without re-firing the API call unless the
+        // caller explicitly asked for a refresh. A cache must never
+        // outlive its source data: the hit is honoured only when the
+        // stored fingerprint still matches what the week's entries,
+        // meals, check-ins and labs produce today. A mismatch (dose
+        // un-logged, meal deleted, lab added) regenerates.
+        let fingerprint = Self.sourceFingerprint(of: aggregate)
+        if !forceRefresh,
+           let cached = profile.weeklySummaries[aggregate.weekStart],
+           cached.sourceFingerprint == fingerprint {
             return cached
         }
 
@@ -119,6 +127,59 @@ final class WeeklySummaryService {
         return profile.weeklySummaries[weekStart]
     }
 
+    /// Like `cached(in:for:)`, but only returns a summary whose source
+    /// fingerprint still matches the current week's data — the
+    /// synchronous fast path Home uses before falling back to
+    /// `generate(...)`. Returns nil (a miss) when the source data has
+    /// changed since generation, when the cached entry predates
+    /// fingerprinting, or when the week no longer has enough data to
+    /// build an aggregate at all.
+    func cachedIfFresh(
+        profile: UserProfile,
+        protocols: [PeptideProtocol],
+        entries: [ProtocolEntry],
+        referenceDate: Date = Date()
+    ) -> WeeklySummary? {
+        guard let aggregate = WeeklySummaryEngine.build(
+            profile: profile,
+            protocols: protocols,
+            entries: entries,
+            referenceDate: referenceDate
+        ) else { return nil }
+        guard let cached = profile.weeklySummaries[aggregate.weekStart],
+              cached.sourceFingerprint == Self.sourceFingerprint(of: aggregate)
+        else { return nil }
+        return cached
+    }
+
+    /// Deterministic hash of the user-editable inputs of an aggregate.
+    /// Deliberately excludes `biometrics` (HealthKit series arrive
+    /// passively and would re-fire the API on every new sample) and
+    /// `topInsightCategory` (derived, churny) — the finding this guards
+    /// against is edits to entries, meals, check-ins and labs.
+    static func sourceFingerprint(of aggregate: WeeklyAggregate) -> String {
+        struct Sources: Encodable {
+            let weekStart: String
+            let compliance: WeeklyAggregate.Compliance
+            let streak: WeeklyAggregate.Streak
+            let outcomes: WeeklyAggregate.Outcomes?
+            let nutrition: WeeklyAggregate.Nutrition?
+            let labs: WeeklyAggregate.Labs
+        }
+        let sources = Sources(
+            weekStart: aggregate.weekStart,
+            compliance: aggregate.compliance,
+            streak: aggregate.streak,
+            outcomes: aggregate.outcomes,
+            nutrition: aggregate.nutrition,
+            labs: aggregate.labs
+        )
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        guard let data = try? encoder.encode(sources) else { return "" }
+        return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+
     // MARK: - Network
 
     /// Calls the proxy, falls back to a deterministic offline
@@ -126,6 +187,7 @@ final class WeeklySummaryService {
     /// produce a `WeeklySummary` with the same shape so the UI
     /// renders identically; only the `kind` field distinguishes.
     private func fetchOrFallback(aggregate: WeeklyAggregate) async -> WeeklySummary {
+        let fingerprint = Self.sourceFingerprint(of: aggregate)
         do {
             let text = try await fetchAISummary(aggregate: aggregate)
             return WeeklySummary(
@@ -133,7 +195,8 @@ final class WeeklySummaryService {
                 text: text,
                 keyStats: keyStats(from: aggregate),
                 kind: .ai,
-                generatedAt: Date()
+                generatedAt: Date(),
+                sourceFingerprint: fingerprint
             )
         } catch {
             // `.private` — `String(describing:)` on a URLError /
@@ -148,7 +211,8 @@ final class WeeklySummaryService {
                 text: OfflineWeeklySummaryFormatter.summary(from: aggregate),
                 keyStats: keyStats(from: aggregate),
                 kind: .offline,
-                generatedAt: Date()
+                generatedAt: Date(),
+                sourceFingerprint: fingerprint
             )
         }
     }
