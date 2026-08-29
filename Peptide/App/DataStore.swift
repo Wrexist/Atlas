@@ -1080,16 +1080,27 @@ final class DataStore: DataServiceProtocol {
         }
     }
 
-    /// Updates a previously logged meal entry's category. Macro values
-    /// stay frozen at log time — the aggregate doesn't shift, only the
-    /// per-category breakdown does. Used by `MealEntryEditorSheet` so
-    /// a near-boundary auto-pick (10:55 → breakfast when the user
-    /// meant lunch) can be corrected without reaching for unlog +
-    /// re-log. No-op when the id isn't in history.
+    /// Updates a previously logged meal entry — category, macros, or
+    /// date — keeping the per-day aggregate in lockstep. The previous
+    /// implementation replaced the array element only, so editing
+    /// calories 500 → 800 left the macro ring 300 kcal low, and moving
+    /// an entry's date left both days' totals wrong (the invariant
+    /// `LifestyleDataLogic.logMealEntry` documents). Now routed through
+    /// `applyMealEntryEdit`, which reverses the old contribution and
+    /// applies the new one. The Apple Health mirror is refreshed the
+    /// same way the delete path already does: old samples removed by
+    /// external UUID, new values written. No-op when the id isn't in
+    /// history.
     func updateMealEntry(_ updated: MealEntry) {
-        guard let index = profile.mealHistory.firstIndex(where: { $0.id == updated.id }) else { return }
-        profile.mealHistory[index] = updated
+        guard profile.mealHistory.contains(where: { $0.id == updated.id }) else { return }
+        LifestyleDataLogic.applyMealEntryEdit(into: &profile, updated: updated)
         save()
+        if profile.healthKitNutritionEnabled {
+            Task {
+                await HealthKitService.shared.deleteSamples(forEntryID: updated.id)
+                await HealthKitService.shared.writeMealEntry(updated)
+            }
+        }
     }
 
     /// Removes a meal entry by id and rolls back its contribution to
