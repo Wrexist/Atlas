@@ -648,6 +648,49 @@ private struct ProfileExtension: Codable {
 
     static let empty = ProfileExtension()
 
+    init() {}
+
+    /// Missing-key-tolerant decoding. The synthesized `init(from:)`
+    /// throws on any absent non-optional key, so a blob written by an
+    /// older build (or one that predates a newly added field) failed
+    /// wholesale and fell back to `.empty` — wiping every blob-backed
+    /// surface for the session. Each field decodes independently and
+    /// falls back to its default; a present-but-corrupt value still
+    /// throws, so genuine corruption stays detectable upstream.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        nutritionTargets = try c.decodeIfPresent(NutritionTargets.self, forKey: .nutritionTargets)
+        creatorAttribution = try c.decodeIfPresent(CreatorAttribution.self, forKey: .creatorAttribution)
+        affiliateApplication = try c.decodeIfPresent(AffiliateApplication.self, forKey: .affiliateApplication)
+        emailSubscription = try c.decodeIfPresent(EmailSubscription.self, forKey: .emailSubscription)
+        weightHistory = try c.decodeIfPresent([WeightEntry].self, forKey: .weightHistory) ?? []
+        progressPhotoFilenames = try c.decodeIfPresent([String].self, forKey: .progressPhotoFilenames) ?? []
+        dailyConsumption = try c.decodeIfPresent([String: DailyConsumption].self, forKey: .dailyConsumption) ?? [:]
+        workoutHistory = try c.decodeIfPresent([WorkoutEntry].self, forKey: .workoutHistory) ?? []
+        customFoods = try c.decodeIfPresent([CustomFood].self, forKey: .customFoods) ?? []
+        favoriteFoodIDs = try c.decodeIfPresent([String].self, forKey: .favoriteFoodIDs) ?? []
+        mealHistory = try c.decodeIfPresent([MealEntry].self, forKey: .mealHistory) ?? []
+        healthKitNutritionEnabled = try c.decodeIfPresent(Bool.self, forKey: .healthKitNutritionEnabled) ?? false
+        outcomeHistory = try c.decodeIfPresent([OutcomeEntry].self, forKey: .outcomeHistory) ?? []
+        labHistory = try c.decodeIfPresent([LabValue].self, forKey: .labHistory) ?? []
+        lastKnownTimezoneIdentifier = try c.decodeIfPresent(String.self, forKey: .lastKnownTimezoneIdentifier)
+        streakFreezeDays = try c.decodeIfPresent([String].self, forKey: .streakFreezeDays) ?? []
+        recipes = try c.decodeIfPresent([Recipe].self, forKey: .recipes) ?? []
+        protocolNotes = try c.decodeIfPresent([ProtocolNote].self, forKey: .protocolNotes) ?? []
+        biologyConfig = try c.decodeIfPresent(BiologyConfig.self, forKey: .biologyConfig) ?? .default
+        trainingPreferences = try c.decodeIfPresent(TrainingPreferences.self, forKey: .trainingPreferences)
+        weeklySummaryEnabled = try c.decodeIfPresent(Bool.self, forKey: .weeklySummaryEnabled)
+        weeklySummaries = try c.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries)
+        goalDate = try c.decodeIfPresent(Date.self, forKey: .goalDate)
+        habits = try c.decodeIfPresent([Habit].self, forKey: .habits) ?? []
+        habitEntries = try c.decodeIfPresent([HabitEntry].self, forKey: .habitEntries) ?? []
+        atlasScore = try c.decodeIfPresent(Int.self, forKey: .atlasScore) ?? 0
+        atlasLevel = try c.decodeIfPresent(Int.self, forKey: .atlasLevel) ?? 1
+        momentumAwardedToday = try c.decodeIfPresent(Int.self, forKey: .momentumAwardedToday) ?? 0
+        lastMomentumAwardDay = try c.decodeIfPresent(Date.self, forKey: .lastMomentumAwardDay)
+        momentumHistory = try c.decodeIfPresent([MomentumDayPoint].self, forKey: .momentumHistory) ?? []
+    }
+
     /// Snapshot of everything that still lives in the blob. The split
     /// areas (meals, habits, momentum, weight, labs, outcomes, food
     /// library, weekly summaries) are deliberately left at their
@@ -656,22 +699,22 @@ private struct ProfileExtension: Codable {
     /// blob conflict this split exists to remove. Reads still honour a
     /// legacy blob that carries them (rows written before the split).
     static func residual(of profile: UserProfile) -> ProfileExtension {
-        ProfileExtension(
-            nutritionTargets: profile.nutritionTargets,
-            creatorAttribution: profile.creatorAttribution,
-            affiliateApplication: profile.affiliateApplication,
-            emailSubscription: profile.emailSubscription,
-            progressPhotoFilenames: profile.progressPhotoFilenames,
-            workoutHistory: profile.workoutHistory,
-            healthKitNutritionEnabled: profile.healthKitNutritionEnabled,
-            lastKnownTimezoneIdentifier: profile.lastKnownTimezoneIdentifier,
-            streakFreezeDays: Array(profile.streakFreezeDays).sorted(),
-            recipes: profile.recipes,
-            protocolNotes: profile.protocolNotes,
-            biologyConfig: profile.biologyConfig,
-            trainingPreferences: profile.trainingPreferences,
-            weeklySummaryEnabled: profile.weeklySummaryEnabled,
-            goalDate: profile.goalDate
-        )
+        var ext = ProfileExtension()
+        ext.nutritionTargets = profile.nutritionTargets
+        ext.creatorAttribution = profile.creatorAttribution
+        ext.affiliateApplication = profile.affiliateApplication
+        ext.emailSubscription = profile.emailSubscription
+        ext.progressPhotoFilenames = profile.progressPhotoFilenames
+        ext.workoutHistory = profile.workoutHistory
+        ext.healthKitNutritionEnabled = profile.healthKitNutritionEnabled
+        ext.lastKnownTimezoneIdentifier = profile.lastKnownTimezoneIdentifier
+        ext.streakFreezeDays = Array(profile.streakFreezeDays).sorted()
+        ext.recipes = profile.recipes
+        ext.protocolNotes = profile.protocolNotes
+        ext.biologyConfig = profile.biologyConfig
+        ext.trainingPreferences = profile.trainingPreferences
+        ext.weeklySummaryEnabled = profile.weeklySummaryEnabled
+        ext.goalDate = profile.goalDate
+        return ext
     }
 }

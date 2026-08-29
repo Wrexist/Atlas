@@ -234,6 +234,16 @@ final class SwiftDataRepository {
         #endif
     }
 
+    /// Discards uncommitted changes pending on the context. The
+    /// migration rollback path needs this before `deleteAll()`: after a
+    /// failed commit the imported objects are still *pending* inserts,
+    /// which a bulk delete (store-level) doesn't touch — the cleanup's
+    /// own save would then persist exactly the partial import the
+    /// rollback exists to remove.
+    func discardPendingChanges() {
+        context?.rollback()
+    }
+
     /// Removes all records. Call in test tearDown only.
     func deleteAll() {
         guard let context else { return }

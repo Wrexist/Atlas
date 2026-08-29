@@ -78,6 +78,10 @@ final class MigrationService {
             // Return to the empty pre-migration state (`hasAnyData` was
             // false on entry, so nothing but this import is deleted) so
             // the next launch retries instead of orphaning the JSON.
+            // Pending (uncommitted) inserts are discarded first — the
+            // bulk delete only reaches the store, and deleteAll's save
+            // would otherwise persist the very rows being rolled back.
+            repo.discardPendingChanges()
             repo.deleteAll()
             return
         }
