@@ -97,7 +97,7 @@ is never rejected.
 Schema-level tests assert no unique attributes anywhere in the
 versioned schema, all seven models are declared, the
 container+migration-plan initializes, and the version chain ends at
-V3. Hardware plan: `docs/CLOUDKIT_HARDWARE_TEST_PLAN.md`.
+the live schema. Hardware plan: `docs/CLOUDKIT_HARDWARE_TEST_PLAN.md`.
 
 ### Phase 11 — Data deletion cleanup (fixed)
 `AuthService.deleteAccount()` now also clears legacy JSON, archived
@@ -108,9 +108,14 @@ names only). HealthKit samples are deliberately untouched — policy and
 rationale in `docs/DATA_ERASURE_POLICY.md`.
 
 ## Data migration changes
-- SwiftData schema bumped to **V3** (`PeptideAtlasSchemaV3`) with a
-  lightweight V2→V3 stage — purely additive optional/defaulted
-  columns, no data transform, CloudKit-compatible.
+- The new `StoredProfile` columns are purely additive
+  optional/defaulted attributes and ship via Apple's inferred
+  lightweight migration under the existing V2 declaration — the same
+  path the `.unique` removal and the original `extensionData` column
+  used. A declared V3 sharing the same live `@Model` classes was tried
+  and reverted: SwiftData computes duplicate version checksums from
+  one editable model and aborts at container creation (CI run 416);
+  the trap is documented in `PeptideAtlasSchema.swift`.
 - No destructive migration of `extensionData`: legacy blobs are read
   through fallbacks and promoted on the next save.
 
@@ -122,7 +127,7 @@ rationale in `docs/DATA_ERASURE_POLICY.md`.
   seam; profile reconciliation; windowed/ID-only/uncapped fetches
 - `Peptide/Data/SwiftDataModels.swift` — profile column split, slices,
   residual blob, change-minimal updates, sorted-keys encoder
-- `Peptide/Data/PeptideAtlasSchema.swift` — V3 + lightweight stage
+- `Peptide/Data/PeptideAtlasSchema.swift` — inferred-migration note
 - `Peptide/Services/MigrationService.swift` — read-back verification,
   rollback, archive cleanup hook
 - `Peptide/Services/PersistenceService.swift` — archive retention,
@@ -167,8 +172,8 @@ on push — treat a green `build-check` there as the verification gate.
 ## Manual hardware tests required — NOT VERIFIED ON HARDWARE
 - Every scenario in `docs/CLOUDKIT_HARDWARE_TEST_PLAN.md`, especially:
   concurrent independent profile edits merging (Phase 3), duplicate
-  profile reconciliation across devices (Phase 8), the V2→V3 upgrade
-  in place over real data, and Watch duplicate delivery under weak
+  profile reconciliation across devices (Phase 8), the in-place
+  schema upgrade over real data, and Watch duplicate delivery under weak
   connectivity.
 - No CloudKit multi-device behaviour claimed here has run on devices.
 

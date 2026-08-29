@@ -6,7 +6,7 @@ CloudKit sync between devices. Run before any release that touches
 `SwiftDataRepository.swift`.
 
 **Status: NOT VERIFIED ON HARDWARE** for the Data Integrity 04 changes
-(profile column split, singleton reconciliation, schema V3). Every item
+(profile column split, singleton reconciliation, additive schema columns). Every item
 below must be checked on real devices before those changes are
 considered verified.
 
