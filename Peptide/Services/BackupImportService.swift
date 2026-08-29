@@ -334,6 +334,12 @@ enum BackupImportService {
         /// never deletes.
         var deletesUncarried: Bool
 
+        // Nested types don't inherit the enclosing enum's @MainActor —
+        // the init reads DataStore, so it must claim isolation itself
+        // (CI run 422: "call to main actor-isolated instance method
+        // in a synchronous nonisolated context"). apply() is the only
+        // caller and is already on the main actor.
+        @MainActor
         init?(backup: AppBackup, strategy: Strategy, dataStore: DataStore) {
             // All-nil means a v1 backup: nothing to do.
             guard backup.workoutSessions != nil
