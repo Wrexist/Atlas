@@ -215,6 +215,51 @@ final class DataStore: DataServiceProtocol {
                 self?.handleIdentityChange()
             }
         }
+
+        // Ingest remote CloudKit changes. Before this observer existed,
+        // rows written on another device reached memory only via one
+        // pull-to-refresh or a relaunch — and the debounced save's
+        // wholesale upsert of stale in-memory state could silently
+        // revert the other device's writes in the meantime.
+        NotificationCenter.default.addObserver(
+            forName: .peptideXCloudKitImportCompleted,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.scheduleCloudImportRefresh()
+            }
+        }
+    }
+
+    /// Coalesces CloudKit-import notifications (they fire in bursts
+    /// during a sync) into one `reloadFromDisk()`, deferred while a
+    /// debounced local save is still pending — the user's in-memory
+    /// edits win locally and land via their own save; reloading over
+    /// them mid-edit would drop keystrokes. If the store never goes
+    /// quiet within the retry budget the refresh is skipped; the next
+    /// import event or foreground pass catches up.
+    @ObservationIgnored private var cloudImportRefreshTask: Task<Void, Never>?
+
+    @MainActor
+    private func scheduleCloudImportRefresh() {
+        guard !isEphemeral else { return }
+        cloudImportRefreshTask?.cancel()
+        cloudImportRefreshTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            var attempts = 0
+            while !Task.isCancelled, self?.pendingSaveTask != nil, attempts < 10 {
+                try? await Task.sleep(for: .seconds(1))
+                attempts += 1
+            }
+            guard !Task.isCancelled,
+                  let self,
+                  self.pendingSaveTask == nil,
+                  !self.isEphemeral
+            else { return }
+            AppLog.persistence.log("CloudKit import finished; refreshing in-memory state")
+            self.reloadFromDisk()
+        }
     }
 
     @MainActor
