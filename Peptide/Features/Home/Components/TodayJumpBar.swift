@@ -151,7 +151,7 @@ struct TodayJumpBar: View {
         AppColor.background.ignoresSafeArea()
         VStack(spacing: Spacing.lg) {
             TodayJumpBar(
-                activeAnchor: .meals,
+                activeAnchor: .wellness,
                 showsDoses: true,
                 onSelect: { _ in },
                 onQuickLog: {}
