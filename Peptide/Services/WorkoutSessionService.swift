@@ -70,6 +70,7 @@ final class WorkoutSessionService {
         SwiftDataRepository.shared.upsertWorkoutSession(session)
         invalidatePreviousSetCache()
         WorkoutLiveActivityService.shared.start(session)
+        DataStore.current?.refreshTrainingGlanceables()
         AppLog.training.info("Workout started (id: \(session.id, privacy: .public))")
         return session
     }
@@ -101,6 +102,7 @@ final class WorkoutSessionService {
         // Reward training (and any new PR). Both this service and the
         // store are @MainActor, so the call is a direct hop.
         DataStore.current?.recordWorkoutFinished(detectedPRCount: detections.count)
+        DataStore.current?.refreshTrainingGlanceables()
         AppLog.training.info("Workout finished (id: \(session.id, privacy: .public), sets: \(session.completedSetCount, privacy: .public), PRs: \(detections.count, privacy: .public))")
         return FinishedWorkout(session: session, detectedPRs: detections)
     }
@@ -113,6 +115,7 @@ final class WorkoutSessionService {
         activeSession = nil
         invalidatePreviousSetCache()
         WorkoutLiveActivityService.shared.endAll()
+        DataStore.current?.refreshTrainingGlanceables()
         AppLog.training.info("Workout discarded (id: \(session.id, privacy: .public))")
     }
 

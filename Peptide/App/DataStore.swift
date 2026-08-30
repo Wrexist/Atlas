@@ -1580,6 +1580,21 @@ final class DataStore {
         )
     }
 
+    /// Rewrites the glanceable payload after a training-lifecycle event.
+    ///
+    /// Start / finish / discard all write `StoredWorkoutSession` through
+    /// the repo rather than through `protocols` / `entries` / `profile`,
+    /// so none of the `didSet` bumps fire and nothing else calls
+    /// `updateWidgetData`. Without this the training widget keeps
+    /// describing the previous workout until some unrelated mutation
+    /// happens along — showing a running timer for a workout that was
+    /// discarded, or yesterday's session right after the user finished
+    /// today's. Same reasoning as the cache bump in
+    /// `recordWorkoutFinished`, applied to the out-of-process snapshot.
+    func refreshTrainingGlanceables() {
+        updateWidgetData()
+    }
+
     /// (count, totalMinutes) for workout sessions logged on `date`'s
     /// calendar day.
     func workoutSummary(for date: Date = Date()) -> (count: Int, minutes: Int) {
