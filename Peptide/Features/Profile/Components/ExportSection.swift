@@ -181,7 +181,12 @@ struct ExportSection: View {
         guard let data = ExportService.shared.exportFullBackup(
             protocols: dataStore.protocols,
             entries: dataStore.entries,
-            profile: dataStore.profile
+            profile: dataStore.profile,
+            workoutSessions: dataStore.allWorkoutSessionsForBackup(),
+            routines: dataStore.routinesForBackup(),
+            customExercises: dataStore.customExercisesForBackup(),
+            personalRecords: dataStore.personalRecordsForBackup(),
+            customPeptides: dataStore.customPeptides
         ) else {
             exportError = "Couldn't prepare the backup. Please try again."
             return

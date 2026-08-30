@@ -200,13 +200,35 @@ final class ExportService {
 
     // MARK: - JSON Backup
 
-    func exportFullBackup(protocols: [PeptideProtocol], entries: [ProtocolEntry], profile: UserProfile) -> Data? {
+    /// v2 backups carry the Train tab (sessions, routines, custom
+    /// exercises, PRs) and custom peptides alongside the v1 payload.
+    /// v1 omitted all of it, which made "full backup" a silent lie:
+    /// export → reinstall → import was the designated no-iCloud
+    /// recovery path, and it lost the user's entire workout history.
+    /// The training parameters default to empty so callers that only
+    /// have protocol data (tests, fixtures) keep working, but the
+    /// production call site must pass everything.
+    func exportFullBackup(
+        protocols: [PeptideProtocol],
+        entries: [ProtocolEntry],
+        profile: UserProfile,
+        workoutSessions: [WorkoutSession] = [],
+        routines: [Routine] = [],
+        customExercises: [CustomExercise] = [],
+        personalRecords: [PersonalRecord] = [],
+        customPeptides: [Peptide] = []
+    ) -> Data? {
         let backup = AppBackup(
             exportDate: Date(),
-            version: "1.0",
+            version: "2.0",
             protocols: protocols,
             entries: entries,
-            profile: profile
+            profile: profile,
+            workoutSessions: workoutSessions,
+            routines: routines,
+            customExercises: customExercises,
+            personalRecords: personalRecords,
+            customPeptides: customPeptides
         )
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -567,6 +589,39 @@ struct AppBackup: Codable, Sendable {
     let protocols: [PeptideProtocol]
     let entries: [ProtocolEntry]
     let profile: UserProfile
+    // v2 additions. Optional so a v1 backup (which has none of these
+    // keys) still decodes; `nil` means "this backup predates training
+    // data" and the import leaves the live training store untouched,
+    // while `[]` in a v2 backup genuinely means "user had none".
+    var workoutSessions: [WorkoutSession]?
+    var routines: [Routine]?
+    var customExercises: [CustomExercise]?
+    var personalRecords: [PersonalRecord]?
+    var customPeptides: [Peptide]?
+
+    init(
+        exportDate: Date,
+        version: String,
+        protocols: [PeptideProtocol],
+        entries: [ProtocolEntry],
+        profile: UserProfile,
+        workoutSessions: [WorkoutSession]? = nil,
+        routines: [Routine]? = nil,
+        customExercises: [CustomExercise]? = nil,
+        personalRecords: [PersonalRecord]? = nil,
+        customPeptides: [Peptide]? = nil
+    ) {
+        self.exportDate = exportDate
+        self.version = version
+        self.protocols = protocols
+        self.entries = entries
+        self.profile = profile
+        self.workoutSessions = workoutSessions
+        self.routines = routines
+        self.customExercises = customExercises
+        self.personalRecords = personalRecords
+        self.customPeptides = customPeptides
+    }
 }
 
 enum ExportError: Error, LocalizedError {

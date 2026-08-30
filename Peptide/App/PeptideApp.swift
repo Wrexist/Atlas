@@ -63,12 +63,10 @@ struct PeptideApp: App {
             MigrationService.shared.migrateIfNeeded()
             let store = DataStore()
             WatchSyncService.shared.onMarkComplete = { entryId, _ in
-                store.toggleEntry(entryId)
+                store.markEntryComplete(entryId)
             }
             WatchSyncService.shared.onMarkIncomplete = { entryId, _ in
-                if store.entries.first(where: { $0.id == entryId })?.completed == true {
-                    store.toggleEntry(entryId)
-                }
+                store.markEntryIncomplete(entryId)
             }
             WatchSyncService.shared.onLogWater = { oz in
                 store.logWater(oz: oz)
@@ -104,12 +102,13 @@ struct PeptideApp: App {
             .environment(\.locale, localization.effectiveLocale)
             .environment(\.layoutDirection, localization.layoutDirection)
             .id(localization.selectedCode ?? "system")
-            .task(id: dataStore.profile.healthConnected) {
-                if dataStore.profile.healthConnected {
-                    await HealthKitService.shared.startBackgroundDelivery()
-                } else {
-                    HealthKitService.shared.stopBackgroundDelivery()
-                }
+            .task {
+                // Decode the bundled peptide catalog off the main
+                // thread, after the first frame. Every consumer
+                // (Library, protocol builder, AI research) reads it
+                // synchronously, so warming it here means none of them
+                // is the one that pays — and launch doesn't either.
+                await PeptideDatabase.warmUp()
             }
             .task {
                 // One-shot Spotlight reindex on app start. Custom foods
@@ -150,26 +149,11 @@ struct PeptideApp: App {
                 )
             }
             .onOpenURL { url in
-                // Live Activity tap → `peptidex://dose/<uuid>`. Park
-                // the UUID on AppState; HomeView consumes it on its
-                // next appear and presents the dose-logging sheet.
-                // Unknown schemes / paths fall through silently so a
-                // garbled custom-scheme tap from another app doesn't
-                // log an error or open an unrelated view.
-                guard url.scheme == "peptidex" else { return }
-                switch url.host {
-                case "dose":
-                    // Live Activity tap → `peptidex://dose/<uuid>`.
-                    guard let entryUUID = UUID(uuidString: url.lastPathComponent) else { return }
-                    appState.selectedTab = .today
-                    appState.pendingDoseLogEntryId = entryUUID
-                case "weekly":
-                    // Weekly recap notification → `peptidex://weekly/current`.
-                    appState.selectedTab = .today
-                    appState.pendingWeeklyRecap = true
-                default:
-                    return
-                }
+                // All `peptidex://` routing lives in DeepLinkRouter so
+                // the widget / Live Activity / notification link
+                // vocabulary is one tested mapping instead of an
+                // inline switch per entry point.
+                DeepLinkRouter.route(url, appState: appState)
             }
             .onContinueUserActivity(CSSearchableItemActionType) { activity in
                 // Spotlight tapped a food index entry. Parse the
@@ -431,7 +415,7 @@ struct PeptideApp: App {
                 .environment(appState)
         }
         .task {
-            let delegate = NotificationDelegate(dataStore: dataStore)
+            let delegate = NotificationDelegate(dataStore: dataStore, appState: appState)
             notificationDelegate = delegate
             UNUserNotificationCenter.current().delegate = delegate
             NotificationService.shared.registerCategories()

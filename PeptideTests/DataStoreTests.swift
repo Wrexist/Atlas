@@ -318,4 +318,123 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(saved?.peptideSchedules[peptide.id], override,
                        "peptideSchedules must survive an updateProtocol round-trip when explicitly passed")
     }
+
+    // MARK: - Watch delivery idempotency
+
+    func test_watchMarkCompleteDuplicateDelivery_doesNotUncomplete() {
+        guard let entry = store.entries.first(where: { !$0.completed }) else {
+            XCTFail("No incomplete entries in seed data")
+            return
+        }
+        store.markEntryComplete(entry.id)
+        XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, true)
+
+        // WCSession can deliver the same action twice (sendMessage error
+        // fallback re-sends via transferUserInfo). The duplicate must not
+        // flip the entry back to incomplete.
+        store.markEntryComplete(entry.id)
+        XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, true)
+    }
+
+    func test_watchMarkIncompleteDuplicateDelivery_doesNotComplete() {
+        guard let entry = store.entries.first(where: { !$0.completed }) else {
+            XCTFail("No incomplete entries in seed data")
+            return
+        }
+        store.markEntryComplete(entry.id)
+        store.markEntryIncomplete(entry.id)
+        XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, false)
+
+        store.markEntryIncomplete(entry.id)
+        XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, false)
+    }
+
+    // MARK: - Dirty tracking
+
+    func test_flushPendingSave_withNothingChanged_isANoOp() {
+        // Backgrounding an untouched app used to upsert every protocol,
+        // every entry and the whole profile, then reload every widget
+        // timeline. Nothing dirty must mean nothing written.
+        store.flushPendingSave()
+        let widgetBaseline = store.widgetUpdateCountForTesting
+        let watchBaseline = store.watchUpdateCountForTesting
+
+        store.flushPendingSave()
+
+        XCTAssertEqual(store.widgetUpdateCountForTesting, widgetBaseline,
+                       "A save with nothing dirty must not rebuild the widget snapshot")
+        XCTAssertEqual(store.watchUpdateCountForTesting, watchBaseline,
+                       "A save with nothing dirty must not rebuild the Watch payload")
+    }
+
+    func test_flushPendingSave_afterAMutation_writesAndPushesProjections() {
+        store.flushPendingSave()
+        let widgetBaseline = store.widgetUpdateCountForTesting
+        guard let entry = store.entries.first else {
+            XCTFail("No entries in store")
+            return
+        }
+
+        store.toggleEntry(entry.id)
+        store.flushPendingSave()
+
+        XCTAssertGreaterThan(store.widgetUpdateCountForTesting, widgetBaseline)
+    }
+
+    func test_mutationSurvives_aReloadFromDisk() {
+        // The dirty flags gate what reaches disk, so the round trip is
+        // the check that matters: a toggle must still be persisted.
+        guard let entry = store.entries.first(where: { !$0.completed }) else {
+            XCTFail("No incomplete entry in store")
+            return
+        }
+        store.toggleEntry(entry.id)
+        store.flushPendingSave()
+
+        store.reloadFromDisk()
+
+        XCTAssertEqual(store.entries.first(where: { $0.id == entry.id })?.completed, true)
+    }
+
+    func test_profileEdit_isPersisted_evenWhenEntriesAreClean() {
+        store.flushPendingSave()
+
+        store.updateProfileIdentity(name: "Dirty Tracking", bio: "")
+        store.flushPendingSave()
+        store.reloadFromDisk()
+
+        XCTAssertEqual(store.profile.name, "Dirty Tracking")
+    }
+
+    // MARK: - Persistence failure must not update projections
+
+    func test_performSaveNow_widgetAndWatchNotUpdated_whenCommitFails() {
+        let repo = SwiftDataRepository.shared
+        guard let entry = store.entries.first else {
+            XCTFail("No entries in store")
+            return
+        }
+
+        repo.forceCommitFailureForTesting = true
+        store.toggleEntry(entry.id)
+        let widgetBaseline = store.widgetUpdateCountForTesting
+        let watchBaseline = store.watchUpdateCountForTesting
+        store.flushPendingSave()
+
+        XCTAssertTrue(repo.commitDidFail, "Forced commit failure must be reported")
+        XCTAssertEqual(store.widgetUpdateCountForTesting, widgetBaseline,
+                       "Widget projection must not update when persistence fails")
+        XCTAssertEqual(store.watchUpdateCountForTesting, watchBaseline,
+                       "Watch projection must not update when persistence fails")
+        XCTAssertEqual(store.lastError, DataStore.saveFailureMessage,
+                       "The user-visible save-failure banner must still surface")
+
+        // Recovery: once persistence succeeds again the projections push
+        // and the banner clears.
+        repo.forceCommitFailureForTesting = false
+        store.flushPendingSave()
+        XCTAssertGreaterThan(store.widgetUpdateCountForTesting, widgetBaseline)
+        XCTAssertGreaterThan(store.watchUpdateCountForTesting, watchBaseline)
+        XCTAssertNil(store.lastError)
+    }
 }

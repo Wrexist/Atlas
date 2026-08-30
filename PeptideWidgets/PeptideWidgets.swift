@@ -251,6 +251,18 @@ struct MediumWidgetView: View {
 
 // MARK: - Widget Definitions
 
+/// Deep-link targets for widget taps, routed by the app's
+/// `DeepLinkRouter`. Before these, every home-screen widget tap just
+/// foregrounded the app on whatever tab was last open — a nutrition
+/// widget tap could land on Biology. `widgetURL` needs no
+/// CFBundleURLTypes registration for same-app links, but the scheme
+/// is registered anyway so notification and Shortcuts links resolve.
+enum WidgetDeepLink {
+    static let today = URL(string: "peptidex://today")
+    static let meals = URL(string: "peptidex://meals")
+    static let train = URL(string: "peptidex://train")
+}
+
 struct NextDoseWidgetView: View {
     @Environment(\.widgetFamily) var family
     let entry: DoseEntry
@@ -271,6 +283,7 @@ struct NextDoseWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: DoseTimelineProvider()) { entry in
             NextDoseWidgetView(entry: entry)
+                .widgetURL(WidgetDeepLink.today)
         }
         .configurationDisplayName("Next Dose")
         .description("Shows your next scheduled peptide dose")
@@ -284,6 +297,7 @@ struct ComplianceWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: DoseTimelineProvider()) { entry in
             MediumWidgetView(entry: entry)
+                .widgetURL(WidgetDeepLink.today)
         }
         .configurationDisplayName("Daily Compliance")
         .description("Track your daily dose completion")
@@ -607,6 +621,7 @@ struct NutritionWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NutritionTimelineProvider()) { entry in
             NutritionWidgetView(entry: entry)
+                .widgetURL(WidgetDeepLink.meals)
         }
         .configurationDisplayName("Today's Nutrition")
         .description("Today's calorie ring and per-meal breakdown from Atlas.")
@@ -622,8 +637,10 @@ struct PeptideWidgetBundle: WidgetBundle {
         NextDoseWidget()
         ComplianceWidget()
         NutritionWidget()
+        TrainingWidget()
         if #available(iOS 16.1, *) {
             DoseWindowLiveActivity()
+            WorkoutLiveActivity()
         }
     }
 }

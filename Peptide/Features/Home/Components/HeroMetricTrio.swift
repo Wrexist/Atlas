@@ -16,6 +16,11 @@ import SwiftUI
 struct HeroMetricTrio: View {
     let snapshot: HeroMetricSnapshot
     var onTapRing: ((HeroMetricKind) -> Void)?
+    /// Tap handler for the "Connect Apple Health" footer. The footer
+    /// used to be display-only — it named the fix (connect Health)
+    /// and offered no way to do it (audit Accessibility/empty-state
+    /// finding). Nil keeps the footer as a plain label.
+    var onConnectHealth: (() -> Void)?
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
@@ -106,7 +111,23 @@ struct HeroMetricTrio: View {
 
     // MARK: - Footer
 
+    @ViewBuilder
     private var healthConnectionFooter: some View {
+        if let onConnectHealth {
+            Button(action: onConnectHealth) {
+                footerContent(chevron: true)
+            }
+            .buttonStyle(.plain)
+            .minimumHitArea()
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Connect Apple Health for Recovery and Sleep scores")
+            .accessibilityHint("Opens your profile, where Health connects")
+        } else {
+            footerContent(chevron: false)
+        }
+    }
+
+    private func footerContent(chevron: Bool) -> some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "heart.text.square.fill")
                 .font(AppFont.scaled(11, weight: .semibold))
@@ -117,8 +138,14 @@ struct HeroMetricTrio: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
             Spacer(minLength: 0)
+            if chevron {
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+            }
         }
         .padding(.horizontal, Spacing.xs)
+        .contentShape(Rectangle())
     }
 }
 

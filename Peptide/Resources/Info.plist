@@ -21,14 +21,25 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.peptidesai.app.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>peptidex</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Atlas uses the camera to scan food barcodes, take a profile photo (stored locally), and photograph meals for nutrition estimation. Meal photos are sent securely to our AI service for analysis and are not retained after the response. Barcode and profile photos stay on your device.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Atlas uses Face ID to optionally lock the app, so your protocols and health data stay private if your device is unlocked. Face ID is optional — you can disable it in Settings.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Atlas reads heart rate, HRV, resting heart rate, sleep, body mass, steps, and active energy from Apple Health to show recovery trends and correlate them with what you log. Analysis happens on your device; if you enable the optional AI weekly summary, weekly averages of HRV, resting heart rate, and sleep hours are sent securely to our AI service to write your recap and are not stored there.</string>
+	<string>Atlas reads HRV, resting heart rate, sleep, and steps from Apple Health to show recovery trends and correlate them with what you log. Analysis happens on your device; if you enable the optional AI weekly summary, weekly averages of HRV, resting heart rate, and sleep hours are sent securely to our AI service to write your recap and are not stored there.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Atlas can optionally write the meals you log (calories, protein, carbs, fat, fiber) to Apple Health, so your nutrition shows up alongside everything else Apple Health tracks. Writing is off by default and you can disable it any time in Profile → Apple Health.</string>
+	<string>If you turn on "Write meals to Apple Health", Atlas saves the calories, protein, carbohydrates and fat from meals you log so they appear in the Health app's nutrition timeline. Nothing else is written, and the setting is off until you enable it.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Atlas can save your generated share cards (cycle summaries, achievement cards) to your Photo Library when you tap Save. Only the images you choose to save are written — Atlas never reads from your library.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

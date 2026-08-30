@@ -16,4 +16,8 @@ enum TrainNavigation: Hashable {
     case workoutDetail(UUID)
     /// Full workout history list.
     case workoutHistory
+    /// The routine editor. Carries the routine's UUID for the same
+    /// reason `workoutDetail` does — the destination resolves it out of
+    /// `RoutineStore` so a push survives an edit made elsewhere.
+    case routineBuilder(UUID)
 }

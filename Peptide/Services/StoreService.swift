@@ -1,4 +1,5 @@
 import Foundation
+import RevenueCat
 import StoreKit
 
 @MainActor @Observable
@@ -180,6 +181,24 @@ final class StoreService {
         case .success(let verification):
             let transaction = try checkVerified(verification)
             await transaction.finish()
+            // Observer mode under StoreKit 2 records nothing on its own:
+            // with `purchasesAreCompletedBy: .myApp`, the RevenueCat SDK
+            // requires an explicit recordPurchase for each purchase the
+            // app completes, or the dashboard/webhooks the integration
+            // exists for stay empty. Best-effort — a RevenueCat outage
+            // must never affect the entitlement the user just paid for.
+            // `Purchases.shared` traps when unconfigured, and configuration
+            // happens in PeptideApp.init — guard so a headless context
+            // (unit tests without the app host, previews) can't crash here.
+            if Purchases.isConfigured {
+                Task {
+                    do {
+                        _ = try await Purchases.shared.recordPurchase(result)
+                    } catch {
+                        AppLog.storeKit.error("RevenueCat recordPurchase failed: \(error.localizedDescription, privacy: .public)")
+                    }
+                }
+            }
             await updatePurchasedProducts()
             return .success
         case .userCancelled:
@@ -227,13 +246,21 @@ final class StoreService {
     /// App Store guideline 3.1.2(a) is specific about that.
     var hasLifetimeAccess: Bool { purchasedProductIDs.contains(Self.lifetimeID) }
 
-    var canAccessUnlimitedProtocols: Bool { isProUser }
-    var canAccessFullAnalytics: Bool { isProUser }
+    /// Gates the Pro weekly AI recap — enforced in
+    /// `WeeklySummaryService.generateIfNeeded`.
+    ///
+    /// This is the only per-feature entitlement flag the app actually
+    /// checks. `canAccessCloudSync`, `canAccessAllWidgets`,
+    /// `canAccessFullAnalytics`, `canAccessExport` and
+    /// `canAccessUnlimitedProtocols` used to sit alongside it and were
+    /// never read by anything but their own unit test — the real
+    /// protocol-count gate is `requiresPro(activeProtocolCount:)` below.
+    /// They were removed rather than left as five aliases for
+    /// `isProUser` that read like enforcement without being any. Add a
+    /// flag back at the point a surface actually gates on it.
     var canAccessAIFeatures: Bool { isProUser }
-    var canAccessCloudSync: Bool { isProUser }
-    var canAccessExport: Bool { isProUser }
-    var canAccessAllWidgets: Bool { isProUser }
 
+    /// The free tier allows two active protocols; a third needs Pro.
     func requiresPro(activeProtocolCount: Int) -> Bool {
         !isProUser && activeProtocolCount >= 3
     }
@@ -264,7 +291,18 @@ final class StoreService {
                 // access indefinitely.
                 if transaction.revocationDate != nil { continue }
                 if let expiration = transaction.expirationDate,
-                   expiration < Date() { continue }
+                   expiration < Date() {
+                    // Billing grace period: Apple keeps retrying the card
+                    // after expirationDate passes, and its guidance is to
+                    // keep entitlement through the grace window. The bare
+                    // date check locked paying customers out of Pro on a
+                    // card hiccup (and cancelled their Sunday recap push
+                    // via the isPro reconcile). Only an explicit
+                    // inGracePeriod renewal state keeps access — expired,
+                    // revoked, and billing-retry-without-grace still drop.
+                    guard let groupID = transaction.subscriptionGroupID,
+                          await isInGracePeriod(groupID: groupID) else { continue }
+                }
                 purchased.insert(transaction.productID)
             } catch {
                 AppLog.storeKit.error("Entitlement verification failed: \(error.localizedDescription, privacy: .public)")
@@ -274,6 +312,17 @@ final class StoreService {
         purchasedProductIDs = purchased
         isProUser = !purchased.isDisjoint(with: proIDs)
         await refreshTrialEligibility()
+    }
+
+    /// True when any subscription in the group is inside Apple's billing
+    /// grace period. Queried only for transactions whose expirationDate
+    /// has already passed, so the extra round-trip never runs on the
+    /// happy path.
+    private func isInGracePeriod(groupID: String) async -> Bool {
+        guard let statuses = try? await Product.SubscriptionInfo.status(for: groupID) else {
+            return false
+        }
+        return statuses.contains { $0.state == .inGracePeriod }
     }
 
     private func refreshTrialEligibility() async {
@@ -289,7 +338,10 @@ final class StoreService {
         }
     }
 
-    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+    // Module-qualified: `import RevenueCat` brings RevenueCat's own
+    // non-generic `VerificationResult` into scope, and the bare name
+    // resolved to it ("cannot specialize non-generic type").
+    private func checkVerified<T>(_ result: StoreKit.VerificationResult<T>) throws -> T {
         switch result {
         case .unverified(let value, let verificationError):
             let productID = (value as? Transaction)?.productID ?? "unknown"

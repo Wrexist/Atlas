@@ -1,27 +1,14 @@
 import Foundation
 @preconcurrency import HealthKit
-import WidgetKit
 
-struct HealthSnapshot {
-    let heartRate: Double?         // bpm, 7-day avg
-    let restingHeartRate: Double?  // bpm, 7-day avg
-    let hrv: Double?               // ms, 7-day avg
-    let weight: Double?            // kg, latest
-    let steps: Double?             // daily avg steps, 7 days
-    let sleep: Double?             // daily avg hours, 7 days
-    let capturedAt: Date
-}
-
-@MainActor @Observable
+/// Read/write bridge to Apple Health. Every accessor queries HealthKit
+/// on demand — the service holds no cached state, so callers get fresh
+/// numbers and nothing observes it.
+@MainActor
 final class HealthKitService {
     static let shared = HealthKitService()
 
-    @ObservationIgnored private let store = HKHealthStore()
-    private(set) var cachedSnapshot: HealthSnapshot?
-    private var isBackgroundDeliveryStarted = false
-    /// Active observer queries. Tracked so stopBackgroundDelivery can stop them
-    /// — disableAllBackgroundDelivery alone leaves the observer queries running.
-    @ObservationIgnored private var activeObserverQueries: [HKObserverQuery] = []
+    private let store = HKHealthStore()
 
     private init() {}
 
@@ -32,13 +19,15 @@ final class HealthKitService {
     func requestAuthorization() async -> Bool {
         guard isAvailable else { return false }
 
+        // Exactly the four types the app reads back: HRV and resting
+        // heart rate (Recovery, Performance Age, correlations), steps
+        // (the home health summary) and sleep. Asking for a type we
+        // never query is an App Review liability and costs the user a
+        // permission row they get nothing for.
         let readTypes: Set<HKObjectType> = [
-            HKQuantityType(.heartRate),
             HKQuantityType(.heartRateVariabilitySDNN),
             HKQuantityType(.restingHeartRate),
-            HKQuantityType(.bodyMass),
             HKQuantityType(.stepCount),
-            HKQuantityType(.activeEnergyBurned),
             HKCategoryType(.sleepAnalysis),
         ]
 
@@ -48,76 +37,6 @@ final class HealthKitService {
         } catch {
             AppLog.healthKit.error("Authorization request failed: \(error.localizedDescription, privacy: .private)")
             return false
-        }
-    }
-
-    /// HealthKit deliberately doesn't tell apps which read types were
-    /// granted (privacy contract). The only honest signal is to probe
-    /// for actual sample availability — if at least one of the 6
-    /// quantity types has a sample in the past 90 days, the grant is
-    /// meaningfully alive. Returns counts per type so the caller can
-    /// surface a "0 of 7 — check Settings" affordance when nothing
-    /// comes back at all (audit Biology C1 + C2).
-    ///
-    /// Sleep is intentionally excluded from this probe because Apple
-    /// uses a `HKCategoryType`, not a quantity type, and a separate
-    /// query shape — and a user with a Watch typically has plenty of
-    /// quantity samples regardless.
-    func probeReadAvailability() async -> ReadAvailabilityProbe {
-        guard isAvailable else {
-            return ReadAvailabilityProbe(typesWithData: 0, typesProbed: 0, isAvailable: false)
-        }
-        let identifiers: [HKQuantityTypeIdentifier] = [
-            .heartRate,
-            .heartRateVariabilitySDNN,
-            .restingHeartRate,
-            .bodyMass,
-            .stepCount,
-            .activeEnergyBurned,
-        ]
-        let cutoff = Calendar.current.date(byAdding: .day, value: -90, to: Date()) ?? Date()
-        var typesWithData = 0
-        for identifier in identifiers {
-            let type = HKQuantityType(identifier)
-            let predicate = HKQuery.predicateForSamples(withStart: cutoff, end: nil)
-            let hasAny = await firstSampleExists(type: type, predicate: predicate)
-            if hasAny { typesWithData += 1 }
-        }
-        return ReadAvailabilityProbe(
-            typesWithData: typesWithData,
-            typesProbed: identifiers.count,
-            isAvailable: true
-        )
-    }
-
-    private func firstSampleExists(type: HKQuantityType, predicate: NSPredicate) async -> Bool {
-        await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-            let query = HKSampleQuery(
-                sampleType: type,
-                predicate: predicate,
-                limit: 1,
-                sortDescriptors: nil
-            ) { _, samples, _ in
-                continuation.resume(returning: !(samples?.isEmpty ?? true))
-            }
-            store.execute(query)
-        }
-    }
-
-    /// Carries the result of `probeReadAvailability()`. The view
-    /// surfaces a "Connected" pill when `typesWithData > 0`, a
-    /// "Connected · checking…" pill on a fresh install while no data
-    /// has arrived yet, and "Verify in Settings →" when the user
-    /// likely denied everything (typesWithData == 0 after a grant).
-    struct ReadAvailabilityProbe: Equatable, Sendable {
-        let typesWithData: Int
-        let typesProbed: Int
-        let isAvailable: Bool
-
-        var hasAnyData: Bool { typesWithData > 0 }
-        var coveragePercent: Int {
-            guard typesProbed > 0 else { return 0 }
-            return Int((Double(typesWithData) / Double(typesProbed) * 100).rounded())
         }
     }
 
@@ -305,107 +224,7 @@ final class HealthKitService {
     }
 
 
-    // MARK: - Background Delivery
-
-    func startBackgroundDelivery() async {
-        guard isAvailable, !isBackgroundDeliveryStarted else { return }
-        isBackgroundDeliveryStarted = true
-
-        let quantityTypes: [(HKQuantityTypeIdentifier, HKUpdateFrequency)] = [
-            (.heartRate, .immediate),
-            (.heartRateVariabilitySDNN, .immediate),
-            (.restingHeartRate, .hourly),
-            (.bodyMass, .daily),
-            (.stepCount, .daily),
-            (.activeEnergyBurned, .daily),
-        ]
-
-        for (typeId, frequency) in quantityTypes {
-            await enableAndObserve(HKQuantityType(typeId), frequency: frequency)
-        }
-        await enableAndObserve(HKCategoryType(.sleepAnalysis), frequency: .daily)
-
-        // Populate cache immediately so Analytics has data on first open
-        await refreshSnapshot()
-    }
-
-    func stopBackgroundDelivery() {
-        for query in activeObserverQueries {
-            store.stop(query)
-        }
-        activeObserverQueries.removeAll()
-        store.disableAllBackgroundDelivery { _, _ in }
-        isBackgroundDeliveryStarted = false
-    }
-
-    func refreshSnapshot() async {
-        guard isAvailable else { return }
-
-        let hr = await averageHeartRate(days: 7)
-        let rhr = await averageRestingHeartRate(days: 7)
-        let hrv = await averageHRV(days: 7)
-        let weight = await latestWeight()
-        let steps = await averageSteps(days: 7)
-        let sleep = await averageSleepHours(days: 7)
-
-        cachedSnapshot = HealthSnapshot(
-            heartRate: hr,
-            restingHeartRate: rhr,
-            hrv: hrv,
-            weight: weight,
-            steps: steps,
-            sleep: sleep,
-            capturedAt: Date()
-        )
-
-        WidgetCenter.shared.reloadAllTimelines()
-    }
-
-    private func enableAndObserve(_ sampleType: HKSampleType, frequency: HKUpdateFrequency) async {
-        // BG delivery failure (simulator, denied auth) only means we won't
-        // wake from the background — observer queries still fire while the
-        // app is in the foreground, which is what keeps the in-session
-        // snapshot fresh on simulator builds (audit Biology MED 14).
-        do {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                store.enableBackgroundDelivery(for: sampleType, frequency: frequency) { _, error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                    } else {
-                        continuation.resume()
-                    }
-                }
-            }
-        } catch {
-            AppLog.healthKit.debug("enableBackgroundDelivery skipped for \(sampleType.identifier, privacy: .public): \(error.localizedDescription, privacy: .private)")
-        }
-
-        let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { [weak self] _, completionHandler, error in
-            if let error {
-                AppLog.healthKit.error("Observer query error: \(error.localizedDescription, privacy: .private)")
-                completionHandler()
-                return
-            }
-            // Call the completion handler AFTER the refresh resolves
-            // so the OS doesn't reclaim background time before our HK
-            // queries complete. The prior implementation called it
-            // immediately and ran refresh detached — on real devices
-            // that races the process suspending and silently drops
-            // the update.
-            Task { @MainActor in
-                await self?.refreshSnapshot()
-                completionHandler()
-            }
-        }
-        store.execute(query)
-        activeObserverQueries.append(query)
-    }
-
     // MARK: - Heart Rate
-
-    func averageHeartRate(days: Int) async -> Double? {
-        await averageQuantity(type: .heartRate, unit: .count().unitDivided(by: .minute()), days: days)
-    }
 
     func averageRestingHeartRate(days: Int) async -> Double? {
         await averageQuantity(type: .restingHeartRate, unit: .count().unitDivided(by: .minute()), days: days)
@@ -504,12 +323,6 @@ final class HealthKitService {
             )
             return []
         }
-    }
-
-    // MARK: - Body
-
-    func latestWeight() async -> Double? {
-        await latestQuantity(type: .bodyMass, unit: .gramUnit(with: .kilo))
     }
 
     // MARK: - Activity
@@ -666,24 +479,6 @@ final class HealthKitService {
         } catch {
             AppLog.healthKit.error("dailyQuantity \(type.rawValue, privacy: .public) failed: \(error.localizedDescription, privacy: .private)")
             return []
-        }
-    }
-
-    private func latestQuantity(type: HKQuantityTypeIdentifier, unit: HKUnit) async -> Double? {
-        guard isAvailable else { return nil }
-
-        let descriptor = HKSampleQueryDescriptor(
-            predicates: [.quantitySample(type: HKQuantityType(type))],
-            sortDescriptors: [SortDescriptor(\.startDate, order: .reverse)],
-            limit: 1
-        )
-
-        do {
-            let samples = try await descriptor.result(for: store)
-            return samples.first?.quantity.doubleValue(for: unit)
-        } catch {
-            AppLog.healthKit.error("latestQuantity \(type.rawValue, privacy: .public) failed: \(error.localizedDescription, privacy: .private)")
-            return nil
         }
     }
 }

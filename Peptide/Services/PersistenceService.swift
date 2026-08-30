@@ -53,6 +53,26 @@ final class PersistenceService: @unchecked Sendable {
 
     // MARK: - Save
 
+    // MARK: Legacy JSON writers — test fixtures only
+    //
+    // `protocols.json`, `entries.json` and `profile.json` are the
+    // pre-SwiftData layout. Nothing in the app writes them any more:
+    // production persistence goes through `SwiftDataRepository`, and
+    // `MigrationService` only ever *reads* these files, once, to import
+    // a pre-SwiftData install.
+    //
+    // They survive because `MigrationServiceTests` and
+    // `PersistenceRoundTripTests` use them to lay down a legacy store
+    // for the migration to find — that suite is the safety net for the
+    // one-way JSON → SwiftData import, and it has no other way to
+    // produce its input.
+    //
+    // `#if DEBUG` is the fence. App code physically cannot call these in
+    // a shipping build, so a future caller can't accidentally route real
+    // writes back into the legacy layout and split the source of truth,
+    // while the tests (which build Debug) keep working.
+
+    #if DEBUG
     func saveProtocols(_ protocols: [PeptideProtocol]) {
         guard let url = protocolsURL else { return }
         save(protocols, to: url)
@@ -67,6 +87,7 @@ final class PersistenceService: @unchecked Sendable {
         guard let url = profileURL else { return }
         save(profile, to: url)
     }
+    #endif
 
     func saveCustomPeptides(_ peptides: [Peptide]) {
         guard let url = customPeptidesURL else { return }
@@ -128,7 +149,10 @@ final class PersistenceService: @unchecked Sendable {
     var profileFileExists: Bool { profileURL.map { fileManager.fileExists(atPath: $0.path) } ?? false }
 
     func clearAll() {
-        for url in [protocolsURL, entriesURL, profileURL, customPeptidesURL, widgetDataURL].compactMap({ $0 }) {
+        // Archived `.migrated` files are included: they carry the same
+        // personal data (name, email, body metrics, weight history) as
+        // the live files, so "erase my data" must reach them too.
+        for url in ([protocolsURL, entriesURL, profileURL, customPeptidesURL, widgetDataURL].compactMap { $0 } + archivedLegacyURLs) {
             guard fileManager.fileExists(atPath: url.path) else { continue }
             do {
                 try fileManager.removeItem(at: url)
@@ -136,6 +160,45 @@ final class PersistenceService: @unchecked Sendable {
                 AppLog.persistence.error("Failed to remove \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
         }
+    }
+
+    // MARK: - Archived legacy files
+
+    /// How long a `.migrated` safety-net file is retained after a
+    /// verified migration. Long enough that a data problem would have
+    /// surfaced (and a backup/export made) across many launches; short
+    /// enough that personal data doesn't sit on disk indefinitely.
+    static let archivedLegacyRetentionDays = 90
+
+    private var archivedLegacyURLs: [URL] {
+        [protocolsURL, entriesURL, profileURL].compactMap {
+            $0?.deletingPathExtension().appendingPathExtension("migrated")
+        }
+    }
+
+    /// Deletes `.migrated` archives older than the retention window.
+    /// Touches archive names only — never a live `.json` — and archives
+    /// exist only after migration verification passed, so this can never
+    /// destroy the sole copy of user data.
+    func cleanUpExpiredArchivedLegacyFiles(now: Date = Date()) {
+        let cutoff = TimeInterval(Self.archivedLegacyRetentionDays) * 86_400
+        for url in archivedLegacyURLs {
+            guard fileManager.fileExists(atPath: url.path) else { continue }
+            let modified = (try? fileManager.attributesOfItem(atPath: url.path)[.modificationDate]) as? Date
+            guard let modified, now.timeIntervalSince(modified) > cutoff else { continue }
+            do {
+                try fileManager.removeItem(at: url)
+                AppLog.persistence.info("Expired legacy archive \(url.lastPathComponent, privacy: .public) removed")
+            } catch {
+                AppLog.persistence.error("Failed to expire \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
+    /// True when any `.migrated` archive is still on disk. Test +
+    /// diagnostics hook.
+    var hasArchivedLegacyFiles: Bool {
+        archivedLegacyURLs.contains { fileManager.fileExists(atPath: $0.path) }
     }
 
     /// Renames legacy JSON files to `.migrated` so MigrationService knows not to re-run.

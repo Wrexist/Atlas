@@ -34,8 +34,28 @@ final class PRDetectionEngine {
     /// Walks a finished session's exercises, compares each one's
     /// stats against the cached `PersonalRecord`, and upserts any
     /// new maxes. Returns the deltas so the UI can celebrate.
+    /// Rebuilds the PR rows for the given exercises from the full stored
+    /// history. Called after a session is deleted so a record set by the
+    /// now-gone workout doesn't survive it as an unfalsifiable badge —
+    /// the record either rolls back to the best remaining session or, if
+    /// no other session touched the exercise, disappears entirely.
+    func recompute(exerciseIDs: Set<String>) {
+        guard !exerciseIDs.isEmpty else { return }
+        let repo = SwiftDataRepository.shared
+        for exerciseID in exerciseIDs {
+            repo.deletePersonalRecord(exerciseID: exerciseID)
+        }
+        // Full history, oldest first, so "achieved at" lands on the
+        // earliest session that set each surviving best.
+        for session in repo.loadAllWorkoutSessions() where session.finishedAt != nil {
+            guard session.exercises.contains(where: { exerciseIDs.contains($0.exerciseID) })
+            else { continue }
+            ingest(session: session, restrictTo: exerciseIDs)
+        }
+    }
+
     @discardableResult
-    func ingest(session: WorkoutSession) -> [DetectedPR] {
+    func ingest(session: WorkoutSession, restrictTo: Set<String>? = nil) -> [DetectedPR] {
         guard session.finishedAt != nil else { return [] }
         let repo = SwiftDataRepository.shared
         let existing = Dictionary(uniqueKeysWithValues:
@@ -49,6 +69,7 @@ final class PRDetectionEngine {
         let grouped = Dictionary(grouping: session.exercises, by: \.exerciseID)
 
         for (exerciseID, entries) in grouped {
+            if let restrictTo, !restrictTo.contains(exerciseID) { continue }
             let allSets = entries.flatMap(\.sets).filter { $0.completed && !$0.isWarmup }
             guard !allSets.isEmpty else { continue }
 

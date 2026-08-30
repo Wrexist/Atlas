@@ -80,6 +80,12 @@ enum BackupImportService {
         let hasMealHistory: Bool
         let hasLabHistory: Bool
         let hasWeightHistory: Bool
+        /// v2 payloads. Zero/false for a v1 backup — the preview sheet
+        /// uses that to say training data is NOT in this backup rather
+        /// than implying a "full backup" restores it.
+        var workoutSessionsCount: Int = 0
+        var routinesCount: Int = 0
+        var customPeptidesCount: Int = 0
     }
 
     /// The one place a `Preview` is built. Three call sites summarise
@@ -93,7 +99,10 @@ enum BackupImportService {
         version: String,
         protocols: [PeptideProtocol],
         entries: [ProtocolEntry],
-        profile: UserProfile
+        profile: UserProfile,
+        workoutSessionsCount: Int = 0,
+        routinesCount: Int = 0,
+        customPeptidesCount: Int = 0
     ) -> Preview {
         Preview(
             exportDate: exportDate,
@@ -103,7 +112,10 @@ enum BackupImportService {
             profileName: profile.name.isEmpty ? "—" : profile.name,
             hasMealHistory: !profile.mealHistory.isEmpty,
             hasLabHistory: !profile.labHistory.isEmpty,
-            hasWeightHistory: !profile.weightHistory.isEmpty
+            hasWeightHistory: !profile.weightHistory.isEmpty,
+            workoutSessionsCount: workoutSessionsCount,
+            routinesCount: routinesCount,
+            customPeptidesCount: customPeptidesCount
         )
     }
 
@@ -114,7 +126,10 @@ enum BackupImportService {
             version: backup.version,
             protocols: backup.protocols,
             entries: backup.entries,
-            profile: backup.profile
+            profile: backup.profile,
+            workoutSessionsCount: backup.workoutSessions?.count ?? 0,
+            routinesCount: backup.routines?.count ?? 0,
+            customPeptidesCount: backup.customPeptides?.count ?? 0
         )
     }
 
@@ -172,6 +187,12 @@ enum BackupImportService {
         }
         if backup.protocols.count > 500 {
             throw ImportError.bounds("protocols count (\(backup.protocols.count)) exceeds the plausible maximum (500)")
+        }
+        // A daily lifter logs ~365 sessions a year; 50k is a decade at
+        // 13/day — beyond any plausible human, so it's a corruption
+        // signal, same reasoning as the entry cap above.
+        if let sessions = backup.workoutSessions, sessions.count > 50_000 {
+            throw ImportError.bounds("workout sessions count (\(sessions.count)) exceeds the plausible maximum (50,000)")
         }
         // Reject obviously-corrupt timestamps.
         let now = Date()
@@ -264,11 +285,24 @@ enum BackupImportService {
             return preview(of: backup)
         }
 
+        // Training + custom-peptide payloads (v2). `nil` on the backup
+        // means it predates them — leave the live stores untouched
+        // rather than treating "key absent" as "user had none".
+        // Replace hands the arrays through verbatim with delete-of-
+        // uncarried semantics; Merge keeps current rows on ID conflict,
+        // mirroring the protocol/entry strategy above.
+        let training = TrainingImport(
+            backup: backup,
+            strategy: strategy,
+            dataStore: dataStore
+        )
+
         do {
             try dataStore.applyImport(
                 protocols: resolvedProtocols,
                 entries: resolvedEntries,
-                profile: resolvedProfile
+                profile: resolvedProfile,
+                training: training
             )
         } catch {
             throw ImportError.applyFailed(error.localizedDescription)
@@ -279,8 +313,88 @@ enum BackupImportService {
             version: backup.version,
             protocols: resolvedProtocols,
             entries: resolvedEntries,
-            profile: resolvedProfile
+            profile: resolvedProfile,
+            workoutSessionsCount: training?.workoutSessions.count ?? 0,
+            routinesCount: training?.routines.count ?? 0,
+            customPeptidesCount: training?.customPeptides.count ?? 0
         )
+    }
+
+    /// Resolved v2 payload handed to `DataStore.applyImport`. Built
+    /// here (not inside DataStore) so the merge strategy lives next to
+    /// the protocol/entry merge it mirrors. `nil` = the backup carried
+    /// no v2 data at all → training and custom peptides stay untouched.
+    struct TrainingImport: Sendable {
+        var workoutSessions: [WorkoutSession]
+        var routines: [Routine]
+        var customExercises: [CustomExercise]
+        var personalRecords: [PersonalRecord]
+        var customPeptides: [Peptide]
+        /// Replace deletes live rows the import didn't carry; Merge
+        /// never deletes.
+        var deletesUncarried: Bool
+
+        // Nested types don't inherit the enclosing enum's @MainActor —
+        // the init reads DataStore, so it must claim isolation itself
+        // (CI run 422: "call to main actor-isolated instance method
+        // in a synchronous nonisolated context"). apply() is the only
+        // caller and is already on the main actor.
+        @MainActor
+        init?(backup: AppBackup, strategy: Strategy, dataStore: DataStore) {
+            // All-nil means a v1 backup: nothing to do.
+            guard backup.workoutSessions != nil
+                || backup.routines != nil
+                || backup.customExercises != nil
+                || backup.personalRecords != nil
+                || backup.customPeptides != nil
+            else { return nil }
+
+            let incomingSessions = backup.workoutSessions ?? []
+            let incomingRoutines = backup.routines ?? []
+            let incomingExercises = backup.customExercises ?? []
+            let incomingRecords = backup.personalRecords ?? []
+            let incomingPeptides = backup.customPeptides ?? []
+
+            switch strategy {
+            case .replace, .dryRun:
+                workoutSessions = incomingSessions
+                routines = incomingRoutines
+                customExercises = incomingExercises
+                personalRecords = incomingRecords
+                customPeptides = incomingPeptides
+                deletesUncarried = true
+            case .merge:
+                let currentSessions = dataStore.allWorkoutSessionsForBackup()
+                let sessionIDs = Set(currentSessions.map(\.id))
+                workoutSessions = currentSessions
+                    + incomingSessions.filter { !sessionIDs.contains($0.id) }
+
+                let currentRoutines = dataStore.routinesForBackup()
+                let routineIDs = Set(currentRoutines.map(\.id))
+                routines = currentRoutines
+                    + incomingRoutines.filter { !routineIDs.contains($0.id) }
+
+                let currentExercises = dataStore.customExercisesForBackup()
+                let exerciseIDs = Set(currentExercises.map(\.id))
+                customExercises = currentExercises
+                    + incomingExercises.filter { !exerciseIDs.contains($0.id) }
+
+                // PRs key on exerciseID; the repo upserts by it, so a
+                // conflicting incoming record would overwrite the
+                // current one — filter those out to keep current-wins.
+                let currentRecords = dataStore.personalRecordsForBackup()
+                let recordIDs = Set(currentRecords.map(\.exerciseID))
+                personalRecords = currentRecords
+                    + incomingRecords.filter { !recordIDs.contains($0.exerciseID) }
+
+                let currentPeptides = dataStore.customPeptides
+                let peptideIDs = Set(currentPeptides.map(\.id))
+                customPeptides = currentPeptides
+                    + incomingPeptides.filter { !peptideIDs.contains($0.id) }
+
+                deletesUncarried = false
+            }
+        }
     }
 
     /// Field-level merge for `UserProfile`. Current state wins for

@@ -310,6 +310,15 @@ private struct BackupSummaryCard: View {
             if preview.hasMealHistory  { row("Meal history",   "Included") }
             if preview.hasLabHistory   { row("Lab history",    "Included") }
             if preview.hasWeightHistory { row("Weight history", "Included") }
+            // v1 backups carried no training data at all — say so
+            // explicitly rather than letting "full backup" imply it.
+            if preview.workoutSessionsCount > 0 {
+                row("Workouts", "\(preview.workoutSessionsCount)")
+            } else {
+                row("Workouts", "Not in this backup")
+            }
+            if preview.routinesCount > 0 { row("Routines", "\(preview.routinesCount)") }
+            if preview.customPeptidesCount > 0 { row("Custom compounds", "\(preview.customPeptidesCount)") }
             row("Backup version", preview.version)
         }
         .padding(Spacing.md)

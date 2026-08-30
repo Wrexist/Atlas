@@ -1,4 +1,5 @@
 import CloudKit
+import CoreData
 import Foundation
 import SwiftData
 
@@ -78,6 +79,35 @@ final class SwiftDataRepository {
             Task { @MainActor in
                 self?.handleIdentityChange()
             }
+        }
+
+        // Surface finished CloudKit *imports* to DataStore. SwiftData's
+        // CloudKit mirroring runs on an NSPersistentCloudKitContainer we
+        // never see directly, but its event notification is posted
+        // process-wide, so observing with `object: nil` reaches it.
+        // Without this, remote edits only became visible on relaunch or
+        // the one pull-to-refresh — meanwhile the debounced save's
+        // wholesale upsert of stale in-memory state silently reverted
+        // the other device's writes (audit CloudKit P0-1). Only
+        // successful, completed imports are forwarded; export/setup
+        // events change nothing locally.
+        NotificationCenter.default.addObserver(
+            forName: NSPersistentCloudKitContainer.eventChangedNotification,
+            object: nil,
+            queue: .main
+        ) { note in
+            guard
+                let event = note.userInfo?[
+                    NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+                ] as? NSPersistentCloudKitContainer.Event,
+                event.type == .import,
+                event.endDate != nil,
+                event.succeeded
+            else { return }
+            NotificationCenter.default.post(
+                name: .peptideXCloudKitImportCompleted,
+                object: nil
+            )
         }
     }
 
@@ -216,11 +246,32 @@ final class SwiftDataRepository {
 
     // MARK: - Test Support
 
+    #if DEBUG
+    /// Test-only: direct context access so tests can assert on and
+    /// construct row-level fixtures (e.g. duplicate profile rows) that
+    /// the public API rightly refuses to create.
+    var contextForTesting: ModelContext? { context }
+    #endif
+
     /// Replaces the container with an in-memory store. Call in test setUp only.
     func configureForTesting() {
         container = Self.makeInMemoryContainer()
         isUsingFallbackStore = false
         isInoperable = container == nil
+        commitDidFail = false
+        #if DEBUG
+        forceCommitFailureForTesting = false
+        #endif
+    }
+
+    /// Discards uncommitted changes pending on the context. The
+    /// migration rollback path needs this before `deleteAll()`: after a
+    /// failed commit the imported objects are still *pending* inserts,
+    /// which a bulk delete (store-level) doesn't touch — the cleanup's
+    /// own save would then persist exactly the partial import the
+    /// rollback exists to remove.
+    func discardPendingChanges() {
+        context?.rollback()
     }
 
     /// Removes all records. Call in test tearDown only.
@@ -444,10 +495,61 @@ final class SwiftDataRepository {
     }
 
     func loadEntries() -> [ProtocolEntry] {
+        fetchEntries(FetchDescriptor<StoredEntry>())
+    }
+
+    /// Recent-window fetch with the date filter pushed into SQLite —
+    /// the cold-launch path uses this so first frame doesn't pay a
+    /// full-table decode (one JSON `Peptide` decode per row) for
+    /// history the UI can't show anyway. Mirrors
+    /// `loadWorkoutSessions(startedBetween:)`.
+    func loadEntries(onOrAfter cutoff: Date) -> [ProtocolEntry] {
+        fetchEntries(FetchDescriptor<StoredEntry>(
+            predicate: #Predicate { $0.date >= cutoff }
+        ))
+    }
+
+    /// Complement of `loadEntries(onOrAfter:)` — the post-launch
+    /// backfill that hydrates the long tail (exports, lifetime totals,
+    /// multi-year streaks) without blocking first frame.
+    func loadEntries(before cutoff: Date) -> [ProtocolEntry] {
+        fetchEntries(FetchDescriptor<StoredEntry>(
+            predicate: #Predicate { $0.date < cutoff }
+        ))
+    }
+
+    /// ID-only projection for set-difference bookkeeping (backup
+    /// import) — avoids materializing and JSON-decoding every row just
+    /// to read UUIDs.
+    func loadEntryIDs() -> [UUID] {
+        guard let context else { return [] }
+        var descriptor = FetchDescriptor<StoredEntry>()
+        descriptor.propertiesToFetch = [\.id]
+        do {
+            return try context.fetch(descriptor).map(\.id)
+        } catch {
+            AppLog.swiftData.error("Load entry IDs failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    /// Cheap lifetime entry count via `fetchCount` (no row
+    /// materialization).
+    func entryCount() -> Int {
+        guard let context else { return 0 }
+        do {
+            return try context.fetchCount(FetchDescriptor<StoredEntry>())
+        } catch {
+            AppLog.swiftData.error("entryCount failed: \(error.localizedDescription, privacy: .public)")
+            return 0
+        }
+    }
+
+    private func fetchEntries(_ descriptor: FetchDescriptor<StoredEntry>) -> [ProtocolEntry] {
         guard let context else { return [] }
         let stored: [StoredEntry]
         do {
-            stored = try context.fetch(FetchDescriptor<StoredEntry>())
+            stored = try context.fetch(descriptor)
         } catch {
             AppLog.swiftData.error("Load entries failed: \(error.localizedDescription, privacy: .public)")
             return []
@@ -464,11 +566,44 @@ final class SwiftDataRepository {
 
     // MARK: - Profile
 
+    /// Returns the canonical profile row, reconciling duplicates.
+    /// Two devices that each ran the "no row yet → insert" branch before
+    /// CloudKit converged leave two rows behind, and an unsorted
+    /// `.first` fetch then flip-flops between them across launches.
+    /// Reconciliation is deterministic: newest `updatedAt` wins; any
+    /// split-area column the winner is missing is adopted from a loser
+    /// (fills gaps only, never overwrites the winner's data); losers
+    /// are deleted so every device converges on one row.
+    private func canonicalProfileRow(in context: ModelContext) throws -> StoredProfile? {
+        var rows = try context.fetch(FetchDescriptor<StoredProfile>(
+            sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
+        ))
+        guard rows.count > 1 else { return rows.first }
+        AppLog.swiftData.warning("Reconciling \(rows.count, privacy: .public) StoredProfile rows to the newest")
+        let winner = rows.removeFirst()
+        for loser in rows {
+            if winner.extensionData == nil { winner.extensionData = loser.extensionData }
+            if winner.bodyMetricsData == nil { winner.bodyMetricsData = loser.bodyMetricsData }
+            if winner.avatarImageData == nil { winner.avatarImageData = loser.avatarImageData }
+            if winner.mealsData == nil { winner.mealsData = loser.mealsData }
+            if winner.habitsData == nil { winner.habitsData = loser.habitsData }
+            if winner.momentumData == nil { winner.momentumData = loser.momentumData }
+            if winner.weightHistoryData == nil { winner.weightHistoryData = loser.weightHistoryData }
+            if winner.labsData == nil { winner.labsData = loser.labsData }
+            if winner.outcomesData == nil { winner.outcomesData = loser.outcomesData }
+            if winner.foodLibraryData == nil { winner.foodLibraryData = loser.foodLibraryData }
+            if winner.summariesData == nil { winner.summariesData = loser.summariesData }
+            context.delete(loser)
+        }
+        commit()
+        return winner
+    }
+
     func saveProfile(_ profile: UserProfile) {
         guard let context else { return }
         let existing: StoredProfile?
         do {
-            existing = try context.fetch(FetchDescriptor<StoredProfile>()).first
+            existing = try canonicalProfileRow(in: context)
         } catch {
             AppLog.swiftData.error("Fetch profile failed: \(error.localizedDescription, privacy: .public)")
             existing = nil
@@ -495,7 +630,7 @@ final class SwiftDataRepository {
         guard let context else { return nil }
         let stored: StoredProfile?
         do {
-            stored = try context.fetch(FetchDescriptor<StoredProfile>()).first
+            stored = try canonicalProfileRow(in: context)
         } catch {
             AppLog.swiftData.error("Load profile failed: \(error.localizedDescription, privacy: .public)")
             return nil
@@ -575,6 +710,49 @@ final class SwiftDataRepository {
             }
         } catch {
             AppLog.swiftData.error("Load workout sessions failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    /// Fetches one historical session by id. Used by `DataStore.deleteWorkout`
+    /// to learn which exercises a session touched before the row goes away,
+    /// so the affected personal records can be recomputed.
+    func loadWorkoutSession(id: UUID) -> WorkoutSession? {
+        guard let context else { return nil }
+        var descriptor = FetchDescriptor<StoredWorkoutSession>(
+            predicate: #Predicate { $0.id == id }
+        )
+        descriptor.fetchLimit = 1
+        do {
+            return try context.fetch(descriptor).first.flatMap { try? $0.toWorkoutSession() }
+        } catch {
+            AppLog.swiftData.error("Load workout session by id failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    /// Uncapped full-history fetch, oldest first. Exists for correctness
+    /// passes that must see everything — PR recomputation after a deleted
+    /// session would silently lose records older than the 200-row UI cap
+    /// if it went through `loadWorkoutSessions(limit:)`. Not for render
+    /// paths.
+    func loadAllWorkoutSessions() -> [WorkoutSession] {
+        guard let context else { return [] }
+        let descriptor = FetchDescriptor<StoredWorkoutSession>(
+            sortBy: [SortDescriptor(\.startedAt, order: .forward)]
+        )
+        do {
+            let stored = try context.fetch(descriptor)
+            return stored.compactMap {
+                do {
+                    return try $0.toWorkoutSession()
+                } catch {
+                    AppLog.swiftData.error("Decode StoredWorkoutSession (full) failed: \(error.localizedDescription, privacy: .public)")
+                    return nil
+                }
+            }
+        } catch {
+            AppLog.swiftData.error("Load all workout sessions failed: \(error.localizedDescription, privacy: .public)")
             return []
         }
     }
@@ -739,8 +917,14 @@ final class SwiftDataRepository {
 
     func loadRoutines() -> [Routine] {
         guard let context else { return [] }
+        // sortIndex is the user's drag order; updatedAt breaks ties so a
+        // library that has never been reordered (every row at 0) still
+        // reads most-recently-edited first.
         let descriptor = FetchDescriptor<StoredRoutine>(
-            sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
+            sortBy: [
+                SortDescriptor(\.sortIndex),
+                SortDescriptor(\.updatedAt, order: .reverse),
+            ]
         )
         do {
             return try context.fetch(descriptor).compactMap {
@@ -841,11 +1025,24 @@ final class SwiftDataRepository {
     /// Resets the commit-failure flag at the start of a save batch.
     func beginSaveBatch() { commitDidFail = false }
 
+    #if DEBUG
+    /// Test-only: makes every `commit()` report failure without needing a
+    /// genuinely broken store, so persistence-failure handling (banner,
+    /// projection gating) is testable deterministically.
+    var forceCommitFailureForTesting = false
+    #endif
+
     // MARK: - Private
 
     @discardableResult
     private func commit() -> Bool {
         guard let context else { return false }
+        #if DEBUG
+        if forceCommitFailureForTesting {
+            commitDidFail = true
+            return false
+        }
+        #endif
         do {
             try context.save()
             return true
@@ -874,4 +1071,11 @@ extension Notification.Name {
     /// in-memory state so account A's local data isn't visible to
     /// account B after a system-level iCloud account switch.
     static let peptideXiCloudIdentityChanged = Notification.Name("com.peptidesai.app.icloud.identity.changed")
+
+    /// Posted after SwiftData's underlying CloudKit mirror finishes a
+    /// successful import — i.e. rows written on another device just
+    /// landed in the local store. DataStore observes this and refreshes
+    /// its in-memory state (coalesced, and deferred around in-flight
+    /// local saves) so remote edits become visible without a relaunch.
+    static let peptideXCloudKitImportCompleted = Notification.Name("com.peptidesai.app.icloud.import.completed")
 }

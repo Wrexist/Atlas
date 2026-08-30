@@ -25,6 +25,9 @@ final class WorkoutSessionService {
         // Re-hydrate any session that was active when the process was
         // suspended so the user picks up where they left off.
         activeSession = SwiftDataRepository.shared.loadActiveWorkoutSession()
+        // An activity outlives the process, so a relaunch can inherit one
+        // whose workout is long gone — or lose one whose workout isn't.
+        WorkoutLiveActivityService.shared.reconcile(active: activeSession)
     }
 
     // MARK: - Lifecycle
@@ -49,21 +52,12 @@ final class WorkoutSessionService {
             }
             SwiftDataRepository.shared.deleteWorkoutSession(id: existing.id)
         }
-        let exercises: [WorkoutExerciseEntry] = routine?.exercises.enumerated().map { idx, slot in
-            let initialSets = (0..<max(1, slot.targetSets)).map { setIdx in
-                SetEntry(
-                    index: setIdx + 1,
-                    weightKg: 0,
-                    reps: slot.targetReps,
-                    rpe: slot.targetRPE
-                )
+        // Seed from the routine before the session exists, so the weight
+        // lookup below still sees the *previous* workout as the newest one.
+        let exercises: [WorkoutExerciseEntry] = routine.map { routine in
+            RoutineSeedEngine.sessionExercises(for: routine) { exerciseID in
+                lastCompletedSet(forExerciseID: exerciseID)
             }
-            return WorkoutExerciseEntry(
-                exerciseID: slot.exerciseID,
-                index: idx,
-                sets: initialSets,
-                restSeconds: slot.restSeconds
-            )
         } ?? []
 
         let session = WorkoutSession(
@@ -75,6 +69,8 @@ final class WorkoutSessionService {
         activeSession = session
         SwiftDataRepository.shared.upsertWorkoutSession(session)
         invalidatePreviousSetCache()
+        WorkoutLiveActivityService.shared.start(session)
+        DataStore.current?.refreshTrainingGlanceables()
         AppLog.training.info("Workout started (id: \(session.id, privacy: .public))")
         return session
     }
@@ -102,9 +98,11 @@ final class WorkoutSessionService {
         let detections = PRDetectionEngine.shared.ingest(session: session)
         activeSession = nil
         invalidatePreviousSetCache()
+        WorkoutLiveActivityService.shared.finish(session)
         // Reward training (and any new PR). Both this service and the
         // store are @MainActor, so the call is a direct hop.
         DataStore.current?.recordWorkoutFinished(detectedPRCount: detections.count)
+        DataStore.current?.refreshTrainingGlanceables()
         AppLog.training.info("Workout finished (id: \(session.id, privacy: .public), sets: \(session.completedSetCount, privacy: .public), PRs: \(detections.count, privacy: .public))")
         return FinishedWorkout(session: session, detectedPRs: detections)
     }
@@ -116,6 +114,8 @@ final class WorkoutSessionService {
         SwiftDataRepository.shared.deleteWorkoutSession(id: session.id)
         activeSession = nil
         invalidatePreviousSetCache()
+        WorkoutLiveActivityService.shared.endAll()
+        DataStore.current?.refreshTrainingGlanceables()
         AppLog.training.info("Workout discarded (id: \(session.id, privacy: .public))")
     }
 
@@ -189,6 +189,11 @@ final class WorkoutSessionService {
               let setIdx = session.exercises[exIdx].sets.firstIndex(where: { $0.id == set.id })
         else { return }
         var updated = set
+        // The service is the persistence boundary for set values — the
+        // decimal-pad keyboard hint is bypassable (paste, hardware
+        // keyboard), so clamp here rather than trusting the UI.
+        updated.weightKg = SetEntryLimits.clampWeightKg(updated.weightKg)
+        updated.reps = SetEntryLimits.clampReps(updated.reps)
         // Stamp completedAt when transitioning to completed; clear on un-check.
         if set.completed && session.exercises[exIdx].sets[setIdx].completedAt == nil {
             updated.completedAt = Date()
@@ -254,5 +259,6 @@ final class WorkoutSessionService {
         activeSession = session
         SwiftDataRepository.shared.upsertWorkoutSession(session)
         invalidatePreviousSetCache()
+        WorkoutLiveActivityService.shared.update(session)
     }
 }

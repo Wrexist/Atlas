@@ -214,6 +214,32 @@ final class TrainingStorageTests: XCTestCase {
         XCTAssertEqual(repo.loadRoutines().map(\.name), ["New", "Old"])
     }
 
+    /// Once the user drags a routine, their order outranks recency —
+    /// otherwise editing a routine silently promotes it to the top.
+    func test_routines_sortIndexOutranksUpdatedAt() {
+        let pinned = Routine(name: "Pinned",
+                             updatedAt: Date(timeIntervalSince1970: 1),
+                             sortIndex: 0)
+        let recent = Routine(name: "Recent",
+                             updatedAt: Date(timeIntervalSince1970: 100_000),
+                             sortIndex: 1)
+        repo.upsertRoutine(recent)
+        repo.upsertRoutine(pinned)
+        XCTAssertEqual(repo.loadRoutines().map(\.name), ["Pinned", "Recent"])
+    }
+
+    func test_routine_sortIndex_roundTrips() {
+        repo.upsertRoutine(Routine(name: "Third", sortIndex: 3))
+        XCTAssertEqual(repo.loadRoutines().first?.sortIndex, 3)
+    }
+
+    /// A routine written before routines were orderable has no key at
+    /// all; it has to land at the front rather than vanish or crash.
+    func test_routine_withoutSortIndex_storesAsZero() {
+        repo.upsertRoutine(Routine(name: "Legacy"))
+        XCTAssertEqual(repo.loadRoutines().first?.sortIndex, 0)
+    }
+
     // MARK: - Personal record round-trip
 
     func test_personalRecord_roundTrips() {

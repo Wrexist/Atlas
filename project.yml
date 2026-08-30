@@ -101,10 +101,18 @@ targets:
           - en
         ITSAppUsesNonExemptEncryption: false
         NSSupportsLiveActivities: true
+        # The peptidex:// scheme predates this registration — widget and
+        # Live Activity `widgetURL` links route to the containing app
+        # without it — but notification deep links, Shortcuts, and any
+        # external caller need the scheme declared to resolve.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.peptidesai.app.deeplink
+            CFBundleURLSchemes:
+              - peptidex
         NSCameraUsageDescription: "Atlas uses the camera to scan food barcodes, take a profile photo (stored locally), and photograph meals for nutrition estimation. Meal photos are sent securely to our AI service for analysis and are not retained after the response. Barcode and profile photos stay on your device."
         NSFaceIDUsageDescription: "Atlas uses Face ID to optionally lock the app, so your protocols and health data stay private if your device is unlocked. Face ID is optional — you can disable it in Settings."
         NSPhotoLibraryUsageDescription: "Atlas reads the capture date of a photo you choose from your library so a scanned meal is logged at the time you ate it, not the time you scanned it. Atlas never browses your library — you pick the single photo, and it is not added to or modified in Photos."
-        NSHealthShareUsageDescription: "Atlas reads heart rate, HRV, resting heart rate, sleep, body mass, steps, and active energy from Apple Health to show recovery trends and correlate them with what you log. Analysis happens on your device; if you enable the optional AI weekly summary, weekly averages of HRV, resting heart rate, and sleep hours are sent securely to our AI service to write your recap and are not stored there."
+        NSHealthShareUsageDescription: "Atlas reads HRV, resting heart rate, sleep, and steps from Apple Health to show recovery trends and correlate them with what you log. Analysis happens on your device; if you enable the optional AI weekly summary, weekly averages of HRV, resting heart rate, and sleep hours are sent securely to our AI service to write your recap and are not stored there."
         NSHealthUpdateUsageDescription: "If you turn on \"Write meals to Apple Health\", Atlas saves the calories, protein, carbohydrates and fat from meals you log so they appear in the Health app's nutrition timeline. Nothing else is written, and the setting is off until you enable it."
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
