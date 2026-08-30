@@ -15,12 +15,23 @@ struct InsightEngine {
         case neutral
     }
 
-    static func generateInsights(from entries: [ProtocolEntry], protocols: [PeptideProtocol]) -> [Insight] {
+    /// `frozenDayKeys` comes from `UserProfile.streakFreezeDays`. It
+    /// defaults to empty only so tests that don't exercise freezes stay
+    /// terse — production callers pass the profile's set, or the insight
+    /// line quotes a lower streak than the home ring.
+    static func generateInsights(
+        from entries: [ProtocolEntry],
+        protocols: [PeptideProtocol],
+        frozenDayKeys: Set<String> = []
+    ) -> [Insight] {
         var insights: [Insight] = []
         let calendar = Calendar.current
 
         // Streak insights
-        let currentStreak = calculateStreak(entries: entries)
+        let currentStreak = StreakEngine.currentStreak(
+            entriesByDay: StreakEngine.activeEntriesByDay(entries: entries, protocols: protocols),
+            frozenDayKeys: frozenDayKeys
+        )
         if currentStreak >= 30 {
             insights.append(Insight(icon: "flame.fill", title: "Incredible consistency!", description: "You're on a \(currentStreak)-day streak. Top-tier dedication.", type: .positive))
         } else if currentStreak >= 7 {
@@ -83,37 +94,6 @@ struct InsightEngine {
         }
 
         return insights
-    }
-
-    private static func calculateStreak(entries: [ProtocolEntry]) -> Int {
-        let calendar = Calendar.current
-        let grouped = entries.groupedByDay
-        let todayStart = calendar.startOfDay(for: Date())
-        var streak = 0
-        var consecutiveEmptyDays = 0
-
-        let todayEntries = grouped[todayStart] ?? []
-        let startOffset = todayEntries.contains(where: \.completed) ? 0 : 1
-
-        for dayOffset in startOffset..<365 {
-            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: todayStart) else { break }
-            let dayEntries = grouped[date] ?? []
-
-            if dayEntries.isEmpty {
-                consecutiveEmptyDays += 1
-                if consecutiveEmptyDays > 2 { break }
-                continue
-            }
-
-            consecutiveEmptyDays = 0
-            // Streak rule must match DataStore.currentStreak so the
-            // Insight Engine and the streak ring on the home screen
-            // never disagree. "Any dose completed" preserves the
-            // streak — partial credit, the Duolingo convention.
-            if !dayEntries.contains(where: \.completed) { break }
-            streak += 1
-        }
-        return streak
     }
 
     /// Per-weekday miss rate. Gate at minimum 4 observations per day

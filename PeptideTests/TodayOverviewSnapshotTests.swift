@@ -91,6 +91,25 @@ final class TodayOverviewSnapshotTests: XCTestCase {
 
     func test_build_bottomInsight_prioritisesProtocolInsightOverLab() {
         let store = DataStore(seedSampleData: false)
+        // Streak math counts only entries belonging to a currently active
+        // protocol — same rule as the home ring — so the entries need a
+        // real protocol to hang off. Giving each a throwaway protocolId
+        // produced a streak of 0 and no insight at all.
+        let proto = PeptideProtocol(
+            id: UUID(),
+            name: "Test",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(
+                daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+                timesPerDay: 1,
+                preferredTimes: ["8:00 AM"]
+            ),
+            cycleLengthWeeks: 8,
+            startDate: Calendar.current.date(byAdding: .day, value: -30, to: Date())!,
+            status: .active,
+            notes: ""
+        )
+        store.protocols.append(proto)
         // Insight engine fires a streak insight at 7+ consecutive days.
         // Add a fresh lab too — the engine output should still win the slot.
         for offset in 0..<10 {
@@ -98,7 +117,7 @@ final class TodayOverviewSnapshotTests: XCTestCase {
             store.entries.append(
                 ProtocolEntry(
                     id: UUID(),
-                    protocolId: UUID(),
+                    protocolId: proto.id,
                     peptide: MockPeptides.bpc157,
                     date: date,
                     dose: "250mcg",

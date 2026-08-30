@@ -20,6 +20,25 @@ struct ProgressPhotoViewer: View {
     @State private var blurEnabled: Bool = false
     @State private var compareMode: Bool = false
     @State private var compareTarget: String?
+    /// Decoded pages, held only for the visible window. A viewer-sized
+    /// bitmap is ~20 MB, so decoding every photo up front would be tens
+    /// of megabytes resident for pages the user may never swipe to.
+    @State private var photos: [String: UIImage] = [:]
+    /// Filenames the loader has already been through. Distinguishes
+    /// "still decoding" from "the file is genuinely gone", so the error
+    /// state can't flash during a normal load.
+    @State private var resolved: Set<String> = []
+
+    /// The selected page plus its immediate neighbours, so a swipe lands
+    /// on an already-decoded photo instead of an empty frame.
+    private var visibleWindow: [String] {
+        guard let selected, let index = filenames.firstIndex(of: selected) else {
+            return Array(filenames.suffix(1))
+        }
+        let lower = max(0, index - 1)
+        let upper = min(filenames.count - 1, index + 1)
+        return Array(filenames[lower...upper])
+    }
 
     init(
         filenames: [String],
@@ -60,6 +79,11 @@ struct ProgressPhotoViewer: View {
                             .animation(.easeOut(duration: 0.18), value: selected)
                     }
                 }
+            }
+            .task(id: selected) {
+                let window = visibleWindow
+                photos = await ProgressPhotoCache.shared.images(for: window, size: .viewer)
+                resolved.formUnion(window)
             }
             .navigationTitle("Progress photos")
             .navigationBarTitleDisplayMode(.inline)
@@ -105,12 +129,18 @@ struct ProgressPhotoViewer: View {
 
     @ViewBuilder
     private func photoPage(filename: String) -> some View {
-        if let image = ProgressPhotoStorage.loadImage(for: filename) {
+        if let image = photos[filename] {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFit()
                 .blur(radius: blurEnabled ? 22 : 0)
                 .animation(.easeOut(duration: 0.18), value: blurEnabled)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if !resolved.contains(filename) {
+            // Decode in flight. The viewport is already black, so an
+            // empty frame reads as the photo arriving rather than as an
+            // error — which is what the branch below is for.
+            Color.clear
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             VStack(spacing: Spacing.sm) {

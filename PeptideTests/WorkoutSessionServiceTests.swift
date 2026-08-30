@@ -76,6 +76,46 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(session.exercises.first?.sets.first?.reps, 5)
     }
 
+    /// Starting a routine should open at the weights the user actually
+    /// lifts, not at 0 kg — otherwise every set on a saved routine costs a
+    /// keyboard trip before the first rep.
+    func test_startWorkout_fromRoutine_seedsWeightFromLastLoggedSet() {
+        _ = service.startWorkout()
+        service.addExercise(benchPress)
+        let entryID = service.activeSession!.exercises[0].id
+        var logged = service.activeSession!.exercises[0].sets[0]
+        logged.weightKg = 80
+        logged.reps = 5
+        logged.completed = true
+        service.updateSet(logged, inExerciseEntryID: entryID)
+        _ = service.finishWorkout()
+
+        let routine = Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: benchPress.id, index: 0, targetSets: 3, targetReps: 8),
+        ])
+        let session = service.startWorkout(routine: routine)
+
+        XCTAssertEqual(session.exercises[0].sets.map(\.weightKg), [80, 80, 80])
+        XCTAssertEqual(session.exercises[0].sets.map(\.reps), [8, 8, 8],
+                       "Reps stay on the routine's target even when history says otherwise")
+    }
+
+    private var benchPress: Exercise {
+        Exercise(
+            id: "Barbell_Bench_Press_-_Medium_Grip",
+            name: "Barbell Bench Press - Medium Grip",
+            force: .push,
+            level: .beginner,
+            mechanic: .compound,
+            equipment: "barbell",
+            primaryMuscles: ["chest"],
+            secondaryMuscles: ["triceps"],
+            instructions: [],
+            category: .strength,
+            images: []
+        )
+    }
+
     func test_finishWorkout_setsFinishedAt_andClearsActive() {
         _ = service.startWorkout()
         let finished = service.finishWorkout(perceivedEffort: 4, note: "Good day")

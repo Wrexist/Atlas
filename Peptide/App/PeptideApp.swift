@@ -102,12 +102,13 @@ struct PeptideApp: App {
             .environment(\.locale, localization.effectiveLocale)
             .environment(\.layoutDirection, localization.layoutDirection)
             .id(localization.selectedCode ?? "system")
-            .task(id: dataStore.profile.healthConnected) {
-                if dataStore.profile.healthConnected {
-                    await HealthKitService.shared.startBackgroundDelivery()
-                } else {
-                    HealthKitService.shared.stopBackgroundDelivery()
-                }
+            .task {
+                // Decode the bundled peptide catalog off the main
+                // thread, after the first frame. Every consumer
+                // (Library, protocol builder, AI research) reads it
+                // synchronously, so warming it here means none of them
+                // is the one that pays — and launch doesn't either.
+                await PeptideDatabase.warmUp()
             }
             .task {
                 // One-shot Spotlight reindex on app start. Custom foods

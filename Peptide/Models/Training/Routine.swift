@@ -19,9 +19,19 @@ struct Routine: Codable, Hashable, Identifiable, Sendable {
     /// by `RoutineExercise.restSeconds`. Falls back to
     /// `TrainingPreferences.restTimerDefault` when nil.
     var defaultRestSeconds: Int?
-    /// Last time the user edited this routine. Drives sort order on
-    /// the routine list.
+    /// Last time the user edited this routine. Breaks ties on
+    /// `sortIndex` so an untouched library still reads
+    /// most-recently-edited first.
     var updatedAt: Date
+    /// Drag-to-reorder sort key; smaller values sort first.
+    ///
+    /// Optional rather than a defaulted `Int` because `Routine` is
+    /// `Codable` and rides the backup archive: a synthesized decoder
+    /// treats a missing key as an error, so a non-optional field here
+    /// would fail the import of every backup written before routines
+    /// became user-orderable. Nil means "never reordered", which sorts
+    /// as 0 — the order the list had before this key existed.
+    var sortIndex: Int?
 
     init(
         id: UUID = UUID(),
@@ -29,7 +39,8 @@ struct Routine: Codable, Hashable, Identifiable, Sendable {
         subtitle: String? = nil,
         exercises: [RoutineExercise] = [],
         defaultRestSeconds: Int? = nil,
-        updatedAt: Date = Date()
+        updatedAt: Date = Date(),
+        sortIndex: Int? = nil
     ) {
         self.id = id
         self.name = name
@@ -37,6 +48,7 @@ struct Routine: Codable, Hashable, Identifiable, Sendable {
         self.exercises = exercises
         self.defaultRestSeconds = defaultRestSeconds
         self.updatedAt = updatedAt
+        self.sortIndex = sortIndex
     }
 }
 
