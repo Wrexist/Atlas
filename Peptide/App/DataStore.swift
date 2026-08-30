@@ -2215,7 +2215,14 @@ final class DataStore: DataServiceProtocol {
             next: nextDose,
             consumption: LifestyleDataLogic.consumption(in: profile, for: Date()),
             targets: profile.nutritionTargets,
-            breakdown: LifestyleDataLogic.mealsByCategory(in: profile, for: Date())
+            breakdown: LifestyleDataLogic.mealsByCategory(in: profile, for: Date()),
+            // Newest-first and bounded: 30 sessions covers the current
+            // week plus the last finished workout for any user, without
+            // decoding the whole history on every mutation that lands
+            // here. The builder filters the in-progress session out.
+            workouts: repo.loadWorkoutSessions(limit: 30),
+            activeWorkout: WorkoutSessionService.shared.activeSession,
+            unit: profile.bodyMetrics.unit
         )
         PersistenceService.shared.updateWidgetData(data)
         WidgetCenter.shared.reloadAllTimelines()

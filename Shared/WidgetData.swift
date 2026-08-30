@@ -25,6 +25,20 @@ struct WidgetMealSlot: Codable, Hashable, Sendable {
     let entryCount: Int
 }
 
+/// The most recently finished workout, flattened to what a training
+/// widget renders. Volume stays in canonical kilograms — the same
+/// contract `SetEntry` and session totals keep in-app — and is
+/// converted for display against `WidgetData.measurementUnit`.
+struct WidgetWorkoutSummary: Codable, Hashable, Sendable {
+    /// Session name, or "" for an unnamed workout (the widget falls
+    /// back to a date label rather than printing an empty line).
+    let name: String
+    let finishedAt: Date
+    let setCount: Int
+    let volumeKg: Double
+    let durationMinutes: Int
+}
+
 struct WidgetData: Codable, Sendable {
     let nextPeptideName: String
     let nextDose: String
@@ -47,6 +61,26 @@ struct WidgetData: Codable, Sendable {
     /// widget renders fine without it.
     let mealsByCategory: [WidgetMealSlot]
 
+    // MARK: - Training
+    /// Most recent finished workout. Nil until the user finishes one —
+    /// the widget shows its "start a workout" empty state.
+    let lastWorkout: WidgetWorkoutSummary?
+    /// Finished sessions in the current calendar week.
+    let workoutsThisWeek: Int
+    /// Completed working sets across those sessions.
+    let weeklySetCount: Int
+    /// Their combined volume, in canonical kilograms.
+    let weeklyVolumeKg: Double
+    /// Start time of the workout in progress, or nil when none is.
+    /// One field rather than a Bool plus a Date, which can disagree.
+    let activeWorkoutStartedAt: Date?
+    /// `MeasurementUnit` rawValue — "metric" or "imperial". A String
+    /// for the reason `WatchData.measurementUnit` is one: this file
+    /// compiles into the widget targets, which can't see the app's
+    /// model types. Volume is stored in kilograms, so without it an
+    /// imperial user reads someone else's numbers.
+    let measurementUnit: String
+
     init(
         nextPeptideName: String,
         nextDose: String,
@@ -60,7 +94,13 @@ struct WidgetData: Codable, Sendable {
         proteinToday: Int = 0,
         carbsToday: Int = 0,
         fatToday: Int = 0,
-        mealsByCategory: [WidgetMealSlot] = []
+        mealsByCategory: [WidgetMealSlot] = [],
+        lastWorkout: WidgetWorkoutSummary? = nil,
+        workoutsThisWeek: Int = 0,
+        weeklySetCount: Int = 0,
+        weeklyVolumeKg: Double = 0,
+        activeWorkoutStartedAt: Date? = nil,
+        measurementUnit: String = "metric"
     ) {
         self.nextPeptideName = nextPeptideName
         self.nextDose = nextDose
@@ -75,6 +115,12 @@ struct WidgetData: Codable, Sendable {
         self.carbsToday = carbsToday
         self.fatToday = fatToday
         self.mealsByCategory = mealsByCategory
+        self.lastWorkout = lastWorkout
+        self.workoutsThisWeek = workoutsThisWeek
+        self.weeklySetCount = weeklySetCount
+        self.weeklyVolumeKg = weeklyVolumeKg
+        self.activeWorkoutStartedAt = activeWorkoutStartedAt
+        self.measurementUnit = measurementUnit
     }
 
     var compliance: Double {
@@ -89,6 +135,20 @@ struct WidgetData: Codable, Sendable {
         return min(1.0, Double(caloriesToday) / Double(calorieTarget))
     }
 
+    /// True while a workout is in progress — the training widget swaps
+    /// to a live elapsed-time layout.
+    var workoutInProgress: Bool { activeWorkoutStartedAt != nil }
+
+    /// Weight-unit suffix, mirroring `MeasurementUnit.weightSuffix`.
+    /// Deliberately unlocalised: "kg" and "lb" are the symbols in every
+    /// locale Atlas ships.
+    var weightSuffix: String { measurementUnit == "imperial" ? "lb" : "kg" }
+
+    /// Canonical kilograms → the number to put on screen.
+    func volumeInUserUnit(_ kilograms: Double) -> Double {
+        measurementUnit == "imperial" ? kilograms * 2.20462 : kilograms
+    }
+
     static let empty = WidgetData(
         nextPeptideName: "",
         nextDose: "",
@@ -98,9 +158,9 @@ struct WidgetData: Codable, Sendable {
         lastUpdated: .distantPast
     )
 
-    // MARK: - Codable (backwards-compatible: every nutrition field is
-    // optional so older payloads written before the nutrition widget
-    // shipped still decode cleanly into zeroed values).
+    // MARK: - Codable (backwards-compatible: every nutrition and
+    // training field is optional so older payloads — written before
+    // those widgets shipped — still decode cleanly into zeroed values).
 
     private enum CodingKeys: String, CodingKey {
         case nextPeptideName, nextDose, nextDoseTime
@@ -108,6 +168,8 @@ struct WidgetData: Codable, Sendable {
         case caloriesToday, calorieTarget
         case proteinToday, carbsToday, fatToday
         case mealsByCategory
+        case lastWorkout, workoutsThisWeek, weeklySetCount, weeklyVolumeKg
+        case activeWorkoutStartedAt, measurementUnit
     }
 
     init(from decoder: Decoder) throws {
@@ -125,5 +187,11 @@ struct WidgetData: Codable, Sendable {
         carbsToday = try c.decodeIfPresent(Int.self, forKey: .carbsToday) ?? 0
         fatToday = try c.decodeIfPresent(Int.self, forKey: .fatToday) ?? 0
         mealsByCategory = try c.decodeIfPresent([WidgetMealSlot].self, forKey: .mealsByCategory) ?? []
+        lastWorkout = try c.decodeIfPresent(WidgetWorkoutSummary.self, forKey: .lastWorkout)
+        workoutsThisWeek = try c.decodeIfPresent(Int.self, forKey: .workoutsThisWeek) ?? 0
+        weeklySetCount = try c.decodeIfPresent(Int.self, forKey: .weeklySetCount) ?? 0
+        weeklyVolumeKg = try c.decodeIfPresent(Double.self, forKey: .weeklyVolumeKg) ?? 0
+        activeWorkoutStartedAt = try c.decodeIfPresent(Date.self, forKey: .activeWorkoutStartedAt)
+        measurementUnit = try c.decodeIfPresent(String.self, forKey: .measurementUnit) ?? "metric"
     }
 }
