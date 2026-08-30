@@ -74,7 +74,7 @@ final class PrimaryReasonEngineTests: XCTestCase {
         // due with none done (high-value action) — high-value action
         // outranks time-sensitive per the retention brief's cascade.
         let context = PrimaryReasonEngine.Context(
-            coaching: coachingContext(hourOfDay: 20, pendingDoseCount: 2),
+            coaching: coachingContext(pendingDoseCount: 2, hourOfDay: 20),
             habitsDueCount: 3,
             habitsDoneCount: 0
         )
@@ -89,7 +89,7 @@ final class PrimaryReasonEngineTests: XCTestCase {
         // "nothing started yet" moment, so it shouldn't outrank a
         // catch-up nudge.
         let context = PrimaryReasonEngine.Context(
-            coaching: coachingContext(hourOfDay: 20, pendingDoseCount: 2),
+            coaching: coachingContext(pendingDoseCount: 2, hourOfDay: 20),
             habitsDueCount: 3,
             habitsDoneCount: 1
         )
@@ -103,7 +103,7 @@ final class PrimaryReasonEngineTests: XCTestCase {
         // score would resolve via the earlier progress-insight (recovery)
         // branch instead, per CoachingMessageEngine's own cascade order.
         let context = PrimaryReasonEngine.Context(
-            coaching: coachingContext(recoveryScore: 55, hourOfDay: 20, pendingDoseCount: 1),
+            coaching: coachingContext(recoveryScore: 55, pendingDoseCount: 1, hourOfDay: 20),
             weeklyReviewHeadline: "Compliance up 12% from last week"
         )
         let reason = PrimaryReasonEngine.pick(context: context)
@@ -118,7 +118,7 @@ final class PrimaryReasonEngineTests: XCTestCase {
         // "time-sensitive" would mislabel it — it must resolve as the
         // recovery half of progress-insight instead.
         let context = PrimaryReasonEngine.Context(
-            coaching: coachingContext(recoveryScore: 90, hourOfDay: 20, pendingDoseCount: 3)
+            coaching: coachingContext(recoveryScore: 90, pendingDoseCount: 3, hourOfDay: 20)
         )
         let reason = PrimaryReasonEngine.pick(context: context)
         XCTAssertEqual(reason.priority, .progressInsight)
