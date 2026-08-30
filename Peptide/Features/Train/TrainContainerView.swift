@@ -1,24 +1,30 @@
 import SwiftUI
 
-/// Train-tab root. Hosts a segmented switcher between the three
+/// Train-tab root. Hosts a segmented switcher between the four
 /// surface modes — Overview (the muscle heatmap + recent workouts),
-/// Exercises (the searchable library), and History (calendar + PRs).
+/// Routines (saved templates, one tap to start), Exercises (the
+/// searchable library), and History (calendar + PRs).
 /// The single `NavigationStack` lets every sub-screen push the same
 /// destination types (`TrainNavigation`) without each tab re-creating
 /// its own stack.
 struct TrainContainerView: View {
     @State private var section: Section = .overview
+    /// Owned here rather than per-section so a screen can push
+    /// programmatically — creating a routine goes straight into its
+    /// builder instead of leaving the user to find the new empty row.
+    @State private var path: [TrainNavigation] = []
     @State private var sessionService = WorkoutSessionService.shared
     @State private var showActiveWorkout = false
     @Namespace private var sectionIndicator
 
     enum Section: String, CaseIterable, Identifiable {
-        case overview, exercises, history
+        case overview, routines, exercises, history
         var id: String { rawValue }
 
         var displayName: String {
             switch self {
             case .overview:  return "Overview"
+            case .routines:  return "Routines"
             case .exercises: return "Exercises"
             case .history:   return "History"
             }
@@ -26,7 +32,7 @@ struct TrainContainerView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             VStack(spacing: 0) {
                 sectionPicker
                 content
@@ -49,6 +55,8 @@ struct TrainContainerView: View {
                     workoutDetailDestination(for: id)
                 case .workoutHistory:
                     WorkoutHistoryView()
+                case .routineBuilder(let id):
+                    RoutineBuilderView(routineID: id)
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -121,21 +129,27 @@ struct TrainContainerView: View {
         // filled pill says "you are here" at a glance where a 3pt rule
         // under one word does not. `.segmented` Picker still reads too
         // "system settings" for this surface.
-        HStack(spacing: Spacing.sm) {
-            ForEach(Section.allCases) { item in
-                SectionTab(
-                    title: item.displayName,
-                    isSelected: section == item,
-                    namespace: sectionIndicator
-                ) {
-                    withAnimation(AppAnimation.springSnappy) {
-                        section = item
+        //
+        // Horizontally scrollable because four pills at the largest
+        // Dynamic Type sizes are wider than an iPhone — a fixed HStack
+        // would clip the last section rather than let the user reach it.
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Spacing.sm) {
+                ForEach(Section.allCases) { item in
+                    SectionTab(
+                        title: item.displayName,
+                        isSelected: section == item,
+                        namespace: sectionIndicator
+                    ) {
+                        withAnimation(AppAnimation.springSnappy) {
+                            section = item
+                        }
                     }
                 }
             }
-            Spacer(minLength: 0)
+            .padding(.horizontal, Spacing.screenPadding)
         }
-        .padding(.horizontal, Spacing.screenPadding)
+        .scrollClipDisabled()
         .padding(.top, Spacing.xs)
         .padding(.bottom, Spacing.sm)
     }
@@ -145,6 +159,8 @@ struct TrainContainerView: View {
         switch section {
         case .overview:
             TrainOverviewView()
+        case .routines:
+            RoutinesView(path: $path)
         case .exercises:
             ExerciseLibraryView()
         case .history:
