@@ -676,8 +676,13 @@ strategic, same theme as widgets).
 ## Dead Code
 
 Removal-candidate list (do not delete without the noted checks):
-- `PersistenceService.saveProtocols/saveEntries/saveProfile` — zero callers; a foot-gun (writing
-  JSON nothing reads).
+- `PersistenceService.saveProtocols/saveEntries/saveProfile` — **not** removable, despite an
+  earlier revision of this list saying "zero callers". They have no *production* caller, but
+  `MigrationServiceTests` and `PersistenceRoundTripTests` hold `PersistenceService.shared` and
+  call them to seed the legacy JSON the JSON→SwiftData migration then imports, so deleting them
+  would gut that suite's coverage of the migration. The foot-gun is real (app code calling one
+  writes JSON nothing reads) — defuse it by narrowing visibility or documenting the constraint,
+  not by deletion.
 - `DataServiceProtocol` — one conformer, zero consumers, drifted API. Delete or actually use for
   test doubles.
 - `HealthKitService.cachedSnapshot`/`refreshSnapshot` + heartRate/activeEnergy observation — zero
@@ -685,7 +690,10 @@ Removal-candidate list (do not delete without the noted checks):
 - Dead training model fields until UI exists: `supersetGroup`, `targetPercentOf1RM`, `rpe` input,
   `isWarmup` write side; routine store plumbing (`loadRoutines`/`upsertRoutine`).
 - `StoreService.canAccessCloudSync`/`canAccessAllWidgets`/`canAccessFullAnalytics`/
-  `canAccessExport` — unreferenced gating flags (either enforce or remove and fix the listing copy).
+  `canAccessExport`/`canAccessUnlimitedProtocols` — unreferenced outside `StoreServiceTests`
+  (either enforce or remove and fix the listing copy; the live protocol gate is
+  `requiresPro(activeProtocolCount:)`). Note `canAccessAIFeatures` is NOT in this list — it is
+  enforced at `WeeklySummaryService.swift:41`.
 - Legacy quick-log workout path (`DataStore.logWorkout` + `WorkoutLogSheet`) and
   `WorkoutDetailView` "Workout Tracker" — superseded by the session pipeline.
 - `test-compile` CI job; stale `.storekit`-era comments ("3-day trial"); export `version: "1.0"`
