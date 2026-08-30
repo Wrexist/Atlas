@@ -43,7 +43,7 @@ struct BiometricCard: View {
 
                     if let caption = sample?.confidenceCaption {
                         Text(caption)
-                            .font(AppFont.scaled(9, weight: .medium))
+                            .font(AppFont.scaled(8, weight: .medium))
                             .foregroundStyle(AppColor.textSecondary)
                             .lineLimit(1)
                     }
@@ -137,7 +137,7 @@ struct BiometricCard: View {
         latest: 7.2, p10: 6.0, p25: 6.5, p75: 7.8, p90: 8.3, direction: .higherIsBetter,
         confidence: .emergingBaseline
     )
-    return ZStack {
+    ZStack {
         AppColor.background.ignoresSafeArea()
         VStack {
             HStack(spacing: Spacing.sm) {
