@@ -103,6 +103,14 @@ struct PeptideApp: App {
             .environment(\.layoutDirection, localization.layoutDirection)
             .id(localization.selectedCode ?? "system")
             .task {
+                // Decode the bundled peptide catalog off the main
+                // thread, after the first frame. Every consumer
+                // (Library, protocol builder, AI research) reads it
+                // synchronously, so warming it here means none of them
+                // is the one that pays — and launch doesn't either.
+                await PeptideDatabase.warmUp()
+            }
+            .task {
                 // One-shot Spotlight reindex on app start. Custom foods
                 // and favorites stay in sync via DataStore mutation
                 // hooks, but a fresh install or a CloudKit pull on a

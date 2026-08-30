@@ -45,7 +45,6 @@ final class DataStore: DataServiceProtocol {
     var isEphemeral: Bool = false
 
     private let repo: SwiftDataRepository
-    private let _peptideDatabase: [Peptide] = PeptideDatabase.shared
 
     // MARK: - Cache (avoids recomputing expensive stats on every toggle)
     //
@@ -308,7 +307,11 @@ final class DataStore: DataServiceProtocol {
 
     // MARK: - Peptide Database
 
-    var peptideDatabase: [Peptide] { _peptideDatabase + customPeptides }
+    /// The bundled catalog plus the user's own entries. Reads
+    /// `PeptideDatabase.shared` lazily rather than caching it in a
+    /// stored property — a stored one made `DataStore.init` decode
+    /// ~930 KB of JSON on the main thread before the first frame.
+    var peptideDatabase: [Peptide] { PeptideDatabase.shared + customPeptides }
 
     func addCustomPeptide(_ peptide: Peptide) {
         customPeptides.append(peptide)

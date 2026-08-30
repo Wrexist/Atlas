@@ -2,14 +2,34 @@ import Foundation
 
 enum PeptideDatabase {
 
-    /// Cached peptide list, loaded once on first access.
+    /// Cached peptide list, decoded once on first access.
     static var shared: [Peptide] { loaded.peptides }
 
     /// Educational/safety disclaimer surfaced in onboarding, About, and on
     /// each peptide detail screen. Source: `peptides.json`.
     static var disclaimer: String { loaded.disclaimer }
 
+    /// `peptides.json` is ~930 KB and decodes to 208 records. As a
+    /// `static let` this is a lazy, `swift_once`-guarded global: the
+    /// first reader pays for the decode and everyone after it is free.
+    ///
+    /// Which reader pays matters. Until `warmUp()` existed, `DataStore`
+    /// held a stored `let` seeded from `shared`, so the first reader was
+    /// `DataStore.init` inside `PeptideApp.init` — a megabyte of Codable
+    /// on the main thread before the first frame.
     private static let loaded: (peptides: [Peptide], disclaimer: String) = load()
+
+    /// Decodes the database on a background thread so the first screen
+    /// that needs it doesn't stall on the main actor. Call once, early,
+    /// from a `.task` — never from an initializer, which would put the
+    /// decode back on the launch path.
+    ///
+    /// Safe to call more than once and safe to race with a real reader:
+    /// `loaded` is `swift_once`-guarded, so a concurrent reader simply
+    /// waits for this decode instead of starting a second one.
+    static func warmUp() async {
+        await Task.detached(priority: .utility) { _ = loaded }.value
+    }
 
     /// Resolves a free-form `commonStacks` entry (e.g. "BPC-157",
     /// "TB-500 (Thymosin Beta-4)", "Growth Hormone (HGH)") to a known peptide.
@@ -121,6 +141,7 @@ enum PeptideDatabase {
     // MARK: - Loading
 
     private static func load() -> (peptides: [Peptide], disclaimer: String) {
+        let started = Date()
         guard let url = Bundle.main.url(forResource: "peptides", withExtension: "json") else {
             AppLog.database.error("peptides.json not found in bundle — using fallback mocks")
             assertionFailure("peptides.json not found in bundle — using fallback mocks")
@@ -130,7 +151,11 @@ enum PeptideDatabase {
         do {
             let data = try Data(contentsOf: url)
             let payload = try JSONDecoder().decode(Payload.self, from: data)
-            return (payload.peptides.map(map), payload.disclaimer)
+            let peptides = payload.peptides.map(map)
+            AppLog.database.info(
+                "PeptideDatabase decoded \(peptides.count, privacy: .public) peptides in \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public)ms"
+            )
+            return (peptides, payload.disclaimer)
         } catch {
             AppLog.database.error("Failed to decode peptides.json: \(error.localizedDescription, privacy: .public)")
             assertionFailure("Failed to decode peptides.json: \(error)")
