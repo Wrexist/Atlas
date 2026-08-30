@@ -116,7 +116,7 @@ enum WidgetSnapshotBuilder {
                 .max { lhs, rhs in
                     (lhs.finishedAt ?? .distantPast) < (rhs.finishedAt ?? .distantPast)
                 }
-                .map(summary(of:)),
+                .map { summary(of: $0) },
             workoutsThisWeek: thisWeek.count,
             weeklySetCount: thisWeek.reduce(0) { $0 + $1.completedSetCount },
             weeklyVolumeKg: thisWeek.reduce(0) { $0 + $1.totalVolumeKg }

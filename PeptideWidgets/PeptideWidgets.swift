@@ -640,6 +640,7 @@ struct PeptideWidgetBundle: WidgetBundle {
         TrainingWidget()
         if #available(iOS 16.1, *) {
             DoseWindowLiveActivity()
+            WorkoutLiveActivity()
         }
     }
 }
