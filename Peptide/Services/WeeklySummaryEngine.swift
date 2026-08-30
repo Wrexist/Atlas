@@ -54,9 +54,27 @@ enum WeeklySummaryEngine {
             calendar: calendar
         )
 
+        // Same engine the home ring and the insight line use, so the
+        // Sunday recap can't quote a different number than the app did
+        // an hour earlier.
+        let streakDays = StreakEngine.activeEntriesByDay(
+            entries: entries,
+            protocols: protocols,
+            calendar: calendar
+        )
         let streak = WeeklyAggregate.Streak(
-            current: doseStreak(in: entries, calendar: calendar),
-            best: bestDoseStreak(in: entries, calendar: calendar)
+            current: StreakEngine.currentStreak(
+                entriesByDay: streakDays,
+                frozenDayKeys: profile.streakFreezeDays,
+                today: referenceDate,
+                calendar: calendar
+            ),
+            best: StreakEngine.bestStreak(
+                entriesByDay: streakDays,
+                frozenDayKeys: profile.streakFreezeDays,
+                today: referenceDate,
+                calendar: calendar
+            )
         )
 
         let outcomes = computeOutcomes(
@@ -139,59 +157,6 @@ enum WeeklySummaryEngine {
     ) -> Int {
         let days = Set(entries.map { calendar.startOfDay(for: $0.date) })
         return days.count
-    }
-
-    // MARK: - Streak
-
-    private static func doseStreak(
-        in entries: [ProtocolEntry],
-        calendar: Calendar
-    ) -> Int {
-        // Walk backwards day by day until we find a day with no
-        // completed dose. The day before that is the start of the
-        // streak. Mirrors DataStore.currentStreak's gap-tolerance
-        // (one bye-day allowed in a row before the streak resets).
-        let completed = entries.filter(\.completed)
-        guard !completed.isEmpty else { return 0 }
-        let daysWithDose = Set(completed.map { calendar.startOfDay(for: $0.date) })
-        var streak = 0
-        var consecutiveMisses = 0
-        var cursor = calendar.startOfDay(for: Date())
-        while consecutiveMisses < 2 {
-            if daysWithDose.contains(cursor) {
-                streak += 1
-                consecutiveMisses = 0
-            } else {
-                consecutiveMisses += 1
-            }
-            cursor = calendar.date(byAdding: .day, value: -1, to: cursor) ?? cursor
-            if streak > 365 { break } // upper sanity bound
-        }
-        return streak
-    }
-
-    private static func bestDoseStreak(
-        in entries: [ProtocolEntry],
-        calendar: Calendar
-    ) -> Int {
-        let completed = entries.filter(\.completed)
-        guard !completed.isEmpty else { return 0 }
-        let daysWithDose = Set(completed.map { calendar.startOfDay(for: $0.date) })
-        let sorted = daysWithDose.sorted()
-        var best = 1
-        var current = 1
-        for i in 1..<sorted.count {
-            let prevDay = sorted[i - 1]
-            let thisDay = sorted[i]
-            let diff = calendar.dateComponents([.day], from: prevDay, to: thisDay).day ?? 0
-            if diff == 1 {
-                current += 1
-                best = max(best, current)
-            } else {
-                current = 1
-            }
-        }
-        return best
     }
 
     // MARK: - Outcomes

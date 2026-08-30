@@ -49,21 +49,12 @@ final class WorkoutSessionService {
             }
             SwiftDataRepository.shared.deleteWorkoutSession(id: existing.id)
         }
-        let exercises: [WorkoutExerciseEntry] = routine?.exercises.enumerated().map { idx, slot in
-            let initialSets = (0..<max(1, slot.targetSets)).map { setIdx in
-                SetEntry(
-                    index: setIdx + 1,
-                    weightKg: 0,
-                    reps: slot.targetReps,
-                    rpe: slot.targetRPE
-                )
+        // Seed from the routine before the session exists, so the weight
+        // lookup below still sees the *previous* workout as the newest one.
+        let exercises: [WorkoutExerciseEntry] = routine.map { routine in
+            RoutineSeedEngine.sessionExercises(for: routine) { exerciseID in
+                lastCompletedSet(forExerciseID: exerciseID)
             }
-            return WorkoutExerciseEntry(
-                exerciseID: slot.exerciseID,
-                index: idx,
-                sets: initialSets,
-                restSeconds: slot.restSeconds
-            )
         } ?? []
 
         let session = WorkoutSession(

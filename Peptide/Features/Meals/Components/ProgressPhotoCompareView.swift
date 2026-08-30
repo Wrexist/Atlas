@@ -19,6 +19,11 @@ struct ProgressPhotoCompareView: View {
 
     @State private var compareWith: String?
     @State private var blurEnabled: Bool = false
+    /// The two full-size columns, decoded off the main actor.
+    @State private var columnPhotos: [String: UIImage] = [:]
+    /// The filmstrip, decoded at strip size — a 56×70pt thumbnail has no
+    /// use for an 800 px bitmap.
+    @State private var thumbnails: [String: UIImage] = [:]
 
     /// Default the comparison target to the photo furthest from
     /// `primary` chronologically — the most striking comparison
@@ -55,6 +60,13 @@ struct ProgressPhotoCompareView: View {
                 }
                 .padding(.top, Spacing.md)
                 .padding(.horizontal, Spacing.md)
+            }
+            .task(id: resolvedCompare) {
+                let wanted = [primary, resolvedCompare].compactMap { $0 }
+                columnPhotos = await ProgressPhotoCache.shared.images(for: wanted, size: .card)
+            }
+            .task(id: allFilenames) {
+                thumbnails = await ProgressPhotoCache.shared.images(for: allFilenames, size: .thumbnail)
             }
             .navigationTitle("Compare")
             .navigationBarTitleDisplayMode(.inline)
@@ -105,7 +117,7 @@ struct ProgressPhotoCompareView: View {
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
-            if let filename, let image = ProgressPhotoStorage.loadImage(for: filename) {
+            if let filename, let image = columnPhotos[filename] {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
@@ -222,7 +234,7 @@ struct ProgressPhotoCompareView: View {
             Haptics.impact(.light)
         } label: {
             VStack(spacing: 4) {
-                if let image = ProgressPhotoStorage.loadImage(for: filename) {
+                if let image = thumbnails[filename] {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()

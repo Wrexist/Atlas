@@ -13,6 +13,10 @@ struct ProgressPhotosCard: View {
     @Environment(DataStore.self) private var dataStore
 
     @State private var pickerItem: PhotosPickerItem?
+    /// Photos decoded at tile size, off the main actor. Read from `body`
+    /// so a render is a dictionary lookup — the previous code hit the
+    /// disk and decoded a full-resolution `UIImage` per slot, per pass.
+    @State private var photos: [String: UIImage] = [:]
     @State private var revealedFilename: String?
     @State private var pendingDelete: String?
     @State private var errorText: String?
@@ -53,6 +57,9 @@ struct ProgressPhotosCard: View {
                     photoSlot(filename: recentFilenames.safe(index))
                 }
             }
+        }
+        .task(id: recentFilenames) {
+            photos = await ProgressPhotoCache.shared.images(for: recentFilenames, size: .card)
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -192,7 +199,7 @@ struct ProgressPhotosCard: View {
 
     @ViewBuilder
     private func photoSlot(filename: String?) -> some View {
-        if let filename, let image = ProgressPhotoStorage.loadImage(for: filename) {
+        if let filename, let image = photos[filename] {
             populatedSlot(filename: filename, image: image)
         } else {
             emptySlot
@@ -296,14 +303,13 @@ struct ProgressPhotosCard: View {
         defer { pickerItem = nil }
         guard let item else { return }
         do {
-            guard
-                let data = try await item.loadTransferable(type: Data.self),
-                let image = UIImage(data: data)
-            else {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
                 errorText = "Couldn't read that photo. Try a different one."
                 return
             }
-            let filename = try ProgressPhotoStorage.save(image)
+            // Decode, downscale and encode happen off the main actor —
+            // a 48 MP pick used to do all three here, mid-gesture.
+            let filename = try await ProgressPhotoStorage.save(imageData: data)
             dataStore.addProgressPhotoFilename(filename)
             Haptics.success()
         } catch {
