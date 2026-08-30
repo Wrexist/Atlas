@@ -22,8 +22,8 @@ import UIKit
 ///   - `disclaimerAcknowledgedAt` — Unix timestamp of the two-tap
 ///     medical-disclaimer acknowledgement; persistent legal record
 ///   - `profile.{name,bodyMetrics,nutritionTargets,primaryGoal,
-///      goals,goalDate,trainingPreferences,creatorAttribution,
-///      emailSubscription}` — persisted via DataStore
+///      goals,goalDate,trainingPreferences,creatorAttribution}`
+///      — persisted via DataStore
 struct OnboardingView: View {
     @Environment(DataStore.self) private var dataStore
     @AppStorage("hasCompletedOnboarding") private var hasCompleted = false
@@ -80,25 +80,6 @@ struct OnboardingView: View {
     // Theme picker presented after the paywall closes. Persisted via
     // ThemeManager.shared inside the page itself.
     @State private var showThemePicker: Bool = false
-    // "Building your plan…" loading screen progress (0…1). Drives the
-    // ring fill on `buildingPlanStep` and gates the auto-advance.
-    @State private var buildingProgress: Double = 0
-    @State private var buildingStarted: Bool = false
-    /// Holds the in-flight "auto-advance after the ring fills" task so
-    /// a back-navigation off the building-plan page can cancel it
-    /// (audit code-review #6 — unstructured task survived page exit and
-    /// could double-advance on re-entry).
-    @State private var buildingTask: Task<Void, Never>?
-    /// Incremented every time the building-plan animation starts. The
-    /// auto-advance task captures the value and re-checks it after its
-    /// sleep — `cancel()` alone can lose a race against a fast
-    /// back-then-forward navigation, letting a stale task advance.
-    @State private var buildingGeneration: Int = 0
-    // Email-capture step state. Validated against `looksLikeEmail` on
-    // primary-action; opt-in is genuinely optional — leaving it blank
-    // advances without persisting an EmailSubscription.
-    @State private var emailInput: String = ""
-    @State private var emailError: String?
     // Creator-attribution step state. Looked up against
     // CreatorCodeService.seeded on primary-action.
     @State private var creatorCodeInput: String = ""
@@ -106,7 +87,7 @@ struct OnboardingView: View {
     @State private var creatorError: String?
     @State private var showingAffiliateApply: Bool = false
     // Projection chart "reveal" state. Drives a tasteful fade-in on
-    // the chart instead of jump-cutting from the building screen.
+    // the chart instead of jump-cutting in fully drawn.
     @State private var projectionRevealed: Bool = false
     // Date-based goal target. Defaults to 12 weeks from today so a
     // user who taps Continue without touching the picker still gets a
@@ -168,11 +149,15 @@ struct OnboardingView: View {
         static let disclaimer       = 11
         static let notifications    = 12
         static let health           = 13
-        static let buildingPlan     = 14
-        static let creatorCode      = 15
-        static let email            = 16
-        static let ready            = 17
-        static let total            = 18
+        static let creatorCode      = 14
+        static let ready            = 15
+        static let total            = 16
+        // Removed (Product Architecture 07): `buildingPlan` — a 2.6 s
+        // synthetic ring animation with zero computation behind it
+        // (every real write happens on earlier steps); pretending to
+        // process erodes trust. And `email` — the captured address was
+        // stored on the profile and never sent or read anywhere, while
+        // the optional Sign in with Apple step already covers contact.
     }
 
     private var totalPages: Int { Page.total }
@@ -314,9 +299,7 @@ struct OnboardingView: View {
                     disclaimerStep.tag(Page.disclaimer)
                     notificationsStep.tag(Page.notifications)
                     healthStep.tag(Page.health)
-                    buildingPlanStep.tag(Page.buildingPlan)
                     creatorCodeStep.tag(Page.creatorCode)
-                    emailStep.tag(Page.email)
                     readyStep.tag(Page.ready)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
@@ -373,7 +356,6 @@ struct OnboardingView: View {
         }
         .onChange(of: page) { _, newPage in
             OnboardingFunnelTracker.recordStepEntered(stepName(for: newPage), index: newPage)
-            updateBuildingPlanForPage(newPage)
             // Focus the name field only when the name page is actually
             // the current one. Driving this from the sub-view's
             // `.onAppear` summoned the keyboard early — TabView mounts
@@ -381,7 +363,7 @@ struct OnboardingView: View {
             //
             // Leaving any text-entry step must put the keyboard away —
             // otherwise the name keyboard rode along onto the goal grid
-            // (and the email / creator-code keyboards onto their
+            // (and the creator-code keyboard onto its
             // neighbours), covering the lower half of the next card.
             if newPage == Page.name {
                 nameFocused = true
@@ -465,9 +447,7 @@ struct OnboardingView: View {
         case Page.disclaimer:     return "disclaimer"
         case Page.notifications:  return "notifications"
         case Page.health:         return "health"
-        case Page.buildingPlan:   return "building_plan"
         case Page.creatorCode:    return "creator_code"
-        case Page.email:          return "email"
         case Page.ready:          return "ready"
         default:                  return "unknown_\(index)"
         }
@@ -539,12 +519,7 @@ struct OnboardingView: View {
 
     private var footer: some View {
         VStack(spacing: Spacing.xs) {
-            // Hide the primary button on the building-plan screen —
-            // it auto-advances when the ring fills, and a tappable
-            // CTA next to a progress ring reads as "click to bypass."
-            if page != Page.buildingPlan {
-                primaryButton
-            }
+            primaryButton
             // `showSkipOnCurrentPage` whitelists Skip on the optional
             // steps only; the personalization-critical pages (goal,
             // experience, body metrics, schedule, equipment,
@@ -582,7 +557,7 @@ struct OnboardingView: View {
         switch page {
         case Page.signIn, Page.attribution, Page.demoSet,
              Page.notifications, Page.health,
-             Page.creatorCode, Page.email:
+             Page.creatorCode:
             return true
         default:
             return false
@@ -616,7 +591,6 @@ struct OnboardingView: View {
         case Page.welcome:      return "Let's go"
         case Page.disclaimer:   return "I understand"
         case Page.creatorCode:  return creatorAttribution == nil ? "Apply" : "Continue"
-        case Page.email:        return emailInput.isEmpty ? "Skip for now" : "Subscribe"
         case Page.ready:        return "Open Atlas"
         default:                return "Continue"
         }
@@ -694,8 +668,6 @@ struct OnboardingView: View {
                 applyCreatorCode()
                 return
             }
-        case Page.email:
-            if !persistEmailIfValid() { return }
         case Page.ready:
             // Present the trial paywall — flow continues through the
             // paywall and the theme picker before hasCompleted flips.
@@ -707,31 +679,6 @@ struct OnboardingView: View {
             break
         }
         advance()
-    }
-
-    /// Validates and persists the typed email. Empty input is a
-    /// silent "skip" — the user moves on without any record. Bad
-    /// format renders an inline error and blocks advance.
-    private func persistEmailIfValid() -> Bool {
-        let trimmed = emailInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
-            emailError = nil
-            return true
-        }
-        guard trimmed.looksLikeEmail else {
-            withAnimation(AppAnimation.fadeIn) { emailError = "That doesn't look like an email address." }
-            Haptics.error()
-            return false
-        }
-        emailError = nil
-        dataStore.profile.emailSubscription = EmailSubscription(
-            email: trimmed,
-            capturedAt: Date()
-        )
-        // Flush sync — see goalDate comment.
-        dataStore.flushPendingSave()
-        OnboardingFunnelTracker.recordEvent("email_captured")
-        return true
     }
 
     /// Looks up the typed creator code against the seeded list and
@@ -789,7 +736,7 @@ struct OnboardingView: View {
     }
 
     /// Resigns the first responder app-wide. Covers the text fields that
-    /// live inside sub-views (email, creator code) where the parent has
+    /// live inside sub-views (creator code) where the parent has
     /// no `FocusState` binding to flip.
     private func dismissKeyboard() {
         #if canImport(UIKit)
@@ -2069,108 +2016,6 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Building your plan…
-
-    private var buildingPlanStep: some View {
-        VStack(spacing: Spacing.xl) {
-            Spacer()
-            buildingRing
-            VStack(spacing: Spacing.sm) {
-                Text("Building your plan…")
-                    .font(AppFont.scaled(28, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                    .foregroundStyle(AppColor.textPrimary)
-                Text(buildingStageLabel)
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.xl)
-                    .contentTransition(.opacity)
-                    .animation(.easeInOut(duration: 0.25), value: buildingStageLabel)
-            }
-            Spacer()
-            Spacer()
-        }
-        .padding(.horizontal, Spacing.lg)
-    }
-
-    /// Drives the building-plan reveal. Called from the outer body's
-    /// .onChange(of: page) so the animation fires exactly when the
-    /// user lands on the page — not on every other page transition the
-    /// way an .onChange registered inside the sub-view would (audit
-    /// code-review #4 / integration L7).
-    private func updateBuildingPlanForPage(_ newPage: Int) {
-        if newPage == Page.buildingPlan {
-            startBuildingPlanAnimation()
-        } else if buildingStarted {
-            // Reset so a back-nav into this page re-runs the
-            // animation instead of seeing progress already at 1.
-            buildingProgress = 0
-            buildingStarted = false
-            buildingTask?.cancel()
-            buildingTask = nil
-        }
-    }
-
-    private var buildingRing: some View {
-        ZStack {
-            Circle()
-                .stroke(AppColor.accentPrimary.opacity(0.15), lineWidth: 8)
-                .frame(width: 120, height: 120)
-            Circle()
-                .trim(from: 0, to: buildingProgress)
-                .stroke(
-                    AppColor.accentPrimary,
-                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                )
-                .frame(width: 120, height: 120)
-                .rotationEffect(.degrees(-90))
-            Text("\(Int(buildingProgress * 100))%")
-                .font(AppFont.scaled(28, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                .monospacedDigit()
-                .foregroundStyle(AppColor.textPrimary)
-                .contentTransition(.numericText())
-                .animation(.linear(duration: 0.1), value: buildingProgress)
-        }
-    }
-
-    private var buildingStageLabel: String {
-        switch buildingProgress {
-        case ..<0.33:  return "Matching your goal to a program…"
-        case ..<0.66:  return "Tuning volume to your schedule…"
-        case ..<1.0:   return "Calibrating nutrition targets…"
-        default:       return "Done."
-        }
-    }
-
-    private func startBuildingPlanAnimation() {
-        guard !buildingStarted else { return }
-        buildingStarted = true
-        buildingProgress = 0
-        withAnimation(.easeInOut(duration: 1.2)) {
-            buildingProgress = 1
-        }
-        // Auto-advance once the ring fills. Matches the animation
-        // duration plus a 200ms beat so the user reads "Done." Held on
-        // a @State property so a back-navigation off the page can
-        // cancel the in-flight sleep — without cancellation the user
-        // could be advanced from an unrelated step seconds after
-        // they swiped back (audit code-review #6).
-        buildingTask?.cancel()
-        buildingGeneration += 1
-        let generation = buildingGeneration
-        buildingTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(1400))
-            // Re-check the generation as well as cancellation/page: a
-            // fast back-then-forward nav can leave a stale task that
-            // cancel() didn't catch in time.
-            guard !Task.isCancelled,
-                  generation == buildingGeneration,
-                  page == Page.buildingPlan else { return }
-            Haptics.success()
-            advance()
-        }
-    }
-
     private func permissionRow(icon: String, title: String, subtitle: String,
                                isLoading: Bool, isOn: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -2481,19 +2326,6 @@ struct OnboardingView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Email capture
-
-    private var emailStep: some View {
-        ScrollView {
-            VStack(spacing: Spacing.lg) {
-                HeroIcon(symbol: "envelope.fill", bounceTrigger: bounceTrigger)
-                    .padding(.top, Spacing.xl)
-                EmailCapturePage(input: $emailInput, error: emailError)
-                Spacer(minLength: 100)
-            }
-            .padding(.horizontal, Spacing.lg)
-        }
-    }
 }
 
 /// Compact trust pill under the welcome headline — the first trust
