@@ -87,4 +87,47 @@ final class HealthRangeServiceTests: XCTestCase {
         XCTAssertEqual(sample?.positionInRange, 0)
         XCTAssertEqual(sample?.status, .lower)
     }
+
+    // MARK: - confidence (personalization brief Phase 3)
+
+    private func series(count: Int) -> [(date: Date, value: Double)] {
+        let baseline = Date(timeIntervalSince1970: 1_700_000_000)
+        return (0..<count).map { i in
+            (date: baseline.addingTimeInterval(TimeInterval(i * 86_400)), value: Double(40 + i))
+        }
+    }
+
+    func test_sample_atMinCount_hasEmergingConfidence() {
+        // Exactly the 7-day floor: enough to render, not enough to call
+        // "established" — the whole point of a middle tier.
+        let sample = HealthRangeService.sample(from: series(count: 7), direction: .higherIsBetter)
+        XCTAssertEqual(sample?.confidence, .emergingBaseline)
+        XCTAssertEqual(sample?.confidenceCaption, "Early read — still learning your range")
+    }
+
+    func test_sample_atFullWindow_hasEstablishedConfidence() {
+        // The full 21-day target window — nothing left to hedge.
+        let sample = HealthRangeService.sample(from: series(count: 21), direction: .higherIsBetter)
+        XCTAssertEqual(sample?.confidence, .establishedBaseline)
+        XCTAssertNil(sample?.confidenceCaption)
+    }
+
+    func test_sample_midWindow_stillEmerging() {
+        // Between the floor and the full window — still emerging, not
+        // yet established.
+        let sample = HealthRangeService.sample(from: series(count: 14), direction: .higherIsBetter)
+        XCTAssertEqual(sample?.confidence, .emergingBaseline)
+    }
+
+    func test_confidenceCaption_defaultConstructedSample_hasNoCaption() {
+        // Existing call sites (previews, other tests) that construct a
+        // `Sample` directly without specifying `confidence` keep getting
+        // the established default and no caption — this is what keeps
+        // them source-compatible.
+        let sample = HealthRangeService.Sample(
+            latest: 58, p10: 35, p25: 42, p75: 60, p90: 70, direction: .higherIsBetter
+        )
+        XCTAssertEqual(sample.confidence, .establishedBaseline)
+        XCTAssertNil(sample.confidenceCaption)
+    }
 }

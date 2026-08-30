@@ -37,6 +37,30 @@ enum HealthRangeService {
         let p75: Double
         let p90: Double
         let direction: Direction
+        /// How much history this personal range is actually built on —
+        /// see `BaselineConfidence`. Defaults to `.establishedBaseline`
+        /// only so existing call sites (previews, tests) that construct a
+        /// `Sample` directly with a full, presumed-trustworthy range keep
+        /// compiling; `sample(from:direction:)` always computes the real
+        /// value from the series it was given.
+        let confidence: BaselineConfidence = .establishedBaseline
+
+        /// A short, honest hedge to pair with the status pill — `nil`
+        /// when the pill already says everything worth saying.
+        /// Personalization brief Phase 3: a baseline "must not appear
+        /// equally reliable" for a brand-new range and a fully-
+        /// established one, so an emerging range gets an explicit
+        /// caption; an established one doesn't repeat itself, and Phase
+        /// 17 says not to keep harping on "still learning" once it stops
+        /// being true.
+        var confidenceCaption: String? {
+            switch confidence {
+            case .establishedBaseline, .insufficientHistory:
+                return nil
+            case .emergingBaseline:
+                return "Early read — still learning your range"
+            }
+        }
 
         /// Where the latest value sits relative to the user's
         /// p25–p75 interquartile band. Anything inside the IQR is
@@ -95,16 +119,27 @@ enum HealthRangeService {
     ) -> Sample? {
         guard series.count >= minSampleCount else { return nil }
 
-        let sorted = series.map(\.value).sorted()
-        let latest = series.max(by: { $0.date < $1.date })?.value ?? sorted.last ?? 0
+        let latest = series.max(by: { $0.date < $1.date })?.value ?? series.last?.value ?? 0
+
+        // `emergingAt` is deliberately the same `minSampleCount` gate this
+        // function already required to return non-nil at all — a snapshot
+        // this method is willing to show is never itself "insufficient."
+        // `establishedAt` is the full `windowDays` window: nothing short of
+        // the full 21-day target reads as a fully-trusted personal range.
+        guard let baseline = PersonalBaselineEngine.build(
+            values: series.map(\.value),
+            emergingAt: minSampleCount,
+            establishedAt: windowDays
+        ) else { return nil }
 
         return Sample(
             latest: latest,
-            p10: percentile(sorted, 0.10),
-            p25: percentile(sorted, 0.25),
-            p75: percentile(sorted, 0.75),
-            p90: percentile(sorted, 0.90),
-            direction: direction
+            p10: baseline.p10,
+            p25: baseline.p25,
+            p75: baseline.p75,
+            p90: baseline.p90,
+            direction: direction,
+            confidence: baseline.confidence
         )
     }
 
@@ -112,9 +147,9 @@ enum HealthRangeService {
     /// stable results for the small samples (7–21 days) we work
     /// with. Linear interpolation would over-smooth values that
     /// real users would expect to land on an actual day's reading.
+    /// Forwards to `PersonalBaselineEngine`'s identical formula so the
+    /// two personal-range implementations can't silently drift apart.
     static func percentile(_ sortedValues: [Double], _ p: Double) -> Double {
-        guard !sortedValues.isEmpty else { return 0 }
-        let rank = max(1, min(sortedValues.count, Int(ceil(p * Double(sortedValues.count)))))
-        return sortedValues[rank - 1]
+        PersonalBaselineEngine.percentile(sortedValues, p)
     }
 }
