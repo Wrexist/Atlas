@@ -18,7 +18,7 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
     /// week boundary depend on the runner's locale.
     private let calendar: Calendar = {
         var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "UTC")!
+        cal.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
         cal.firstWeekday = 2
         return cal
     }()
@@ -211,11 +211,11 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
           "totalToday": 3,
           "lastUpdated": "2025-06-11T12:00:00Z"
         }
-        """.data(using: .utf8)!
+        """
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let decoded = try? decoder.decode(WidgetData.self, from: legacy)
+        let decoded = try? decoder.decode(WidgetData.self, from: Data(legacy.utf8))
 
         XCTAssertEqual(decoded?.nextPeptideName, "BPC-157")
         XCTAssertNil(decoded?.lastWorkout)
