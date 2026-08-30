@@ -1650,9 +1650,7 @@ final class DataStore: DataServiceProtocol {
     /// Toggle off (revoke local link) is unconditional. Toggle ON
     /// only succeeds after the user has actually granted at least
     /// one HealthKit type — previously we'd flip the bool to true
-    /// regardless, then PeptideApp's task fired
-    /// startBackgroundDelivery against permissionless observer
-    /// queries, and downstream UI showed "connected" with empty
+    /// regardless and downstream UI showed "connected" with empty
     /// cards (audit Biology H9). Caller can `await` the result and
     /// surface a permissions prompt when this returns false.
     @discardableResult

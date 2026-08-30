@@ -102,13 +102,6 @@ struct PeptideApp: App {
             .environment(\.locale, localization.effectiveLocale)
             .environment(\.layoutDirection, localization.layoutDirection)
             .id(localization.selectedCode ?? "system")
-            .task(id: dataStore.profile.healthConnected) {
-                if dataStore.profile.healthConnected {
-                    await HealthKitService.shared.startBackgroundDelivery()
-                } else {
-                    HealthKitService.shared.stopBackgroundDelivery()
-                }
-            }
             .task {
                 // One-shot Spotlight reindex on app start. Custom foods
                 // and favorites stay in sync via DataStore mutation
