@@ -42,6 +42,23 @@ final class NotificationService {
     /// against new schedules so we never go through a zero-pending window.
     @ObservationIgnored private var currentIDs: Set<String> = []
 
+    /// (weekday, hour, minute) for every dose reminder scheduled by the
+    /// most recent `scheduleNotifications` call. `scheduleHabitReminders`
+    /// reads this so a habit reminder never lands within
+    /// `crossTypeCooldownMinutes` of a dose reminder — see
+    /// `resolvedHabitFireTime`.
+    ///
+    /// On app activation, habits currently re-stamp *before* doses do
+    /// (`PeptideApp` re-stamps habit reminders unconditionally, then walks
+    /// through dose-reminder authorization, which can early-return), so
+    /// this is usually the dose schedule from the *previous* activation
+    /// rather than the one about to be (re)computed this launch. That's an
+    /// acceptable approximation — dose schedules rarely change between two
+    /// consecutive app opens — and it self-corrects on the very next
+    /// reschedule after any change, rather than requiring a riskier
+    /// reordering of `PeptideApp`'s authorization flow just for this.
+    @ObservationIgnored private var doseReminderSlots: [(weekday: Int, hour: Int, minute: Int)] = []
+
     /// iOS limit on pending notification requests per app.
     static let pendingRequestLimit = 64
 
@@ -63,7 +80,77 @@ final class NotificationService {
     /// 7 weekday slots, kept distinct from the protocol/snooze namespaces.
     nonisolated static let habitIDPrefix = "habit-"
 
+    /// Prefix for one-shot local notifications scheduled outside the dose
+    /// and habit calendar schedulers — currently just the workout rest
+    /// timer's "Rest's up" buzz. Before this, that call site talked to
+    /// `UNUserNotificationCenter` directly, invisible to every other
+    /// notification-coordination concern this service owns (retention
+    /// audit: notifications, Phase 13 — "the rest-timer notification
+    /// bypasses NotificationService entirely").
+    nonisolated static let adHocIDPrefix = "adhoc-"
+
+    /// Minimum gap, in minutes, `scheduleHabitReminders` keeps between a
+    /// habit reminder and any already-scheduled dose reminder on the same
+    /// weekday. Dose reminders schedule first each launch, so habits are
+    /// the side that yields — see `resolvedHabitFireTime`.
+    static let crossTypeCooldownMinutes = 10
+
     private init() {}
+
+    /// Schedules a one-shot, time-interval-triggered local notification
+    /// outside the dose/habit calendar schedulers — e.g. the workout rest
+    /// timer's "Rest's up" buzz. `nonisolated` because its call sites
+    /// (`RestTimerState`, a plain value type mutated from view code) are
+    /// not themselves MainActor-isolated, matching how they already called
+    /// `UNUserNotificationCenter` directly; the center itself is
+    /// thread-safe. Namespaced under `adHocIDPrefix` so these requests are
+    /// at least visible under one shared prefix instead of disappearing
+    /// into ad hoc call sites.
+    nonisolated static func scheduleOneShot(id: String, title: String, body: String, after seconds: TimeInterval) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, seconds), repeats: false)
+        let request = UNNotificationRequest(identifier: "\(adHocIDPrefix)\(id)", content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request) { _ in /* best effort */ }
+    }
+
+    /// Cancels a request previously scheduled via `scheduleOneShot(id:...)`.
+    nonisolated static func cancelOneShot(id: String) {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["\(adHocIDPrefix)\(id)"])
+    }
+
+    /// Pure collision check + resolution for `scheduleHabitReminders`: if
+    /// `(hour, minute)` lands within `crossTypeCooldownMinutes` of any
+    /// entry in `occupied` — matching weekday, or any weekday when
+    /// `weekday` is `nil` (a "daily" habit can collide with a dose
+    /// reminder on any day of the week) — shifts the candidate forward by
+    /// `crossTypeCooldownMinutes` so the two don't land in the same
+    /// notification-center pull. Deterministic: the same inputs always
+    /// produce the same shifted time, so a reschedule never nudges an
+    /// already-resolved reminder a second time.
+    ///
+    /// This is Atlas's only *temporal* collision guard across notification
+    /// categories — the existing 64-slot budget split prevents overflow,
+    /// but two reminders firing in the same minute is a UX problem the
+    /// budget alone doesn't catch (retention audit, Phase 16).
+    static func resolvedHabitFireTime(
+        hour: Int,
+        minute: Int,
+        weekday: Int?,
+        avoiding occupied: [(weekday: Int, hour: Int, minute: Int)]
+    ) -> (hour: Int, minute: Int) {
+        let candidateMinuteOfDay = hour * 60 + minute
+        let collides = occupied.contains { slot in
+            (weekday == nil || slot.weekday == weekday)
+                && abs(slot.hour * 60 + slot.minute - candidateMinuteOfDay) < crossTypeCooldownMinutes
+        }
+        guard collides else { return (hour, minute) }
+        let shifted = (candidateMinuteOfDay + crossTypeCooldownMinutes) % (24 * 60)
+        return (shifted / 60, shifted % 60)
+    }
 
     func requestAuthorization() async -> Bool {
         do {
@@ -187,10 +274,18 @@ final class NotificationService {
         // owns their lifecycle so we must not sweep them here.
         let preservedSnoozes = currentIDs.filter { $0.hasPrefix(Self.snoozeIDPrefix) }
         let preservedHabits = currentIDs.filter { $0.hasPrefix(Self.habitIDPrefix) }
+        // The Sunday weekly-recap request lives in its own scheduler but
+        // shares the pending-request pool. `reconcilePendingState()` absorbs
+        // its fixed ID into `currentIDs` on launch, and without this carve-out
+        // the next protocol edit's set-diff cancelled it — edit a protocol on
+        // Saturday evening, never reopen, and the Sunday 09:00 push silently
+        // vanished.
+        let preservedWeekly = currentIDs.intersection([WeeklySummaryNotificationScheduler.identifier])
         let toRemove = currentIDs
             .subtracting(newIDs)
             .subtracting(preservedSnoozes)
             .subtracting(preservedHabits)
+            .subtracting(preservedWeekly)
 
         if !toRemove.isEmpty {
             center.removePendingNotificationRequests(withIdentifiers: Array(toRemove))
@@ -199,9 +294,21 @@ final class NotificationService {
             center.add(entry.request)
         }
 
-        currentIDs = newIDs.union(preservedSnoozes).union(preservedHabits)
+        currentIDs = newIDs.union(preservedSnoozes).union(preservedHabits).union(preservedWeekly)
         requestedCount = pendingRequests.count
         scheduledCount = kept.count
+
+        // Snapshot (weekday, hour, minute) for every surviving dose
+        // reminder so `scheduleHabitReminders` can steer clear of them.
+        // `nextFireDate` is the concrete next occurrence already computed
+        // above, so deriving weekday/hour/minute back out of it (rather
+        // than plumbing the original DateComponents through PendingRequest)
+        // keeps this a read-only addition to an already-built value.
+        let calendar = Calendar.current
+        doseReminderSlots = kept.map { entry in
+            let comps = calendar.dateComponents([.weekday, .hour, .minute], from: entry.nextFireDate)
+            return (weekday: comps.weekday ?? 1, hour: comps.hour ?? 0, minute: comps.minute ?? 0)
+        }
 
         let report = ScheduleReport(
             requested: pendingRequests.count,
@@ -279,9 +386,19 @@ final class NotificationService {
 
             for weekday in weekdays {
                 if scheduled >= Self.habitRequestLimit { break }
+                // Nudge past any dose reminder within `crossTypeCooldownMinutes`
+                // on the same weekday (or, for a "daily" habit, any weekday) —
+                // habits yield to doses, matching the existing 64-slot budget's
+                // stance that dose reminders are the priority.
+                let resolved = Self.resolvedHabitFireTime(
+                    hour: hour,
+                    minute: minute,
+                    weekday: weekday,
+                    avoiding: doseReminderSlots
+                )
                 var components = DateComponents()
-                components.hour = hour
-                components.minute = minute
+                components.hour = resolved.hour
+                components.minute = resolved.minute
                 if let weekday { components.weekday = weekday }
                 let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
                 let suffix = weekday.map(String.init) ?? "daily"

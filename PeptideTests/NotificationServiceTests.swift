@@ -216,6 +216,69 @@ final class NotificationServiceTests: XCTestCase {
     // because currentIDs is private and constructing a real UNNotificationResponse
     // from a unit test isn't supported by the SDK.
 
+    // MARK: - resolvedHabitFireTime (cross-type cooldown)
+
+    func test_resolvedHabitFireTime_noCollision_returnsCandidateUnchanged() {
+        let occupied: [(weekday: Int, hour: Int, minute: Int)] = [(weekday: 2, hour: 8, minute: 0)]
+        let resolved = NotificationService.resolvedHabitFireTime(
+            hour: 20, minute: 0, weekday: 2, avoiding: occupied
+        )
+        XCTAssertEqual(resolved.hour, 20)
+        XCTAssertEqual(resolved.minute, 0)
+    }
+
+    func test_resolvedHabitFireTime_sameWeekdayWithinCooldown_shiftsForward() {
+        // Dose reminder at 8:00 on weekday 2; habit candidate at 8:05 is
+        // within the 10-minute cooldown and must shift.
+        let occupied: [(weekday: Int, hour: Int, minute: Int)] = [(weekday: 2, hour: 8, minute: 0)]
+        let resolved = NotificationService.resolvedHabitFireTime(
+            hour: 8, minute: 5, weekday: 2, avoiding: occupied
+        )
+        XCTAssertEqual(resolved.hour, 8)
+        XCTAssertEqual(resolved.minute, 15, "Should shift forward by the full cooldown window (10 min) from the candidate")
+    }
+
+    func test_resolvedHabitFireTime_differentWeekday_noShift() {
+        // Dose reminder occupies 8:00 on weekday 2 only; a habit candidate
+        // at the same clock time but a different weekday doesn't collide.
+        let occupied: [(weekday: Int, hour: Int, minute: Int)] = [(weekday: 2, hour: 8, minute: 0)]
+        let resolved = NotificationService.resolvedHabitFireTime(
+            hour: 8, minute: 0, weekday: 3, avoiding: occupied
+        )
+        XCTAssertEqual(resolved.hour, 8)
+        XCTAssertEqual(resolved.minute, 0)
+    }
+
+    func test_resolvedHabitFireTime_nilWeekday_collidesWithAnyWeekday() {
+        // A "daily" habit (nil weekday) must yield to a dose reminder that
+        // occupies the same clock time on ANY weekday.
+        let occupied: [(weekday: Int, hour: Int, minute: Int)] = [(weekday: 5, hour: 8, minute: 0)]
+        let resolved = NotificationService.resolvedHabitFireTime(
+            hour: 8, minute: 3, weekday: nil, avoiding: occupied
+        )
+        XCTAssertEqual(resolved.hour, 8)
+        XCTAssertEqual(resolved.minute, 13)
+    }
+
+    func test_resolvedHabitFireTime_exactlyAtCooldownBoundary_noCollision() {
+        // A gap of exactly `crossTypeCooldownMinutes` (10) is not "within"
+        // the cooldown — the collision check uses strict `<`.
+        let occupied: [(weekday: Int, hour: Int, minute: Int)] = [(weekday: 2, hour: 8, minute: 0)]
+        let resolved = NotificationService.resolvedHabitFireTime(
+            hour: 8, minute: 10, weekday: 2, avoiding: occupied
+        )
+        XCTAssertEqual(resolved.hour, 8)
+        XCTAssertEqual(resolved.minute, 10)
+    }
+
+    func test_resolvedHabitFireTime_emptyOccupiedList_returnsCandidateUnchanged() {
+        let resolved = NotificationService.resolvedHabitFireTime(
+            hour: 7, minute: 30, weekday: 4, avoiding: []
+        )
+        XCTAssertEqual(resolved.hour, 7)
+        XCTAssertEqual(resolved.minute, 30)
+    }
+
     // MARK: - Helpers
 
     private func makeProtocol(

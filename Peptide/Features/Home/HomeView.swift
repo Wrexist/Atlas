@@ -85,7 +85,13 @@ struct HomeView: View {
         var overview: TodayOverviewSnapshot?
         var plan: DailyScheduleEngine.DailyPlan?
         var timeline: [TodayTimelineEvent] = []
-        var coaching: CoachingMessageEngine.CoachingMessage?
+        /// The single top-of-Today reason to act, reconciled by
+        /// `PrimaryReasonEngine` from coaching, today's dose plan, habits
+        /// due, and a freshly-changed weekly review. Replaces the old
+        /// `coaching` field — every one of its call sites just wanted the
+        /// message that would be shown, so `CoachingCard` now renders
+        /// `primaryReason?.message` instead.
+        var primaryReason: PrimaryReasonEngine.Reason?
     }
 
     private struct HeroDetailItem: Identifiable {
@@ -118,11 +124,12 @@ struct HomeView: View {
     /// synchronously on the main actor — it's a handful of in-memory passes
     /// plus one day-scoped SwiftData fetch — but it must not run from `body`.
     private func refreshDerived() {
+        let plan = DailyScheduleEngine.plan(for: dataStore.todayEntries)
         derived = DerivedToday(
             overview: TodayOverviewSnapshot.build(from: dataStore),
-            plan: DailyScheduleEngine.plan(for: dataStore.todayEntries),
+            plan: plan,
             timeline: buildTimelineEvents(),
-            coaching: buildCoachingMessage()
+            primaryReason: buildPrimaryReason(plan: plan)
         )
     }
 
@@ -164,30 +171,22 @@ struct HomeView: View {
                     )
                     .sectionAppear(index: 0)
 
-                    // Bevel-style twin context pills — current cycle
-                    // status on the left (tap → Protocols tab), date
-                    // on the right. Glanceable context without
-                    // claiming a full section.
-                    TodayContextRow(
-                        activeProtocol: dataStore.activeProtocols.first,
-                        date: Date(),
-                        onTapCycle: {
-                            // Library is no longer a tab — open it as a
-                            // modal with the protocol list pending so the
-                            // cycle pill still lands on Protocols in one hop.
-                            appState.pendingProtocolList = true
-                            appState.showLibrary = true
-                        }
-                    )
-                    .sectionAppear(index: 0)
+                    // Today reads status → recommendation → action
+                    // (Product Architecture 07). The removed
+                    // TodayContextRow duplicated the date shown one
+                    // line above and hid the Library behind an
+                    // unlabeled pill; the Protocols section header
+                    // below carries a labeled Manage entry instead.
+                    // ProtocolScoreCard is gone too — its score was
+                    // the trio's adherence ring restated, and its
+                    // streak/weekly strip is analysis, which lives in
+                    // the adherence detail sheet.
 
-                    // Quick-jump chips — sits below the greeting so the
-                    // user reaches Meals / Wellness / Movement / the
-                    // Insights tab in one tap instead of scrolling past
-                    // the day-at-a-glance, score, plan, and schedule
-                    // cards. Also hosts the "+ Log" quick-log Menu so
-                    // primary log actions are reachable from above the
-                    // fold.
+                    // Quick-jump chips — scroll shortcuts to the
+                    // sections below plus the "+ Log" quick-log
+                    // button, reachable above the fold. Tab
+                    // destinations were dropped from the chip row;
+                    // the tab bar already does that job.
                     TodayJumpBar(
                         activeAnchor: activeJumpAnchor,
                         showsDoses: !dataStore.protocols.isEmpty,
@@ -195,20 +194,6 @@ struct HomeView: View {
                         onQuickLog: { showQuickLogMenu() }
                     )
                     .sectionAppear(index: 0)
-
-                    // Habit-first hero — today's habits, the daily completion
-                    // ring, the active streak, and the Atlas Score lead the
-                    // screen so the user's daily wins are the first thing they
-                    // see and act on. Per-habit summary work is snapshotted
-                    // off-body inside the component (audit A6).
-                    TodayHabitsHero()
-                        .sectionAppear(index: 0)
-
-                    // Earned "Atlas Score" — the level / tier / progress
-                    // showcase, sitting right under the habits that feed it
-                    // so the user sees their momentum compounding.
-                    AtlasScoreCard(onTap: { showProgress = true })
-                        .sectionAppear(index: 0)
 
                     // Observed via the @State notificationService so the banner
                     // re-renders when a reschedule writes a fresh report. Reading
@@ -220,6 +205,47 @@ struct HomeView: View {
                             droppedProtocolNames: dataStore.droppedReminderProtocolNames
                         )
                         .sectionAppear(index: 0)
+                    }
+
+                    // PRIMARY STATUS. Hide the adherence/recovery/sleep
+                    // trio for a brand-new user with no protocols and no
+                    // Health connection — all zeros read as failure
+                    // (roadmap day-0). They lead with the habit hero
+                    // below; the trio's footer offers Connect Health.
+                    if showsAtAGlance {
+                        HomeSectionHeader(eyebrow: "Today", title: "At a glance")
+                            .sectionAppear(index: 0)
+
+                        // Bevel-style hero trio — Adherence / Recovery /
+                        // Sleep. Three at-a-glance numbers mapping to the
+                        // user's mental model from Whoop / Oura / Bevel.
+                        HeroMetricTrio(
+                            snapshot: heroSnapshot,
+                            onTapRing: { kind in
+                                Haptics.impact(.light)
+                                heroDetailKind = HeroDetailItem(kind: kind)
+                            },
+                            onConnectHealth: {
+                                Haptics.impact(.light)
+                                // Health connection lives on the Profile
+                                // sheet — same destination as the avatar.
+                                appState.showProfile = true
+                            }
+                        )
+                        .sectionAppear(index: 0)
+                    }
+
+                    // PRIMARY RECOMMENDATION — the one thing
+                    // `PrimaryReasonEngine` ranked highest across
+                    // recovery/sleep coaching, today's dose plan, habits
+                    // due, and a freshly-changed weekly review. Same
+                    // single-card discipline Bevel uses ("Excellent
+                    // recovery, push today" / "Short sleep, cap
+                    // intensity") — just reconciled across more signals
+                    // than coaching alone used to see.
+                    if let reason = derived.primaryReason {
+                        CoachingCard(message: reason.message)
+                            .sectionAppear(index: 0)
                     }
 
                     if let weeklyState = weeklySummaryState,
@@ -237,58 +263,99 @@ struct HomeView: View {
                         .sectionAppear(index: 0)
                     }
 
-                    // Labeled section, mirroring the headered Wellness /
-                    // Movement / Timeline / Health blocks further down so
-                    // the whole scroll reads as consistent, navigable
-                    // chunks instead of an unlabeled wall of cards.
-                    // Hide the adherence/recovery/sleep trio for a brand-new
-                    // user with no protocols and no Health connection — all
-                    // zeros read as failure (roadmap day-0). They lead with
-                    // the habit hero + Atlas Score above; the coaching card
-                    // below still nudges them to connect Health.
-                    if showsAtAGlance {
-                        HomeSectionHeader(eyebrow: "Today", title: "At a glance")
-                            .sectionAppear(index: 0)
+                    // PRIMARY ACTION — today's habits, the daily
+                    // completion ring, and the active streak. Per-habit
+                    // summary work is snapshotted off-body inside the
+                    // component (audit A6).
+                    TodayHabitsHero()
+                        .sectionAppear(index: 1)
 
-                        // Bevel-style hero trio — Adherence / Recovery /
-                        // Sleep. Three at-a-glance numbers mapping to the
-                        // user's mental model from Whoop / Oura / Bevel.
-                        HeroMetricTrio(
-                            snapshot: heroSnapshot,
-                            onTapRing: { kind in
+                    // MARK: - Meals / Wellness / Movement
+                    //
+                    // Meals is the most-used surface on Today, so it
+                    // sits ABOVE the dose plan/schedule cards now —
+                    // users reached for it most and were scrolling
+                    // past four cards to get there. Doses are still
+                    // surfaced in TodayOverviewCard's hero, and the
+                    // jump chips above reach the full schedule in
+                    // one tap.
+
+                    // HomeMealsSection used to render on the Today scroll
+                    // AND inside MealsContainerView. Spotlight taps with
+                    // a recipe deep-link fired sheets in both mounts
+                    // simultaneously (audit Meals MED 10). Removed from
+                    // Today; the dedicated Meals tab is the single
+                    // owner. The jump-bar .meals chip now navigates to
+                    // the Meals tab (handled in handleJump).
+
+                    if !dataStore.protocols.isEmpty, let plan = derived.plan {
+                        // The ONE dose section. The header's Manage
+                        // button is the labeled Library entry that
+                        // replaced the removed cycle pill.
+                        HomeSectionHeader(eyebrow: "Protocols", title: "Today's doses") {
+                            Button {
                                 Haptics.impact(.light)
-                                heroDetailKind = HeroDetailItem(kind: kind)
+                                appState.pendingProtocolList = true
+                                appState.showLibrary = true
+                            } label: {
+                                Text("Manage")
+                                    .font(AppFont.scaled(13, weight: .semibold))
+                                    .foregroundStyle(AppColor.accentLight)
+                            }
+                            .minimumHitArea()
+                            .accessibilityLabel("Manage protocols")
+                        }
+                        .sectionAppear(index: 3)
+
+                        DailyPlanCard(
+                            plan: plan,
+                            onTapDose: { entry in selectedEntry = entry },
+                            onAddProtocol: {
+                                appState.pendingProtocolList = true
+                                appState.showLibrary = true
                             }
                         )
-                        .sectionAppear(index: 0)
-                    }
+                        .id(TodayJumpBar.SectionAnchor.doses)
+                        .trackSectionAnchor(.doses)
+                        .sectionAppear(index: 3)
 
-                    // Coaching line — turns the trio's three numbers
-                    // into a single recommendation. Same priority
-                    // cascade Bevel uses ("Excellent recovery, push
-                    // today" / "Short sleep, cap intensity"), tuned
-                    // for Atlas's peptide-protocol context.
-                    if let coaching = derived.coaching {
-                        CoachingCard(message: coaching)
-                            .sectionAppear(index: 0)
-                    }
-
-                    // Momentum — goal projection. Habits now lead the screen
-                    // in TodayHabitsHero above; the goal countdown stays here
-                    // for users who committed to a target date. Guarded so the
-                    // header never sits alone when no goal date is set.
-                    if dataStore.profile.goalDate != nil {
-                        HomeSectionHeader(eyebrow: "Momentum", title: "Your goal")
-                            .sectionAppear(index: 0)
-
-                        GoalCountdownCard(
-                            goalDate: dataStore.profile.goalDate,
-                            primaryGoal: dataStore.profile.primaryGoal,
-                            startDate: dataStore.profile.memberSince
+                        TodayScheduleCard(
+                            entries: stats.entries,
+                            onToggle: { entry in dataStore.toggleEntry(entry.id) },
+                            onTap: { entry in selectedEntry = entry }
                         )
-                        .sectionAppear(index: 0)
+                        .sectionAppear(index: 3)
+                    } else if dataStore.protocols.isEmpty {
+                        // Discoverability for the differentiated
+                        // feature: with zero protocols the dose section
+                        // is hidden, and removing the cycle pill left
+                        // Today with no Protocols entry at all — the
+                        // Library would only be reachable through
+                        // Profile. One compact labeled row keeps it
+                        // findable without a tutorial.
+                        ProtocolsDiscoverRow {
+                            appState.pendingProtocolList = true
+                            appState.showLibrary = true
+                        }
+                        .sectionAppear(index: 3)
                     }
 
+                    HomeWellnessSection()
+                        .id(TodayJumpBar.SectionAnchor.wellness)
+                        .trackSectionAnchor(.wellness)
+                        .sectionAppear(index: 5)
+
+                    HomeMovementSection()
+                        .id(TodayJumpBar.SectionAnchor.movement)
+                        .trackSectionAnchor(.movement)
+                        .sectionAppear(index: 5)
+
+                    // ANALYSIS from here down — glanceable summaries the
+                    // user pulls up on demand, after every actionable
+                    // section above (Product Architecture 07).
+
+                    // Lifestyle overview: next-dose hero, calorie /
+                    // streak / check-in / water grid, rotating insight.
                     if let overview = derived.overview, overview.hasAnySignal {
                         TodayOverviewCard(
                             snapshot: overview,
@@ -311,81 +378,27 @@ struct HomeView: View {
                                 }
                             }
                         )
-                        .sectionAppear(index: 0)
+                        .sectionAppear(index: 6)
                     }
 
-                    // Protocol creation now lives on the Library tab —
-                    // Today no longer shows the full-screen "Create your
-                    // first protocol" card for new users. Once a protocol
-                    // exists, the score card surfaces here as before.
-                    if !dataStore.protocols.isEmpty {
-                        HomeSectionHeader(eyebrow: "Protocols", title: "Today's doses")
-                            .sectionAppear(index: 1)
+                    // Momentum — goal countdown for users who committed
+                    // to a target date, and the earned Atlas Score
+                    // (level / tier / progress). Guarded so the header
+                    // never sits alone when no goal date is set.
+                    if dataStore.profile.goalDate != nil {
+                        HomeSectionHeader(eyebrow: "Momentum", title: "Your goal")
+                            .sectionAppear(index: 6)
 
-                        ProtocolScoreCard(
-                            score: stats.score,
-                            completed: stats.completed,
-                            total: stats.total,
-                            streak: dataStore.currentStreak,
-                            bestStreak: dataStore.bestStreak,
-                            weeklyCompletion: dataStore.weeklyCompletion
+                        GoalCountdownCard(
+                            goalDate: dataStore.profile.goalDate,
+                            primaryGoal: dataStore.profile.primaryGoal,
+                            startDate: dataStore.profile.memberSince
                         )
-                        .sectionAppear(index: 1)
+                        .sectionAppear(index: 6)
                     }
 
-                    // MARK: - Meals / Wellness / Movement
-                    //
-                    // Meals is the most-used surface on Today, so it
-                    // sits ABOVE the dose plan/schedule cards now —
-                    // users reached for it most and were scrolling
-                    // past four cards to get there. Doses are still
-                    // surfaced in TodayOverviewCard's hero, and the
-                    // jump chips above reach the full schedule in
-                    // one tap.
-
-                    // HomeMealsSection used to render on the Today scroll
-                    // AND inside MealsContainerView. Spotlight taps with
-                    // a recipe deep-link fired sheets in both mounts
-                    // simultaneously (audit Meals MED 10). Removed from
-                    // Today; the dedicated Meals tab is the single
-                    // owner. The jump-bar .meals chip now navigates to
-                    // the Meals tab (handled in handleJump).
-
-                    if !dataStore.protocols.isEmpty, let plan = derived.plan {
-                        DailyPlanCard(
-                            plan: plan,
-                            onTapDose: { entry in selectedEntry = entry },
-                            onAddProtocol: {
-                                appState.pendingProtocolList = true
-                                appState.showLibrary = true
-                            }
-                        )
-                        .id(TodayJumpBar.SectionAnchor.doses)
-                        .trackSectionAnchor(.doses)
-                        .sectionAppear(index: 3)
-
-                        TodayScheduleCard(
-                            entries: stats.entries,
-                            onToggle: { entry in dataStore.toggleEntry(entry.id) },
-                            onTap: { entry in selectedEntry = entry }
-                        )
-                        .sectionAppear(index: 3)
-
-                        // QuickStatsRow removed in the declutter pass —
-                        // its compliance figure duplicated ProtocolScoreCard
-                        // and its "next dose" duplicated the tab-bar bottom
-                        // accessory, so it was noise rather than signal.
-                    }
-
-                    HomeWellnessSection()
-                        .id(TodayJumpBar.SectionAnchor.wellness)
-                        .trackSectionAnchor(.wellness)
-                        .sectionAppear(index: 5)
-
-                    HomeMovementSection()
-                        .id(TodayJumpBar.SectionAnchor.movement)
-                        .trackSectionAnchor(.movement)
-                        .sectionAppear(index: 5)
+                    AtlasScoreCard(onTap: { showProgress = true })
+                        .sectionAppear(index: 6)
 
                     // Bevel-style chronological feed — doses + meals
                     // + check-in + workouts merged into one sorted
@@ -623,7 +636,8 @@ struct HomeView: View {
             // so it has to re-pick when that lands (it arrives async, after
             // the first `refreshDerived()`).
             .onChange(of: heroSnapshot) { _, _ in
-                derived.coaching = buildCoachingMessage()
+                let plan = derived.plan ?? DailyScheduleEngine.plan(for: dataStore.todayEntries)
+                derived.primaryReason = buildPrimaryReason(plan: plan)
             }
             .onAppear {
                 checkMilestonePrompt()
@@ -695,24 +709,13 @@ struct HomeView: View {
     /// `.biology` jumps to the Biology tab via `AppState`; every
     /// other anchor scrolls within Today's existing `ScrollViewReader`.
     private func handleJump(to anchor: TodayJumpBar.SectionAnchor, proxy: ScrollViewProxy) {
-        switch anchor {
-        case .biology:
-            withAnimation(AppAnimation.springSnappy) {
-                appState.selectedTab = .biology
-            }
-        case .meals:
-            // Meals lives on its own tab now (audit Meals MED 10).
-            // The Today scroll no longer mounts HomeMealsSection so
-            // scrolling here would be a no-op — switch tab instead.
-            withAnimation(AppAnimation.springSnappy) {
-                appState.selectedTab = .meals
-            }
-        case .doses, .wellness, .movement:
-            withAnimation(.smooth(duration: 0.35)) {
-                proxy.scrollTo(anchor, anchor: .top)
-            }
-            activeJumpAnchor = anchor
+        // Every chip scrolls within Today now — the Meals and Biology
+        // chips that duplicated the tab bar were dropped (Product
+        // Architecture 07: no duplicate destinations).
+        withAnimation(.smooth(duration: 0.35)) {
+            proxy.scrollTo(anchor, anchor: .top)
         }
+        activeJumpAnchor = anchor
     }
 
     private func showQuickLogMenu() {
@@ -729,10 +732,9 @@ struct HomeView: View {
         let cal = Calendar.current
         // Plan C: workouts now live in StoredWorkoutSession; the
         // timeline still expects the legacy `WorkoutEntry` shape, so
-        // adapt at this boundary. Mirrors the converter on
-        // `WorkoutDetailView.entryFromSession`. Empty-exercise quick-
-        // log sessions still render — the timeline only needs name +
-        // date + duration.
+        // adapt at this boundary. Empty-exercise quick-log sessions
+        // still render — the timeline only needs name + date +
+        // duration.
         let dayStart = cal.startOfDay(for: now)
         let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
         let workoutsToday: [WorkoutEntry] = SwiftDataRepository.shared
@@ -766,7 +768,7 @@ struct HomeView: View {
     /// Builds the coaching context from the current store + hero
     /// snapshot. Pure read — synchronous so the view body can
     /// consume it without an async hop.
-    private func buildCoachingMessage() -> CoachingMessageEngine.CoachingMessage {
+    private func buildCoachingContext() -> CoachingMessageEngine.Context {
         let next = dataStore.nextDose
         let nextTimeDisplay: String? = next.map {
             DateFormatter.localizedString(from: $0.date, dateStyle: .none, timeStyle: .short)
@@ -774,7 +776,7 @@ struct HomeView: View {
         let memberDays = Calendar.current
             .dateComponents([.day], from: dataStore.profile.memberSince, to: Date())
             .day ?? 0
-        let context = CoachingMessageEngine.Context(
+        return CoachingMessageEngine.Context(
             hasProtocols: !dataStore.protocols.isEmpty,
             healthConnected: dataStore.profile.healthConnected,
             recoveryScore: heroSnapshot.recovery.isAvailable ? heroSnapshot.recovery.displayPercent : nil,
@@ -788,7 +790,38 @@ struct HomeView: View {
             hourOfDay: Calendar.current.component(.hour, from: Date()),
             memberDays: memberDays
         )
-        return CoachingMessageEngine.pick(context: context)
+    }
+
+    /// Reconciles coaching, today's dose plan, habits due, and a freshly
+    /// changed weekly review into the one top-of-Today reason to act.
+    /// `plan` is threaded in from `refreshDerived()` rather than recomputed
+    /// so the two stay built from the same `dataStore.todayEntries` pass.
+    private func buildPrimaryReason(plan: DailyScheduleEngine.DailyPlan) -> PrimaryReasonEngine.Reason {
+        let habits = HabitsHeroSnapshot.build(
+            activeHabits: dataStore.activeHabits,
+            entries: dataStore.profile.habitEntries,
+            frozenDayKeys: dataStore.profile.streakFreezeDays
+        )
+        let context = PrimaryReasonEngine.Context(
+            coaching: buildCoachingContext(),
+            dailyPlanHeadline: plan.hasAny ? plan.headline : nil,
+            habitsDueCount: habits.dueCount,
+            habitsDoneCount: habits.doneCount,
+            weeklyReviewHeadline: currentWeeklyReviewChangeHeadline()
+        )
+        return PrimaryReasonEngine.pick(context: context)
+    }
+
+    /// A real, non-noise week-over-week delta for the most recently
+    /// generated weekly summary — only when one is actually ready to view
+    /// on Today right now. `nil` suppresses the "PROGRESS INSIGHT" tier
+    /// entirely rather than ever showing a manufactured trend.
+    private func currentWeeklyReviewChangeHeadline() -> String? {
+        guard case .ready(let current) = weeklySummaryState else { return nil }
+        let previous = dataStore.profile.weeklySummaries.values
+            .filter { $0.weekStart != current.weekStart }
+            .max { $0.weekStart < $1.weekStart }
+        return WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
     }
 
     /// Rebuilds the hero metric trio snapshot. Adherence is read
@@ -892,11 +925,16 @@ struct HomeView: View {
             return
         }
 
-        // Cached value short-circuits unless the caller asked for
-        // a refresh. `cached(in:for:)` is a synchronous read so the
+        // Cached value short-circuits unless the caller asked for a
+        // refresh — but only when its source fingerprint still matches
+        // the week's current data. A summary generated before the user
+        // edited a dose/meal/lab within the same week falls through to
+        // `generate(...)`, which regenerates. Synchronous read so the
         // .ready state lands before `generate(...)` returns.
-        if !forceRefresh, let cached = WeeklySummaryService.shared.cached(
-            in: dataStore.profile, for: Date()
+        if !forceRefresh, let cached = WeeklySummaryService.shared.cachedIfFresh(
+            profile: dataStore.profile,
+            protocols: dataStore.protocols,
+            entries: dataStore.entries
         ) {
             weeklySummaryState = .ready(cached)
             return

@@ -54,9 +54,27 @@ enum WeeklySummaryEngine {
             calendar: calendar
         )
 
+        // Same engine the home ring and the insight line use, so the
+        // Sunday recap can't quote a different number than the app did
+        // an hour earlier.
+        let streakDays = StreakEngine.activeEntriesByDay(
+            entries: entries,
+            protocols: protocols,
+            calendar: calendar
+        )
         let streak = WeeklyAggregate.Streak(
-            current: doseStreak(in: entries, calendar: calendar),
-            best: bestDoseStreak(in: entries, calendar: calendar)
+            current: StreakEngine.currentStreak(
+                entriesByDay: streakDays,
+                frozenDayKeys: profile.streakFreezeDays,
+                today: referenceDate,
+                calendar: calendar
+            ),
+            best: StreakEngine.bestStreak(
+                entriesByDay: streakDays,
+                frozenDayKeys: profile.streakFreezeDays,
+                today: referenceDate,
+                calendar: calendar
+            )
         )
 
         let outcomes = computeOutcomes(
@@ -139,59 +157,6 @@ enum WeeklySummaryEngine {
     ) -> Int {
         let days = Set(entries.map { calendar.startOfDay(for: $0.date) })
         return days.count
-    }
-
-    // MARK: - Streak
-
-    private static func doseStreak(
-        in entries: [ProtocolEntry],
-        calendar: Calendar
-    ) -> Int {
-        // Walk backwards day by day until we find a day with no
-        // completed dose. The day before that is the start of the
-        // streak. Mirrors DataStore.currentStreak's gap-tolerance
-        // (one bye-day allowed in a row before the streak resets).
-        let completed = entries.filter(\.completed)
-        guard !completed.isEmpty else { return 0 }
-        let daysWithDose = Set(completed.map { calendar.startOfDay(for: $0.date) })
-        var streak = 0
-        var consecutiveMisses = 0
-        var cursor = calendar.startOfDay(for: Date())
-        while consecutiveMisses < 2 {
-            if daysWithDose.contains(cursor) {
-                streak += 1
-                consecutiveMisses = 0
-            } else {
-                consecutiveMisses += 1
-            }
-            cursor = calendar.date(byAdding: .day, value: -1, to: cursor) ?? cursor
-            if streak > 365 { break } // upper sanity bound
-        }
-        return streak
-    }
-
-    private static func bestDoseStreak(
-        in entries: [ProtocolEntry],
-        calendar: Calendar
-    ) -> Int {
-        let completed = entries.filter(\.completed)
-        guard !completed.isEmpty else { return 0 }
-        let daysWithDose = Set(completed.map { calendar.startOfDay(for: $0.date) })
-        let sorted = daysWithDose.sorted()
-        var best = 1
-        var current = 1
-        for i in 1..<sorted.count {
-            let prevDay = sorted[i - 1]
-            let thisDay = sorted[i]
-            let diff = calendar.dateComponents([.day], from: prevDay, to: thisDay).day ?? 0
-            if diff == 1 {
-                current += 1
-                best = max(best, current)
-            } else {
-                current = 1
-            }
-        }
-        return best
     }
 
     // MARK: - Outcomes
@@ -376,6 +341,52 @@ enum WeeklySummaryEngine {
     private static func average(_ values: [Double]) -> Double? {
         guard !values.isEmpty else { return nil }
         return values.reduce(0, +) / Double(values.count)
+    }
+
+    // MARK: - Week-over-week change
+
+    /// Minimum swings before a week-over-week change is meaningful enough
+    /// to lead with, rather than noise from ordinary day-to-day variance.
+    /// Tuned conservatively — asserting a trend off a 2-point compliance
+    /// wobble would be exactly the "fake insight" the retention brief
+    /// warns against.
+    static let meaningfulCompliancePercentPoints: Double = 8
+    static let meaningfulStreakDays: Int = 2
+    static let meaningfulHRVDeltaMs: Int = 3
+
+    /// Builds a short, honest "what changed" line from two *already
+    /// generated* weekly summaries — never a week still in progress.
+    ///
+    /// This distinction matters beyond honesty: `WeeklySummaryNotification-
+    /// Scheduler` schedules its push with a `UNCalendarNotificationTrigger`,
+    /// which bakes `content.body` in at schedule time (any app foreground),
+    /// not at Sunday-morning fire time. Describing the in-progress current
+    /// week would go stale the moment the week actually finishes. Comparing
+    /// two already-final summaries is stable no matter when it's computed.
+    ///
+    /// Returns `nil` when there's no `previous` summary to compare against,
+    /// or when every tracked delta is inside noise range — callers should
+    /// fall back to generic copy rather than manufacture a trend.
+    static func changeHeadline(current: WeeklySummary, previous: WeeklySummary?) -> String? {
+        guard let previous else { return nil }
+
+        let complianceDeltaPoints = (current.keyStats.compliancePct - previous.keyStats.compliancePct) * 100
+        if abs(complianceDeltaPoints) >= meaningfulCompliancePercentPoints {
+            let direction = complianceDeltaPoints > 0 ? "up" : "down"
+            return "Compliance \(direction) \(Int(abs(complianceDeltaPoints).rounded()))% from last week"
+        }
+
+        let streakDelta = current.keyStats.currentStreak - previous.keyStats.currentStreak
+        if streakDelta >= meaningfulStreakDays {
+            return "Your streak grew by \(streakDelta) days this week"
+        }
+
+        if let hrvDelta = current.keyStats.hrvDelta, abs(hrvDelta) >= meaningfulHRVDeltaMs {
+            let direction = hrvDelta > 0 ? "up" : "down"
+            return "HRV \(direction) \(abs(hrvDelta)) ms versus last week"
+        }
+
+        return nil
     }
 }
 
