@@ -53,6 +53,26 @@ final class PersistenceService: @unchecked Sendable {
 
     // MARK: - Save
 
+    // MARK: Legacy JSON writers — test fixtures only
+    //
+    // `protocols.json`, `entries.json` and `profile.json` are the
+    // pre-SwiftData layout. Nothing in the app writes them any more:
+    // production persistence goes through `SwiftDataRepository`, and
+    // `MigrationService` only ever *reads* these files, once, to import
+    // a pre-SwiftData install.
+    //
+    // They survive because `MigrationServiceTests` and
+    // `PersistenceRoundTripTests` use them to lay down a legacy store
+    // for the migration to find — that suite is the safety net for the
+    // one-way JSON → SwiftData import, and it has no other way to
+    // produce its input.
+    //
+    // `#if DEBUG` is the fence. App code physically cannot call these in
+    // a shipping build, so a future caller can't accidentally route real
+    // writes back into the legacy layout and split the source of truth,
+    // while the tests (which build Debug) keep working.
+
+    #if DEBUG
     func saveProtocols(_ protocols: [PeptideProtocol]) {
         guard let url = protocolsURL else { return }
         save(protocols, to: url)
@@ -67,6 +87,7 @@ final class PersistenceService: @unchecked Sendable {
         guard let url = profileURL else { return }
         save(profile, to: url)
     }
+    #endif
 
     func saveCustomPeptides(_ peptides: [Peptide]) {
         guard let url = customPeptidesURL else { return }

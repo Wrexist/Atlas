@@ -246,13 +246,21 @@ final class StoreService {
     /// App Store guideline 3.1.2(a) is specific about that.
     var hasLifetimeAccess: Bool { purchasedProductIDs.contains(Self.lifetimeID) }
 
-    var canAccessUnlimitedProtocols: Bool { isProUser }
-    var canAccessFullAnalytics: Bool { isProUser }
+    /// Gates the Pro weekly AI recap — enforced in
+    /// `WeeklySummaryService.generateIfNeeded`.
+    ///
+    /// This is the only per-feature entitlement flag the app actually
+    /// checks. `canAccessCloudSync`, `canAccessAllWidgets`,
+    /// `canAccessFullAnalytics`, `canAccessExport` and
+    /// `canAccessUnlimitedProtocols` used to sit alongside it and were
+    /// never read by anything but their own unit test — the real
+    /// protocol-count gate is `requiresPro(activeProtocolCount:)` below.
+    /// They were removed rather than left as five aliases for
+    /// `isProUser` that read like enforcement without being any. Add a
+    /// flag back at the point a surface actually gates on it.
     var canAccessAIFeatures: Bool { isProUser }
-    var canAccessCloudSync: Bool { isProUser }
-    var canAccessExport: Bool { isProUser }
-    var canAccessAllWidgets: Bool { isProUser }
 
+    /// The free tier allows two active protocols; a third needs Pro.
     func requiresPro(activeProtocolCount: Int) -> Bool {
         !isProUser && activeProtocolCount >= 3
     }

@@ -2,7 +2,7 @@ import SwiftUI
 import WidgetKit
 
 @MainActor @Observable
-final class DataStore: DataServiceProtocol {
+final class DataStore {
     var protocols: [PeptideProtocol] {
         didSet {
             cacheVersion &+= 1

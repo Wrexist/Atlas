@@ -184,24 +184,18 @@ final class StoreServiceTests: XCTestCase {
         XCTAssertTrue(service.purchasedProductIDs.isEmpty)
     }
 
-    func test_canAccessGetters_mirrorIsProUser() async throws {
-        XCTAssertFalse(service.canAccessUnlimitedProtocols)
-        XCTAssertFalse(service.canAccessFullAnalytics)
+    func test_canAccessAIFeatures_mirrorsIsProUser() async throws {
+        // The one per-feature flag the app enforces (the Pro weekly
+        // recap). Its five never-read siblings were removed; asserting
+        // that an unused alias of `isProUser` equals `isProUser` was the
+        // only thing keeping them alive.
         XCTAssertFalse(service.canAccessAIFeatures)
-        XCTAssertFalse(service.canAccessCloudSync)
-        XCTAssertFalse(service.canAccessExport)
-        XCTAssertFalse(service.canAccessAllWidgets)
 
         await service.loadProducts()
         guard let monthly = service.monthlyProduct else { return XCTFail("monthly missing") }
         _ = try await service.purchase(monthly)
 
-        XCTAssertTrue(service.canAccessUnlimitedProtocols)
-        XCTAssertTrue(service.canAccessFullAnalytics)
         XCTAssertTrue(service.canAccessAIFeatures)
-        XCTAssertTrue(service.canAccessCloudSync)
-        XCTAssertTrue(service.canAccessExport)
-        XCTAssertTrue(service.canAccessAllWidgets)
     }
 
     // MARK: - Active-protocol gating
