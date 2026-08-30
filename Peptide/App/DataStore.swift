@@ -7,16 +7,21 @@ final class DataStore: DataServiceProtocol {
         didSet {
             cacheVersion &+= 1
             revision &+= 1
+            protocolsNeedSave = true
         }
     }
     var entries: [ProtocolEntry] {
         didSet {
             cacheVersion &+= 1
             revision &+= 1
+            entriesNeedSave = true
         }
     }
     var profile: UserProfile {
-        didSet { revision &+= 1 }
+        didSet {
+            revision &+= 1
+            profileNeedsSave = true
+        }
     }
     var customPeptides: [Peptide]
 
@@ -63,6 +68,20 @@ final class DataStore: DataServiceProtocol {
     /// `performSaveNow` drains them.
     @ObservationIgnored private var pendingProtocolDeletions: Set<UUID> = []
     @ObservationIgnored private var pendingEntryDeletions: Set<UUID> = []
+
+    // Per-collection dirty tracking. Every debounced save used to upsert
+    // all protocols AND all entries AND re-encode the whole profile —
+    // roughly ten JSON blobs, some of them unbounded (meal history, lab
+    // values, weekly summaries) — for a single dose toggle. It also ran
+    // in full on every background transition, whether or not anything
+    // had changed.
+    //
+    // Set by the `didSet` observers above, cleared only once the batch
+    // actually commits: if a save fails, the collection stays dirty and
+    // the next save retries it, rather than the change being dropped.
+    @ObservationIgnored private var protocolsNeedSave = false
+    @ObservationIgnored private var entriesNeedSave = false
+    @ObservationIgnored private var profileNeedsSave = false
 
     @ObservationIgnored private var _todayEntries: (version: Int, value: [ProtocolEntry])?
     @ObservationIgnored private var _currentStreak: (version: Int, value: Int)?
@@ -152,6 +171,13 @@ final class DataStore: DataServiceProtocol {
             self.protocols = savedProtocols
             self.entries   = savedEntries
             self.profile   = savedProfile ?? .fresh
+            // Everything above came off disk and is already persisted.
+            // A synthesised `.fresh` profile is the exception: there's no
+            // row for it yet, so it stays dirty until the first save
+            // writes one.
+            protocolsNeedSave = false
+            entriesNeedSave = false
+            profileNeedsSave = savedProfile == nil
             regenerateTodayEntries()
             // Plan C — drain the legacy `profile.workoutHistory` array
             // into the structured `StoredWorkoutSession` store the
@@ -2019,7 +2045,14 @@ final class DataStore: DataServiceProtocol {
             // Append-only merge: the backfill by construction holds only
             // rows outside the in-memory window, so nothing the user
             // touched since launch can be overwritten.
+            //
+            // These rows are already on disk — that's where they came
+            // from — so the append must not mark `entries` dirty and
+            // drag the whole history back through the next upsert. Any
+            // dirt that was already there is preserved.
+            let wasDirty = self.entriesNeedSave
             self.entries.append(contentsOf: missing)
+            self.entriesNeedSave = wasDirty
         }
     }
 
@@ -2045,20 +2078,23 @@ final class DataStore: DataServiceProtocol {
         // propagated back to CloudKit). Explicit deletion tracking
         // closes that window: only IDs that DataStore actually
         // intended to remove are deleted.
+        // Nothing changed since the last successful save — most often a
+        // background transition on an untouched app. Returning here also
+        // skips the widget-timeline reload below, which the OS budgets.
+        guard protocolsNeedSave || entriesNeedSave || profileNeedsSave
+                || !pendingProtocolDeletions.isEmpty || !pendingEntryDeletions.isEmpty
+        else { return }
+
         repo.beginSaveBatch()
-        repo.upsertProtocols(protocols)
-        repo.upsertEntries(entries)
-        if !pendingProtocolDeletions.isEmpty {
-            for id in pendingProtocolDeletions {
-                repo.deleteProtocol(id: id)
-            }
-            pendingProtocolDeletions.removeAll()
+        if protocolsNeedSave { repo.upsertProtocols(protocols) }
+        if entriesNeedSave { repo.upsertEntries(entries) }
+        for id in pendingProtocolDeletions {
+            repo.deleteProtocol(id: id)
         }
         if !pendingEntryDeletions.isEmpty {
             repo.deleteEntries(ids: pendingEntryDeletions)
-            pendingEntryDeletions.removeAll()
         }
-        repo.saveProfile(profile)
+        if profileNeedsSave { repo.saveProfile(profile) }
 
         // Surface a banner if any commit in this batch failed — a
         // disk-full / locked-store save would otherwise drop the
@@ -2075,6 +2111,15 @@ final class DataStore: DataServiceProtocol {
             // user; the projections keep their last-good snapshot.
             return
         }
+        // Committed — everything in memory is now on disk. Deletions are
+        // drained here rather than above so a failed batch re-attempts
+        // them too; deleting an already-deleted row is a no-op.
+        protocolsNeedSave = false
+        entriesNeedSave = false
+        profileNeedsSave = false
+        pendingProtocolDeletions.removeAll()
+        pendingEntryDeletions.removeAll()
+
         if lastError == Self.saveFailureMessage {
             lastError = nil
         }
@@ -2321,7 +2366,20 @@ final class DataStore: DataServiceProtocol {
         if repo.entryCount() > entries.count {
             scheduleEntryBackfill(before: entryWindowStart)
         }
-        if let saved = repo.loadProfile() { profile = saved }
+        if let saved = repo.loadProfile() {
+            profile = saved
+            // Only clear the profile flag when a row actually replaced
+            // it — otherwise an unsaved in-memory profile edit would be
+            // marked clean without ever reaching disk.
+            profileNeedsSave = false
+        }
+        // Protocols and entries always came straight from disk, so the
+        // assignments above must not leave them marked dirty — the next
+        // save would write back the rows it just read. Cleared before
+        // `regenerateTodayEntries`, which can legitimately add today's
+        // rows and re-dirties `entries` when it does.
+        protocolsNeedSave = false
+        entriesNeedSave = false
         regenerateTodayEntries()
         // CloudKit-driven pulls land here; without these the lock-
         // screen widget and the Watch tab would stay stale until the

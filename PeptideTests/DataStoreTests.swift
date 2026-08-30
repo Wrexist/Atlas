@@ -349,6 +349,63 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, false)
     }
 
+    // MARK: - Dirty tracking
+
+    func test_flushPendingSave_withNothingChanged_isANoOp() {
+        // Backgrounding an untouched app used to upsert every protocol,
+        // every entry and the whole profile, then reload every widget
+        // timeline. Nothing dirty must mean nothing written.
+        store.flushPendingSave()
+        let widgetBaseline = store.widgetUpdateCountForTesting
+        let watchBaseline = store.watchUpdateCountForTesting
+
+        store.flushPendingSave()
+
+        XCTAssertEqual(store.widgetUpdateCountForTesting, widgetBaseline,
+                       "A save with nothing dirty must not rebuild the widget snapshot")
+        XCTAssertEqual(store.watchUpdateCountForTesting, watchBaseline,
+                       "A save with nothing dirty must not rebuild the Watch payload")
+    }
+
+    func test_flushPendingSave_afterAMutation_writesAndPushesProjections() {
+        store.flushPendingSave()
+        let widgetBaseline = store.widgetUpdateCountForTesting
+        guard let entry = store.entries.first else {
+            XCTFail("No entries in store")
+            return
+        }
+
+        store.toggleEntry(entry.id)
+        store.flushPendingSave()
+
+        XCTAssertGreaterThan(store.widgetUpdateCountForTesting, widgetBaseline)
+    }
+
+    func test_mutationSurvives_aReloadFromDisk() {
+        // The dirty flags gate what reaches disk, so the round trip is
+        // the check that matters: a toggle must still be persisted.
+        guard let entry = store.entries.first(where: { !$0.completed }) else {
+            XCTFail("No incomplete entry in store")
+            return
+        }
+        store.toggleEntry(entry.id)
+        store.flushPendingSave()
+
+        store.reloadFromDisk()
+
+        XCTAssertEqual(store.entries.first(where: { $0.id == entry.id })?.completed, true)
+    }
+
+    func test_profileEdit_isPersisted_evenWhenEntriesAreClean() {
+        store.flushPendingSave()
+
+        store.updateProfileIdentity(name: "Dirty Tracking", bio: "")
+        store.flushPendingSave()
+        store.reloadFromDisk()
+
+        XCTAssertEqual(store.profile.name, "Dirty Tracking")
+    }
+
     // MARK: - Persistence failure must not update projections
 
     func test_performSaveNow_widgetAndWatchNotUpdated_whenCommitFails() {
