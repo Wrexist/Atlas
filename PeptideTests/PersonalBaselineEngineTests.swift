@@ -24,7 +24,7 @@ final class PersonalBaselineEngineTests: XCTestCase {
     func test_build_computesMeanMedianAndStandardDeviation() {
         let values: [Double] = [2, 4, 4, 4, 5, 5, 7, 9]
         let baseline = PersonalBaselineEngine.build(values: values, emergingAt: 3, establishedAt: 6)
-        XCTAssertEqual(baseline?.mean, 5, accuracy: 0.0001)
+        XCTAssertEqual(baseline?.mean ?? 0, 5, accuracy: 0.0001)
         // Population standard deviation of this classic example is 2.
         XCTAssertEqual(baseline?.standardDeviation ?? 0, 2, accuracy: 0.0001)
     }
