@@ -27,14 +27,22 @@ final class ProgressPhotoCache: @unchecked Sendable {
     /// Target pixel sizes, one per surface. Decoding a 2×2 grid tile at
     /// viewer resolution would waste ~10× the memory for pixels nobody
     /// can see.
-    enum Size: CGFloat {
+    enum Size: CaseIterable {
         /// 56×70pt filmstrip thumbnails in the compare sheet.
-        case thumbnail = 240
+        case thumbnail
         /// Grid tiles and compare columns — roughly half-screen.
-        case card = 800
+        case card
         /// Full-screen viewer. Matches the on-save ceiling, so a photo
         /// saved today is decoded at its native size.
-        case viewer = 2000
+        case viewer
+
+        var maxPixelSize: CGFloat {
+            switch self {
+            case .thumbnail: 240
+            case .card:      800
+            case .viewer:    2000
+            }
+        }
     }
 
     private let cache = NSCache<NSString, UIImage>()
@@ -71,17 +79,17 @@ final class ProgressPhotoCache: @unchecked Sendable {
         }
         guard !missing.isEmpty else { return resolved }
 
-        let urls: [(filename: String, url: URL)] = missing.compactMap { filename in
-            guard let url = try? ProgressPhotoStorage.url(for: filename) else { return nil }
-            return (filename, url)
-        }
-
+        // URL resolution touches the filesystem (it creates the photos
+        // directory on first use), so it goes inside the detached task
+        // along with the decode rather than running on the caller.
+        let maxPixelSize = size.maxPixelSize
         let decoded = await Task.detached(priority: .userInitiated) {
             var out: [String: UIImage] = [:]
-            for entry in urls {
-                if let image = Self.downsample(url: entry.url, maxPixelSize: size.rawValue) {
-                    out[entry.filename] = image
-                }
+            for filename in missing {
+                guard let url = try? ProgressPhotoStorage.url(for: filename),
+                      let image = Self.downsample(url: url, maxPixelSize: maxPixelSize)
+                else { continue }
+                out[filename] = image
             }
             return out
         }.value
@@ -100,7 +108,7 @@ final class ProgressPhotoCache: @unchecked Sendable {
     /// later photo, but holding tens of megabytes for a deleted image is
     /// its own problem.
     func invalidate(_ filename: String) {
-        for size in [Size.thumbnail, .card, .viewer] {
+        for size in Size.allCases {
             cache.removeObject(forKey: key(filename, size) as NSString)
         }
     }
@@ -112,7 +120,7 @@ final class ProgressPhotoCache: @unchecked Sendable {
     // MARK: - Internals
 
     private func key(_ filename: String, _ size: Size) -> String {
-        "\(filename)@\(Int(size.rawValue))"
+        "\(filename)@\(Int(size.maxPixelSize))"
     }
 
     private func cost(of image: UIImage) -> Int {
@@ -126,8 +134,8 @@ final class ProgressPhotoCache: @unchecked Sendable {
     /// forces the pixel work to happen here, on this background thread,
     /// rather than lazily on the main thread at first draw.
     private static func downsample(url: URL, maxPixelSize: CGFloat) -> UIImage? {
-        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions) else {
+        let sourceOptions: [CFString: Any] = [kCGImageSourceShouldCache: false]
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions as CFDictionary) else {
             return nil
         }
         let thumbnailOptions: [CFString: Any] = [

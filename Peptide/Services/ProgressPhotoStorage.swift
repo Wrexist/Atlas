@@ -83,7 +83,7 @@ enum ProgressPhotoStorage {
     /// Measured in pixels, not points: `UIImage.size` is points, and an
     /// image carrying a 2× or 3× scale holds correspondingly more pixels
     /// than its size suggests.
-    nonisolated static func downscaled(_ image: UIImage) -> UIImage {
+    static func downscaled(_ image: UIImage) -> UIImage {
         let pixelWidth = image.size.width * image.scale
         let pixelHeight = image.size.height * image.scale
         let longest = max(pixelWidth, pixelHeight)
