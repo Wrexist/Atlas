@@ -51,11 +51,9 @@ final class AppState {
     /// protocol's full detail screen.
     var pendingProtocolDeepLink: UUID?
     /// When set, the Meals tab opens the food library with the matching
-    /// food pre-selected on the review screen. Only the Meals-tab
-    /// instance of `HomeMealsSection` (the one with
-    /// `consumesDeepLink: true`) clears it — the Today-scroll
-    /// instance ignores the flag to avoid a same-runloop race
-    /// between the two live mounts. Populated by the CoreSpotlight
+    /// food pre-selected on the review screen. `HomeMealsSection` is
+    /// mounted only on the Meals tab (with `consumesDeepLink: true`),
+    /// which clears the flag. Populated by the CoreSpotlight
     /// `NSUserActivity` handler so tapping a food result on the Home
     /// Screen's Spotlight pull-down lands the user directly on the
     /// log-this-food sheet, not just on the app's launch view.
