@@ -3,7 +3,7 @@ import SwiftUI
 /// "Today at a glance" supporting card. Originally hosted the
 /// compliance ring + next-dose strip + stat tiles + insight, but
 /// the ring + eyebrow + compliance pill moved up into
-/// `HeroMetricTrio` + `TodayContextRow` in the Bevel-style redesign.
+/// `HeroMetricTrio` in the Bevel-style redesign.
 /// This card now focuses on what's still uniquely its: the
 /// tappable next-dose strip plus the 2×2 lifestyle stat grid
 /// (Calories / Meal streak / Check-in / Water) and the rotating
@@ -59,7 +59,7 @@ struct TodayOverviewCard: View {
     //
     // Slim replacement for the old hero section. The compliance
     // ring + eyebrow + title that lived here previously moved up
-    // into HeroMetricTrio + TodayContextRow; what's still
+    // into HeroMetricTrio; what's still
     // genuinely useful is a one-tap entry into the next pending
     // dose's logging sheet from anywhere on the scroll.
 
@@ -364,8 +364,7 @@ private struct OverviewTile: View {
 }
 
 // `CompactCompliancePill` lived in the card's deleted header and
-// went away with it — same role now covered by HeroMetricTrio +
-// TodayContextRow.
+// went away with it — same role now covered by HeroMetricTrio.
 
 #Preview("Mid-day, partial compliance") {
     ScrollView {

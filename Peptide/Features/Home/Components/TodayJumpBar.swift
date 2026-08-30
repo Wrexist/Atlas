@@ -12,39 +12,35 @@ import SwiftUI
 /// pages.
 struct TodayJumpBar: View {
     /// Section anchor identifiers used by the parent's
-    /// `ScrollViewReader` to scroll to a tagged section. `biology`
-    /// is special-cased — it jumps to the Biology tab rather than
-    /// scrolling within Today.
+    /// `ScrollViewReader` to scroll to a tagged section. The former
+    /// `meals` and `biology` chips switched tabs — a duplicate of the
+    /// tab bar one centimetre below them — and were dropped in the
+    /// Product Architecture 07 pass; every remaining chip scrolls
+    /// within Today.
     enum SectionAnchor: Hashable, CaseIterable {
-        case doses, meals, wellness, movement, biology
+        case doses, wellness, movement
 
         var label: LocalizedStringKey {
             switch self {
             case .doses:    "Doses"
-            case .meals:    "Meals"
             case .wellness: "Wellness"
             case .movement: "Movement"
-            case .biology:  "Biology"
             }
         }
 
         var systemImage: String {
             switch self {
             case .doses:    "syringe.fill"
-            case .meals:    "fork.knife"
             case .wellness: "heart.text.square.fill"
             case .movement: "figure.run"
-            case .biology:  "heart.fill"
             }
         }
 
         var accent: Color {
             switch self {
             case .doses:    AppColor.accentPrimary
-            case .meals:    AppColor.macroProtein
             case .wellness: AppColor.metricHRV
             case .movement: AppColor.metricActivity
-            case .biology:  AppColor.accentLight
             }
         }
     }
@@ -155,7 +151,7 @@ struct TodayJumpBar: View {
         AppColor.background.ignoresSafeArea()
         VStack(spacing: Spacing.lg) {
             TodayJumpBar(
-                activeAnchor: .meals,
+                activeAnchor: .wellness,
                 showsDoses: true,
                 onSelect: { _ in },
                 onQuickLog: {}

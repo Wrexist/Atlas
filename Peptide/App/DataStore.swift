@@ -215,6 +215,51 @@ final class DataStore: DataServiceProtocol {
                 self?.handleIdentityChange()
             }
         }
+
+        // Ingest remote CloudKit changes. Before this observer existed,
+        // rows written on another device reached memory only via one
+        // pull-to-refresh or a relaunch — and the debounced save's
+        // wholesale upsert of stale in-memory state could silently
+        // revert the other device's writes in the meantime.
+        NotificationCenter.default.addObserver(
+            forName: .peptideXCloudKitImportCompleted,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.scheduleCloudImportRefresh()
+            }
+        }
+    }
+
+    /// Coalesces CloudKit-import notifications (they fire in bursts
+    /// during a sync) into one `reloadFromDisk()`, deferred while a
+    /// debounced local save is still pending — the user's in-memory
+    /// edits win locally and land via their own save; reloading over
+    /// them mid-edit would drop keystrokes. If the store never goes
+    /// quiet within the retry budget the refresh is skipped; the next
+    /// import event or foreground pass catches up.
+    @ObservationIgnored private var cloudImportRefreshTask: Task<Void, Never>?
+
+    @MainActor
+    private func scheduleCloudImportRefresh() {
+        guard !isEphemeral else { return }
+        cloudImportRefreshTask?.cancel()
+        cloudImportRefreshTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            var attempts = 0
+            while !Task.isCancelled, self?.pendingSaveTask != nil, attempts < 10 {
+                try? await Task.sleep(for: .seconds(1))
+                attempts += 1
+            }
+            guard !Task.isCancelled,
+                  let self,
+                  self.pendingSaveTask == nil,
+                  !self.isEphemeral
+            else { return }
+            AppLog.persistence.log("CloudKit import finished; refreshing in-memory state")
+            self.reloadFromDisk()
+        }
     }
 
     @MainActor
@@ -1080,16 +1125,27 @@ final class DataStore: DataServiceProtocol {
         }
     }
 
-    /// Updates a previously logged meal entry's category. Macro values
-    /// stay frozen at log time — the aggregate doesn't shift, only the
-    /// per-category breakdown does. Used by `MealEntryEditorSheet` so
-    /// a near-boundary auto-pick (10:55 → breakfast when the user
-    /// meant lunch) can be corrected without reaching for unlog +
-    /// re-log. No-op when the id isn't in history.
+    /// Updates a previously logged meal entry — category, macros, or
+    /// date — keeping the per-day aggregate in lockstep. The previous
+    /// implementation replaced the array element only, so editing
+    /// calories 500 → 800 left the macro ring 300 kcal low, and moving
+    /// an entry's date left both days' totals wrong (the invariant
+    /// `LifestyleDataLogic.logMealEntry` documents). Now routed through
+    /// `applyMealEntryEdit`, which reverses the old contribution and
+    /// applies the new one. The Apple Health mirror is refreshed the
+    /// same way the delete path already does: old samples removed by
+    /// external UUID, new values written. No-op when the id isn't in
+    /// history.
     func updateMealEntry(_ updated: MealEntry) {
-        guard let index = profile.mealHistory.firstIndex(where: { $0.id == updated.id }) else { return }
-        profile.mealHistory[index] = updated
+        guard profile.mealHistory.contains(where: { $0.id == updated.id }) else { return }
+        LifestyleDataLogic.applyMealEntryEdit(into: &profile, updated: updated)
         save()
+        if profile.healthKitNutritionEnabled {
+            Task {
+                await HealthKitService.shared.deleteSamples(forEntryID: updated.id)
+                await HealthKitService.shared.writeMealEntry(updated)
+            }
+        }
     }
 
     /// Removes a meal entry by id and rolls back its contribution to
@@ -2345,10 +2401,22 @@ final class DataStore: DataServiceProtocol {
     /// pending deletion sets are cleared so the next save doesn't
     /// inadvertently delete CloudKit-side data that came in via
     /// the restore.
+    // MARK: - Backup accessors
+
+    // Read-through accessors for the backup pipeline. ExportSection and
+    // BackupImportService need the full training store, and `repo` is
+    // private by design — these keep the single-facade rule intact
+    // instead of handing views the repository singleton.
+    func allWorkoutSessionsForBackup() -> [WorkoutSession] { repo.loadAllWorkoutSessions() }
+    func routinesForBackup() -> [Routine] { repo.loadRoutines() }
+    func customExercisesForBackup() -> [CustomExercise] { repo.loadCustomExercises() }
+    func personalRecordsForBackup() -> [PersonalRecord] { repo.loadPersonalRecords() }
+
     func applyImport(
         protocols newProtocols: [PeptideProtocol],
         entries newEntries: [ProtocolEntry],
-        profile newProfile: UserProfile
+        profile newProfile: UserProfile,
+        training: BackupImportService.TrainingImport? = nil
     ) throws {
         guard !isEphemeral else {
             throw NSError(
@@ -2400,6 +2468,45 @@ final class DataStore: DataServiceProtocol {
         }
 
         repo.saveProfile(newProfile)
+
+        // v2 training + custom-peptide payload. `nil` = the backup
+        // predates these sections; leave the live stores untouched.
+        if let training {
+            let liveSessionIDs = Set(repo.loadAllWorkoutSessions().map(\.id))
+            let liveRoutineIDs = Set(repo.loadRoutines().map(\.id))
+            let liveExerciseIDs = Set(repo.loadCustomExercises().map(\.id))
+            let liveRecordIDs = Set(repo.loadPersonalRecords().map(\.exerciseID))
+
+            for session in training.workoutSessions { repo.upsertWorkoutSession(session) }
+            for routine in training.routines { repo.upsertRoutine(routine) }
+            for exercise in training.customExercises { repo.upsertCustomExercise(exercise) }
+            for record in training.personalRecords { repo.upsertPersonalRecord(record) }
+
+            if training.deletesUncarried {
+                for id in liveSessionIDs.subtracting(training.workoutSessions.map(\.id)) {
+                    repo.deleteWorkoutSession(id: id)
+                }
+                for id in liveRoutineIDs.subtracting(training.routines.map(\.id)) {
+                    repo.deleteRoutine(id: id)
+                }
+                for id in liveExerciseIDs.subtracting(training.customExercises.map(\.id)) {
+                    repo.deleteCustomExercise(id: id)
+                }
+                for id in liveRecordIDs.subtracting(training.personalRecords.map(\.exerciseID)) {
+                    repo.deletePersonalRecord(exerciseID: id)
+                }
+            }
+
+            customPeptides = training.customPeptides
+            PersistenceService.shared.saveCustomPeptides(training.customPeptides)
+
+            // Training rows bypass the `protocols`/`entries`/`profile`
+            // didSet bumps, same as recordWorkoutFinished — bump so
+            // Train/Today snapshots recompute against the restored data.
+            cacheVersion &+= 1
+            revision &+= 1
+        }
+
         regenerateTodayEntries()
         updateWidgetData()
         updateWatchData()

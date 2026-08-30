@@ -160,6 +160,36 @@ enum LifestyleDataLogic {
         )
     }
 
+    /// Replaces a `MealEntry` in place AND moves its contribution
+    /// between day aggregates: the old entry's macros are reversed
+    /// from its day's bucket and the new values are added to the
+    /// (possibly different) day the edit landed on. Editing calories
+    /// 500 → 800 or moving an entry across midnight keeps the macro
+    /// rings in lockstep with history — the invariant `logMealEntry`
+    /// documents, which a bare array replacement silently broke.
+    /// No-op when the id isn't in history.
+    static func applyMealEntryEdit(into profile: inout UserProfile, updated: MealEntry) {
+        guard let index = profile.mealHistory.firstIndex(where: { $0.id == updated.id }) else { return }
+        let previous = profile.mealHistory[index]
+        profile.mealHistory[index] = updated
+        unlogMeal(
+            from: &profile,
+            calories: previous.calories,
+            proteinG: previous.proteinG,
+            carbsG: previous.carbsG,
+            fatG: previous.fatG,
+            date: previous.date
+        )
+        logMeal(
+            into: &profile,
+            calories: updated.calories,
+            proteinG: updated.proteinG,
+            carbsG: updated.carbsG,
+            fatG: updated.fatG,
+            date: updated.date
+        )
+    }
+
     /// Per-category macro totals for a single calendar day. Powers
     /// the breakdown card under the macro rings.
     ///

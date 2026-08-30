@@ -4,9 +4,11 @@ import SwiftUI
 @MainActor
 final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     let dataStore: DataStore
+    let appState: AppState
 
-    init(dataStore: DataStore) {
+    init(dataStore: DataStore, appState: AppState) {
         self.dataStore = dataStore
+        self.appState = appState
         super.init()
     }
 
@@ -85,6 +87,24 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
 
         default:
             break
+        }
+
+        // Deep-link routing for a plain tap on the notification body.
+        // Local-notification taps never pass through `onOpenURL`, so the
+        // `deeplink` userInfo the weekly-recap scheduler embeds was a
+        // no-op — "Tap to see how the week went" just foregrounded the
+        // app on whatever tab was open. Mirror what onOpenURL does for
+        // the same URL: park the flag on AppState, switch to Today, and
+        // let HomeView's existing consumer present the recap.
+        if response.actionIdentifier == UNNotificationDefaultActionIdentifier,
+           let deeplink = response.notification.request.content.userInfo["deeplink"] as? String,
+           deeplink == "peptidex://weekly/current" {
+            Task { @MainActor [appState] in
+                defer { completionHandler() }
+                appState.selectedTab = .today
+                appState.pendingWeeklyRecap = true
+            }
+            return
         }
 
         completionHandler()

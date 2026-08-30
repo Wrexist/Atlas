@@ -1,4 +1,5 @@
 import CloudKit
+import CoreData
 import Foundation
 import SwiftData
 
@@ -78,6 +79,35 @@ final class SwiftDataRepository {
             Task { @MainActor in
                 self?.handleIdentityChange()
             }
+        }
+
+        // Surface finished CloudKit *imports* to DataStore. SwiftData's
+        // CloudKit mirroring runs on an NSPersistentCloudKitContainer we
+        // never see directly, but its event notification is posted
+        // process-wide, so observing with `object: nil` reaches it.
+        // Without this, remote edits only became visible on relaunch or
+        // the one pull-to-refresh — meanwhile the debounced save's
+        // wholesale upsert of stale in-memory state silently reverted
+        // the other device's writes (audit CloudKit P0-1). Only
+        // successful, completed imports are forwarded; export/setup
+        // events change nothing locally.
+        NotificationCenter.default.addObserver(
+            forName: NSPersistentCloudKitContainer.eventChangedNotification,
+            object: nil,
+            queue: .main
+        ) { note in
+            guard
+                let event = note.userInfo?[
+                    NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+                ] as? NSPersistentCloudKitContainer.Event,
+                event.type == .import,
+                event.endDate != nil,
+                event.succeeded
+            else { return }
+            NotificationCenter.default.post(
+                name: .peptideXCloudKitImportCompleted,
+                object: nil
+            )
         }
     }
 
@@ -1035,4 +1065,11 @@ extension Notification.Name {
     /// in-memory state so account A's local data isn't visible to
     /// account B after a system-level iCloud account switch.
     static let peptideXiCloudIdentityChanged = Notification.Name("com.peptidesai.app.icloud.identity.changed")
+
+    /// Posted after SwiftData's underlying CloudKit mirror finishes a
+    /// successful import — i.e. rows written on another device just
+    /// landed in the local store. DataStore observes this and refreshes
+    /// its in-memory state (coalesced, and deferred around in-flight
+    /// local saves) so remote edits become visible without a relaunch.
+    static let peptideXCloudKitImportCompleted = Notification.Name("com.peptidesai.app.icloud.import.completed")
 }

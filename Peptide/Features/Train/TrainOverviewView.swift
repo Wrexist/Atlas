@@ -68,6 +68,15 @@ struct TrainOverviewView: View {
             await library.load()
             refresh()
         }
+        // `recordWorkoutFinished` bumps `dataStore.revision` precisely
+        // so mounted views can recompute — before this listener existed
+        // the overview kept serving pre-workout data after the finish
+        // cover dismissed, until a pull-to-refresh or tab switch
+        // (audit Train P2; the refresh() doc used to promise a
+        // notification "next commit" that never landed).
+        .task(id: dataStore.revision) { @MainActor in
+            refresh()
+        }
         .sheet(item: $inspectedMuscle) { muscle in
             MuscleHistorySheet(
                 muscle: muscle,
@@ -90,10 +99,10 @@ struct TrainOverviewView: View {
         }
     }
 
-    /// Pulls the latest sessions out of SwiftData. Called on appear
-    /// and on pull-to-refresh; the workout-logging screen (next
-    /// commit) will broadcast a notification this view can listen to
-    /// for live updates after a finish event.
+    /// Pulls the latest sessions out of SwiftData. Called on appear,
+    /// on pull-to-refresh, and whenever `dataStore.revision` bumps —
+    /// which `recordWorkoutFinished` does on every workout finish, so
+    /// the heatmap, recents, and calendar update live.
     private func refresh() {
         sessions = SwiftDataRepository.shared.loadWorkoutSessions()
         frequencies = WeeklyMuscleHeatmap.frequencies(
@@ -266,31 +275,44 @@ struct TrainOverviewView: View {
         .padding(.vertical, Spacing.sm)
     }
 
+    /// A recent-session row, now a real NavigationLink into
+    /// `WorkoutSessionDetailView` (the container already declares the
+    /// `TrainNavigation.workoutDetail` destination). The header comment
+    /// promised rows "tappable into the (future) detail view" — the
+    /// detail view shipped, the tap never did.
     private func recentWorkoutRow(_ session: WorkoutSession) -> some View {
-        HStack(spacing: Spacing.md) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(session.name ?? defaultSessionName(for: session))
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-                Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("\(session.completedSetCount) sets")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .monospacedDigit()
-                if session.totalVolumeKg > 0 {
-                    Text(unit.weightLabel(session.totalVolumeKg))
+        NavigationLink(value: TrainNavigation.workoutDetail(session.id)) {
+            HStack(spacing: Spacing.md) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(session.name ?? defaultSessionName(for: session))
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
-                        .monospacedDigit()
                 }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(session.completedSetCount) sets")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .monospacedDigit()
+                    if session.totalVolumeKg > 0 {
+                        Text(unit.weightLabel(session.totalVolumeKg))
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                            .monospacedDigit()
+                    }
+                }
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(13, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
             }
+            .padding(.vertical, Spacing.sm)
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, Spacing.sm)
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
     }
 
     private func defaultSessionName(for session: WorkoutSession) -> String {

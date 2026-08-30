@@ -45,12 +45,20 @@ enum BackupSnapshotService {
             "\(fileNamePrefix)\(timestamp).\(fileExtension)"
         )
 
+        // v2 shape: a Replace import can now delete training rows the
+        // backup didn't carry, so the pre-apply safety net must capture
+        // them too — a v1-shaped snapshot couldn't roll those back.
         let backup = AppBackup(
             exportDate: Date(),
-            version: "1.0",
+            version: "2.0",
             protocols: dataStore.protocols,
             entries: dataStore.entries,
-            profile: dataStore.profile
+            profile: dataStore.profile,
+            workoutSessions: dataStore.allWorkoutSessionsForBackup(),
+            routines: dataStore.routinesForBackup(),
+            customExercises: dataStore.customExercisesForBackup(),
+            personalRecords: dataStore.personalRecordsForBackup(),
+            customPeptides: dataStore.customPeptides
         )
 
         do {

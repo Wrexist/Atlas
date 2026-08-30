@@ -51,11 +51,9 @@ final class AppState {
     /// protocol's full detail screen.
     var pendingProtocolDeepLink: UUID?
     /// When set, the Meals tab opens the food library with the matching
-    /// food pre-selected on the review screen. Only the Meals-tab
-    /// instance of `HomeMealsSection` (the one with
-    /// `consumesDeepLink: true`) clears it — the Today-scroll
-    /// instance ignores the flag to avoid a same-runloop race
-    /// between the two live mounts. Populated by the CoreSpotlight
+    /// food pre-selected on the review screen. `HomeMealsSection` is
+    /// mounted only on the Meals tab (with `consumesDeepLink: true`),
+    /// which clears the flag. Populated by the CoreSpotlight
     /// `NSUserActivity` handler so tapping a food result on the Home
     /// Screen's Spotlight pull-down lands the user directly on the
     /// log-this-food sheet, not just on the app's launch view.
@@ -86,6 +84,47 @@ final class AppState {
     /// profile-stacks taps — so the user lands on the protocol list in
     /// one hop instead of the peptide reference root.
     var pendingProtocolList: Bool = false
+}
+
+/// Routes a `peptidex://` URL onto AppState. Extracted from
+/// `PeptideApp.onOpenURL` so the mapping is unit-testable and the
+/// widget/Live Activity/notification link vocabulary lives in one
+/// place. Unknown schemes and hosts return false and mutate nothing —
+/// a garbled custom-scheme tap from another app must not log an error
+/// or open an unrelated view.
+@MainActor
+enum DeepLinkRouter {
+    @discardableResult
+    static func route(_ url: URL, appState: AppState) -> Bool {
+        guard url.scheme == "peptidex" else { return false }
+        switch url.host {
+        case "dose":
+            // Live Activity / dose-widget tap → `peptidex://dose/<uuid>`.
+            // HomeView consumes the parked UUID on next appear and
+            // presents the dose-logging sheet.
+            guard let entryUUID = UUID(uuidString: url.lastPathComponent) else { return false }
+            appState.selectedTab = .today
+            appState.pendingDoseLogEntryId = entryUUID
+        case "weekly":
+            // Weekly recap notification → `peptidex://weekly/current`.
+            appState.selectedTab = .today
+            appState.pendingWeeklyRecap = true
+        case "today":
+            // Home-screen dose/compliance widgets → land on Today.
+            appState.selectedTab = .today
+        case "train":
+            // Reserved for workout reminders and a future training
+            // widget — lands on the Train tab, where the resume banner
+            // or Start Workout CTA is the next action.
+            appState.selectedTab = .train
+        case "meals":
+            // Nutrition widget → the Meals tab's log-entry pickers.
+            appState.selectedTab = .meals
+        default:
+            return false
+        }
+        return true
+    }
 }
 
 /// Discriminated identifier for the Spotlight deep-link payload.
