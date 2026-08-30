@@ -716,40 +716,10 @@ final class DataStore: DataServiceProtocol {
     var currentStreak: Int {
         bumpVersionIfDayChanged()
         if let cached = _currentStreak, cached.version == cacheVersion { return cached.value }
-        let calendar = Calendar.current
-        let grouped = activeEntriesByDay
-        let todayStart = calendar.startOfDay(for: Date())
-
-        let todayHasCompleted = todayEntries.contains(where: \.completed)
-        let startOffset = todayHasCompleted ? 0 : 1
-
-        var streak = 0
-        var consecutiveEmptyDays = 0
-        for dayOffset in startOffset..<365 {
-            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: todayStart) else { break }
-            let dayEntries = grouped[date] ?? []
-
-            // A streak-frozen day counts as covered. Without this the
-            // freeze feature is non-functional for dose streaks —
-            // a frozen missed day still consumed the empty-gap budget
-            // or broke the streak outright.
-            if StreakFreezeService.isFrozen(date, in: profile) {
-                consecutiveEmptyDays = 0
-                streak += 1
-                continue
-            }
-
-            if dayEntries.isEmpty {
-                consecutiveEmptyDays += 1
-                if consecutiveEmptyDays > 2 { break }
-                continue
-            }
-
-            consecutiveEmptyDays = 0
-            if !dayEntries.contains(where: \.completed) { break }
-            streak += 1
-        }
-
+        let streak = StreakEngine.currentStreak(
+            entriesByDay: activeEntriesByDay,
+            frozenDayKeys: profile.streakFreezeDays
+        )
         _currentStreak = (cacheVersion, streak)
         return streak
     }
@@ -769,46 +739,10 @@ final class DataStore: DataServiceProtocol {
 
     var bestStreak: Int {
         if let cached = _bestStreak, cached.version == cacheVersion { return cached.value }
-        let grouped = activeEntriesByDay
-        guard let earliest = grouped.keys.min() else { return 0 }
-        let calendar = Calendar.current
-        let todayStart = calendar.startOfDay(for: Date())
-
-        // Mirror currentStreak's gap-tolerance: a day with no entries
-        // doesn't break the streak (up to 2 in a row), a day with at
-        // least one completed entry extends it, a day with entries but
-        // none completed breaks it. Without this, non-daily schedules
-        // produce a `bestStreak` that's always ≤ `currentStreak`, which
-        // is misleading for users on every-other-day protocols.
-        var best = 0
-        var current = 0
-        var consecutiveEmptyDays = 0
-        var day = earliest
-        while day <= todayStart {
-            let dayEntries = grouped[day] ?? []
-            if StreakFreezeService.isFrozen(day, in: profile) {
-                // Frozen day counts as covered — mirrors currentStreak.
-                consecutiveEmptyDays = 0
-                current += 1
-                best = max(best, current)
-            } else if dayEntries.isEmpty {
-                consecutiveEmptyDays += 1
-                if consecutiveEmptyDays > 2 {
-                    current = 0
-                    consecutiveEmptyDays = 0
-                }
-            } else if dayEntries.contains(where: \.completed) {
-                consecutiveEmptyDays = 0
-                current += 1
-                best = max(best, current)
-            } else {
-                current = 0
-                consecutiveEmptyDays = 0
-            }
-            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
-            day = next
-        }
-
+        let best = StreakEngine.bestStreak(
+            entriesByDay: activeEntriesByDay,
+            frozenDayKeys: profile.streakFreezeDays
+        )
         _bestStreak = (cacheVersion, best)
         return best
     }
@@ -991,7 +925,11 @@ final class DataStore: DataServiceProtocol {
     /// one insight.
     var topInsight: InsightEngine.Insight? {
         if let cached = _topInsight, cached.version == cacheVersion { return cached.value }
-        let result = InsightEngine.generateInsights(from: entries, protocols: protocols).first
+        let result = InsightEngine.generateInsights(
+            from: entries,
+            protocols: protocols,
+            frozenDayKeys: profile.streakFreezeDays
+        ).first
         _topInsight = (cacheVersion, result)
         return result
     }

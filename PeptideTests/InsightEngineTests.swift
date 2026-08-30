@@ -5,6 +5,11 @@ final class InsightEngineTests: XCTestCase {
 
     // MARK: - Helpers
 
+    /// Entries and the protocol they belong to must share an ID: streak
+    /// math counts only entries whose protocol is still active, so an
+    /// orphaned entry contributes nothing.
+    private static let protocolID = UUID()
+
     private func makeEntry(daysAgo: Double, completed: Bool, weekday: Int? = nil) -> ProtocolEntry {
         let date: Date
         if let weekday {
@@ -18,7 +23,7 @@ final class InsightEngineTests: XCTestCase {
         }
         return ProtocolEntry(
             id: UUID(),
-            protocolId: UUID(),
+            protocolId: Self.protocolID,
             peptide: MockPeptides.bpc157,
             date: date,
             dose: "250mcg",
@@ -29,7 +34,7 @@ final class InsightEngineTests: XCTestCase {
 
     private func makeProtocol(status: ProtocolStatus = .active) -> PeptideProtocol {
         PeptideProtocol(
-            id: UUID(),
+            id: Self.protocolID,
             name: "Test",
             peptides: [MockPeptides.bpc157],
             schedule: ProtocolSchedule(daysOfWeek: [1, 2, 3, 4, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
