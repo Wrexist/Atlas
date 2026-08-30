@@ -17,7 +17,7 @@ import StoreKitTest
 /// - Lifetime non-consumable purchase also flips `isProUser`
 /// - Restore from a clean session produces no entitlement
 /// - `requiresPro` gating logic vs the active-protocol count
-/// - The `canAccess*` getters mirror `isProUser`
+/// - `canAccessAIFeatures` mirrors `isProUser`
 ///
 /// What's not covered: the `Transaction.updates` listener (an
 /// `AsyncSequence` that can't be deterministically driven from a
