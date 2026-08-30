@@ -207,6 +207,10 @@ final class StoredRoutine {
     var updatedAt: Date = Date()
     /// JSON-encoded `[RoutineExercise]`.
     var exercisesData: Data = Data()
+    /// Drag-to-reorder sort key. Defaulted rather than optional so
+    /// existing rows migrate to 0 and keep their updatedAt ordering
+    /// until the user reorders for the first time.
+    var sortIndex: Int = 0
 
     init(
         id: UUID,
@@ -214,7 +218,8 @@ final class StoredRoutine {
         subtitle: String?,
         defaultRestSeconds: Int?,
         updatedAt: Date,
-        exercisesData: Data
+        exercisesData: Data,
+        sortIndex: Int
     ) {
         self.id = id
         self.name = name
@@ -222,6 +227,7 @@ final class StoredRoutine {
         self.defaultRestSeconds = defaultRestSeconds
         self.updatedAt = updatedAt
         self.exercisesData = exercisesData
+        self.sortIndex = sortIndex
     }
 
     static func make(from routine: Routine) throws -> StoredRoutine {
@@ -231,7 +237,8 @@ final class StoredRoutine {
             subtitle: routine.subtitle,
             defaultRestSeconds: routine.defaultRestSeconds,
             updatedAt: routine.updatedAt,
-            exercisesData: try trainingEncoder.encode(routine.exercises)
+            exercisesData: try trainingEncoder.encode(routine.exercises),
+            sortIndex: routine.sortIndex ?? 0
         )
     }
 
@@ -241,6 +248,7 @@ final class StoredRoutine {
         defaultRestSeconds = routine.defaultRestSeconds
         updatedAt = routine.updatedAt
         exercisesData = try trainingEncoder.encode(routine.exercises)
+        sortIndex = routine.sortIndex ?? 0
     }
 
     func toRoutine() throws -> Routine {
@@ -250,7 +258,8 @@ final class StoredRoutine {
             subtitle: subtitle,
             exercises: try trainingDecoder.decode([RoutineExercise].self, from: exercisesData),
             defaultRestSeconds: defaultRestSeconds,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            sortIndex: sortIndex
         )
     }
 }

@@ -917,8 +917,14 @@ final class SwiftDataRepository {
 
     func loadRoutines() -> [Routine] {
         guard let context else { return [] }
+        // sortIndex is the user's drag order; updatedAt breaks ties so a
+        // library that has never been reordered (every row at 0) still
+        // reads most-recently-edited first.
         let descriptor = FetchDescriptor<StoredRoutine>(
-            sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
+            sortBy: [
+                SortDescriptor(\.sortIndex),
+                SortDescriptor(\.updatedAt, order: .reverse),
+            ]
         )
         do {
             return try context.fetch(descriptor).compactMap {
