@@ -13,7 +13,7 @@ final class ActiveSectionPickerTests: XCTestCase {
     /// is below it), nothing is "active" yet.
     func test_pick_allBelowInset_returnsNil() {
         let frames: [TodayJumpBar.SectionAnchor: CGRect] = [
-            .meals:    .init(x: 0, y: 400, width: 300, height: 200),
+            .doses:    .init(x: 0, y: 400, width: 300, height: 200),
             .wellness: .init(x: 0, y: 700, width: 300, height: 200),
             .movement: .init(x: 0, y: 1000, width: 300, height: 200),
         ]
@@ -25,11 +25,11 @@ final class ActiveSectionPickerTests: XCTestCase {
     /// past the inset" is the user's reading position.
     func test_pick_oneSectionAtInset_returnsThatSection() {
         let frames: [TodayJumpBar.SectionAnchor: CGRect] = [
-            .meals:    .init(x: 0, y: 50,  width: 300, height: 200),   // above inset
+            .doses:    .init(x: 0, y: 50,  width: 300, height: 200),   // above inset
             .wellness: .init(x: 0, y: 400, width: 300, height: 200),
             .movement: .init(x: 0, y: 700, width: 300, height: 200),
         ]
-        XCTAssertEqual(ActiveSectionPicker.pick(from: frames), .meals)
+        XCTAssertEqual(ActiveSectionPicker.pick(from: frames), .doses)
     }
 
     /// When two anchors are above the inset, the one with the
@@ -37,9 +37,9 @@ final class ActiveSectionPickerTests: XCTestCase {
     /// past) wins.
     func test_pick_multipleAboveInset_picksMostRecent() {
         let frames: [TodayJumpBar.SectionAnchor: CGRect] = [
-            .meals:    .init(x: 0, y: -200, width: 300, height: 200),  // scrolled way up
+            .wellness: .init(x: 0, y: -200, width: 300, height: 200),  // scrolled way up
             .doses:    .init(x: 0, y: -20,  width: 300, height: 200),  // just above inset
-            .wellness: .init(x: 0, y: 400,  width: 300, height: 200),
+            .movement: .init(x: 0, y: 400,  width: 300, height: 200),
         ]
         XCTAssertEqual(ActiveSectionPicker.pick(from: frames), .doses)
     }
@@ -48,11 +48,11 @@ final class ActiveSectionPickerTests: XCTestCase {
     /// against different sticky-header heights.
     func test_pick_customInset_changesThreshold() {
         let frames: [TodayJumpBar.SectionAnchor: CGRect] = [
-            .meals:    .init(x: 0, y: 80,  width: 300, height: 200),
+            .doses:    .init(x: 0, y: 80,  width: 300, height: 200),
             .wellness: .init(x: 0, y: 250, width: 300, height: 200),
         ]
-        // With inset=100, only meals qualifies.
-        XCTAssertEqual(ActiveSectionPicker.pick(from: frames, headerInset: 100), .meals)
+        // With inset=100, only doses qualifies.
+        XCTAssertEqual(ActiveSectionPicker.pick(from: frames, headerInset: 100), .doses)
         // With inset=300, both qualify; wellness has the larger
         // minY and wins.
         XCTAssertEqual(ActiveSectionPicker.pick(from: frames, headerInset: 300), .wellness)
