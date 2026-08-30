@@ -8,7 +8,7 @@ tracking with reminders and weekly recaps.
 
 iOS 18+, SwiftUI, SwiftData (CloudKit-backed), Swift 6.0. Companion
 Watch app, two widget targets, and Live Activities for in-progress
-dose windows.
+workouts and dose windows.
 
 ## Project layout
 
@@ -29,7 +29,8 @@ Peptide/                 iOS app (SwiftUI)
   Resources/              Info.plist, Localizable.xcstrings, .storekit
 
 PeptideWatch/            watchOS companion (reads via App Group)
-PeptideWidgets/          iOS widgets (next dose, compliance ring)
+PeptideWidgets/          iOS widgets (next dose, compliance ring,
+                         nutrition, training) + Live Activities
 PeptideWatchWidgets/     watchOS widgets
 Shared/                  WatchData, WidgetData, DoseWindowAttributes
 server/                  Vercel proxy (Anthropic key holder)

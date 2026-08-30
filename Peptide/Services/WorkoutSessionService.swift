@@ -25,6 +25,9 @@ final class WorkoutSessionService {
         // Re-hydrate any session that was active when the process was
         // suspended so the user picks up where they left off.
         activeSession = SwiftDataRepository.shared.loadActiveWorkoutSession()
+        // An activity outlives the process, so a relaunch can inherit one
+        // whose workout is long gone — or lose one whose workout isn't.
+        WorkoutLiveActivityService.shared.reconcile(active: activeSession)
     }
 
     // MARK: - Lifecycle
@@ -66,6 +69,8 @@ final class WorkoutSessionService {
         activeSession = session
         SwiftDataRepository.shared.upsertWorkoutSession(session)
         invalidatePreviousSetCache()
+        WorkoutLiveActivityService.shared.start(session)
+        DataStore.current?.refreshTrainingGlanceables()
         AppLog.training.info("Workout started (id: \(session.id, privacy: .public))")
         return session
     }
@@ -93,9 +98,11 @@ final class WorkoutSessionService {
         let detections = PRDetectionEngine.shared.ingest(session: session)
         activeSession = nil
         invalidatePreviousSetCache()
+        WorkoutLiveActivityService.shared.finish(session)
         // Reward training (and any new PR). Both this service and the
         // store are @MainActor, so the call is a direct hop.
         DataStore.current?.recordWorkoutFinished(detectedPRCount: detections.count)
+        DataStore.current?.refreshTrainingGlanceables()
         AppLog.training.info("Workout finished (id: \(session.id, privacy: .public), sets: \(session.completedSetCount, privacy: .public), PRs: \(detections.count, privacy: .public))")
         return FinishedWorkout(session: session, detectedPRs: detections)
     }
@@ -107,6 +114,8 @@ final class WorkoutSessionService {
         SwiftDataRepository.shared.deleteWorkoutSession(id: session.id)
         activeSession = nil
         invalidatePreviousSetCache()
+        WorkoutLiveActivityService.shared.endAll()
+        DataStore.current?.refreshTrainingGlanceables()
         AppLog.training.info("Workout discarded (id: \(session.id, privacy: .public))")
     }
 
@@ -250,5 +259,6 @@ final class WorkoutSessionService {
         activeSession = session
         SwiftDataRepository.shared.upsertWorkoutSession(session)
         invalidatePreviousSetCache()
+        WorkoutLiveActivityService.shared.update(session)
     }
 }

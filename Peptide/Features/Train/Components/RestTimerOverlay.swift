@@ -197,6 +197,7 @@ struct RestTimerState: Equatable, Sendable {
         )
         let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
         UNUserNotificationCenter.current().add(request) { _ in /* best effort */ }
+        mirrorToLiveActivity()
     }
 
     /// Cancel — used by the End button and on auto-complete. Cancels
@@ -208,6 +209,7 @@ struct RestTimerState: Equatable, Sendable {
         }
         targetEnd = nil
         notificationID = nil
+        mirrorToLiveActivity()
     }
 
     /// Auto-complete branch — same as cancel but skips the
@@ -219,6 +221,7 @@ struct RestTimerState: Equatable, Sendable {
         }
         targetEnd = nil
         notificationID = nil
+        mirrorToLiveActivity()
     }
 
     /// Skew the timer by ± seconds. Re-schedules the notification so
@@ -246,5 +249,19 @@ struct RestTimerState: Equatable, Sendable {
         )
         let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
         UNUserNotificationCenter.current().add(request) { _ in /* best effort */ }
+        mirrorToLiveActivity()
+    }
+
+    /// Pushes `targetEnd` onto the workout Live Activity so the lock
+    /// screen counts down against the same absolute date the overlay
+    /// and the local notification already use. Hopping to the main
+    /// actor because the state itself isn't isolated — every value
+    /// crossing is Sendable.
+    private func mirrorToLiveActivity() {
+        let endsAt = targetEnd
+        let total = totalSeconds
+        Task { @MainActor in
+            WorkoutLiveActivityService.shared.updateRest(endsAt: endsAt, totalSeconds: total)
+        }
     }
 }

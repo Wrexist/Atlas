@@ -1580,6 +1580,21 @@ final class DataStore {
         )
     }
 
+    /// Rewrites the glanceable payload after a training-lifecycle event.
+    ///
+    /// Start / finish / discard all write `StoredWorkoutSession` through
+    /// the repo rather than through `protocols` / `entries` / `profile`,
+    /// so none of the `didSet` bumps fire and nothing else calls
+    /// `updateWidgetData`. Without this the training widget keeps
+    /// describing the previous workout until some unrelated mutation
+    /// happens along — showing a running timer for a workout that was
+    /// discarded, or yesterday's session right after the user finished
+    /// today's. Same reasoning as the cache bump in
+    /// `recordWorkoutFinished`, applied to the out-of-process snapshot.
+    func refreshTrainingGlanceables() {
+        updateWidgetData()
+    }
+
     /// (count, totalMinutes) for workout sessions logged on `date`'s
     /// calendar day.
     func workoutSummary(for date: Date = Date()) -> (count: Int, minutes: Int) {
@@ -2199,7 +2214,14 @@ final class DataStore {
             next: nextDose,
             consumption: LifestyleDataLogic.consumption(in: profile, for: Date()),
             targets: profile.nutritionTargets,
-            breakdown: LifestyleDataLogic.mealsByCategory(in: profile, for: Date())
+            breakdown: LifestyleDataLogic.mealsByCategory(in: profile, for: Date()),
+            // Newest-first and bounded: 30 sessions covers the current
+            // week plus the last finished workout for any user, without
+            // decoding the whole history on every mutation that lands
+            // here. The builder filters the in-progress session out.
+            workouts: repo.loadWorkoutSessions(limit: 30),
+            activeWorkout: WorkoutSessionService.shared.activeSession,
+            unit: profile.bodyMetrics.unit
         )
         PersistenceService.shared.updateWidgetData(data)
         WidgetCenter.shared.reloadAllTimelines()

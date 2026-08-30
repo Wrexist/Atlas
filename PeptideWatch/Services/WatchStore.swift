@@ -1,6 +1,7 @@
 import Foundation
 @preconcurrency import WatchConnectivity
 import WatchKit
+import WidgetKit
 
 /// Observable store for the Watch app. Reads WatchData from the shared
 /// App Group container and sends mark-complete messages to the iOS app.
@@ -45,6 +46,30 @@ final class WatchStore: NSObject, ObservableObject {
               let data = try? Data(contentsOf: url),
               let decoded = try? decoder.decode(WatchData.self, from: data) else { return }
         watchData = decoded
+    }
+
+    /// Adopts a snapshot: publishes it, mirrors it into the watch's own
+    /// App Group container, and asks WidgetKit to redraw.
+    ///
+    /// The mirror is what makes the complications work at all. Both
+    /// `PeptideWatchWidgets` providers — and `loadFromDisk` above — read
+    /// `watch_data.json` from the *watch's* container, but the only
+    /// writer was the phone's `WatchSyncService`. App Group containers
+    /// are per-device, so that file never crossed the wire and every
+    /// complication rendered its empty state forever.
+    private func apply(_ data: WatchData) {
+        watchData = data
+        persistToDisk(data)
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    /// Best effort by design: the published state is already updated, so
+    /// a failed write costs the complications and the next cold launch,
+    /// not the running app.
+    private func persistToDisk(_ data: WatchData) {
+        guard let url = watchDataURL,
+              let encoded = try? encoder.encode(data) else { return }
+        try? encoded.write(to: url, options: .atomic)
     }
 
     /// Sends a water-log message to the iOS app. No optimistic local
@@ -94,7 +119,7 @@ final class WatchStore: NSObject, ObservableObject {
             // PeptideWatchApp gates on `nutrition != nil`) until the next
             // phone-side sync arrives. Dose-toggle should never flicker
             // the unrelated nutrition tab off and on.
-            watchData = WatchData(
+            apply(WatchData(
                 todayEntries: updated,
                 completedToday: completed,
                 totalToday: updated.count,
@@ -103,7 +128,7 @@ final class WatchStore: NSObject, ObservableObject {
                 weeklyCompliance: watchData.weeklyCompliance,
                 totalDosesLogged: watchData.totalDosesLogged,
                 nutrition: watchData.nutrition
-            )
+            ))
         }
 
         sendOrQueue(message)
@@ -147,12 +172,12 @@ extension WatchStore: WCSessionDelegate {
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         guard let decoded = Self.decodeWatchData(from: message) else { return }
-        Task { @MainActor in self.watchData = decoded }
+        Task { @MainActor in self.apply(decoded) }
     }
 
     nonisolated func session(_ session: WCSession, didReceiveApplicationContext context: [String: Any]) {
         guard let decoded = Self.decodeWatchData(from: context) else { return }
-        Task { @MainActor in self.watchData = decoded }
+        Task { @MainActor in self.apply(decoded) }
     }
 
     /// Phone encodes `lastUpdated` as ISO-8601, so the receive-side decoder

@@ -257,9 +257,10 @@ struct MediumWidgetView: View {
 /// widget tap could land on Biology. `widgetURL` needs no
 /// CFBundleURLTypes registration for same-app links, but the scheme
 /// is registered anyway so notification and Shortcuts links resolve.
-private enum WidgetDeepLink {
+enum WidgetDeepLink {
     static let today = URL(string: "peptidex://today")
     static let meals = URL(string: "peptidex://meals")
+    static let train = URL(string: "peptidex://train")
 }
 
 struct NextDoseWidgetView: View {
@@ -636,8 +637,10 @@ struct PeptideWidgetBundle: WidgetBundle {
         NextDoseWidget()
         ComplianceWidget()
         NutritionWidget()
+        TrainingWidget()
         if #available(iOS 16.1, *) {
             DoseWindowLiveActivity()
+            WorkoutLiveActivity()
         }
     }
 }
