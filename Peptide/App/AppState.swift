@@ -88,6 +88,47 @@ final class AppState {
     var pendingProtocolList: Bool = false
 }
 
+/// Routes a `peptidex://` URL onto AppState. Extracted from
+/// `PeptideApp.onOpenURL` so the mapping is unit-testable and the
+/// widget/Live Activity/notification link vocabulary lives in one
+/// place. Unknown schemes and hosts return false and mutate nothing —
+/// a garbled custom-scheme tap from another app must not log an error
+/// or open an unrelated view.
+@MainActor
+enum DeepLinkRouter {
+    @discardableResult
+    static func route(_ url: URL, appState: AppState) -> Bool {
+        guard url.scheme == "peptidex" else { return false }
+        switch url.host {
+        case "dose":
+            // Live Activity / dose-widget tap → `peptidex://dose/<uuid>`.
+            // HomeView consumes the parked UUID on next appear and
+            // presents the dose-logging sheet.
+            guard let entryUUID = UUID(uuidString: url.lastPathComponent) else { return false }
+            appState.selectedTab = .today
+            appState.pendingDoseLogEntryId = entryUUID
+        case "weekly":
+            // Weekly recap notification → `peptidex://weekly/current`.
+            appState.selectedTab = .today
+            appState.pendingWeeklyRecap = true
+        case "today":
+            // Home-screen dose/compliance widgets → land on Today.
+            appState.selectedTab = .today
+        case "train":
+            // Reserved for workout reminders and a future training
+            // widget — lands on the Train tab, where the resume banner
+            // or Start Workout CTA is the next action.
+            appState.selectedTab = .train
+        case "meals":
+            // Nutrition widget → the Meals tab's log-entry pickers.
+            appState.selectedTab = .meals
+        default:
+            return false
+        }
+        return true
+    }
+}
+
 /// Discriminated identifier for the Spotlight deep-link payload.
 /// Mirrors the namespacing in `FoodSpotlightService` — OFF favorites
 /// carry a barcode, custom foods carry a UUID, recipes carry a

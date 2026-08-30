@@ -148,26 +148,11 @@ struct PeptideApp: App {
                 )
             }
             .onOpenURL { url in
-                // Live Activity tap → `peptidex://dose/<uuid>`. Park
-                // the UUID on AppState; HomeView consumes it on its
-                // next appear and presents the dose-logging sheet.
-                // Unknown schemes / paths fall through silently so a
-                // garbled custom-scheme tap from another app doesn't
-                // log an error or open an unrelated view.
-                guard url.scheme == "peptidex" else { return }
-                switch url.host {
-                case "dose":
-                    // Live Activity tap → `peptidex://dose/<uuid>`.
-                    guard let entryUUID = UUID(uuidString: url.lastPathComponent) else { return }
-                    appState.selectedTab = .today
-                    appState.pendingDoseLogEntryId = entryUUID
-                case "weekly":
-                    // Weekly recap notification → `peptidex://weekly/current`.
-                    appState.selectedTab = .today
-                    appState.pendingWeeklyRecap = true
-                default:
-                    return
-                }
+                // All `peptidex://` routing lives in DeepLinkRouter so
+                // the widget / Live Activity / notification link
+                // vocabulary is one tested mapping instead of an
+                // inline switch per entry point.
+                DeepLinkRouter.route(url, appState: appState)
             }
             .onContinueUserActivity(CSSearchableItemActionType) { activity in
                 // Spotlight tapped a food index entry. Parse the
