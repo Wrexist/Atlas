@@ -43,7 +43,7 @@ enum HealthRangeService {
         /// `Sample` directly with a full, presumed-trustworthy range keep
         /// compiling; `sample(from:direction:)` always computes the real
         /// value from the series it was given.
-        let confidence: BaselineConfidence = .establishedBaseline
+        var confidence: BaselineConfidence = .establishedBaseline
 
         /// A short, honest hedge to pair with the status pill — `nil`
         /// when the pill already says everything worth saying.
