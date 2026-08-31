@@ -342,6 +342,52 @@ enum WeeklySummaryEngine {
         guard !values.isEmpty else { return nil }
         return values.reduce(0, +) / Double(values.count)
     }
+
+    // MARK: - Week-over-week change
+
+    /// Minimum swings before a week-over-week change is meaningful enough
+    /// to lead with, rather than noise from ordinary day-to-day variance.
+    /// Tuned conservatively — asserting a trend off a 2-point compliance
+    /// wobble would be exactly the "fake insight" the retention brief
+    /// warns against.
+    static let meaningfulCompliancePercentPoints: Double = 8
+    static let meaningfulStreakDays: Int = 2
+    static let meaningfulHRVDeltaMs: Int = 3
+
+    /// Builds a short, honest "what changed" line from two *already
+    /// generated* weekly summaries — never a week still in progress.
+    ///
+    /// This distinction matters beyond honesty: `WeeklySummaryNotification-
+    /// Scheduler` schedules its push with a `UNCalendarNotificationTrigger`,
+    /// which bakes `content.body` in at schedule time (any app foreground),
+    /// not at Sunday-morning fire time. Describing the in-progress current
+    /// week would go stale the moment the week actually finishes. Comparing
+    /// two already-final summaries is stable no matter when it's computed.
+    ///
+    /// Returns `nil` when there's no `previous` summary to compare against,
+    /// or when every tracked delta is inside noise range — callers should
+    /// fall back to generic copy rather than manufacture a trend.
+    static func changeHeadline(current: WeeklySummary, previous: WeeklySummary?) -> String? {
+        guard let previous else { return nil }
+
+        let complianceDeltaPoints = (current.keyStats.compliancePct - previous.keyStats.compliancePct) * 100
+        if abs(complianceDeltaPoints) >= meaningfulCompliancePercentPoints {
+            let direction = complianceDeltaPoints > 0 ? "up" : "down"
+            return "Compliance \(direction) \(Int(abs(complianceDeltaPoints).rounded()))% from last week"
+        }
+
+        let streakDelta = current.keyStats.currentStreak - previous.keyStats.currentStreak
+        if streakDelta >= meaningfulStreakDays {
+            return "Your streak grew by \(streakDelta) days this week"
+        }
+
+        if let hrvDelta = current.keyStats.hrvDelta, abs(hrvDelta) >= meaningfulHRVDeltaMs {
+            let direction = hrvDelta > 0 ? "up" : "down"
+            return "HRV \(direction) \(abs(hrvDelta)) ms versus last week"
+        }
+
+        return nil
+    }
 }
 
 // `String.nilIfEmpty` lives in DesignSystem/Utilities/StringExtensions.swift;

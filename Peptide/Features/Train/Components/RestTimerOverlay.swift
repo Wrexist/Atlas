@@ -1,6 +1,5 @@
 import Combine
 import SwiftUI
-import UserNotifications
 
 /// In-workout rest countdown. Surfaces above the keyboard with a
 /// circular progress ring + remaining-time label and three actions:
@@ -187,16 +186,18 @@ struct RestTimerState: Equatable, Sendable {
         totalSeconds = TimeInterval(seconds)
         notificationID = id
 
-        let content = UNMutableNotificationContent()
-        content.title = "Time to lift"
-        content.body = "Rest's up — back to it."
-        content.sound = .default
-        let trigger = UNTimeIntervalNotificationTrigger(
-            timeInterval: max(1, TimeInterval(seconds)),
-            repeats: false
+        // Routed through NotificationService (rather than talking to
+        // UNUserNotificationCenter directly, as this used to) so this
+        // one-shot buzz is namespaced under `adHocIDPrefix` alongside
+        // every other notification Atlas schedules (retention audit,
+        // Phase 13 — this was the one call site bypassing the service
+        // entirely).
+        NotificationService.scheduleOneShot(
+            id: id,
+            title: "Time to lift",
+            body: "Rest's up — back to it.",
+            after: TimeInterval(seconds)
         )
-        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
-        UNUserNotificationCenter.current().add(request) { _ in /* best effort */ }
         mirrorToLiveActivity()
     }
 
@@ -205,7 +206,7 @@ struct RestTimerState: Equatable, Sendable {
     /// up" buzz seconds after they've already started the next set.
     mutating func cancel() {
         if let id = notificationID {
-            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id])
+            NotificationService.cancelOneShot(id: id)
         }
         targetEnd = nil
         notificationID = nil
@@ -217,7 +218,7 @@ struct RestTimerState: Equatable, Sendable {
     /// user got the buzz in-app via the haptic).
     mutating func completeNow() {
         if let id = notificationID {
-            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id])
+            NotificationService.cancelOneShot(id: id)
         }
         targetEnd = nil
         notificationID = nil
@@ -235,20 +236,16 @@ struct RestTimerState: Equatable, Sendable {
         targetEnd = now.addingTimeInterval(adjustedRemaining)
         // Re-issue the notification with the new target time.
         if let id = notificationID {
-            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id])
+            NotificationService.cancelOneShot(id: id)
         }
         let id = UUID().uuidString
         notificationID = id
-        let content = UNMutableNotificationContent()
-        content.title = "Time to lift"
-        content.body = "Rest's up — back to it."
-        content.sound = .default
-        let trigger = UNTimeIntervalNotificationTrigger(
-            timeInterval: adjustedRemaining,
-            repeats: false
+        NotificationService.scheduleOneShot(
+            id: id,
+            title: "Time to lift",
+            body: "Rest's up — back to it.",
+            after: adjustedRemaining
         )
-        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
-        UNUserNotificationCenter.current().add(request) { _ in /* best effort */ }
         mirrorToLiveActivity()
     }
 

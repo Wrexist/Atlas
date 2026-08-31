@@ -85,7 +85,13 @@ struct HomeView: View {
         var overview: TodayOverviewSnapshot?
         var plan: DailyScheduleEngine.DailyPlan?
         var timeline: [TodayTimelineEvent] = []
-        var coaching: CoachingMessageEngine.CoachingMessage?
+        /// The single top-of-Today reason to act, reconciled by
+        /// `PrimaryReasonEngine` from coaching, today's dose plan, habits
+        /// due, and a freshly-changed weekly review. Replaces the old
+        /// `coaching` field — every one of its call sites just wanted the
+        /// message that would be shown, so `CoachingCard` now renders
+        /// `primaryReason?.message` instead.
+        var primaryReason: PrimaryReasonEngine.Reason?
     }
 
     private struct HeroDetailItem: Identifiable {
@@ -118,11 +124,12 @@ struct HomeView: View {
     /// synchronously on the main actor — it's a handful of in-memory passes
     /// plus one day-scoped SwiftData fetch — but it must not run from `body`.
     private func refreshDerived() {
+        let plan = DailyScheduleEngine.plan(for: dataStore.todayEntries)
         derived = DerivedToday(
             overview: TodayOverviewSnapshot.build(from: dataStore),
-            plan: DailyScheduleEngine.plan(for: dataStore.todayEntries),
+            plan: plan,
             timeline: buildTimelineEvents(),
-            coaching: buildCoachingMessage()
+            primaryReason: buildPrimaryReason(plan: plan)
         )
     }
 
@@ -228,12 +235,16 @@ struct HomeView: View {
                         .sectionAppear(index: 0)
                     }
 
-                    // PRIMARY RECOMMENDATION — turns the trio's three
-                    // numbers into a single next step. Same priority
-                    // cascade Bevel uses ("Excellent recovery, push
-                    // today" / "Short sleep, cap intensity").
-                    if let coaching = derived.coaching {
-                        CoachingCard(message: coaching)
+                    // PRIMARY RECOMMENDATION — the one thing
+                    // `PrimaryReasonEngine` ranked highest across
+                    // recovery/sleep coaching, today's dose plan, habits
+                    // due, and a freshly-changed weekly review. Same
+                    // single-card discipline Bevel uses ("Excellent
+                    // recovery, push today" / "Short sleep, cap
+                    // intensity") — just reconciled across more signals
+                    // than coaching alone used to see.
+                    if let reason = derived.primaryReason {
+                        CoachingCard(message: reason.message)
                             .sectionAppear(index: 0)
                     }
 
@@ -625,7 +636,8 @@ struct HomeView: View {
             // so it has to re-pick when that lands (it arrives async, after
             // the first `refreshDerived()`).
             .onChange(of: heroSnapshot) { _, _ in
-                derived.coaching = buildCoachingMessage()
+                let plan = derived.plan ?? DailyScheduleEngine.plan(for: dataStore.todayEntries)
+                derived.primaryReason = buildPrimaryReason(plan: plan)
             }
             .onAppear {
                 checkMilestonePrompt()
@@ -756,7 +768,7 @@ struct HomeView: View {
     /// Builds the coaching context from the current store + hero
     /// snapshot. Pure read — synchronous so the view body can
     /// consume it without an async hop.
-    private func buildCoachingMessage() -> CoachingMessageEngine.CoachingMessage {
+    private func buildCoachingContext() -> CoachingMessageEngine.Context {
         let next = dataStore.nextDose
         let nextTimeDisplay: String? = next.map {
             DateFormatter.localizedString(from: $0.date, dateStyle: .none, timeStyle: .short)
@@ -764,7 +776,7 @@ struct HomeView: View {
         let memberDays = Calendar.current
             .dateComponents([.day], from: dataStore.profile.memberSince, to: Date())
             .day ?? 0
-        let context = CoachingMessageEngine.Context(
+        return CoachingMessageEngine.Context(
             hasProtocols: !dataStore.protocols.isEmpty,
             healthConnected: dataStore.profile.healthConnected,
             recoveryScore: heroSnapshot.recovery.isAvailable ? heroSnapshot.recovery.displayPercent : nil,
@@ -778,7 +790,38 @@ struct HomeView: View {
             hourOfDay: Calendar.current.component(.hour, from: Date()),
             memberDays: memberDays
         )
-        return CoachingMessageEngine.pick(context: context)
+    }
+
+    /// Reconciles coaching, today's dose plan, habits due, and a freshly
+    /// changed weekly review into the one top-of-Today reason to act.
+    /// `plan` is threaded in from `refreshDerived()` rather than recomputed
+    /// so the two stay built from the same `dataStore.todayEntries` pass.
+    private func buildPrimaryReason(plan: DailyScheduleEngine.DailyPlan) -> PrimaryReasonEngine.Reason {
+        let habits = HabitsHeroSnapshot.build(
+            activeHabits: dataStore.activeHabits,
+            entries: dataStore.profile.habitEntries,
+            frozenDayKeys: dataStore.profile.streakFreezeDays
+        )
+        let context = PrimaryReasonEngine.Context(
+            coaching: buildCoachingContext(),
+            dailyPlanHeadline: plan.hasAny ? plan.headline : nil,
+            habitsDueCount: habits.dueCount,
+            habitsDoneCount: habits.doneCount,
+            weeklyReviewHeadline: currentWeeklyReviewChangeHeadline()
+        )
+        return PrimaryReasonEngine.pick(context: context)
+    }
+
+    /// A real, non-noise week-over-week delta for the most recently
+    /// generated weekly summary — only when one is actually ready to view
+    /// on Today right now. `nil` suppresses the "PROGRESS INSIGHT" tier
+    /// entirely rather than ever showing a manufactured trend.
+    private func currentWeeklyReviewChangeHeadline() -> String? {
+        guard case .ready(let current) = weeklySummaryState else { return nil }
+        let previous = dataStore.profile.weeklySummaries.values
+            .filter { $0.weekStart != current.weekStart }
+            .max { $0.weekStart < $1.weekStart }
+        return WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
     }
 
     /// Rebuilds the hero metric trio snapshot. Adherence is read

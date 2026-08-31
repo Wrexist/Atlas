@@ -16,6 +16,12 @@ struct WorkoutFinishView: View {
     /// Session volume and PR values are stored in kilograms; this is
     /// what turns them back into the unit the user logs in.
     let unit: MeasurementUnit
+    /// Count of workout sessions in the trailing 7 days, this one
+    /// included — computed by the caller (`ActiveWorkoutView`, the same
+    /// window `WeeklyMuscleHeatmap` uses) and turned into copy by
+    /// `WorkoutConsistencyEngine`. `nil` suppresses the callout for a
+    /// caller that hasn't computed it.
+    var weeklySessionCount: Int? = nil
     let onClose: () -> Void
 
     @State private var library = ExerciseLibrary.shared
@@ -77,7 +83,22 @@ struct WorkoutFinishView: View {
             Text(session.startedAt.formatted(date: .complete, time: .shortened))
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
+            if let consistencyCallout {
+                Text(consistencyCallout)
+                    .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(AppColor.accentLight)
+                    .padding(.top, 2)
+            }
         }
+    }
+
+    /// "3rd workout this week — you're building consistency." Shown at
+    /// the single highest-motivation moment in the training loop, right
+    /// alongside PRs rather than only in the Train tab's retrospective
+    /// heatmap.
+    private var consistencyCallout: String? {
+        guard let weeklySessionCount else { return nil }
+        return WorkoutConsistencyEngine.callout(sessionsInTrailingWeek: weeklySessionCount)
     }
 
     /// One card, not three loose tiles.

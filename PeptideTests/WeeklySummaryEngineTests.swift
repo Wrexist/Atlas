@@ -246,4 +246,114 @@ final class WeeklySummaryEngineTests: XCTestCase {
         XCTAssertFalse(json.contains("BPC-157"), "peptide name leaked into aggregate")
         XCTAssertFalse(json.contains("Felt great"), "outcome note leaked into aggregate")
     }
+
+    // MARK: - changeHeadline (week-over-week diff for the notification body)
+
+    private func makeSummary(
+        weekStart: String,
+        compliancePct: Double = 0.7,
+        currentStreak: Int = 3,
+        hrvDelta: Int? = nil
+    ) -> WeeklySummary {
+        WeeklySummary(
+            weekStart: weekStart,
+            text: "",
+            keyStats: WeeklySummary.KeyStats(
+                compliancePct: compliancePct,
+                dosesCompleted: 7,
+                dosesTotal: 10,
+                currentStreak: currentStreak,
+                avgCheckInScore: nil,
+                avgCalories: nil,
+                hrvDelta: hrvDelta
+            ),
+            kind: .offline,
+            generatedAt: weekMonday
+        )
+    }
+
+    func test_changeHeadline_noPrevious_returnsNil() {
+        let current = makeSummary(weekStart: "2026-01-05")
+        XCTAssertNil(WeeklySummaryEngine.changeHeadline(current: current, previous: nil))
+    }
+
+    func test_changeHeadline_meaningfulComplianceIncrease_reportsPercent() {
+        let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.9)
+        let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.7)
+        let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
+        XCTAssertEqual(headline, "Compliance up 20% from last week")
+    }
+
+    func test_changeHeadline_meaningfulComplianceDecrease_reportsDownDirection() {
+        let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.6)
+        let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.8)
+        let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
+        XCTAssertEqual(headline, "Compliance down 20% from last week")
+    }
+
+    func test_changeHeadline_noiseLevelComplianceChange_fallsThroughToNil() {
+        // 3-point swing is below the 8-point floor, and streak/HRV are
+        // both unchanged/nil — nothing meaningful to report.
+        let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.73, currentStreak: 3)
+        let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.70, currentStreak: 3)
+        XCTAssertNil(WeeklySummaryEngine.changeHeadline(current: current, previous: previous))
+    }
+
+    func test_changeHeadline_meaningfulStreakGrowth_reportsStreak() {
+        // Compliance unchanged (below the noise floor); streak grew by
+        // the minimum meaningful amount (2 days).
+        let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.7, currentStreak: 5)
+        let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.7, currentStreak: 3)
+        let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
+        XCTAssertEqual(headline, "Your streak grew by 2 days this week")
+    }
+
+    func test_changeHeadline_streakShrinking_isNotReportedAsGrowth() {
+        // A shrinking streak isn't a "grew by N days" moment — the
+        // engine only ever reports positive streak growth here.
+        let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.7, currentStreak: 1, hrvDelta: nil)
+        let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.7, currentStreak: 5, hrvDelta: nil)
+        XCTAssertNil(WeeklySummaryEngine.changeHeadline(current: current, previous: previous))
+    }
+
+    func test_changeHeadline_meaningfulHRVDelta_reportsHRV() {
+        // Compliance and streak both unchanged; only HRV moved enough
+        // to matter.
+        let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.7, currentStreak: 3, hrvDelta: 5)
+        let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.7, currentStreak: 3, hrvDelta: nil)
+        let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
+        XCTAssertEqual(headline, "HRV up 5 ms versus last week")
+    }
+
+    func test_changeHeadline_negativeHRVDelta_reportsDownDirection() {
+        let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.7, currentStreak: 3, hrvDelta: -4)
+        let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.7, currentStreak: 3, hrvDelta: nil)
+        let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
+        XCTAssertEqual(headline, "HRV down 4 ms versus last week")
+    }
+
+    func test_changeHeadline_belowNoiseFloorOnEveryMetric_returnsNil() {
+        let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.71, currentStreak: 3, hrvDelta: 2)
+        let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.70, currentStreak: 3, hrvDelta: nil)
+        XCTAssertNil(WeeklySummaryEngine.changeHeadline(current: current, previous: previous))
+    }
+
+    func test_changeHeadline_priorityOrder_complianceBeatsStreakAndHRVWhenAllMeaningful() {
+        // All three deltas are meaningful at once — compliance is
+        // checked first, so it wins even though streak and HRV also
+        // qualify.
+        let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.9, currentStreak: 6, hrvDelta: 10)
+        let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.7, currentStreak: 3, hrvDelta: nil)
+        let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
+        XCTAssertEqual(headline, "Compliance up 20% from last week")
+    }
+
+    func test_changeHeadline_priorityOrder_streakBeatsHRVWhenBothMeaningful() {
+        // Compliance below the noise floor; streak and HRV both
+        // qualify — streak is checked first and wins.
+        let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.7, currentStreak: 6, hrvDelta: 10)
+        let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.7, currentStreak: 3, hrvDelta: nil)
+        let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
+        XCTAssertEqual(headline, "Your streak grew by 3 days this week")
+    }
 }
