@@ -40,6 +40,13 @@ struct BiometricCard: View {
                     }
 
                     statusPill
+
+                    if let caption = sample?.confidenceCaption {
+                        Text(caption)
+                            .font(AppFont.scaled(8, weight: .medium))
+                            .foregroundStyle(AppColor.textSecondary)
+                            .lineLimit(1)
+                    }
                 }
 
                 Spacer(minLength: 0)
@@ -126,12 +133,19 @@ struct BiometricCard: View {
     let rhrSample = HealthRangeService.Sample(
         latest: 53, p10: 50, p25: 55, p75: 65, p90: 70, direction: .lowerIsBetter
     )
-    return ZStack {
+    let emergingSleepSample = HealthRangeService.Sample(
+        latest: 7.2, p10: 6.0, p25: 6.5, p75: 7.8, p90: 8.3, direction: .higherIsBetter,
+        confidence: .emergingBaseline
+    )
+    ZStack {
         AppColor.background.ignoresSafeArea()
         VStack {
             HStack(spacing: Spacing.sm) {
                 BiometricCard(icon: "waveform.path.ecg", label: "HRV", value: "58", unit: "ms", sample: hrvSample)
                 BiometricCard(icon: "heart.fill", label: "RHR", value: "53", unit: "bpm", sample: rhrSample)
+            }
+            HStack(spacing: Spacing.sm) {
+                BiometricCard(icon: "bed.double.fill", label: "Sleep", value: "7.2", unit: "h", sample: emergingSleepSample)
             }
             HStack(spacing: Spacing.sm) {
                 BiometricCard(icon: "bed.double.fill", label: "Sleep", value: "7.8", unit: "h", sample: nil)

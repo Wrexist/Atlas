@@ -37,6 +37,12 @@ struct TrainOverviewView: View {
     /// The muscle the user tapped on the map, presented as a detail sheet
     /// of the exercises they've logged for it.
     @State private var inspectedMuscle: AnatomicalMuscle?
+    /// Personalization brief Phase 9/10: a one-line read on how this
+    /// week's session count compares to this user's own recent training
+    /// history — never a population norm, and `nil` (not a guess) below
+    /// `TrainingPatternEngine.emergingAtWeeks` of history. Memoised
+    /// alongside `frequencies` since both are derived from `sessions`.
+    @State private var trainingContextCaption: String?
 
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
 
@@ -117,6 +123,44 @@ struct TrainOverviewView: View {
             from: sessions,
             library: library
         )
+        trainingContextCaption = Self.trainingContextCaption(for: sessions)
+    }
+
+    /// Builds the "how does this week compare" caption from the user's
+    /// own session history. Returns `nil` whenever there isn't enough
+    /// history to say anything personal (`TrainingPatternEngine` /
+    /// `ChangeDetectionEngine` both refuse to produce a verdict below
+    /// their own confidence floors) — the view simply omits the line
+    /// rather than showing a hedge-free guess.
+    private static func trainingContextCaption(for sessions: [WorkoutSession]) -> String? {
+        let dates = sessions.map(\.startedAt)
+        guard
+            let baseline = TrainingPatternEngine.weeklyFrequencyBaseline(sessionDates: dates),
+            baseline.confidence > .insufficientHistory
+        else { return nil }
+
+        let thisWeek = TrainingPatternEngine.currentRollingWeekCount(sessionDates: dates)
+        guard let result = ChangeDetectionEngine.evaluate(current: Double(thisWeek), against: baseline)
+        else { return nil }
+
+        let sessionWord = thisWeek == 1 ? "session" : "sessions"
+        let tail: String
+        switch result.change {
+        case .stable:
+            tail = "right in line with your usual pace"
+        case .notablyHigher:
+            tail = "more than your usual pace"
+        case .notablyLower:
+            tail = "fewer than your usual pace"
+        case .unusual:
+            tail = Double(thisWeek) > baseline.mean ? "well above your usual pace" : "well below your usual pace"
+        }
+
+        // Emerging confidence still gets to speak personally (Phase 3
+        // says hedge, not stay silent) — just flagged as an early read
+        // rather than stated as flatly as an established baseline would be.
+        let prefix = baseline.confidence == .emergingBaseline ? "Early read: " : ""
+        return "\(prefix)\(thisWeek) \(sessionWord) this week — \(tail)."
     }
 
     // MARK: - Weekly muscle map
@@ -162,6 +206,12 @@ struct TrainOverviewView: View {
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
                     intensityLegend
+                }
+
+                if let trainingContextCaption {
+                    Text(trainingContextCaption)
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
                 }
             }
         }
