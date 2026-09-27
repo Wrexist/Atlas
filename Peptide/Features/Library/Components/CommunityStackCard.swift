@@ -46,13 +46,6 @@ struct CommunityStackCard: View {
                         statChip(icon: "target", value: stack.goalTags.first ?? "")
                     }
                     Spacer()
-                    HStack(spacing: 3) {
-                        Image(systemName: "flame.fill")
-                            .font(AppFont.scaled(11))
-                        Text("\(stack.popularityScore)")
-                            .font(AppFont.scaled(11, weight: .semibold, design: .rounded))
-                    }
-                    .foregroundStyle(AppColor.accentLight)
                 }
             }
         }

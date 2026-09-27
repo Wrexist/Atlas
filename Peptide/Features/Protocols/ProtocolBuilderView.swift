@@ -414,7 +414,7 @@ struct ProtocolBuilderView: View {
                     .foregroundStyle(AppColor.accentLight)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text("Start from a community stack")
+                Text("Start from a library stack")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text("Browse research-backed templates")

@@ -38,7 +38,7 @@ struct StackLibraryView: View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
                 GlassTextField(
-                    placeholder: "Search stacks, authors, peptides...",
+                    placeholder: "Search stacks, peptides...",
                     text: $searchText
                 )
                 .padding(.horizontal, Spacing.screenPadding)
@@ -69,7 +69,7 @@ struct StackLibraryView: View {
             .padding(.bottom, Spacing.xxxxl)
         }
         .background(AppColor.background)
-        .navigationTitle("Community Stacks")
+        .navigationTitle("Stack Library")
         // The `CommunityStack` navigation destination is declared by
         // every host stack that pushes this view (ProtocolListView,
         // ProtocolBuilderView). Declaring it again here collides on
