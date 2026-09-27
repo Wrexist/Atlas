@@ -29,6 +29,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>peptidex</string>
+				<string>atlas</string>
 			</array>
 		</dict>
 	</array>

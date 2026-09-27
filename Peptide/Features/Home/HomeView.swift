@@ -18,6 +18,7 @@ struct HomeView: View {
     /// Today overview card's "Set a calorie target" nudge — previously
     /// the nudge was tappable but wired to nothing.
     @State private var showTargetsEditor = false
+    @State private var showResearchAssistant = false
     // Profile is opened via the shared `appState.showProfile` flag now
     // (a single app-level sheet), so the Today avatar and every other
     // tab's avatar button route through the same presentation.
@@ -400,6 +401,18 @@ struct HomeView: View {
                     AtlasScoreCard(onTap: { showProgress = true })
                         .sectionAppear(index: 6)
 
+                    // The AI research chat's only other entry is an icon
+                    // in the Library toolbar. Pro opens the chat; free
+                    // users see the paywall for it from the root.
+                    ResearchAssistantRow {
+                        if StoreService.shared.isProUser {
+                            showResearchAssistant = true
+                        } else {
+                            appState.presentedPaywall = .aiResearch
+                        }
+                    }
+                    .sectionAppear(index: 6)
+
                     // Bevel-style chronological feed — doses + meals
                     // + check-in + workouts merged into one sorted
                     // list. Hides itself when the day has no events
@@ -484,6 +497,10 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showProgress) {
                 AtlasProgressView()
+                    .environment(dataStore)
+            }
+            .sheet(isPresented: $showResearchAssistant) {
+                AIResearchView()
                     .environment(dataStore)
             }
             // Stack-warning / stack-adjustment / paywall sheets

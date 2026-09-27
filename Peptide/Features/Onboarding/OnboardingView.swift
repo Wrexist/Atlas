@@ -393,6 +393,7 @@ struct OnboardingView: View {
                 },
                 onDecline: {
                     OnboardingFunnelTracker.recordEvent("paywall_declined")
+                    UpsellScheduler.recordTrialDeclined()
                     showTrialOffer = false
                     showThemePicker = true
                 }

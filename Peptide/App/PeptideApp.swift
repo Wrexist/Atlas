@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import UserNotifications
 import CoreSpotlight
 import RevenueCat
@@ -153,7 +154,7 @@ struct PeptideApp: App {
                 // the widget / Live Activity / notification link
                 // vocabulary is one tested mapping instead of an
                 // inline switch per entry point.
-                DeepLinkRouter.route(url, appState: appState)
+                DeepLinkRouter.route(url, appState: appState, isPro: StoreService.shared.isProUser)
             }
             .onContinueUserActivity(CSSearchableItemActionType) { activity in
                 // Spotlight tapped a food index entry. Parse the
@@ -222,6 +223,7 @@ struct PeptideApp: App {
             }
             if phase == .active {
                 ReviewPromptService.shared.recordLaunch()
+                UpsellScheduler.recordActiveDay()
                 dataStore.handleAppActivation()
                 // Re-check StoreKit entitlements so a subscription
                 // that lapsed while the app was suspended flips
@@ -268,6 +270,7 @@ struct PeptideApp: App {
                 }
                 detectTimezoneChange()
                 maybePresentWhatsNewTour()
+                maybePresentWinBack()
             }
         }
     }
@@ -301,6 +304,45 @@ struct PeptideApp: App {
             guard !showWhatsNewTour else { return }
             showWhatsNewTour = true
         }
+    }
+
+    /// The single re-offer of the trial to a user who declined it in
+    /// onboarding — see `UpsellScheduler` for the rules. Waits for
+    /// StoreKit so trial eligibility is real rather than the pessimistic
+    /// default, then yields to any launch-time prompt: it presents only
+    /// when nothing else is on screen, and is marked shown the moment it
+    /// presents so it can never come back.
+    private func maybePresentWinBack() {
+        guard hasCompletedOnboarding else { return }
+        Task { @MainActor in
+            let store = StoreService.shared
+            if store.products.isEmpty { await store.loadProducts() }
+            try? await Task.sleep(for: .seconds(1))
+            let isTrialEligible = store.isEligibleForMonthlyTrial || store.isEligibleForAnnualTrial
+            guard UpsellScheduler.isWinBackDue(isPro: store.isProUser, isTrialEligible: isTrialEligible),
+                  canPresentRootModal
+            else { return }
+            UpsellScheduler.markWinBackShown()
+            appState.presentedPaywall = .winBack
+        }
+    }
+
+    /// True when the main UI is on screen with nothing presented over it —
+    /// no lock screen, no launch prompt, no workout in progress, and no
+    /// sheet or cover from any tab (read from UIKit, which sees
+    /// presentations SwiftUI state here cannot).
+    private var canPresentRootModal: Bool {
+        guard !dataStore.profile.biometricLockEnabled || isUnlocked,
+              !showWhatsNewTour,
+              travelChange == nil,
+              appState.presentedPaywall == nil,
+              WorkoutSessionService.shared.activeSession == nil
+        else { return false }
+        let keyWindow = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first { $0.isKeyWindow }
+        return keyWindow?.rootViewController?.presentedViewController == nil
     }
 
     /// One-shot travel detection on every transition to `.active`.
@@ -413,6 +455,13 @@ struct PeptideApp: App {
             PeptideListView(presentedModally: true)
                 .environment(dataStore)
                 .environment(appState)
+        }
+        // App-wide paywall: `atlas://pro`, the one-time trial win-back,
+        // and Today's research-assistant row for free users.
+        .sheet(item: Bindable(appState).presentedPaywall) { source in
+            PaywallView(source: source)
+                .environment(dataStore)
+                .liquidGlassPresentation()
         }
         .task {
             let delegate = NotificationDelegate(dataStore: dataStore, appState: appState)

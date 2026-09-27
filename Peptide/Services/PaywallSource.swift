@@ -7,7 +7,7 @@ import Foundation
 ///
 /// Copy here names the feature the user just reached for, nothing more —
 /// no urgency, no numbers, no health values.
-enum PaywallSource: String, CaseIterable, Sendable {
+enum PaywallSource: String, CaseIterable, Identifiable, Sendable {
     case protocolLimit
     case biology
     case performanceAge
@@ -54,6 +54,8 @@ enum PaywallSource: String, CaseIterable, Sendable {
         case .profile, .deepLink, .generic: return nil
         }
     }
+
+    var id: String { rawValue }
 
     var viewedEvent: String { "paywall_viewed_\(rawValue)" }
     var purchasedEvent: String { "paywall_purchased_\(rawValue)" }
