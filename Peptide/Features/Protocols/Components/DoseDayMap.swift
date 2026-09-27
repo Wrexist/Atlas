@@ -102,7 +102,9 @@ enum DoseDayMap {
                         peptideID: peptide.id,
                         peptideName: peptide.name,
                         peptideAbbreviation: peptide.abbreviation,
-                        dose: proto.schedule.customDose ?? peptide.dosageRange,
+                        // Never the database research range: that would present a
+                        // reference figure as the user's own dose (Guideline 1.4.1).
+                        dose: proto.schedule.customDose ?? String(localized: "Dose not set"),
                         time: proto.schedule.preferredTimes.first,
                         injectionSite: nil,
                         entryID: nil,
