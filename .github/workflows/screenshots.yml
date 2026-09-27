@@ -55,32 +55,34 @@ jobs:
         # device names (e.g. "iPhone SE (3rd generation)") have their own
         # parens before the UDID, and cutting at the first one silently
         # produced a bogus "iPhone SE" that no destination matches.
+        # Resolved to a UDID, like pr-checks' unit-test step: a name plus
+        # `OS=latest` still exits 70 whenever the newest installed runtime
+        # is not the Xcode SDK's version.
         id: sim
+        env:
+          WANT: ${{ inputs.simulator }}
         run: |
-          WANT="${{ inputs.simulator }}"
-          if [ -n "$WANT" ] && xcrun simctl list devices available | grep -q "$WANT ("; then
-            echo "name=$WANT" >> "$GITHUB_OUTPUT"
-          else
-            FOUND=$(xcrun simctl list devices available \
-              | grep -E '^\s+iPhone .*\([0-9A-Fa-f-]{36}\)' \
-              | sed -E 's/ *\([0-9A-Fa-f-]{36}\).*$//' \
-              | sed 's/^ *//;s/ *$//' \
-              | tail -1)
-            if [ -z "$FOUND" ]; then
-              echo "::error::No iPhone simulator available on this runner."
-              xcrun simctl list devices available
-              exit 1
-            fi
-            echo "Using $FOUND"
-            echo "name=$FOUND" >> "$GITHUB_OUTPUT"
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "
+          import json, os, sys
+          devs = [x for r in json.load(sys.stdin)['devices'].values() for x in r if 'iPhone' in x.get('name', '')]
+          want = [x for x in devs if x['name'] == os.environ.get('WANT')]
+          pick = (want or devs[-1:] or [{}])[0]
+          print(pick.get('udid', ''))
+          ")
+          if [ -z "$DEVICE_ID" ]; then
+            echo "::error::No iPhone simulator available on this runner."
+            xcrun simctl list devices available
+            exit 1
           fi
+          echo "Using simulator $DEVICE_ID"
+          echo "id=$DEVICE_ID" >> "$GITHUB_OUTPUT"
 
       - name: Run screenshot UI test
         run: |
           xcodebuild test \
             -project Peptide.xcodeproj \
             -scheme PeptideUICapture \
-            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.name }},OS=latest" \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.id }}" \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
