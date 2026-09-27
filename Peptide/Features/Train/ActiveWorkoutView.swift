@@ -13,6 +13,7 @@ import SwiftUI
 struct ActiveWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.requestReview) private var requestReview
     @State private var sessionService = WorkoutSessionService.shared
     @State private var library = ExerciseLibrary.shared
     @State private var showExercisePicker = false
@@ -20,6 +21,9 @@ struct ActiveWorkoutView: View {
     @State private var showDiscardConfirm = false
     @State private var finishedSession: WorkoutSession?
     @State private var finishedPRs: [PRDetectionEngine.DetectedPR] = []
+    /// Set at finish when this workout earns a review prompt (a new PR or
+    /// the third workout); consumed once the finish screen has landed.
+    @State private var isReviewMoment = false
     @State private var workoutName: String = ""
     @FocusState private var nameFieldFocused: Bool
     /// In-workout rest timer. Driven by the per-exercise restSeconds
@@ -43,12 +47,24 @@ struct ActiveWorkoutView: View {
                     weeklySessionCount: weeklySessionCount(asOf: finished),
                     onClose: { dismiss() }
                 )
+                .task { await requestReviewIfEarned() }
             } else {
                 noActiveSession
             }
         }
         .onAppear { syncNameFromSession() }
         .onChange(of: sessionService.activeSession?.id) { _, _ in syncNameFromSession() }
+    }
+
+    /// Lets the finish screen's celebration play before iOS decides
+    /// whether to show its review sheet. `ReviewPromptService` still
+    /// applies its own engagement and cooldown gates.
+    private func requestReviewIfEarned() async {
+        guard isReviewMoment else { return }
+        isReviewMoment = false
+        try? await Task.sleep(for: .seconds(2))
+        guard !Task.isCancelled else { return }
+        ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
     }
 
     private func syncNameFromSession() {
@@ -126,6 +142,10 @@ struct ActiveWorkoutView: View {
                 if let finished = sessionService.finishWorkout() {
                     finishedSession = finished.session
                     finishedPRs = finished.detectedPRs
+                    isReviewMoment = ReviewPromptService.isWorkoutReviewMoment(
+                        detectedPRCount: finished.detectedPRs.count,
+                        completedWorkoutCount: SwiftDataRepository.shared.workoutSessionCount()
+                    )
                 }
             }
             Button("Cancel", role: .cancel) {}
