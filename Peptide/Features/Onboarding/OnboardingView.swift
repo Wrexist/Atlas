@@ -2224,7 +2224,7 @@ struct OnboardingView: View {
                         .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.center)
-                    Text("Apply a friend's code or join the Atlas creator program.")
+                    Text("Have a friend's code? Enter it below.")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                         .multilineTextAlignment(.center)
@@ -2237,7 +2237,9 @@ struct OnboardingView: View {
                     creatorCodeField
                 }
 
-                affiliateApplyButton
+                if AffiliateIntakeService.drainConfigured {
+                    affiliateApplyButton
+                }
 
                 Spacer(minLength: 100)
             }
