@@ -44,7 +44,13 @@ final class SwiftDataRepository {
     /// silently inherits the previous account's local data.
     private var lastObservedIdentityToken: (any NSCoding & NSCopying & NSObjectProtocol)?
 
+    /// Device-local home of `UserProfile.weeklySummaries` — kept out of
+    /// the CloudKit-mirrored store (Guideline 5.1.3(ii); see
+    /// `WeeklySummaryLocalStore`).
+    private var summaryStore: WeeklySummaryLocalStore
+
     private init() {
+        summaryStore = .shared
         let token = FileManager.default.ubiquityIdentityToken
         lastObservedIdentityToken = token
         let iCloudAvailable = token != nil
@@ -141,6 +147,7 @@ final class SwiftDataRepository {
         isInoperable = true
         container = nil
         isUsingFallbackStore = false
+        summaryStore.deleteAll()
         let cloudFailureState: CloudSyncState = current != nil ? .unavailable : .noAccount
         cloudSyncState = cloudFailureState
 
@@ -262,6 +269,14 @@ final class SwiftDataRepository {
         #if DEBUG
         forceCommitFailureForTesting = false
         #endif
+        summaryStore = WeeklySummaryLocalStore(
+            fileURL: FileManager.default.temporaryDirectory
+                .appending(path: "WeeklySummaries-\(UUID().uuidString)", directoryHint: .isDirectory)
+                .appending(path: "summaries.json", directoryHint: .notDirectory)
+        )
+        // Tests set `weeklySummaryEnabled` deliberately; the one-time
+        // upgrade reset must not flip it depending on test order.
+        WeeklySummaryOptInMigration.markCompleted()
     }
 
     /// Discards uncommitted changes pending on the context. The
@@ -286,6 +301,7 @@ final class SwiftDataRepository {
             try context.delete(model: StoredRoutine.self)
             try context.delete(model: StoredPersonalRecord.self)
             try context.save()
+            summaryStore.deleteAll()
         } catch {
             AppLog.swiftData.error("deleteAll failed: \(error.localizedDescription, privacy: .public)")
         }
@@ -601,6 +617,7 @@ final class SwiftDataRepository {
 
     func saveProfile(_ profile: UserProfile) {
         guard let context else { return }
+        summaryStore.save(profile.weeklySummaries)
         let existing: StoredProfile?
         do {
             existing = try canonicalProfileRow(in: context)
@@ -635,13 +652,31 @@ final class SwiftDataRepository {
             AppLog.swiftData.error("Load profile failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
-        guard let stored else { return nil }
+        guard let stored else {
+            // No profile on this device yet — a new install. Its
+            // weekly-summary toggle is already a real user choice.
+            WeeklySummaryOptInMigration.markCompleted()
+            return nil
+        }
+        var profile: UserProfile
         do {
-            return try stored.toUserProfile()
+            profile = try stored.toUserProfile()
         } catch {
             AppLog.swiftData.error("Decode StoredProfile failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
+        // Weekly summaries come from the device-local file. Whatever the
+        // synced row still carries (written before summaries moved off
+        // CloudKit, or by an older build on another device) seeds the
+        // file once, then the save below clears it from iCloud.
+        let syncedSummaries = profile.weeklySummaries
+        profile.weeklySummaries = summaryStore.load() ?? syncedSummaries
+        let hasSyncedSummaries = stored.summariesData != nil || !syncedSummaries.isEmpty
+        let optInReset = WeeklySummaryOptInMigration.apply(to: &profile)
+        if hasSyncedSummaries || optInReset {
+            saveProfile(profile)
+        }
+        return profile
     }
 
     // MARK: - Workout sessions

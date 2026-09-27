@@ -3,7 +3,8 @@ import Foundation
 
 /// Coordinates the AI weekly summary lifecycle. Owns the network
 /// call to the Vercel proxy, the on-disk cache (one entry per
-/// week on `UserProfile.weeklySummaries`), the Pro gate, the
+/// week on `UserProfile.weeklySummaries`, persisted device-only by
+/// `WeeklySummaryLocalStore`), the Pro gate, the
 /// opt-out check, and the deterministic offline fallback.
 ///
 /// Gating order on `generate(...)`:

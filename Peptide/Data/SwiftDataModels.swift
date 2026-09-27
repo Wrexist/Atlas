@@ -302,7 +302,12 @@ final class StoredProfile {
     var outcomesData: Data?
     /// JSON `FoodLibrarySlice` — custom foods + favorite food IDs.
     var foodLibraryData: Data?
-    /// JSON `[String: WeeklySummary]` — weekly recap cache.
+    /// Legacy JSON `[String: WeeklySummary]` — weekly recap cache.
+    /// Retired: recaps carry health data (HRV), which Guideline
+    /// 5.1.3(ii) keeps out of iCloud, so the cache now lives in
+    /// `WeeklySummaryLocalStore` and this column is only ever written as
+    /// nil. Kept (CloudKit can't drop a field) and still read, so
+    /// `SwiftDataRepository.loadProfile` can move old values on-device.
     var summariesData: Data?
 
     /// Deterministic singleton marker (audit Phase 8) — the same value
@@ -425,7 +430,8 @@ final class StoredProfile {
             customFoods: profile.customFoods,
             favoriteFoodIDs: Array(profile.favoriteFoodIDs).sorted()
         )))
-        set(\.summariesData, try sdEncoder.encode(profile.weeklySummaries))
+        // Never synced — see `summariesData`.
+        set(\.summariesData, nil)
     }
 
     /// Decodes an optional slice column, falling back to the legacy
@@ -626,8 +632,9 @@ private struct ProfileExtension: Codable {
     var trainingPreferences: TrainingPreferences? = nil
     /// Pre-existing UserProfile fields that were missing from the
     /// sidecar — every prior save/load dropped these silently. Both
-    /// optional so older blobs decode (default-true for the toggle,
-    /// empty dict for the cache) without a migration.
+    /// optional so older blobs decode (default-off for the toggle,
+    /// empty dict for the cache) without a migration. `weeklySummaries`
+    /// is read-only legacy: the cache lives in `WeeklySummaryLocalStore`.
     var weeklySummaryEnabled: Bool? = nil
     var weeklySummaries: [String: WeeklySummary]? = nil
     /// User-committed goal completion date from the onboarding "By

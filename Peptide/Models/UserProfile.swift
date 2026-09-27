@@ -489,15 +489,18 @@ struct UserProfile: Codable, Sendable {
     /// great after BPC today" or "side-effect: mild headache"
     /// without the user reaching for a separate notes app.
     var protocolNotes: [ProtocolNote]
-    /// User-controlled opt-out for the AI weekly summary feature
-    /// (Pro-only, defaults to on). Surfaces as a toggle on the
-    /// Profile → Settings row. Set to `false` to suppress both
-    /// the Sunday notification and the on-device Today card.
+    /// User-controlled opt-in for the AI weekly summary feature
+    /// (Pro-only, defaults to off — it sends HRV to Anthropic).
+    /// Surfaces as a toggle on the Profile → Settings row. `false`
+    /// suppresses both the Sunday notification and the Today card.
+    /// Profiles saved while the default was on are reset once by
+    /// `WeeklySummaryOptInMigration`.
     var weeklySummaryEnabled: Bool
     /// Cached weekly summaries keyed by ISO week-start ("yyyy-MM-dd"
     /// of the Monday). One entry per generated week — capped on
     /// write to the most-recent 26 weeks so the JSON stays small
-    /// (~13 KB at full cap).
+    /// (~13 KB at full cap). Health data (HRV), so persisted only in
+    /// the device-local `WeeklySummaryLocalStore`, never in iCloud.
     var weeklySummaries: [String: WeeklySummary]
     /// Biology tab preferences — visible / hidden / ordered
     /// biomarkers + intro-seen flag. Defaults so existing
