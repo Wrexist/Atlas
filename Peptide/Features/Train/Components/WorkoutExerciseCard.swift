@@ -21,6 +21,7 @@ struct WorkoutExerciseCard: View {
     let onSetRestSeconds: (Int) -> Void
 
     @State private var confirmingRemoval = false
+    @State private var showingPlateCalculator = false
 
     private var completedSetCount: Int { entry.sets.filter(\.completed).count }
 
@@ -61,6 +62,11 @@ struct WorkoutExerciseCard: View {
 
             Menu {
                 restMenu
+                Button {
+                    showingPlateCalculator = true
+                } label: {
+                    Label("Plate calculator", systemImage: "scalemass")
+                }
                 Button(role: .destructive, action: requestRemoval) {
                     Label("Remove exercise", systemImage: "trash")
                 }
@@ -72,6 +78,9 @@ struct WorkoutExerciseCard: View {
                     .minimumHitArea()
             }
             .accessibilityLabel("Exercise options")
+        }
+        .sheet(isPresented: $showingPlateCalculator) {
+            PlateCalculatorSheet()
         }
         .confirmationDialog(
             "Remove \(displayName)?",
