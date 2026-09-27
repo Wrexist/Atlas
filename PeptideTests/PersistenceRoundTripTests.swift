@@ -875,6 +875,29 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertFalse(StreakFreezeService.applyFreeze(in: &profile, for: twoDaysAgo, now: today))
     }
 
+    func test_streakFreeze_onTheFirstEastOfUTC_countsInItsOwnMonth() {
+        var tokyo = Calendar(identifier: .gregorian)
+        tokyo.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        let first = tokyo.date(from: DateComponents(year: 2026, month: 6, day: 1, hour: 9))!
+        let lastOfPrevious = tokyo.date(from: DateComponents(year: 2026, month: 5, day: 31, hour: 9))!
+        var profile = UserProfile.fresh
+        profile.streakFreezeDays.insert(StreakFreezeService.dayKey(for: first, calendar: tokyo))
+
+        XCTAssertEqual(StreakFreezeService.usedThisMonth(in: profile, now: first, calendar: tokyo), 1)
+        XCTAssertEqual(StreakFreezeService.usedThisMonth(in: profile, now: lastOfPrevious, calendar: tokyo), 0)
+    }
+
+    func test_streakFreeze_onTheFirstWestOfUTC_countsInItsOwnMonth() {
+        var losAngeles = Calendar(identifier: .gregorian)
+        losAngeles.timeZone = TimeZone(identifier: "America/Los_Angeles")!
+        let first = losAngeles.date(from: DateComponents(year: 2026, month: 6, day: 1, hour: 9))!
+        var profile = UserProfile.fresh
+        profile.streakFreezeDays.insert(StreakFreezeService.dayKey(for: first, calendar: losAngeles))
+
+        XCTAssertEqual(StreakFreezeService.usedThisMonth(in: profile, now: first, calendar: losAngeles), 1)
+        XCTAssertFalse(StreakFreezeService.hasFreezeAvailable(in: profile, now: first, calendar: losAngeles))
+    }
+
     func test_streakFreeze_shieldsMissedDay() {
         // Logged today + 2 days ago. Yesterday is missing — without
         // a freeze the streak would break, with one it survives.

@@ -19,28 +19,39 @@ enum StreakFreezeService {
     /// True when the user has at least one unused freeze this
     /// month. Drives whether the at-risk prompt shows the
     /// freeze button.
-    static func hasFreezeAvailable(in profile: UserProfile, now: Date = Date()) -> Bool {
-        usedThisMonth(in: profile, now: now) < freezesPerMonth
+    static func hasFreezeAvailable(
+        in profile: UserProfile,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Bool {
+        usedThisMonth(in: profile, now: now, calendar: calendar) < freezesPerMonth
     }
 
     /// Number of freezes redeemed this calendar month. Drives the
     /// subtitle copy ("0/1 used this month") in the streak detail.
-    static func usedThisMonth(in profile: UserProfile, now: Date = Date()) -> Int {
-        let cal = Calendar.current
+    static func usedThisMonth(
+        in profile: UserProfile,
+        now: Date = Date(),
+        calendar cal: Calendar = .current
+    ) -> Int {
         let comps = cal.dateComponents([.year, .month], from: now)
-        guard let monthStart = cal.date(from: comps) else { return 0 }
-        let monthEnd = cal.date(byAdding: .month, value: 1, to: monthStart) ?? monthStart
-        return profile.streakFreezeDays.compactMap { key -> Date? in
-            isoFormatter.date(from: key)
-        }
-        .filter { $0 >= monthStart && $0 < monthEnd }
-        .count
+        guard let monthStart = cal.date(from: comps),
+              let days = cal.range(of: .day, in: .month, for: monthStart)
+        else { return 0 }
+        // Keys are compared with keys built the same way they were
+        // stored. Parsing a key back to a date read it as GMT midnight,
+        // so outside UTC a freeze on the 1st counted against the
+        // previous month's budget.
+        let monthKeys = Set(days.compactMap { day in
+            cal.date(byAdding: .day, value: day - 1, to: monthStart).map { dayKey(for: $0, calendar: cal) }
+        })
+        return profile.streakFreezeDays.intersection(monthKeys).count
     }
 
     /// Returns the ISO key for a given calendar date. Used by the
     /// streak engine to check membership.
-    static func dayKey(for date: Date) -> String {
-        let day = Calendar.current.startOfDay(for: date)
+    static func dayKey(for date: Date, calendar: Calendar = .current) -> String {
+        let day = calendar.startOfDay(for: date)
         return isoFormatter.string(from: day)
     }
 
