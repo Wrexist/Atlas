@@ -37,10 +37,25 @@ struct HomeMealsSection: View {
     /// `.barcode` or `.photo` so the library can hand the user off
     /// to the right next sheet after dismissing itself.
     @State private var pendingFromLibrary: PendingLibraryHandoff?
+    /// Day being viewed, as an offset from today (0 = today). An offset
+    /// rather than a Date so the tab still means "today" after midnight.
+    @State private var dayOffset = 0
+    /// Most recent water quick-add, kept briefly so it can be undone.
+    @State private var lastWaterLog: WaterLog?
 
     private enum PendingLibraryHandoff {
         case barcode
         case photo
+    }
+
+    private struct WaterLog: Equatable {
+        let id = UUID()
+        let fluidOunces: Double
+        let date: Date
+    }
+
+    private var selectedDay: Date {
+        LifestyleDataLogic.mealDay(offset: dayOffset)
     }
 
     private var targets: NutritionTargets {
@@ -53,6 +68,8 @@ struct HomeMealsSection: View {
                 eyebrow: "Meals",
                 title: "Capture what you ate"
             )
+
+            MealDaySwitcher(offset: $dayOffset)
 
             FoodLibraryEntryCard(onTap: { showFoodLibrary = true })
 
@@ -84,13 +101,15 @@ struct HomeMealsSection: View {
                 }
             )
 
-            let dailyBreakdown = dataStore.mealsByCategory()
+            let dailyBreakdown = dataStore.mealsByCategory(for: selectedDay)
+            let dailyConsumption = dataStore.consumption(for: selectedDay)
             MacroSummaryRow(
                 targets: targets,
-                consumed: dataStore.consumption(),
+                consumed: dailyConsumption,
                 breakdown: dailyBreakdown,
                 unit: dataStore.profile.bodyMetrics.unit,
-                onAddWater: { oz in dataStore.logWater(oz: oz) }
+                onAddWater: logWater,
+                onUndoWater: lastWaterLog == nil ? nil : { undoWater() }
             )
             .contextMenu {
                 Button("Edit targets", systemImage: "pencil") {
@@ -103,13 +122,15 @@ struct HomeMealsSection: View {
                 bestStreak: dataStore.bestMealLoggingStreak
             )
 
-            let todaysEntries = dataStore.mealEntries()
-            if dataStore.consumption().caloriesKcal > 0 || !todaysEntries.isEmpty {
+            let dayEntries = dataStore.mealEntries(for: selectedDay)
+            if dailyConsumption.caloriesKcal > 0 || !dayEntries.isEmpty {
                 MealCategoriesCard(breakdown: dailyBreakdown)
 
                 TodaysMealsCard(
-                    entries: todaysEntries,
+                    entries: dayEntries,
+                    dayTitle: dayOffset == 0 ? nil : MealDaySwitcher.title(for: selectedDay),
                     onEdit: { entry in editingMealEntry = entry },
+                    onLogAgain: logAgain,
                     onDelete: { id in dataStore.unlogMealEntry(id: id) }
                 )
             }
@@ -121,7 +142,8 @@ struct HomeMealsSection: View {
         .sheet(isPresented: $showBarcodeScan) {
             BarcodeScanFlow(
                 onClose: { showBarcodeScan = false },
-                onRequestPhotoFallback: handlePhotoFallback
+                onRequestPhotoFallback: handlePhotoFallback,
+                logDay: selectedDay
             )
             .environment(dataStore)
         }
@@ -130,7 +152,8 @@ struct HomeMealsSection: View {
                 onClose: { showFoodLibrary = false },
                 onRequestBarcodeScan: { handleLibraryHandoff(.barcode) },
                 onRequestPhotoScan: { handleLibraryHandoff(.photo) },
-                initialDeepLink: pendingFoodLogID
+                initialDeepLink: pendingFoodLogID,
+                logDay: selectedDay
             )
             .environment(dataStore)
             .liquidGlassPresentation()
@@ -168,6 +191,17 @@ struct HomeMealsSection: View {
                 onCancel: { editingMealEntry = nil }
             )
         }
+        .task(id: lastWaterLog?.id) {
+            // Undo window for the last water quick-add. A newer log
+            // restarts the window; switching days drops it below.
+            guard lastWaterLog != nil else { return }
+            try? await Task.sleep(for: AppAnimation.logSuccessAutoCloseDelay)
+            guard !Task.isCancelled else { return }
+            withAnimation(AppAnimation.fadeIn) { lastWaterLog = nil }
+        }
+        .onChange(of: dayOffset) { _, _ in
+            lastWaterLog = nil
+        }
         .onChange(of: appState.pendingFoodLogID) { _, deepLink in
             // Spotlight tapped a food index entry. Only the Meals-tab
             // instance consumes — see `consumesDeepLink` above.
@@ -203,6 +237,30 @@ struct HomeMealsSection: View {
                 showMealScan = true
             }
         }
+    }
+
+    /// Logs water onto the viewed day and opens the Undo window.
+    private func logWater(fluidOunces: Double) {
+        let date = LifestyleDataLogic.logTimestamp(on: selectedDay)
+        dataStore.logWater(fluidOunces: fluidOunces, date: date)
+        withAnimation(AppAnimation.fadeIn) {
+            lastWaterLog = WaterLog(fluidOunces: fluidOunces, date: date)
+        }
+    }
+
+    private func undoWater() {
+        guard let log = lastWaterLog else { return }
+        dataStore.logWater(fluidOunces: -log.fluidOunces, date: log.date)
+        Haptics.impact(.light)
+        withAnimation(AppAnimation.fadeIn) { lastWaterLog = nil }
+    }
+
+    /// Duplicates a logged meal onto the viewed day at the current
+    /// clock time.
+    private func logAgain(_ entry: MealEntry) {
+        let date = LifestyleDataLogic.logTimestamp(on: selectedDay)
+        dataStore.logMealEntry(LifestyleDataLogic.relogged(entry, at: date))
+        Haptics.success()
     }
 
     /// Sets a flag and dismisses the barcode sheet — the .onChange

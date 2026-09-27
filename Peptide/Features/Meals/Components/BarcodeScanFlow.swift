@@ -21,6 +21,9 @@ struct BarcodeScanFlow: View {
     /// sheet and presenting `MealScanFlow` — iOS won't show two sheets
     /// concurrently, so the parent has to sequence them.
     let onRequestPhotoFallback: () -> Void
+    /// Day the Meals tab is showing. Logs land on it at the current
+    /// clock time, so back-filling yesterday doesn't drop into today.
+    var logDay: Date = Date()
 
     @State private var phase: Phase = .preflight
     @State private var product: ScannedProduct?
@@ -611,7 +614,7 @@ struct BarcodeScanFlow: View {
                 resetForRescan()
             }
 
-            GlassButton(title: "Add to today", style: .primary) {
+            GlassButton(title: addButtonTitle, style: .primary) {
                 confirm()
             }
             .disabled(currentMacros(for: product) == nil)
@@ -624,7 +627,7 @@ struct BarcodeScanFlow: View {
                 .font(.system(size: 56, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
 
-            Text("Added to today")
+            Text(addedTitle)
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
 
@@ -638,7 +641,7 @@ struct BarcodeScanFlow: View {
                 LoggedCaloriePanel(
                     productName: snapshot.productName,
                     deltaCalories: snapshot.calories,
-                    totalCalories: dataStore.consumption().caloriesKcal,
+                    totalCalories: dataStore.consumption(for: snapshot.date).caloriesKcal,
                     targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories
                 )
             }
@@ -964,6 +967,16 @@ struct BarcodeScanFlow: View {
             : String(format: "%.1f", count)
     }
 
+    private var isLoggingToday: Bool { Calendar.current.isDateInToday(logDay) }
+
+    private var addButtonTitle: LocalizedStringKey {
+        isLoggingToday ? "Add to today" : "Add to \(MealDaySwitcher.title(for: logDay))"
+    }
+
+    private var addedTitle: LocalizedStringKey {
+        isLoggingToday ? "Added to today" : "Added to \(MealDaySwitcher.title(for: logDay))"
+    }
+
     // MARK: - Actions
 
     private func preflightCheck() async {
@@ -1194,6 +1207,7 @@ struct BarcodeScanFlow: View {
     /// call it directly when the user picks "Log again".
     private func commitMealEntry(product: ScannedProduct, meal: LoggableMeal) {
         let now = Date()
+        let loggedAt = LifestyleDataLogic.logTimestamp(on: logDay, now: now)
         // OCR-synthesised products carry an `ocr:<uuid>` barcode and come
         // from on-device Vision, not Open Food Facts — tagging them
         // `.openFoodFacts` mis-attributes the source, and feeding that
@@ -1208,7 +1222,7 @@ struct BarcodeScanFlow: View {
             category: category,
             source: source,
             sourceID: product.barcode,
-            date: now
+            date: loggedAt
         )
         dataStore.logMealEntry(entry)
         // .logCommitted carries a heavier impact than the lookup
@@ -1219,7 +1233,7 @@ struct BarcodeScanFlow: View {
             productName: product.name,
             entryID: entry.id,
             calories: meal.calories,
-            date: now,
+            date: loggedAt,
             barcode: product.barcode,
             portion: portion
         )

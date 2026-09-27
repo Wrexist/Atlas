@@ -1080,6 +1080,13 @@ final class DataStore {
         save()
     }
 
+    /// Exact-amount water log used by the Meals tab quick-adds. A
+    /// negative amount is the Undo path; the day clamps at zero.
+    func logWater(fluidOunces: Double, date: Date = Date()) {
+        LifestyleDataLogic.logWater(into: &profile, fluidOunces: fluidOunces, date: date)
+        save()
+    }
+
     /// Today's (or any day's) consumption bucket, or an empty stub.
     func consumption(for date: Date = Date()) -> DailyConsumption {
         LifestyleDataLogic.consumption(in: profile, for: date)

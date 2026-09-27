@@ -100,14 +100,51 @@ enum LifestyleDataLogic {
         profile.dailyConsumption[key] = bucket
     }
 
-    /// Adds water (oz) to the day's consumption bucket. Quick-add buttons
-    /// on the Meals tab call this with +250 mL ≈ 8.5 oz and +500 mL
-    /// ≈ 16.9 oz pre-converted to integer ounces.
+    /// Adds whole ounces of water to the day's bucket. Siri, the Watch
+    /// and the widget deep-link log in ounces, so they stay on this path.
     static func logWater(into profile: inout UserProfile, oz: Int, date: Date) {
         let key = consumptionKey(for: date)
         var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
         bucket.waterOz += oz
         profile.dailyConsumption[key] = bucket
+    }
+
+    /// Adds (or, negative, removes) an exact amount of water. `waterOz`
+    /// stays the rounded whole-ounce total and `waterOzRemainder` keeps
+    /// the fraction, so a metric +1 L reads back as exactly 1000 mL
+    /// instead of the 1005 mL that rounding to 34 oz produced. Clamps
+    /// the day at zero so an undo can't push it negative.
+    static func logWater(into profile: inout UserProfile, fluidOunces: Double, date: Date) {
+        let key = consumptionKey(for: date)
+        var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
+        let exact = max(0, bucket.waterFluidOunces + fluidOunces)
+        let whole = exact.rounded()
+        let remainder = exact - whole
+        bucket.waterOz = Int(whole)
+        bucket.waterOzRemainder = abs(remainder) < waterRemainderEpsilon ? nil : remainder
+        profile.dailyConsumption[key] = bucket
+    }
+
+    static let millilitresPerFluidOunce = 29.5735
+
+    /// Below this a remainder is floating-point noise from add/undo
+    /// round trips, not water.
+    private static let waterRemainderEpsilon = 1e-6
+
+    static func fluidOunces(millilitres: Double) -> Double {
+        millilitres / millilitresPerFluidOunce
+    }
+
+    static func millilitres(fluidOunces: Double) -> Int {
+        Int((fluidOunces * millilitresPerFluidOunce).rounded())
+    }
+
+    /// The day's water in the number the user reads: exact millilitres
+    /// for metric, whole ounces for imperial.
+    static func displayedWater(_ consumption: DailyConsumption, unit: MeasurementUnit) -> Int {
+        unit == .metric
+            ? millilitres(fluidOunces: consumption.waterFluidOunces)
+            : consumption.waterOz
     }
 
     /// Convenience accessor used by the macro rings — returns the day's
@@ -243,6 +280,85 @@ enum LifestyleDataLogic {
         profile.mealHistory
             .filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
             .sorted { $0.date > $1.date }
+    }
+
+    // MARK: - Day browsing, re-logging, portions
+
+    /// Oldest day the Meals day switcher reaches — matches the meal
+    /// editor's one-year date floor.
+    static let maxMealDayLookback = 365
+
+    /// Start of the day `offset` days from `now`'s day. The Meals tab
+    /// keeps an offset rather than a Date so a screen left open past
+    /// midnight still means "today". Future offsets clamp to today.
+    static func mealDay(offset: Int, from now: Date = Date(), calendar: Calendar = .current) -> Date {
+        let today = calendar.startOfDay(for: now)
+        let clamped = min(0, max(-maxMealDayLookback, offset))
+        return calendar.date(byAdding: .day, value: clamped, to: today) ?? today
+    }
+
+    /// When a meal logged while viewing `day` is stamped. Today → `now`.
+    /// A past day → that day at now's wall-clock time, so back-filling
+    /// lunch at 13:05 lands at 13:05 on that day and auto-categorises
+    /// exactly like a live log would.
+    static func logTimestamp(on day: Date, now: Date = Date(), calendar: Calendar = .current) -> Date {
+        if calendar.isDate(day, inSameDayAs: now) { return now }
+        let time = calendar.dateComponents([.hour, .minute, .second], from: now)
+        return calendar.date(
+            bySettingHour: time.hour ?? 12,
+            minute: time.minute ?? 0,
+            second: time.second ?? 0,
+            of: day
+        ) ?? day
+    }
+
+    /// A fresh copy of `entry` stamped at `date` — the "Log again"
+    /// action. New id so undo, HealthKit mirroring and deletes treat it
+    /// as its own meal; category kept because it's the same meal.
+    static func relogged(_ entry: MealEntry, at date: Date) -> MealEntry {
+        MealEntry(
+            date: date,
+            category: entry.category,
+            name: entry.name,
+            calories: entry.calories,
+            proteinG: entry.proteinG,
+            carbsG: entry.carbsG,
+            fatG: entry.fatG,
+            sourceID: entry.sourceID,
+            source: entry.source
+        )
+    }
+
+    static let recentMealLimit = 8
+
+    /// The most recent entry for each distinct meal name, newest first.
+    /// Names compare trimmed and case-insensitively so "Oatmeal" and
+    /// "oatmeal " collapse into one row. Blank names are skipped — there's
+    /// nothing to recognise them by.
+    static func recentDistinctMeals(in history: [MealEntry], limit: Int = recentMealLimit) -> [MealEntry] {
+        var seen: Set<String> = []
+        var recent: [MealEntry] = []
+        for entry in history.sorted(by: { $0.date > $1.date }) {
+            let key = entry.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard !key.isEmpty, seen.insert(key).inserted else { continue }
+            recent.append(entry)
+            if recent.count >= limit { break }
+        }
+        return recent
+    }
+
+    /// `entry`'s calories and macros multiplied by a portion factor,
+    /// rounded to whole units and floored at zero. Always scales the
+    /// entry passed in, so ×2 then ×0.5 lands back on the original
+    /// instead of compounding rounding.
+    static func scaledMacros(of entry: MealEntry, by factor: Double) -> LoggableMeal {
+        func scale(_ value: Int) -> Int { max(0, Int((Double(value) * factor).rounded())) }
+        return LoggableMeal(
+            calories: scale(entry.calories),
+            proteinG: scale(entry.proteinG),
+            carbsG: scale(entry.carbsG),
+            fatG: scale(entry.fatG)
+        )
     }
 
     // MARK: - Meal-logging streak
@@ -524,4 +640,12 @@ enum LifestyleDataLogic {
         }
     }
 
+}
+
+extension DailyConsumption {
+    /// The day's water in exact fluid ounces — the rounded total plus
+    /// the remainder metric logs carry.
+    var waterFluidOunces: Double {
+        Double(waterOz) + (waterOzRemainder ?? 0)
+    }
 }

@@ -340,6 +340,12 @@ struct DailyConsumption: Codable, Hashable, Sendable {
     var carbsG: Int
     var fatG: Int
     var waterOz: Int
+    /// Sub-ounce part of the day's water total, in (-0.5, 0.5]. `waterOz`
+    /// stays the rounded whole-ounce total every existing reader uses;
+    /// this carries what rounding dropped so metric logs stay exact
+    /// (+1 L is 33.81 oz, not 34). Optional so buckets persisted before
+    /// it existed decode unchanged and it's omitted from the JSON when nil.
+    var waterOzRemainder: Double?
 
     static func empty(on date: Date) -> DailyConsumption {
         DailyConsumption(

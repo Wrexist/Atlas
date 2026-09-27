@@ -10,7 +10,11 @@ import SwiftUI
 /// logged. This card is the canonical "what did I eat today" surface.
 struct TodaysMealsCard: View {
     let entries: [MealEntry]
+    /// Name of the day being shown when it isn't today ("Yesterday",
+    /// "Mon, Sep 21"); nil keeps the "Today's meals" heading.
+    var dayTitle: String? = nil
     let onEdit: (MealEntry) -> Void
+    let onLogAgain: (MealEntry) -> Void
     let onDelete: (UUID) -> Void
 
     @State private var pendingDelete: MealEntry?
@@ -40,14 +44,14 @@ struct TodaysMealsCard: View {
             }
             Button("Cancel", role: .cancel) { pendingDelete = nil }
         } message: { entry in
-            Text("Subtracts \(entry.calories) kcal from today's totals.")
+            Text("Subtracts \(entry.calories) kcal from that day's totals.")
         }
     }
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text("Today's meals")
+                Text(dayTitle.map { String(localized: "Meals · \($0)") } ?? String(localized: "Today's meals"))
                     .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(0.8)
                     .textCase(.uppercase)
@@ -66,7 +70,7 @@ struct TodaysMealsCard: View {
             Image(systemName: "fork.knife.circle")
                 .font(AppFont.scaled(24, weight: .light))
                 .foregroundStyle(AppColor.textSecondary)
-            Text("Log a meal to see it here. Tap any entry afterwards to edit its category or remove it.")
+            Text("Log a meal to see it here. Tap any entry afterwards to edit or remove it.")
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -80,6 +84,8 @@ struct TodaysMealsCard: View {
             ForEach(entries) { entry in
                 MealEntryRow(entry: entry) {
                     onEdit(entry)
+                } onLogAgain: {
+                    onLogAgain(entry)
                 } onDelete: {
                     pendingDelete = entry
                 }
@@ -96,6 +102,7 @@ struct TodaysMealsCard: View {
 struct MealEntryRow: View {
     let entry: MealEntry
     let onTap: () -> Void
+    let onLogAgain: () -> Void
     let onDelete: () -> Void
 
     private static let timeFormatter: DateFormatter = {
@@ -152,7 +159,10 @@ struct MealEntryRow: View {
             Button {
                 onTap()
             } label: {
-                Label("Edit category", systemImage: "pencil")
+                Label("Edit", systemImage: "pencil")
+            }
+            Button(action: onLogAgain) {
+                Label("Log again", systemImage: "arrow.clockwise")
             }
             Button(role: .destructive, action: onDelete) {
                 Label("Delete", systemImage: "trash")
@@ -160,7 +170,8 @@ struct MealEntryRow: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.accessibilityLabel(for: entry))
-        .accessibilityHint("Opens the entry to edit its category or delete it. Long-press for quick actions.")
+        .accessibilityHint("Opens the entry to edit or delete it. Long-press to log it again.")
+        .accessibilityAction(named: Text("Log again"), onLogAgain)
     }
 
     private var categoryBadge: some View {
