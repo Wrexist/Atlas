@@ -575,7 +575,11 @@ final class ExportService {
         }
     }
 
-    private func csvQuote(_ value: String) -> String {
+    private func csvQuote(_ raw: String) -> String {
+        // Meal names come from Open Food Facts and AI scans; a leading
+        // formula character would execute when the CSV opens in a spreadsheet.
+        let isFormula = raw.first.map { "=+-@\t\r".contains($0) } == true && Double(raw) == nil
+        let value = isFormula ? "'" + raw : raw
         if value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r") {
             return "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\""
         }
