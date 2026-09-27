@@ -25,6 +25,12 @@ final class StoreService {
     /// displayed text — it never changes what's charged.
     private(set) var isEligibleForMonthlyTrial = false
     private(set) var isEligibleForAnnualTrial = false
+    /// True while Apple is retrying a failed renewal charge — either inside
+    /// the billing grace period (Pro still on) or in billing retry after it
+    /// (Pro off). Drives the "update your payment method" banner; Apple's
+    /// guidance is to tell the user so they can fix the card before access
+    /// lapses or the retry window closes.
+    private(set) var isInBillingRetry = false
 
     static let monthlyID = "com.peptidesai.app.pro.monthly"
     static let annualID = "com.peptidesai.app.pro.annual"
@@ -56,6 +62,7 @@ final class StoreService {
                 Self.lifetimeID,
             ])
             await refreshTrialEligibility()
+            await refreshBillingRetryState()
         } catch {
             AppLog.storeKit.error("Failed to load products: \(error.localizedDescription, privacy: .public)")
         }
@@ -181,6 +188,7 @@ final class StoreService {
         case .success(let verification):
             let transaction = try checkVerified(verification)
             await transaction.finish()
+            await scheduleTrialReminderIfNeeded(for: transaction, product: product)
             // Observer mode under StoreKit 2 records nothing on its own:
             // with `purchasesAreCompletedBy: .myApp`, the RevenueCat SDK
             // requires an explicit recordPurchase for each purchase the
@@ -260,7 +268,7 @@ final class StoreService {
     /// flag back at the point a surface actually gates on it.
     var canAccessAIFeatures: Bool { isProUser }
 
-    /// The free tier allows two active protocols; a third needs Pro.
+    /// The free tier allows three active protocols; a fourth needs Pro.
     func requiresPro(activeProtocolCount: Int) -> Bool {
         !isProUser && activeProtocolCount >= 3
     }
@@ -272,6 +280,9 @@ final class StoreService {
             do {
                 let transaction = try checkVerified(result)
                 await transaction.finish()
+                if let product = products.first(where: { $0.id == transaction.productID }) {
+                    await scheduleTrialReminderIfNeeded(for: transaction, product: product)
+                }
                 await updatePurchasedProducts()
             } catch {
                 AppLog.storeKit.error("Transaction.updates verification failed: \(error.localizedDescription, privacy: .public)")
@@ -312,6 +323,37 @@ final class StoreService {
         purchasedProductIDs = purchased
         isProUser = !purchased.isDisjoint(with: proIDs)
         await refreshTrialEligibility()
+        await refreshBillingRetryState()
+    }
+
+    /// Schedules the "trial ends in 2 days" reminder for a transaction that
+    /// started a free-trial introductory offer. Anything else — a paid
+    /// purchase, a renewal, an offer-code redemption — is not a trial the
+    /// user needs warning about.
+    private func scheduleTrialReminderIfNeeded(for transaction: Transaction, product: Product) async {
+        guard transaction.offer?.type == .introductory,
+              transaction.offer?.paymentMode == .freeTrial,
+              transaction.revocationDate == nil,
+              let trialEnd = transaction.expirationDate,
+              let fireDate = TrialReminderEngine.fireDate(trialEnd: trialEnd, now: Date())
+        else { return }
+        let body = TrialReminderEngine.body(price: product.displayPrice, chargeDate: trialEnd)
+        await NotificationService.shared.scheduleTrialReminder(body: body, fireDate: fireDate)
+    }
+
+    /// Re-reads the subscription group's renewal state. `currentEntitlements`
+    /// drops a subscription once it leaves grace and enters plain billing
+    /// retry, so the status API is the only place that state is visible.
+    private func refreshBillingRetryState() async {
+        guard let subscription = (monthlyProduct ?? annualProduct)?.subscription,
+              let statuses = try? await subscription.status
+        else {
+            isInBillingRetry = false
+            return
+        }
+        isInBillingRetry = statuses.contains {
+            $0.state == .inBillingRetryPeriod || $0.state == .inGracePeriod
+        }
     }
 
     /// True when any subscription in the group is inside Apple's billing

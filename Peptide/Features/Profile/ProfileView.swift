@@ -40,7 +40,7 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 0)
 
-                    if storeService.isProUser {
+                    if storeService.isProUser || storeService.isInBillingRetry {
                         SubscriptionSection()
                             .sectionAppear(index: 1)
                     } else {

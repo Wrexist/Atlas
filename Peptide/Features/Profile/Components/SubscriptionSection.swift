@@ -25,6 +25,10 @@ struct SubscriptionSection: View {
                     Spacer(minLength: 0)
                 }
 
+                if storeService.isInBillingRetry && !storeService.hasLifetimeAccess {
+                    billingRetryBanner
+                }
+
                 Text(planCaption)
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
@@ -58,6 +62,37 @@ struct SubscriptionSection: View {
             Button("OK") { restoreError = nil }
         } message: {
             Text(restoreError ?? "")
+        }
+    }
+
+    /// Apple is retrying a failed renewal. Telling the user — and putting the
+    /// fix one tap away — is Apple's own recommendation for billing retry;
+    /// left silent, the subscription lapses on a card they'd have updated.
+    private var billingRetryBanner: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Label {
+                Text("Your payment didn't go through. Update your payment method to keep Atlas Pro.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(AppColor.warning)
+            }
+
+            GlassButton(
+                title: "Update payment method",
+                icon: "creditcard",
+                style: .primary,
+                isFullWidth: true
+            ) {
+                showManageSubscriptions = true
+            }
+        }
+        .padding(Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.warning.opacity(0.12))
         }
     }
 
