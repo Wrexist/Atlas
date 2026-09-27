@@ -57,6 +57,20 @@ struct MealScanFlow: View {
     /// yesterday's bucket (audit Meals HIGH 2). Camera captures
     /// stamp Date() since there's no asset to read from.
     @State private var capturedAtDate: Date = Date()
+    /// Day the Meals screen was showing when the scan started.
+    var logDay: Date = Date()
+
+    /// When the meal is logged. Viewing today keeps the photo's own
+    /// capture time (a photo of last night's dinner lands last night);
+    /// viewing a past day puts it on that day unless the photo was taken
+    /// on it, since the user chose the day explicitly.
+    private var logDate: Date {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(logDay) || calendar.isDate(capturedAtDate, inSameDayAs: logDay) {
+            return capturedAtDate
+        }
+        return LifestyleDataLogic.logTimestamp(on: logDay)
+    }
 
     private enum ImageSource { case camera, library }
 
@@ -695,7 +709,7 @@ struct MealScanFlow: View {
                 // the analyze-finished time. Otherwise a yesterday-
                 // dinner photo picked at 10am gets bucketed as snack
                 // (audit Meals M1).
-                category = MealCategory.auto(for: capturedAtDate)
+                category = MealCategory.auto(for: logDate)
                 phase = .review
                 Haptics.success()
             }
@@ -721,7 +735,7 @@ struct MealScanFlow: View {
             let name = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
             dataStore.logMealEntry(
                 MealEntry(
-                    date: capturedAtDate,
+                    date: logDate,
                     category: category,
                     // Falls back to the model's suggestion, then to a generic
                     // label — an empty diary row would be worse than either.
@@ -742,7 +756,7 @@ struct MealScanFlow: View {
         for item in toLog {
             dataStore.logMealEntry(
                 MealEntry(
-                    date: capturedAtDate,
+                    date: logDate,
                     category: category,
                     name: item.name,
                     calories: item.calories,

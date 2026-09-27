@@ -136,7 +136,7 @@ struct HomeMealsSection: View {
             }
         }
         .sheet(isPresented: $showMealScan) {
-            MealScanFlow(onClose: { showMealScan = false })
+            MealScanFlow(onClose: { showMealScan = false }, logDay: selectedDay)
                 .environment(dataStore)
         }
         .sheet(isPresented: $showBarcodeScan) {
