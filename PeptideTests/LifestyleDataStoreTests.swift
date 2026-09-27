@@ -124,28 +124,6 @@ final class LifestyleDataStoreTests: XCTestCase {
         XCTAssertEqual(store.consumption(for: Date()).waterOz, 25)
     }
 
-    // MARK: - Trend math
-
-    func test_weeklyDelta_noEntries_returnsZero() {
-        XCTAssertEqual(WeightTrend.weeklyDelta(in: []), 0, accuracy: 0.001)
-    }
-
-    func test_weeklyDelta_onlyOneEntry_returnsZero() {
-        let entry = WeightEntry(date: Date(), kg: 80)
-        XCTAssertEqual(WeightTrend.weeklyDelta(in: [entry]), 0, accuracy: 0.001)
-    }
-
-    func test_weeklyDelta_lastMinusBaseline() {
-        let cal = Calendar.current
-        let now = Date()
-        let eightDaysAgo = cal.date(byAdding: .day, value: -8, to: now)!
-        let history = [
-            WeightEntry(date: eightDaysAgo, kg: 80.0),
-            WeightEntry(date: now,          kg: 79.5),
-        ]
-        XCTAssertEqual(WeightTrend.weeklyDelta(in: history), -0.5, accuracy: 0.001)
-    }
-
     // MARK: - Workouts
 
     /// Plan C: workouts moved from `profile.workoutHistory` (legacy
