@@ -132,7 +132,7 @@ Rest timer fires automatically and sends a Lock Screen alert when you're ready.
 NUTRITION
 Snap a photo and Atlas identifies the food. Scan a barcode from 200 million+
 products. Either way, macros are logged in seconds.
-• AI photo meal scanner — photo analyzed, never stored by Atlas
+• AI photo meal scanner — 3 free scans a week, never stored by Atlas
 • 200M+ product barcode database (Open Food Facts)
 • Daily calorie and macro rings with TDEE-based targets
 • Custom food library and recipe tracking
@@ -172,13 +172,13 @@ Research and self-tracking only. Medical disclaimer required at first launch.
 ——
 
 ATLAS PRO
+• Unlimited AI meal photo scans (3 free every week)
+• Performance Age + full Biology tab — body composition + lab panels
+• AI Research assistant and the Sunday AI weekly recap
 • Unlimited active protocols
-• Full Biology tab — body composition + lab panels
-• AI Research assistant (RAG-backed peptide database chat)
-• Cloud sync across all your devices via iCloud
-• Apple Watch companion app
-• All Home Screen widgets + Live Activities (Dynamic Island)
-• Full data export (CSV and JSON)
+• Full data export (CSV, JSON and PDF)
+
+Always free: workouts, barcodes, recovery, iCloud sync, Watch and widgets.
 
 Monthly $9.99 · Annual $49.99 (save 58%) · Lifetime $169
 Free trial: 7 days on Monthly and Annual · Cancel anytime
@@ -212,7 +212,7 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 948 / 4 000 — 52 chars of headroom. The SUBSCRIPTION TERMS block and
+*(3 963 / 4 000 — 37 chars of headroom. The SUBSCRIPTION TERMS block and
 both links are required by Guideline 3.1.2 — do not trim them to make room
 for copy.)*
 

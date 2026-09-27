@@ -175,24 +175,20 @@ v2.0 (Data & sync) ────────┼─→ v2.5 (Growth & retention)
 ## Monetization
 
 ### Free tier
+- Workouts, training history and PRs
 - Up to 3 active protocols
 - Full peptide database (208 peptides)
-- Hero metric trio + coaching (basic)
-- Health Monitor grid (HRV / RHR / Sleep)
-- Basic analytics (weekly view)
-- Local persistence
+- Barcode food logging, plus 3 AI meal photo scans a week
+- Recovery trends (HRV / RHR / Sleep)
+- iCloud sync, Apple Watch, widgets and Live Activities
 - Dose reminders
-- 1 widget
 
 ### Atlas Pro ($9.99/mo, $49.99/yr, or $169 lifetime)
 
+- Unlimited AI meal photo scans
 - Unlimited protocols
-- Full analytics + HealthKit correlation + export
+- Performance Age + full Biology tab (body composition, lab panels)
 - AI Research chat
-- AI weekly summary
-- Cycle Card share with health signals
-- All widgets + Apple Watch
-- Cloud sync + backup _(planned, v2.0)_
-- Performance Age + Biology tab _(planned, v1.3)_
-- Community features + templates _(planned, v3.0)_
-- 7-day free trial (monthly), 14-day (annual)
+- AI weekly recap
+- Full data export (CSV, JSON, PDF)
+- 7-day free trial on monthly and annual
