@@ -76,7 +76,7 @@ struct LanguagePickerSheet: View {
                             .foregroundStyle(AppColor.glassBorder)
                             .padding(.vertical, Spacing.xs)
 
-                        ForEach(AppLanguage.allCases) { language in
+                        ForEach(AppLanguage.shipped) { language in
                             LanguageRow(
                                 flag: language.flag,
                                 nativeName: language.nativeName,

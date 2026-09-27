@@ -25,7 +25,10 @@ final class LocalizationManager: @unchecked Sendable {
     }
 
     private init() {
-        self.selectedCode = UserDefaults.standard.string(forKey: Self.defaultsKey)
+        // A code saved while the picker offered languages the build does not
+        // ship would leave the app English-but-RTL for Arabic, so drop it.
+        let stored = UserDefaults.standard.string(forKey: Self.defaultsKey)
+        self.selectedCode = AppLanguage.shipped.contains { $0.rawValue == stored } ? stored : nil
     }
 
     var selectedLanguage: AppLanguage? {
@@ -104,6 +107,12 @@ enum AppLanguage: String, CaseIterable, Identifiable, Hashable {
     }
 
     var isRTL: Bool { self == .arabic }
+
+    /// Languages this build has an `.lproj` for. Only English ships today
+    /// (see `project.yml`), so the picker stays hidden until a translation lands.
+    static var shipped: [AppLanguage] {
+        allCases.filter { Bundle.main.localizations.contains($0.rawValue) }
+    }
 
     static func from(code: String?) -> AppLanguage? {
         guard let code else { return nil }

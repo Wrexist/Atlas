@@ -74,9 +74,11 @@ struct AppearanceSettings: View {
 
                 Divider().foregroundStyle(AppColor.glassBorder)
 
-                LanguagePickerRow()
+                if AppLanguage.shipped.count > 1 {
+                    LanguagePickerRow()
 
-                Divider().foregroundStyle(AppColor.glassBorder)
+                    Divider().foregroundStyle(AppColor.glassBorder)
+                }
 
                 MeasurementUnitRow(selection: $store.profile.bodyMetrics.unit)
                     .onChange(of: dataStore.profile.bodyMetrics.unit) { _, _ in
