@@ -15,6 +15,7 @@ Baseline before any change: `scripts/check.sh --quick` green (design lint
 | Area | Fix |
 |---|---|
 | Privacy / 5.1.3 | AI weekly recap now defaults **off** (it sends HRV to Anthropic; Info.plist and privacy.html already promised opt-in). The toggle names the recipient. |
+| Privacy / 5.1.2(i) | One-time consent sheet naming Anthropic before the first research-chat message or before the camera/library opens for a meal scan; revocable in Profile › About › Privacy at a glance. |
 | App Review 1.4.1 / 2.3.1 | The 12 bundled "Community Stacks" credited invented doctors ("Dr. M. Reyes, MD"), showed invented popularity scores and made efficacy claims. They are now "Atlas Editorial" research summaries with hedged wording, no scores, a disclaimer at "Use this stack", and the library is renamed "Stack Library". |
 | App Review 1.4.1 | Calendar showed the database research range as the user's scheduled dose when none was set; now "Dose not set". |
 | App Review 3.1.2(c) | Yearly plan headlined the per-month figure; the billed amount ($49.99/yr) now leads on both `PaywallView` and `TrialOfferView`. |
