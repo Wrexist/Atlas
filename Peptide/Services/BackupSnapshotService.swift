@@ -36,11 +36,15 @@ enum BackupSnapshotService {
     /// file. Returns the URL on success, nil on failure (no-op for
     /// the import path — a failed snapshot shouldn't block the
     /// import, just remove the safety net).
+    ///
+    /// `now` names the file and stamps the backup. File names have
+    /// one-second resolution, so tests inject distinct instants rather
+    /// than sleeping between writes.
     @discardableResult
-    static func snapshotCurrentState(dataStore: DataStore) -> URL? {
+    static func snapshotCurrentState(dataStore: DataStore, now: Date = Date()) -> URL? {
         guard let directory = snapshotDirectory() else { return nil }
 
-        let timestamp = Int(Date().timeIntervalSince1970)
+        let timestamp = Int(now.timeIntervalSince1970)
         let url = directory.appendingPathComponent(
             "\(fileNamePrefix)\(timestamp).\(fileExtension)"
         )
@@ -49,7 +53,7 @@ enum BackupSnapshotService {
         // backup didn't carry, so the pre-apply safety net must capture
         // them too — a v1-shaped snapshot couldn't roll those back.
         let backup = AppBackup(
-            exportDate: Date(),
+            exportDate: now,
             version: "2.0",
             protocols: dataStore.protocols,
             entries: dataStore.entries,

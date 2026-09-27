@@ -37,6 +37,16 @@ final class BarcodeProductCacheTests: XCTestCase {
         )
     }
 
+    /// Backdates a cache entry's modification date — the cache's only
+    /// notion of recency — so ordering tests need no sleeps.
+    private func setModified(_ barcode: String, secondsAgo: TimeInterval) throws {
+        let url = tempDir.appendingPathComponent("\(barcode).json")
+        try FileManager.default.setAttributes(
+            [.modificationDate: Date().addingTimeInterval(-secondsAgo)],
+            ofItemAtPath: url.path
+        )
+    }
+
     // MARK: - Round-trip
 
     func test_read_returnsNil_forUnknownBarcode() async {
@@ -138,12 +148,13 @@ final class BarcodeProductCacheTests: XCTestCase {
     func test_recent_returnsMostRecentlyWrittenFirst() async throws {
         let cache = makeCache()
         await cache.write(sample(barcode: "1111111111111"))
-        // Force a measurable mtime gap so the ordering is deterministic
-        // on file systems that don't store sub-second resolution.
-        try await Task.sleep(for: .milliseconds(1100))
         await cache.write(sample(barcode: "2222222222222"))
-        try await Task.sleep(for: .milliseconds(1100))
         await cache.write(sample(barcode: "3333333333333"))
+        // Pin distinct mtimes (all inside the TTL) so the ordering doesn't
+        // depend on the file system's timestamp resolution.
+        try setModified("1111111111111", secondsAgo: 30)
+        try setModified("2222222222222", secondsAgo: 20)
+        try setModified("3333333333333", secondsAgo: 10)
 
         let recent = await cache.recent(limit: 5)
         XCTAssertEqual(recent.map(\.barcode), ["3333333333333", "2222222222222", "1111111111111"])
@@ -170,11 +181,13 @@ final class BarcodeProductCacheTests: XCTestCase {
     func test_write_evictsOldestWhenAboveCap() async throws {
         let cache = BarcodeProductCache(directory: tempDir, ttl: 60 * 60, maxEntries: 3)
         await cache.write(sample(barcode: "1111111111111"))
-        try await Task.sleep(for: .milliseconds(1100))
         await cache.write(sample(barcode: "2222222222222"))
-        try await Task.sleep(for: .milliseconds(1100))
         await cache.write(sample(barcode: "3333333333333"))
-        try await Task.sleep(for: .milliseconds(1100))
+        // Pin #1 as the oldest; #4 is written with the real clock, which
+        // is newer than all three.
+        try setModified("1111111111111", secondsAgo: 30)
+        try setModified("2222222222222", secondsAgo: 20)
+        try setModified("3333333333333", secondsAgo: 10)
         await cache.write(sample(barcode: "4444444444444"))      // pushes #1 out
 
         let one   = await cache.read(barcode: "1111111111111")

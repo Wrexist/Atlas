@@ -295,8 +295,11 @@ final class PersistenceRoundTripTests: XCTestCase {
 
     func test_logMealEntry_appendsHistoryAndUpdatesAggregateInLockstep() throws {
         var profile = UserProfile.fresh
+        // One instant for the log and the read-back: two `Date()` calls
+        // straddling midnight would bucket into different days.
+        let now = Date()
         let entry = MealEntry(
-            date: Date(),
+            date: now,
             category: .lunch,
             name: "Chicken bowl",
             calories: 500,
@@ -309,7 +312,7 @@ final class PersistenceRoundTripTests: XCTestCase {
         LifestyleDataLogic.logMealEntry(into: &profile, entry: entry)
 
         XCTAssertEqual(profile.mealHistory.count, 1)
-        let today = LifestyleDataLogic.consumption(in: profile, for: Date())
+        let today = LifestyleDataLogic.consumption(in: profile, for: now)
         XCTAssertEqual(today.caloriesKcal, 500)
         XCTAssertEqual(today.proteinG, 40)
         XCTAssertEqual(today.carbsG, 50)
@@ -339,12 +342,13 @@ final class PersistenceRoundTripTests: XCTestCase {
 
     func test_mealsByCategory_bucketsEntriesAndCapturesLegacyAggregateAsOther() throws {
         var profile = UserProfile.fresh
+        let now = Date()
         let breakfast = MealEntry(
-            date: Date(), category: .breakfast, name: "Oats",
+            date: now, category: .breakfast, name: "Oats",
             calories: 300, proteinG: 12, carbsG: 50, fatG: 5, source: .custom
         )
         let dinner = MealEntry(
-            date: Date(), category: .dinner, name: "Steak",
+            date: now, category: .dinner, name: "Steak",
             calories: 600, proteinG: 45, carbsG: 0, fatG: 35, source: .openFoodFacts
         )
         LifestyleDataLogic.logMealEntry(into: &profile, entry: breakfast)
@@ -354,10 +358,10 @@ final class PersistenceRoundTripTests: XCTestCase {
         LifestyleDataLogic.logMeal(
             into: &profile,
             calories: 200, proteinG: 5, carbsG: 30, fatG: 4,
-            date: Date()
+            date: now
         )
 
-        let breakdown = LifestyleDataLogic.mealsByCategory(in: profile, for: Date())
+        let breakdown = LifestyleDataLogic.mealsByCategory(in: profile, for: now)
         XCTAssertEqual(breakdown.breakfast.calories, 300)
         XCTAssertEqual(breakdown.breakfast.entryCount, 1)
         XCTAssertEqual(breakdown.dinner.calories, 600)
@@ -368,12 +372,13 @@ final class PersistenceRoundTripTests: XCTestCase {
     }
 
     func test_mealCategory_autoForDate_picksByHour() {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: Date())
-        let morning = cal.date(byAdding: .hour, value: 8, to: today)!
-        let noon    = cal.date(byAdding: .hour, value: 12, to: today)!
-        let evening = cal.date(byAdding: .hour, value: 18, to: today)!
-        let lateNight = cal.date(byAdding: .hour, value: 23, to: today)!
+        // Wall-clock hours on a fixed day. Adding elapsed hours to
+        // `startOfDay(Date())` read 22:00 for "+23h" on a DST fall-back
+        // day and flipped the snack case to dinner.
+        let morning   = Self.localDate(hour: 8)
+        let noon      = Self.localDate(hour: 12)
+        let evening   = Self.localDate(hour: 18)
+        let lateNight = Self.localDate(hour: 23)
         XCTAssertEqual(MealCategory.auto(for: morning), .breakfast)
         XCTAssertEqual(MealCategory.auto(for: noon),    .lunch)
         XCTAssertEqual(MealCategory.auto(for: evening), .dinner)
@@ -382,8 +387,9 @@ final class PersistenceRoundTripTests: XCTestCase {
 
     func test_updateMealEntry_changesCategoryWithoutShiftingAggregate() throws {
         var profile = UserProfile.fresh
+        let now = Date()
         let original = MealEntry(
-            date: Date(),
+            date: now,
             category: .lunch,
             name: "Chicken",
             calories: 400,
@@ -393,7 +399,7 @@ final class PersistenceRoundTripTests: XCTestCase {
             source: .openFoodFacts
         )
         LifestyleDataLogic.logMealEntry(into: &profile, entry: original)
-        let before = LifestyleDataLogic.consumption(in: profile, for: Date())
+        let before = LifestyleDataLogic.consumption(in: profile, for: now)
 
         // Recategorize same entry — aggregate must not move because
         // only the category bucket changed.
@@ -402,10 +408,10 @@ final class PersistenceRoundTripTests: XCTestCase {
         if let index = profile.mealHistory.firstIndex(where: { $0.id == original.id }) {
             profile.mealHistory[index] = updated
         }
-        let after = LifestyleDataLogic.consumption(in: profile, for: Date())
+        let after = LifestyleDataLogic.consumption(in: profile, for: now)
         XCTAssertEqual(before.caloriesKcal, after.caloriesKcal)
 
-        let breakdown = LifestyleDataLogic.mealsByCategory(in: profile, for: Date())
+        let breakdown = LifestyleDataLogic.mealsByCategory(in: profile, for: now)
         XCTAssertEqual(breakdown.lunch.calories, 0)
         XCTAssertEqual(breakdown.dinner.calories, 400)
     }
@@ -754,7 +760,8 @@ final class PersistenceRoundTripTests: XCTestCase {
 
     func test_cyclePhaseEngine_beforeStart_reportsUpcoming() {
         let calendar = Calendar.current
-        let futureStart = calendar.date(byAdding: .day, value: 5, to: calendar.startOfDay(for: Date()))!
+        let today = calendar.startOfDay(for: Date())
+        let futureStart = calendar.date(byAdding: .day, value: 5, to: today)!
         let proto = PeptideProtocol(
             id: UUID(),
             name: "Future",
@@ -770,7 +777,7 @@ final class PersistenceRoundTripTests: XCTestCase {
             status: .active,
             notes: ""
         )
-        if case .upcoming(let days) = CyclePhaseEngine.status(for: proto).phase {
+        if case .upcoming(let days) = CyclePhaseEngine.status(for: proto, at: today).phase {
             XCTAssertEqual(days, 5)
         } else { XCTFail("Expected upcoming") }
     }
@@ -814,9 +821,12 @@ final class PersistenceRoundTripTests: XCTestCase {
         // LA → NY: +3 hours (clock moves forward by 3).
         let la = TimeZone(identifier: "America/Los_Angeles")!
         let ny = TimeZone(identifier: "America/New_York")!
+        // Pinned instant: on a US DST changeover night the two zones
+        // switch an hour apart, so the live offset gap is briefly 2 or 4.
         let change = TimezoneChangeDetector.detect(
             previousIdentifier: la.identifier,
-            currentZone: ny
+            currentZone: ny,
+            at: Date(timeIntervalSince1970: 1_715_000_000)
         )
         XCTAssertNotNil(change)
         XCTAssertEqual(change?.hoursDelta, 3)
@@ -850,7 +860,10 @@ final class PersistenceRoundTripTests: XCTestCase {
 
     func test_streakFreeze_isLimitedToOnePerMonth() {
         var profile = UserProfile.fresh
-        let today = Date()
+        // Mid-month, so yesterday and two days ago share today's month.
+        // With a live `Date()` this failed on the 1st and 2nd of every
+        // month, when the freeze landed in the previous month's budget.
+        let today = Self.localDate(hour: 12)
         XCTAssertTrue(StreakFreezeService.hasFreezeAvailable(in: profile, now: today))
 
         let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
@@ -1470,5 +1483,13 @@ final class PersistenceRoundTripTests: XCTestCase {
             researchLinks: [],
             imageSystemName: "cross.vial.fill"
         )
+    }
+
+    /// A fixed wall-clock time on 2026-03-15 in the host calendar — a
+    /// mid-month day with no DST transition in the US or EU. Production
+    /// buckets by `Calendar.current`, so the fixture uses it too; pinning
+    /// the date rather than the zone is what removes the flakiness.
+    private static func localDate(hour: Int) -> Date {
+        Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 15, hour: hour))!
     }
 }

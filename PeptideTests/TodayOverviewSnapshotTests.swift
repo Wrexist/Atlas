@@ -42,21 +42,25 @@ final class TodayOverviewSnapshotTests: XCTestCase {
 
     func test_build_withTodayOutcome_populatesCompositeScore() throws {
         let store = DataStore(seedSampleData: false)
+        // One captured instant for both the log and the build, so a run
+        // straddling midnight can't put them on different days.
+        let now = Date()
         store.logOutcome(
-            OutcomeEntry(date: Date(), energy: 4, sleepQuality: 5, recovery: 4, mood: 4, focus: 3)
+            OutcomeEntry(date: now, energy: 4, sleepQuality: 5, recovery: 4, mood: 4, focus: 3)
         )
-        let snapshot = TodayOverviewSnapshot.build(from: store)
+        let snapshot = TodayOverviewSnapshot.build(from: store, now: now)
         XCTAssertNotNil(snapshot.checkInScore)
         XCTAssertEqual(try XCTUnwrap(snapshot.checkInScore), 4.0, accuracy: 0.001)
     }
 
     func test_build_outcomeFromYesterday_doesNotPopulateTodayScore() {
         let store = DataStore(seedSampleData: false)
-        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        let now = Date()
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: now)!
         store.logOutcome(
             OutcomeEntry(date: yesterday, energy: 5, sleepQuality: 5, recovery: 5, mood: 5, focus: 5)
         )
-        let snapshot = TodayOverviewSnapshot.build(from: store)
+        let snapshot = TodayOverviewSnapshot.build(from: store, now: now)
         XCTAssertNil(snapshot.checkInScore)
     }
 
@@ -150,9 +154,10 @@ final class TodayOverviewSnapshotTests: XCTestCase {
         // Lab older than 60 days shouldn't surface as the insight —
         // the staleness implies the user has moved on, and the
         // calorie-target nudge is more actionable.
-        let oldDate = Calendar.current.date(byAdding: .day, value: -120, to: Date())!
+        let now = Date()
+        let oldDate = Calendar.current.date(byAdding: .day, value: -120, to: now)!
         store.saveLabValue(LabValue(date: oldDate, panel: .totalTestosterone, value: 712))
-        let snapshot = TodayOverviewSnapshot.build(from: store)
+        let snapshot = TodayOverviewSnapshot.build(from: store, now: now)
         XCTAssertNotNil(snapshot.latestLab) // still surfaced in the lab field
         if case .latestLab = snapshot.bottomInsight {
             XCTFail("Stale lab should not surface as bottom insight")

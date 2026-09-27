@@ -40,10 +40,13 @@ final class WorkoutSessionService {
     /// instead of being replaced. The destructive "discard the old
     /// workout to start a new one" path is reserved for the explicit
     /// UI alert that confirms the action.
+    ///
+    /// `now` is the start instant, injectable so the duplicate window can
+    /// be tested without waiting it out.
     @discardableResult
-    func startWorkout(routine: Routine? = nil) -> WorkoutSession {
+    func startWorkout(routine: Routine? = nil, now: Date = Date()) -> WorkoutSession {
         if let existing = activeSession {
-            if existing.startedAt.timeIntervalSinceNow > -Self.duplicateStartWindow {
+            if existing.startedAt.timeIntervalSince(now) > -Self.duplicateStartWindow {
                 // Recently-started session — collapse the duplicate
                 // start (deep link + tab tap, two finger taps on the
                 // CTA, etc.) into the existing session instead of
@@ -63,7 +66,7 @@ final class WorkoutSessionService {
         let session = WorkoutSession(
             name: routine?.name,
             routineID: routine?.id,
-            startedAt: Date(),
+            startedAt: now,
             exercises: exercises
         )
         activeSession = session

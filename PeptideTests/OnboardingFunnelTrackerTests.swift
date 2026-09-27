@@ -72,10 +72,10 @@ final class OnboardingFunnelTrackerTests: XCTestCase {
     }
 
     func test_recordEvent_preservesChronologicalOrder() {
+        // Order is append order, not timestamp order, so no gap is needed
+        // between calls.
         OnboardingFunnelTracker.recordEvent("first")
-        Thread.sleep(forTimeInterval: 0.01)
         OnboardingFunnelTracker.recordEvent("second")
-        Thread.sleep(forTimeInterval: 0.01)
         OnboardingFunnelTracker.recordEvent("third")
 
         let names = OnboardingFunnelTracker.snapshot.events.map(\.name)
