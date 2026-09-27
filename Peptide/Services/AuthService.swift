@@ -216,35 +216,156 @@ final class AuthService {
         isSignedIn      = false
     }
 
-    // MARK: - Delete Account
+    // MARK: - Delete Account / Delete All Data
 
-    /// Removes the Apple ID linkage and erases user-generated content
-    /// (protocols, entries, profile). Required by Apple Guideline 5.1.1(v).
-    ///
-    /// Without a developer-operated backend there is nothing to revoke
-    /// server-side; users can revoke the Apple ID token at appleid.apple.com
-    /// if desired. SwiftData mutations propagate to the user's private
-    /// CloudKit zone automatically when iCloud sync is active.
+    enum AccountDeletionOutcome: Equatable {
+        /// Data erased and the Sign in with Apple token revoked.
+        case deleted
+        /// Data erased, but the token could not be revoked (no revoke
+        /// endpoint in this build, or Apple / the proxy failed), so the user
+        /// has to remove Atlas under Settings → Apple ID themselves.
+        case deletedRevokeManually
+        /// The user dismissed the Apple re-authentication; nothing changed.
+        case cancelled
+    }
+
+    private enum ReauthResult {
+        case code(String)
+        case cancelled
+        case unavailable
+    }
+
+    /// Account deletion as the UI runs it: revoke the Sign in with Apple
+    /// token (Guideline 5.1.1(v) requires it), then erase. Revocation needs
+    /// a fresh authorization code, so Apple's sheet is shown once more;
+    /// dismissing it cancels the deletion rather than half-doing it.
+    func deleteAccountRevokingApple() async -> AccountDeletionOutcome {
+        guard isSignedIn else { return .cancelled }
+        var revoked = false
+        if let endpoint = MealScannerService.urlSetting(forKey: "APPLE_REVOKE_ENDPOINT"),
+           let secret = MealScannerService.stringSetting(forKey: "APPLE_REVOKE_SECRET") {
+            switch await freshAuthorizationCode() {
+            case .cancelled:
+                return .cancelled
+            case .code(let code):
+                revoked = await Self.revoke(code: code, endpoint: endpoint, secret: secret)
+            case .unavailable:
+                break
+            }
+        }
+        deleteAccount()
+        return revoked ? .deleted : .deletedRevokeManually
+    }
+
+    private func freshAuthorizationCode() async -> ReauthResult {
+        await withCheckedContinuation { continuation in
+            let coordinator = AppleSignInCoordinator { [weak self] result in
+                self?.coordinator = nil
+                switch result {
+                case .success(let authorization):
+                    guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                          let data = credential.authorizationCode,
+                          let code = String(data: data, encoding: .utf8)
+                    else {
+                        continuation.resume(returning: .unavailable)
+                        return
+                    }
+                    continuation.resume(returning: .code(code))
+                case .failure(let error):
+                    let canceled = (error as? ASAuthorizationError)?.code == .canceled
+                    continuation.resume(returning: canceled ? .cancelled : .unavailable)
+                }
+            }
+            self.coordinator = coordinator
+            coordinator.start()
+        }
+    }
+
+    private static func revoke(code: String, endpoint: URL, secret: String) async -> Bool {
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 20
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(secret, forHTTPHeaderField: "X-Peptide-Proxy")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["authorizationCode": code])
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            return (response as? HTTPURLResponse)?.statusCode == 204
+        } catch {
+            AppLog.auth.error("Apple token revoke failed: \(error.localizedDescription, privacy: .private)")
+            return false
+        }
+    }
+
+    /// Removes the Apple ID linkage and erases user-generated content,
+    /// without revoking the Apple token — `deleteAccountRevokingApple()`
+    /// is the full flow the UI uses.
     func deleteAccount() {
-        // Guarded so a guest session (no Sign in with Apple) can't accidentally
-        // wipe local data via this entry point. Apple Guideline 5.1.1(v)
-        // applies to *account* deletion — guests have no account to delete and
-        // can clear their data via "Reset App Data" in Settings.
+        // Guarded so this entry point stays an *account* action. Guests
+        // have no account to delete and erase their data through
+        // `deleteAllData()` ("Delete All Data" in Settings → Account).
         guard isSignedIn else {
             AppLog.auth.warning("deleteAccount called without an active sign-in; ignored.")
             return
         }
+        eraseAllLocalData()
+        signOut()
+    }
+
+    /// "Delete All Data" — available to every user, guest or signed in.
+    /// Same erasure as `deleteAccount()`; a signed-in user is also signed
+    /// out so no identity outlives the data it was attached to.
+    func deleteAllData() {
+        eraseAllLocalData()
+        if isSignedIn { signOut() }
+    }
+
+    /// Erases every user-generated artifact on this device and resets the
+    /// running `DataStore` to a clean slate.
+    ///
+    /// Covers the SwiftData store (propagates to the private CloudKit zone
+    /// when iCloud sync is on), legacy JSON and the archived `.migrated`
+    /// safety nets (name, email, body metrics), custom peptides, the widget
+    /// snapshot, progress photos, pre-restore backup snapshots and any
+    /// export file still in the temp directory. HealthKit samples are
+    /// deliberately untouched — Health data belongs to the user's Health
+    /// app, and deleting it there is theirs to decide (see
+    /// docs/DATA_ERASURE_POLICY.md).
+    func eraseAllLocalData() {
+        let store = DataStore.current
+        // Commit (then wipe) any debounced save first: left pending, it
+        // would fire after the erase and write the old in-memory state
+        // straight back to disk.
+        store?.flushPendingSave()
+        // An in-progress workout lives in memory; left alone, its next
+        // set edit would persist it straight back into the wiped store.
+        WorkoutSessionService.shared.discardWorkout()
         SwiftDataRepository.shared.deleteAll()
-        // Guideline 5.1.1(v) erasure has to reach every user-generated
-        // artifact, not just the SwiftData store: legacy JSON and the
-        // archived `.migrated` safety nets (name, email, body metrics),
-        // custom peptides, the widget snapshot, and progress photos.
-        // HealthKit samples are deliberately untouched — Health data
-        // belongs to the user's Health app, and deleting it there is
-        // theirs to decide (see docs/DATA_ERASURE_POLICY.md).
         PersistenceService.shared.clearAll()
         ProgressPhotoStorage.deleteAll()
-        signOut()
+        BackupSnapshotService.deleteAll()
+        ExportService.shared.clearExports()
+        // Records kept outside the main stores: pending reminders carry
+        // protocol names and times, Live Activities show doses, and
+        // achievements and barcode history sit in UserDefaults.
+        NotificationService.shared.cancelAll()
+        DoseLiveActivityService.shared.endAll()
+        AchievementService.shared.eraseAll()
+        Task { await BarcodeScanHistory.shared.removeAll() }
+        if let store { resetInMemoryState(of: store) }
+    }
+
+    /// Drops the erased data from memory so no screen keeps showing it and
+    /// no later save resurrects it — the same clear-then-reload shape
+    /// `DataStore` uses when the iCloud identity changes. `reloadFromDisk`
+    /// reads the now-empty store and republishes the widget and Watch
+    /// snapshots so those surfaces empty too.
+    private func resetInMemoryState(of store: DataStore) {
+        store.protocols = []
+        store.entries = []
+        store.profile = .fresh
+        store.customPeptides = []
+        store.reloadFromDisk()
     }
 
     // MARK: - Credential Validation

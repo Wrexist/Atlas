@@ -20,6 +20,12 @@ real Anthropic API is reached one hop away.
 | `POST /api/ai-research`      | Multi-turn research chat           | AIResearchService     |
 | `POST /api/weekly-summary`   | AI weekly recap (prompt-cached)    | WeeklySummaryService  |
 | `GET/POST /api/attest-register` | App Attest key registration     | AppAttestService      |
+| `POST /api/apple-revoke`     | Revoke Sign in with Apple on account deletion | AuthService |
+
+`apple-revoke` needs `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`
+(the Sign in with Apple `.p8`, `\n` escapes allowed) and `APPLE_CLIENT_ID`
+(the bundle ID); without them it answers 503 and the app tells the user to
+remove Atlas under Settings → Apple ID → Sign in with Apple.
 
 The AI routes share `_lib/anthropic-proxy.js` — auth, per-IP rate
 limit, App Attest gate, body sanitisation, model allowlist, and the

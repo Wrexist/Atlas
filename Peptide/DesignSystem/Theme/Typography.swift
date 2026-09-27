@@ -2,10 +2,10 @@ import SwiftUI
 import UIKit
 
 /// App typography ramp. All standard styles use `Font.system(_:design:weight:)`
-/// with a TextStyle so they participate in Dynamic Type. The hero stat values
-/// remain at fixed sizes — they're already very large and bumping them with
-/// Larger Accessibility Sizes breaks layout in compact tiles. Treat them as
-/// presentational glyphs, not body copy.
+/// with a TextStyle so they participate in Dynamic Type. The design-specific
+/// sizes below the ramp (badges, chips, eyebrows, hero stats) route through
+/// `scaled(_:weight:design:relativeTo:)`, so they render at their designed
+/// point size at the default content size and grow with the user's setting.
 ///
 /// For the many one-off sizes the design calls for (badges, chips, dense row
 /// labels), use `AppFont.scaled(_:weight:design:)` rather than a bare
@@ -55,32 +55,29 @@ enum AppFont {
     static let footnote    = Font.system(.footnote,                      weight: .regular)
     static let caption     = Font.system(.caption2,                      weight: .regular)
 
-    // Hero stats — fixed size on purpose. Use `@ScaledMetric` at the callsite
-    // if you need them to scale within a specific layout.
-    static let statValue      = Font.system(size: 48, weight: .bold, design: .rounded)
-    static let statValueSmall = Font.system(size: 32, weight: .bold, design: .rounded)
-    static let scoreLarge     = Font.system(size: 64, weight: .bold, design: .rounded)
+    // Hero stats. Computed so they re-read the content-size category on each
+    // `body` pass; scaled along `.largeTitle`, whose ramp grows gently.
+    static var statValue: Font      { scaled(48, weight: .bold, design: .rounded, relativeTo: .largeTitle) }
+    static var statValueSmall: Font { scaled(32, weight: .bold, design: .rounded, relativeTo: .largeTitle) }
 
-    // Badges / chips — fixed sizes for dense iconography that would feel
-    // oversized at the standard Dynamic Type ramp. Use sparingly and only
-    // for tightly-constrained UI like count pills, status chips, and the
-    // little flags inside list rows.
+    // Badges / chips for dense UI like count pills, status chips, and the
+    // little flags inside list rows. Scaled along `.caption1` so they grow
+    // more gently than body copy.
     //
     // These were 10 / 11 / 12pt, which is three sizes nobody can tell apart
     // and one more reason the app carried thirty of them. They're one size
     // now; the distinction they were reaching for is weight, which is the
     // cheaper axis anyway.
-    static let badge          = Font.system(size: Scale.badge, weight: .bold)
-    static let badgeSmall     = Font.system(size: Scale.badge, weight: .semibold)
-    static let chipText       = Font.system(size: Scale.caption, weight: .semibold)
+    static var badge: Font      { scaled(Scale.badge, weight: .bold, relativeTo: .caption1) }
+    static var badgeSmall: Font { scaled(Scale.badge, weight: .semibold, relativeTo: .caption1) }
+    static var chipText: Font   { scaled(Scale.caption, weight: .semibold, relativeTo: .caption1) }
 
     /// Tiny heavy uppercase-style eyebrow label used above stats and in
-    /// dense list rows. Fixed size so it stays a crisp glyph at the
-    /// standard ramp.
-    static let eyebrow        = Font.system(size: Scale.badge, weight: .heavy)
+    /// dense list rows.
+    static var eyebrow: Font    { scaled(Scale.badge, weight: .heavy, relativeTo: .caption1) }
     /// Section/stat header that sits between `title2` and `statValueSmall`
     /// — used for the headline number on detail screens.
-    static let statHeader     = Font.system(size: 28, weight: .bold, design: .rounded)
+    static var statHeader: Font { scaled(28, weight: .bold, design: .rounded, relativeTo: .title1) }
 
     /// A system font at `size`, scaled for the user's Dynamic Type setting.
     ///

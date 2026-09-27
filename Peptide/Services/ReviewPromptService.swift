@@ -23,6 +23,9 @@ final class ReviewPromptService {
     private let minDaysSinceInstall = 3
     private let minLaunches = 4
     private let minDaysBetweenPrompts = 90
+    /// Marks the start of this app session — the singleton is first
+    /// touched by `recordLaunch()` on the first `.active` transition.
+    private let sessionStart = Date()
 
     private init() {
         if defaults.object(forKey: installDateKey) == nil {
@@ -37,9 +40,32 @@ final class ReviewPromptService {
 
     /// Asks iOS to show the review sheet only if the user is engaged, the app
     /// hasn't asked recently, and we haven't already asked on this version.
+    /// Also skipped for the rest of a session in which a paywall was shown:
+    /// asking for a rating right after an upsell reads as a pressure
+    /// sequence, and the user's mood at that moment is not the milestone's.
     func requestReviewIfEligible(using request: RequestReviewAction) {
-        guard isEligible else { return }
+        guard isEligible, !paywallShownThisSession else { return }
         fire(request)
+    }
+
+    /// Finishing a workout is worth a prompt when it set a personal record
+    /// or was the user's third — early enough to catch a new habit, late
+    /// enough that the user knows what they are rating.
+    static func isWorkoutReviewMoment(detectedPRCount: Int, completedWorkoutCount: Int) -> Bool {
+        detectedPRCount > 0 || completedWorkoutCount == 3
+    }
+
+    /// `PaywallView` records `paywall_viewed_<source>` on every appearance;
+    /// reading that log keeps this check out of the paywall itself.
+    static func paywallViewed(
+        in events: [OnboardingFunnelTracker.EventEntry],
+        since start: Date
+    ) -> Bool {
+        events.contains { $0.timestamp >= start && $0.name.hasPrefix("paywall_viewed_") }
+    }
+
+    private var paywallShownThisSession: Bool {
+        Self.paywallViewed(in: OnboardingFunnelTracker.snapshot.events, since: sessionStart)
     }
 
     /// Used when the user explicitly taps a "Rate the app" CTA (e.g. the

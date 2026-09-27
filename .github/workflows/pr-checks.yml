@@ -88,7 +88,13 @@ jobs:
     # Skip macOS entirely on docs/server-only PRs (filter says no iOS
     # changes) and on drafts. macos-15 runs at ~$0.062/min — a single
     # 15-min skip saves ~$0.93.
-    if: needs.filter.outputs.ios == 'true' && github.event.pull_request.draft == false
+    # A `labeled` event only needs the macOS build when the label is the
+    # one that unlocks the UI tests; any other label used to re-run the
+    # whole 40-minute build.
+    if: >-
+      needs.filter.outputs.ios == 'true'
+      && github.event.pull_request.draft == false
+      && (github.event.action != 'labeled' || github.event.label.name == 'run-ui-tests')
     runs-on: macos-15
     # 40, up from 25, because 25 killed a run whose tests were all
     # passing. Observed job wall-clock across five runs: 7.5, 12.8, 18.0,
@@ -374,10 +380,15 @@ jobs:
         # this opt-in path do its own incremental build.
         if: contains(github.event.pull_request.labels.*.name, 'run-ui-tests')
         run: |
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; ids=[x['udid'] for r in d.values() for x in r if 'iPhone' in x.get('name','')]; print(ids[0] if ids else '')")
+          if [ -z "$DEVICE_ID" ]; then
+            echo "::error::No iPhone simulator available on this runner image."
+            exit 1
+          fi
           xcodebuild test \
             -project Peptide.xcodeproj \
             -scheme Peptide \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -503,7 +514,7 @@ jobs:
         # syntax error without executing the module. Covers stray
         # commas, missing brackets, top-level await typos, etc.
         working-directory: server
-        run: node --check api/meal-scan.js
+        run: for f in api/*.js api/_lib/*.js; do node --check "$f" || exit 1; done
 
       - name: Run proxy test suite
         # The auth / rate-limit / App Attest / sanitisation logic guarding
@@ -531,88 +542,6 @@ jobs:
               process.exit(1);
             });
           "
-
-  # ───────────────────────────────────── Test-target compile (non-gating)
-  #
-  # Surfaces PeptideTests / PeptideUITests compile errors so the backlog can
-  # be worked through. build-check uses `build` (run-context targets only);
-  # this runs `build-for-testing` so the test targets are actually compiled.
-  # `continue-on-error` at job level + absence from the `pr-checks` aggregate
-  # below means it NEVER gates a merge. Once the test targets compile clean,
-  # fold this into build-check and re-enable the Unit Tests step.
-  test-compile:
-    needs: filter
-    if: needs.filter.outputs.ios == 'true' && github.event.pull_request.draft == false
-    runs-on: macos-15
-    timeout-minutes: 25
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: latest-stable
-
-      - name: Install XcodeGen
-        run: brew install xcodegen || brew reinstall xcodegen
-
-      - name: Generate Xcode project
-        run: xcodegen generate
-
-      - name: Generate app icon (fallback)
-        run: |
-          ICON="Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
-          [ -f "$ICON" ] && exit 0
-          python3 - << 'EOF'
-          import struct, zlib, os
-          def make_png(w, h, r, g, b):
-              def chunk(n, d):
-                  c = zlib.crc32(n + d) & 0xffffffff
-                  return struct.pack('>I', len(d)) + n + d + struct.pack('>I', c)
-              ihdr = struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)
-              raw = (b'\x00' + bytes([r, g, b]) * w) * h
-              return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
-          out = 'Peptide/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png'
-          os.makedirs(os.path.dirname(out), exist_ok=True)
-          open(out, 'wb').write(make_png(1024, 1024, 0, 102, 204))
-          print("generated", out)
-          EOF
-
-      - name: Build for testing (capture errors)
-        run: |
-          set -o pipefail
-          xcodebuild build-for-testing \
-            -project Peptide.xcodeproj \
-            -scheme Peptide \
-            -destination 'generic/platform=iOS Simulator' \
-            -configuration Debug \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            2>&1 | tee testbuild.log || BUILD_FAILED=1
-          echo "## Test-target compile errors (unique)" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          grep -E "error:" testbuild.log | sed 's#/Users/runner/work/Peptide-ai/Peptide-ai/##' | sort -u | head -300 >> "$GITHUB_STEP_SUMMARY" || echo "(no error: lines — target may compile clean)" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-
-          # The `|| true` this replaces made the job report success while the
-          # test target was failing to compile — a green check for a red
-          # build. It is not in the `pr-checks` aggregate, so failing here
-          # signals honestly without blocking the PR, which is the whole
-          # point of a non-gating diagnostic job.
-          if [ "${BUILD_FAILED:-0}" = "1" ]; then
-            echo "::error::Test build failed. Compile errors (if any) are in the step summary; if that block is empty the failure was environmental — a missing simulator, a toolchain problem — and the log has it."
-            exit 1
-          fi
-
-      - name: Upload test build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: testbuild-log-${{ github.run_number }}
-          path: testbuild.log
-          if-no-files-found: warn
-          retention-days: 7
 
   # ───────────────────────────────────────────────────────── Aggregate
   #

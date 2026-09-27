@@ -4,7 +4,9 @@ import {
   allowRate,
   isBlocked,
   recordLimitStrike,
+  costForBody,
   costForBytes,
+  dailyBudgetLimit,
   requestCost,
   withinDailyBudget,
   withinDeviceQuota,
@@ -303,4 +305,29 @@ test('isBlocked reports an active cooldown and is off when disabled', async (t) 
 
   process.env.ABUSE_BLOCK_SECONDS = '0';
   assert.equal(await isBlocked({ principal: 'p' }), false, 'disabled by config');
+});
+
+test('text-heavy bodies cost their estimated tokens, not their bytes', () => {
+  const longText = 'x'.repeat(200_000); // ~50k tokens, under one 256 KB byte unit
+  const body = { max_tokens: 800, messages: [{ role: 'user', content: longText }] };
+  assert.equal(costForBytes(200_000), 1);
+  assert.equal(costForBody(body, 200_000), 13);
+});
+
+test('a short question still costs one unit', () => {
+  const body = { max_tokens: 800, messages: [{ role: 'user', content: 'hi' }] };
+  assert.equal(costForBody(body, 100), 1);
+});
+
+test('production gets a daily budget even when none is set', (t) => {
+  setEnv(t, { VERCEL_ENV: 'production', ANTHROPIC_DAILY_REQUEST_BUDGET: undefined });
+  assert.equal(dailyBudgetLimit(), 20_000);
+});
+
+test('an explicit zero budget still disables the cap, and previews default to none', (t) => {
+  setEnv(t, { VERCEL_ENV: 'production', ANTHROPIC_DAILY_REQUEST_BUDGET: '0' });
+  assert.equal(dailyBudgetLimit(), 0);
+  process.env.VERCEL_ENV = 'preview';
+  delete process.env.ANTHROPIC_DAILY_REQUEST_BUDGET;
+  assert.equal(dailyBudgetLimit(), 0);
 });

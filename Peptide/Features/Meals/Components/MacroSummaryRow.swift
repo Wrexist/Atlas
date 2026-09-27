@@ -17,20 +17,27 @@ struct MacroSummaryRow: View {
     /// Water is stored in fluid ounces; this decides what the legend and
     /// the quick-add chips say. They used to disagree with each other.
     let unit: MeasurementUnit
-    let onAddWater: (Int) -> Void
+    /// Exact fluid ounces, so a metric +1 L is 33.81 oz rather than a
+    /// rounded 34 (which read back as 1005 mL).
+    let onAddWater: (Double) -> Void
+    /// Non-nil while the last quick-add can still be undone; shows an
+    /// Undo chip beside the quick-adds.
+    let onUndoWater: (() -> Void)?
 
     init(
         targets: NutritionTargets,
         consumed: DailyConsumption,
         breakdown: LifestyleDataLogic.CategoryBreakdown? = nil,
         unit: MeasurementUnit,
-        onAddWater: @escaping (Int) -> Void
+        onAddWater: @escaping (Double) -> Void,
+        onUndoWater: (() -> Void)? = nil
     ) {
         self.targets = targets
         self.consumed = consumed
         self.breakdown = breakdown
         self.unit = unit
         self.onAddWater = onAddWater
+        self.onUndoWater = onUndoWater
     }
 
     private static let waterTargetOz: Int = 100
@@ -46,7 +53,7 @@ struct MacroSummaryRow: View {
     }
 
     private var waterProgress: Double {
-        min(1, Double(consumed.waterOz) / Double(Self.waterTargetOz))
+        min(1, consumed.waterFluidOunces / Double(Self.waterTargetOz))
     }
 
     var body: some View {
@@ -70,7 +77,7 @@ struct MacroSummaryRow: View {
                     )
                     legend(
                         title: "Water",
-                        value: "\(unit.volumeValue(consumed.waterOz))",
+                        value: "\(LifestyleDataLogic.displayedWater(consumed, unit: unit))",
                         target: "/\(unit.volumeLabel(Self.waterTargetOz))",
                         color: AppColor.macroWaterLight
                     )
@@ -83,7 +90,11 @@ struct MacroSummaryRow: View {
 
             HStack(spacing: Spacing.sm) {
                 ForEach(quickAddOptions) { option in
-                    quickAddButton(label: option.label, oz: option.oz)
+                    quickAddButton(option)
+                }
+                if let onUndoWater {
+                    undoWaterButton(onUndoWater)
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 }
             }
         }
@@ -189,35 +200,49 @@ struct MacroSummaryRow: View {
     }
 
     /// Quick-add amounts, chosen per unit so both systems get round
-    /// numbers. Water is stored as whole fluid ounces, so the metric
-    /// labels are the nearest ounce to 250 mL / 500 mL / 1 L — which is
-    /// how 8 / 17 / 34 were picked in the first place. Deriving the
-    /// label from the stored ounces instead would print "+237 mL".
+    /// numbers. Metric amounts convert to exact (fractional) ounces, so
+    /// "+1 L" records 1000 mL, not the 1005 mL a whole 34 oz came to.
     private var quickAddOptions: [QuickAddOption] {
         unit == .metric
-            ? [.init(label: "+250 mL", oz: 8),
-               .init(label: "+500 mL", oz: 17),
-               .init(label: "+1 L", oz: 34)]
-            : [.init(label: "+8 oz", oz: 8),
-               .init(label: "+16 oz", oz: 16),
-               .init(label: "+32 oz", oz: 32)]
+            ? [.init(label: "+250 mL", millilitres: 250),
+               .init(label: "+500 mL", millilitres: 500),
+               .init(label: "+1 L", millilitres: 1_000)]
+            : [.init(label: "+8 oz", fluidOunces: 8),
+               .init(label: "+16 oz", fluidOunces: 16),
+               .init(label: "+32 oz", fluidOunces: 32)]
     }
 
     private struct QuickAddOption: Identifiable {
         let label: String
-        let oz: Int
-        var id: Int { oz }
+        let fluidOunces: Double
+        var id: String { label }
+
+        init(label: String, fluidOunces: Double) {
+            self.label = label
+            self.fluidOunces = fluidOunces
+        }
+
+        init(label: String, millilitres: Double) {
+            self.init(label: label, fluidOunces: LifestyleDataLogic.fluidOunces(millilitres: millilitres))
+        }
+
+        /// The amount in the unit the label is written in, for VoiceOver.
+        func spokenAmount(in unit: MeasurementUnit) -> Int {
+            unit == .metric
+                ? LifestyleDataLogic.millilitres(fluidOunces: fluidOunces)
+                : Int(fluidOunces.rounded())
+        }
     }
 
-    private func quickAddButton(label: String, oz: Int) -> some View {
+    private func quickAddButton(_ option: QuickAddOption) -> some View {
         Button {
             Haptics.impact(.light)
-            onAddWater(oz)
+            onAddWater(option.fluidOunces)
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "drop.fill")
                     .font(AppFont.scaled(11, weight: .bold))
-                Text(label)
+                Text(option.label)
                     .font(AppFont.scaled(11, weight: .semibold))
             }
             .foregroundStyle(AppColor.macroWaterLight)
@@ -231,8 +256,26 @@ struct MacroSummaryRow: View {
             )
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.94))
-        .accessibilityLabel("Add \(unit.volumeValue(oz)) \(unit.volumeSpokenUnit) of water")
+        .accessibilityLabel("Add \(option.spokenAmount(in: unit)) \(unit.volumeSpokenUnit) of water")
         .accessibilityAddTraits(.isButton)
+    }
+
+    private func undoWaterButton(_ undo: @escaping () -> Void) -> some View {
+        Button(action: undo) {
+            Image(systemName: "arrow.uturn.backward")
+                .font(AppFont.scaled(11, weight: .bold))
+                .foregroundStyle(AppColor.textSecondary)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, 8)
+                .glassControl(
+                    .capsule,
+                    tint: AppColor.surfaceElevated.opacity(0.3),
+                    border: AppColor.glassBorder
+                )
+                .minimumHitArea()
+        }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.94))
+        .accessibilityLabel("Undo last water")
     }
 
     private var cardBackground: some View {
@@ -260,7 +303,7 @@ struct MacroSummaryRow: View {
     private var accessibilitySummary: String {
         let calorieLine = "Calories \(consumed.caloriesKcal) of \(targets.calories)"
         let proteinLine = "Protein \(consumed.proteinG) of \(targets.proteinG) grams"
-        let waterLine = "Water \(consumed.waterOz) of \(Self.waterTargetOz) ounces"
+        let waterLine = "Water \(LifestyleDataLogic.displayedWater(consumed, unit: unit)) of \(unit.volumeValue(Self.waterTargetOz)) \(unit.volumeSpokenUnit)"
         return "\(calorieLine). \(proteinLine). \(waterLine)."
     }
 }

@@ -18,6 +18,7 @@ struct RoutinesView: View {
     @State private var renaming: Routine?
     @State private var renameText: String = ""
     @State private var pendingDeletion: Routine?
+    @State private var pendingStart: Routine?
 
     var body: some View {
         Group {
@@ -65,6 +66,7 @@ struct RoutinesView: View {
         } message: { routine in
             Text("\"\(routine.name)\" will be removed. Workouts you already logged from it are kept.")
         }
+        .confirmingRoutineStart(pending: $pendingStart) { store.startWorkout(from: $0) }
     }
 
     // MARK: - List
@@ -177,7 +179,11 @@ struct RoutinesView: View {
     }
 
     private func start(_ routine: Routine) {
-        store.startWorkout(from: routine)
+        if WorkoutSessionService.shared.activeSession != nil {
+            pendingStart = routine
+        } else {
+            store.startWorkout(from: routine)
+        }
     }
 
     private func rebuildSummaries() {
@@ -192,6 +198,50 @@ struct RoutinesView: View {
 
     private var deleteBinding: Binding<Bool> {
         Binding(get: { pendingDeletion != nil }, set: { if !$0 { pendingDeletion = nil } })
+    }
+}
+
+// MARK: - Start guard
+
+/// Asks before a routine replaces a workout that's still in progress.
+/// Starting one silently deleted the running session — invisible while
+/// the workout covered the screen, reachable once it could be minimized.
+struct RoutineStartConfirmation: ViewModifier {
+    @Binding var pending: Routine?
+    let start: (Routine) -> Void
+
+    @Environment(\.resumeActiveWorkout) private var resumeActiveWorkout
+
+    func body(content: Content) -> some View {
+        content.alert(
+            "You have a workout in progress",
+            isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } }),
+            presenting: pending
+        ) { routine in
+            Button("Resume") {
+                pending = nil
+                resumeActiveWorkout()
+            }
+            Button("Discard and start new", role: .destructive) {
+                pending = nil
+                WorkoutSessionService.shared.discardWorkout()
+                start(routine)
+            }
+            Button("Cancel", role: .cancel) { pending = nil }
+        } message: { routine in
+            Text("Starting \"\(routine.name)\" discards the current workout and everything logged in it.")
+        }
+    }
+}
+
+extension View {
+    /// Pair with a start action that sets `pending` instead of starting
+    /// when `WorkoutSessionService.shared.activeSession` is non-nil.
+    func confirmingRoutineStart(
+        pending: Binding<Routine?>,
+        start: @escaping (Routine) -> Void
+    ) -> some View {
+        modifier(RoutineStartConfirmation(pending: pending, start: start))
     }
 }
 

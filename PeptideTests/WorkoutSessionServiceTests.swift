@@ -39,8 +39,9 @@ final class WorkoutSessionServiceTests: XCTestCase {
     /// untested, and the test below it asserted the opposite because it
     /// predates the collapse window.
     func test_startWorkout_rapidSecondCall_collapsesIntoExisting() {
-        let first = service.startWorkout()
-        let second = service.startWorkout()
+        let start = Date()
+        let first = service.startWorkout(now: start)
+        let second = service.startWorkout(now: start.addingTimeInterval(0.5))
         XCTAssertEqual(first.id, second.id,
                        "A re-start inside the duplicate window is the same workout")
         XCTAssertEqual(repo.loadWorkoutSessions().count, 1)
@@ -49,12 +50,15 @@ final class WorkoutSessionServiceTests: XCTestCase {
     /// Past the window it is a genuine fresh start, and the stale session —
     /// typically one restored from a previous launch — is discarded.
     ///
-    /// The wait is derived from the production constant rather than a literal,
-    /// so moving the window moves the test with it.
+    /// The gap is derived from the production constant rather than a literal,
+    /// so moving the window moves the test with it. Both starts pass an
+    /// explicit instant, so the test never waits on the wall clock.
     func test_startWorkout_afterDuplicateWindow_discardsPriorActive() {
-        let first = service.startWorkout()
-        Thread.sleep(forTimeInterval: WorkoutSessionService.duplicateStartWindow + 0.2)
-        let second = service.startWorkout()
+        let start = Date()
+        let first = service.startWorkout(now: start)
+        let second = service.startWorkout(
+            now: start.addingTimeInterval(WorkoutSessionService.duplicateStartWindow + 0.2)
+        )
         XCTAssertNotEqual(first.id, second.id)
         let stored = repo.loadWorkoutSessions()
         XCTAssertEqual(stored.count, 1, "Prior active session should be discarded on a fresh start")
@@ -251,6 +255,62 @@ final class WorkoutSessionServiceTests: XCTestCase {
         service.removeExercise(id: middleID)
         let indexes = service.activeSession?.exercises.map(\.index) ?? []
         XCTAssertEqual(indexes, [0, 1])
+    }
+
+    func test_setRestSeconds_updatesOnlyThatExercise() {
+        _ = service.startWorkout()
+        service.addExercise(bench())
+        service.addExercise(bench())
+        guard let firstID = service.activeSession?.exercises.first?.id else { return XCTFail() }
+
+        service.setRestSeconds(180, forExerciseEntryID: firstID)
+
+        XCTAssertEqual(service.activeSession?.exercises.map(\.restSeconds), [180, nil])
+        XCTAssertEqual(repo.loadWorkoutSessions().first?.exercises.first?.restSeconds, 180,
+                       "Rest change should persist with the session")
+    }
+
+    /// Logs one completed set of bench at `weightKg` and finishes the workout.
+    private func logBenchWorkout(weightKg: Double, reps: Int) {
+        _ = service.startWorkout()
+        service.addExercise(bench())
+        guard let entryID = service.activeSession?.exercises.first?.id,
+              var set = service.activeSession?.exercises.first?.sets.first
+        else { return XCTFail("Missing seeded set") }
+        set.weightKg = weightKg
+        set.reps = reps
+        set.completed = true
+        service.updateSet(set, inExerciseEntryID: entryID)
+        _ = service.finishWorkout()
+    }
+
+    func test_previousSessionSets_ignoreTheActiveSessionsOwnEdits() {
+        logBenchWorkout(weightKg: 80, reps: 5)
+
+        _ = service.startWorkout()
+        service.addExercise(bench())
+        XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [80])
+
+        guard let entryID = service.activeSession?.exercises.first?.id,
+              var set = service.activeSession?.exercises.first?.sets.first
+        else { return XCTFail() }
+        set.weightKg = 120
+        set.completed = true
+        service.updateSet(set, inExerciseEntryID: entryID)
+
+        XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [80],
+                       "The in-flight session never counts as 'previous'")
+    }
+
+    func test_previousSessionSets_refreshAfterFinishingAWorkout() {
+        logBenchWorkout(weightKg: 80, reps: 5)
+        XCTAssertEqual(service.lastCompletedSet(forExerciseID: bench().id)?.weightKg, 80)
+
+        logBenchWorkout(weightKg: 90, reps: 3)
+        _ = service.startWorkout()
+
+        XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [90])
+        XCTAssertEqual(service.lastCompletedSet(forExerciseID: bench().id)?.reps, 3)
     }
 
     func test_renameWorkout_emptyStringClearsName() {

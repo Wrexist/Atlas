@@ -278,9 +278,11 @@ export async function checkAppAttest(req, { logLabel }) {
   };
 
   if (!appId) {
-    // Misconfiguration must not lock the API: log and pass.
+    // In report mode a misconfiguration must not lock the API. In
+    // enforce mode, passing would silently turn the gate off, so the
+    // missing variable that did it has to be loud instead.
     console.error(`[${logLabel}] APP_ATTEST_MODE set but APP_ATTEST_APP_ID missing`);
-    return { ok: true };
+    return deny('APP_ATTEST_APP_ID missing');
   }
 
   const keyIdB64 = req.headers['x-attest-key-id'];
@@ -289,10 +291,11 @@ export async function checkAppAttest(req, { logLabel }) {
   if (!keyIdB64 || !assertionB64 || !clientDataB64) return deny('assertion headers missing');
 
   if (!redisConfigured()) {
-    // No key registry → nothing to verify against. Fail open so a
-    // Redis outage degrades to secret-only auth instead of downtime.
-    console.error(`[${logLabel}] app-attest skipped: redis not configured`);
-    return { ok: true };
+    // No key registry configured → nothing to verify against. Report
+    // mode passes; enforce mode refuses, since enforcing without a
+    // registry would be secret-only auth labelled as attestation.
+    console.error(`[${logLabel}] app-attest: redis not configured`);
+    return deny('redis not configured');
   }
 
   const clientData = Buffer.from(String(clientDataB64), 'base64');

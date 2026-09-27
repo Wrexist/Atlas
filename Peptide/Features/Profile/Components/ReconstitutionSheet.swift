@@ -41,7 +41,7 @@ struct ReconstitutionSheet: View {
             Text("Reconstitution helper")
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
-            Text("Powder + water + target dose → exact U-100 syringe units. Use the sliders or tap a quick-pick to set each input.")
+            Text("Converts vial size, water volume and an amount you enter into a concentration and the equivalent units on a U-100 syringe.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

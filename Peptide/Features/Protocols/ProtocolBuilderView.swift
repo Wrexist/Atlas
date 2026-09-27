@@ -183,6 +183,7 @@ struct ProtocolBuilderView: View {
                             HStack(spacing: 2) {
                                 Image(systemName: "chevron.left")
                                     .font(.system(.subheadline, weight: .semibold))
+                                    .accessibilityHidden(true)
                                 Text("Back")
                             }
                             .foregroundStyle(AppColor.textSecondary)
@@ -414,7 +415,7 @@ struct ProtocolBuilderView: View {
                     .foregroundStyle(AppColor.accentLight)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text("Start from a community stack")
+                Text("Start from a library stack")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text("Browse research-backed templates")

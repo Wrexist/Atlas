@@ -53,6 +53,10 @@ struct CommunityStackDetailView: View {
                 description
                 peptidesList
                 useStackButton
+                Text("Research summary for education, not a recommendation or medical advice. Talk to a clinician before using any peptide.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
@@ -83,14 +87,6 @@ struct CommunityStackDetailView: View {
                             .padding(.vertical, 4)
                             .background(Capsule().fill(AppColor.glassTint))
                     }
-                    HStack(spacing: 4) {
-                        Image(systemName: "flame.fill")
-                            .font(AppFont.scaled(11))
-                        Text("\(stack.popularityScore) popularity")
-                            .font(AppFont.caption)
-                            .fontWeight(.semibold)
-                    }
-                    .foregroundStyle(AppColor.accentLight)
                     Spacer()
                 }
 
@@ -118,7 +114,7 @@ struct CommunityStackDetailView: View {
                 Text(stack.authorName)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text(stack.authorHandle ?? stack.authorTitle ?? "Community contributor")
+                Text(stack.authorHandle ?? stack.authorTitle ?? "Atlas Editorial")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
             }
@@ -255,7 +251,7 @@ struct CommunityStackDetailView: View {
         // Library P0.4).
         .disabled(didFork || resolvedPeptides.isEmpty)
         .sheet(isPresented: $showingPaywall) {
-            PaywallView()
+            PaywallView(source: .communityStack)
         }
     }
 
@@ -297,9 +293,9 @@ struct CommunityStackDetailView: View {
         CommunityStackDetailView(stack: CommunityStack(
             id: UUID(),
             name: "Wolverine Stack",
-            authorName: "Dr. M. Reyes",
-            authorHandle: "@reyes.recovery",
-            authorTitle: "MD",
+            authorName: "Atlas Editorial",
+            authorHandle: nil,
+            authorTitle: "Research summary, not a recommendation",
             description: "Two complementary mechanisms for tissue repair.",
             goalTags: ["Recovery"],
             peptideAbbreviations: ["BPC-157", "TB-500"],

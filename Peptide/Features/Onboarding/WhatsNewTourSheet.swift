@@ -266,6 +266,7 @@ struct WhatsNewTourSheet: View {
                     .font(AppFont.scaled(16, weight: .heavy))
                 Image(systemName: isLastPage ? "arrow.right.circle.fill" : "chevron.right")
                     .font(AppFont.scaled(13, weight: .heavy))
+                    .accessibilityHidden(true)
             }
             .foregroundStyle(AppColor.onAccent)
             .frame(maxWidth: .infinity)

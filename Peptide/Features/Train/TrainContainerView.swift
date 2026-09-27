@@ -15,6 +15,10 @@ struct TrainContainerView: View {
     @State private var path: [TrainNavigation] = []
     @State private var sessionService = WorkoutSessionService.shared
     @State private var showActiveWorkout = false
+    /// The relaunch auto-present below happens once. `onAppear` fires on
+    /// every return to this tab, and re-opening a workout the user just
+    /// minimized would make minimizing pointless.
+    @State private var restoredActiveWorkout = false
     @Namespace private var sectionIndicator
 
     enum Section: String, CaseIterable, Identifiable {
@@ -65,6 +69,7 @@ struct TrainContainerView: View {
                 }
             }
         }
+        .environment(\.resumeActiveWorkout, { showActiveWorkout = true })
         .fullScreenCover(isPresented: $showActiveWorkout) {
             ActiveWorkoutView()
         }
@@ -73,23 +78,27 @@ struct TrainContainerView: View {
             // mounted (process re-launch, app re-entry), surface it
             // immediately so the user doesn't have to discover it
             // through the banner.
+            guard !restoredActiveWorkout else { return }
+            restoredActiveWorkout = true
             if sessionService.activeSession != nil {
                 showActiveWorkout = true
             }
         }
         .onChange(of: sessionService.activeSession?.id) { oldID, newID in
-            // Auto-present when a new session begins. We do not act
-            // on the `newID == nil` (session ended) branch — the
-            // ActiveWorkoutView dismisses itself via `dismiss()`
-            // after transitioning through WorkoutFinishView, so the
-            // cover lifecycle is owned downstream.
-            if oldID == nil && newID != nil { showActiveWorkout = true }
+            // Auto-present whenever a different session begins —
+            // including one that replaced a minimized workout, where
+            // the id goes straight from the old session to the new one.
+            // We do not act on the `newID == nil` (session ended)
+            // branch — the ActiveWorkoutView dismisses itself via
+            // `dismiss()` after transitioning through WorkoutFinishView,
+            // so the cover lifecycle is owned downstream.
+            if let newID, newID != oldID { showActiveWorkout = true }
         }
     }
 
     /// Sticky "Resume workout" pill shown when a session is in
-    /// progress and the cover has been dismissed (the user backed
-    /// out via Discard's "Keep going" cancel, etc.).
+    /// progress and the cover has been dismissed (the user minimized
+    /// the workout from its toolbar).
     private var activeWorkoutBanner: some View {
         Button {
             showActiveWorkout = true
@@ -97,6 +106,7 @@ struct TrainContainerView: View {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "figure.run.circle.fill")
                     .font(AppFont.scaled(20, weight: .semibold))
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Workout in progress")
                         .font(AppFont.callout.weight(.semibold))
@@ -109,6 +119,7 @@ struct TrainContainerView: View {
                 Spacer()
                 Image(systemName: "chevron.up")
                     .font(AppFont.scaled(13, weight: .semibold))
+                    .accessibilityHidden(true)
             }
             .foregroundStyle(AppColor.background)
             .padding(.horizontal, Spacing.md)
@@ -221,6 +232,13 @@ struct TrainContainerView: View {
             .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
     }
+}
+
+extension EnvironmentValues {
+    /// Re-presents the in-progress workout's full-screen cover. Set by
+    /// `TrainContainerView`, which owns that cover, so a screen deeper in
+    /// the Train stack can offer "Resume" without holding the flag.
+    @Entry var resumeActiveWorkout: () -> Void = {}
 }
 
 #Preview {

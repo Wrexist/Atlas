@@ -119,7 +119,7 @@ struct PeptideListView: View {
                         .environment(dataStore)
                 }
                 .sheet(isPresented: $showPaywall) {
-                    PaywallView()
+                    PaywallView(source: .aiResearch)
                         .environment(dataStore)
                         .liquidGlassPresentation()
                 }
@@ -165,7 +165,7 @@ struct PeptideListView: View {
                         .environment(dataStore)
                 }
                 .sheet(isPresented: $showPaywall) {
-                    PaywallView()
+                    PaywallView(source: .aiResearch)
                         .environment(dataStore)
                         .liquidGlassPresentation()
                 }

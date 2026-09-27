@@ -540,42 +540,64 @@ final class ExportService {
     }
 
     func writeCSV(_ content: String, filename: String) -> URL? {
-        let safe = Self.safeFilename(filename)
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(safe)
-        do {
-            try content.write(to: url, atomically: true, encoding: .utf8)
-            return url
-        } catch {
-            AppLog.export.error("writeCSV \(safe, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
-            return nil
-        }
+        write(Data(content.utf8), filename: filename, kind: "CSV")
     }
 
     func writeJSON(_ data: Data, filename: String) -> URL? {
-        let safe = Self.safeFilename(filename)
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(safe)
-        do {
-            try data.write(to: url, options: .atomic)
-            return url
-        } catch {
-            AppLog.export.error("writeJSON \(safe, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
-            return nil
-        }
+        write(data, filename: filename, kind: "JSON")
     }
 
     func writePDF(_ data: Data, filename: String) -> URL? {
-        let safe = Self.safeFilename(filename)
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(safe)
+        write(data, filename: filename, kind: "PDF")
+    }
+
+    /// Export files live in their own temp subfolder so they can be swept
+    /// as a set: the share sheet hands the file to another app, and
+    /// nothing tells us reliably when that app has finished reading it.
+    /// Each new export clears the previous ones instead, so at most one
+    /// export (the one just shared) is ever left on disk.
+    static var exportDirectory: URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent("Exports", isDirectory: true)
+    }
+
+    /// Removes every export file. Called before each new export and by
+    /// "Delete All Data".
+    func clearExports() {
+        let directory = Self.exportDirectory
+        guard FileManager.default.fileExists(atPath: directory.path) else { return }
         do {
-            try data.write(to: url, options: .atomic)
+            try FileManager.default.removeItem(at: directory)
+        } catch {
+            AppLog.export.error("clearExports failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func write(_ data: Data, filename: String, kind: String) -> URL? {
+        let safe = Self.safeFilename(filename)
+        clearExports()
+        let directory = Self.exportDirectory
+        let url = directory.appendingPathComponent(safe)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            // `UnlessOpen` rather than `complete`: the receiving share
+            // extension (Files, AirDrop, a cloud-drive upload) may still be
+            // streaming the file when the user locks the phone. Complete
+            // protection would revoke that open handle ~10 s after lock and
+            // fail the transfer; `UnlessOpen` keeps an already-open handle
+            // readable while still refusing any new open while locked.
+            try data.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
             return url
         } catch {
-            AppLog.export.error("writePDF \(safe, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.export.error("write\(kind, privacy: .public) \(safe, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
 
-    private func csvQuote(_ value: String) -> String {
+    private func csvQuote(_ raw: String) -> String {
+        // Meal names come from Open Food Facts and AI scans; a leading
+        // formula character would execute when the CSV opens in a spreadsheet.
+        let isFormula = raw.first.map { "=+-@\t\r".contains($0) } == true && Double(raw) == nil
+        let value = isFormula ? "'" + raw : raw
         if value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r") {
             return "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\""
         }

@@ -60,7 +60,7 @@ struct TodayTimelineCard: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
-                    Text(Self.timeFormatter.string(from: event.date))
+                    Text(event.date, format: .dateTime.hour().minute())
                         .font(AppFont.scaled(11, weight: .heavy, design: .monospaced))
                         .foregroundStyle(AppColor.textSecondary)
                     Text(event.title)
@@ -104,12 +104,6 @@ struct TodayTimelineCard: View {
         case .workout: AppColor.metricActivity
         }
     }
-
-    private static let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        return f
-    }()
 }
 
 // MARK: - Timeline event

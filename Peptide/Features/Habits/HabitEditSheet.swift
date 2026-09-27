@@ -337,6 +337,7 @@ struct HabitEditSheet: View {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: slot.icon)
                     .font(AppFont.scaled(16, weight: .medium))
+                    .accessibilityHidden(true)
                 Text(slot.title)
                     .font(AppFont.scaled(13, weight: .semibold))
                     .lineLimit(1)

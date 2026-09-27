@@ -68,7 +68,11 @@ enum ProgressPhotoStorage {
         let filename = generateFilename()
         let url = directory.appendingPathComponent(filename)
         do {
-            try data.write(to: url, options: .atomic)
+            // Complete protection: photos are only read by the in-app
+            // progress-photo surfaces (via `ProgressPhotoCache`), never by
+            // a widget or background task, so they can stay unreadable
+            // while the device is locked.
+            try data.write(to: url, options: [.atomic, .completeFileProtection])
         } catch {
             throw Failure.write(error)
         }
@@ -139,7 +143,8 @@ enum ProgressPhotoStorage {
         try ensureDirectory().appendingPathComponent(filename)
     }
 
-    /// Removes the entire ProgressPhotos folder. Account-deletion path —
+    /// Removes the entire ProgressPhotos folder. "Delete All Data" /
+    /// account-deletion path —
     /// photos are user-generated content and must not survive an erase.
     static func deleteAll() {
         ProgressPhotoCache.shared.removeAll()

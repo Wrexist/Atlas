@@ -36,11 +36,15 @@ enum BackupSnapshotService {
     /// file. Returns the URL on success, nil on failure (no-op for
     /// the import path — a failed snapshot shouldn't block the
     /// import, just remove the safety net).
+    ///
+    /// `now` names the file and stamps the backup. File names have
+    /// one-second resolution, so tests inject distinct instants rather
+    /// than sleeping between writes.
     @discardableResult
-    static func snapshotCurrentState(dataStore: DataStore) -> URL? {
+    static func snapshotCurrentState(dataStore: DataStore, now: Date = Date()) -> URL? {
         guard let directory = snapshotDirectory() else { return nil }
 
-        let timestamp = Int(Date().timeIntervalSince1970)
+        let timestamp = Int(now.timeIntervalSince1970)
         let url = directory.appendingPathComponent(
             "\(fileNamePrefix)\(timestamp).\(fileExtension)"
         )
@@ -49,7 +53,7 @@ enum BackupSnapshotService {
         // backup didn't carry, so the pre-apply safety net must capture
         // them too — a v1-shaped snapshot couldn't roll those back.
         let backup = AppBackup(
-            exportDate: Date(),
+            exportDate: now,
             version: "2.0",
             protocols: dataStore.protocols,
             entries: dataStore.entries,
@@ -66,7 +70,12 @@ enum BackupSnapshotService {
             encoder.dateEncodingStrategy = .iso8601
             encoder.outputFormatting = [.prettyPrinted]
             let data = try encoder.encode(backup)
-            try data.write(to: url, options: .atomic)
+            // Complete protection: a snapshot is a full copy of the user's
+            // data, and it is only ever written and read from the
+            // foreground import / restore UI — never by a widget or a
+            // background task — so it has no reason to be readable while
+            // the device is locked.
+            try data.write(to: url, options: [.atomic, .completeFileProtection])
             PersistenceService.excludeFromBackup(url)
             prune()
             return url
@@ -122,6 +131,16 @@ enum BackupSnapshotService {
         for info in infos.dropFirst(maxSnapshots) {
             try? fm.removeItem(at: info.url)
         }
+    }
+
+    // MARK: - Erase
+
+    /// Removes every snapshot. "Delete All Data" / account-deletion path —
+    /// a snapshot is a full copy of the user's data and must not outlive
+    /// an erase.
+    static func deleteAll() {
+        guard let directory = snapshotDirectory() else { return }
+        try? FileManager.default.removeItem(at: directory)
     }
 
     // MARK: - Paths

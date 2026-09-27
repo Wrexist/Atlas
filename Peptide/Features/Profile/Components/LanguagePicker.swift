@@ -15,6 +15,7 @@ struct LanguagePickerRow: View {
                     .font(AppFont.scaled(13))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: 24)
+                    .accessibilityHidden(true)
 
                 Text("Language")
                     .font(AppFont.subheadline)
@@ -31,6 +32,7 @@ struct LanguagePickerRow: View {
                     Image(systemName: "chevron.right")
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
+                        .accessibilityHidden(true)
                 }
             }
             .contentShape(Rectangle())
@@ -76,7 +78,7 @@ struct LanguagePickerSheet: View {
                             .foregroundStyle(AppColor.glassBorder)
                             .padding(.vertical, Spacing.xs)
 
-                        ForEach(AppLanguage.allCases) { language in
+                        ForEach(AppLanguage.shipped) { language in
                             LanguageRow(
                                 flag: language.flag,
                                 nativeName: language.nativeName,

@@ -10,6 +10,10 @@ struct ProfileView: View {
     @State private var showReconstitutionCalculator = false
     @State private var showRestoreBackup = false
     @State private var showProgress = false
+    /// Read once on appear rather than in `body`: the count is a
+    /// SwiftData fetch, and the header only shows it to users with no
+    /// protocols.
+    @State private var workoutCount = 0
 
     /// Single source of truth for the goal catalog. Reads from
     /// OnboardingView.PrimaryGoal so a goal selected during the new
@@ -35,18 +39,25 @@ struct ProfileView: View {
                         protocolCount: dataStore.protocols.count,
                         peptideCount: Set(dataStore.protocols.flatMap(\.peptides).map(\.id)).count,
                         daysLogged: dataStore.totalDaysLogged,
+                        workoutCount: workoutCount,
                         avatarImageData: dataStore.profile.avatarImageData,
                         bio: dataStore.profile.bio
                     )
                     .sectionAppear(index: 0)
 
-                    if storeService.isProUser {
+                    if storeService.isProUser || storeService.isInBillingRetry {
                         SubscriptionSection()
                             .sectionAppear(index: 1)
                     } else {
                         UpgradePromptCard()
                             .sectionAppear(index: 1)
                     }
+
+                    // Units + rest timer, up top: the settings a
+                    // training-first user changes most were buried at
+                    // the bottom of the general Settings card.
+                    TrainingSettingsSection()
+                        .sectionAppear(index: 1)
 
                     // Earned Atlas Score — the rewards identity, sitting
                     // above the achievement badges it sums up. Taps open
@@ -139,6 +150,7 @@ struct ProfileView: View {
                 }
             }
             .task { await authService.validateCredential() }
+            .task { workoutCount = SwiftDataRepository.shared.workoutSessionCount() }
             .sheet(isPresented: $showReconstitutionCalculator) {
                 ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
             }

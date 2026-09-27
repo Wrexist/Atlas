@@ -133,4 +133,39 @@ final class ReviewPromptServiceTests: XCTestCase {
         defaults.set(Date().addingTimeInterval(-30 * 86400), forKey: Self.lastPromptDateKey)
         XCTAssertFalse(service.isWithinCooldownWindow)
     }
+
+    // MARK: - Workout moments
+
+    func test_isWorkoutReviewMoment_newPR_returnsTrue() {
+        XCTAssertTrue(ReviewPromptService.isWorkoutReviewMoment(detectedPRCount: 1, completedWorkoutCount: 12))
+    }
+
+    func test_isWorkoutReviewMoment_thirdWorkout_returnsTrue() {
+        XCTAssertTrue(ReviewPromptService.isWorkoutReviewMoment(detectedPRCount: 0, completedWorkoutCount: 3))
+    }
+
+    func test_isWorkoutReviewMoment_ordinaryWorkout_returnsFalse() {
+        XCTAssertFalse(ReviewPromptService.isWorkoutReviewMoment(detectedPRCount: 0, completedWorkoutCount: 2))
+        XCTAssertFalse(ReviewPromptService.isWorkoutReviewMoment(detectedPRCount: 0, completedWorkoutCount: 4))
+    }
+
+    // MARK: - Paywall in session
+
+    func test_paywallViewed_afterSessionStart_returnsTrue() {
+        let start = Date()
+        let events = [OnboardingFunnelTracker.EventEntry(name: "paywall_viewed_mealScanLimit", timestamp: start.addingTimeInterval(5))]
+        XCTAssertTrue(ReviewPromptService.paywallViewed(in: events, since: start))
+    }
+
+    func test_paywallViewed_inEarlierSession_returnsFalse() {
+        let start = Date()
+        let events = [OnboardingFunnelTracker.EventEntry(name: "paywall_viewed_winBack", timestamp: start.addingTimeInterval(-60))]
+        XCTAssertFalse(ReviewPromptService.paywallViewed(in: events, since: start))
+    }
+
+    func test_paywallViewed_otherEventsOnly_returnsFalse() {
+        let start = Date()
+        let events = [OnboardingFunnelTracker.EventEntry(name: "paywall_dismissed_winBack", timestamp: start.addingTimeInterval(5))]
+        XCTAssertFalse(ReviewPromptService.paywallViewed(in: events, since: start))
+    }
 }

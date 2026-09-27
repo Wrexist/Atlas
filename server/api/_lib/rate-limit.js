@@ -17,7 +17,8 @@
  *         draining the shared budget; 0 disables it.
  *   ANTHROPIC_DAILY_REQUEST_BUDGET
  *       — hard cap on upstream Anthropic cost units per UTC day
- *         across ALL routes combined. Unset or 0 disables the budget.
+ *         across ALL routes combined. Unset means 20 000 on a Vercel
+ *         production deployment and no cap elsewhere; 0 disables it.
  *   BUDGET_FAIL_OPEN
  *       — set to `1` to allow traffic when a budget is configured but
  *         Redis is unreachable. Off by default: a spend ceiling that
@@ -96,6 +97,20 @@ function memoryRefund(key, windowMs, cost) {
   if (current !== undefined) memory.set(bucketKey, Math.max(0, current - cost));
 }
 
+// Production gets a ceiling even when nobody set one: unset used to
+// mean unlimited, so a leaked secret had no upper bound on spend.
+// ~20 000 units is roughly a few hundred dollars a day at Sonnet
+// pricing. An explicit ANTHROPIC_DAILY_REQUEST_BUDGET=0 still disables it.
+const PRODUCTION_DEFAULT_BUDGET = 20_000;
+
+function defaultDailyBudget() {
+  return process.env.VERCEL_ENV === 'production' ? PRODUCTION_DEFAULT_BUDGET : 0;
+}
+
+export function dailyBudgetLimit() {
+  return intEnv('ANTHROPIC_DAILY_REQUEST_BUDGET', defaultDailyBudget());
+}
+
 function intEnv(name, fallback) {
   const parsed = parseInt(process.env[name] ?? '', 10);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -114,6 +129,39 @@ function intEnv(name, fallback) {
  */
 export function costForBytes(bytes) {
   return Math.max(1, Math.ceil((Number(bytes) || 0) / (256 * 1024)));
+}
+
+// Rough token estimate for a sanitised body: ~4 characters per text
+// token, a flat ~1 600 tokens per image, plus the requested output.
+const CHARS_PER_TOKEN = 4;
+const TOKENS_PER_IMAGE = 1600;
+const TOKENS_PER_UNIT = 4000;
+
+function estimatedTokens(body) {
+  let tokens = Number(body?.max_tokens) || 0;
+  tokens += Math.ceil(String(body?.system ?? '').length / CHARS_PER_TOKEN);
+  for (const message of body?.messages ?? []) {
+    const parts = typeof message.content === 'string'
+      ? [{ type: 'text', text: message.content }]
+      : message.content;
+    for (const part of parts) {
+      tokens += part.type === 'image'
+        ? TOKENS_PER_IMAGE
+        : Math.ceil(String(part.text ?? '').length / CHARS_PER_TOKEN);
+    }
+  }
+  return tokens;
+}
+
+/**
+ * Cost of a sanitised request: the larger of its byte cost and its
+ * estimated token cost. Bytes alone charged 256 KB of text (~64k
+ * tokens) the same single unit as a short question, so text-heavy
+ * calls were ~40x under-billed next to photos.
+ */
+export function costForBody(body, bytes) {
+  const tokenCost = Math.ceil(estimatedTokens(body) / TOKENS_PER_UNIT);
+  return Math.max(costForBytes(bytes), tokenCost);
 }
 
 export function requestCost(req) {
@@ -148,7 +196,7 @@ export async function withinDeviceQuota({ principal, cost = 1 }) {
  * module header.
  */
 export async function withinDailyBudget({ cost = 1 } = {}) {
-  const budget = intEnv('ANTHROPIC_DAILY_REQUEST_BUDGET', 0);
+  const budget = dailyBudgetLimit();
   if (budget <= 0) return true;
 
   const windowSeconds = 86_400;

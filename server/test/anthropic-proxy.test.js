@@ -204,3 +204,68 @@ test('per-principal limits are per route, so one route cannot starve another', a
   // Same caller, different route — still has its own allowance.
   assert.equal((await forward(makeReq('9.9.9.5'), 'route-b')).statusCode, 200);
 });
+
+function withContent(ip, content) {
+  const req = makeReq(ip);
+  req.body = { messages: [{ role: 'user', content }] };
+  return req;
+}
+
+test('url image sources are rejected 400 before reaching Anthropic', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+
+  const res = await forward(withContent('10.0.9.1', [
+    { type: 'image', source: { type: 'url', url: 'https://example.com/huge.png' } },
+  ]), 'test-parts-url');
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(upstream.length, 0);
+});
+
+test('content parts are forwarded with only their allow-listed fields', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+
+  const res = await forward(withContent('10.0.9.2', [
+    { type: 'text', text: 'what is this?', cache_control: { type: 'ephemeral' } },
+    { type: 'image', extra: 1, source: { type: 'base64', media_type: 'image/jpeg', data: 'AAAA', x: 2 } },
+  ]), 'test-parts-strip');
+
+  assert.equal(res.statusCode, 200);
+  const sent = JSON.parse(upstream[0][1].body);
+  assert.deepEqual(sent.messages[0].content, [
+    { type: 'text', text: 'what is this?' },
+    { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: 'AAAA' } },
+  ]);
+});
+
+const MEAL_SHAPE = { maxMessages: 1, maxImages: 1, maxTextChars: 4000 };
+const image = { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: 'AAAA' } };
+
+async function forwardShaped(req, logLabel) {
+  const res = makeRes();
+  await forwardToAnthropic(req, res, { logLabel, shape: MEAL_SHAPE });
+  return res;
+}
+
+test('a shaped route accepts the one photo plus prompt the app sends', async (t) => {
+  setEnv(t, BASE_ENV);
+  stubUpstream(t);
+  const res = await forwardShaped(withContent('10.0.9.3', [image, { type: 'text', text: 'Estimate macros.' }]), 'shape-ok');
+  assert.equal(res.statusCode, 200);
+});
+
+test('a shaped route rejects multi-turn chat, extra images and long text', async (t) => {
+  setEnv(t, { ...BASE_ENV, RATE_LIMIT_RPM: '1000' });
+  const upstream = stubUpstream(t);
+
+  const multiTurn = makeReq('10.0.9.4');
+  multiTurn.body = { messages: [
+    { role: 'user', content: 'a' }, { role: 'assistant', content: 'b' }, { role: 'user', content: 'c' },
+  ] };
+  assert.equal((await forwardShaped(multiTurn, 'shape-bad')).statusCode, 400);
+  assert.equal((await forwardShaped(withContent('10.0.9.4', [image, image]), 'shape-bad')).statusCode, 400);
+  assert.equal((await forwardShaped(withContent('10.0.9.4', 'x'.repeat(4001)), 'shape-bad')).statusCode, 400);
+  assert.equal(upstream.length, 0);
+});

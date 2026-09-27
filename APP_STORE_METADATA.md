@@ -114,7 +114,7 @@ calorie counter,gym,nutrition,hrv,sleep,supplement,peptide,strength,protein,food
 Log every set in 2 taps. Snap a photo and Atlas logs the meal. Wake up
 to a Recovery Score built from your HRV, sleep, and resting heart rate.
 
-All on your device. No account required. No ads. No tracking.
+Your logs stay on your device and in your iCloud. No account, no ads, no tracking.
 
 ——
 
@@ -132,7 +132,7 @@ Rest timer fires automatically and sends a Lock Screen alert when you're ready.
 NUTRITION
 Snap a photo and Atlas identifies the food. Scan a barcode from 200 million+
 products. Either way, macros are logged in seconds.
-• AI photo meal scanner — photo analyzed and deleted immediately
+• AI photo meal scanner — 3 free scans a week, never stored by Atlas
 • 200M+ product barcode database (Open Food Facts)
 • Daily calorie and macro rings with TDEE-based targets
 • Custom food library and recipe tracking
@@ -172,13 +172,13 @@ Research and self-tracking only. Medical disclaimer required at first launch.
 ——
 
 ATLAS PRO
+• Unlimited AI meal photo scans (3 free every week)
+• Performance Age + full Biology tab — body composition + lab panels
+• AI Research assistant and the Sunday AI weekly recap
 • Unlimited active protocols
-• Full Biology tab — body composition + lab panels
-• AI Research assistant (RAG-backed peptide database chat)
-• Cloud sync across all your devices via iCloud
-• Apple Watch companion app
-• All Home Screen widgets + Live Activities (Dynamic Island)
-• Full data export (CSV and JSON)
+• Full data export (CSV, JSON and PDF)
+
+Always free: workouts, barcodes, recovery, iCloud sync, Watch and widgets.
 
 Monthly $9.99 · Annual $49.99 (save 58%) · Lifetime $169
 Free trial: 7 days on Monthly and Annual · Cancel anytime
@@ -200,7 +200,7 @@ PRIVATE BY DEFAULT
 • No ads, no tracking, no data brokers — NSPrivacyTracking = false
 • Your logs stay on-device or in your private iCloud — we cannot see them
 • No account required — every feature works without signing in
-• AI features send only what's needed (a meal photo, weekly averages), never stored
+• AI features send only what's needed (a meal photo, weekly averages), never stored by Atlas
 
 ——
 
@@ -212,7 +212,7 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 919 / 4 000 — 81 chars of headroom. The SUBSCRIPTION TERMS block and
+*(3 963 / 4 000 — 37 chars of headroom. The SUBSCRIPTION TERMS block and
 both links are required by Guideline 3.1.2 — do not trim them to make room
 for copy.)*
 
@@ -223,7 +223,7 @@ for copy.)*
 ```
 PeptideX is now Atlas — rebuilt into a complete health & fitness app.
 
-Everything you used for protocol tracking is still here. On top of it we added training, nutrition, recovery, and a daily momentum system that ties it all together — five tabs in one private app. No backend, no ads, no tracking. Your data stays on your device.
+Everything you used for protocol tracking is still here. On top of it we added training, nutrition, recovery, and a daily momentum system that ties it all together — five tabs in one private app. No ads, no tracking, no account. Your logs stay on your device and in your private iCloud.
 
 ——
 
@@ -289,7 +289,7 @@ Fixes iCloud sync (it was silently falling back to local-only storage), dose dup
 ——
 
 PRIVATE BY DEFAULT
-No backend, no ads, no tracking. Your logs live on-device or in your private iCloud — we can't see them. No account required.
+No ads, no tracking, no account required. Your logs live on-device or in your private iCloud — we can't see them. AI features (meal photo scan, research chat, weekly recap) send only what you submit to Anthropic's Claude to answer.
 
 Atlas is an educational reference and tracking journal, not medical advice. Always consult a licensed healthcare provider before changing any training, nutrition, supplement, or protocol.
 

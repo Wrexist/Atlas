@@ -17,6 +17,7 @@ struct TrialOfferView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var storeService = StoreService.shared
     @State private var isPurchasing = false
+    @State private var isRestoring = false
     @State private var errorMessage: String?
     @State private var sparklePhase = 0.0
     @State private var ctaPulse = false
@@ -44,20 +45,31 @@ struct TrialOfferView: View {
         }
     }
 
+    /// Shown in place of any price until StoreKit returns the storefront's
+    /// own. A hard-coded "$9.99" fallback used to flow into the headline and
+    /// the legal copy on every non-US storefront during the load window —
+    /// a price in the wrong currency on a purchase screen.
+    private static let pricePlaceholder = "—"
+
+    /// Both plans loaded. Until then the CTA stays disabled and the legal
+    /// copy waits, so nothing on screen quotes a price StoreKit hasn't given.
+    private var arePricesLoaded: Bool {
+        storeService.monthlyProduct != nil && storeService.annualProduct != nil
+    }
+
     private var monthlyPrice: String {
-        storeService.monthlyProduct?.displayPrice ?? "$9.99"
+        storeService.monthlyProduct?.displayPrice ?? Self.pricePlaceholder
     }
 
     private var annualPrice: String {
-        storeService.annualProduct?.displayPrice ?? "$49.99"
+        storeService.annualProduct?.displayPrice ?? Self.pricePlaceholder
     }
 
     /// Per-month equivalent of the annual plan, formatted with the
-    /// product's locale-aware price style. Falls back to a hard-coded
-    /// "$4.17" so the UI is never empty before products load.
+    /// product's locale-aware price style.
     private var annualPerMonthPrice: String {
         guard let annual = storeService.annualProduct, annual.price > 0 else {
-            return "$4.17"
+            return Self.pricePlaceholder
         }
         let perMonth = annual.price / 12
         return perMonth.formatted(annual.priceFormatStyle)
@@ -230,15 +242,17 @@ struct TrialOfferView: View {
     }
 
     private var headlineSupport: String {
+        guard arePricesLoaded else { return "Loading plans…" }
         // "Then …" only reads correctly when something comes first. Once the
         // trial is spent it's just the price, so the lead-in has to go.
         let lead = trialDays == nil ? "" : "Then "
         switch selectedTier {
         case .annual:
-            guard let saved = annualSavingsPercent else {
-                return "\(lead)\(annualPerMonthPrice)/month, billed yearly"
-            }
-            return "\(lead)\(annualPerMonthPrice)/month — save \(saved)%"
+            // Guideline 3.1.2(c): the billed amount leads; the per-month
+            // equivalent is the secondary figure.
+            let billed = "\(lead)\(annualPrice)/year · \(annualPerMonthPrice)/mo"
+            guard let saved = annualSavingsPercent else { return billed }
+            return "\(billed) — save \(saved)%"
         case .monthly:
             return "\(lead)\(monthlyPrice)/month — cancel anytime"
         }
@@ -454,7 +468,7 @@ struct TrialOfferView: View {
                     Text(tierPrimaryPrice(for: tier))
                         .font(AppFont.scaled(16, weight: .bold, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
-                    Text("/mo")
+                    Text(tierPriceUnit(for: tier))
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
                 }
@@ -490,17 +504,34 @@ struct TrialOfferView: View {
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
+    /// The billed amount per period — never the per-month equivalent of the
+    /// annual plan, which Guideline 3.1.2(c) allows only as the secondary line.
     private func tierPrimaryPrice(for tier: Tier) -> String {
         switch tier {
-        case .annual:  return annualPerMonthPrice
+        case .annual:  return annualPrice
         case .monthly: return monthlyPrice
         }
     }
 
+    private func tierPriceUnit(for tier: Tier) -> String {
+        switch tier {
+        case .annual:  return "/yr"
+        case .monthly: return "/mo"
+        }
+    }
+
     private func tierSubtitle(for tier: Tier) -> String {
-        let billed = tier == .annual ? "\(annualPrice)/yr" : "\(monthlyPrice)/mo"
-        guard let days = trialDays(for: tier) else { return "Billed \(billed)" }
-        return "\(days) days free, then \(billed)"
+        let days = trialDays(for: tier)
+        switch tier {
+        case .annual:
+            let perMonth = "\(annualPerMonthPrice)/mo"
+            guard let days else { return "Just \(perMonth)" }
+            return "\(days) days free · \(perMonth)"
+        case .monthly:
+            let billed = "\(monthlyPrice)/mo"
+            guard let days else { return "Billed \(billed)" }
+            return "\(days) days free, then \(billed)"
+        }
     }
 
     // MARK: - Footer
@@ -549,7 +580,8 @@ struct TrialOfferView: View {
                 .shadow(color: AppColor.accentPrimary.opacity(0.4), radius: ctaPulse ? 18 : 8, y: 4)
             }
             .buttonStyle(.plain)
-            .disabled(isPurchasing)
+            .disabled(isPurchasing || !arePricesLoaded)
+            .opacity(arePricesLoaded ? 1 : 0.5)
             .accessibilityLabel("\(ctaTitle). \(ctaDetail)")
 
             HStack(spacing: Spacing.xs) {
@@ -566,6 +598,7 @@ struct TrialOfferView: View {
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
                     .padding(.vertical, Spacing.xs)
+                    .minimumHitArea()
             }
             .buttonStyle(.plain)
             .disabled(isPurchasing)
@@ -577,9 +610,19 @@ struct TrialOfferView: View {
                 .padding(.horizontal, Spacing.md)
 
             HStack(spacing: Spacing.md) {
-                Link("Terms of Use", destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"))
+                Button(action: restore) {
+                    Text("Restore Purchases").minimumHitArea()
+                }
+                .buttonStyle(.plain)
+                .disabled(isPurchasing || isRestoring)
                 Text("·").foregroundStyle(AppColor.textTertiary)
-                Link("Privacy Policy", destination: URL.staticHTTPS("https://wrexist.github.io/Peptide-ai/privacy.html"))
+                Link(destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")) {
+                    Text("Terms of Use").minimumHitArea()
+                }
+                Text("·").foregroundStyle(AppColor.textTertiary)
+                Link(destination: URL.staticHTTPS("https://wrexist.github.io/Peptide-ai/privacy.html")) {
+                    Text("Privacy Policy").minimumHitArea()
+                }
             }
             .font(AppFont.scaled(11))
             .foregroundStyle(AppColor.accentLight)
@@ -637,6 +680,7 @@ struct TrialOfferView: View {
     /// user to guess whether tapping it bills them, and the ones who guess
     /// wrong cancel within the hour.
     private var ctaDetail: String {
+        guard arePricesLoaded else { return "Loading plans…" }
         let price = selectedTier == .annual
             ? "\(annualPrice)/yr"
             : "\(monthlyPrice)/mo"
@@ -646,7 +690,7 @@ struct TrialOfferView: View {
 
     /// A localised zero in the selected plan's currency — "$0.00", "0,00 kr".
     private var zeroPriceToday: String {
-        guard let product = productForSelectedTier else { return "$0.00" }
+        guard let product = productForSelectedTier else { return Self.pricePlaceholder }
         return Decimal.zero.formatted(product.priceFormatStyle)
     }
 
@@ -659,6 +703,7 @@ struct TrialOfferView: View {
     }
 
     private var legalCopy: String {
+        guard arePricesLoaded else { return "Subscription terms appear once plans load." }
         let plan = selectedTier == .annual
             ? "\(annualPrice) per year for the Atlas Pro Yearly subscription"
             : "\(monthlyPrice) per month for the Atlas Pro Monthly subscription"
@@ -701,6 +746,28 @@ struct TrialOfferView: View {
                 }
             } catch {
                 withAnimation(AppAnimation.fadeIn) { errorMessage = "Couldn't complete the purchase. Please try again." }
+            }
+        }
+    }
+
+    /// Same restore path as `PaywallView`. A returning subscriber who
+    /// restores leaves onboarding exactly as a fresh purchase would.
+    private func restore() {
+        guard !isRestoring, !isPurchasing else { return }
+        errorMessage = nil
+        isRestoring = true
+        Task {
+            defer { isRestoring = false }
+            do {
+                try await storeService.restorePurchases()
+                if storeService.isProUser {
+                    Haptics.success()
+                    onAccept()
+                } else {
+                    withAnimation(AppAnimation.fadeIn) { errorMessage = "No previous purchase found to restore." }
+                }
+            } catch {
+                withAnimation(AppAnimation.fadeIn) { errorMessage = "Restore failed. Check your internet connection and try again." }
             }
         }
     }

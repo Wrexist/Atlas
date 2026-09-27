@@ -167,6 +167,14 @@ final class AchievementService {
         pendingUnlocks.append(achievements[index])
     }
 
+    /// Delete All Data: back to the locked defaults and nothing stored,
+    /// so progress from erased records can't reappear.
+    func eraseAll() {
+        achievements = Self.defaultAchievements
+        pendingUnlocks = []
+        defaults.removeObject(forKey: persistenceKey)
+    }
+
     func resetForTesting() {
         achievements = Self.defaultAchievements
         pendingUnlocks = []

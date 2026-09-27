@@ -30,41 +30,56 @@ final class BackupSnapshotServiceTests: XCTestCase {
         XCTAssertEqual(decoded.profile.name, "Alex")
     }
 
-    func test_availableSnapshots_sortsNewestFirst() async throws {
+    func test_availableSnapshots_sortsNewestFirst() throws {
         let store = DataStore(seedSampleData: false)
-        _ = BackupSnapshotService.snapshotCurrentState(dataStore: store)
-        // Sleep a moment so timestamps differ on file system resolution.
-        try await Task.sleep(for: .milliseconds(1100))
+        let older = Date(timeIntervalSince1970: 1_700_000_000)
+        let newer = older.addingTimeInterval(60)
+
+        let olderURL = try XCTUnwrap(
+            BackupSnapshotService.snapshotCurrentState(dataStore: store, now: older)
+        )
         store.profile.name = "Second"
-        _ = BackupSnapshotService.snapshotCurrentState(dataStore: store)
+        let newerURL = try XCTUnwrap(
+            BackupSnapshotService.snapshotCurrentState(dataStore: store, now: newer)
+        )
+        // Ordering is by modification date, so pin both rather than rely
+        // on the file system's clock resolution.
+        try setModificationDate(older, of: olderURL)
+        try setModificationDate(newer, of: newerURL)
 
         let snapshots = BackupSnapshotService.availableSnapshots()
-        XCTAssertGreaterThanOrEqual(snapshots.count, 2)
-        guard snapshots.count >= 2 else { return }
-        XCTAssertGreaterThan(
-            snapshots[0].createdAt,
-            snapshots[1].createdAt,
+        XCTAssertEqual(
+            snapshots.map(\.id),
+            [newerURL.lastPathComponent, olderURL.lastPathComponent],
             "availableSnapshots must surface newest first"
         )
     }
 
-    func test_pruneRetainsAtMostMaxSnapshots() async throws {
+    func test_pruneRetainsAtMostMaxSnapshots() throws {
         let store = DataStore(seedSampleData: false)
         // Produce maxSnapshots + 3 snapshots; pruning must trim the
-        // oldest three. Each write needs distinct mtimes so sleep
-        // for 1.1s between calls — slow test but the only way to
-        // distinguish files on standard filesystem time resolution.
+        // oldest three. Each write gets a distinct injected instant (the
+        // file name has one-second resolution) and a matching pinned
+        // modification date, so the prune order is fixed without sleeping.
         let extra = 3
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        var urls: [URL] = []
         for i in 0..<(BackupSnapshotService.maxSnapshots + extra) {
             store.profile.name = "snap-\(i)"
-            _ = BackupSnapshotService.snapshotCurrentState(dataStore: store)
-            try await Task.sleep(for: .milliseconds(1100))
+            let instant = base.addingTimeInterval(TimeInterval(i * 60))
+            let url = try XCTUnwrap(
+                BackupSnapshotService.snapshotCurrentState(dataStore: store, now: instant)
+            )
+            try setModificationDate(instant, of: url)
+            urls.append(url)
         }
+
         let after = BackupSnapshotService.availableSnapshots()
-        XCTAssertLessThanOrEqual(
-            after.count,
-            BackupSnapshotService.maxSnapshots,
-            "Prune must cap at maxSnapshots"
+        XCTAssertEqual(after.count, BackupSnapshotService.maxSnapshots, "Prune must cap at maxSnapshots")
+        XCTAssertEqual(
+            Set(after.map(\.id)),
+            Set(urls.suffix(BackupSnapshotService.maxSnapshots).map(\.lastPathComponent)),
+            "Prune must drop the oldest snapshots and keep the newest"
         )
     }
 
@@ -81,5 +96,9 @@ final class BackupSnapshotServiceTests: XCTestCase {
         )
         let bytes = try BackupSnapshotService.read(info)
         XCTAssertFalse(bytes.isEmpty)
+    }
+
+    private func setModificationDate(_ date: Date, of url: URL) throws {
+        try FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: url.path)
     }
 }

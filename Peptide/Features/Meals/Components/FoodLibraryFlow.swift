@@ -34,6 +34,9 @@ struct FoodLibraryFlow: View {
     /// search. Single-use: parent clears it after the sheet
     /// dismisses.
     var initialDeepLink: FoodLogDeepLink? = nil
+    /// Day the Meals tab is showing. Logs land on it at the current
+    /// clock time, so back-filling yesterday doesn't drop into today.
+    var logDay: Date = Date()
 
     @State private var phase: Phase = .browse
     @State private var query: String = ""
@@ -301,7 +304,7 @@ struct FoodLibraryFlow: View {
                 recipe: recipe,
                 customFoods: profile.customFoods,
                 onLog: { category in
-                    dataStore.logRecipe(recipe, category: category, at: Date())
+                    dataStore.logRecipe(recipe, category: category, at: logTimestamp())
                     pendingRecipeLog = nil
                     onClose()
                 },
@@ -633,6 +636,14 @@ struct FoodLibraryFlow: View {
         VStack(spacing: Spacing.md) {
             quickActionsCard
 
+            let recentMeals = LifestyleDataLogic.recentDistinctMeals(in: profile.mealHistory)
+            if !recentMeals.isEmpty {
+                sectionHeader("Recent meals")
+                ForEach(recentMeals) { meal in
+                    recentMealRow(meal)
+                }
+            }
+
             if !recentOFFProducts.isEmpty {
                 sectionHeader("Recently logged")
                 ForEach(recentOFFProducts, id: \.barcode) { product in
@@ -908,6 +919,65 @@ struct FoodLibraryFlow: View {
         }
     }
 
+    /// One past meal from `mealHistory` — covers photo scans and manual
+    /// entries, which have no food-library record to re-open. Tapping
+    /// logs it again as it was logged.
+    private func recentMealRow(_ meal: MealEntry) -> some View {
+        let foodID = Self.recentMealFoodID(meal)
+        let inFlight = recentlyQuickLogged[foodID] != nil
+        return Button {
+            relogMeal(meal)
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .fill(meal.category.tint.opacity(0.20))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: meal.source.icon)
+                        .font(AppFont.scaled(16, weight: .semibold))
+                        .foregroundStyle(meal.category.tint)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(meal.name)
+                        .font(AppFont.scaled(16, weight: .semibold))
+                        .foregroundStyle(AppColor.textPrimary)
+                        .lineLimit(1)
+                    Text(meal.category.displayName)
+                        .font(AppFont.scaled(11))
+                        .foregroundStyle(AppColor.textSecondary)
+                        .lineLimit(1)
+                    HStack(spacing: Spacing.xs) {
+                        macroChip(label: "kcal", value: meal.calories, tint: AppColor.accentLight)
+                        macroChip(label: "P", value: meal.proteinG, tint: .green)
+                        macroChip(label: "C", value: meal.carbsG, tint: .blue)
+                        macroChip(label: "F", value: meal.fatG, tint: .orange)
+                    }
+                    .padding(.top, 2)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: inFlight ? "checkmark" : "arrow.clockwise")
+                    .font(AppFont.scaled(13, weight: .bold))
+                    .foregroundStyle(AppColor.accentLight)
+                    .minimumHitArea()
+            }
+            .padding(Spacing.md)
+            .background {
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .fill(AppColor.surfaceSecondary.opacity(0.55))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                    }
+            }
+            .overlay { quickLoggedOverlay(foodID: foodID) }
+        }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        .disabled(inFlight)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("\(meal.name), \(meal.category.displayName), \(meal.calories) kilocalories"))
+        .accessibilityHint("Logs this meal again.")
+    }
+
     private var customFoodIcon: some View {
         ZStack {
             RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
@@ -1053,11 +1123,12 @@ struct FoodLibraryFlow: View {
         guard recentlyQuickLogged[product.barcode] == nil,
               let meal = product.loggable(for: product.defaultPortion) else { return }
         let now = Date()
+        let loggedAt = logTimestamp()
         // Auto-category captured once at log time and reused for
         // both the persisted entry and the overlay readout — see
         // `quickLoggedOverlay` for the meal-boundary bug this
         // prevents.
-        let loggedCategory = MealCategory.auto(for: now)
+        let loggedCategory = MealCategory.auto(for: loggedAt)
         let source: MealSource = product.barcode.hasPrefix("custom:") ? .custom : .openFoodFacts
         let entry = MealEntry(
             loggable: meal,
@@ -1065,7 +1136,7 @@ struct FoodLibraryFlow: View {
             category: loggedCategory,
             source: source,
             sourceID: product.barcode,
-            date: now
+            date: loggedAt
         )
         dataStore.logMealEntry(entry)
         BarcodeHaptics.logCommitted()
@@ -1078,8 +1149,30 @@ struct FoodLibraryFlow: View {
                 await BarcodeProductCache.shared.write(productSnapshot)
             }
         }
+        showQuickLogged(foodID: product.barcode, category: loggedCategory)
+    }
+
+    /// "Log again" from the Recent meals row: duplicates the entry onto
+    /// the viewed day at the current clock time, keeping its category.
+    private func relogMeal(_ meal: MealEntry) {
+        let foodID = Self.recentMealFoodID(meal)
+        guard recentlyQuickLogged[foodID] == nil else { return }
+        dataStore.logMealEntry(LifestyleDataLogic.relogged(meal, at: logTimestamp()))
+        BarcodeHaptics.logCommitted()
+        showQuickLogged(foodID: foodID, category: meal.category)
+    }
+
+    /// Keyed by name, not entry id: the re-log becomes the newest entry
+    /// for that name, and the row must keep its "Logged ✓" wash.
+    private static func recentMealFoodID(_ meal: MealEntry) -> String {
+        "meal:" + meal.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    /// Shows the row's "Logged ✓" wash, then clears it after the
+    /// confirmation window.
+    private func showQuickLogged(foodID: String, category: MealCategory) {
         withAnimation(.easeOut(duration: 0.18)) {
-            recentlyQuickLogged[product.barcode] = loggedCategory
+            recentlyQuickLogged[foodID] = category
         }
         // Clear the badge after the confirmation window so the row
         // returns to its tap-to-log idle state. Keying tasks by
@@ -1088,7 +1181,6 @@ struct FoodLibraryFlow: View {
         // and a rapid second log of the same food cancels the old
         // timer before scheduling the new one — so the badge
         // duration always reflects the most recent log.
-        let foodID = product.barcode
         quickLogClearTasks[foodID]?.cancel()
         let task = Task { @MainActor in
             try? await Task.sleep(for: AppAnimation.quickLogConfirmationDuration)
@@ -1442,7 +1534,7 @@ struct FoodLibraryFlow: View {
         HStack(spacing: Spacing.sm) {
             GlassButton(title: "Back", style: .secondary) { backToBrowse() }
 
-            GlassButton(title: "Add to today", style: .primary) {
+            GlassButton(title: addButtonTitle, style: .primary) {
                 confirmLog(for: product)
             }
             // Block logging a 0-kcal OFF product despite the warning above —
@@ -1459,14 +1551,14 @@ struct FoodLibraryFlow: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 56, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
-            Text("Added to today")
+            Text(addedTitle)
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
             if let snapshot = loggedSnapshot {
                 LoggedCaloriePanel(
                     productName: snapshot.foodName,
                     deltaCalories: snapshot.calories,
-                    totalCalories: dataStore.consumption().caloriesKcal,
+                    totalCalories: dataStore.consumption(for: snapshot.date).caloriesKcal,
                     targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories
                 )
             }
@@ -1486,6 +1578,21 @@ struct FoodLibraryFlow: View {
     // MARK: - Actions / helpers
 
     private var profile: UserProfile { dataStore.profile }
+
+    private var isLoggingToday: Bool { Calendar.current.isDateInToday(logDay) }
+
+    private var addButtonTitle: LocalizedStringKey {
+        isLoggingToday ? "Add to today" : "Add to \(MealDaySwitcher.title(for: logDay))"
+    }
+
+    private var addedTitle: LocalizedStringKey {
+        isLoggingToday ? "Added to today" : "Added to \(MealDaySwitcher.title(for: logDay))"
+    }
+
+    /// Timestamp for a log made now from this sheet — see `logDay`.
+    private func logTimestamp() -> Date {
+        LifestyleDataLogic.logTimestamp(on: logDay)
+    }
 
     /// Composite identity for the Favorites-tab refresh task. Changes
     /// when either the active tab moves to/from `.favorites` or the
@@ -1530,7 +1637,7 @@ struct FoodLibraryFlow: View {
             category: category,
             source: source,
             sourceID: product.barcode,
-            date: now
+            date: logTimestamp()
         )
         dataStore.logMealEntry(entry)
         BarcodeHaptics.logCommitted()
@@ -1538,7 +1645,7 @@ struct FoodLibraryFlow: View {
             foodName: product.name,
             entryID: entry.id,
             calories: meal.calories,
-            date: now
+            date: entry.date
         )
         // Record the choice in scan history so this food shows up in
         // the barcode recents row too — keeps the two scanners' notion

@@ -14,12 +14,21 @@ struct MealEntryEditorSheet: View {
     let onCancel: () -> Void
 
     @State private var category: MealCategory
-    @State private var calories: Int
-    @State private var proteinG: Int
-    @State private var carbsG: Int
-    @State private var fatG: Int
+    @State private var calories: String
+    @State private var proteinG: String
+    @State private var carbsG: String
+    @State private var fatG: String
     @State private var date: Date
     @State private var showDeleteConfirm: Bool = false
+    @FocusState private var focusedField: MacroField?
+
+    private enum MacroField: Hashable {
+        case calories, protein, carbs, fat
+    }
+
+    /// Portion multipliers applied to the entry as originally logged.
+    /// ×1 resets a scaled or hand-edited entry.
+    private static let portionFactors: [Double] = [0.5, 1, 1.5, 2]
 
     init(
         initial: MealEntry,
@@ -32,20 +41,37 @@ struct MealEntryEditorSheet: View {
         self.onDelete = onDelete
         self.onCancel = onCancel
         _category = State(initialValue: initial.category)
-        _calories = State(initialValue: initial.calories)
-        _proteinG = State(initialValue: initial.proteinG)
-        _carbsG = State(initialValue: initial.carbsG)
-        _fatG = State(initialValue: initial.fatG)
+        _calories = State(initialValue: String(initial.calories))
+        _proteinG = State(initialValue: String(initial.proteinG))
+        _carbsG = State(initialValue: String(initial.carbsG))
+        _fatG = State(initialValue: String(initial.fatG))
         _date = State(initialValue: initial.date)
+    }
+
+    /// The typed macros, or nil while any field is blank or not a
+    /// whole number.
+    private var editedMacros: LoggableMeal? {
+        guard
+            let kcal = Self.parse(calories),
+            let protein = Self.parse(proteinG),
+            let carbs = Self.parse(carbsG),
+            let fat = Self.parse(fatG)
+        else { return nil }
+        return LoggableMeal(calories: kcal, proteinG: protein, carbsG: carbs, fatG: fat)
+    }
+
+    private var originalMacros: LoggableMeal {
+        LifestyleDataLogic.scaledMacros(of: initial, by: 1)
     }
 
     private var hasChanges: Bool {
         category != initial.category
-            || calories != initial.calories
-            || proteinG != initial.proteinG
-            || carbsG != initial.carbsG
-            || fatG != initial.fatG
+            || editedMacros != originalMacros
             || !Calendar.current.isDate(date, equalTo: initial.date, toGranularity: .minute)
+    }
+
+    private static func parse(_ text: String) -> Int? {
+        Int(text.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0 >= 0 ? $0 : nil }
     }
 
     var body: some View {
@@ -71,8 +97,12 @@ struct MealEntryEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: commit)
-                        .disabled(!hasChanges)
+                        .disabled(!hasChanges || editedMacros == nil)
                         .fontWeight(.semibold)
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { focusedField = nil }
                 }
             }
             .confirmationDialog(
@@ -85,7 +115,7 @@ struct MealEntryEditorSheet: View {
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Subtracts \(initial.calories) kcal from today's totals. This can't be undone.")
+                Text("Subtracts \(initial.calories) kcal from that day's totals. This can't be undone.")
             }
         }
     }
@@ -134,10 +164,11 @@ struct MealEntryEditorSheet: View {
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                 Divider().background(AppColor.glassBorder)
-                macroStepper(label: "Calories", unit: "kcal", value: $calories, step: 10, range: 0...10000)
-                macroStepper(label: "Protein",  unit: "g",   value: $proteinG, step: 1,  range: 0...500)
-                macroStepper(label: "Carbs",    unit: "g",   value: $carbsG,   step: 1,  range: 0...1000)
-                macroStepper(label: "Fat",      unit: "g",   value: $fatG,     step: 1,  range: 0...500)
+                portionChips
+                macroField(label: "Calories", unit: "kcal", text: $calories, field: .calories)
+                macroField(label: "Protein",  unit: "g",    text: $proteinG, field: .protein)
+                macroField(label: "Carbs",    unit: "g",    text: $carbsG,   field: .carbs)
+                macroField(label: "Fat",      unit: "g",    text: $fatG,     field: .fat)
                 Divider().background(AppColor.glassBorder)
                 DatePicker("Logged at", selection: $date, in: dateRange, displayedComponents: [.date, .hourAndMinute])
                     .font(AppFont.subheadline)
@@ -154,25 +185,78 @@ struct MealEntryEditorSheet: View {
         return min(oneYearAgo, initial.date)...Date()
     }
 
-    private func macroStepper(
+    /// ×0.5 … ×2 of the entry as logged. Scaling always starts from
+    /// the original values, so tapping ×2 then ×1.5 means 1.5 portions,
+    /// not three. The chip matching the current fields reads as active.
+    private var portionChips: some View {
+        HStack(spacing: Spacing.xs) {
+            Text("Portion")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+            Spacer(minLength: Spacing.xs)
+            ForEach(Self.portionFactors, id: \.self) { factor in
+                portionChip(factor)
+            }
+        }
+    }
+
+    private func portionChip(_ factor: Double) -> some View {
+        let scaled = LifestyleDataLogic.scaledMacros(of: initial, by: factor)
+        let isActive = editedMacros == scaled
+        let label = "×" + factor.formatted(.number.precision(.fractionLength(0...1)))
+        return Button {
+            Haptics.selection()
+            apply(scaled)
+        } label: {
+            Text(label)
+                .font(AppFont.scaled(13, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(isActive ? AppColor.onAccent : AppColor.textPrimary)
+                .padding(.horizontal, Spacing.sm)
+                .padding(.vertical, 6)
+                .background {
+                    Capsule().fill(isActive ? AppColor.accentPrimary : AppColor.surfaceSecondary.opacity(0.6))
+                }
+                .minimumHitArea()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("\(label) portion"))
+        .accessibilityAddTraits(isActive ? .isSelected : [])
+    }
+
+    private func apply(_ macros: LoggableMeal) {
+        calories = String(macros.calories)
+        proteinG = String(macros.proteinG)
+        carbsG = String(macros.carbsG)
+        fatG = String(macros.fatG)
+    }
+
+    private func macroField(
         label: LocalizedStringKey,
         unit: String,
-        value: Binding<Int>,
-        step: Int,
-        range: ClosedRange<Int>
+        text: Binding<String>,
+        field: MacroField
     ) -> some View {
-        Stepper(value: value, in: range, step: step) {
-            HStack {
-                Text(label)
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                Spacer()
-                Text("\(value.wrappedValue) \(unit)")
-                    .font(AppFont.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .monospacedDigit()
-            }
+        HStack {
+            Text(label)
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+            Spacer()
+            TextField("0", text: text)
+                .accessibilityLabel(Text(label))
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .focused($focusedField, equals: field)
+                .font(AppFont.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColor.textPrimary)
+                .monospacedDigit()
+                .frame(maxWidth: 100)
+                .frame(minHeight: Spacing.minimumHitTarget)
+            Text(unit)
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .frame(width: 32, alignment: .leading)
         }
     }
 
@@ -188,12 +272,13 @@ struct MealEntryEditorSheet: View {
     }
 
     private func commit() {
+        guard let macros = editedMacros else { return }
         var updated = initial
         updated.category = category
-        updated.calories = calories
-        updated.proteinG = proteinG
-        updated.carbsG = carbsG
-        updated.fatG = fatG
+        updated.calories = macros.calories
+        updated.proteinG = macros.proteinG
+        updated.carbsG = macros.carbsG
+        updated.fatG = macros.fatG
         updated.date = date
         onSave(updated)
     }

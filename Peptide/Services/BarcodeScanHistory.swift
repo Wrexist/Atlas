@@ -204,6 +204,11 @@ actor BarcodeScanHistory {
         }
     }
 
+    /// Delete All Data: forgets every scanned barcode and portion.
+    func removeAll() {
+        defaults.removeObject(forKey: Self.storeKey)
+    }
+
     private func save(_ store: [String: Entry]) {
         do {
             defaults.set(try Self.encoder.encode(store), forKey: Self.storeKey)

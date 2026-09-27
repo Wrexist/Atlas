@@ -43,6 +43,7 @@ struct WeeklySummaryToggleRow: View {
                     Image(systemName: "sparkles")
                         .font(AppFont.scaled(16, weight: .heavy))
                         .foregroundStyle(accent)
+                        .accessibilityHidden(true)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -66,7 +67,7 @@ struct WeeklySummaryToggleRow: View {
                     Text(subtitle(isPro: isPro))
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(2)
+                        .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: Spacing.sm)
@@ -108,7 +109,7 @@ struct WeeklySummaryToggleRow: View {
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .sheet(isPresented: $showPaywall) {
-            PaywallView()
+            PaywallView(source: .weeklyRecap)
                 .liquidGlassPresentation()
         }
         .accessibilityElement(children: .combine)
@@ -125,7 +126,7 @@ struct WeeklySummaryToggleRow: View {
         }
         return dataStore.profile.weeklySummaryEnabled
             ? "Sunday 9 am — recap of compliance, streaks, and patterns."
-            : "Toggle on to get the Sunday recap notification."
+            : "Off. Turning it on sends weekly totals and your HRV trend to Anthropic's Claude to write the recap."
     }
 
     private func accessibilityLabel(isPro: Bool) -> String {

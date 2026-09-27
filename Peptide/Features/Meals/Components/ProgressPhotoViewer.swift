@@ -122,6 +122,7 @@ struct ProgressPhotoViewer: View {
                         Image(systemName: "ellipsis.circle.fill")
                             .foregroundStyle(AppColor.accentLight)
                     }
+                    .accessibilityLabel("Photo options")
                 }
             }
         }

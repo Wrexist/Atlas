@@ -12,6 +12,14 @@ import SwiftUI
 struct WorkoutSessionDetailView: View {
     let session: WorkoutSession
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var sessionService = WorkoutSessionService.shared
+
+    @State private var confirmingDelete = false
+    @State private var namingRoutine = false
+    @State private var routineNameDraft = ""
+    @State private var savedRoutineName: String?
+    @State private var showingActiveWorkoutConflict = false
 
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
     @State private var library = ExerciseLibrary.shared
@@ -43,6 +51,108 @@ struct WorkoutSessionDetailView: View {
         .background(AppColor.background.ignoresSafeArea())
         .navigationTitle(session.name ?? "Workout")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !session.isActive {
+                ToolbarItem(placement: .topBarTrailing) { optionsMenu }
+            }
+        }
+        .confirmationDialog(
+            "Delete this workout?",
+            isPresented: $confirmingDelete,
+            titleVisibility: .visible
+        ) {
+            Button("Delete workout", role: .destructive, action: deleteWorkout)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Its sets are removed from your history and personal records are recalculated. This can't be undone.")
+        }
+        .alert("Save as routine", isPresented: $namingRoutine) {
+            TextField("Routine name", text: $routineNameDraft)
+            Button("Cancel", role: .cancel) {}
+            Button("Save", action: saveAsRoutine)
+        }
+        .alert("Routine saved", isPresented: savedRoutineBinding) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("\(savedRoutineName ?? "") is ready in Routines.")
+        }
+        .alert("Workout in progress", isPresented: $showingActiveWorkoutConflict) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Finish or discard your current workout before repeating this one.")
+        }
+    }
+
+    // MARK: - Actions
+
+    private var optionsMenu: some View {
+        Menu {
+            Button {
+                repeatWorkout()
+            } label: {
+                Label("Repeat workout", systemImage: "arrow.clockwise")
+            }
+            .disabled(session.exercises.isEmpty)
+            Button {
+                routineNameDraft = session.name ?? ""
+                namingRoutine = true
+            } label: {
+                Label("Save as routine", systemImage: "square.and.arrow.down")
+            }
+            .disabled(session.exercises.isEmpty)
+            Divider()
+            Button(role: .destructive) {
+                confirmingDelete = true
+            } label: {
+                Label("Delete workout", systemImage: "trash")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(AppFont.scaled(16, weight: .semibold))
+        }
+        .accessibilityLabel("Workout options")
+    }
+
+    private func deleteWorkout() {
+        dataStore.deleteWorkout(id: session.id)
+        Haptics.success()
+        dismiss()
+    }
+
+    private func saveAsRoutine() {
+        let store = RoutineStore.shared
+        // `create` derives the new sort index from the in-memory library,
+        // which is empty until some routine surface has loaded it.
+        store.load()
+        let routine = store.create(
+            name: routineNameDraft,
+            exercises: Routine(replaying: session, name: routineNameDraft).exercises
+        )
+        Haptics.success()
+        savedRoutineName = routine.name
+    }
+
+    /// Starts a fresh session seeded from this one. The Train tab's
+    /// container presents the active workout as soon as `activeSession`
+    /// appears, so popping back here is all the hand-off needed.
+    private func repeatWorkout() {
+        guard sessionService.activeSession == nil else {
+            Haptics.warning()
+            showingActiveWorkoutConflict = true
+            return
+        }
+        let template = Routine(
+            replaying: session,
+            name: session.name ?? String(localized: "Workout"),
+            id: session.routineID ?? UUID()
+        )
+        Haptics.impact(.medium)
+        sessionService.startWorkout(routine: template)
+        dismiss()
+    }
+
+    private var savedRoutineBinding: Binding<Bool> {
+        Binding(get: { savedRoutineName != nil }, set: { if !$0 { savedRoutineName = nil } })
     }
 
     private var header: some View {
@@ -228,5 +338,48 @@ struct WorkoutSessionDetailView: View {
         let hours = totalMinutes / 60
         let minutes = totalMinutes % 60
         return minutes == 0 ? "\(hours)h" : "\(hours)h \(minutes)m"
+    }
+}
+
+// MARK: - Replaying a session as a plan
+
+extension Routine {
+    /// A routine that replays a logged session: its exercises in the same
+    /// order, each slot sized to the working sets the user actually did.
+    /// Weights are left to `RoutineSeedEngine`, which seeds from the
+    /// latest history when the routine is started.
+    init(replaying session: WorkoutSession, name: String, id: UUID = UUID()) {
+        let slots = session.exercises
+            .sorted { $0.index < $1.index }
+            .enumerated()
+            .map { position, entry in RoutineExercise(replaying: entry, index: position) }
+        self.init(id: id, name: name, exercises: slots)
+    }
+}
+
+extension RoutineExercise {
+    /// Reps a slot targets when the logged sets carry none.
+    static let fallbackTargetReps = 10
+
+    /// Completed working sets when there are any, otherwise every working
+    /// set — a session abandoned before any check-off still describes the
+    /// plan the user meant to follow. Warm-ups never count.
+    init(replaying entry: WorkoutExerciseEntry, index: Int) {
+        let working = entry.sets.filter { !$0.isWarmup }
+        let completed = working.filter(\.completed)
+        let basis = completed.isEmpty ? working : completed
+        let reps = basis.first(where: { $0.reps > 0 })?.reps ?? Self.fallbackTargetReps
+        self.init(
+            exerciseID: entry.exerciseID,
+            index: index,
+            targetSets: Self.clamped(basis.count, to: RoutineEditEngine.targetSets),
+            targetReps: Self.clamped(reps, to: RoutineEditEngine.targetReps),
+            restSeconds: entry.restSeconds,
+            note: entry.note
+        )
+    }
+
+    private static func clamped(_ value: Int, to range: ClosedRange<Int>) -> Int {
+        min(max(value, range.lowerBound), range.upperBound)
     }
 }

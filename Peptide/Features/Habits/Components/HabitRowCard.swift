@@ -97,7 +97,8 @@ struct HabitRowCard: View {
                         .rotationEffect(.degrees(-90))
                 }
             }
-            .contentShape(Circle())
+            // Grow the hit area to 44pt without growing the header row.
+            .contentShape(Circle().inset(by: -(Spacing.minimumHitTarget - 28) / 2))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(summary.isCompletedToday ? "Completed today" : "Mark complete for today")

@@ -33,6 +33,7 @@ struct StarterRoutineSuggestions: View {
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
                     .frame(width: 24)
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(template.name)
@@ -49,6 +50,7 @@ struct StarterRoutineSuggestions: View {
                 Image(systemName: "plus.circle.fill")
                     .font(AppFont.scaled(20))
                     .foregroundStyle(AppColor.accentPrimary)
+                    .accessibilityHidden(true)
             }
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.md)

@@ -18,6 +18,7 @@ struct HomeView: View {
     /// Today overview card's "Set a calorie target" nudge — previously
     /// the nudge was tappable but wired to nothing.
     @State private var showTargetsEditor = false
+    @State private var showResearchAssistant = false
     // Profile is opened via the shared `appState.showProfile` flag now
     // (a single app-level sheet), so the Today avatar and every other
     // tab's avatar button route through the same presentation.
@@ -92,6 +93,9 @@ struct HomeView: View {
         /// message that would be shown, so `CoachingCard` now renders
         /// `primaryReason?.message` instead.
         var primaryReason: PrimaryReasonEngine.Reason?
+        /// Finished sessions this calendar week — the trio's first ring
+        /// for a user with no active protocol.
+        var workoutsThisWeek = 0
     }
 
     private struct HeroDetailItem: Identifiable {
@@ -129,8 +133,17 @@ struct HomeView: View {
             overview: TodayOverviewSnapshot.build(from: dataStore),
             plan: plan,
             timeline: buildTimelineEvents(),
-            primaryReason: buildPrimaryReason(plan: plan)
+            primaryReason: buildPrimaryReason(plan: plan),
+            workoutsThisWeek: countWorkoutsThisWeek()
         )
+    }
+
+    private func countWorkoutsThisWeek() -> Int {
+        guard let week = Calendar.current.dateInterval(of: .weekOfYear, for: Date()) else { return 0 }
+        return SwiftDataRepository.shared
+            .loadWorkoutSessions(startedBetween: week.start..<week.end)
+            .filter { !$0.isActive }
+            .count
     }
 
     /// Touches `notificationService.lastReport` so the View takes a SwiftUI
@@ -141,12 +154,25 @@ struct HomeView: View {
         notificationService.lastReport.hasAnyIssue
     }
 
-    /// The "At a glance" trio (adherence / recovery / sleep) only has
-    /// meaning once there's a data source — an active protocol or a Health
-    /// connection. Hidden otherwise so a day-0 user isn't met with zero
-    /// rings that read as failure.
+    /// The "At a glance" trio only has meaning once there's a data
+    /// source — an active protocol, a Health connection, or a workout
+    /// logged this week. Hidden otherwise so a day-0 user isn't met with
+    /// zero rings that read as failure.
     private var showsAtAGlance: Bool {
-        !dataStore.activeProtocols.isEmpty || dataStore.profile.healthConnected
+        !dataStore.activeProtocols.isEmpty
+            || dataStore.profile.healthConnected
+            || derived.workoutsThisWeek > 0
+    }
+
+    /// Adherence leads for protocol users; everyone else sees this
+    /// week's training against their days-per-week target, so Today
+    /// doesn't open on a dose metric they never asked for.
+    private var heroLeading: HeroLeadingMetric {
+        guard dataStore.activeProtocols.isEmpty else { return .adherence }
+        return .workouts(
+            done: derived.workoutsThisWeek,
+            target: max(1, dataStore.profile.trainingPreferences?.daysPerWeek ?? TrainingPreferences().daysPerWeek)
+        )
     }
 
     var body: some View {
@@ -230,6 +256,11 @@ struct HomeView: View {
                                 // Health connection lives on the Profile
                                 // sheet — same destination as the avatar.
                                 appState.showProfile = true
+                            },
+                            leading: heroLeading,
+                            onTapWorkouts: {
+                                Haptics.impact(.light)
+                                appState.selectedTab = .train
                             }
                         )
                         .sectionAppear(index: 0)
@@ -325,19 +356,6 @@ struct HomeView: View {
                             onTap: { entry in selectedEntry = entry }
                         )
                         .sectionAppear(index: 3)
-                    } else if dataStore.protocols.isEmpty {
-                        // Discoverability for the differentiated
-                        // feature: with zero protocols the dose section
-                        // is hidden, and removing the cycle pill left
-                        // Today with no Protocols entry at all — the
-                        // Library would only be reachable through
-                        // Profile. One compact labeled row keeps it
-                        // findable without a tutorial.
-                        ProtocolsDiscoverRow {
-                            appState.pendingProtocolList = true
-                            appState.showLibrary = true
-                        }
-                        .sectionAppear(index: 3)
                     }
 
                     HomeWellnessSection()
@@ -399,6 +417,31 @@ struct HomeView: View {
 
                     AtlasScoreCard(onTap: { showProgress = true })
                         .sectionAppear(index: 6)
+
+                    // The AI research chat's only other entry is an icon
+                    // in the Library toolbar. Pro opens the chat; free
+                    // users see the paywall for it from the root.
+                    ResearchAssistantRow {
+                        if StoreService.shared.isProUser {
+                            showResearchAssistant = true
+                        } else {
+                            appState.presentedPaywall = .aiResearch
+                        }
+                    }
+                    .sectionAppear(index: 6)
+
+                    // Protocol tracking is an optional advanced feature,
+                    // so with zero protocols its entry sits down here
+                    // with the other explore rows rather than above the
+                    // training and nutrition sections. Still one labeled
+                    // row, so the Library stays findable from Today.
+                    if dataStore.protocols.isEmpty {
+                        ProtocolsDiscoverRow {
+                            appState.pendingProtocolList = true
+                            appState.showLibrary = true
+                        }
+                        .sectionAppear(index: 6)
+                    }
 
                     // Bevel-style chronological feed — doses + meals
                     // + check-in + workouts merged into one sorted
@@ -484,6 +527,10 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showProgress) {
                 AtlasProgressView()
+                    .environment(dataStore)
+            }
+            .sheet(isPresented: $showResearchAssistant) {
+                AIResearchView()
                     .environment(dataStore)
             }
             // Stack-warning / stack-adjustment / paywall sheets

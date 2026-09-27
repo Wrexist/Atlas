@@ -75,6 +75,7 @@ struct PeptideSelector: View {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "plus.circle.fill")
                     .font(AppFont.scaled(16, weight: .semibold))
+                    .accessibilityHidden(true)
                 Text("Add Custom Peptide")
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
@@ -251,6 +252,7 @@ struct PeptideSelector: View {
                         RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                             .fill(peptide.category.color.opacity(0.15))
                     }
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(peptide.abbreviation)

@@ -43,29 +43,43 @@ final class GoalCountdownCardTests: XCTestCase {
     /// truncates it to 0 — the card, which buckets by calendar day, says 1.
     /// The mirror had drifted into being a second, different implementation,
     /// and it was the one under test.
-    private func weeksRemaining(for goalDate: Date) -> Int {
-        max(0, daysRemaining(for: goalDate) / 7)
+    ///
+    /// NOTE: the card's computeds are private and live under Features/Home,
+    /// so this is still a mirror. It takes an explicit `now` and a pinned
+    /// calendar so the result can't depend on the host time zone or on a
+    /// run straddling midnight.
+    private func weeksRemaining(for goalDate: Date, now: Date) -> Int {
+        max(0, daysRemaining(for: goalDate, now: now) / 7)
     }
 
-    private func daysRemaining(for goalDate: Date) -> Int {
-        let calendar = Calendar.current
-        let start = calendar.startOfDay(for: Date())
+    private func daysRemaining(for goalDate: Date, now: Date) -> Int {
+        let start = calendar.startOfDay(for: now)
         let end = calendar.startOfDay(for: goalDate)
         let comps = calendar.dateComponents([.day], from: start, to: end)
         return max(0, comps.day ?? 0)
     }
 
+    /// A zone with DST, so the calendar-day math is exercised where the
+    /// seconds-based version used to break.
+    private let calendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/New_York")!
+        return calendar
+    }()
+
+    /// 2026-03-02 15:00 UTC (10:00 New York) — the week before the US
+    /// spring-forward, so the one-week case crosses a DST transition.
+    private let now = Date(timeIntervalSince1970: 1_772_463_600)
+
     func test_pastGoalDate_returnsZero() {
-        let past = Date().addingTimeInterval(-60 * 60 * 24 * 30)
-        XCTAssertEqual(weeksRemaining(for: past), 0)
-        XCTAssertEqual(daysRemaining(for: past), 0)
+        let past = now.addingTimeInterval(-60 * 60 * 24 * 30)
+        XCTAssertEqual(weeksRemaining(for: past, now: now), 0)
+        XCTAssertEqual(daysRemaining(for: past, now: now), 0)
     }
 
     func test_futureGoalDate_returnsPositive() {
-        let twelveWeeks = Date().addingTimeInterval(60 * 60 * 24 * 7 * 12)
-        let weeks = weeksRemaining(for: twelveWeeks)
-        XCTAssertGreaterThanOrEqual(weeks, 11)
-        XCTAssertLessThanOrEqual(weeks, 12)
+        let twelveWeeks = calendar.date(byAdding: .day, value: 7 * 12, to: now)!
+        XCTAssertEqual(weeksRemaining(for: twelveWeeks, now: now), 12)
     }
 
     func test_oneWeekOut_returnsOneWeekSevenDays() {
@@ -73,8 +87,8 @@ final class GoalCountdownCardTests: XCTestCase {
         // the mirror bucket by `startOfDay`, so a goal seven calendar days out
         // is seven days out at any hour and across a DST transition — where
         // the seconds version can land on six and read as zero weeks.
-        let oneWeek = Calendar.current.date(byAdding: .day, value: 7, to: Date())!
-        XCTAssertEqual(daysRemaining(for: oneWeek), 7)
-        XCTAssertEqual(weeksRemaining(for: oneWeek), 1)
+        let oneWeek = calendar.date(byAdding: .day, value: 7, to: now)!
+        XCTAssertEqual(daysRemaining(for: oneWeek, now: now), 7)
+        XCTAssertEqual(weeksRemaining(for: oneWeek, now: now), 1)
     }
 }

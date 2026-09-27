@@ -240,21 +240,17 @@ struct OnboardingView: View {
         }
     }
 
-    /// Gates forward navigation out of the medical-disclaimer page
-    /// until it is explicitly acknowledged. The footer "Continue"
-    /// button sets `disclaimerAcknowledgedAt` *before* it advances, so
-    /// button-driven advance passes; only an un-acknowledged swipe is
-    /// blocked. Backward navigation is always allowed. Without this a
-    /// user could swipe straight past the disclaimer — the
-    /// acknowledgment is a hard gate for a regulated-substance app
-    /// (Deep Audit II A1).
+    /// Blocks forward swipes on every page so the only way forward is
+    /// the footer button. `primaryAction()` is what persists each step
+    /// (name, goal, nutrition targets) and records the disclaimer
+    /// acknowledgment (Deep Audit II A1); a swipe would skip it.
+    /// `advance()` writes `page` directly, so it never hits this gate.
+    /// Backward swipes are always allowed.
     private var gatedPage: Binding<Int> {
         Binding(
             get: { page },
             set: { newValue in
-                if page == Page.disclaimer,
-                   newValue > Page.disclaimer,
-                   disclaimerAcknowledgedAt == 0 {
+                if newValue > page {
                     Haptics.warning()
                     return
                 }
@@ -397,6 +393,7 @@ struct OnboardingView: View {
                 },
                 onDecline: {
                     OnboardingFunnelTracker.recordEvent("paywall_declined")
+                    UpsellScheduler.recordTrialDeclined()
                     showTrialOffer = false
                     showThemePicker = true
                 }
@@ -672,8 +669,14 @@ struct OnboardingView: View {
             // Present the trial paywall — flow continues through the
             // paywall and the theme picker before hasCompleted flips.
             // The theme picker's onContinue path resets `lastPage = 0`
-            // so a future re-onboarding starts at page 0.
-            showTrialOffer = true
+            // so a future re-onboarding starts at page 0. An existing
+            // subscriber (reinstall / new device) skips the trial offer.
+            if StoreService.shared.isProUser {
+                OnboardingFunnelTracker.recordEvent("paywall_skipped_pro")
+                showThemePicker = true
+            } else {
+                showTrialOffer = true
+            }
             return
         default:
             break
@@ -1698,15 +1701,15 @@ struct OnboardingView: View {
         switch primaryGoal {
         case .buildMuscle:    return "+\(projectedMuscleGain) in \(weeks) weeks"
         case .loseFat:        return "−\(projectedFatLoss) in \(weeks) weeks"
-        case .getStronger:    return "Stronger every week\nfor \(weeks) weeks"
+        case .getStronger:    return "Build strength\nover \(weeks) weeks"
         case .stayConsistent: return "\(daysPerWeek * weeks) sessions\nin \(weeks) weeks"
-        case .athletic:       return "Peak conditioning\nin \(weeks) weeks"
-        case .recomp:         return "Leaner & stronger\nin \(weeks) weeks"
-        case .betterSleep:    return "Better sleep scores\nin \(weeks) weeks"
-        case .recovery:       return "Faster recovery\nin \(weeks) weeks"
-        case .antiAging:      return "Better biomarkers\nin \(weeks) weeks"
-        case .skinHair:       return "Visible skin & hair\ngains in \(weeks) weeks"
-        case .energy:         return "Steady all-day energy\nin \(weeks) weeks"
+        case .athletic:       return "Work on conditioning\nover \(weeks) weeks"
+        case .recomp:         return "Work toward a recomp\nover \(weeks) weeks"
+        case .betterSleep:    return "Track your sleep\nover \(weeks) weeks"
+        case .recovery:       return "Track your recovery\nover \(weeks) weeks"
+        case .antiAging:      return "Track your biomarkers\nover \(weeks) weeks"
+        case .skinHair:       return "Track skin & hair\nover \(weeks) weeks"
+        case .energy:         return "Track your energy\nover \(weeks) weeks"
         }
     }
 
@@ -1958,8 +1961,19 @@ struct OnboardingView: View {
 
     /// Mocked Health Monitor grid — three sample biomarker cards that
     /// preview what connecting Health unlocks. Pure presentation; the
-    /// values are illustrative.
+    /// values are illustrative, so the grid is visibly labelled as an
+    /// example to avoid reading as the user's own data.
     private var healthValuePreview: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text("Example")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textTertiary)
+            healthPreviewCards
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var healthPreviewCards: some View {
         HStack(spacing: Spacing.sm) {
             healthPreviewCard(
                 icon: "waveform.path.ecg",
@@ -2211,7 +2225,7 @@ struct OnboardingView: View {
                         .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.center)
-                    Text("Apply a friend's code or join the Atlas creator program.")
+                    Text("Have a friend's code? Enter it below.")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                         .multilineTextAlignment(.center)
@@ -2224,7 +2238,9 @@ struct OnboardingView: View {
                     creatorCodeField
                 }
 
-                affiliateApplyButton
+                if AffiliateIntakeService.drainConfigured {
+                    affiliateApplyButton
+                }
 
                 Spacer(minLength: 100)
             }

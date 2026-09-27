@@ -298,10 +298,12 @@ struct HabitsView: View {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
                     .font(AppFont.scaled(11, weight: .semibold))
+                    .accessibilityHidden(true)
                 Text("See your progress")
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
                     .font(AppFont.scaled(11, weight: .semibold))
+                    .accessibilityHidden(true)
             }
             .font(AppFont.subheadline.weight(.semibold))
             .foregroundStyle(AppColor.accentLight)

@@ -21,11 +21,21 @@ struct HeroMetricTrio: View {
     /// and offered no way to do it (audit Accessibility/empty-state
     /// finding). Nil keeps the footer as a plain label.
     var onConnectHealth: (() -> Void)?
+    /// What the first ring measures. Adherence only means something to
+    /// a user running a protocol; everyone else gets this week's
+    /// workouts against their training-days target.
+    var leading: HeroLeadingMetric = .adherence
+    var onTapWorkouts: (() -> Void)?
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
             HStack(alignment: .top, spacing: Spacing.sm) {
-                ringTile(.adherence, value: snapshot.adherence)
+                switch leading {
+                case .adherence:
+                    ringTile(.adherence, value: snapshot.adherence)
+                case .workouts(let done, let target):
+                    workoutsTile(done: done, target: target)
+                }
                 ringTile(.recovery,  value: snapshot.recovery)
                 ringTile(.sleep,     value: snapshot.sleep)
             }
@@ -94,6 +104,40 @@ struct HeroMetricTrio: View {
         .accessibilityLabel(value.accessibilityLabel(for: kind))
     }
 
+    private func workoutsTile(done: Int, target: Int) -> some View {
+        let progress = target > 0 ? min(1, Double(done) / Double(target)) : 0
+        return Button {
+            onTapWorkouts?()
+        } label: {
+            VStack(spacing: Spacing.xs) {
+                MetricRing(
+                    progress: progress,
+                    diameter: 96,
+                    strokeWidth: 10,
+                    gradient: [AppColor.accentLight, AppColor.accentPrimary],
+                    celebrateAtCompletion: true
+                ) {
+                    Text("\(done)/\(target)")
+                        .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                        .foregroundStyle(AppColor.textPrimary)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                }
+
+                Text("Workouts")
+                    .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Workouts this week, \(done) of \(target)")
+        .accessibilityHint("Opens Train")
+    }
+
     @ViewBuilder
     private func ringCenter(kind: HeroMetricKind, value: HeroMetricValue) -> some View {
         if value.isAvailable {
@@ -150,6 +194,11 @@ struct HeroMetricTrio: View {
 }
 
 // MARK: - Snapshot types
+
+enum HeroLeadingMetric: Equatable {
+    case adherence
+    case workouts(done: Int, target: Int)
+}
 
 enum HeroMetricKind: Hashable, CaseIterable {
     case adherence, recovery, sleep

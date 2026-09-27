@@ -32,6 +32,7 @@ struct PeptideLibraryEntryCard: View {
                     Image(systemName: "books.vertical.fill")
                         .font(AppFont.scaled(16, weight: .bold))
                         .foregroundStyle(AppColor.accentLight)
+                        .accessibilityHidden(true)
                 }
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -50,6 +51,7 @@ struct PeptideLibraryEntryCard: View {
                 Image(systemName: "chevron.right")
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
             }
             .padding(Spacing.md)
             .frame(maxWidth: .infinity)

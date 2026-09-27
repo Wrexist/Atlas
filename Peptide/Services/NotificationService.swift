@@ -89,6 +89,12 @@ final class NotificationService {
     /// bypasses NotificationService entirely").
     nonisolated static let adHocIDPrefix = "adhoc-"
 
+    /// Fixed identifier for the one "your free trial ends in 2 days"
+    /// reminder. One slot at most, so re-scheduling replaces rather than
+    /// stacks, and the dose scheduler reserves and preserves it the same
+    /// way it does the habit and snooze namespaces.
+    nonisolated static let trialReminderID = "atlas.trialReminder.ending"
+
     /// Minimum gap, in minutes, `scheduleHabitReminders` keeps between a
     /// habit reminder and any already-scheduled dose reminder on the same
     /// weekday. Dose reminders schedule first each launch, so habits are
@@ -260,7 +266,7 @@ final class NotificationService {
         // habit/snooze namespaces already occupy or iOS silently drops
         // whichever requests are added last.
         let reservedSlots = currentIDs.filter {
-            $0.hasPrefix(Self.habitIDPrefix) || $0.hasPrefix(Self.snoozeIDPrefix)
+            $0.hasPrefix(Self.habitIDPrefix) || $0.hasPrefix(Self.snoozeIDPrefix) || $0 == Self.trialReminderID
         }.count
         let doseLimit = max(0, Self.pendingRequestLimit - reservedSlots)
         let kept = Array(pendingRequests.prefix(doseLimit))
@@ -280,7 +286,7 @@ final class NotificationService {
         // the next protocol edit's set-diff cancelled it — edit a protocol on
         // Saturday evening, never reopen, and the Sunday 09:00 push silently
         // vanished.
-        let preservedWeekly = currentIDs.intersection([WeeklySummaryNotificationScheduler.identifier])
+        let preservedWeekly = currentIDs.intersection([WeeklySummaryNotificationScheduler.identifier, Self.trialReminderID])
         let toRemove = currentIDs
             .subtracting(newIDs)
             .subtracting(preservedSnoozes)
@@ -420,6 +426,31 @@ final class NotificationService {
         currentIDs.insert(id)
     }
 
+    /// Schedules the trial-ending reminder at `fireDate`. Never prompts for
+    /// permission — a purchase is not the moment to ask — so it silently
+    /// skips when notifications aren't already authorised.
+    func scheduleTrialReminder(body: String, fireDate: Date) async {
+        switch await checkAuthorization() {
+        case .authorized, .provisional, .ephemeral: break
+        default: return
+        }
+        let interval = fireDate.timeIntervalSinceNow
+        guard interval > 0 else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "Atlas Pro trial"
+        content.body = body
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+        let request = UNNotificationRequest(identifier: Self.trialReminderID, content: content, trigger: trigger)
+        center.removePendingNotificationRequests(withIdentifiers: [Self.trialReminderID])
+        do {
+            try await center.add(request)
+            currentIDs.insert(Self.trialReminderID)
+        } catch {
+            AppLog.notifications.error("Trial reminder add failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     private struct TimeslotKey: Hashable {
         let day: Int
         let time: String
@@ -498,7 +529,7 @@ final class NotificationService {
     /// flipping that switch shouldn't silently break their habit reminders.
     func cancelProtocolReminders() {
         let toKeep = currentIDs.filter {
-            $0.hasPrefix(Self.snoozeIDPrefix) || $0.hasPrefix(Self.habitIDPrefix)
+            $0.hasPrefix(Self.snoozeIDPrefix) || $0.hasPrefix(Self.habitIDPrefix) || $0 == Self.trialReminderID
         }
         let toRemove = currentIDs.subtracting(toKeep)
         if !toRemove.isEmpty {

@@ -101,7 +101,9 @@
       if you enable the <strong>AI weekly summary</strong> (an Atlas Pro
       feature with its own toggle), weekly <em>averages</em> of HRV, resting
       heart rate, and sleep hours — no raw samples, no identifiers — are sent
-      to our AI proxy to generate your recap and are not stored. Turning the
+      to our AI proxy and on to Anthropic's Claude API to generate your recap.
+      Our proxy does not store them; Anthropic processes them under its
+      commercial API terms. Turning the
       toggle off stops that flow entirely. You can revoke HealthKit access at
       any time in
       <strong>Settings → Privacy &amp; Security → Health → Atlas</strong>.
@@ -113,7 +115,8 @@
       barcodes, reading nutrition labels (processed on-device), and
       photographing meals for AI nutrition estimation. A meal photo you
       submit is sent over HTTPS to our proxy server, forwarded to Anthropic's
-      Claude API for analysis, and not retained after the response. Barcode
+      Claude API for analysis. Our proxy does not store it; Anthropic
+      processes it under its commercial API terms. Barcode
       images and label scans never leave your device; an optional profile
       photo is stored locally. If you pick a meal photo from your library,
       Atlas reads only that photo and its capture date.

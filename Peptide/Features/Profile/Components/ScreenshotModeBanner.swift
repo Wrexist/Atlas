@@ -34,6 +34,7 @@ struct ScreenshotModeBanner: View {
                             Image(systemName: "camera.viewfinder")
                                 .font(AppFont.scaled(11, weight: .heavy))
                                 .foregroundStyle(accent)
+                                .accessibilityHidden(true)
                         }
 
                         VStack(alignment: .leading, spacing: 0) {

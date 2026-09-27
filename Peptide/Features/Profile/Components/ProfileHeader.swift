@@ -6,6 +6,7 @@ struct ProfileHeader: View {
     let protocolCount: Int
     let peptideCount: Int
     let daysLogged: Int
+    var workoutCount: Int = 0
     var avatarImageData: Data? = nil
     var bio: String = ""
 
@@ -42,9 +43,16 @@ struct ProfileHeader: View {
                         .padding(.horizontal, Spacing.sm)
                 }
 
+                // Protocol counts only for users who run one — for
+                // everyone else two zeros would frame Atlas as a dose
+                // tracker, so their training shows instead.
                 HStack(spacing: Spacing.xxl) {
-                    ProfileStat(value: "\(protocolCount)", label: "Protocols")
-                    ProfileStat(value: "\(peptideCount)", label: "Peptides")
+                    if protocolCount > 0 {
+                        ProfileStat(value: "\(protocolCount)", label: "Protocols")
+                        ProfileStat(value: "\(peptideCount)", label: "Peptides")
+                    } else {
+                        ProfileStat(value: "\(workoutCount)", label: "Workouts")
+                    }
                     ProfileStat(value: "\(daysLogged)", label: "Days")
                 }
             }

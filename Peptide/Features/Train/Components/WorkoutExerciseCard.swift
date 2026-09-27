@@ -6,18 +6,26 @@ import SwiftUI
 struct WorkoutExerciseCard: View {
     let entry: WorkoutExerciseEntry
     let exercise: Exercise?
-    /// Looks up the user's last completed set for this exercise from
-    /// past sessions — wired to PRDetectionEngine's stored records.
-    /// `nil` means there's no prior session and the "60 × 8" cue
-    /// row renders as "—". Was previously hard-coded `nil` in this
-    /// view, which silently dropped the entire "log a set with last-
-    /// weight inline" UX promise (audit Train C1).
     let unit: MeasurementUnit
-    let previousSetLookup: () -> SetEntry?
+    /// The completed sets from the last session that logged this
+    /// exercise. Each row's "60 × 8" cue is paired to one of them by
+    /// `PreviousSetEngine`; empty means no history and the cue reads "—".
+    let previousSetsLookup: () -> [SetEntry]
+    /// Rest the timer will use after a set here — the entry's own
+    /// override or the user's default — so the menu can tick it.
+    let effectiveRestSeconds: Int
     let onSetUpdate: (SetEntry) -> Void
     let onAddSet: () -> Void
     let onRemoveSet: (UUID) -> Void
     let onRemoveExercise: () -> Void
+    let onSetRestSeconds: (Int) -> Void
+
+    @State private var confirmingRemoval = false
+    @State private var showingPlateCalculator = false
+
+    private var completedSetCount: Int { entry.sets.filter(\.completed).count }
+
+    private var displayName: String { exercise?.name ?? entry.exerciseID }
 
     var body: some View {
         GlassCard {
@@ -39,7 +47,7 @@ struct WorkoutExerciseCard: View {
             .frame(width: 44, height: 44)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(exercise?.name ?? entry.exerciseID)
+                Text(displayName)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(2)
@@ -53,7 +61,13 @@ struct WorkoutExerciseCard: View {
             Spacer()
 
             Menu {
-                Button(role: .destructive, action: onRemoveExercise) {
+                restMenu
+                Button {
+                    showingPlateCalculator = true
+                } label: {
+                    Label("Plate calculator", systemImage: "scalemass")
+                }
+                Button(role: .destructive, action: requestRemoval) {
                     Label("Remove exercise", systemImage: "trash")
                 }
             } label: {
@@ -61,16 +75,62 @@ struct WorkoutExerciseCard: View {
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(Spacing.xs)
+                    .minimumHitArea()
             }
             .accessibilityLabel("Exercise options")
+        }
+        .sheet(isPresented: $showingPlateCalculator) {
+            PlateCalculatorSheet()
+        }
+        .confirmationDialog(
+            "Remove \(displayName)?",
+            isPresented: $confirmingRemoval,
+            titleVisibility: .visible
+        ) {
+            Button("Remove exercise", role: .destructive, action: onRemoveExercise)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(removalMessage)
+        }
+    }
+
+    private var removalMessage: String {
+        completedSetCount == 1
+            ? "Your completed set will be deleted."
+            : "Your \(completedSetCount) completed sets will be deleted."
+    }
+
+    private var restMenu: some View {
+        Menu {
+            ForEach(RestTimeOptions.choices(including: effectiveRestSeconds), id: \.self) { seconds in
+                Button {
+                    onSetRestSeconds(seconds)
+                } label: {
+                    if seconds == effectiveRestSeconds {
+                        Label(RestTimeOptions.label(for: seconds), systemImage: "checkmark")
+                    } else {
+                        Text(RestTimeOptions.label(for: seconds))
+                    }
+                }
+            }
+        } label: {
+            Label("Rest time · \(RestTimeOptions.label(for: effectiveRestSeconds))", systemImage: "timer")
+        }
+    }
+
+    /// Logged work is only lost behind a confirmation; an exercise with
+    /// nothing checked off goes straight away.
+    private func requestRemoval() {
+        if completedSetCount > 0 {
+            confirmingRemoval = true
+        } else {
+            onRemoveExercise()
         }
     }
 
     private var setsList: some View {
-        // Compute once per render so every row in this exercise card
-        // shares the same prior-session reference (the lookup hits
-        // SwiftData and shouldn't run N times for N sets).
-        let lastSession = previousSetLookup()
+        // Resolved once per render, not per row.
+        let hints = PreviousSetEngine.hints(for: entry.sets, previous: previousSetsLookup())
         return VStack(spacing: 0) {
             ForEach(entry.sets) { setSnapshot in
                 SetEditorRow(
@@ -78,7 +138,7 @@ struct WorkoutExerciseCard: View {
                         get: { setSnapshot },
                         set: { onSetUpdate($0) }
                     ),
-                    previousSet: lastSession,
+                    previousSet: hints[setSnapshot.id],
                     unit: unit,
                     onDelete: { onRemoveSet(setSnapshot.id) }
                 )

@@ -58,11 +58,15 @@ struct NextDoseIntent: AppIntent {
         if interval < 0 {
             return String(localized: "Earlier today")
         }
+        return relativeFormatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    nonisolated(unsafe) private static let relativeFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
         formatter.dateTimeStyle = .named
         formatter.unitsStyle = .full
-        return formatter.localizedString(for: date, relativeTo: Date())
-    }
+        return formatter
+    }()
 
     private enum NextDoseReadout {
         case allDone

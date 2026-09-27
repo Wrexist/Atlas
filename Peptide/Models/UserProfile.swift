@@ -340,6 +340,12 @@ struct DailyConsumption: Codable, Hashable, Sendable {
     var carbsG: Int
     var fatG: Int
     var waterOz: Int
+    /// Sub-ounce part of the day's water total, in (-0.5, 0.5]. `waterOz`
+    /// stays the rounded whole-ounce total every existing reader uses;
+    /// this carries what rounding dropped so metric logs stay exact
+    /// (+1 L is 33.81 oz, not 34). Optional so buckets persisted before
+    /// it existed decode unchanged and it's omitted from the JSON when nil.
+    var waterOzRemainder: Double?
 
     static func empty(on date: Date) -> DailyConsumption {
         DailyConsumption(
@@ -489,15 +495,18 @@ struct UserProfile: Codable, Sendable {
     /// great after BPC today" or "side-effect: mild headache"
     /// without the user reaching for a separate notes app.
     var protocolNotes: [ProtocolNote]
-    /// User-controlled opt-out for the AI weekly summary feature
-    /// (Pro-only, defaults to on). Surfaces as a toggle on the
-    /// Profile → Settings row. Set to `false` to suppress both
-    /// the Sunday notification and the on-device Today card.
+    /// User-controlled opt-in for the AI weekly summary feature
+    /// (Pro-only, defaults to off — it sends HRV to Anthropic).
+    /// Surfaces as a toggle on the Profile → Settings row. `false`
+    /// suppresses both the Sunday notification and the Today card.
+    /// Profiles saved while the default was on are reset once by
+    /// `WeeklySummaryOptInMigration`.
     var weeklySummaryEnabled: Bool
     /// Cached weekly summaries keyed by ISO week-start ("yyyy-MM-dd"
     /// of the Monday). One entry per generated week — capped on
     /// write to the most-recent 26 weeks so the JSON stays small
-    /// (~13 KB at full cap).
+    /// (~13 KB at full cap). Health data (HRV), so persisted only in
+    /// the device-local `WeeklySummaryLocalStore`, never in iCloud.
     var weeklySummaries: [String: WeeklySummary]
     /// Biology tab preferences — visible / hidden / ordered
     /// biomarkers + intro-seen flag. Defaults so existing
@@ -577,7 +586,7 @@ struct UserProfile: Codable, Sendable {
         streakFreezeDays: Set<String> = [],
         recipes: [Recipe] = [],
         protocolNotes: [ProtocolNote] = [],
-        weeklySummaryEnabled: Bool = true,
+        weeklySummaryEnabled: Bool = false,
         weeklySummaries: [String: WeeklySummary] = [:],
         biologyConfig: BiologyConfig = .default,
         trainingPreferences: TrainingPreferences? = nil,
@@ -670,7 +679,7 @@ struct UserProfile: Codable, Sendable {
         )
         recipes = try container.decodeIfPresent([Recipe].self, forKey: .recipes) ?? []
         protocolNotes = try container.decodeIfPresent([ProtocolNote].self, forKey: .protocolNotes) ?? []
-        weeklySummaryEnabled = try container.decodeIfPresent(Bool.self, forKey: .weeklySummaryEnabled) ?? true
+        weeklySummaryEnabled = try container.decodeIfPresent(Bool.self, forKey: .weeklySummaryEnabled) ?? false
         weeklySummaries = try container.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries) ?? [:]
         biologyConfig = try container.decodeIfPresent(BiologyConfig.self, forKey: .biologyConfig) ?? .default
         trainingPreferences = try container.decodeIfPresent(TrainingPreferences.self, forKey: .trainingPreferences)

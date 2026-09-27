@@ -18,10 +18,16 @@ struct BiomarkerListSection: View {
     /// caller passes `Biomarker.defaultVisible` so the list shows
     /// up without persistence wiring.
     let visibleBiomarkers: [Biomarker]
+    /// Bumped by the parent's pull-to-refresh to force a re-read.
+    var reloadID = 0
     var onEditTapped: (() -> Void)?
     var onSelectBiomarker: ((Biomarker) -> Void)?
 
     @State private var snapshots: [BiomarkerSnapshot] = []
+    /// True until the first HealthKit read lands, so rows render as a
+    /// redacted placeholder instead of a column of em-dashes that reads
+    /// as "no data". Later refreshes keep the previous values on screen.
+    @State private var isLoading = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -55,6 +61,8 @@ struct BiomarkerListSection: View {
                         )
                     }
                 }
+                .redacted(reason: isLoading ? .placeholder : [])
+                .allowsHitTesting(!isLoading)
             }
         }
         // Re-key on a hashed identity rather than the full array. Without
@@ -62,7 +70,9 @@ struct BiomarkerListSection: View {
         // even when the visible set didn't actually change — the parent
         // re-evaluates `biologyConfig.visibleBiomarkers` and SwiftUI sees
         // a structurally equal array with a fresh identity each time.
-        .task(id: visibleBiomarkers.hashValue) { await refresh() }
+        .task(id: LoadKey(biomarkers: visibleBiomarkers.hashValue, reloadID: reloadID)) {
+            await refresh()
+        }
     }
 
     private var emptyState: some View {
@@ -85,6 +95,11 @@ struct BiomarkerListSection: View {
         }
     }
 
+    private struct LoadKey: Equatable {
+        let biomarkers: Int
+        let reloadID: Int
+    }
+
     private func snapshot(for biomarker: Biomarker) -> BiomarkerSnapshot {
         snapshots.first { $0.biomarker == biomarker } ?? .empty(biomarker)
     }
@@ -104,5 +119,6 @@ struct BiomarkerListSection: View {
             unit: dataStore.profile.bodyMetrics.unit
         )
         snapshots = fresh
+        isLoading = false
     }
 }

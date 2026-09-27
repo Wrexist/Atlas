@@ -9,9 +9,9 @@ import XCTest
 @MainActor
 final class DeepLinkRouterTests: XCTestCase {
 
-    private func route(_ string: String) -> (handled: Bool, state: AppState) {
+    private func route(_ string: String, isPro: Bool = false) -> (handled: Bool, state: AppState) {
         let state = AppState()
-        let handled = DeepLinkRouter.route(XCTUnwrapURL(string), appState: state)
+        let handled = DeepLinkRouter.route(XCTUnwrapURL(string), appState: state, isPro: isPro)
         return (handled, state)
     }
 
@@ -63,5 +63,32 @@ final class DeepLinkRouterTests: XCTestCase {
         let (handled, state) = route("https://example.com/dose/\(UUID().uuidString)")
         XCTAssertFalse(handled)
         XCTAssertNil(state.pendingDoseLogEntryId)
+    }
+
+    func test_proHost_freeUser_presentsDeepLinkPaywall() {
+        let (handled, state) = route("atlas://pro")
+        XCTAssertTrue(handled)
+        XCTAssertEqual(state.presentedPaywall, .deepLink)
+    }
+
+    func test_proHost_closesModalsThePaywallCannotStackOn() {
+        let state = AppState()
+        state.showProfile = true
+        state.showLibrary = true
+        DeepLinkRouter.route(XCTUnwrapURL("atlas://pro"), appState: state, isPro: false)
+        XCTAssertFalse(state.showProfile)
+        XCTAssertFalse(state.showLibrary)
+        XCTAssertEqual(state.presentedPaywall, .deepLink)
+    }
+
+    func test_proHost_proUser_isHandledWithoutPaywall() {
+        let (handled, state) = route("atlas://pro", isPro: true)
+        XCTAssertTrue(handled)
+        XCTAssertNil(state.presentedPaywall)
+    }
+
+    func test_atlasScheme_routesTheSameHostsAsLegacyScheme() {
+        XCTAssertEqual(route("atlas://train").state.selectedTab, .train)
+        XCTAssertEqual(route("peptidex://pro").state.presentedPaywall, .deepLink)
     }
 }

@@ -38,6 +38,7 @@ struct LockScreenView: View {
                 HStack(spacing: Spacing.sm) {
                     Image(systemName: biometricService.biometryIcon)
                         .font(AppFont.scaled(20))
+                        .accessibilityHidden(true)
                     Text("Unlock with \(biometricService.biometryName)")
                         .font(AppFont.headline)
                 }

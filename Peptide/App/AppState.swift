@@ -84,9 +84,13 @@ final class AppState {
     /// profile-stacks taps — so the user lands on the protocol list in
     /// one hop instead of the peptide reference root.
     var pendingProtocolList: Bool = false
+    /// App-wide paywall, presented from the root over whichever tab is
+    /// active. Set by the `atlas://pro` deep link, the one-time trial
+    /// win-back, and Today's research-assistant row; cleared on dismiss.
+    var presentedPaywall: PaywallSource?
 }
 
-/// Routes a `peptidex://` URL onto AppState. Extracted from
+/// Routes a `peptidex://` (or `atlas://`) URL onto AppState. Extracted from
 /// `PeptideApp.onOpenURL` so the mapping is unit-testable and the
 /// widget/Live Activity/notification link vocabulary lives in one
 /// place. Unknown schemes and hosts return false and mutate nothing —
@@ -94,9 +98,14 @@ final class AppState {
 /// or open an unrelated view.
 @MainActor
 enum DeepLinkRouter {
+    /// `peptidex` is the legacy scheme every shipped widget and
+    /// notification uses; `atlas` is the product-named one for links
+    /// handed out in marketing and support replies.
+    static let schemes: Set<String> = ["peptidex", "atlas"]
+
     @discardableResult
-    static func route(_ url: URL, appState: AppState) -> Bool {
-        guard url.scheme == "peptidex" else { return false }
+    static func route(_ url: URL, appState: AppState, isPro: Bool = false) -> Bool {
+        guard let scheme = url.scheme?.lowercased(), schemes.contains(scheme) else { return false }
         switch url.host {
         case "dose":
             // Live Activity / dose-widget tap → `peptidex://dose/<uuid>`.
@@ -120,6 +129,15 @@ enum DeepLinkRouter {
         case "meals":
             // Nutrition widget → the Meals tab's log-entry pickers.
             appState.selectedTab = .meals
+        case "pro":
+            // `atlas://pro` → the paywall. A Pro user has nothing to buy,
+            // so the link is handled but opens nothing. Profile and the
+            // Library are closed first: the paywall presents from the root
+            // and cannot stack on top of a modal that is already up.
+            guard !isPro else { return true }
+            appState.showProfile = false
+            appState.showLibrary = false
+            appState.presentedPaywall = .deepLink
         default:
             return false
         }

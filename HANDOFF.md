@@ -2,80 +2,35 @@
 
 ## Current in-flight state
 
-Branch: `claude/paywall-ux-messaging-v1ut4w`, merged into `main` as PR #161.
+Branch: `claude/sleepy-babbage-fjf6gh`, on top of `main` at PR #178.
 
-This branch rebuilt the in-app paywall (`PaywallView`) and the onboarding
-trial offer (`TrialOfferView`) for the 7-day-trial launch: both
-subscriptions moved from a 3-day monthly / 14-day annual split to a single
-`P7D` intro offer, `Products.storekit` and `APP_STORE_METADATA.md` were
-updated to match, and `StoreService` grew an eligibility layer
-(`isEligibleForTrial`, `redeemableTrialDays(for:)`) so the "free" copy on
-both screens stops being true the instant either subscription's trial is
-redeemed — monthly and annual share one subscription group, so redeeming
-either burns both. The buy button now lives in a `pinnedFooter` (never
-scrolls) and states what it charges on its second line, formatted through
-the product's own currency style rather than a hard-coded `$`.
+This branch is the September 2026 audit and the fixes that came out of it:
+App Review and privacy compliance, proxy spend controls, correctness and
+performance fixes, and revenue work (contextual paywalls, metered AI meal
+scans, trial reminders, billing-retry banner, offer codes, win-back offer,
+review prompts). `docs/ATLAS_AUDIT_2026_09.md` is the full record of what
+was found, what changed, and what still needs a decision or credentials.
 
-Unlike the audit work this document used to describe, this branch was
-actually compiled: PR #161's `build-check` ran a real `xcodebuild build`
-plus `-only-testing:PeptideTests` on a macOS runner and both succeeded — 79
-tests, zero failures. `proxy-checks` ran the three gates that matter for a
-store launch — `design-lint.py --all`, `check-store-metadata.py`,
-`contrast-check.py` — and all three passed on the merge commit. So the code
-compiles and the automated gates are clean; what CI cannot tell anyone is
-whether the screen looks right on a real phone.
+**Nothing on this branch has been compiled locally.** It was written in a
+container with no Swift toolchain. The proxy suite (`cd server && npm
+test`) and every `scripts/` gate pass; the Swift is only proven by
+`build-check` on a non-draft PR. Open the PR and read that run before
+anything else.
 
-**Nothing has been seen rendered.** Every "does it fit on an iPhone SE",
-"does Dynamic Type clip it", "does VoiceOver read the button correctly"
-question from the original brief is still open, because answering it needs
-a simulator or device and this pass had neither. The `Screenshots` workflow
-(Actions → Screenshots → Run workflow) can render the app in demo mode on a
-macOS runner without a local Mac, but its one run to date (Aug 9, on an
-older commit, predating this branch) failed with exit code 70 — that
-failure is unrelated to the paywall and hasn't been re-investigated here.
+**Nothing has been seen rendered.** Device QA still owed: the paywall and
+trial-offer footers (taller now, 44 pt targets), the AI consent sheet, the
+meal-scan quota caption, the Delete All Data alert, and the reconstitution
+calculator on an iPhone SE and a Pro Max, plus Dynamic Type and VoiceOver.
 
-**The trial length is not actually 7 days for a real user yet.** The
-`.storekit` file only controls the Simulator; App Store Connect has its own,
-separate introductory-offer configuration for
-`com.peptidesai.app.pro.monthly` and `com.peptidesai.app.pro.annual`, and
-nobody has confirmed on screen that both are set to the one-week offer
-(App Store Connect has no literal "7 days" option — one week is the
-equivalent, and the app converts week→days for display). Until that's set
-and confirmed, the code is ready but the actual subscriber offer hasn't
-moved.
-
-**Sandbox purchase testing has not run.** The one behavior that would catch
-a real bug — a returning subscriber who already redeemed a trial seeing
-`Unlock Atlas Pro` at full price instead of a second "free" offer — only
-shows up on a real device against a fresh Sandbox Apple ID.
-`StoreServiceTests` covers the equivalent logic against `SKTestSession`,
-including `test_redeemableTrialDays_isNil_onceTheTrialIsRedeemed`, and that
-test passed in CI, but a passing unit test and a correct on-device purchase
-flow are not the same claim.
-
-**Two small things fell out of a code read, not a build, so treat them as
-leads rather than confirmed bugs.** `TrialOfferView.swift`'s file-header
-comment still describes "the 3-day free trial" — stale from before this
-branch, harmless since it's only a comment, but worth fixing in the next
-pass that touches this file. And the two paywalls disagree on when to show
-a "SAVE X%" badge: `PaywallView` suppresses it below a 5% saving,
-`TrialOfferView` shows any positive number — probably not intentional, not
-verified against design intent.
-
-The repo's SwiftLint pass also surfaces about ten pre-existing
-colon/brace/comma findings in `VialPalette.swift`, `Haptics.swift`, and
-`ShimmerModifier.swift` — all three untouched by this branch, and
-`pr-checks.yml` already documents why they're deliberately out of scope for
-a feature PR (`--strict` is withheld from the SwiftLint step for exactly
-this reason, pending a dedicated cleanup pass). They are not part of what
-this branch needs fixed, and folding them into a paywall commit would break
-the one-logical-change rule this repo otherwise holds to.
-
-Everything after "compiles and passes CI" — device QA on an iPhone SE and a
-16 Pro Max, the App Store Connect trial-duration change, Sandbox purchase
-testing, the slot-8 paywall screenshot, and the pre-submission checklist —
-is still open, and needs a Mac with Xcode plus App Store Connect access
-that neither this pass nor the one before it had.
+**Needs App Store Connect / Vercel / GitHub, not code:**
+- Vercel: confirm `ANTHROPIC_DAILY_REQUEST_BUDGET` (production now defaults
+  to 20 000 units when unset) and that Upstash Redis is configured.
+- GitHub secrets: `APP_ATTEST_ENDPOINT`, `APP_ATTEST_SECRET`; then ship,
+  watch for `app-attest ok` in logs, and set `APP_ATTEST_MODE=enforce`.
+- App Store Connect: one-week intro offer on both subscriptions; rank Annual
+  above Monthly in the group; decide on Family Sharing; create creator
+  offer codes and win-back offers; review screenshot slot 8 (the privacy
+  screen now shows an AI card).
 
 ## Before merging branch work
 

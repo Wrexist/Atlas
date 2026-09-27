@@ -183,3 +183,23 @@ test('checkAppAttest gate: stale client data is rejected in enforce mode', async
   assert.equal(denied.ok, false);
   assert.match(denied.reason, /stale/);
 });
+
+test('checkAppAttest gate: missing config refuses in enforce mode and passes in report', async (t) => {
+  const headers = {
+    'x-attest-key-id': 'any',
+    'x-attest-assertion': 'any',
+    'x-attest-client-data': makeClientData(0).toString('base64'),
+  };
+  setEnv(t, { ...REDIS_ENV, APP_ATTEST_MODE: 'enforce', APP_ATTEST_APP_ID: undefined });
+  assert.equal((await checkAppAttest({ headers }, { logLabel: 'test' })).ok, false);
+
+  setEnv(t, {
+    UPSTASH_REDIS_REST_URL: undefined, UPSTASH_REDIS_REST_TOKEN: undefined,
+    KV_REST_API_URL: undefined, KV_REST_API_TOKEN: undefined,
+    APP_ATTEST_APP_ID: fixture.appId,
+  });
+  assert.equal((await checkAppAttest({ headers }, { logLabel: 'test' })).ok, false);
+
+  setEnv(t, { APP_ATTEST_MODE: 'report' });
+  assert.deepEqual(await checkAppAttest({ headers }, { logLabel: 'test' }), { ok: true });
+});

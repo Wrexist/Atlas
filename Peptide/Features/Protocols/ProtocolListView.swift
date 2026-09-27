@@ -159,7 +159,7 @@ struct ProtocolListView: View {
                 ProtocolBuilderView(preselectedPeptide: preselectedPeptide)
             }
             .sheet(isPresented: $showingPaywall) {
-                PaywallView()
+                PaywallView(source: .protocolLimit)
                     .liquidGlassPresentation()
             }
             .onAppear { consumePendingDeepLink() }
@@ -205,7 +205,7 @@ private struct CommunityStacksEntryCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text("Browse community stacks")
+                    Text("Browse the stack library")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text("Research-backed templates from peptide practitioners")
@@ -237,7 +237,7 @@ private struct CommunityStacksEntryCard: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Browse community stacks")
+        .accessibilityLabel("Browse the stack library")
     }
 }
 

@@ -332,6 +332,7 @@ struct LiquidGlassSegmentedControl<Option: Hashable>: View {
             HStack(spacing: 6) {
                 Image(systemName: icon(option))
                     .font(AppFont.scaled(11, weight: .semibold))
+                    .accessibilityHidden(true)
                 Text(label(option))
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
@@ -482,6 +483,7 @@ private struct TimeSlotRow: View {
                 Image(systemName: "chevron.right")
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
             }
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)
