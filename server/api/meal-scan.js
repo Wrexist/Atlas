@@ -25,6 +25,10 @@ export default async function handler(req, res) {
     logLabel: 'meal-scan',
     systemPrefix: MEAL_SCAN_SYSTEM_PREFIX,
     allowClientSystem: false,
+    // The app sends exactly one user turn: one photo plus a ~1.3 KB
+    // prompt. Anything bigger is not the app, and was previously a
+    // way to run 40 turns of free-form chat on the vision route.
+    shape: { maxMessages: 1, maxImages: 1, maxTextChars: 4000 },
   });
 }
 

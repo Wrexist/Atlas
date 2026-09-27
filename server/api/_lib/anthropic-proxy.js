@@ -56,7 +56,7 @@ import {
   isBlocked,
   recordLimitStrike,
   requestCost,
-  costForBytes,
+  costForBody,
   withinDailyBudget,
   withinDeviceQuota,
 } from './rate-limit.js';
@@ -156,6 +156,24 @@ function sanitiseContent(content) {
   return parts.includes(null) ? null : parts;
 }
 
+// Optional per-route limits on top of the generic sanitiser, so a
+// route can accept only the payload its iOS caller actually sends.
+function fitsShape(messages, shape) {
+  if (!shape) return true;
+  let images = 0;
+  let textChars = 0;
+  for (const m of messages) {
+    const parts = typeof m.content === 'string' ? [{ type: 'text', text: m.content }] : m.content;
+    for (const part of parts) {
+      if (part.type === 'image') images += 1;
+      else textChars += part.text.length;
+    }
+  }
+  if (shape.maxImages !== undefined && images > shape.maxImages) return false;
+  if (shape.maxTextChars !== undefined && textChars > shape.maxTextChars) return false;
+  return true;
+}
+
 function sanitiseBody(raw, options) {
   if (!raw || typeof raw !== 'object') return null;
   const allowedModels = getAllowedModels();
@@ -169,7 +187,7 @@ function sanitiseBody(raw, options) {
     : MAX_TOKENS_HARDCAP;
 
   if (!Array.isArray(raw.messages) || raw.messages.length === 0) return null;
-  if (raw.messages.length > MAX_MESSAGES) return null;
+  if (raw.messages.length > (options?.shape?.maxMessages ?? MAX_MESSAGES)) return null;
 
   const messages = raw.messages.map((m) => {
     if (!m || (m.role !== 'user' && m.role !== 'assistant')) return null;
@@ -178,6 +196,7 @@ function sanitiseBody(raw, options) {
     return { role: m.role, content };
   });
   if (messages.some((m) => m === null)) return null;
+  if (!fitsShape(messages, options?.shape)) return null;
 
   const out = { model, max_tokens, messages };
 
@@ -203,6 +222,7 @@ export async function forwardToAnthropic(req, res, {
   systemPrefix,
   allowClientSystem,
   maxBodyBytes,
+  shape,
 }) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: { message: 'Use POST' } });
@@ -297,7 +317,13 @@ export async function forwardToAnthropic(req, res, {
   // past them. The parsed body is measured above, so charge on that
   // instead, and bill the difference to the device quota, which was
   // already charged the header's smaller figure before parsing.
-  const actualCost = costForBytes(parsedBytes);
+  const clean = sanitiseBody(req.body, { systemPrefix, allowClientSystem, shape });
+  if (!clean) {
+    res.status(400).json({ error: { message: 'Malformed request body' } });
+    return;
+  }
+
+  const actualCost = costForBody(clean, parsedBytes);
   if (actualCost > cost) {
     if (!(await withinDeviceQuota({ principal, cost: actualCost - cost }))) {
       res.status(429).json({
@@ -306,12 +332,6 @@ export async function forwardToAnthropic(req, res, {
       return;
     }
     cost = actualCost;
-  }
-
-  const clean = sanitiseBody(req.body, { systemPrefix, allowClientSystem });
-  if (!clean) {
-    res.status(400).json({ error: { message: 'Malformed request body' } });
-    return;
   }
 
   // Hard spend ceiling, checked last so only requests that would
