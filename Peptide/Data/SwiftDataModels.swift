@@ -536,7 +536,7 @@ final class StoredProfile {
             streakFreezeDays: Set(ext.streakFreezeDays),
             recipes: ext.recipes,
             protocolNotes: ext.protocolNotes,
-            weeklySummaryEnabled: ext.weeklySummaryEnabled ?? true,
+            weeklySummaryEnabled: ext.weeklySummaryEnabled ?? false,
             weeklySummaries: slice(summariesData, legacy: ext.weeklySummaries ?? [:]),
             biologyConfig: ext.biologyConfig,
             trainingPreferences: ext.trainingPreferences,

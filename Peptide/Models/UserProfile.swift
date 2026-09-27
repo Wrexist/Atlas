@@ -577,7 +577,7 @@ struct UserProfile: Codable, Sendable {
         streakFreezeDays: Set<String> = [],
         recipes: [Recipe] = [],
         protocolNotes: [ProtocolNote] = [],
-        weeklySummaryEnabled: Bool = true,
+        weeklySummaryEnabled: Bool = false,
         weeklySummaries: [String: WeeklySummary] = [:],
         biologyConfig: BiologyConfig = .default,
         trainingPreferences: TrainingPreferences? = nil,
@@ -670,7 +670,7 @@ struct UserProfile: Codable, Sendable {
         )
         recipes = try container.decodeIfPresent([Recipe].self, forKey: .recipes) ?? []
         protocolNotes = try container.decodeIfPresent([ProtocolNote].self, forKey: .protocolNotes) ?? []
-        weeklySummaryEnabled = try container.decodeIfPresent(Bool.self, forKey: .weeklySummaryEnabled) ?? true
+        weeklySummaryEnabled = try container.decodeIfPresent(Bool.self, forKey: .weeklySummaryEnabled) ?? false
         weeklySummaries = try container.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries) ?? [:]
         biologyConfig = try container.decodeIfPresent(BiologyConfig.self, forKey: .biologyConfig) ?? .default
         trainingPreferences = try container.decodeIfPresent(TrainingPreferences.self, forKey: .trainingPreferences)
