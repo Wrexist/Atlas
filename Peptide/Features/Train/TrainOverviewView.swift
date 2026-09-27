@@ -386,10 +386,14 @@ struct TrainOverviewView: View {
         }
     }
 
-    private var currentMonthLabel: String {
+    private static let monthLabelFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
-        return formatter.string(from: Date()).capitalized
+        return formatter
+    }()
+
+    private var currentMonthLabel: String {
+        Self.monthLabelFormatter.string(from: Date()).capitalized
     }
 
     // MARK: - Display helpers

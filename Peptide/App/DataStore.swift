@@ -23,7 +23,9 @@ final class DataStore {
             profileNeedsSave = true
         }
     }
-    var customPeptides: [Peptide]
+    var customPeptides: [Peptide] {
+        didSet { peptideDatabaseCache = nil }
+    }
 
     /// Observable counterpart to the private `cacheVersion`. Views key
     /// `.task(id:)` / `.onChange(of:)` off this to recompute a derived
@@ -337,7 +339,19 @@ final class DataStore {
     /// `PeptideDatabase.shared` lazily rather than caching it in a
     /// stored property — a stored one made `DataStore.init` decode
     /// ~930 KB of JSON on the main thread before the first frame.
-    var peptideDatabase: [Peptide] { PeptideDatabase.shared + customPeptides }
+    /// Merged once and reused until `customPeptides` changes; the
+    /// catalog is 208 entries and this is read from list bodies.
+    var peptideDatabase: [Peptide] {
+        // Read before the cache check so observers still track
+        // `customPeptides` on a cache hit.
+        let custom = customPeptides
+        if let cached = peptideDatabaseCache { return cached }
+        let merged = PeptideDatabase.shared + custom
+        peptideDatabaseCache = merged
+        return merged
+    }
+
+    @ObservationIgnored private var peptideDatabaseCache: [Peptide]?
 
     func addCustomPeptide(_ peptide: Peptide) {
         customPeptides.append(peptide)

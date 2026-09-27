@@ -22,9 +22,6 @@ struct ActiveWorkoutView: View {
     @State private var finishedPRs: [PRDetectionEngine.DetectedPR] = []
     @State private var workoutName: String = ""
     @FocusState private var nameFieldFocused: Bool
-    /// Bumps every second while the workout is active so the elapsed
-    /// timer redraws without a publisher boilerplate dance.
-    @State private var tick = 0
     /// In-workout rest timer. Driven by the per-exercise restSeconds
     /// or the training preferences default; surfaces a countdown
     /// overlay above the bottom edge and schedules a local
@@ -33,7 +30,6 @@ struct ActiveWorkoutView: View {
     @State private var restTimer = RestTimerState.inactive
 
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         NavigationStack {
@@ -51,7 +47,6 @@ struct ActiveWorkoutView: View {
                 noActiveSession
             }
         }
-        .onReceive(timer) { _ in tick &+= 1 }
         .onAppear { syncNameFromSession() }
         .onChange(of: sessionService.activeSession?.id) { _, _ in syncNameFromSession() }
     }
@@ -166,10 +161,16 @@ struct ActiveWorkoutView: View {
                     }
 
                 HStack(spacing: Spacing.lg) {
-                    statTile(
-                        value: elapsedFormatted(session),
-                        label: "Elapsed"
-                    )
+                    // TimelineView redraws only this tile each second, and
+                    // stops ticking when the view leaves the screen — an
+                    // autoconnected Timer.publish re-rendered the whole
+                    // body at 1Hz for as long as the view value existed.
+                    TimelineView(.periodic(from: session.startedAt, by: 1)) { context in
+                        statTile(
+                            value: elapsedFormatted(session, now: context.date),
+                            label: "Elapsed"
+                        )
+                    }
                     statTile(
                         value: "\(session.completedSetCount)",
                         label: "Sets done"
@@ -197,13 +198,8 @@ struct ActiveWorkoutView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func elapsedFormatted(_ session: WorkoutSession) -> String {
-        // Read `tick` so SwiftUI takes an observation dependency on
-        // the 1Hz publisher — without this, the string only refreshes
-        // when some other state changes. Do NOT delete: looks like
-        // dead code, isn't.
-        _ = tick
-        let seconds = session.elapsedSeconds()
+    private func elapsedFormatted(_ session: WorkoutSession, now: Date) -> String {
+        let seconds = session.elapsedSeconds(now: now)
         let hours = seconds / 3600
         let mins = (seconds % 3600) / 60
         let secs = seconds % 60

@@ -52,13 +52,17 @@ struct LabEntryEditor: View {
 
     private var parsedValue: Double? { Self.parseDecimal(valueText) }
 
-    private static func parseDecimal(_ s: String) -> Double? {
-        let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
+    private static let decimalParser: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .decimal
         f.locale = .current
-        if let n = f.number(from: trimmed) { return n.doubleValue }
+        return f
+    }()
+
+    private static func parseDecimal(_ s: String) -> Double? {
+        let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if let n = decimalParser.number(from: trimmed) { return n.doubleValue }
         return Double(trimmed)
     }
 

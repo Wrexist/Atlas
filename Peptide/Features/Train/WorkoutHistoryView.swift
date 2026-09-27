@@ -5,7 +5,7 @@ import SwiftUI
 /// workouts (audit Train C2). Reads from SwiftDataRepository and
 /// groups by month so the user can scan through their year.
 struct WorkoutHistoryView: View {
-    @State private var sessions: [WorkoutSession] = []
+    @State private var groupedSessions: [MonthGroup] = []
     @State private var hasLoaded: Bool = false
     @State private var sessionService = WorkoutSessionService.shared
 
@@ -24,7 +24,7 @@ struct WorkoutHistoryView: View {
             if !hasLoaded {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if sessions.isEmpty {
+            } else if groupedSessions.isEmpty {
                 EmptyStateView(
                     icon: "calendar",
                     title: "No workouts logged yet",
@@ -117,37 +117,52 @@ struct WorkoutHistoryView: View {
 
     private struct MonthGroup: Hashable {
         let month: String
-        let sessions: [WorkoutSession]
+        var sessions: [WorkoutSession]
     }
 
-    private var groupedSessions: [MonthGroup] {
+    private static let monthFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
-        let dict = Dictionary(grouping: sessions) { session in
-            formatter.string(from: session.finishedAt ?? session.startedAt)
-        }
-        // Newest month first.
-        return dict
-            .map { MonthGroup(month: $0.key, sessions: $0.value.sorted { ($0.finishedAt ?? $0.startedAt) > ($1.finishedAt ?? $1.startedAt) }) }
-            .sorted { lhs, rhs in
-                (lhs.sessions.first?.finishedAt ?? lhs.sessions.first?.startedAt ?? .distantPast)
-                    > (rhs.sessions.first?.finishedAt ?? rhs.sessions.first?.startedAt ?? .distantPast)
+        return formatter
+    }()
+
+    /// Newest month first, newest session first within each month.
+    private static func group(_ sessions: [WorkoutSession]) -> [MonthGroup] {
+        let sorted = sessions.sorted { $0.historyDate > $1.historyDate }
+        var groups: [MonthGroup] = []
+        for session in sorted {
+            let month = monthFormatter.string(from: session.historyDate)
+            if groups.last?.month == month {
+                groups[groups.count - 1].sessions.append(session)
+            } else {
+                groups.append(MonthGroup(month: month, sessions: [session]))
             }
+        }
+        return groups
     }
 
     private func reload() {
-        sessions = SwiftDataRepository.shared.loadWorkoutSessions()
+        let finished = SwiftDataRepository.shared.loadWorkoutSessions()
             .filter { $0.finishedAt != nil }
+        groupedSessions = Self.group(finished)
         hasLoaded = true
     }
 }
 
-private extension WorkoutSession {
-    /// "Mon, Aug 12" — local-relative date label for the row header.
-    var displayDate: String {
+private enum WorkoutHistoryFormat {
+    static let rowDate: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEE, MMM d"
-        return formatter.string(from: finishedAt ?? startedAt)
+        return formatter
+    }()
+}
+
+private extension WorkoutSession {
+    var historyDate: Date { finishedAt ?? startedAt }
+
+    /// "Mon, Aug 12" — local-relative date label for the row header.
+    var displayDate: String {
+        WorkoutHistoryFormat.rowDate.string(from: historyDate)
     }
 
     /// "42m" / "1h 12m" — nil for sessions without a finishedAt
