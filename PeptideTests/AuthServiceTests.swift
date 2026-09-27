@@ -140,6 +140,34 @@ final class AuthServiceTests: XCTestCase {
         }
     }
 
+    /// A minimized workout lives in memory; the erase must end it, or its
+    /// next set edit writes it back into the wiped store.
+    func test_deleteAllData_endsTheActiveWorkout() {
+        SwiftDataRepository.shared.configureForTesting()
+        _ = DataStore(seedSampleData: true)
+        WorkoutSessionService.shared.startWorkout()
+        XCTAssertNotNil(WorkoutSessionService.shared.activeSession)
+
+        auth.deleteAllData()
+
+        XCTAssertNil(WorkoutSessionService.shared.activeSession)
+        XCTAssertTrue(SwiftDataRepository.shared.loadAllWorkoutSessions().isEmpty)
+    }
+
+    func test_deleteAllData_resetsAchievements() {
+        SwiftDataRepository.shared.configureForTesting()
+        _ = DataStore(seedSampleData: true)
+        AchievementService.shared.checkAchievements(
+            totalDoses: 500, currentStreak: 100, bestStreak: 100, protocolCount: 10, daysLogged: 365
+        )
+        XCTAssertTrue(AchievementService.shared.achievements.contains(where: \.isUnlocked))
+
+        auth.deleteAllData()
+
+        XCTAssertFalse(AchievementService.shared.achievements.contains(where: \.isUnlocked))
+        XCTAssertNil(UserDefaults.standard.data(forKey: "achievements"))
+    }
+
     func test_deleteAccount_whenSignedOut_leavesDataIntact() {
         SwiftDataRepository.shared.configureForTesting()
         _ = DataStore(seedSampleData: true)

@@ -337,11 +337,21 @@ final class AuthService {
         // would fire after the erase and write the old in-memory state
         // straight back to disk.
         store?.flushPendingSave()
+        // An in-progress workout lives in memory; left alone, its next
+        // set edit would persist it straight back into the wiped store.
+        WorkoutSessionService.shared.discardWorkout()
         SwiftDataRepository.shared.deleteAll()
         PersistenceService.shared.clearAll()
         ProgressPhotoStorage.deleteAll()
         BackupSnapshotService.deleteAll()
         ExportService.shared.clearExports()
+        // Records kept outside the main stores: pending reminders carry
+        // protocol names and times, Live Activities show doses, and
+        // achievements and barcode history sit in UserDefaults.
+        NotificationService.shared.cancelAll()
+        DoseLiveActivityService.shared.endAll()
+        AchievementService.shared.eraseAll()
+        Task { await BarcodeScanHistory.shared.removeAll() }
         if let store { resetInMemoryState(of: store) }
     }
 
