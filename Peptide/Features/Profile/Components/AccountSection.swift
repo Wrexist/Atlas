@@ -25,7 +25,7 @@ struct AccountSection: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This permanently removes the Apple ID linkage from this device and erases all your protocols, dose entries, and profile data. If iCloud sync is on, the deletion propagates to your other devices. This cannot be undone.")
+            Text("This permanently removes the Apple ID linkage from this device and erases all your workouts, meals, protocols, dose entries, progress photos, and profile data. Data in Apple Health is not touched. If iCloud sync is on, the deletion propagates to your other devices. This cannot be undone.")
         }
         .alert(
             authService.lastError?.title ?? "",

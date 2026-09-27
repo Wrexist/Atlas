@@ -107,8 +107,8 @@ struct PrivacySummaryView: View {
         ),
         .init(
             icon: "square.and.arrow.up",
-            title: "Export everything. Anytime.",
-            detail: "Export your full history as CSV, JSON, or PDF and walk away with no lock-in."
+            title: "Your data is portable.",
+            detail: "Atlas Pro exports your full history as CSV, JSON, or PDF, so you are never locked in."
         ),
     ]
 }
