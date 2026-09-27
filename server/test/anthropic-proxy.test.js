@@ -204,3 +204,38 @@ test('per-principal limits are per route, so one route cannot starve another', a
   // Same caller, different route — still has its own allowance.
   assert.equal((await forward(makeReq('9.9.9.5'), 'route-b')).statusCode, 200);
 });
+
+function withContent(ip, content) {
+  const req = makeReq(ip);
+  req.body = { messages: [{ role: 'user', content }] };
+  return req;
+}
+
+test('url image sources are rejected 400 before reaching Anthropic', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+
+  const res = await forward(withContent('10.0.9.1', [
+    { type: 'image', source: { type: 'url', url: 'https://example.com/huge.png' } },
+  ]), 'test-parts-url');
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(upstream.length, 0);
+});
+
+test('content parts are forwarded with only their allow-listed fields', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+
+  const res = await forward(withContent('10.0.9.2', [
+    { type: 'text', text: 'what is this?', cache_control: { type: 'ephemeral' } },
+    { type: 'image', extra: 1, source: { type: 'base64', media_type: 'image/jpeg', data: 'AAAA', x: 2 } },
+  ]), 'test-parts-strip');
+
+  assert.equal(res.statusCode, 200);
+  const sent = JSON.parse(upstream[0][1].body);
+  assert.deepEqual(sent.messages[0].content, [
+    { type: 'text', text: 'what is this?' },
+    { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: 'AAAA' } },
+  ]);
+});

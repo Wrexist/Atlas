@@ -128,18 +128,32 @@ function checkRateLimit(principal, logLabel, cost) {
 // (tool_use, tool_result, document, ...) is rejected so a tampered
 // client can't reach features the app doesn't ship — and so the proxy
 // surface only exposes what the iOS code actually sends.
-const ALLOWED_CONTENT_TYPES = new Set(['text', 'image']);
+// Each part is rebuilt from its allow-listed fields: extra keys such as
+// `cache_control` are dropped, and images must be inline base64 — a
+// `url` source would let a 1 KB body make Anthropic fetch arbitrarily
+// large images while the byte-based quota charged almost nothing.
+const ALLOWED_IMAGE_MEDIA_TYPES = new Set(['image/jpeg', 'image/png']);
+
+function sanitisePart(part) {
+  if (!part || typeof part !== 'object') return null;
+  if (part.type === 'text') {
+    return typeof part.text === 'string' ? { type: 'text', text: part.text } : null;
+  }
+  if (part.type === 'image') {
+    const source = part.source;
+    if (!source || source.type !== 'base64') return null;
+    if (!ALLOWED_IMAGE_MEDIA_TYPES.has(source.media_type)) return null;
+    if (typeof source.data !== 'string') return null;
+    return { type: 'image', source: { type: 'base64', media_type: source.media_type, data: source.data } };
+  }
+  return null;
+}
 
 function sanitiseContent(content) {
   if (typeof content === 'string') return content;
   if (!Array.isArray(content)) return null;
-  const parts = [];
-  for (const part of content) {
-    if (!part || typeof part !== 'object') return null;
-    if (!ALLOWED_CONTENT_TYPES.has(part.type)) return null;
-    parts.push(part);
-  }
-  return parts;
+  const parts = content.map(sanitisePart);
+  return parts.includes(null) ? null : parts;
 }
 
 function sanitiseBody(raw, options) {
