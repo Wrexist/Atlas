@@ -132,7 +132,7 @@ Rest timer fires automatically and sends a Lock Screen alert when you're ready.
 NUTRITION
 Snap a photo and Atlas identifies the food. Scan a barcode from 200 million+
 products. Either way, macros are logged in seconds.
-• AI photo meal scanner — photo analyzed and deleted immediately
+• AI photo meal scanner — photo analyzed, never stored by Atlas
 • 200M+ product barcode database (Open Food Facts)
 • Daily calorie and macro rings with TDEE-based targets
 • Custom food library and recipe tracking
@@ -200,7 +200,7 @@ PRIVATE BY DEFAULT
 • No ads, no tracking, no data brokers — NSPrivacyTracking = false
 • Your logs stay on-device or in your private iCloud — we cannot see them
 • No account required — every feature works without signing in
-• AI features send only what's needed (a meal photo, weekly averages), never stored
+• AI features send only what's needed (a meal photo, weekly averages), never stored by Atlas
 
 ——
 
@@ -212,7 +212,7 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 940 / 4 000 — 60 chars of headroom. The SUBSCRIPTION TERMS block and
+*(3 948 / 4 000 — 52 chars of headroom. The SUBSCRIPTION TERMS block and
 both links are required by Guideline 3.1.2 — do not trim them to make room
 for copy.)*
 
