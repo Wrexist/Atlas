@@ -17,6 +17,7 @@ struct TrialOfferView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var storeService = StoreService.shared
     @State private var isPurchasing = false
+    @State private var isRestoring = false
     @State private var errorMessage: String?
     @State private var sparklePhase = 0.0
     @State private var ctaPulse = false
@@ -235,10 +236,11 @@ struct TrialOfferView: View {
         let lead = trialDays == nil ? "" : "Then "
         switch selectedTier {
         case .annual:
-            guard let saved = annualSavingsPercent else {
-                return "\(lead)\(annualPerMonthPrice)/month, billed yearly"
-            }
-            return "\(lead)\(annualPerMonthPrice)/month — save \(saved)%"
+            // Guideline 3.1.2(c): the billed amount leads; the per-month
+            // equivalent is the secondary figure.
+            let billed = "\(lead)\(annualPrice)/year · \(annualPerMonthPrice)/mo"
+            guard let saved = annualSavingsPercent else { return billed }
+            return "\(billed) — save \(saved)%"
         case .monthly:
             return "\(lead)\(monthlyPrice)/month — cancel anytime"
         }
@@ -454,7 +456,7 @@ struct TrialOfferView: View {
                     Text(tierPrimaryPrice(for: tier))
                         .font(AppFont.scaled(16, weight: .bold, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
-                    Text("/mo")
+                    Text(tierPriceUnit(for: tier))
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
                 }
@@ -490,17 +492,34 @@ struct TrialOfferView: View {
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
+    /// The billed amount per period — never the per-month equivalent of the
+    /// annual plan, which Guideline 3.1.2(c) allows only as the secondary line.
     private func tierPrimaryPrice(for tier: Tier) -> String {
         switch tier {
-        case .annual:  return annualPerMonthPrice
+        case .annual:  return annualPrice
         case .monthly: return monthlyPrice
         }
     }
 
+    private func tierPriceUnit(for tier: Tier) -> String {
+        switch tier {
+        case .annual:  return "/yr"
+        case .monthly: return "/mo"
+        }
+    }
+
     private func tierSubtitle(for tier: Tier) -> String {
-        let billed = tier == .annual ? "\(annualPrice)/yr" : "\(monthlyPrice)/mo"
-        guard let days = trialDays(for: tier) else { return "Billed \(billed)" }
-        return "\(days) days free, then \(billed)"
+        let days = trialDays(for: tier)
+        switch tier {
+        case .annual:
+            let perMonth = "\(annualPerMonthPrice)/mo"
+            guard let days else { return "Just \(perMonth)" }
+            return "\(days) days free · \(perMonth)"
+        case .monthly:
+            let billed = "\(monthlyPrice)/mo"
+            guard let days else { return "Billed \(billed)" }
+            return "\(days) days free, then \(billed)"
+        }
     }
 
     // MARK: - Footer
@@ -566,6 +585,7 @@ struct TrialOfferView: View {
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
                     .padding(.vertical, Spacing.xs)
+                    .minimumHitArea()
             }
             .buttonStyle(.plain)
             .disabled(isPurchasing)
@@ -577,9 +597,19 @@ struct TrialOfferView: View {
                 .padding(.horizontal, Spacing.md)
 
             HStack(spacing: Spacing.md) {
-                Link("Terms of Use", destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"))
+                Button(action: restore) {
+                    Text("Restore Purchases").minimumHitArea()
+                }
+                .buttonStyle(.plain)
+                .disabled(isPurchasing || isRestoring)
                 Text("·").foregroundStyle(AppColor.textTertiary)
-                Link("Privacy Policy", destination: URL.staticHTTPS("https://wrexist.github.io/Peptide-ai/privacy.html"))
+                Link(destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")) {
+                    Text("Terms of Use").minimumHitArea()
+                }
+                Text("·").foregroundStyle(AppColor.textTertiary)
+                Link(destination: URL.staticHTTPS("https://wrexist.github.io/Peptide-ai/privacy.html")) {
+                    Text("Privacy Policy").minimumHitArea()
+                }
             }
             .font(AppFont.scaled(11))
             .foregroundStyle(AppColor.accentLight)
@@ -701,6 +731,28 @@ struct TrialOfferView: View {
                 }
             } catch {
                 withAnimation(AppAnimation.fadeIn) { errorMessage = "Couldn't complete the purchase. Please try again." }
+            }
+        }
+    }
+
+    /// Same restore path as `PaywallView`. A returning subscriber who
+    /// restores leaves onboarding exactly as a fresh purchase would.
+    private func restore() {
+        guard !isRestoring, !isPurchasing else { return }
+        errorMessage = nil
+        isRestoring = true
+        Task {
+            defer { isRestoring = false }
+            do {
+                try await storeService.restorePurchases()
+                if storeService.isProUser {
+                    Haptics.success()
+                    onAccept()
+                } else {
+                    withAnimation(AppAnimation.fadeIn) { errorMessage = "No previous purchase found to restore." }
+                }
+            } catch {
+                withAnimation(AppAnimation.fadeIn) { errorMessage = "Restore failed. Check your internet connection and try again." }
             }
         }
     }

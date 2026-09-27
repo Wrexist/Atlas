@@ -28,6 +28,9 @@ struct PaywallView: View {
     @State private var isRestoring = false
     @State private var errorMessage: String?
     @State private var isShowingDisclosure = false
+    /// Starts `true` so the first frame shows a spinner, not the
+    /// "plans didn't load" state, while the initial fetch is in flight.
+    @State private var isLoadingProducts = true
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -83,11 +86,7 @@ struct PaywallView: View {
                 dismiss()
                 return
             }
-            await storeService.loadProducts()
-            if selectedProductID == nil {
-                selectedProductID = storeService.annualProduct?.id
-                    ?? storeService.monthlyProduct?.id
-            }
+            await loadPlans()
         }
         .onChange(of: storeService.products.map(\.id)) { _, _ in
             if selectedProductID == nil {
@@ -508,12 +507,22 @@ struct PaywallView: View {
         // as a single premium line — the layout RevenueCat / Whoop /
         // Bevel use for 3+ tiers.
         VStack(spacing: Spacing.sm) {
+            if storeService.products.isEmpty {
+                if isLoadingProducts {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, minHeight: 120)
+                } else {
+                    productsUnavailable
+                }
+            }
             if let annual = storeService.annualProduct {
                 pricingRow(
                     product: annual,
                     title: "Yearly",
-                    primaryPrice: perMonthEquivalent(for: annual) ?? annual.displayPrice,
-                    primaryUnit: "/mo",
+                    // Guideline 3.1.2(c): the billed amount is the headline
+                    // number; the per-month equivalent rides in the subtitle.
+                    primaryPrice: annual.displayPrice,
+                    primaryUnit: "/yr",
                     subtitle: yearlySubtitle(for: annual),
                     badge: savingsBadge
                 )
@@ -544,6 +553,43 @@ struct PaywallView: View {
                     badge: "FOREVER"
                 )
             }
+        }
+    }
+
+    /// Shown when StoreKit returned no products (offline, storefront
+    /// hiccup). Without it the plan list collapsed to nothing and the CTA
+    /// sat disabled with no explanation or way forward.
+    private var productsUnavailable: some View {
+        VStack(spacing: Spacing.sm) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(AppFont.scaled(20, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+                .accessibilityHidden(true)
+            Text("Plans couldn't load")
+                .font(AppFont.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColor.textPrimary)
+            Text("Check your connection and try again.")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+            Button {
+                Task { await loadPlans() }
+            } label: {
+                Text("Retry")
+                    .font(AppFont.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColor.accentLight)
+                    .padding(.horizontal, Spacing.lg)
+                    .minimumHitArea()
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
         }
     }
 
@@ -651,16 +697,18 @@ struct PaywallView: View {
             .shadow(color: AppColor.accentGlow, radius: 6, y: 2)
     }
 
-    /// "Billed €24.99/yr after 7 days free" when the intro offer is live;
-    /// downgrades to plain "Billed €24.99/yr" once the user is no longer
-    /// eligible (already redeemed an intro in this group).
+    /// Secondary line under the billed yearly price: "7 days free · €2.08/mo"
+    /// while the intro offer is live, "Just €2.08/mo" once the user is no
+    /// longer eligible (already redeemed an intro in this group).
     private func yearlySubtitle(for product: Product) -> String {
-        let priceLine = "Billed \(product.displayPrice)/yr"
+        let perMonth = perMonthEquivalent(for: product).map { "\($0)/mo" }
         if storeService.isEligibleForAnnualTrial,
            let trial = storeService.annualTrialDisplay {
-            return "\(priceLine) after \(trial)"
+            guard let perMonth else { return trial }
+            return "\(trial) · \(perMonth)"
         }
-        return priceLine
+        guard let perMonth else { return "Billed yearly" }
+        return "Just \(perMonth)"
     }
 
     private func monthlySubtitle(for product: Product) -> String {
@@ -840,14 +888,18 @@ struct PaywallView: View {
 
     private var footerLinks: some View {
         HStack(spacing: Spacing.lg) {
-            Button("Restore", action: restore)
-                .disabled(isRestoring)
+            Button(action: restore) {
+                Text("Restore").minimumHitArea()
+            }
+            .disabled(isRestoring)
 
-            Link("Terms of Use",
-                 destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"))
+            Link(destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")) {
+                Text("Terms of Use").minimumHitArea()
+            }
 
-            Link("Privacy Policy",
-                 destination: URL.staticHTTPS("https://wrexist.github.io/Peptide-ai/privacy.html"))
+            Link(destination: URL.staticHTTPS("https://wrexist.github.io/Peptide-ai/privacy.html")) {
+                Text("Privacy Policy").minimumHitArea()
+            }
         }
         .font(AppFont.scaled(11))
         .foregroundStyle(AppColor.textSecondary)
@@ -873,8 +925,8 @@ struct PaywallView: View {
                 isShowingDisclosure = true
             } label: {
                 (
-                    Text("Auto-renews unless cancelled. ")
-                    + Text("Details").foregroundColor(AppColor.accentLight)
+                    Text(autoRenewLine)
+                    + Text(" Details").foregroundColor(AppColor.accentLight)
                 )
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
@@ -883,6 +935,14 @@ struct PaywallView: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    /// The renewal price and cancellation window, inline under the button so
+    /// the user sees them without opening the Details sheet.
+    private var autoRenewLine: String {
+        let window = "unless cancelled at least 24 hours before the period ends."
+        guard let product = selectedProduct else { return "Auto-renews \(window)" }
+        return "Auto-renews at \(product.displayPrice)\(periodSuffix(for: product)) \(window)"
     }
 
     private var disclosureSheet: some View {
@@ -943,6 +1003,16 @@ struct PaywallView: View {
     private var selectedProduct: Product? {
         guard let id = selectedProductID else { return nil }
         return storeService.products.first { $0.id == id }
+    }
+
+    private func loadPlans() async {
+        isLoadingProducts = true
+        defer { isLoadingProducts = false }
+        await storeService.loadProducts()
+        if selectedProductID == nil {
+            selectedProductID = storeService.annualProduct?.id
+                ?? storeService.monthlyProduct?.id
+        }
     }
 
     private func purchase(_ product: Product) async {
