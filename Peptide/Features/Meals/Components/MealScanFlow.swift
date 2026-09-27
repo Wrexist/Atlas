@@ -40,6 +40,11 @@ struct MealScanFlow: View {
     /// consent, resumed once they allow it.
     @State private var pendingSource: ImageSource?
     @State private var showConsent = false
+    @State private var showScanLimitPaywall = false
+    /// Free-tier AI scans left this week; `nil` for Pro. Refreshed when
+    /// the picker appears and after each successful scan.
+    @State private var scansRemaining: Int?
+    @State private var storeService = StoreService.shared
     @State private var cameraDeniedAlert: CameraDeniedReason?
     /// Tracks the in-flight image-load and Anthropic analysis tasks so
     /// they get cancelled when the sheet is dismissed. Without this,
@@ -108,6 +113,12 @@ struct MealScanFlow: View {
             matching: .images,
             photoLibrary: .shared()
         )
+        .task(id: storeService.isProUser) { refreshScansRemaining() }
+        .sheet(isPresented: $showScanLimitPaywall, onDismiss: refreshScansRemaining) {
+            PaywallView(source: .mealScanLimit)
+                .environment(dataStore)
+                .liquidGlassPresentation()
+        }
         .sheet(isPresented: $showConsent, onDismiss: resumeAfterConsent) {
             AIConsentSheet(whatIsSent: "The meal photo you take or pick.")
                 .liquidGlassPresentation()
@@ -152,8 +163,15 @@ struct MealScanFlow: View {
 
     /// Every photo this flow picks goes to Anthropic, so the one-time
     /// consent is asked before the camera or library opens rather than
-    /// after the user has already framed a shot.
+    /// after the user has already framed a shot. The weekly free-scan
+    /// allowance is checked first: a user who is out of scans should not
+    /// be asked to consent to a send that will not happen.
     private func openImageSource(_ source: ImageSource) {
+        refreshScansRemaining()
+        guard scansRemaining != 0 else {
+            showScanLimitPaywall = true
+            return
+        }
         guard AIDataConsent.isGranted else {
             pendingSource = source
             showConsent = true
@@ -163,6 +181,10 @@ struct MealScanFlow: View {
         case .camera:  Task { await tapTakePhoto() }
         case .library: isShowingLibrary = true
         }
+    }
+
+    private func refreshScansRemaining() {
+        scansRemaining = MealScanQuota.remainingThisWeek(isPro: storeService.isProUser)
     }
 
     private func resumeAfterConsent() {
@@ -225,7 +247,25 @@ struct MealScanFlow: View {
                 .buttonStyle(.plain)
                 .accessibilityHint("Picks an existing photo from your library.")
             }
+
+            if let scansRemaining {
+                scanAllowanceCaption(remaining: scansRemaining)
+            }
         }
+    }
+
+    /// Free-tier allowance, stated plainly: what is left, that Pro lifts
+    /// it, and that barcodes never count.
+    private func scanAllowanceCaption(remaining: Int) -> some View {
+        VStack(spacing: Spacing.xxs) {
+            Text("\(remaining) of \(MealScanQuota.freeScansPerWeek) free AI scans left this week · Unlimited with Pro")
+            Text("Barcode scans are always free")
+        }
+        .font(AppFont.caption)
+        .foregroundStyle(AppColor.textTertiary)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, Spacing.lg)
+        .accessibilityElement(children: .combine)
     }
 
     private enum PickerButtonStyle { case primary, secondary }
@@ -640,6 +680,10 @@ struct MealScanFlow: View {
         do {
             let result = try await MealScannerService.shared.analyzeItems(image: image)
             await MainActor.run {
+                if !result.items.isEmpty, !storeService.isProUser {
+                    MealScanQuota.recordSuccessfulScan()
+                    refreshScansRemaining()
+                }
                 items = result.items.map(EditableFoodItem.init(from:))
                 suggestedMealName = result.mealName
                 mealName = result.mealName ?? ""
