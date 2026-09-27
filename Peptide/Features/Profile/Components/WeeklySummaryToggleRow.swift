@@ -43,6 +43,7 @@ struct WeeklySummaryToggleRow: View {
                     Image(systemName: "sparkles")
                         .font(AppFont.scaled(16, weight: .heavy))
                         .foregroundStyle(accent)
+                        .accessibilityHidden(true)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {

@@ -324,6 +324,7 @@ struct ProtocolDetailView: View {
                             RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                                 .fill(peptide.category.color.opacity(0.15))
                         }
+                        .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         HStack(spacing: Spacing.xs) {

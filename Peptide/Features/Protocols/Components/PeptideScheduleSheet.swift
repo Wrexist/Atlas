@@ -236,8 +236,8 @@ struct PeptideScheduleSheet: View {
                             Image(systemName: "xmark.circle.fill")
                                 .font(AppFont.scaled(16))
                                 .foregroundStyle(AppColor.textTertiary)
+                                .minimumHitArea()
                         }
-                        .accessibilityLabel("Clear dose")
                         .buttonStyle(.plain)
                         .accessibilityLabel("Clear dose")
                         .transition(.opacity)

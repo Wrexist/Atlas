@@ -89,6 +89,7 @@ struct ExercisePickerSheet: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "plus.circle.fill")
+                            .accessibilityHidden(true)
                         Text("Create custom exercise")
                     }
                     .font(AppFont.callout.weight(.semibold))

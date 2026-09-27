@@ -97,6 +97,7 @@ struct TrainContainerView: View {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "figure.run.circle.fill")
                     .font(AppFont.scaled(20, weight: .semibold))
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Workout in progress")
                         .font(AppFont.callout.weight(.semibold))
@@ -109,6 +110,7 @@ struct TrainContainerView: View {
                 Spacer()
                 Image(systemName: "chevron.up")
                     .font(AppFont.scaled(13, weight: .semibold))
+                    .accessibilityHidden(true)
             }
             .foregroundStyle(AppColor.background)
             .padding(.horizontal, Spacing.md)

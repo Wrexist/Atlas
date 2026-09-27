@@ -54,6 +54,7 @@ struct ThemeChoicePage: View {
                     .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
                     .symbolEffect(.bounce, value: isSelected)
                     .frame(height: 28)
+                    .accessibilityHidden(true)
 
                 Text(mode.displayName)
                     .font(AppFont.headline)

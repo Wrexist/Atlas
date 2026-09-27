@@ -33,6 +33,7 @@ struct CycleCardShareSection: View {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .fill(AppColor.accentFill)
                     }
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Share my cycle card")
@@ -49,6 +50,7 @@ struct CycleCardShareSection: View {
                 Image(systemName: "chevron.right")
                     .font(AppFont.scaled(11, weight: .bold))
                     .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
             }
             .padding(Spacing.md)
             .frame(maxWidth: .infinity, alignment: .leading)

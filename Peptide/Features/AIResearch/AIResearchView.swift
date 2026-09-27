@@ -168,6 +168,7 @@ struct AIResearchView: View {
                             Image(systemName: "sparkles")
                                 .font(AppFont.scaled(13, weight: .semibold))
                                 .foregroundStyle(AppColor.accentLight)
+                                .accessibilityHidden(true)
                             Text(prompt)
                                 .font(AppFont.subheadline)
                                 .foregroundStyle(AppColor.textPrimary)
@@ -231,6 +232,7 @@ struct AIResearchView: View {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 32, weight: .semibold))
                     .foregroundStyle(canSend ? AppColor.accentPrimary : AppColor.textTertiary)
+                    .minimumHitArea()
             }
             .buttonStyle(.plain)
             .disabled(!canSend)

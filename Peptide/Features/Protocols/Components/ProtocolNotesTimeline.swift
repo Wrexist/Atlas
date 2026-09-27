@@ -85,6 +85,7 @@ struct ProtocolNotesTimeline: View {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
                         .font(AppFont.scaled(11, weight: .bold))
+                        .accessibilityHidden(true)
                     Text("Add note")
                         .font(AppFont.scaled(11, weight: .semibold))
                 }

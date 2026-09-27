@@ -61,6 +61,7 @@ struct WorkoutExerciseCard: View {
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(Spacing.xs)
+                    .minimumHitArea()
             }
             .accessibilityLabel("Exercise options")
         }

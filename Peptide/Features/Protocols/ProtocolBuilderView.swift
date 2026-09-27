@@ -183,6 +183,7 @@ struct ProtocolBuilderView: View {
                             HStack(spacing: 2) {
                                 Image(systemName: "chevron.left")
                                     .font(.system(.subheadline, weight: .semibold))
+                                    .accessibilityHidden(true)
                                 Text("Back")
                             }
                             .foregroundStyle(AppColor.textSecondary)

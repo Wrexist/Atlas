@@ -43,6 +43,7 @@ struct ScreenshotModeRow: View {
                     Image(systemName: "camera.viewfinder")
                         .font(AppFont.scaled(16, weight: .heavy))
                         .foregroundStyle(accent)
+                        .accessibilityHidden(true)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {

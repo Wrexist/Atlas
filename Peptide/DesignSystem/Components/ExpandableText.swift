@@ -58,6 +58,7 @@ struct ExpandableText: View {
                         Image(systemName: "chevron.down")
                             .font(AppFont.scaled(11, weight: .semibold))
                             .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                            .accessibilityHidden(true)
                     }
                     .font(AppFont.caption)
                     .fontWeight(.semibold)
