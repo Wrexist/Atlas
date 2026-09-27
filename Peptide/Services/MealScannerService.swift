@@ -226,14 +226,6 @@ final class MealScannerService: Sendable {
         request.timeoutInterval = 60
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
-        // App Attest assertion headers when available — the proxy
-        // verifies them (report mode today, enforce later). Absence
-        // is fine: the shared secret still authenticates this build.
-        if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
-            for (field, value) in attestHeaders {
-                request.setValue(value, forHTTPHeaderField: field)
-            }
-        }
         request.httpBody = try JSONSerialization.data(
             withJSONObject: requestPayload(base64: base64, prompt: prompt),
             options: []
@@ -272,8 +264,18 @@ final class MealScannerService: Sendable {
         var attempt = 0
         while true {
             attempt += 1
+            // Fresh App Attest assertion per attempt: the proxy rejects a
+            // repeated counter, so a retry reusing the first one would 401
+            // once enforcement is on. Absence is fine — the shared secret
+            // still authenticates this build (report mode today).
+            var attemptRequest = request
+            if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
+                for (field, value) in attestHeaders {
+                    attemptRequest.setValue(value, forHTTPHeaderField: field)
+                }
+            }
             do {
-                let (data, response) = try await session.data(for: request)
+                let (data, response) = try await session.data(for: attemptRequest)
                 guard let http = response as? HTTPURLResponse else {
                     throw ScanError.invalidResponse
                 }
