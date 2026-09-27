@@ -218,7 +218,7 @@ final class AuthService {
 
     // MARK: - Delete Account / Delete All Data
 
-    enum AccountDeletionOutcome {
+    enum AccountDeletionOutcome: Equatable {
         /// Data erased and the Sign in with Apple token revoked.
         case deleted
         /// Data erased, but the token could not be revoked (no revoke
