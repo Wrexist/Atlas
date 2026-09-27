@@ -28,6 +28,7 @@ struct AIResearchView: View {
     /// the alert can re-send it without making the user retype.
     @State private var lastFailedPrompt: String?
     @State private var transcript: [AIResearchService.Turn] = []
+    @State private var showConsent = false
     @FocusState private var inputFocused: Bool
 
     var body: some View {
@@ -52,6 +53,10 @@ struct AIResearchView: View {
                 // abandoned.
                 inflight?.cancel()
                 inflight = nil
+            }
+            .sheet(isPresented: $showConsent, onDismiss: sendIfConsented) {
+                AIConsentSheet(whatIsSent: "Your messages in this chat, including earlier ones in the conversation.")
+                    .liquidGlassPresentation()
             }
             .alert(
                 "Couldn't reach the assistant",
@@ -246,6 +251,14 @@ struct AIResearchView: View {
     private func send() {
         let prompt = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !prompt.isEmpty, !isStreaming else { return }
+        // Nothing leaves the device until the user has agreed to share it
+        // with Anthropic. The prompt stays in `input` so it sends as soon
+        // as they tap Allow.
+        guard AIDataConsent.isGranted else {
+            input = prompt
+            showConsent = true
+            return
+        }
 
         let userTurn = AIResearchService.Turn(role: .user, content: prompt)
         transcript.append(userTurn)
@@ -311,6 +324,10 @@ struct AIResearchView: View {
                 Haptics.error()
             }
         }
+    }
+
+    private func sendIfConsented() {
+        if AIDataConsent.isGranted { send() }
     }
 
     private static let suggestedPrompts: [String] = [

@@ -9,6 +9,8 @@ import SwiftUI
 /// and the App Privacy questionnaire. If anything below changes, update
 /// both at the same time.
 struct PrivacySummaryView: View {
+    @State private var aiConsentGranted = AIDataConsent.isGranted
+
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.xl) {
@@ -27,8 +29,11 @@ struct PrivacySummaryView: View {
                 }
                 .sectionAppear(index: 1)
 
-                manifestChip
+                aiSharingCard
                     .sectionAppear(index: 2)
+
+                manifestChip
+                    .sectionAppear(index: 3)
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.vertical, Spacing.lg)
@@ -66,6 +71,28 @@ struct PrivacySummaryView: View {
         .frame(maxWidth: .infinity)
     }
 
+    private var aiSharingCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                PrivacyRow(row: .init(
+                    icon: "sparkles",
+                    title: "AI features ask first.",
+                    detail: "Research chat and meal photo scan send what you submit to Claude, by Anthropic, through Atlas's server — only when you use them, and only after you allow it."
+                ))
+                if aiConsentGranted {
+                    GlassButton(title: "Turn off AI data sharing", style: .secondary, isFullWidth: true) {
+                        AIDataConsent.revoke()
+                        aiConsentGranted = false
+                    }
+                } else {
+                    Text("Off. Atlas asks before anything is sent.")
+                        .font(AppFont.footnote)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+            }
+        }
+    }
+
     private var manifestChip: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "checkmark.seal.fill")
@@ -93,7 +120,7 @@ struct PrivacySummaryView: View {
         .init(
             icon: "network.slash",
             title: "No user-data backend.",
-            detail: "Atlas runs no server that stores your logs. AI features you invoke send only what they need — a meal photo, weekly averages — and nothing is kept."
+            detail: "Atlas runs no server that stores your logs. AI features you invoke send only what they need — a meal photo, weekly averages — to answer your request."
         ),
         .init(
             icon: "key.fill",

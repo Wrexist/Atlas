@@ -10,7 +10,7 @@ import UIKit
 /// through `dataStore.logMealEntry(_:)`.
 ///
 /// "Take photo" launches a live rear-camera capture via `CameraPicker`
-/// (UIImagePickerController), and "Choose from library" uses PhotosPicker.
+/// (UIImagePickerController), and "Choose from library" opens the system photo picker.
 /// The camera option hides on simulators and devices without a usable
 /// camera so the user only sees actions that work.
 struct MealScanFlow: View {
@@ -35,6 +35,11 @@ struct MealScanFlow: View {
     @State private var mealName: String = ""
     @State private var logAsOneMeal = false
     @State private var isShowingCamera = false
+    @State private var isShowingLibrary = false
+    /// The source the user tapped before being asked for AI-sharing
+    /// consent, resumed once they allow it.
+    @State private var pendingSource: ImageSource?
+    @State private var showConsent = false
     @State private var cameraDeniedAlert: CameraDeniedReason?
     /// Tracks the in-flight image-load and Anthropic analysis tasks so
     /// they get cancelled when the sheet is dismissed. Without this,
@@ -47,6 +52,8 @@ struct MealScanFlow: View {
     /// yesterday's bucket (audit Meals HIGH 2). Camera captures
     /// stamp Date() since there's no asset to read from.
     @State private var capturedAtDate: Date = Date()
+
+    private enum ImageSource { case camera, library }
 
     private enum Phase: Equatable {
         case pickImage
@@ -95,6 +102,16 @@ struct MealScanFlow: View {
             inFlightTask?.cancel()
             inFlightTask = Task { await loadImage(from: newValue) }
         }
+        .photosPicker(
+            isPresented: $isShowingLibrary,
+            selection: $selectedItem,
+            matching: .images,
+            photoLibrary: .shared()
+        )
+        .sheet(isPresented: $showConsent, onDismiss: resumeAfterConsent) {
+            AIConsentSheet(whatIsSent: "The meal photo you take or pick.")
+                .liquidGlassPresentation()
+        }
         .fullScreenCover(isPresented: $isShowingCamera) {
             CameraPicker(
                 onPicked: { captured in
@@ -133,6 +150,28 @@ struct MealScanFlow: View {
         }
     }
 
+    /// Every photo this flow picks goes to Anthropic, so the one-time
+    /// consent is asked before the camera or library opens rather than
+    /// after the user has already framed a shot.
+    private func openImageSource(_ source: ImageSource) {
+        guard AIDataConsent.isGranted else {
+            pendingSource = source
+            showConsent = true
+            return
+        }
+        switch source {
+        case .camera:  Task { await tapTakePhoto() }
+        case .library: isShowingLibrary = true
+        }
+    }
+
+    private func resumeAfterConsent() {
+        let source = pendingSource
+        pendingSource = nil
+        guard AIDataConsent.isGranted, let source else { return }
+        openImageSource(source)
+    }
+
     /// Resolves camera authorization before presenting `CameraPicker`.
     /// Without this gate, `.denied` and `.restricted` users get a
     /// black `fullScreenCover` with no system prompt and no clear
@@ -162,7 +201,7 @@ struct MealScanFlow: View {
             VStack(spacing: Spacing.sm) {
                 if UIImagePickerController.SourceType.cameraIsAvailable {
                     Button {
-                        Task { await tapTakePhoto() }
+                        openImageSource(.camera)
                     } label: {
                         pickerButtonLabel(
                             icon: "camera.fill",
@@ -174,11 +213,9 @@ struct MealScanFlow: View {
                     .accessibilityHint("Opens the camera to capture a meal photo.")
                 }
 
-                PhotosPicker(
-                    selection: $selectedItem,
-                    matching: .images,
-                    photoLibrary: .shared()
-                ) {
+                Button {
+                    openImageSource(.library)
+                } label: {
                     pickerButtonLabel(
                         icon: "photo.on.rectangle",
                         title: "Choose from library",
