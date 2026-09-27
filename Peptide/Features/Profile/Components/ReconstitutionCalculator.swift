@@ -2,11 +2,12 @@ import SwiftUI
 
 /// Concentration / unit-conversion reference for reconstituted
 /// powder. Powder comes in a vial (mg), is reconstituted with
-/// bacteriostatic water (mL); the tool converts a target amount into
+/// bacteriostatic water (mL); the tool converts an entered amount into
 /// the equivalent volume on a U-100 syringe (units, where 100 units =
 /// 1 mL) and surfaces the resulting concentration (mg/mL).
 ///
-/// The math is trivial: `units = (target / (vialMg / waterMl)) × 100`.
+/// The math lives in `ReconstitutionEngine`:
+/// `units = (amount / (vialMg / waterMl)) × 100`.
 /// The value is getting the units straight — units vs. mL vs. mcg vs.
 /// mg — which is a pure arithmetic conversion of the user's own
 /// inputs.
@@ -14,48 +15,43 @@ import SwiftUI
 /// This is a converter, not a recommendation engine and not an
 /// administration instruction: inputs are user-supplied, the output
 /// is stated as an equivalence ("that amount equals N units"), never
-/// as a directive to inject, and the disclaimer is explicit. The view
+/// as a directive to inject, the amount field starts empty rather than
+/// suggesting a value, and the caption under it says so. The view
 /// stays agnostic about whether the user should take anything.
 struct ReconstitutionCalculator: View {
     @State private var vialMilligrams: Double = 5
     @State private var bacWaterMilliliters: Double = 2
-    @State private var targetDoseMicrograms: Double = 250
+    /// Empty until the user types — the calculator never proposes an
+    /// amount of its own.
+    @State private var amountText: String = ""
+    @FocusState private var amountFocused: Bool
+
+    private var amountMicrograms: Double? {
+        ReconstitutionEngine.parseAmount(amountText)
+    }
 
     /// Resulting concentration in mg/mL — the intermediate the
     /// math depends on. Surfaced as a callout so users learn the
     /// pattern, not just the answer.
-    private var concentrationMgPerMl: Double {
-        guard bacWaterMilliliters > 0 else { return 0 }
-        return vialMilligrams / bacWaterMilliliters
+    private var concentrationMgPerMl: Double? {
+        ReconstitutionEngine.concentrationMgPerMl(vialMg: vialMilligrams, waterMl: bacWaterMilliliters)
     }
 
-    /// Units on a U-100 syringe (100 units = 1 mL).
-    /// `units = doseMl × 100`, and `doseMl = doseMg / concentrationMgPerMl`.
-    /// Combined and rearranged for clarity. Returns 0 when inputs
-    /// can't produce a meaningful answer (zero water → division by
-    /// zero) so the UI never displays NaN.
-    private var unitsOnSyringe: Double {
-        guard concentrationMgPerMl > 0 else { return 0 }
-        let doseMg = targetDoseMicrograms / 1000.0
-        let doseMl = doseMg / concentrationMgPerMl
-        return doseMl * 100
-    }
-
-    private var unitsRounded: Int { Int(unitsOnSyringe.rounded()) }
-
-    /// `unitsOnSyringe` is the precise math result; users dial in
-    /// integer units on the syringe. Display rounding, but keep the
-    /// math precise underneath so a 12.6 result reads honestly as
-    /// "≈ 13" rather than silently rounding to 12.
-    private var hasFractionalUnits: Bool {
-        abs(unitsOnSyringe - Double(unitsRounded)) > 0.05
+    /// Units on a U-100 syringe (100 units = 1 mL); nil until a
+    /// valid amount is entered.
+    private var unitsOnSyringe: Double? {
+        guard let amountMicrograms else { return nil }
+        return ReconstitutionEngine.syringeUnits(
+            amountMcg: amountMicrograms,
+            vialMg: vialMilligrams,
+            waterMl: bacWaterMilliliters
+        )
     }
 
     var body: some View {
         VStack(spacing: Spacing.lg) {
             inputCard
             resultCard
-            disclaimer
         }
     }
 
@@ -82,15 +78,7 @@ struct ReconstitutionCalculator: View {
                     quickPicks: [1, 2, 3, 5],
                     bind: $bacWaterMilliliters
                 )
-                inputRow(
-                    label: "Target dose",
-                    value: targetDoseMicrograms,
-                    unit: "mcg",
-                    range: 50...10_000,
-                    step: 25,
-                    quickPicks: [250, 500, 1000, 2000],
-                    bind: $targetDoseMicrograms
-                )
+                amountRow
             }
         }
     }
@@ -138,13 +126,49 @@ struct ReconstitutionCalculator: View {
         }
     }
 
+    private var amountRow: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Amount")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .tracking(0.6)
+                    .textCase(.uppercase)
+                    .foregroundStyle(AppColor.textSecondary)
+                Spacer()
+                TextField("Enter", text: $amountText)
+                    .accessibilityLabel("Amount in micrograms")
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(AppColor.textPrimary)
+                    .focused($amountFocused)
+                    .frame(maxWidth: 140)
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("Done") { amountFocused = false }
+                                .fontWeight(.semibold)
+                        }
+                    }
+                Text("mcg")
+                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+            }
+            Text("A unit-conversion calculator for educational use. It doesn't recommend an amount. Follow your clinician's instructions.")
+                .font(AppFont.scaled(11))
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     // MARK: - Result
 
     private var resultCard: some View {
         GlassCard(tinted: true, padding: Spacing.md) {
             VStack(spacing: Spacing.md) {
                 resultHeadline
-                SyringeDiagram(unitsToFill: unitsOnSyringe)
+                SyringeDiagram(unitsToFill: unitsOnSyringe ?? 0)
                     .frame(height: 80)
                     .padding(.horizontal, Spacing.sm)
                 concentrationFootnote
@@ -163,19 +187,11 @@ struct ReconstitutionCalculator: View {
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.accentLight.opacity(0.85))
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                if hasFractionalUnits {
-                    Text("≈ \(unitsRounded)")
-                        .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
-                        .monospacedDigit()
-                        .foregroundStyle(AppColor.textPrimary)
-                        .contentTransition(.numericText())
-                } else {
-                    Text("\(unitsRounded)")
-                        .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
-                        .monospacedDigit()
-                        .foregroundStyle(AppColor.textPrimary)
-                        .contentTransition(.numericText())
-                }
+                Text(unitsHeadline)
+                    .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                    .monospacedDigit()
+                    .foregroundStyle(AppColor.textPrimary)
+                    .contentTransition(.numericText())
                 Text("units")
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
@@ -186,15 +202,24 @@ struct ReconstitutionCalculator: View {
         }
     }
 
+    /// Rounded for display, but the math stays precise underneath so a
+    /// 12.6 result reads honestly as "≈ 13" rather than silently "13".
+    private var unitsHeadline: String {
+        guard let units = unitsOnSyringe, let rounded = ReconstitutionEngine.roundedUnits(units) else {
+            return "—"
+        }
+        return ReconstitutionEngine.hasFractionalUnits(units) ? "≈ \(rounded)" : "\(rounded)"
+    }
+
     private var concentrationFootnote: some View {
         HStack(spacing: Spacing.lg) {
             footnoteCell(
                 label: String(localized: "Concentration"),
-                value: String(format: "%.2f mg/mL", concentrationMgPerMl)
+                value: concentrationString
             )
             footnoteCell(
-                label: String(localized: "Doses / vial"),
-                value: dosesPerVialString
+                label: String(localized: "Amounts / vial"),
+                value: amountsPerVialString
             )
         }
     }
@@ -214,25 +239,17 @@ struct ReconstitutionCalculator: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var dosesPerVialString: String {
-        let doseMg = targetDoseMicrograms / 1000.0
-        guard doseMg > 0 else { return "—" }
-        let count = Int((vialMilligrams / doseMg).rounded(.down))
-        return "\(count)"
+    private var concentrationString: String {
+        guard let concentrationMgPerMl else { return "—" }
+        return String(format: "%.2f mg/mL", concentrationMgPerMl)
     }
 
-    private var disclaimer: some View {
-        HStack(alignment: .top, spacing: Spacing.sm) {
-            Image(systemName: "info.circle")
-                .font(AppFont.scaled(11))
-                .foregroundStyle(AppColor.textSecondary)
-                .padding(.top, 1)
-            Text("Calculator only. Doses and protocols vary widely — consult a qualified medical professional. Atlas doesn't recommend any specific compound or dose.")
-                .font(AppFont.scaled(11))
-                .foregroundStyle(AppColor.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-        }
+    private var amountsPerVialString: String {
+        guard
+            let amountMicrograms,
+            let count = ReconstitutionEngine.amountsPerVial(amountMcg: amountMicrograms, vialMg: vialMilligrams)
+        else { return "—" }
+        return "\(count)"
     }
 
     private func formatted(_ value: Double) -> String {

@@ -1,6 +1,6 @@
 import SwiftUI
 import PhotosUI
-import Photos
+import ImageIO
 import UIKit
 
 /// End-to-end meal-scanner sheet: picks an image (camera or library),
@@ -611,9 +611,10 @@ struct MealScanFlow: View {
             }
             // Capture EXIF date so a meal picked from a yesterday-
             // dinner photo logs into yesterday's bucket, not today's
-            // (audit Meals HIGH 2). Falls back to today only when
-            // the asset truly has no creation date.
-            let capturedAt = await loadCreationDate(for: item) ?? Date()
+            // (audit Meals HIGH 2). Read from the file itself, which
+            // needs no Photos permission; falls back to now only when
+            // the image carries no capture date.
+            let capturedAt = PhotoCaptureDate.captureDate(fromImageData: data) ?? Date()
             await MainActor.run {
                 image = ui
                 capturedAtDate = capturedAt
@@ -633,17 +634,6 @@ struct MealScanFlow: View {
                 phase = .error
             }
         }
-    }
-
-    /// Reads the original asset's `creationDate` via PhotoKit so we
-    /// preserve the moment-of-capture for the meal log. The
-    /// `PhotosPickerItem.itemIdentifier` is the local PHAsset
-    /// identifier; absent or unfetchable assets fall back to nil and
-    /// the caller writes "now" as a final fallback.
-    private func loadCreationDate(for item: PhotosPickerItem) async -> Date? {
-        guard let assetID = item.itemIdentifier else { return nil }
-        let result = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil)
-        return result.firstObject?.creationDate
     }
 
     private func runAnalysis(on image: UIImage) async {
@@ -1129,5 +1119,55 @@ private struct FoodItemEditCard: View {
         }
         .buttonStyle(.plain)
         .disabled(item.savedToLibrary)
+    }
+}
+
+/// Reads when a photo was taken from its own EXIF metadata. Needs no
+/// Photos permission — unlike a PhotoKit asset lookup, which silently
+/// returns nothing without read access.
+enum PhotoCaptureDate {
+
+    /// EXIF `DateTimeOriginal`, interpreted in `OffsetTimeOriginal`
+    /// when the camera wrote one, otherwise in `fallbackTimeZone`
+    /// (EXIF's own convention: a bare timestamp is local time).
+    static func captureDate(fromImageData data: Data, fallbackTimeZone: TimeZone = .current) -> Date? {
+        guard
+            let source = CGImageSourceCreateWithData(data as CFData, nil),
+            let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+            let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any],
+            let dateTime = exif[kCGImagePropertyExifDateTimeOriginal] as? String
+        else { return nil }
+        return date(
+            fromExifDateTime: dateTime,
+            offset: exif[kCGImagePropertyExifOffsetTimeOriginal] as? String,
+            fallbackTimeZone: fallbackTimeZone
+        )
+    }
+
+    /// Parses EXIF's `yyyy:MM:dd HH:mm:ss`. Rejects the all-zero
+    /// placeholder some cameras write and any malformed string.
+    static func date(fromExifDateTime dateTime: String, offset: String?, fallbackTimeZone: TimeZone) -> Date? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+        formatter.isLenient = false
+        formatter.timeZone = offset.flatMap(timeZone(fromExifOffset:)) ?? fallbackTimeZone
+        return formatter.date(from: dateTime.trimmingCharacters(in: .whitespacesAndNewlines.union(.controlCharacters)))
+    }
+
+    /// Parses EXIF's `±HH:MM` offset.
+    static func timeZone(fromExifOffset offset: String) -> TimeZone? {
+        let trimmed = offset.trimmingCharacters(in: .whitespacesAndNewlines.union(.controlCharacters))
+        guard let sign = trimmed.first, sign == "+" || sign == "-" else { return nil }
+        let parts = trimmed.dropFirst().split(separator: ":")
+        guard
+            parts.count == 2,
+            parts.allSatisfy({ $0.count == 2 }),
+            let hours = Int(parts[0]), let minutes = Int(parts[1]),
+            hours <= 14, minutes < 60
+        else { return nil }
+        let seconds = (hours * 3600 + minutes * 60) * (sign == "-" ? -1 : 1)
+        return TimeZone(secondsFromGMT: seconds)
     }
 }

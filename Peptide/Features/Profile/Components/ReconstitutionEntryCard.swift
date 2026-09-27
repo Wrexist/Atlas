@@ -13,10 +13,10 @@ struct ReconstitutionEntryCard: View {
         GlassEntryRow(
             icon: "syringe.fill",
             title: "Reconstitution calculator",
-            subtitle: Text("Vial mg + bac water → exact syringe units"),
+            subtitle: Text("Convert between mg, mL and syringe units"),
             action: onTap
         )
         .accessibilityLabel("Reconstitution calculator")
-        .accessibilityHint("Opens the calculator for converting vial size, bacteriostatic water, and target dose into U-100 syringe units.")
+        .accessibilityHint("Opens the calculator for converting vial size, bacteriostatic water, and an amount into U-100 syringe units.")
     }
 }
