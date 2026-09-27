@@ -55,6 +55,9 @@ final class WorkoutSessionService {
             }
             SwiftDataRepository.shared.deleteWorkoutSession(id: existing.id)
         }
+        // Cleared before seeding so the seed — and every "previous" hint for
+        // the rest of this workout — reads history as it stands right now.
+        invalidatePreviousSetCache()
         // Seed from the routine before the session exists, so the weight
         // lookup below still sees the *previous* workout as the newest one.
         let exercises: [WorkoutExerciseEntry] = routine.map { routine in
@@ -71,7 +74,6 @@ final class WorkoutSessionService {
         )
         activeSession = session
         SwiftDataRepository.shared.upsertWorkoutSession(session)
-        invalidatePreviousSetCache()
         WorkoutLiveActivityService.shared.start(session)
         DataStore.current?.refreshTrainingGlanceables()
         AppLog.training.info("Workout started (id: \(session.id, privacy: .public))")
@@ -207,6 +209,16 @@ final class WorkoutSessionService {
         persist(session)
     }
 
+    /// Rest between sets for one exercise in the active session. `nil`
+    /// falls back to the user's training-preferences default.
+    func setRestSeconds(_ seconds: Int?, forExerciseEntryID entryID: UUID) {
+        guard var session = activeSession,
+              let idx = session.exercises.firstIndex(where: { $0.id == entryID })
+        else { return }
+        session.exercises[idx].restSeconds = seconds
+        persist(session)
+    }
+
     func renameWorkout(_ name: String) {
         guard var session = activeSession else { return }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -215,44 +227,49 @@ final class WorkoutSessionService {
     }
 
     /// Returns the last completed set the user logged for the given
-    /// exercise in any prior workout session. Wires the "previous"
-    /// cue on each SetEditorRow so the user sees "Last: 60 kg × 8"
-    /// before they tap to log the next set (audit Train C1). Returns
-    /// nil when the user hasn't ever logged this exercise.
-    ///
-    /// Memoized per exercise. `ActiveWorkoutView` calls this from a row's
-    /// `previousSetLookup` closure, so an uncached version re-ran a full
-    /// session fetch — deserializing every stored workout — on every set
-    /// tap and every re-render of the exercise stack. The answer can only
-    /// change when a session is persisted, so `invalidatePreviousSetCache()`
-    /// clears it there.
+    /// exercise in any prior workout session. Seeds new sets with the
+    /// user's last working weight. Returns nil when the user hasn't ever
+    /// logged this exercise.
     func lastCompletedSet(forExerciseID id: String) -> SetEntry? {
+        previousSessionSets(forExerciseID: id).last
+    }
+
+    /// The completed sets, in order, from the most recent prior session
+    /// that logged this exercise — the source of each row's "previous"
+    /// hint (see `PreviousSetEngine`). Empty when there is no history.
+    ///
+    /// Memoized per exercise: an uncached lookup deserializes every stored
+    /// workout, and the exercise stack asks on every re-render. The active
+    /// session is excluded from the lookup, so editing its sets can't
+    /// change the answer — only a start, finish or discard can, and those
+    /// clear the cache.
+    func previousSessionSets(forExerciseID id: String) -> [SetEntry] {
         if let cached = previousSetCache[id] { return cached }
-        let resolved = resolveLastCompletedSet(forExerciseID: id)
-        previousSetCache[id] = .some(resolved)
+        let resolved = resolvePreviousSessionSets(forExerciseID: id)
+        previousSetCache[id] = resolved
         return resolved
     }
 
-    private func resolveLastCompletedSet(forExerciseID id: String) -> SetEntry? {
+    private func resolvePreviousSessionSets(forExerciseID id: String) -> [SetEntry] {
         let sessions = SwiftDataRepository.shared.loadWorkoutSessions()
         // Walk newest-first, skip the in-flight session.
         for session in sessions.sorted(by: { $0.startedAt > $1.startedAt }) {
             if session.id == activeSession?.id { continue }
             guard let exerciseEntry = session.exercises.first(where: { $0.exerciseID == id })
             else { continue }
-            if let lastCompleted = exerciseEntry.sets.last(where: { $0.completed }) {
-                return lastCompleted
-            }
+            let completed = exerciseEntry.sets.filter(\.completed)
+            if !completed.isEmpty { return completed }
         }
-        return nil
+        return []
     }
 
     // MARK: - Internals
 
-    /// `[exerciseID: lookup result]`. The value is a double optional on
-    /// purpose: a cached "no previous set" answer is worth keeping, and
-    /// storing it as plain `nil` would be indistinguishable from a miss.
-    private var previousSetCache: [String: SetEntry?] = [:]
+    /// `[exerciseID: previous session's completed sets]`. An empty array is
+    /// a cached "no history" answer, distinct from a miss. Ignored by
+    /// observation: it's filled from inside view bodies, and a tracked
+    /// write there would re-render the reader for no visible change.
+    @ObservationIgnored private var previousSetCache: [String: [SetEntry]] = [:]
 
     private func invalidatePreviousSetCache() {
         previousSetCache.removeAll(keepingCapacity: true)
@@ -261,7 +278,50 @@ final class WorkoutSessionService {
     private func persist(_ session: WorkoutSession) {
         activeSession = session
         SwiftDataRepository.shared.upsertWorkoutSession(session)
-        invalidatePreviousSetCache()
         WorkoutLiveActivityService.shared.update(session)
+    }
+}
+
+/// Pairs each set in the active workout with the set it should echo from
+/// the previous session, so row 3's hint reads last time's third set
+/// rather than every row repeating the final one.
+enum PreviousSetEngine {
+    /// `[current set id: previous set]`. Working sets pair by position
+    /// among working sets, so a warm-up added or dropped this time doesn't
+    /// shift every hint below it; rows past the end of last session's list
+    /// fall back to its final set. Warm-up rows get no hint.
+    static func hints(for current: [SetEntry], previous: [SetEntry]) -> [UUID: SetEntry] {
+        let ordered = previous.sorted { $0.index < $1.index }
+        let working = ordered.filter { !$0.isWarmup }
+        let candidates = working.isEmpty ? ordered : working
+        guard let fallback = candidates.last else { return [:] }
+
+        var hints: [UUID: SetEntry] = [:]
+        var position = 0
+        for set in current.sorted(by: { $0.index < $1.index }) where !set.isWarmup {
+            hints[set.id] = candidates.indices.contains(position) ? candidates[position] : fallback
+            position += 1
+        }
+        return hints
+    }
+}
+
+/// The rest durations offered by the active workout and routine editor.
+enum RestTimeOptions {
+    static let seconds = [30, 60, 90, 120, 180, 240]
+
+    /// The standard options plus `current` when it's a value set elsewhere
+    /// (an older build, a backup) — a picker whose selection has no
+    /// matching row renders blank.
+    static func choices(including current: Int?) -> [Int] {
+        guard let current, current > 0, !seconds.contains(current) else { return seconds }
+        return (seconds + [current]).sorted()
+    }
+
+    /// "30 sec", "1 min", "1:30 min".
+    static func label(for seconds: Int) -> String {
+        if seconds < 60 { return "\(seconds) sec" }
+        if seconds % 60 == 0 { return "\(seconds / 60) min" }
+        return String(format: "%d:%02d min", seconds / 60, seconds % 60)
     }
 }

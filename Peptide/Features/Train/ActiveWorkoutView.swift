@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Full-screen modal that hosts the in-progress workout. Top section:
 /// editable name, live elapsed timer, finish action. Middle: scrollable
@@ -17,7 +20,7 @@ struct ActiveWorkoutView: View {
     @State private var sessionService = WorkoutSessionService.shared
     @State private var library = ExerciseLibrary.shared
     @State private var showExercisePicker = false
-    @State private var showFinishConfirm = false
+    @State private var showFinishSheet = false
     @State private var showDiscardConfirm = false
     @State private var finishedSession: WorkoutSession?
     @State private var finishedPRs: [PRDetectionEngine.DetectedPR] = []
@@ -34,6 +37,10 @@ struct ActiveWorkoutView: View {
     @State private var restTimer = RestTimerState.inactive
 
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
+
+    private var defaultRestSeconds: Int {
+        dataStore.profile.trainingPreferences?.restTimerDefault ?? 90
+    }
 
     var body: some View {
         NavigationStack {
@@ -67,6 +74,49 @@ struct ActiveWorkoutView: View {
         ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
     }
 
+    /// Saves an in-progress name edit. The field only commits on Return,
+    /// so anything that leaves the screen has to commit it explicitly.
+    private func commitWorkoutName() {
+        let trimmed = workoutName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != sessionService.activeSession?.name else { return }
+        sessionService.renameWorkout(trimmed)
+    }
+
+    private func dismissKeyboard() {
+        #if canImport(UIKit)
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil,
+            from: nil,
+            for: nil
+        )
+        #endif
+    }
+
+    /// Leaves the workout running; the Train tab's "Workout in progress"
+    /// banner brings it back.
+    private func minimize() {
+        commitWorkoutName()
+        dismissKeyboard()
+        dismiss()
+    }
+
+    private func finish(perceivedEffort: Int?, note: String?) {
+        // Persist the latest workout-name edit FIRST — the .onSubmit-only
+        // binding meant a user who typed "Push Day A" then tapped Finish
+        // without hitting Return saved the session with a nil name (audit
+        // Train C3).
+        commitWorkoutName()
+        guard let finished = sessionService.finishWorkout(perceivedEffort: perceivedEffort, note: note)
+        else { return }
+        finishedSession = finished.session
+        finishedPRs = finished.detectedPRs
+        isReviewMoment = ReviewPromptService.isWorkoutReviewMoment(
+            detectedPRCount: finished.detectedPRs.count,
+            completedWorkoutCount: SwiftDataRepository.shared.workoutSessionCount()
+        )
+    }
+
     private func syncNameFromSession() {
         // Don't clobber an in-progress edit — only adopt the session's
         // name when the user isn't actively typing in the field.
@@ -98,9 +148,20 @@ struct ActiveWorkoutView: View {
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(AppColor.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(action: minimize) {
+                    Image(systemName: "chevron.down")
+                        .font(AppFont.scaled(16, weight: .semibold))
+                        .foregroundStyle(AppColor.textSecondary)
+                        .minimumHitArea()
+                }
+                .accessibilityLabel("Minimize workout")
+                .accessibilityHint("Keeps the workout running. Resume it from the Train tab.")
+            }
             ToolbarItem(placement: .topBarLeading) {
                 Button("Discard", role: .destructive) {
                     showDiscardConfirm = true
@@ -116,11 +177,19 @@ struct ActiveWorkoutView: View {
                     if session.completedSetCount == 0 {
                         showDiscardConfirm = true
                     } else {
-                        showFinishConfirm = true
+                        showFinishSheet = true
                     }
                 }
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.accentPrimary)
+            }
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    if nameFieldFocused { commitWorkoutName() }
+                    dismissKeyboard()
+                }
+                .fontWeight(.semibold)
             }
         }
         .sheet(isPresented: $showExercisePicker) {
@@ -128,29 +197,10 @@ struct ActiveWorkoutView: View {
                 sessionService.addExercise(exercise)
             }
         }
-        .alert("Finish workout?", isPresented: $showFinishConfirm) {
-            Button("Finish", role: .none) {
-                // Persist the latest workout-name edit FIRST — the
-                // .onSubmit-only binding meant a user who typed
-                // "Push Day A" then tapped Finish without hitting
-                // Return saved the session with a nil name (audit
-                // Train C3).
-                let trimmed = workoutName.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !trimmed.isEmpty {
-                    sessionService.renameWorkout(trimmed)
-                }
-                if let finished = sessionService.finishWorkout() {
-                    finishedSession = finished.session
-                    finishedPRs = finished.detectedPRs
-                    isReviewMoment = ReviewPromptService.isWorkoutReviewMoment(
-                        detectedPRCount: finished.detectedPRs.count,
-                        completedWorkoutCount: SwiftDataRepository.shared.workoutSessionCount()
-                    )
-                }
+        .sheet(isPresented: $showFinishSheet) {
+            FinishWorkoutSheet { effort, note in
+                finish(perceivedEffort: effort, note: note)
             }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Your sets and PRs will be saved.")
         }
         .alert("Discard this workout?", isPresented: $showDiscardConfirm) {
             Button("Discard", role: .destructive) {
@@ -242,9 +292,10 @@ struct ActiveWorkoutView: View {
                         entry: entry,
                         exercise: library.lookup(id: entry.exerciseID),
                         unit: unit,
-                        previousSetLookup: {
-                            sessionService.lastCompletedSet(forExerciseID: entry.exerciseID)
+                        previousSetsLookup: {
+                            sessionService.previousSessionSets(forExerciseID: entry.exerciseID)
                         },
+                        effectiveRestSeconds: entry.restSeconds ?? defaultRestSeconds,
                         onSetUpdate: { updated in
                             // Detect the "just got checked off"
                             // transition so we can kick the rest
@@ -254,10 +305,7 @@ struct ActiveWorkoutView: View {
                             let wasIncomplete = priorSnapshot?.completed == false
                             sessionService.updateSet(updated, inExerciseEntryID: entry.id)
                             if wasIncomplete && updated.completed && !updated.isWarmup {
-                                let seconds = entry.restSeconds
-                                    ?? dataStore.profile.trainingPreferences?.restTimerDefault
-                                    ?? 90
-                                restTimer.start(seconds: seconds)
+                                restTimer.start(seconds: entry.restSeconds ?? defaultRestSeconds)
                             }
                         },
                         onAddSet: {
@@ -269,6 +317,10 @@ struct ActiveWorkoutView: View {
                         },
                         onRemoveExercise: {
                             sessionService.removeExercise(id: entry.id)
+                        },
+                        onSetRestSeconds: { seconds in
+                            Haptics.selection()
+                            sessionService.setRestSeconds(seconds, forExerciseEntryID: entry.id)
                         }
                     )
                 }
@@ -326,5 +378,136 @@ struct ActiveWorkoutView: View {
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColor.background.ignoresSafeArea())
+    }
+}
+
+// MARK: - Finish sheet
+
+/// The finish step: an optional effort rating and note, both written onto
+/// the session. A sheet rather than the old alert because an alert can't
+/// hold a rating control.
+private struct FinishWorkoutSheet: View {
+    let onFinish: (_ perceivedEffort: Int?, _ note: String?) -> Void
+
+    @State private var effort: Int?
+    @State private var note = ""
+    @FocusState private var noteFocused: Bool
+    @Environment(\.dismiss) private var dismiss
+
+    /// `WorkoutSession.perceivedEffort` is a 1–5 rating; label n names n.
+    private static let effortLabels = ["Easy", "Moderate", "Hard", "Very hard", "Max"]
+    private static let noteLimit = 500
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.lg) {
+                    Text("Your sets and PRs will be saved.")
+                        .font(AppFont.callout)
+                        .foregroundStyle(AppColor.textSecondary)
+
+                    effortSection
+                    noteSection
+
+                    PrimaryCTAButton(title: "Finish workout", icon: "checkmark") {
+                        Haptics.success()
+                        onFinish(effort, trimmedNote)
+                        dismiss()
+                    }
+                }
+                .padding(Spacing.screenPadding)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .background(AppColor.background.ignoresSafeArea())
+            .navigationTitle("Finish workout")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { noteFocused = false }
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .liquidGlassPresentation(detents: [.medium, .large])
+    }
+
+    private var trimmedNote: String? {
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : String(trimmed.prefix(Self.noteLimit))
+    }
+
+    private var effortSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            sectionTitle("How hard was it?")
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 88), spacing: Spacing.sm)],
+                spacing: Spacing.sm
+            ) {
+                ForEach(Self.effortLabels.indices, id: \.self) { index in
+                    effortChip(value: index + 1, label: Self.effortLabels[index])
+                }
+            }
+        }
+    }
+
+    private func effortChip(value: Int, label: String) -> some View {
+        let isSelected = effort == value
+        return Button {
+            Haptics.selection()
+            effort = isSelected ? nil : value
+        } label: {
+            Text(label)
+                .font(AppFont.callout.weight(.semibold))
+                .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
+                .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
+                .background(
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .fill(isSelected ? AppColor.accentFill : AppColor.surfaceSecondary.opacity(0.6))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .stroke(AppColor.glassBorder, lineWidth: 0.5)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Effort \(value) of 5, \(label)"))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var noteSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            sectionTitle("Note")
+            TextField("How did it go?", text: $note, axis: .vertical)
+                .lineLimit(3...6)
+                .font(AppFont.body)
+                .foregroundStyle(AppColor.textPrimary)
+                .focused($noteFocused)
+                .padding(Spacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .fill(AppColor.surfaceSecondary.opacity(0.6))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .stroke(noteFocused ? AppColor.accentPrimary : AppColor.glassBorder,
+                                lineWidth: noteFocused ? 1 : 0.5)
+                )
+                .accessibilityLabel("Workout note")
+        }
+    }
+
+    private func sectionTitle(_ title: LocalizedStringKey) -> some View {
+        HStack(spacing: Spacing.xs) {
+            Text(title)
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
+            Text("Optional")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textTertiary)
+        }
     }
 }

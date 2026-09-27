@@ -17,6 +17,7 @@ struct RoutineBuilderView: View {
     @State private var editingTargets: RoutineExercise?
     @State private var renaming = false
     @State private var nameDraft = ""
+    @State private var pendingStart: Routine?
     @Environment(\.dismiss) private var dismiss
 
     private var routine: Routine? { store.routines.first { $0.id == routineID } }
@@ -62,9 +63,10 @@ struct RoutineBuilderView: View {
             RoutineTargetSheet(
                 exerciseName: name(of: slot.exerciseID),
                 sets: slot.targetSets,
-                reps: slot.targetReps
-            ) { sets, reps in
-                updateTargets(slotID: slot.id, sets: sets, reps: reps)
+                reps: slot.targetReps,
+                restSeconds: slot.restSeconds
+            ) { sets, reps, restSeconds in
+                updateTargets(slotID: slot.id, sets: sets, reps: reps, restSeconds: restSeconds)
             }
         }
         .alert("Rename routine", isPresented: $renaming) {
@@ -72,6 +74,7 @@ struct RoutineBuilderView: View {
             Button("Cancel", role: .cancel) {}
             Button("Save") { store.rename(id: routineID, to: nameDraft) }
         }
+        .confirmingRoutineStart(pending: $pendingStart) { store.startWorkout(from: $0) }
     }
 
     // MARK: - Editor
@@ -102,7 +105,11 @@ struct RoutineBuilderView: View {
 
             PrimaryCTAButton(title: "Start workout", icon: "play.fill", shape: .rounded) {
                 Haptics.impact(.medium)
-                store.startWorkout(from: routine)
+                if WorkoutSessionService.shared.activeSession != nil {
+                    pendingStart = routine
+                } else {
+                    store.startWorkout(from: routine)
+                }
             }
             .disabled(routine.exercises.isEmpty)
             .opacity(routine.exercises.isEmpty ? 0.5 : 1)
@@ -224,11 +231,15 @@ struct RoutineBuilderView: View {
         store.save(updated)
     }
 
-    private func updateTargets(slotID: UUID, sets: Int, reps: Int) {
+    private func updateTargets(slotID: UUID, sets: Int, reps: Int, restSeconds: Int?) {
         guard let routine else { return }
-        store.save(RoutineEditEngine.updatingTargets(
+        var updated = RoutineEditEngine.updatingTargets(
             slotID: slotID, sets: sets, reps: reps, in: routine
-        ))
+        )
+        if let index = updated.exercises.firstIndex(where: { $0.id == slotID }) {
+            updated.exercises[index].restSeconds = restSeconds
+        }
+        store.save(updated)
     }
 
     // MARK: - Library lookups
@@ -294,21 +305,30 @@ private struct RoutineSlotRow: View {
 
 // MARK: - Target sheet
 
-/// Sets × reps for one slot. A sheet rather than two inline steppers:
-/// steppers on every row turn a six-exercise routine into twelve tiny
-/// targets stacked beside a drag handle.
+/// Sets × reps and rest for one slot. A sheet rather than inline
+/// steppers: steppers on every row turn a six-exercise routine into twelve
+/// tiny targets stacked beside a drag handle.
 private struct RoutineTargetSheet: View {
     let exerciseName: String
     @State private var sets: Int
     @State private var reps: Int
-    let onSave: (Int, Int) -> Void
+    /// Nil keeps the routine / training-preferences default.
+    @State private var restSeconds: Int?
+    let onSave: (_ sets: Int, _ reps: Int, _ restSeconds: Int?) -> Void
 
     @Environment(\.dismiss) private var dismiss
 
-    init(exerciseName: String, sets: Int, reps: Int, onSave: @escaping (Int, Int) -> Void) {
+    init(
+        exerciseName: String,
+        sets: Int,
+        reps: Int,
+        restSeconds: Int?,
+        onSave: @escaping (_ sets: Int, _ reps: Int, _ restSeconds: Int?) -> Void
+    ) {
         self.exerciseName = exerciseName
         self._sets = State(initialValue: sets)
         self._reps = State(initialValue: reps)
+        self._restSeconds = State(initialValue: restSeconds)
         self.onSave = onSave
     }
 
@@ -324,6 +344,8 @@ private struct RoutineTargetSheet: View {
                         Stepper(value: $reps, in: RoutineEditEngine.targetReps) {
                             field("Reps", value: "\(reps)")
                         }
+                        Divider().background(AppColor.glassBorder)
+                        restPicker
                     }
                 }
 
@@ -345,7 +367,7 @@ private struct RoutineTargetSheet: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
-                        onSave(sets, reps)
+                        onSave(sets, reps, restSeconds)
                         dismiss()
                     }
                     .fontWeight(.semibold)
@@ -353,6 +375,25 @@ private struct RoutineTargetSheet: View {
             }
         }
         .liquidGlassPresentation(detents: [.medium])
+    }
+
+    private var restPicker: some View {
+        HStack {
+            Text("Rest")
+                .font(AppFont.scaled(16, weight: .semibold))
+                .foregroundStyle(AppColor.textPrimary)
+            Spacer(minLength: 0)
+            Picker("Rest", selection: $restSeconds) {
+                Text("Default").tag(Int?.none)
+                ForEach(RestTimeOptions.choices(including: restSeconds), id: \.self) { seconds in
+                    Text(RestTimeOptions.label(for: seconds)).tag(Int?.some(seconds))
+                }
+            }
+            .pickerStyle(.menu)
+            .tint(AppColor.accentLight)
+            .labelsHidden()
+        }
+        .frame(minHeight: Spacing.minimumHitTarget)
     }
 
     private func field(_ label: LocalizedStringKey, value: String) -> some View {

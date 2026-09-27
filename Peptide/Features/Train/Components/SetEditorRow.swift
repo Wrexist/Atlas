@@ -40,6 +40,10 @@ struct SetEditorRow: View {
         // is the only way to expose the delete affordance without
         // restructuring the parent container.
         .contextMenu {
+            Button(action: toggleWarmup) {
+                Label(set.isWarmup ? "Mark as working set" : "Mark as warm-up",
+                      systemImage: set.isWarmup ? "dumbbell" : "flame")
+            }
             Button(role: .destructive, action: onDelete) {
                 Label("Delete set", systemImage: "trash")
             }
@@ -70,9 +74,17 @@ struct SetEditorRow: View {
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.streak)
         } else if let prev = previousSet {
-            Text("\(formatted(prev.weightKg)) × \(prev.reps)")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textTertiary)
+            Button {
+                fill(from: prev)
+            } label: {
+                Text("\(formatted(prev.weightKg)) × \(prev.reps)")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textTertiary)
+                    .minimumHitArea()
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Previous: \(formatted(prev.weightKg)) \(unit.weightSpokenUnit) for \(prev.reps) reps"))
+            .accessibilityHint(Text("Fills this set with the same weight and reps"))
         } else {
             Text("—")
                 .font(AppFont.caption)
@@ -136,6 +148,7 @@ struct SetEditorRow: View {
 
     private var completionToggle: some View {
         Button {
+            if !set.completed { Haptics.impact(.medium) }
             set.completed.toggle()
         } label: {
             Image(systemName: set.completed ? "checkmark.circle.fill" : "circle")
@@ -149,6 +162,23 @@ struct SetEditorRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(set.completed ? "Set complete" : "Mark set complete")
+    }
+
+    /// One write, not two: the parent's binding re-reads a snapshot that
+    /// doesn't update until the next render, so a second property write
+    /// would overwrite the first.
+    private func fill(from previous: SetEntry) {
+        var filled = set
+        filled.weightKg = previous.weightKg
+        filled.reps = previous.reps
+        set = filled
+        Haptics.selection()
+    }
+
+    private func toggleWarmup() {
+        var toggled = set
+        toggled.isWarmup.toggle()
+        set = toggled
     }
 
     private func formatted(_ kg: Double) -> String {
