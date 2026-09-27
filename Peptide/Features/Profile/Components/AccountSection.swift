@@ -5,6 +5,7 @@ struct AccountSection: View {
     @State private var authService = AuthService.shared
     @State private var isConfirmingDeletion = false
     @State private var isConfirmingDataErase = false
+    @State private var needsManualAppleRevoke = false
     @State private var cloudSyncState: CloudSyncState?
 
     var body: some View {
@@ -23,11 +24,19 @@ struct AccountSection: View {
         .task { cloudSyncState = await SwiftDataRepository.shared.refinedCloudSyncState() }
         .alert("Delete Account?", isPresented: $isConfirmingDeletion) {
             Button("Delete Account", role: .destructive) {
-                authService.deleteAccount()
+                Task {
+                    let outcome = await authService.deleteAccountRevokingApple()
+                    needsManualAppleRevoke = outcome == .deletedRevokeManually
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This permanently removes the Apple ID linkage from this device and erases all your workouts, meals, protocols, dose entries, progress photos, and profile data. Data in Apple Health is not touched. If iCloud sync is on, the deletion propagates to your other devices. This cannot be undone.")
+        }
+        .alert("Account Deleted", isPresented: $needsManualAppleRevoke) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Your data is erased. To finish, remove Atlas in Settings → your name → Sign in with Apple.")
         }
         .alert("Delete All Data?", isPresented: $isConfirmingDataErase) {
             Button("Delete All Data", role: .destructive) {
