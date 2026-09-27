@@ -143,3 +143,26 @@ struct WeeklySummary: Codable, Hashable, Sendable, Identifiable {
         let hrvDelta: Int?
     }
 }
+
+extension WeeklySummary {
+    /// Empty stand-in for a binding's `get` fallback when a summary
+    /// disappears between push and render; SwiftUI needs a non-nil
+    /// value out of the closure even though it is never shown.
+    static func placeholder(weekStart: String) -> WeeklySummary {
+        WeeklySummary(
+            weekStart: weekStart,
+            text: "",
+            keyStats: .init(
+                compliancePct: 0,
+                dosesCompleted: 0,
+                dosesTotal: 0,
+                currentStreak: 0,
+                avgCheckInScore: nil,
+                avgCalories: nil,
+                hrvDelta: nil
+            ),
+            kind: .offline,
+            generatedAt: Date()
+        )
+    }
+}
