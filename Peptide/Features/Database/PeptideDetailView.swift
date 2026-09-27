@@ -310,7 +310,7 @@ struct PeptideDetailView: View {
             ProtocolBuilderView(preselectedPeptide: peptide)
         }
         .sheet(isPresented: $showingPaywall) {
-            PaywallView()
+            PaywallView(source: .protocolLimit)
                 .liquidGlassPresentation()
         }
         }

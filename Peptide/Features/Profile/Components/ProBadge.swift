@@ -50,7 +50,7 @@ struct UpgradePromptCard: View {
             }
         }
         .sheet(isPresented: $showPaywall) {
-            PaywallView()
+            PaywallView(source: .profile)
                 .liquidGlassPresentation()
         }
     }

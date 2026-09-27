@@ -251,7 +251,7 @@ struct CommunityStackDetailView: View {
         // Library P0.4).
         .disabled(didFork || resolvedPeptides.isEmpty)
         .sheet(isPresented: $showingPaywall) {
-            PaywallView()
+            PaywallView(source: .communityStack)
         }
     }
 

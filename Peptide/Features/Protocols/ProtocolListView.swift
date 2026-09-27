@@ -159,7 +159,7 @@ struct ProtocolListView: View {
                 ProtocolBuilderView(preselectedPeptide: preselectedPeptide)
             }
             .sheet(isPresented: $showingPaywall) {
-                PaywallView()
+                PaywallView(source: .protocolLimit)
                     .liquidGlassPresentation()
             }
             .onAppear { consumePendingDeepLink() }

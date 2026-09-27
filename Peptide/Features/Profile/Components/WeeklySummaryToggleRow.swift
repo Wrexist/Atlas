@@ -108,7 +108,7 @@ struct WeeklySummaryToggleRow: View {
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .sheet(isPresented: $showPaywall) {
-            PaywallView()
+            PaywallView(source: .weeklyRecap)
                 .liquidGlassPresentation()
         }
         .accessibilityElement(children: .combine)

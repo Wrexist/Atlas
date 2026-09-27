@@ -15,10 +15,14 @@ import StoreKit
 /// so "decide" and "buy" are one gesture apart. The mockups and the longer
 /// pitch moved below the prices, where they convince whoever keeps reading.
 ///
-/// Constructor stays no-arg so the six existing call sites don't break;
-/// callers also keep wrapping it in `.liquidGlassPresentation()` where
-/// they want the system-glass sheet treatment.
+/// `source` defaults to `.generic` so a bare `PaywallView()` still
+/// compiles; entry points pass their own so the headline can name the
+/// feature the user reached for and the funnel events split per entry
+/// point. Callers also keep wrapping it in `.liquidGlassPresentation()`
+/// where they want the system-glass sheet treatment.
 struct PaywallView: View {
+    let source: PaywallSource
+
     @Environment(\.dismiss) private var dismiss
     @Environment(DataStore.self) private var dataStore
     @State private var storeService = StoreService.shared
@@ -31,6 +35,18 @@ struct PaywallView: View {
     /// Starts `true` so the first frame shows a spinner, not the
     /// "plans didn't load" state, while the initial fetch is in flight.
     @State private var isLoadingProducts = true
+    @State private var isRedeemingCode = false
+    /// Set once the view counts as seen, so `onDisappear` only records a
+    /// dismissal for a paywall that was actually shown (not the instant
+    /// auto-dismiss for an existing Pro user).
+    @State private var didRecordView = false
+    /// Set when the sheet closes because the user bought, restored or
+    /// redeemed — those exits are not dismissals.
+    @State private var didConvert = false
+
+    init(source: PaywallSource = .generic) {
+        self.source = source
+    }
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -41,6 +57,10 @@ struct PaywallView: View {
                 VStack(spacing: Spacing.lg) {
                     header
                         .padding(.top, Spacing.xxxl)
+
+                    if let headline = source.headline {
+                        contextHeadline(headline, subhead: source.subhead)
+                    }
 
                     offerHeadline
 
@@ -86,7 +106,19 @@ struct PaywallView: View {
                 dismiss()
                 return
             }
+            if !didRecordView {
+                didRecordView = true
+                OnboardingFunnelTracker.recordEvent(source.viewedEvent)
+            }
             await loadPlans()
+        }
+        .onDisappear {
+            if didRecordView && !didConvert {
+                OnboardingFunnelTracker.recordEvent(source.dismissedEvent)
+            }
+        }
+        .offerCodeRedemption(isPresented: $isRedeemingCode) { _ in
+            Task { await finishCodeRedemption() }
         }
         .onChange(of: storeService.products.map(\.id)) { _, _ in
             if selectedProductID == nil {
@@ -126,6 +158,26 @@ struct PaywallView: View {
                 .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .title1))
                 .foregroundStyle(AppColor.textPrimary)
         }
+    }
+
+    /// Names the feature the user was reaching for when the paywall opened.
+    /// Sits above the offer hero rather than replacing it, so the price and
+    /// trial terms stay exactly where every other entry point shows them.
+    private func contextHeadline(_ headline: String, subhead: String?) -> some View {
+        VStack(spacing: Spacing.xs) {
+            Text(headline)
+                .font(AppFont.scaled(24, weight: .bold, design: .rounded, relativeTo: .title2))
+                .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.center)
+            if let subhead {
+                Text(subhead)
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .combine)
     }
 
     private var closeButton: some View {
@@ -887,11 +939,17 @@ struct PaywallView: View {
     // MARK: - Footer
 
     private var footerLinks: some View {
-        HStack(spacing: Spacing.lg) {
+        HStack(spacing: Spacing.md) {
             Button(action: restore) {
                 Text("Restore").minimumHitArea()
             }
             .disabled(isRestoring)
+
+            Button {
+                isRedeemingCode = true
+            } label: {
+                Text("Redeem code").minimumHitArea()
+            }
 
             Link(destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")) {
                 Text("Terms of Use").minimumHitArea()
@@ -1029,6 +1087,8 @@ struct PaywallView: View {
                 // A verified, finished transaction means the user paid —
                 // dismiss even if the entitlement snapshot lags a beat
                 // (C8: gating on isProUser could strand them on the paywall).
+                didConvert = true
+                OnboardingFunnelTracker.recordEvent(source.purchasedEvent)
                 dismiss()
             case .pending:
                 errorMessage = "Purchase pending approval. We'll unlock Pro automatically when it's approved."
@@ -1049,16 +1109,32 @@ struct PaywallView: View {
             defer { isRestoring = false }
             do {
                 try await storeService.restorePurchases()
-                if storeService.isProUser { dismiss() }
+                if storeService.isProUser {
+                    didConvert = true
+                    dismiss()
+                } else {
+                    errorMessage = "No previous purchase found to restore."
+                }
             } catch {
                 errorMessage = "Restore failed. Check your internet connection and try again."
             }
         }
     }
+
+    /// Apple's redemption sheet completes the transaction itself; it reaches
+    /// `Transaction.updates`, but re-reading entitlements here closes the
+    /// paywall without waiting on that listener.
+    private func finishCodeRedemption() async {
+        await storeService.checkProAccess()
+        guard storeService.isProUser else { return }
+        didConvert = true
+        OnboardingFunnelTracker.recordEvent(source.redeemedEvent)
+        dismiss()
+    }
 }
 
 #Preview {
-    PaywallView()
+    PaywallView(source: .protocolLimit)
         .environment(DataStore(seedSampleData: true))
         .preferredColorScheme(.dark)
 }

@@ -62,7 +62,7 @@ struct ExportSection: View {
             }
         }
         .sheet(isPresented: $showPaywall) {
-            PaywallView()
+            PaywallView(source: .export)
                 .liquidGlassPresentation()
         }
         .alert("Export Failed", isPresented: Binding(

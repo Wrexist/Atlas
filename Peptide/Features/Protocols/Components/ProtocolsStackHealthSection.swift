@@ -101,7 +101,7 @@ struct ProtocolsStackHealthSection: View {
                 )
             }
             .sheet(isPresented: $showPaywall) {
-                PaywallView()
+                PaywallView(source: .protocolLimit)
                     .liquidGlassPresentation()
             }
         }

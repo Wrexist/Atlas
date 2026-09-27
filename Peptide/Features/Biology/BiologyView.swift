@@ -79,7 +79,7 @@ struct BiologyView: View {
                 ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
             }
             .sheet(isPresented: $showPaywall) {
-                PaywallView()
+                PaywallView(source: .performanceAge)
                     .liquidGlassPresentation()
             }
             .sheet(isPresented: $showEditSheet, onDismiss: persistConfigChanges) {
