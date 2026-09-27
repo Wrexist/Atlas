@@ -2,7 +2,8 @@ import SwiftUI
 
 /// Width of the leading icon column shared by every settings row, so copy on
 /// a second line can align under the title rather than under the icon.
-private let iconColumnWidth: CGFloat = 24
+/// Shared with `TrainingSettingsSection`.
+let settingsIconColumnWidth: CGFloat = 24
 
 struct AppearanceSettings: View {
     @Environment(DataStore.self) private var dataStore
@@ -72,18 +73,11 @@ struct AppearanceSettings: View {
 
                 DisplayModeRow(selection: $themeBinding.displayMode)
 
-                Divider().foregroundStyle(AppColor.glassBorder)
-
                 if AppLanguage.shipped.count > 1 {
-                    LanguagePickerRow()
-
                     Divider().foregroundStyle(AppColor.glassBorder)
-                }
 
-                MeasurementUnitRow(selection: $store.profile.bodyMetrics.unit)
-                    .onChange(of: dataStore.profile.bodyMetrics.unit) { _, _ in
-                        dataStore.persistProfile()
-                    }
+                    LanguagePickerRow()
+                }
             }
         }
     }
@@ -106,7 +100,7 @@ struct AppearanceSettings: View {
                     .foregroundStyle(AppColor.textTertiary)
             }
         }
-        .padding(.leading, iconColumnWidth + Spacing.md)
+        .padding(.leading, settingsIconColumnWidth + Spacing.md)
     }
 
     private func handleDoseRemindersToggle(_ enabled: Bool) {
@@ -142,7 +136,7 @@ private struct SettingsToggleRow: View {
             Image(systemName: icon)
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.accentPrimary)
-                .frame(width: iconColumnWidth)
+                .frame(width: settingsIconColumnWidth)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(title)
@@ -173,7 +167,7 @@ private struct ThemePickerRow: View {
                 Image(systemName: "paintpalette.fill")
                     .font(AppFont.scaled(13))
                     .foregroundStyle(AppColor.accentPrimary)
-                    .frame(width: iconColumnWidth)
+                    .frame(width: settingsIconColumnWidth)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Accent Color")
@@ -192,7 +186,7 @@ private struct ThemePickerRow: View {
                     swatch(for: theme)
                 }
             }
-            .padding(.leading, iconColumnWidth + Spacing.md)
+            .padding(.leading, settingsIconColumnWidth + Spacing.md)
         }
     }
 
@@ -250,31 +244,10 @@ private struct DisplayModeRow: View {
     }
 }
 
-/// Metric / Imperial for the body-metric surfaces (weight, height, waist,
-/// temperature). Peptide doses stay in mcg/mg regardless — they're prescribed
-/// in metric everywhere.
-private struct MeasurementUnitRow: View {
-    @Binding var selection: MeasurementUnit
-
-    var body: some View {
-        SettingsPickerRow(
-            icon: "ruler.fill",
-            title: "Units",
-            subtitle: selection == .metric ? "kg · cm · °C" : "lb · in · °F"
-        ) {
-            Picker("Units", selection: $selection) {
-                Text("Metric").tag(MeasurementUnit.metric)
-                Text("Imperial").tag(MeasurementUnit.imperial)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-        }
-    }
-}
-
 /// Shared skeleton for a settings row whose control is wide enough to need
 /// its own line beneath the label (matches `ThemePickerRow`'s layout).
-private struct SettingsPickerRow<Control: View>: View {
+/// Also used by `TrainingSettingsSection`.
+struct SettingsPickerRow<Control: View>: View {
     let icon: String
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey
@@ -286,7 +259,7 @@ private struct SettingsPickerRow<Control: View>: View {
                 Image(systemName: icon)
                     .font(AppFont.scaled(13))
                     .foregroundStyle(AppColor.accentPrimary)
-                    .frame(width: iconColumnWidth)
+                    .frame(width: settingsIconColumnWidth)
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -302,7 +275,7 @@ private struct SettingsPickerRow<Control: View>: View {
             }
 
             control()
-                .padding(.leading, iconColumnWidth + Spacing.md)
+                .padding(.leading, settingsIconColumnWidth + Spacing.md)
         }
     }
 }

@@ -18,6 +18,9 @@ struct BiologyView: View {
     @State private var showEditSheet = false
     @State private var showLabs = false
     @State private var showBioAgeExplainer = false
+    /// Bumped by pull-to-refresh and a fresh Health grant so the
+    /// biomarker list re-reads HealthKit without re-keying on config.
+    @State private var reloadID = 0
     /// Drives the per-biomarker detail sheet. Identifiable wrapper
     /// so `.sheet(item:)` lifecycle is clean across taps.
     @State private var detailItem: BiomarkerDetailItem?
@@ -53,11 +56,30 @@ struct BiologyView: View {
                         )
                     }
 
+                    if needsHealthConnection {
+                        GlassEntryRow(
+                            icon: "heart.text.square.fill",
+                            title: "Connect Apple Health",
+                            subtitle: Text("Fills in HRV, resting heart rate and sleep"),
+                            action: connectHealth
+                        )
+                        .accessibilityHint("Asks for read access to Apple Health")
+                    }
+
                     BiomarkerListSection(
                         visibleBiomarkers: visibleBiomarkers,
+                        reloadID: reloadID,
                         onEditTapped: { showEditSheet = true },
                         onSelectBiomarker: { biomarker in openDetail(for: biomarker) }
                     )
+
+                    GlassEntryRow(
+                        icon: "cross.vial.fill",
+                        title: "Labs",
+                        subtitle: labsSubtitle,
+                        action: openLabs
+                    )
+                    .accessibilityHint("Opens your blood-work results")
 
                     disclaimerFootnote
                 }
@@ -68,6 +90,7 @@ struct BiologyView: View {
                 .frame(maxWidth: 640)
                 .frame(maxWidth: .infinity)
             }
+            .refreshable { await reload() }
             .background {
                 CosmicBackdrop(intensity: 0.55)
                     .ignoresSafeArea()
@@ -152,6 +175,36 @@ struct BiologyView: View {
         guard appState.pendingLabsOpen else { return }
         appState.pendingLabsOpen = false
         showLabs = true
+    }
+
+    // MARK: - Labs & Health
+
+    private var labsSubtitle: Text {
+        let count = dataStore.latestLabSummaries.count
+        return count == 0
+            ? Text("Log blood work and track your results")
+            : Text("Markers tracked: \(count)")
+    }
+
+    private func openLabs() {
+        Haptics.impact(.light)
+        showLabs = true
+    }
+
+    private var needsHealthConnection: Bool {
+        !dataStore.profile.healthConnected && HealthKitService.shared.isAvailable
+    }
+
+    private func connectHealth() {
+        Task { @MainActor in
+            guard await dataStore.toggleHealthConnection() else { return }
+            await reload()
+        }
+    }
+
+    private func reload() async {
+        reloadID &+= 1
+        await refreshState()
     }
 
     // MARK: - Bio Age resolution

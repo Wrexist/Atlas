@@ -1,9 +1,8 @@
 import SwiftUI
 
 /// Compact summary of the user's optional body metrics on the Profile
-/// screen, with a sheet for editing. The values are stored locally for the
-/// user's own reference and HealthKit correlation; Atlas does not use
-/// them to calculate or recommend any dose.
+/// screen, with a sheet for editing. They feed the calorie and macro
+/// targets on Meals and the Performance Age estimate on Biology.
 struct BodyMetricsCard: View {
     let metrics: BodyMetrics
     let onUpdate: (BodyMetrics) -> Void
@@ -41,7 +40,7 @@ struct BodyMetricsCard: View {
                         infoChip(metrics.sex.localizedDisplay)
                     }
                 } else {
-                    Text("Optional. Add your weight, height, and age to display alongside your compliance trends. Atlas never calculates doses for you.")
+                    Text("Optional. Add your weight, height, and age so Atlas can calculate your calorie and macro targets and your Performance Age.")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

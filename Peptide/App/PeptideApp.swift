@@ -516,15 +516,18 @@ struct PeptideApp: App {
 /// The strip above the tab bar. It answers "is today done?" for whatever
 /// the user is currently looking at — workouts on Train, doses everywhere
 /// else — because a dose reminder under the muscle map is answering a
-/// question nobody on that screen asked.
+/// question nobody on that screen asked. Without an active protocol there
+/// are no doses to report, so the workout strip stands in: an empty
+/// accessory would still draw its glass capsule, and "All doses completed"
+/// with a syringe is noise for someone who never tracks one.
 struct TabAccessoryView: View {
     let tab: AppTab
+    @Environment(DataStore.self) private var dataStore
 
     var body: some View {
-        switch tab {
-        case .train:
+        if tab == .train || dataStore.activeProtocols.isEmpty {
             WorkoutAccessoryView()
-        case .today, .meals, .biology, .habits:
+        } else {
             NextDoseAccessoryView()
         }
     }
