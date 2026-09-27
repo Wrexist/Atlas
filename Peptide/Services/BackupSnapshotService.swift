@@ -66,7 +66,12 @@ enum BackupSnapshotService {
             encoder.dateEncodingStrategy = .iso8601
             encoder.outputFormatting = [.prettyPrinted]
             let data = try encoder.encode(backup)
-            try data.write(to: url, options: .atomic)
+            // Complete protection: a snapshot is a full copy of the user's
+            // data, and it is only ever written and read from the
+            // foreground import / restore UI — never by a widget or a
+            // background task — so it has no reason to be readable while
+            // the device is locked.
+            try data.write(to: url, options: [.atomic, .completeFileProtection])
             PersistenceService.excludeFromBackup(url)
             prune()
             return url
@@ -122,6 +127,16 @@ enum BackupSnapshotService {
         for info in infos.dropFirst(maxSnapshots) {
             try? fm.removeItem(at: info.url)
         }
+    }
+
+    // MARK: - Erase
+
+    /// Removes every snapshot. "Delete All Data" / account-deletion path —
+    /// a snapshot is a full copy of the user's data and must not outlive
+    /// an erase.
+    static func deleteAll() {
+        guard let directory = snapshotDirectory() else { return }
+        try? FileManager.default.removeItem(at: directory)
     }
 
     // MARK: - Paths

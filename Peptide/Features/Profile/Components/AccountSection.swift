@@ -4,6 +4,7 @@ struct AccountSection: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var authService = AuthService.shared
     @State private var isConfirmingDeletion = false
+    @State private var isConfirmingDataErase = false
     @State private var cloudSyncState: CloudSyncState?
 
     var body: some View {
@@ -16,6 +17,7 @@ struct AccountSection: View {
                 } else {
                     signedOutContent
                 }
+                deleteAllDataButton
             }
         }
         .task { cloudSyncState = await SwiftDataRepository.shared.refinedCloudSyncState() }
@@ -26,6 +28,14 @@ struct AccountSection: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This permanently removes the Apple ID linkage from this device and erases all your workouts, meals, protocols, dose entries, progress photos, and profile data. Data in Apple Health is not touched. If iCloud sync is on, the deletion propagates to your other devices. This cannot be undone.")
+        }
+        .alert("Delete All Data?", isPresented: $isConfirmingDataErase) {
+            Button("Delete All Data", role: .destructive) {
+                authService.deleteAllData()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(dataEraseMessage)
         }
         .alert(
             authService.lastError?.title ?? "",
@@ -188,6 +198,28 @@ struct AccountSection: View {
                 isConfirmingDeletion = true
             }
         }
+    }
+
+    // MARK: - Delete All Data
+
+    /// Shown to every user, guest or signed in — erasing your data must
+    /// not depend on having an account.
+    private var deleteAllDataButton: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Divider()
+                .overlay(AppColor.glassBorder)
+
+            GlassButton(title: "Delete All Data", icon: "xmark.bin.fill",
+                        style: .destructive, isFullWidth: true) {
+                isConfirmingDataErase = true
+            }
+        }
+    }
+
+    private var dataEraseMessage: String {
+        let erase = String(localized: "This permanently erases all your workouts, meals, protocols, dose entries, progress photos, and profile data from this device. Data in Apple Health is not touched. If iCloud sync is on, the copies in your iCloud are removed too.")
+        let signOut = authService.isSignedIn ? " " + String(localized: "You will also be signed out.") : ""
+        return erase + signOut + " " + String(localized: "This cannot be undone.")
     }
 
     // MARK: - Helpers

@@ -216,35 +216,70 @@ final class AuthService {
         isSignedIn      = false
     }
 
-    // MARK: - Delete Account
+    // MARK: - Delete Account / Delete All Data
 
-    /// Removes the Apple ID linkage and erases user-generated content
-    /// (protocols, entries, profile). Required by Apple Guideline 5.1.1(v).
+    /// Removes the Apple ID linkage and erases user-generated content.
+    /// Required by Apple Guideline 5.1.1(v).
     ///
     /// Without a developer-operated backend there is nothing to revoke
     /// server-side; users can revoke the Apple ID token at appleid.apple.com
-    /// if desired. SwiftData mutations propagate to the user's private
-    /// CloudKit zone automatically when iCloud sync is active.
+    /// if desired.
     func deleteAccount() {
-        // Guarded so a guest session (no Sign in with Apple) can't accidentally
-        // wipe local data via this entry point. Apple Guideline 5.1.1(v)
-        // applies to *account* deletion — guests have no account to delete and
-        // can clear their data via "Reset App Data" in Settings.
+        // Guarded so this entry point stays an *account* action. Guests
+        // have no account to delete and erase their data through
+        // `deleteAllData()` ("Delete All Data" in Settings → Account).
         guard isSignedIn else {
             AppLog.auth.warning("deleteAccount called without an active sign-in; ignored.")
             return
         }
+        eraseAllLocalData()
+        signOut()
+    }
+
+    /// "Delete All Data" — available to every user, guest or signed in.
+    /// Same erasure as `deleteAccount()`; a signed-in user is also signed
+    /// out so no identity outlives the data it was attached to.
+    func deleteAllData() {
+        eraseAllLocalData()
+        if isSignedIn { signOut() }
+    }
+
+    /// Erases every user-generated artifact on this device and resets the
+    /// running `DataStore` to a clean slate.
+    ///
+    /// Covers the SwiftData store (propagates to the private CloudKit zone
+    /// when iCloud sync is on), legacy JSON and the archived `.migrated`
+    /// safety nets (name, email, body metrics), custom peptides, the widget
+    /// snapshot, progress photos, pre-restore backup snapshots and any
+    /// export file still in the temp directory. HealthKit samples are
+    /// deliberately untouched — Health data belongs to the user's Health
+    /// app, and deleting it there is theirs to decide (see
+    /// docs/DATA_ERASURE_POLICY.md).
+    func eraseAllLocalData() {
+        let store = DataStore.current
+        // Commit (then wipe) any debounced save first: left pending, it
+        // would fire after the erase and write the old in-memory state
+        // straight back to disk.
+        store?.flushPendingSave()
         SwiftDataRepository.shared.deleteAll()
-        // Guideline 5.1.1(v) erasure has to reach every user-generated
-        // artifact, not just the SwiftData store: legacy JSON and the
-        // archived `.migrated` safety nets (name, email, body metrics),
-        // custom peptides, the widget snapshot, and progress photos.
-        // HealthKit samples are deliberately untouched — Health data
-        // belongs to the user's Health app, and deleting it there is
-        // theirs to decide (see docs/DATA_ERASURE_POLICY.md).
         PersistenceService.shared.clearAll()
         ProgressPhotoStorage.deleteAll()
-        signOut()
+        BackupSnapshotService.deleteAll()
+        ExportService.shared.clearExports()
+        if let store { resetInMemoryState(of: store) }
+    }
+
+    /// Drops the erased data from memory so no screen keeps showing it and
+    /// no later save resurrects it — the same clear-then-reload shape
+    /// `DataStore` uses when the iCloud identity changes. `reloadFromDisk`
+    /// reads the now-empty store and republishes the widget and Watch
+    /// snapshots so those surfaces empty too.
+    private func resetInMemoryState(of store: DataStore) {
+        store.protocols = []
+        store.entries = []
+        store.profile = .fresh
+        store.customPeptides = []
+        store.reloadFromDisk()
     }
 
     // MARK: - Credential Validation

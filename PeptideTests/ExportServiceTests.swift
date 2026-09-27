@@ -63,6 +63,31 @@ final class ExportServiceTests: XCTestCase {
         }
     }
 
+    // MARK: - Temp export cleanup
+
+    func test_newExport_removesThePreviousExportFile() throws {
+        let first = try XCTUnwrap(ExportService.shared.writeCSV("a", filename: "first.csv"))
+        let second = try XCTUnwrap(ExportService.shared.writeJSON(Data("{}".utf8), filename: "second.json"))
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: first.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: second.path))
+    }
+
+    func test_writeCSV_roundTripsContentInsideExportDirectory() throws {
+        let url = try XCTUnwrap(ExportService.shared.writeCSV("name,dose\nBPC,250", filename: "../escape.csv"))
+
+        XCTAssertEqual(url.deletingLastPathComponent().standardizedFileURL, ExportService.exportDirectory.standardizedFileURL)
+        XCTAssertEqual(try String(contentsOf: url, encoding: .utf8), "name,dose\nBPC,250")
+    }
+
+    func test_clearExports_removesEveryExportFile() throws {
+        let url = try XCTUnwrap(ExportService.shared.writeCSV("a", filename: "clear.csv"))
+
+        ExportService.shared.clearExports()
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
+    }
+
     // MARK: - Error type
 
     func test_exportError_localizedDescription_isHumanReadable() {
