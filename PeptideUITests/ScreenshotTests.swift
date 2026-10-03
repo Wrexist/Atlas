@@ -188,7 +188,7 @@ final class ScreenshotTests: XCTestCase {
             let complete = app.buttons["workout-complete-1"]
             reveal(complete)
             complete.tap()
-            tapVisibleButton("Workout options")
+            app.buttons["workout-options"].tap()
             app.buttons["Workout overview"].tap()
             XCTAssertTrue(app.staticTexts["Muscles trained"].waitForExistence(timeout: 10))
             capture(named: "body-\(appearance)-03-session")
@@ -198,39 +198,26 @@ final class ScreenshotTests: XCTestCase {
             app.buttons["Upper chest"].firstMatch.tap()
             XCTAssertTrue(app.staticTexts["Incline Dumbbell Press"].firstMatch.waitForExistence(timeout: 5))
             capture(named: "body-\(appearance)-04-muscle-history")
-            tapVisibleButton("Done")
-            tapVisibleButton("Done")
-            tapVisibleButton("Workout options")
-            tapVisibleButton("Finish workout")
-            let finish = app.buttons["Finish workout"].firstMatch
+            app.buttons["muscle-history-done"].tap()
+            let overviewDone = app.buttons["workout-overview-done"]
+            XCTAssertTrue(overviewDone.waitForExistence(timeout: 5))
+            overviewDone.tap()
+            // The completed exercise exposes a direct finish action.
+            app.buttons["Finish workout"].firstMatch.tap()
+            let finish = app.buttons["confirm-finish-workout"]
             XCTAssertTrue(finish.waitForExistence(timeout: 10))
             // The optional effort/note form can put Save below the medium
             // sheet's fold. Scroll inside the visible sheet before tapping.
             app.swipeUp()
-            tapVisibleButton("Finish workout")
+            finish.tap()
             XCTAssertTrue(app.staticTexts["Workout complete"].firstMatch.waitForExistence(timeout: 10))
             capture(named: "body-\(appearance)-05-completed")
-            tapVisibleButton("Done")
+            app.buttons["workout-summary-done"].tap()
             dismissOverlaysIfNeeded()
             scrollToTop()
             capture(named: "body-\(appearance)-06-training-history")
             app.terminate()
         }
-    }
-
-    /// Sheets and menus can leave underlying controls in the AX tree.
-    /// Select the visible control instead of the first identically named one.
-    private func tapVisibleButton(_ label: String) {
-        let matches = app.buttons.matching(identifier: label)
-        XCTAssertTrue(matches.firstMatch.waitForExistence(timeout: 10))
-        for _ in 0..<12 {
-            if let button = matches.allElementsBoundByIndex.first(where: { $0.isHittable }) {
-                button.tap()
-                return
-            }
-            Thread.sleep(forTimeInterval: 0.25)
-        }
-        XCTFail("No hittable button named \(label)")
     }
 
     private func replaceField(_ identifier: String, with value: String) {

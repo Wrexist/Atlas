@@ -207,6 +207,7 @@ struct WorkoutFinishView: View {
     /// second implementation of the primary button.
     private var doneButton: some View {
         GlassButton(title: "Done", style: .primary, isFullWidth: true) { onClose() }
+            .accessibilityIdentifier("workout-summary-done")
     }
 
     private var durationFormatted: String {

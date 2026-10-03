@@ -57,6 +57,7 @@ struct MuscleHistorySheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .accessibilityIdentifier("muscle-history-done")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.accentPrimary)
                 }

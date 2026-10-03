@@ -161,6 +161,7 @@ struct ActiveWorkoutView: View {
                         .font(AppFont.callout).foregroundStyle(AppColor.textPrimary).minimumHitArea()
                 }
                 .accessibilityLabel("Workout options")
+                .accessibilityIdentifier("workout-options")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 GlassIconButton(
@@ -199,6 +200,7 @@ struct ActiveWorkoutView: View {
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { commitWorkoutName(); showOverview = false }
+                            .accessibilityIdentifier("workout-overview-done")
                     }
                 }
             }
@@ -392,6 +394,7 @@ private struct FinishWorkoutSheet: View {
                         onFinish(effort, trimmedNote)
                         dismiss()
                     }
+                    .accessibilityIdentifier("confirm-finish-workout")
                 }
                 .padding(Spacing.screenPadding)
             }
