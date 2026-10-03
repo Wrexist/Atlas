@@ -1,26 +1,31 @@
-# Incline dumbbell press: first implementation slice
+# Exercise focus and catalog visual rollout
 
-Implemented locally on 2026-10-03. This is the first slice of `EXERCISE_EXPERIENCE_IMPLEMENTATION_PLAN.md`, not completion of the 873-exercise art or live-metrics rollout.
+Implemented on 2026-10-03. The shared presentation now covers all 873 catalog exercises. There are 13 dedicated illustrations; 860 entries use their individual muscle maps. This is not completion of the bespoke 873-poster or live-metrics production work.
 
 ## Delivered code
 
 - Active workouts now open a shared focused exercise screen: illustration, exercise navigation, editable pill fields, set progress, inline rest/skip/adjust controls, pause/resume, and actual session metrics.
 - Incline Dumbbell Press uses a bundled transparent illustration in the hero and the shared image component (including library/picker thumbnails). Exercise details use the same hero and consistent muscle legend colors.
-- Other exercises use the shared logging layout and muscle-map hero until their own illustrations are produced. Existing catalog photo thumbnails remain for those exercises.
+- Every exercise uses the same offline visual component in the workout, picker, routine rows and detail screen. Pending illustrations use the exercise's actual primary/secondary muscle map; remote photo thumbnails and the mixed-style photo carousel have been removed. Custom exercises retain their own muscle mapping.
 - Workout options expose overview, add exercise, finish, and discard. Overview retains workout rename, exercise removal confirmation, rest settings, prior-set fill, and plate calculator. Set-number menus expose warmup/deletion in focus mode.
 - Selection uses workout entry IDs so duplicate exercise entries stay independent. Rest context includes source and target set IDs.
 - Pause/rest/selection state is persisted through an optional `StoredWorkoutSession.focusData` payload. Older records have nil focus state. Pause freezes active duration and remaining rest; resume reconstructs the deadline. Completion, undo and removal reconcile owned rest state.
 - Rest expiration and Skip never log the next set. Completing the final working set does not create an unnecessary rest. Final completion exposes the existing finish flow.
 - Live Activities project saved selection, pause, and rest data. History, finish, Home, and widget durations use the same pause-aware calculation.
 - The original `RestTimerOverlay` and its separate state were removed. No second countdown owns the same workout.
-- The image loader clears the prior image when its URL changes and checks task cancellation before publishing the new image.
+- Thirteen exact-ID illustrations are bundled: incline dumbbell press, barbell squat, deadlift, flat barbell press, flat dumbbell press, barbell row, cable row, pull-ups, push-ups, dumbbell curl, lateral raise, leg press and plank. There is no name-based pose substitution.
+- An exhaustive generated manifest accounts for all 873 entries. The production queue supplies exact movement/equipment/muscle briefs for the remaining 860; SHA-256 checks and unique-ID validation detect missing, changed or misassigned artwork.
+- The rest/paused hero is more compact, completion checks use contrasting light glyphs, singular set counts read correctly, and detail metadata wraps into adaptive columns.
 
 ## Main files
 
 | File | Role |
 |---|---|
 | `Peptide/Features/Train/Components/WorkoutFocusView.swift` | Focused layout, exercise strip, rest header and session footer |
-| `Peptide/Features/Train/Components/ExerciseHeroView.swift` | Local art registry and anatomy fallback |
+| `Peptide/Features/Train/Components/ExerciseHeroView.swift` | Shared poster and anatomy fallback |
+| `Peptide/Models/Training/ExerciseVisualAssets.swift` | Stable-ID manifest lookup |
+| `scripts/exercise-art-catalog.py` | Registry/queue generation and integrity checks |
+| `tools/exercise-art/README.md` | Production workflow and exact outstanding coverage |
 | `Peptide/Features/Train/Components/SetEditorRow.swift` | Reused logging controls with focus style and accessibility-size reflow |
 | `Peptide/Models/Training/WorkoutFocusState.swift` | Codable selection, pause and rest state; clock arithmetic and selection repair |
 | `Peptide/Services/WorkoutSessionService.swift` | Authoritative completion, pause, rest and notification mutations |
@@ -30,12 +35,14 @@ Implemented locally on 2026-10-03. This is the first slice of `EXERCISE_EXPERIEN
 
 - `python -X utf8 scripts/design-lint.py --all`: zero errors, zero warnings. UTF-8 mode is required by the existing script on this Windows machine.
 - `git diff --check`: clean.
-- Tree-sitter Swift syntax parsing of changed/new Swift sources: no syntax errors. This does **not** type-check SwiftUI or replace an Xcode build.
+- Remote Xcode app/UI-test build and the expanded UI capture passed; see the run below. This does not substitute for the still-pending unit/device checks.
 - Artwork: 1254 × 1254 RGBA PNG, 1,080,453 bytes, alpha range 0–255; catalog ID and asset-catalog filename verified.
 
 ## Required macOS and device validation
 
-The current workstation has no Xcode/iOS SDK. XCTest, SwiftUI rendering, CloudKit migration, notification timing, and Live Activity presentation have not been executed here.
+The remote macOS build and `ScreenshotTests/test_captureExerciseRollout` passed on iPhone 16 Pro Max in [run 37144600196](https://github.com/Wrexist/Atlas/actions/runs/37144600196), at app commit `a04f8e2`. Fourteen real captures are saved under `artifacts/exercise-rollout/` and were visually inspected. The run checked exact decimal weights and reps, set completion, rest/skip, pause/discard, adding several different exercises, correct selected artwork, and the muscle-map fallback in both appearances. Numeric selection no longer opens a competing row context menu. Four-set rest content still requires a small scroll to move the footer fully above the home indicator; logging and paused captures show the footer without that adjustment.
+
+The workstation has no local Xcode/iOS SDK. The 16 new unit tests, hardware notification/Live Activity checks, and CloudKit migration have not yet been executed. The catalog validation and asset hash checks pass locally and the prior manifest check also passed on the macOS runner.
 
 1. Generate the project with `xcodegen generate` and build the app plus widget and Watch targets.
 2. Run `WorkoutFocusStateTests`, `WorkoutFocusServiceTests`, and existing workout/session/migration/activity/history tests. Run SwiftLint and existing PR checks.
@@ -43,11 +50,11 @@ The current workstation has no Xcode/iOS SDK. XCTest, SwiftUI rendering, CloudKi
 4. Pause during rest; background/minimize, then resume. Confirm elapsed time and rest remain frozen while paused and agree with Live Activity state.
 5. Relaunch during rest and while paused; confirm restoration. Undo the source set, delete the rest target, skip rest, and finish the final set. Confirm no extra set or stale rest alert.
 6. Finish while paused and compare active duration in history, finish, Home and widgets. Repeat with an old stored workout to validate optional-field migration on a real store, including CloudKit.
-7. Review small/large phones, dark mode, keyboard entry, VoiceOver, Reduce Motion and accessibility XXXL. Layout uses a scrollable panel and shrinks the hero at accessibility sizes; actual rendering remains to be inspected.
+7. Review small/large phones, dark mode, keyboard entry, VoiceOver, Reduce Motion and accessibility XXXL. Layout uses a scrollable panel and shrinks the hero at accessibility sizes. Default-size light/dark captures were inspected; small-phone and accessibility XXXL captures remain outstanding.
 
 ## Scope still outstanding
 
-- Approved exercise-specific art for the remaining 872 catalog entries, the shared rig/equipment production pipeline, and any animation. This generated still establishes an initial visual benchmark; it is not a reusable 3D source scene or reviewed full-library art pack.
+- Exercise-specific art for the remaining 860 catalog entries, specialist movement review, the shared rig/equipment production pipeline, and any animation. The 13 generated stills establish a visual benchmark; they are not a reusable 3D source scene or a reviewed full-library art pack.
 - Duration/distance/assistance tracking modes and superset round progression remain separate phases. Existing weight/reps semantics are preserved in this slice.
 - Live HR and session energy require the planned Watch/HealthKit capture work. The footer currently shows real set count, logged volume and active duration; it does not invent sensor readings.
 - Versioned hosted media, catalog-wide prefetch/cache management and production artwork review remain later work.

@@ -4,6 +4,10 @@ The visual system covers all 873 bundled exercises. `illustrations.json` records
 the 13 movement-specific PNGs currently integrated; the other 860 deliberately
 render their own muscle maps. A map is not a movement illustration or animation.
 
+`catalog.csv` is the readable inventory of every exercise, its visual status,
+muscles, equipment, asset, instruction count and next production action. Queue
+entries without source instructions are marked `needsMovementReference`.
+
 `pending.jsonl` is the complete production queue, one exact brief per outstanding
 exercise, including equipment, muscles, original instructions and source paths.
 Do not assign one pose to several variations just because their names resemble

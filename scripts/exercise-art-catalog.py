@@ -4,7 +4,9 @@ No image requests or paid services are invoked. Run --sync after adding inspecte
 art to tools/exercise-art/illustrations.json; --check is suitable for CI.
 """
 import argparse
+import csv
 import hashlib
+import io
 import json
 from collections import Counter
 from pathlib import Path
@@ -49,13 +51,29 @@ def build():
         registry.append({"id": exercise["id"], "status": "illustrated" if record else "muscleMap", "asset": record["asset"] if record else None})
         if not record:
             queue.append({
-                "id": exercise["id"], "name": exercise["name"], "status": "needsIllustration",
+                "id": exercise["id"], "name": exercise["name"],
+                "status": "needsIllustration" if exercise["instructions"] else "needsMovementReference",
                 "category": exercise["category"], "equipment": exercise["equipment"],
                 "primaryMuscles": exercise["primaryMuscles"], "secondaryMuscles": exercise["secondaryMuscles"],
                 "sourceInstructions": exercise["instructions"], "sourceImages": exercise["images"],
                 "prompt": STYLE + " Exercise: " + exercise["name"] + ". Equipment: " + str(exercise["equipment"]) + ". Primary: " + ", ".join(exercise["primaryMuscles"]) + ". Secondary: " + ", ".join(exercise["secondaryMuscles"]) + ". Movement: " + " ".join(exercise["instructions"]),
             })
     return registry, queue
+
+
+def inventory_csv(registry):
+    exercises = json.loads(CATALOG.read_text(encoding="utf-8"))
+    by_id = {record["id"]: record for record in registry}
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\n")
+    writer.writerow(["Exercise ID", "Name", "Category", "Equipment", "Primary muscles", "Secondary muscles", "Visual status", "Asset", "Instruction steps", "Production action"])
+    for exercise in exercises:
+        record = by_id[exercise["id"]]
+        action = "Review movement accuracy" if record["asset"] else "Produce dedicated illustration"
+        if not exercise["instructions"]:
+            action = "Verify movement reference before production"
+        writer.writerow([exercise["id"], exercise["name"], exercise["category"], exercise["equipment"], "; ".join(exercise["primaryMuscles"]), "; ".join(exercise["secondaryMuscles"]), record["status"], record["asset"] or "", len(exercise["instructions"]), action])
+    return output.getvalue()
 
 
 def main():
@@ -67,6 +85,7 @@ def main():
     files = {
         REGISTRY: json.dumps(registry, indent=2, ensure_ascii=False) + "\n",
         PRODUCTION / "pending.jsonl": "".join(json.dumps(x, ensure_ascii=False) + "\n" for x in queue),
+        PRODUCTION / "catalog.csv": inventory_csv(registry),
     }
     for path, expected in files.items():
         if args.sync:
