@@ -204,6 +204,9 @@ final class ScreenshotTests: XCTestCase {
             tapVisibleButton("Finish workout")
             let finish = app.buttons["Finish workout"].firstMatch
             XCTAssertTrue(finish.waitForExistence(timeout: 10))
+            // The optional effort/note form can put Save below the medium
+            // sheet's fold. Scroll inside the visible sheet before tapping.
+            app.swipeUp()
             tapVisibleButton("Finish workout")
             XCTAssertTrue(app.staticTexts["Workout complete"].firstMatch.waitForExistence(timeout: 10))
             capture(named: "body-\(appearance)-05-completed")
