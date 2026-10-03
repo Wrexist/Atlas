@@ -161,14 +161,16 @@ enum WeeklyMuscleHeatmap {
                         id: entry.exerciseID,
                         name: exercise.name,
                         sets: existing.sets + workingSets,
-                        lastPerformed: max(existing.lastPerformed, session.startedAt)
+                        lastPerformed: max(existing.lastPerformed, session.startedAt),
+                        sessionIDs: existing.sessionIDs.union([session.id])
                     )
                 } else {
                     byExercise[entry.exerciseID] = MuscleExerciseHistory(
                         id: entry.exerciseID,
                         name: exercise.name,
                         sets: workingSets,
-                        lastPerformed: session.startedAt
+                        lastPerformed: session.startedAt,
+                        sessionIDs: [session.id]
                     )
                 }
             }
@@ -184,4 +186,5 @@ struct MuscleExerciseHistory: Identifiable, Hashable, Sendable {
     let name: String
     let sets: Int
     let lastPerformed: Date
+    var sessionIDs: Set<UUID> = []
 }

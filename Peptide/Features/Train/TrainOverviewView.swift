@@ -76,10 +76,10 @@ struct TrainOverviewView: View {
                 MuscleGainsCard(
                     totals: totalFrequencies,
                     regularity: regularity,
-                    onIdentify: {
-                        inspectedDays = nil
-                        inspectedPeriodLabel = "All workouts"
-                        inspectedMuscle = $0
+                    onIdentify: { muscle, days in
+                        inspectedDays = days
+                        inspectedPeriodLabel = days == nil ? "All workouts" : "Last 12 calendar weeks"
+                        inspectedMuscle = muscle
                     }
                 )
                 recentWorkoutsCard
@@ -111,7 +111,8 @@ struct TrainOverviewView: View {
                 history: WeeklyMuscleHeatmap.history(
                     for: muscle, from: sessions, library: library, days: inspectedDays
                 ),
-                periodLabel: inspectedPeriodLabel
+                periodLabel: inspectedPeriodLabel,
+                sessions: sessions
             )
         }
     }

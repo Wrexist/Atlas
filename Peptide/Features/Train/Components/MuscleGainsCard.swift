@@ -21,7 +21,7 @@ struct MuscleGainsCard: View {
     let regularity: [AnatomicalMuscle: Double]
     /// Weeks window behind the `regularity` map, for the stat copy.
     var regularityWeeks: Int = 12
-    var onIdentify: ((AnatomicalMuscle) -> Void)? = nil
+    var onIdentify: ((AnatomicalMuscle, Int?) -> Void)? = nil
 
     private enum Mode: String, CaseIterable {
         case regular = "Regular"
@@ -55,7 +55,7 @@ struct MuscleGainsCard: View {
 
                 MuscleMapView(
                     highlights: highlights,
-                    onIdentify: onIdentify
+                    onIdentify: { muscle in onIdentify?(muscle, historyDays) }
                 )
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 320)
@@ -67,6 +67,9 @@ struct MuscleGainsCard: View {
                         highLabel: mode == .regular ? "Every week" : "Most"
                     )
                     topGroupsRow
+                    Text("Training scores weight primary work more than secondary work. They describe logged work, not measured muscle growth.")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
                 }
             }
         }
@@ -82,6 +85,17 @@ struct MuscleGainsCard: View {
         case .total:
             return "Where you've put in the most total work, across every session."
         }
+    }
+
+    /// Match the engine's calendar-week boundary, including the current week.
+    private var historyDays: Int? {
+        guard mode == .regular else { return nil }
+        let calendar = Calendar.current
+        let now = Date()
+        guard let week = calendar.dateInterval(of: .weekOfYear, for: now)?.start,
+              let start = calendar.date(byAdding: .weekOfYear, value: -(regularityWeeks - 1), to: week)
+        else { return regularityWeeks * 7 }
+        return (calendar.dateComponents([.day], from: start, to: calendar.startOfDay(for: now)).day ?? 0) + 1
     }
 
     private var highlights: [AnatomicalMuscle: MuscleHighlight] {

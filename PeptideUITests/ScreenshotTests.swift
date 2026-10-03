@@ -197,8 +197,16 @@ final class ScreenshotTests: XCTestCase {
             app.buttons["Done"].firstMatch.tap()
             app.buttons["Done"].firstMatch.tap()
             app.buttons["Workout options"].tap()
-            app.buttons["Discard workout"].tap()
-            app.alerts.buttons["Discard"].tap()
+            app.buttons["Finish workout"].tap()
+            let finish = app.buttons["Finish workout"].firstMatch
+            XCTAssertTrue(finish.waitForExistence(timeout: 10))
+            finish.tap()
+            XCTAssertTrue(app.staticTexts["Workout complete"].firstMatch.waitForExistence(timeout: 10))
+            capture(named: "body-\(appearance)-05-completed")
+            app.buttons["Done"].firstMatch.tap()
+            dismissOverlaysIfNeeded()
+            scrollToTop()
+            capture(named: "body-\(appearance)-06-training-history")
             app.terminate()
         }
     }

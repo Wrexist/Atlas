@@ -7,6 +7,7 @@ struct MuscleHistorySheet: View {
     let muscle: AnatomicalMuscle
     let history: [MuscleExerciseHistory]
     var periodLabel: String = "Last 30 days"
+    var sessions: [WorkoutSession] = []
     @Environment(\.dismiss) private var dismiss
 
     private var totalSets: Int { history.reduce(0) { $0 + $1.sets } }
@@ -19,7 +20,32 @@ struct MuscleHistorySheet: View {
                     if history.isEmpty {
                         emptyState
                     } else {
-                        ForEach(history) { row($0) }
+                        ForEach(history) { item in
+                            VStack(alignment: .leading, spacing: Spacing.sm) {
+                                row(item)
+                                let contributing = sessions.filter {
+                                    item.sessionIDs.contains($0.id) && !$0.isActive
+                                }.sorted { $0.startedAt > $1.startedAt }
+                                if !contributing.isEmpty {
+                                    DisclosureGroup("Contributing workouts (\(contributing.count))") {
+                                        ForEach(contributing) { session in
+                                            NavigationLink {
+                                                WorkoutSessionDetailView(session: session)
+                                            } label: {
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text(session.name ?? "Workout")
+                                                    Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
+                                                        .font(AppFont.caption)
+                                                        .foregroundStyle(AppColor.textSecondary)
+                                                }
+                                                .padding(.vertical, Spacing.sm)
+                                            }
+                                        }
+                                    }
+                                    .font(AppFont.subheadline)
+                                }
+                            }
+                        }
                     }
                 }
                 .padding(Spacing.screenPadding)
