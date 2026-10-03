@@ -24,6 +24,12 @@ on:
         default: ""
         type: string
 
+      test_filter:
+        description: "XCTest selector (blank captures all surfaces)"
+        required: false
+        default: ""
+        type: string
+
 permissions:
   contents: read
 
@@ -78,6 +84,8 @@ jobs:
           echo "id=$DEVICE_ID" >> "$GITHUB_OUTPUT"
 
       - name: Run screenshot UI test
+        env:
+          TEST_FILTER: ${{ inputs.test_filter }}
         run: |
           xcodebuild test \
             -project Peptide.xcodeproj \
@@ -87,7 +95,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            -only-testing:PeptideUITests/ScreenshotTests \
+            "-only-testing:PeptideUITests/ScreenshotTests${TEST_FILTER:+/$TEST_FILTER}" \
             -resultBundlePath Screenshots.xcresult
 
       - name: Export screenshots from xcresult

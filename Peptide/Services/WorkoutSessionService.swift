@@ -27,6 +27,7 @@ final class WorkoutSessionService {
         activeSession = SwiftDataRepository.shared.loadActiveWorkoutSession()
         // An activity outlives the process, so a relaunch can inherit one
         // whose workout is long gone — or lose one whose workout isn't.
+        reconcileRest()
         WorkoutLiveActivityService.shared.reconcile(active: activeSession)
     }
 
@@ -53,6 +54,7 @@ final class WorkoutSessionService {
                 // discarding the user's data.
                 return existing
             }
+            NotificationService.cancelOneShot(id: restNotificationID(for: existing.id))
             SwiftDataRepository.shared.deleteWorkoutSession(id: existing.id)
         }
         // Cleared before seeding so the seed — and every "previous" hint for
@@ -70,7 +72,8 @@ final class WorkoutSessionService {
             name: routine?.name,
             routineID: routine?.id,
             startedAt: now,
-            exercises: exercises
+            exercises: exercises,
+            focus: WorkoutFocusState(selectedEntryID: exercises.first?.id)
         )
         activeSession = session
         SwiftDataRepository.shared.upsertWorkoutSession(session)
@@ -96,7 +99,11 @@ final class WorkoutSessionService {
     @discardableResult
     func finishWorkout(perceivedEffort: Int? = nil, note: String? = nil) -> FinishedWorkout? {
         guard var session = activeSession else { return nil }
-        session.finishedAt = Date()
+        let now = Date()
+        session.focus?.resume(at: now)
+        session.focus?.rest = nil
+        NotificationService.cancelOneShot(id: restNotificationID(for: session.id))
+        session.finishedAt = now
         session.perceivedEffort = perceivedEffort
         session.note = note
         SwiftDataRepository.shared.upsertWorkoutSession(session)
@@ -116,6 +123,7 @@ final class WorkoutSessionService {
     /// the user taps Discard on the finish-confirmation alert.
     func discardWorkout() {
         guard let session = activeSession else { return }
+        NotificationService.cancelOneShot(id: restNotificationID(for: session.id))
         SwiftDataRepository.shared.deleteWorkoutSession(id: session.id)
         activeSession = nil
         invalidatePreviousSetCache()
@@ -144,6 +152,8 @@ final class WorkoutSessionService {
             )]
         )
         session.exercises.append(entry)
+        if session.focus == nil { session.focus = WorkoutFocusState() }
+        session.focus?.selectedEntryID = entry.id
         persist(session)
     }
 
@@ -188,11 +198,13 @@ final class WorkoutSessionService {
 
     /// Update a single set in place. Used by the inline weight / rep
     /// pickers and by the "complete set" toggle.
-    func updateSet(_ set: SetEntry, inExerciseEntryID entryID: UUID) {
+    func updateSet(_ set: SetEntry, inExerciseEntryID entryID: UUID, now: Date = Date()) {
         guard var session = activeSession,
               let exIdx = session.exercises.firstIndex(where: { $0.id == entryID }),
               let setIdx = session.exercises[exIdx].sets.firstIndex(where: { $0.id == set.id })
         else { return }
+        let prior = session.exercises[exIdx].sets[setIdx]
+        if session.isPaused && prior.completed != set.completed { return }
         var updated = set
         // The service is the persistence boundary for set values — the
         // decimal-pad keyboard hint is bypassable (paste, hardware
@@ -201,11 +213,25 @@ final class WorkoutSessionService {
         updated.reps = SetEntryLimits.clampReps(updated.reps)
         // Stamp completedAt when transitioning to completed; clear on un-check.
         if set.completed && session.exercises[exIdx].sets[setIdx].completedAt == nil {
-            updated.completedAt = Date()
+            updated.completedAt = now
         } else if !set.completed {
             updated.completedAt = nil
         }
         session.exercises[exIdx].sets[setIdx] = updated
+        if session.focus == nil { session.focus = WorkoutFocusState(selectedEntryID: entryID) }
+        if !prior.completed && updated.completed && !updated.isWarmup {
+            session.focus?.rest = nil
+            let seconds = session.exercises[exIdx].restSeconds
+                ?? DataStore.current?.profile.trainingPreferences?.restTimerDefault ?? 90
+            if seconds > 0, let target = session.nextPendingSet(after: entryID) {
+                session.focus?.rest = WorkoutRestContext(
+                    sourceEntryID: entryID, sourceSetID: updated.id,
+                    targetEntryID: target.entry, targetSetID: target.set,
+                    endsAt: now.addingTimeInterval(TimeInterval(seconds)),
+                    totalSeconds: TimeInterval(seconds)
+                )
+            }
+        }
         persist(session)
     }
 
@@ -263,6 +289,64 @@ final class WorkoutSessionService {
         return []
     }
 
+    // MARK: - Focus and session clocks
+
+    func selectExercise(_ id: UUID) {
+        guard var session = activeSession, session.exercises.contains(where: { $0.id == id }) else { return }
+        if session.focus == nil { session.focus = WorkoutFocusState() }
+        session.focus?.selectedEntryID = id
+        persist(session)
+    }
+
+    func togglePause(now: Date = Date()) {
+        guard var session = activeSession else { return }
+        if session.focus == nil { session.focus = WorkoutFocusState(selectedEntryID: session.selectedExercise?.id) }
+        if session.isPaused { session.focus?.resume(at: now) }
+        else { session.focus?.pause(at: now) }
+        persist(session)
+    }
+
+    func skipRest() {
+        guard var session = activeSession, let rest = session.focus?.rest else { return }
+        if session.selectedExercise?.id == rest.sourceEntryID {
+            session.focus?.selectedEntryID = rest.targetEntryID
+        }
+        session.focus?.rest = nil
+        persist(session)
+    }
+
+    func adjustRest(by seconds: TimeInterval, now: Date = Date()) {
+        guard var session = activeSession, var rest = session.focus?.rest else { return }
+        let remaining = max(0, rest.remaining(at: now) + seconds)
+        if remaining == 0 { skipRest(); return }
+        rest.totalSeconds = remaining
+        if session.isPaused { rest.frozenSeconds = remaining }
+        else { rest.endsAt = now.addingTimeInterval(remaining) }
+        session.focus?.rest = rest
+        persist(session)
+    }
+
+    func reconcileRest(now: Date = Date()) {
+        guard let session = activeSession, !session.isPaused,
+              let rest = session.focus?.rest, rest.remaining(at: now) <= 0 else { return }
+        skipRest()
+    }
+
+    private func restNotificationID(for sessionID: UUID) -> String {
+        "atlas.workout.rest.\(sessionID.uuidString)"
+    }
+
+    private func syncRestNotification(for session: WorkoutSession) {
+        let id = restNotificationID(for: session.id)
+        NotificationService.cancelOneShot(id: id)
+        guard !session.isPaused, let rest = session.focus?.rest,
+              rest.remaining(at: Date()) > 0 else { return }
+        NotificationService.scheduleOneShot(
+            id: id, title: "Time to lift", body: "Rest is over. Your next set is ready.",
+            after: rest.remaining(at: Date())
+        )
+    }
+
     // MARK: - Internals
 
     /// `[exerciseID: previous session's completed sets]`. An empty array is
@@ -275,8 +359,14 @@ final class WorkoutSessionService {
         previousSetCache.removeAll(keepingCapacity: true)
     }
 
-    private func persist(_ session: WorkoutSession) {
+    private func persist(_ value: WorkoutSession) {
+        var session = value
+        session.repairFocus()
+        let previousRest = activeSession?.focus?.rest
         activeSession = session
+        if previousRest != session.focus?.rest {
+            syncRestNotification(for: session)
+        }
         SwiftDataRepository.shared.upsertWorkoutSession(session)
         WorkoutLiveActivityService.shared.update(session)
     }

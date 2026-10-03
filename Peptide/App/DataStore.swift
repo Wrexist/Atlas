@@ -1633,8 +1633,8 @@ final class DataStore {
         let sessions = repo.loadWorkoutSessions(startedBetween: dayStart..<dayEnd)
         let count = sessions.count
         let minutes = sessions.reduce(0) { acc, session in
-            guard let finished = session.finishedAt else { return acc }
-            let secs = finished.timeIntervalSince(session.startedAt)
+            guard session.finishedAt != nil else { return acc }
+            let secs = session.elapsedSeconds()
             return acc + max(0, Int(secs / 60))
         }
         return (count, minutes)

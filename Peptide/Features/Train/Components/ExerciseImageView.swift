@@ -45,7 +45,13 @@ struct ExerciseImageView: View {
     var body: some View {
         ZStack {
             placeholderTile
-            if let url {
+            if let asset = ExerciseVisualAssets.poster(forImagePath: imagePath) {
+                Image(asset)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(Spacing.xs)
+                    .background(AppColor.trainingBackground)
+            } else if let url {
                 BoundedRemoteImage(url: url, contentMode: contentMode)
             }
         }
@@ -77,7 +83,6 @@ private struct BoundedRemoteImage: View {
     let contentMode: ContentMode
 
     @State private var image: UIImage?
-    @State private var didStart = false
 
     private static let maxBytes = 2_000_000  // 2 MB cap per image
     private static let session: URLSession = {
@@ -112,7 +117,7 @@ private struct BoundedRemoteImage: View {
     }
 
     private func load() async {
-        guard image == nil else { return }
+        image = nil
         do {
             let (data, response) = try await Self.session.data(from: url)
             guard let http = response as? HTTPURLResponse,
@@ -125,6 +130,7 @@ private struct BoundedRemoteImage: View {
                 AppLog.training.debug("Exercise image rejected: status / content-type / size mismatch")
                 return
             }
+            try Task.checkCancellation()
             await MainActor.run {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     self.image = decoded

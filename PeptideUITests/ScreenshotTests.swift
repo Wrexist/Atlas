@@ -61,6 +61,86 @@ final class ScreenshotTests: XCTestCase {
         captureAllTabs(prefix: "xxxl")
     }
 
+    /// Real app navigation and set edits, captured on the remote iOS simulator.
+    func test_captureWorkoutFocus() {
+        for appearance in ["light", "dark"] {
+            launch(appearance: appearance)
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
+            dismissOverlaysIfNeeded()
+            let train = app.tabBars.buttons["Train"]
+            XCTAssertTrue(train.waitForExistence(timeout: 10))
+            train.tap()
+            dismissOverlaysIfNeeded()
+            let start = app.buttons["Start workout"]
+            reveal(start)
+            start.tap()
+            let add = app.buttons["Add exercise"].firstMatch
+            XCTAssertTrue(add.waitForExistence(timeout: 10))
+            add.tap()
+            let search = app.searchFields.firstMatch
+            XCTAssertTrue(search.waitForExistence(timeout: 10))
+            search.tap()
+            search.typeText("Incline Dumbbell Press")
+            let exercise = app.staticTexts["Incline Dumbbell Press"].firstMatch
+            XCTAssertTrue(exercise.waitForExistence(timeout: 10))
+            exercise.tap()
+            let commit = app.buttons["Add (1)"]
+            XCTAssertTrue(commit.waitForExistence(timeout: 5))
+            commit.tap()
+            let addSet = app.buttons["Add set"]
+            XCTAssertTrue(addSet.waitForExistence(timeout: 10))
+            for _ in 0..<3 { reveal(addSet); addSet.tap() }
+            for index in 1...4 {
+                replaceField("workout-weight-\(index)", with: index <= 2 ? "22.5" : "25")
+                replaceField("workout-reps-\(index)", with: index <= 2 ? "10" : "8")
+            }
+            let first = app.buttons["workout-complete-1"]
+            reveal(first)
+            first.tap()
+            let skip = app.buttons["Skip"]
+            XCTAssertTrue(skip.waitForExistence(timeout: 5))
+            reveal(skip)
+            skip.tap()
+            scrollToTop()
+            capture(named: "incline-\(appearance)-01-logging")
+
+            let second = app.buttons["workout-complete-2"]
+            reveal(second)
+            second.tap()
+            XCTAssertTrue(skip.waitForExistence(timeout: 5))
+            scrollToTop()
+            capture(named: "incline-\(appearance)-02-rest")
+
+            app.buttons["Pause workout"].tap()
+            capture(named: "incline-\(appearance)-03-paused")
+            app.buttons["Workout options"].tap()
+            app.buttons["Discard workout"].tap()
+            app.alerts.buttons["Discard"].tap()
+            app.terminate()
+        }
+    }
+
+    private func replaceField(_ identifier: String, with value: String) {
+        let field = app.textFields[identifier]
+        reveal(field)
+        field.tap()
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20) + value)
+        app.buttons["Done"].firstMatch.tap()
+    }
+
+    private func reveal(_ element: XCUIElement) {
+        XCTAssertTrue(element.waitForExistence(timeout: 10))
+        for _ in 0..<6 {
+            if element.isHittable { return }
+            app.swipeUp()
+        }
+        XCTAssertTrue(element.isHittable)
+    }
+
+    private func scrollToTop() {
+        for _ in 0..<3 { app.swipeDown() }
+    }
+
     // MARK: - Helpers
 
     private func launch(appearance: String, extraArguments: [String] = []) {

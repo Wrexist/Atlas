@@ -169,8 +169,8 @@ private extension WorkoutSession {
     /// (shouldn't happen for entries in this view since we filter,
     /// but defensive).
     var durationLabel: String? {
-        guard let finished = finishedAt else { return nil }
-        let interval = finished.timeIntervalSince(startedAt)
+        guard finishedAt != nil else { return nil }
+        let interval = elapsedSeconds()
         guard interval > 0 else { return nil }
         let totalMinutes = Int(interval / 60)
         if totalMinutes < 60 { return "\(totalMinutes)m" }

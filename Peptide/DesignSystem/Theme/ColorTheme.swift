@@ -32,6 +32,16 @@ enum AppColor {
     static let surfaceElevated = Color(light: 0xFCFCFD, dark: 0x1C1C21)
     static let surfaceSecondary = Color(light: 0xFAFAFC, dark: 0x17171B)
 
+    // MARK: - Exercise demonstration
+
+    static let trainingBackground = Color(light: 0xEAF3F9, dark: 0x151D27)
+    static let trainingPanel = Color(light: 0xFCFCFD, dark: 0x232A34)
+    static let trainingInput = Color(light: 0xF3F4F8, dark: 0x303845)
+    static let trainingSelection = Color(light: 0x2465DF, dark: 0x80ADFF)
+    static let trainingComplete = Color(light: 0x19843D, dark: 0x238943)
+    static let trainingPrimaryMuscle = Color(light: 0xB84813, dark: 0xFFAC73)
+    static let trainingSecondaryMuscle = Color(light: 0x2465DF, dark: 0x80ADFF)
+
     // MARK: - Brand accents
 
     static var accentPrimary: Color { ThemeManager.shared.theme.primary }

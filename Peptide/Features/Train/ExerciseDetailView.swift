@@ -55,7 +55,9 @@ struct ExerciseDetailView: View {
 
     @ViewBuilder
     private func imageCarousel(for exercise: Exercise) -> some View {
-        if exercise.images.isEmpty {
+        if ExerciseVisualAssets.poster(for: exercise.id) != nil {
+            ExerciseHeroView(exercise: exercise)
+        } else if exercise.images.isEmpty {
             ExerciseImageView(
                 imagePath: nil,
                 muscleGroup: exercise.muscleGroup,
@@ -149,7 +151,11 @@ struct ExerciseDetailView: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
-                MuscleMapView(highlights: MuscleMapView.highlights(for: exercise))
+                MuscleMapView(
+                    highlights: MuscleMapView.highlights(for: exercise),
+                    primaryColor: AppColor.trainingPrimaryMuscle,
+                    secondaryColor: AppColor.trainingSecondaryMuscle
+                )
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 280)
 
@@ -164,14 +170,14 @@ struct ExerciseDetailView: View {
                 muscleLegendCluster(
                     title: "Primary",
                     muscles: exercise.primaryMuscles,
-                    swatch: AppColor.negative
+                    swatch: AppColor.trainingPrimaryMuscle
                 )
             }
             if !exercise.secondaryMuscles.isEmpty {
                 muscleLegendCluster(
                     title: "Secondary",
                     muscles: exercise.secondaryMuscles,
-                    swatch: AppColor.belowRange
+                    swatch: AppColor.trainingSecondaryMuscle
                 )
             }
         }

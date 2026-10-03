@@ -791,8 +791,8 @@ struct HomeView: View {
                 let reps = sets.reduce(0) { $0 + $1.reps }
                 let avgReps = sets.isEmpty ? 0 : reps / sets.count
                 let duration: Int = {
-                    guard let finished = session.finishedAt else { return 0 }
-                    return max(0, Int(finished.timeIntervalSince(session.startedAt) / 60))
+                    guard session.finishedAt != nil else { return 0 }
+                    return session.elapsedSeconds() / 60
                 }()
                 return WorkoutEntry(
                     id: session.id,

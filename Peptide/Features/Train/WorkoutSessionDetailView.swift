@@ -330,8 +330,8 @@ struct WorkoutSessionDetailView: View {
     }
 
     private var durationLabel: String? {
-        guard let finished = session.finishedAt else { return nil }
-        let interval = finished.timeIntervalSince(session.startedAt)
+        guard session.finishedAt != nil else { return nil }
+        let interval = session.elapsedSeconds()
         guard interval > 0 else { return nil }
         let totalMinutes = Int(interval / 60)
         if totalMinutes < 60 { return "\(totalMinutes)m" }

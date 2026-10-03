@@ -15,7 +15,7 @@ import ActivityKit
 ///
 /// The rest timer is folded into this activity rather than given its
 /// own. It is the same event from the user's side ("I'm between sets
-/// of this workout"), and `RestTimerState` already owns the absolute
+/// of this workout"), and the saved workout already owns the absolute
 /// target date plus the local notification — a second activity would
 /// mean a second source of truth for one countdown.
 @available(iOS 16.1, *)
@@ -34,7 +34,7 @@ struct WorkoutActivityAttributes: ActivityAttributes {
         public var totalSets: Int
         public var exerciseCount: Int
         /// Absolute moment the current rest ends, or nil while lifting.
-        /// Sourced from `RestTimerState.targetEnd` — the widget renders
+        /// Sourced from the saved workout rest deadline — the widget renders
         /// `Text(timerInterval:)` against it without per-second pushes.
         public var restEndsAt: Date?
         /// Length of the current rest, for the countdown ring. Zero
@@ -43,6 +43,9 @@ struct WorkoutActivityAttributes: ActivityAttributes {
         /// Set on finish. Flips the activity into a short summary beat
         /// before `WorkoutLiveActivityService` dismisses it.
         public var finishedAt: Date?
+        /// Optional for compatibility with activities created by older builds.
+        public var activeTimerStartedAt: Date?
+        public var pausedElapsedSeconds: Int?
 
         public init(
             workoutName: String,
@@ -52,7 +55,9 @@ struct WorkoutActivityAttributes: ActivityAttributes {
             exerciseCount: Int = 0,
             restEndsAt: Date? = nil,
             restTotalSeconds: Double = 0,
-            finishedAt: Date? = nil
+            finishedAt: Date? = nil,
+            activeTimerStartedAt: Date? = nil,
+            pausedElapsedSeconds: Int? = nil
         ) {
             self.workoutName = workoutName
             self.currentExercise = currentExercise
@@ -62,6 +67,8 @@ struct WorkoutActivityAttributes: ActivityAttributes {
             self.restEndsAt = restEndsAt
             self.restTotalSeconds = restTotalSeconds
             self.finishedAt = finishedAt
+            self.activeTimerStartedAt = activeTimerStartedAt
+            self.pausedElapsedSeconds = pausedElapsedSeconds
         }
     }
 
@@ -94,6 +101,7 @@ extension WorkoutActivityAttributes.ContentState {
     enum Status: Equatable {
         /// Mid-set. The activity shows elapsed workout time.
         case lifting
+        case paused
         /// Between sets. Carries whole seconds left so the widget
         /// doesn't redo the arithmetic.
         case resting(secondsRemaining: Int)
@@ -106,6 +114,7 @@ extension WorkoutActivityAttributes.ContentState {
     /// without ActivityKit in the loop.
     func status(at now: Date = Date()) -> Status {
         if finishedAt != nil { return .finished }
+        if pausedElapsedSeconds != nil { return .paused }
         guard let restEndsAt, restEndsAt > now else { return .lifting }
         return .resting(secondsRemaining: Int(restEndsAt.timeIntervalSince(now).rounded(.up)))
     }

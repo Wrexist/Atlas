@@ -142,7 +142,7 @@ enum WidgetSnapshotBuilder {
             finishedAt: finishedAt,
             setCount: session.completedSetCount,
             volumeKg: session.totalVolumeKg,
-            durationMinutes: max(0, Int(finishedAt.timeIntervalSince(session.startedAt) / 60))
+            durationMinutes: session.finishedAt == nil ? 0 : session.elapsedSeconds() / 60
         )
     }
 }
