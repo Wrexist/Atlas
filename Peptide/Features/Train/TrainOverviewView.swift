@@ -247,6 +247,7 @@ struct TrainOverviewView: View {
                         }
                     }
                     .font(AppFont.subheadline)
+                    .minimumHitArea()
                     Text("Relative training score: primary work counts more than secondary work. Not a measure of growth or recovery.")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)

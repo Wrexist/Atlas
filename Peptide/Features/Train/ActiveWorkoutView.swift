@@ -47,6 +47,14 @@ struct ActiveWorkoutView: View {
                 noActiveSession
             }
         }
+        // Keep the presenter alive when finishing replaces the active content
+        // with the summary. A sheet attached to content(for:) vanished with
+        // that branch and its dismiss action could close the workout cover.
+        .sheet(isPresented: $showFinishSheet) {
+            FinishWorkoutSheet { effort, note in
+                finish(perceivedEffort: effort, note: note)
+            }
+        }
         .onAppear { syncNameFromSession(); sessionService.reconcileRest() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { sessionService.reconcileRest() }
@@ -109,6 +117,7 @@ struct ActiveWorkoutView: View {
         else { return }
         finishedSession = finished.session
         finishedPRs = finished.detectedPRs
+        showFinishSheet = false
         isReviewMoment = ReviewPromptService.isWorkoutReviewMoment(
             detectedPRCount: finished.detectedPRs.count,
             completedWorkoutCount: SwiftDataRepository.shared.workoutSessionCount()
@@ -208,11 +217,6 @@ struct ActiveWorkoutView: View {
         .sheet(isPresented: $showExercisePicker) {
             ExercisePickerSheet { exercise in
                 sessionService.addExercise(exercise)
-            }
-        }
-        .sheet(isPresented: $showFinishSheet) {
-            FinishWorkoutSheet { effort, note in
-                finish(perceivedEffort: effort, note: note)
             }
         }
         .alert("Discard this workout?", isPresented: $showDiscardConfirm) {
@@ -392,7 +396,6 @@ private struct FinishWorkoutSheet: View {
                     PrimaryCTAButton(title: "Finish workout", icon: "checkmark") {
                         Haptics.success()
                         onFinish(effort, trimmedNote)
-                        dismiss()
                     }
                     .accessibilityIdentifier("confirm-finish-workout")
                 }

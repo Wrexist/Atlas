@@ -22,6 +22,7 @@ struct SessionMuscleCard: View {
                      ? "Complete a working set to light up your muscles."
                      : "Based on completed working sets in this workout.")
                     .font(AppFont.subheadline)
+                    .minimumHitArea()
                     .foregroundStyle(AppColor.textSecondary)
                 MuscleMapView(
                     highlights: highlights,
@@ -48,6 +49,7 @@ struct SessionMuscleCard: View {
                 }
             }
         }
+        .task { await library.load() }
         .sheet(item: $inspectedMuscle) { muscle in
             MuscleHistorySheet(
                 muscle: muscle,
