@@ -48,17 +48,17 @@ struct SetEditorRow: View {
         }
         .padding(.vertical, Spacing.xs)
         .contentShape(Rectangle())
-        // .swipeActions is a no-op outside List/Form (audit Train
-        // M1 — sets live in a VStack), so a long-press contextMenu
-        // is the only way to expose the delete affordance without
-        // restructuring the parent container.
+        // Focus mode has an explicit index menu. A second menu on the whole
+        // row competes with the TextField's long-press selection gesture.
         .contextMenu {
-            Button(action: toggleWarmup) {
-                Label(set.isWarmup ? "Mark as working set" : "Mark as warm-up",
-                      systemImage: set.isWarmup ? "dumbbell" : "flame")
-            }
-            Button(role: .destructive, action: onDelete) {
-                Label("Delete set", systemImage: "trash")
+            if !focusStyle {
+                Button(action: toggleWarmup) {
+                    Label(set.isWarmup ? "Mark as working set" : "Mark as warm-up",
+                          systemImage: set.isWarmup ? "dumbbell" : "flame")
+                }
+                Button(role: .destructive, action: onDelete) {
+                    Label("Delete set", systemImage: "trash")
+                }
             }
         }
     }
