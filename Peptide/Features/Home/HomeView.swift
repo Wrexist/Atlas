@@ -1063,7 +1063,11 @@ struct HomeView: View {
     /// user has to resolve state-transition decisions before we ask
     /// them to share. Only one prompt fires per Home appear.
     private func checkMilestonePrompt() {
-        guard milestonePrompt == nil,
+        // TabView can call onAppear for retained, off-screen tabs during
+        // modal transitions. A Today prompt must never replace Train's
+        // workout cover or completion summary.
+        guard appState.selectedTab == .today,
+              milestonePrompt == nil,
               milestoneShareProtocol == nil,
               completionPrompt == nil,
               !showProfileCustomization
@@ -1083,7 +1087,7 @@ struct HomeView: View {
             let days = max(0, daysPastCycleEnd(of: pending))
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(800))
-                guard completionPrompt == nil else { return }
+                guard appState.selectedTab == .today, completionPrompt == nil else { return }
                 completionPrompt = CompletionPromptItem(proto: pending, daysPastEnd: days)
             }
             return
@@ -1095,7 +1099,7 @@ struct HomeView: View {
         // Defer slightly so the home tab's appear animation lands first.
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(800))
-            guard milestonePrompt == nil else { return }
+            guard appState.selectedTab == .today, milestonePrompt == nil else { return }
             milestonePrompt = MilestonePromptItem(proto: pending.proto, milestone: pending.milestone)
         }
     }
