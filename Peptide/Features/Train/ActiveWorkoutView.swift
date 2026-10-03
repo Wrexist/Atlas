@@ -186,6 +186,7 @@ struct ActiveWorkoutView: View {
                     VStack(spacing: Spacing.lg) {
                         if let liveSession = sessionService.activeSession {
                             heroHeader(for: liveSession)
+                            SessionMuscleCard(session: liveSession)
                             exerciseStack(for: liveSession).disabled(liveSession.isPaused)
                         }
                     }

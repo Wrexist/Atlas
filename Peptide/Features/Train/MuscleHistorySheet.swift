@@ -6,6 +6,7 @@ import SwiftUI
 struct MuscleHistorySheet: View {
     let muscle: AnatomicalMuscle
     let history: [MuscleExerciseHistory]
+    var periodLabel: String = "Last 30 days"
     @Environment(\.dismiss) private var dismiss
 
     private var totalSets: Int { history.reduce(0) { $0 + $1.sets } }
@@ -41,8 +42,8 @@ struct MuscleHistorySheet: View {
 
     private var subtitle: some View {
         Text(history.isEmpty
-             ? "Last 30 days"
-             : "\(totalSets) \(totalSets == 1 ? "set" : "sets") · last 30 days")
+             ? periodLabel
+             : "\(totalSets) \(totalSets == 1 ? "set" : "sets") - \(periodLabel.lowercased())")
             .font(AppFont.subheadline)
             .foregroundStyle(AppColor.textSecondary)
     }
@@ -53,7 +54,7 @@ struct MuscleHistorySheet: View {
                 Image(systemName: "dumbbell")
                     .font(.title2)
                     .foregroundStyle(AppColor.textSecondary)
-                Text("No logged work for \(muscle.displayName.lowercased()) in the last 30 days.")
+                Text("No logged work for \(muscle.displayName.lowercased()) for this period.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)

@@ -271,6 +271,20 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app.tests
         GENERATE_INFOPLIST_FILE: YES
+  PeptideTrainingTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: PeptideTests/WeeklyMuscleHeatmapTests.swift
+      - path: PeptideTests/MuscleGainsEngineTests.swift
+      - path: PeptideTests/WorkoutFocusTests.swift
+      - path: PeptideTests/ExerciseVisualAssetsTests.swift
+    dependencies:
+      - target: Peptide
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app.trainingtests
+        GENERATE_INFOPLIST_FILE: YES
   PeptideUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -326,3 +340,13 @@ schemes:
       storeKitConfiguration: Peptide/Resources/Products.storekit
       targets:
         - PeptideUITests
+
+  PeptideTrainingValidation:
+    build:
+      targets:
+        Peptide: all
+        PeptideTrainingTests: [test]
+    test:
+      config: Debug
+      targets:
+        - PeptideTrainingTests

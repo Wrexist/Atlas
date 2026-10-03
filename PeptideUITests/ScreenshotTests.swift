@@ -153,6 +153,56 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    func test_captureMuscleTraining() {
+        for appearance in ["light", "dark"] {
+            launch(appearance: appearance)
+            dismissOverlaysIfNeeded()
+            app.tabBars.buttons["Train"].tap()
+            dismissOverlaysIfNeeded()
+            let period = app.segmentedControls["training-map-period"]
+            XCTAssertTrue(period.waitForExistence(timeout: 10))
+            period.buttons["Today"].tap()
+            capture(named: "body-\(appearance)-01-today")
+            period.buttons["30 days"].tap()
+            capture(named: "body-\(appearance)-02-month")
+            let start = app.buttons["Start workout"]
+            reveal(start)
+            start.tap()
+            let add = app.buttons["Add exercise"].firstMatch
+            XCTAssertTrue(add.waitForExistence(timeout: 10))
+            add.tap()
+            let search = app.searchFields.firstMatch
+            XCTAssertTrue(search.waitForExistence(timeout: 10))
+            search.tap()
+            search.typeText("Incline Dumbbell Press")
+            let exercise = app.staticTexts["Incline Dumbbell Press"].firstMatch
+            XCTAssertTrue(exercise.waitForExistence(timeout: 10))
+            exercise.tap()
+            app.buttons["Add (1)"].tap()
+            replaceField("workout-weight-1", with: "22.5")
+            replaceField("workout-reps-1", with: "10")
+            let complete = app.buttons["workout-complete-1"]
+            reveal(complete)
+            complete.tap()
+            app.buttons["Workout options"].tap()
+            app.buttons["Workout overview"].tap()
+            XCTAssertTrue(app.staticTexts["Muscles trained"].waitForExistence(timeout: 10))
+            capture(named: "body-\(appearance)-03-session")
+            let explore = app.buttons["explore-trained-muscles"]
+            reveal(explore)
+            explore.tap()
+            app.buttons["Upper chest"].firstMatch.tap()
+            XCTAssertTrue(app.staticTexts["Incline Dumbbell Press"].firstMatch.waitForExistence(timeout: 5))
+            capture(named: "body-\(appearance)-04-muscle-history")
+            app.buttons["Done"].firstMatch.tap()
+            app.buttons["Done"].firstMatch.tap()
+            app.buttons["Workout options"].tap()
+            app.buttons["Discard workout"].tap()
+            app.alerts.buttons["Discard"].tap()
+            app.terminate()
+        }
+    }
+
     private func replaceField(_ identifier: String, with value: String) {
         let field = app.textFields[identifier]
         reveal(field)

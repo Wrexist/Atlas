@@ -26,18 +26,11 @@ struct WorkoutFinishView: View {
 
     @State private var library = ExerciseLibrary.shared
 
-    private var muscleHighlights: [AnatomicalMuscle: MuscleHighlight] {
-        let exercises = session.exercises.compactMap { library.lookup(id: $0.exerciseID) }
-        return MuscleMapView.highlights(forExercises: exercises)
-    }
-
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
                 hero
-                MuscleMapView(highlights: muscleHighlights)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 320)
+                SessionMuscleCard(session: session)
                 statsRow
                 if !detectedPRs.isEmpty {
                     prsCard

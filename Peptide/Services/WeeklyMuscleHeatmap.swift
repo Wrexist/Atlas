@@ -15,6 +15,14 @@ import Foundation
 /// complication without re-implementing the math.
 enum WeeklyMuscleHeatmap {
 
+    @MainActor
+    static func completedExercises(from session: WorkoutSession, library: ExerciseLibrary) -> [Exercise] {
+        session.exercises.compactMap { entry in
+            guard !entry.completedWorkingSets.isEmpty else { return nil }
+            return library.lookup(id: entry.exerciseID)
+        }
+    }
+
     /// Frequency map per anatomical region for sessions whose
     /// `startedAt` falls within the past `days` days from `now`.
     /// Returns an empty dictionary when no sessions qualify.
@@ -33,6 +41,7 @@ enum WeeklyMuscleHeatmap {
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> [AnatomicalMuscle: Double] {
+        guard days > 0 else { return [:] }
         // Calendar-day window so DST flips don't push the boundary an
         // hour off, and so a workout at 23:50 doesn't fall out of the
         // window when re-rendered 10 minutes later (audit Train M6).
@@ -42,7 +51,7 @@ enum WeeklyMuscleHeatmap {
         let cutoff = calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
         var counts: [AnatomicalMuscle: Double] = [:]
 
-        for session in sessions where session.startedAt >= cutoff {
+        for session in sessions where session.startedAt >= cutoff && session.startedAt <= now {
             for entry in session.exercises {
                 guard let exercise = library.lookup(id: entry.exerciseID) else {
                     // Silent skip used to hide deleted-custom-exercise
@@ -55,7 +64,7 @@ enum WeeklyMuscleHeatmap {
                     )
                     continue
                 }
-                let workingSets = entry.sets.filter { $0.completed && !$0.isWarmup }
+                let workingSets = entry.completedWorkingSets
                 guard !workingSets.isEmpty else { continue }
                 let setCount = Double(workingSets.count)
 
@@ -128,22 +137,23 @@ enum WeeklyMuscleHeatmap {
         for muscle: AnatomicalMuscle,
         from sessions: [WorkoutSession],
         library: ExerciseLibrary,
-        days: Int = 30,
+        days: Int? = 30,
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> [MuscleExerciseHistory] {
         let today = calendar.startOfDay(for: now)
-        let cutoff = calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
+        if let days, days <= 0 { return [] }
+        let cutoff = days.flatMap { calendar.date(byAdding: .day, value: -($0 - 1), to: today) }
         var byExercise: [String: MuscleExerciseHistory] = [:]
 
-        for session in sessions where session.startedAt >= cutoff {
+        for session in sessions where session.startedAt >= (cutoff ?? .distantPast) && session.startedAt <= now {
             for entry in session.exercises {
                 guard let exercise = library.lookup(id: entry.exerciseID) else { continue }
                 let touchesMuscle = (exercise.primaryMuscles + exercise.secondaryMuscles).contains { raw in
                     (AnatomicalMuscle.headWeights(forRawMuscle: raw, exerciseName: exercise.name)[muscle] ?? 0) > 0.15
                 }
                 guard touchesMuscle else { continue }
-                let workingSets = entry.sets.filter { $0.completed && !$0.isWarmup }.count
+                let workingSets = entry.completedWorkingSets.count
                 guard workingSets > 0 else { continue }
 
                 if let existing = byExercise[entry.exerciseID] {

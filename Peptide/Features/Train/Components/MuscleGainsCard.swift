@@ -36,7 +36,7 @@ struct MuscleGainsCard: View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Muscle gains")
+                    Text("Training history")
                         .font(AppFont.title)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(subtitle)
@@ -163,7 +163,7 @@ struct MuscleGainsCard: View {
             return "\(weeks)/\(regularityWeeks) weeks"
         case .total:
             let sets = Int(value.rounded())
-            return "\(sets) \(sets == 1 ? "set" : "sets")"
+            return "\(sets) weighted pts"
         }
     }
 }

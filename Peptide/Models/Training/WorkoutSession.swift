@@ -53,6 +53,11 @@ struct WorkoutExerciseEntry: Codable, Hashable, Identifiable, Sendable {
         sets.reduce(0) { $0 + $1.volumeKg }
     }
 
+    /// Canonical inclusion rule for training maps and exercise history.
+    var completedWorkingSets: [SetEntry] {
+        sets.filter { $0.completed && !$0.isWarmup }
+    }
+
     /// Top working set's estimated 1RM, used for PR detection. Returns
     /// `nil` when no set is eligible.
     var topEstimatedOneRepMaxKg: Double? {
@@ -144,7 +149,7 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     /// excluded. Drives the "X sets" pill on the history row.
     var completedSetCount: Int {
         exercises.reduce(0) { acc, ex in
-            acc + ex.sets.filter { $0.completed && !$0.isWarmup }.count
+            acc + ex.completedWorkingSets.count
         }
     }
 }

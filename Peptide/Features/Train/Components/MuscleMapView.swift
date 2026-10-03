@@ -37,6 +37,8 @@ enum MuscleHighlight: Hashable, Sendable {
 /// workout finish the view stays at 60fps on small phones.
 struct MuscleMapView: View {
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let highlights: [AnatomicalMuscle: MuscleHighlight]
     var orientation: Orientation = .both
     // The app's accent, not a hardcoded red/blue pair. Atlas ships five
@@ -86,7 +88,7 @@ struct MuscleMapView: View {
     var body: some View {
         // Prefer the photoreal asset pack when it's bundled; otherwise
         // draw the vector figure. Same API either way — see AnatomyAssets.
-        if AnatomyAssets.isAvailable {
+        if TrainingAnatomy.isAvailable || AnatomyAssets.isAvailable {
             assetMap
         } else {
             vectorMap
@@ -151,6 +153,21 @@ struct MuscleMapView: View {
     }
 
     private func identify(at point: CGPoint, facing: Facing, size: CGSize) {
+        if TrainingAnatomy.isAvailable {
+            let width = min(size.width, size.height * TrainingAnatomy.aspect)
+            let height = width / TrainingAnatomy.aspect
+            let rect = CGRect(x: (size.width - width) / 2, y: (size.height - height) / 2,
+                              width: width, height: height)
+            let hit = AnatomicalMuscle.allCases.last {
+                $0.isBack == (facing == .back) && TrainingAnatomy.path(for: $0, in: rect).contains(point)
+            }
+            if let onIdentify {
+                if let hit { onIdentify(hit) }
+            } else {
+                identified = hit
+            }
+            return
+        }
         let scale = min(size.width, size.height / 2.4)
         guard scale > 0 else { return }
         let xOffset = (size.width - scale) / 2
@@ -192,13 +209,15 @@ struct MuscleMapView: View {
                     .accessibilityLabel(accessibilityLabel(for: .back))
             }
         }
-        .aspectRatio(orientation == .both ? BodyAnatomy.aspect * 2 : BodyAnatomy.aspect,
+        .aspectRatio((TrainingAnatomy.isAvailable ? TrainingAnatomy.aspect : BodyAnatomy.aspect) * (orientation == .both ? 2 : 1),
                      contentMode: .fit)
         .overlay(alignment: .top) { identifyLabel }
     }
 
     private func assetFigure(facing: Facing) -> some View {
-        let base = facing == .front ? AnatomyAssets.bodyFront : AnatomyAssets.bodyBack
+        let base = TrainingAnatomy.isAvailable
+            ? (facing == .front ? TrainingAnatomy.front : TrainingAnatomy.back)
+            : (facing == .front ? AnatomyAssets.bodyFront : AnatomyAssets.bodyBack)
         let muscles = facing == .front
             ? AnatomicalMuscle.allCases.filter { !$0.isBack }
             : AnatomicalMuscle.allCases.filter { $0.isBack }
@@ -220,15 +239,20 @@ struct MuscleMapView: View {
                         .scaledToFit()
                         .colorMultiply(tintColor(for: highlight))
                         .opacity(tintStrength(for: highlight))
-                        .mask(
-                            Image(AnatomyAssets.mask(for: muscle))
-                                .resizable()
-                                .scaledToFit()
-                        )
+                        .mask {
+                            if TrainingAnatomy.isAvailable {
+                                TrainingMuscleShape(muscle: muscle)
+                                    .aspectRatio(TrainingAnatomy.aspect, contentMode: .fit)
+                            } else {
+                                Image(AnatomyAssets.mask(for: muscle))
+                                    .resizable()
+                                    .scaledToFit()
+                            }
+                        }
                 }
             }
         }
-        .animation(AppAnimation.springSmooth, value: highlights)
+        .animation(reduceMotion ? nil : AppAnimation.springSmooth, value: highlights)
     }
 
     /// Hue a trained muscle takes on in the asset renderer.

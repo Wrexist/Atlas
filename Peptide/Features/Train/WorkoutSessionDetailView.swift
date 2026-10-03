@@ -24,18 +24,11 @@ struct WorkoutSessionDetailView: View {
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
     @State private var library = ExerciseLibrary.shared
 
-    private var muscleHighlights: [AnatomicalMuscle: MuscleHighlight] {
-        let exercises = session.exercises.compactMap { library.lookup(id: $0.exerciseID) }
-        return MuscleMapView.highlights(forExercises: exercises)
-    }
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 header
-                MuscleMapView(highlights: muscleHighlights)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 320)
+                SessionMuscleCard(session: session)
                 statsRow
                 if let effort = session.perceivedEffort {
                     perceivedEffortChip(effort)
