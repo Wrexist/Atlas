@@ -252,6 +252,8 @@ struct WorkoutSessionDetailView: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             let exercise = library.lookup(id: entry.exerciseID)
             HStack {
+                ExerciseImageView(exercise: exercise)
+                    .frame(width: 44, height: 44)
                 Text(exercise?.name ?? entry.exerciseID)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)

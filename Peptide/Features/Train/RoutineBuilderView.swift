@@ -135,6 +135,7 @@ struct RoutineBuilderView: View {
         List {
             ForEach(routine.exercises.sorted { $0.index < $1.index }) { slot in
                 RoutineSlotRow(
+                    exercise: library.lookup(id: slot.exerciseID),
                     name: name(of: slot.exerciseID),
                     detail: detail(of: slot.exerciseID),
                     sets: slot.targetSets,
@@ -263,6 +264,7 @@ struct RoutineBuilderView: View {
 /// entry point — a full-width tap target for the row itself would fight
 /// the drag handle that edit mode puts on every row here.
 private struct RoutineSlotRow: View {
+    let exercise: Exercise?
     let name: String
     let detail: String
     let sets: Int
@@ -271,11 +273,13 @@ private struct RoutineSlotRow: View {
 
     var body: some View {
         HStack(spacing: Spacing.md) {
+            ExerciseImageView(exercise: exercise)
+                .frame(width: 44, height: 44)
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(name)
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(detail)
                     .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)

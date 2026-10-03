@@ -173,6 +173,10 @@ final class ScreenshotTests: XCTestCase {
 
     private func reveal(_ element: XCUIElement) {
         XCTAssertTrue(element.waitForExistence(timeout: 10))
+        // Keyboard dismissal can leave earlier rows above the viewport. Start
+        // from the top before searching downward, rather than swiping those
+        // rows farther offscreen on every attempt.
+        if !element.isHittable { scrollToTop() }
         for _ in 0..<6 {
             if element.isHittable { return }
             app.swipeUp()
