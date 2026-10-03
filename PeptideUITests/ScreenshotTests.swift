@@ -157,8 +157,12 @@ final class ScreenshotTests: XCTestCase {
         for appearance in ["light", "dark"] {
             launch(appearance: appearance)
             dismissOverlaysIfNeeded()
-            app.tabBars.buttons["Train"].tap()
+            let train = app.tabBars.buttons["Train"]
+            XCTAssertTrue(train.waitForExistence(timeout: 10))
+            train.tap()
             dismissOverlaysIfNeeded()
+            if !train.isSelected { train.tap() }
+            XCTAssertTrue(train.isSelected)
             let period = app.segmentedControls["training-map-period"]
             XCTAssertTrue(period.waitForExistence(timeout: 10))
             period.buttons["Today"].tap()
@@ -340,6 +344,12 @@ final class ScreenshotTests: XCTestCase {
         let notNow = app.buttons["Not now"]
         if notNow.waitForExistence(timeout: 0.5) {
             notNow.tap()
+        }
+        // On compact phones the demo reminder overlaps the tab bar. Hide
+        // only the reminder; tapping its main body would exit demo mode.
+        let hideReminder = app.buttons["Hide screenshot mode reminder"]
+        if hideReminder.waitForExistence(timeout: 0.5) {
+            hideReminder.tap()
         }
     }
 
