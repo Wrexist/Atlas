@@ -1,11 +1,6 @@
 import SwiftUI
 
-/// Full-screen drill-in for a single exercise. Header carousel, raw
-/// metadata pills (force, mechanic, level), muscle breakdown, and
-/// step-by-step instructions. The "Add to workout" CTA is disabled
-/// until the active-workout screen lands in a follow-on commit; it
-/// appears in the layout so the surface design is final at this
-/// stage.
+/// Shared exercise artwork, metadata, muscle breakdown and instructions.
 struct ExerciseDetailView: View {
     let exerciseID: String
     @State private var library = ExerciseLibrary.shared
@@ -42,7 +37,7 @@ struct ExerciseDetailView: View {
 
     private func header(for exercise: Exercise) -> some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            imageCarousel(for: exercise)
+            exerciseArtwork(for: exercise)
                 .frame(height: 240)
 
             Text(exercise.name)
@@ -53,45 +48,16 @@ struct ExerciseDetailView: View {
         .padding(.top, Spacing.sm)
     }
 
-    @ViewBuilder
-    private func imageCarousel(for exercise: Exercise) -> some View {
-        if ExerciseVisualAssets.poster(for: exercise.id) != nil {
-            ExerciseHeroView(exercise: exercise)
-        } else if exercise.images.isEmpty {
-            ExerciseImageView(
-                imagePath: nil,
-                muscleGroup: exercise.muscleGroup,
-                cornerRadius: Spacing.cardCornerRadius,
-                contentMode: .fit
-            )
-        } else if exercise.images.count == 1 {
-            ExerciseImageView(
-                imagePath: exercise.images[0],
-                muscleGroup: exercise.muscleGroup,
-                cornerRadius: Spacing.cardCornerRadius
-            )
-        } else {
-            // Two images per bundled exercise — start + end position.
-            // TabView paging gives a swipe affordance that beats
-            // stacking the frames in a vertical strip.
-            TabView {
-                ForEach(Array(exercise.images.enumerated()), id: \.offset) { _, path in
-                    ExerciseImageView(
-                        imagePath: path,
-                        muscleGroup: exercise.muscleGroup,
-                        cornerRadius: Spacing.cardCornerRadius
-                    )
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .always))
-            .indexViewStyle(.page(backgroundDisplayMode: .always))
-        }
+    private func exerciseArtwork(for exercise: Exercise) -> some View {
+        ExerciseHeroView(exercise: exercise)
+            .padding(Spacing.md)
+            .background(AppColor.trainingBackground, in: RoundedRectangle(cornerRadius: Spacing.cardCornerRadius))
     }
 
     // MARK: - Metadata pills
 
     private func metadataRow(for exercise: Exercise) -> some View {
-        HStack(spacing: Spacing.xs) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), alignment: .leading)], alignment: .leading, spacing: Spacing.xs) {
             metadataPill(
                 icon: exercise.equipmentKind.symbolName,
                 label: exercise.equipmentKind.displayName

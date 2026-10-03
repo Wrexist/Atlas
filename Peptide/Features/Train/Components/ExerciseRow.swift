@@ -11,8 +11,7 @@ struct ExerciseRow: View {
     var body: some View {
         HStack(spacing: Spacing.md) {
             ExerciseImageView(
-                imagePath: exercise.images.first,
-                muscleGroup: exercise.muscleGroup
+                exercise: exercise
             )
             .frame(width: 56, height: 56)
 

@@ -120,12 +120,55 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    func test_captureExerciseRollout() {
+        test_captureWorkoutFocus()
+        for appearance in ["light", "dark"] {
+            launch(appearance: appearance)
+            dismissOverlaysIfNeeded()
+            app.tabBars.buttons["Train"].tap()
+            dismissOverlaysIfNeeded()
+            let start = app.buttons["Start workout"]
+            reveal(start)
+            start.tap()
+            for name in ["Barbell Full Squat", "Dumbbell Bicep Curl", "Pullups", "90/90 Hamstring"] {
+                let add = app.buttons["Add exercise"].firstMatch
+                reveal(add)
+                add.tap()
+                let search = app.searchFields.firstMatch
+                XCTAssertTrue(search.waitForExistence(timeout: 10))
+                search.tap()
+                search.typeText(name)
+                let result = app.staticTexts[name].firstMatch
+                XCTAssertTrue(result.waitForExistence(timeout: 10))
+                result.tap()
+                app.buttons["Add (1)"].tap()
+                XCTAssertTrue(app.buttons["Add set"].waitForExistence(timeout: 10))
+                scrollToTop()
+                capture(named: "catalog-\(appearance)-\(name.replacingOccurrences(of: "/", with: "-"))")
+            }
+            app.buttons["Workout options"].tap()
+            app.buttons["Discard workout"].tap()
+            app.alerts.buttons["Discard"].tap()
+            app.terminate()
+        }
+    }
+
     private func replaceField(_ identifier: String, with value: String) {
         let field = app.textFields[identifier]
         reveal(field)
         field.tap()
-        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20) + value)
+        field.press(forDuration: 1.2)
+        let selectAll = app.menuItems["Select All"]
+        if selectAll.waitForExistence(timeout: 2) {
+            selectAll.tap()
+        } else {
+            // Numeric fields can select their entire single token on double tap.
+            field.doubleTap()
+        }
+        field.typeText(value)
         app.buttons["Done"].firstMatch.tap()
+        let stored = (field.value as? String ?? "").replacingOccurrences(of: " reps", with: "")
+        XCTAssertTrue(stored == value || stored.hasPrefix(value + " "), "Expected \(value), found \(stored)")
     }
 
     private func reveal(_ element: XCUIElement) {

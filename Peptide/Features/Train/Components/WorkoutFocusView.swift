@@ -22,7 +22,7 @@ struct WorkoutFocusView: View {
                 VStack(spacing: Spacing.md) {
                     if let entry {
                         ExerciseHeroView(exercise: exercise)
-                            .frame(height: dynamicTypeSize.isAccessibilitySize ? 144 : max(160, min(280, geometry.size.height * 0.32)))
+                            .frame(height: heroHeight(available: geometry.size.height))
                             .padding(.top, Spacing.sm)
                         exerciseStrip
                         setPanel(entry)
@@ -55,6 +55,12 @@ struct WorkoutFocusView: View {
         }
     }
 
+    private func heroHeight(available: CGFloat) -> CGFloat {
+        if dynamicTypeSize.isAccessibilitySize { return 120 }
+        let expandedHeader = session.isPaused || session.focus?.rest != nil
+        return max(120, min(expandedHeader ? 190 : 250, available * (expandedHeader ? 0.23 : 0.30)))
+    }
+
     private var exerciseStrip: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
@@ -82,9 +88,7 @@ struct WorkoutFocusView: View {
             Haptics.selection()
         } label: {
             ExerciseImageView(
-                imagePath: exercise?.images.first,
-                muscleGroup: exercise?.muscleGroup ?? .fullBody,
-                contentMode: .fit
+                exercise: exercise
             )
             .frame(width: 56, height: 56)
             .clipShape(Circle())
@@ -94,7 +98,8 @@ struct WorkoutFocusView: View {
             .overlay(alignment: .bottomTrailing) {
                 if complete {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(AppColor.trainingComplete)
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(AppColor.onAccent, AppColor.trainingComplete)
                         .background(Circle().fill(AppColor.trainingPanel))
                         .accessibilityHidden(true)
                 }
@@ -253,7 +258,7 @@ private struct WorkoutFocusMetrics: View {
     }
 
     @ViewBuilder private var metrics: some View {
-        Label("\(session.completedSetCount) sets", systemImage: "checkmark.circle")
+        Label(session.completedSetCount == 1 ? "1 set" : "\(session.completedSetCount) sets", systemImage: "checkmark.circle")
         Label("\(Int(unit.weightForDisplay(session.totalVolumeKg).rounded())) \(unit.weightSuffix)", systemImage: "scalemass")
             .accessibilityLabel(Text("Volume: \(Int(unit.weightForDisplay(session.totalVolumeKg).rounded())) \(unit.weightSuffix)"))
         TimelineView(.periodic(from: .now, by: 1)) { context in

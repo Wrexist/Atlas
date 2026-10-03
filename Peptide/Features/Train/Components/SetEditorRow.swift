@@ -193,9 +193,11 @@ struct SetEditorRow: View {
         } label: {
             Image(systemName: set.completed ? "checkmark.circle.fill" : (focusStyle ? "checkmark.circle" : "circle"))
                 .font(AppFont.scaled(24, weight: .semibold))
-                .foregroundStyle(set.completed
-                                 ? (focusStyle ? AppColor.trainingComplete : AppColor.positive)
-                                 : AppColor.textTertiary)
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(
+                    set.completed ? AppColor.onAccent : AppColor.textTertiary,
+                    set.completed ? (focusStyle ? AppColor.trainingComplete : AppColor.positive) : AppColor.textTertiary
+                )
                 .frame(width: 32, height: 32)
                 .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
                 .minimumHitArea()

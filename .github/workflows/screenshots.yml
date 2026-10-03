@@ -50,6 +50,9 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
+      - name: Validate exercise artwork catalog
+        run: python3 scripts/exercise-art-catalog.py --check
+
       - name: Pick a simulator
         # This workflow has never once run, so its hardcoded "iPhone 16"
         # default was never verified to exist on the runner's Xcode — and an
