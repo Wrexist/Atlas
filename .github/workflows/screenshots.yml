@@ -89,6 +89,7 @@ jobs:
       - name: Validate training logic
         run: |
           xcodebuild test \
+            -parallel-testing-enabled NO \
             -project Peptide.xcodeproj \
             -scheme PeptideTrainingValidation \
             -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.id }}" \
@@ -101,6 +102,7 @@ jobs:
           TEST_FILTER: ${{ inputs.test_filter }}
         run: |
           xcodebuild test \
+            -parallel-testing-enabled NO \
             -project Peptide.xcodeproj \
             -scheme PeptideUICapture \
             -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.id }}" \
