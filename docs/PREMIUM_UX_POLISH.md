@@ -77,6 +77,10 @@ interaction pass, not every uncommitted animation change in the workspace.
    verified on this Windows host. Xcode/Simulator are absent. The last macOS
    Actions attempt was refused by GitHub's account billing lock before any steps.
    No new native screenshot is represented as captured here.
+   The attempt for implementation commit `7a57dc8` is
+   https://github.com/Wrexist/Atlas/actions/runs/37204718053 (job 111443407318).
+   Its annotation reads: "The job was not started because your account is locked
+   due to a billing issue." It contains no executed steps or screenshots.
 2. Run `xcodegen generate`, then the Peptide test scheme for
    WorkoutFocusServiceTests and ExerciseBrowsingStateTests. Run PeptideUICapture
    with ScreenshotTests/test_captureWorkoutFocus and
