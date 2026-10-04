@@ -125,6 +125,7 @@ struct MealScanFlow: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") {
+                        guard draftGeneration == MealScanDraftStore.shared.generation else { onClose(); return }
                         if phase == .logged { finishLogged() }
                         else if phase != .review && phase != .saveError || persistDraft() { onClose() }
                     }
@@ -724,6 +725,7 @@ struct MealScanFlow: View {
     }
 
     private func loadDraft() {
+        guard draftGeneration == MealScanDraftStore.shared.generation else { onClose(); return }
         guard !checkedDraft else { return }
         checkedDraft = true
         #if DEBUG
@@ -778,6 +780,7 @@ struct MealScanFlow: View {
     }
 
     private func discardDraft() {
+        guard draftGeneration == MealScanDraftStore.shared.generation else { onClose(); return }
         do {
             if !dataStore.isEphemeral { try MealScanDraftStore.shared.discard() }
             phase = .pickImage
@@ -970,6 +973,7 @@ struct MealScanFlow: View {
     }
 
     private func finishLogged() {
+        guard draftGeneration == MealScanDraftStore.shared.generation else { onClose(); return }
         do {
             if !dataStore.isEphemeral { try MealScanDraftStore.shared.discard() }
             phase = .pickImage
@@ -1031,6 +1035,8 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
     let originalPer100g: ScannedProduct.Nutriments
     var nutritionEdited = false
     var replacementSourceID: String?
+    var replacementServingGrams: Double?
+    var replacementServingLabel: String?
     var replacedName: String?
     var replacedQuantityLabel: String?
     var grams: Double
@@ -1074,8 +1080,9 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
 
     var component: MealFoodComponent {
         MealFoodComponent(id: id.uuidString, name: name, grams: grams,
-                          servingGrams: replacementSourceID == nil ? aiGrams : nil,
-                          servingLabel: quantityLabel.nilIfEmpty, per100g: per100g, sourceID: replacementSourceID)
+                          servingGrams: replacementSourceID == nil ? aiGrams : replacementServingGrams,
+                          servingLabel: replacementSourceID == nil ? quantityLabel.nilIfEmpty : replacementServingLabel,
+                          per100g: per100g, sourceID: replacementSourceID)
     }
 
     init(from item: MealScannerService.ScannedFoodItem) {
@@ -1122,6 +1129,8 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
     mutating func resetNutrition() {
         per100g = originalPer100g
         replacementSourceID = nil
+        replacementServingGrams = nil
+        replacementServingLabel = nil
         if let replacedName { name = replacedName }
         if let replacedQuantityLabel { quantityLabel = replacedQuantityLabel }
         replacedName = nil
@@ -1135,6 +1144,8 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         name = product.name
         per100g = product.per100g
         replacementSourceID = product.barcode
+        replacementServingGrams = product.servingGrams
+        replacementServingLabel = product.servingSizeText
         quantityLabel = ""
         portionMode = .grams
         nutritionEdited = true

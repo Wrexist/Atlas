@@ -50,6 +50,8 @@ Added focused XCTest coverage for draft round-trip (including corrections/exclus
 
 Added a screenshot/UI route using only explicit screenshot-mode fixtures (no upload or real storage). It captures draft recovery, review, exact portions, and logged/Undo, then verifies return to review. Run selector: `ScreenshotTests/test_captureFoodReviewRecovery`.
 
+Native verification was attempted for commit `7232330`: [run 37233282069](https://github.com/Wrexist/Atlas/actions/runs/37233282069), job/check `111527286651`. It failed before any steps with the annotation: “The job was not started because your account is locked due to a billing issue.” No build, XCTest, camera verification, or screenshot capture ran. A subsequent focused fix prevents an old open scanner from closing/deleting another account's draft after an identity switch; that fix also remains native-unverified.
+
 ## Remaining verification, highest priority first
 
 1. Build and run MealScanRecoveryTests, existing food/recipe/persistence suites, and the screenshot route on macOS. This Windows environment has no Xcode; the most recent prior native run was blocked by GitHub billing before any steps.
