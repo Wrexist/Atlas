@@ -85,8 +85,12 @@ final class ScreenshotMode {
 
     private func applyDemo(to dataStore: DataStore) {
         let seed = ScreenshotSeedData.build()
+        var profile = seed.profile
+        #if DEBUG
+        if WorkoutRecapFixture.isRequested { profile.bodyMetrics.unit = .imperial }
+        #endif
         dataStore.enterEphemeralMode(
-            profile: seed.profile,
+            profile: profile,
             protocols: seed.protocols,
             entries: seed.entries
         )

@@ -3,6 +3,8 @@ import Foundation
 /// Optional on older sessions. Stored separately from the exercise payload so
 /// adding the focus experience never changes existing set IDs or history.
 struct WorkoutFocusState: Codable, Hashable, Sendable {
+    enum Timing: String, Codable, Sendable { case tracked, notTracked, unavailable }
+    var timing: Timing?
     var selectedEntryID: UUID?
     var pausedAt: Date?
     var pausedSeconds: TimeInterval = 0

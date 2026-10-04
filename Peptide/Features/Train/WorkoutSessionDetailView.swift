@@ -10,7 +10,7 @@ import SwiftUI
 /// re-running ingest (which would mutate the records and return
 /// empty on re-open — same bug we fixed in WorkoutFinishView).
 struct WorkoutSessionDetailView: View {
-    let session: WorkoutSession
+    @State var session: WorkoutSession
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
     @State private var sessionService = WorkoutSessionService.shared
@@ -20,6 +20,7 @@ struct WorkoutSessionDetailView: View {
     @State private var routineNameDraft = ""
     @State private var savedRoutineName: String?
     @State private var showingActiveWorkoutConflict = false
+    @State private var showingEditor = false
 
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
     @State private var library = ExerciseLibrary.shared
@@ -42,6 +43,14 @@ struct WorkoutSessionDetailView: View {
             .padding(.vertical, Spacing.lg)
         }
         .background(AppColor.background.ignoresSafeArea())
+        .sheet(isPresented: $showingEditor) {
+            WorkoutSavedEditor(session: session, unit: unit) { edited in
+                try SwiftDataRepository.shared.saveWorkoutDurably(edited)
+                let affected = Set((session.exercises + edited.exercises).map(\.exerciseID))
+                session = edited
+                dataStore.workoutWasEdited(exerciseIDs: affected)
+            }
+        }
         .navigationTitle(session.name ?? "Workout")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -80,6 +89,7 @@ struct WorkoutSessionDetailView: View {
 
     private var optionsMenu: some View {
         Menu {
+            Button("Edit workout", systemImage: "pencil") { showingEditor = true }
             Button {
                 repeatWorkout()
             } label: {

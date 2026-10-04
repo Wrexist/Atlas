@@ -31,6 +31,20 @@ enum SetEntryLimits {
 }
 
 struct SetEntry: Codable, Hashable, Identifiable, Sendable {
+    /// Optional additive metadata. Older records retain recorded-load × reps;
+    /// equipment names never imply a multiplier.
+    struct Measurement: Codable, Hashable, Sendable {
+        enum Kind: String, Codable, CaseIterable, Sendable {
+            case repetitions, bodyweight, timed, distance, assisted
+        }
+        enum Load: String, Codable, CaseIterable, Sendable {
+            case recorded, total, eachPair, perSide
+        }
+        var kind: Kind = .repetitions
+        var load: Load = .recorded
+        var seconds: Double?
+        var meters: Double?
+    }
     let id: UUID
     /// Position within the parent exercise's set list — 1-indexed for
     /// display. Sets are sorted by `index` on read; mutating the index
@@ -53,6 +67,7 @@ struct SetEntry: Codable, Hashable, Identifiable, Sendable {
     /// Wall-clock timestamp the set was checked off. Nil until completed.
     /// Used to compute realized rest intervals for future analytics.
     var completedAt: Date?
+    var measurement: Measurement?
 
     init(
         id: UUID = UUID(),
@@ -63,7 +78,8 @@ struct SetEntry: Codable, Hashable, Identifiable, Sendable {
         note: String? = nil,
         completed: Bool = false,
         isWarmup: Bool = false,
-        completedAt: Date? = nil
+        completedAt: Date? = nil,
+        measurement: Measurement? = nil
     ) {
         self.id = id
         self.index = index
@@ -74,21 +90,32 @@ struct SetEntry: Codable, Hashable, Identifiable, Sendable {
         self.completed = completed
         self.isWarmup = isWarmup
         self.completedAt = completedAt
+        self.measurement = measurement
     }
 
     /// Volume contribution of this set: `weight * reps`, in kg. Zero
     /// for incomplete or warm-up sets so the volume aggregate sums to
     /// the user's working volume only.
     var volumeKg: Double {
-        guard completed, !isWarmup else { return 0 }
-        return weightKg * Double(reps)
+        externalVolumeKg ?? 0
+    }
+
+    var externalVolumeKg: Double? {
+        guard completed, !isWarmup, weightKg.isFinite, weightKg > 0, reps > 0,
+              measurement == nil || measurement?.kind == .repetitions || measurement?.kind == .bodyweight
+        else { return nil }
+        // Per-side records describe one side's recorded reps, not an implied pair.
+        let multiplier = measurement?.load == .eachPair ? 2.0 : 1.0
+        let result = weightKg * Double(reps) * multiplier
+        return result.isFinite ? result : nil
     }
 
     /// Epley 1RM estimate for the working load. Returns `nil` for
     /// warm-up sets, incomplete sets, or 0 reps so callers don't have
     /// to special-case those branches.
     var estimatedOneRepMaxKg: Double? {
-        guard completed, !isWarmup, reps > 0, weightKg > 0 else { return nil }
+        guard completed, !isWarmup, reps > 0, weightKg > 0,
+              measurement == nil || measurement?.kind == .repetitions else { return nil }
         if reps == 1 { return weightKg }
         return weightKg * (1.0 + Double(reps) / 30.0)
     }

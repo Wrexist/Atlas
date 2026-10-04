@@ -1534,7 +1534,8 @@ final class DataStore {
             finishedAt: finishedAt,
             exercises: [],
             note: "Quick-log · \(entry.sets) sets × \(entry.reps) reps",
-            perceivedEffort: nil
+            perceivedEffort: nil,
+            focus: WorkoutFocusState(timing: entry.durationMinutes > 0 ? .tracked : .notTracked)
         )
         repo.beginSaveBatch()
         repo.upsertWorkoutSession(session)
@@ -1614,6 +1615,15 @@ final class DataStore {
     /// `recordWorkoutFinished`, applied to the out-of-process snapshot.
     func refreshTrainingGlanceables() {
         updateWidgetData()
+    }
+
+    /// Editing changes derived records and totals, but earns no second reward.
+    func workoutWasEdited(exerciseIDs: Set<String>) {
+        PRDetectionEngine.shared.recompute(exerciseIDs: exerciseIDs)
+        cacheVersion &+= 1
+        revision &+= 1
+        updateWidgetData()
+        updateWatchData()
     }
 
     /// (count, totalMinutes) for workout sessions logged on `date`'s

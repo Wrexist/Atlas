@@ -1,0 +1,50 @@
+import Foundation
+
+@MainActor @Observable
+final class WorkoutRecapStore {
+    private(set) var session: WorkoutSession
+    private(set) var summary: WorkoutRecapEngine.Summary?
+    private(set) var week: WorkoutRecapEngine.Week?
+    private(set) var metadataUnavailable = false
+    private(set) var historyUnavailable = false
+
+    init(session: WorkoutSession) { self.session = session }
+
+    func load() async {
+        let library = ExerciseLibrary.shared
+        await library.load()
+        refresh()
+    }
+
+    private func refresh() {
+        let library = ExerciseLibrary.shared
+        let repo = SwiftDataRepository.shared
+        library.attachCustomExercises(repo.loadCustomExercises())
+        if let saved = repo.loadWorkoutSession(id: session.id) { session = saved }
+        let now = Date()
+        var history: [WorkoutSession] = []
+        historyUnavailable = false
+        if let interval = Calendar.current.dateInterval(of: .weekOfYear, for: now) {
+            do { history = try repo.loadWorkoutRecapWeek(in: interval.start..<interval.end) }
+            catch { historyUnavailable = true }
+        } else { historyUnavailable = true }
+        var catalog: [String: Exercise] = [:]
+        for id in Set((history + [session]).flatMap { $0.exercises.map(\.exerciseID) }) {
+            catalog[id] = library.lookup(id: id)
+        }
+        metadataUnavailable = !library.isLoaded
+        summary = WorkoutRecapEngine.derive(session, catalog: catalog)
+        week = historyUnavailable ? nil : WorkoutRecapEngine.week(sessions: history, catalog: catalog, now: now)
+    }
+
+    func saveEdits(_ edited: WorkoutSession) throws {
+        guard edited.id == session.id, edited.finishedAt != nil else {
+            throw SwiftDataRepository.WorkoutSaveError.failed
+        }
+        try SwiftDataRepository.shared.saveWorkoutDurably(edited)
+        let affected = Set((session.exercises + edited.exercises).map(\.exerciseID))
+        session = edited
+        DataStore.current?.workoutWasEdited(exerciseIDs: affected)
+        refresh()
+    }
+}

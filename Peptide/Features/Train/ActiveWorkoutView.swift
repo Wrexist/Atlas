@@ -23,6 +23,10 @@ struct ActiveWorkoutView: View {
     @State private var workoutName: String = ""
     @FocusState private var nameFieldFocused: Bool
     @State private var showOverview = false
+    @State private var saving = false
+    @State private var saveError: String?
+    @State private var pendingEffort: Int?
+    @State private var pendingNote: String?
 
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
 
@@ -32,7 +36,11 @@ struct ActiveWorkoutView: View {
 
     var body: some View {
         NavigationStack {
-            if let session = sessionService.activeSession {
+            if saving || saveError != nil {
+                WorkoutSaveStatusView(saving: saving, error: saveError,
+                    retry: { finish(perceivedEffort: pendingEffort, note: pendingNote) },
+                    returnToWorkout: { sessionService.cancelFinishAttempt(); saveError = nil })
+            } else if let session = sessionService.activeSession {
                 content(for: session)
             } else if let finished = finishedSession {
                 WorkoutFinishView(
@@ -47,6 +55,7 @@ struct ActiveWorkoutView: View {
                 noActiveSession
             }
         }
+        .interactiveDismissDisabled(saving || saveError != nil)
         // Keep the presenter alive when finishing replaces the active content
         // with the summary. A sheet attached to content(for:) vanished with
         // that branch and its dismiss action could close the workout cover.
@@ -108,20 +117,31 @@ struct ActiveWorkoutView: View {
     }
 
     private func finish(perceivedEffort: Int?, note: String?) {
+        guard !saving else { return }
         // Persist the latest workout-name edit FIRST — the .onSubmit-only
         // binding meant a user who typed "Push Day A" then tapped Finish
         // without hitting Return saved the session with a nil name (audit
         // Train C3).
         commitWorkoutName()
-        guard let finished = sessionService.finishWorkout(perceivedEffort: perceivedEffort, note: note)
-        else { return }
-        finishedSession = finished.session
-        finishedPRs = finished.detectedPRs
+        pendingEffort = perceivedEffort
+        pendingNote = note
         showFinishSheet = false
-        isReviewMoment = ReviewPromptService.isWorkoutReviewMoment(
-            detectedPRCount: finished.detectedPRs.count,
-            completedWorkoutCount: SwiftDataRepository.shared.workoutSessionCount()
-        )
+        saveError = nil
+        saving = true
+        Task { @MainActor in
+            await Task.yield()
+            if let finished = sessionService.finishWorkout(perceivedEffort: perceivedEffort, note: note) {
+                finishedSession = finished.session
+                finishedPRs = finished.detectedPRs
+                isReviewMoment = ReviewPromptService.isWorkoutReviewMoment(
+                    detectedPRCount: finished.detectedPRs.count,
+                    completedWorkoutCount: SwiftDataRepository.shared.workoutSessionCount())
+            } else {
+                saveError = sessionService.lastFinishError ?? "Could not save workout. Return to your workout and try again."
+                AccessibilityNotification.Announcement("Could not save workout").post()
+            }
+            saving = false
+        }
     }
 
     private func syncNameFromSession() {
@@ -394,7 +414,6 @@ private struct FinishWorkoutSheet: View {
                     noteSection
 
                     PrimaryCTAButton(title: "Finish workout", icon: "checkmark") {
-                        Haptics.success()
                         onFinish(effort, trimmedNote)
                     }
                     .accessibilityIdentifier("confirm-finish-workout")

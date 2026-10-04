@@ -35,6 +35,106 @@ final class ScreenshotTests: XCTestCase {
 
     // MARK: - Passes
 
+    func test_captureWorkoutCompletion() {
+        openCompletedFixture(appearance: "dark")
+        capture(named: "completion-01-summary")
+        app.buttons["Edit"].tap()
+        let name = app.textFields["Workout name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        name.typeText(" reviewed")
+        app.buttons["save-workout-edits"].tap()
+        XCTAssertTrue(app.staticTexts["Push Workout reviewed"].waitForExistence(timeout: 5))
+        let exercises = app.buttons["recap-exercises"]
+        reveal(exercises)
+        exercises.tap()
+        XCTAssertTrue(app.navigationBars["Exercises"].waitForExistence(timeout: 5))
+        capture(named: "completion-03-exercises")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let muscles = app.buttons["recap-muscles"]
+        reveal(muscles)
+        muscles.tap()
+        XCTAssertTrue(app.navigationBars["Muscle details"].waitForExistence(timeout: 5))
+        capture(named: "completion-02-muscle-map")
+        app.segmentedControls.buttons["Muscle list"].tap()
+        capture(named: "completion-02b-muscle-list")
+        let triceps = app.buttons["recap-muscle-triceps"]
+        reveal(triceps)
+        triceps.tap()
+        XCTAssertTrue(app.navigationBars["Triceps"].waitForExistence(timeout: 5))
+        capture(named: "completion-02c-contributions")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        scrollToTop()
+        app.buttons["recap-weekly"].tap()
+        XCTAssertTrue(app.navigationBars["This week"].waitForExistence(timeout: 5))
+        capture(named: "completion-07-weekly")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.buttons["Share workout"].tap()
+        XCTAssertTrue(app.navigationBars["Share workout"].waitForExistence(timeout: 5))
+        capture(named: "completion-08-share-preview")
+        let share = app.buttons["Share"].firstMatch
+        reveal(share)
+        share.tap()
+        XCTAssertTrue(app.otherElements["ActivityListView"].waitForExistence(timeout: 10))
+        app.swipeDown()
+        app.buttons["Close"].firstMatch.tap()
+        app.buttons["recap-done"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Train"].waitForExistence(timeout: 5))
+    }
+
+    func test_captureWorkoutCompletionLayouts() {
+        for appearance in ["light", "dark"] {
+            openCompletedFixture(appearance: appearance, arguments: appearance == "dark" ? [
+                "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL", "--completion-long-name"
+            ] : [])
+            XCTAssertTrue(app.buttons["recap-done"].isHittable)
+            capture(named: "completion-layout-\(appearance)")
+            let muscles = app.buttons["recap-muscles"]
+            reveal(muscles)
+            XCTAssertTrue(muscles.isHittable)
+            capture(named: "completion-layout-\(appearance)-scrolled")
+            app.buttons["recap-done"].tap()
+            app.terminate()
+        }
+    }
+
+    func test_captureWorkoutCompletionSaveError() {
+        launch(appearance: "dark", extraArguments: ["--completion-fixture", "--completion-save-failure"])
+        dismissOverlaysIfNeeded()
+        app.tabBars.buttons["Train"].tap()
+        let options = app.buttons["workout-options"]
+        XCTAssertTrue(options.waitForExistence(timeout: 15))
+        options.tap()
+        app.buttons["Finish workout"].firstMatch.tap()
+        let finish = app.buttons["confirm-finish-workout"]
+        XCTAssertTrue(finish.waitForExistence(timeout: 10))
+        reveal(finish)
+        finish.tap()
+        XCTAssertTrue(app.navigationBars["Save error"].waitForExistence(timeout: 10))
+        capture(named: "completion-05-real-save-error")
+        XCTAssertFalse(app.staticTexts["Workout saved"].exists)
+        app.buttons["Retry"].tap()
+        XCTAssertTrue(app.staticTexts["Workout saved"].waitForExistence(timeout: 10))
+        capture(named: "completion-05b-retry-success")
+        app.buttons["recap-done"].tap()
+    }
+
+    private func openCompletedFixture(appearance: String, arguments: [String] = []) {
+        launch(appearance: appearance, extraArguments: ["--completion-fixture"] + arguments)
+        dismissOverlaysIfNeeded()
+        app.tabBars.buttons["Train"].tap()
+        let options = app.buttons["workout-options"]
+        XCTAssertTrue(options.waitForExistence(timeout: 15))
+        options.tap()
+        app.buttons["Finish workout"].firstMatch.tap()
+        let finish = app.buttons["confirm-finish-workout"]
+        XCTAssertTrue(finish.waitForExistence(timeout: 10))
+        reveal(finish)
+        finish.tap()
+        XCTAssertTrue(app.staticTexts["Workout saved"].waitForExistence(timeout: 15))
+    }
+
     func test_captureAllTabs() {
         launch(appearance: "dark")
         captureAllTabs(prefix: "dark")
@@ -223,8 +323,8 @@ final class ScreenshotTests: XCTestCase {
             // sheet's fold. Scroll inside the visible sheet before tapping.
             app.swipeUp()
             finish.tap()
-            XCTAssertTrue(app.staticTexts["Workout complete"].firstMatch.waitForExistence(timeout: 10))
-            let summaryDone = app.buttons["workout-summary-done"]
+            XCTAssertTrue(app.staticTexts["Workout saved"].firstMatch.waitForExistence(timeout: 10))
+            let summaryDone = app.buttons["recap-done"]
             XCTAssertTrue(summaryDone.waitForExistence(timeout: 5))
             capture(named: "body-\(appearance)-05-completed")
             summaryDone.tap()

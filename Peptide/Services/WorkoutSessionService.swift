@@ -15,6 +15,8 @@ final class WorkoutSessionService {
     /// methods below so external code doesn't reach in and break the
     /// "one active session at a time" invariant.
     private(set) var activeSession: WorkoutSession?
+    private(set) var lastFinishError: String?
+    private var pendingFinish: WorkoutSession?
 
     /// How recently a session must have started for a second `startWorkout`
     /// to be treated as a duplicate tap rather than a fresh workout. Roughly
@@ -59,6 +61,7 @@ final class WorkoutSessionService {
         }
         // Cleared before seeding so the seed — and every "previous" hint for
         // the rest of this workout — reads history as it stands right now.
+        cancelFinishAttempt()
         invalidatePreviousSetCache()
         // Seed from the routine before the session exists, so the weight
         // lookup below still sees the *previous* workout as the newest one.
@@ -99,14 +102,26 @@ final class WorkoutSessionService {
     @discardableResult
     func finishWorkout(perceivedEffort: Int? = nil, note: String? = nil) -> FinishedWorkout? {
         guard var session = activeSession else { return nil }
+        guard session.completedSetCount > 0 else {
+            lastFinishError = "Complete at least one working set before finishing."
+            return nil
+        }
         let now = Date()
         session.focus?.resume(at: now)
         session.focus?.rest = nil
-        NotificationService.cancelOneShot(id: restNotificationID(for: session.id))
         session.finishedAt = now
         session.perceivedEffort = perceivedEffort
         session.note = note
-        SwiftDataRepository.shared.upsertWorkoutSession(session)
+        if let pendingFinish, pendingFinish.id == session.id { session = pendingFinish }
+        else { pendingFinish = session }
+        do { try SwiftDataRepository.shared.saveWorkoutDurably(session) }
+        catch {
+            lastFinishError = error.localizedDescription
+            return nil
+        }
+        lastFinishError = nil
+        pendingFinish = nil
+        NotificationService.cancelOneShot(id: restNotificationID(for: session.id))
         let detections = PRDetectionEngine.shared.ingest(session: session)
         activeSession = nil
         invalidatePreviousSetCache()
@@ -119,9 +134,15 @@ final class WorkoutSessionService {
         return FinishedWorkout(session: session, detectedPRs: detections)
     }
 
+    func cancelFinishAttempt() {
+        pendingFinish = nil
+        lastFinishError = nil
+    }
+
     /// Drop the in-progress session without recording it. Called when
     /// the user taps Discard on the finish-confirmation alert.
     func discardWorkout() {
+        cancelFinishAttempt()
         guard let session = activeSession else { return }
         NotificationService.cancelOneShot(id: restNotificationID(for: session.id))
         SwiftDataRepository.shared.deleteWorkoutSession(id: session.id)
