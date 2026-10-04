@@ -51,7 +51,7 @@ Added `scripts/anatomy-review.py`:
 - Optional `--check-alpha` (Pillow required) samples the exact quadratic paths on a three-pixel grid on both sides of the body. The revised regions had **zero sampled points outside the opaque body**; this is a sampling check, not a proof for every pixel.
 - `--output artifacts/anatomy-refinement/index.html` creates an interactive browser review page using the unmodified production images and the same quadratic geometry. Regions can be isolated and the background toggled. It was visually inspected in light and dark backgrounds, including upper and lower body. This preview does not emulate SwiftUI color compositing, sizing or interactions and is not a native screenshot.
 
-Native verification was retried on October 4 (attempt 2 of run `37187550704`). GitHub again rejected the job before any steps started because the account is locked due to a billing issue. This retry used the earlier usability revision, not the new outlines. Native verification of the new geometry remains pending; local checks cannot replace it.
+Native verification was retried on October 4, first on the usability revision and then on outline revision `9290ec7` in [run 37189811480](https://github.com/Wrexist/Atlas/actions/runs/37189811480). GitHub again rejected the job before any steps started because the account is locked due to a billing issue. Native verification of the new geometry remains pending; local checks cannot replace it. The reviewed browser capture is `artifacts/anatomy-refinement/geometry-review-dark.jpg`.
 
 ### Remaining release checks
 
