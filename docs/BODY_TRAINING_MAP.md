@@ -39,7 +39,21 @@ Muscle locations are illustrative, manually authored overlays, not anatomical se
 - Design lint passes with zero errors and warnings. Native verification of revision `98940d9` was attempted in [run 37187550704](https://github.com/Wrexist/Atlas/actions/runs/37187550704), but GitHub refused to start the job: **“The job was not started because your account is locked due to a billing issue.”** No new native build, UI pass or screenshot is claimed for this refinement. The successful run documented above verifies the previous revision only.
 - Once Actions is available, rerun `test_captureMuscleTraining`: it now also selects Front and Back, checks selection state and captures each side in both appearances.
 
-### Next priorities
+### Outline refinement (2026-10-04)
+
+All 30 control polygons were revised against the unchanged source artwork. The chest regions now follow a broader fan; shoulder, arm and thigh regions taper along the illustrated limbs; the medial upper-back and lat regions have clearer separation. The calf projection stops above the long Achilles region. Original PNGs and the runtime curve construction are unchanged, so the rendered region and tap path still share one geometry source.
+
+Reference checks used OpenStax's [pectoral girdle and upper limb chapter](https://openstax.org/books/anatomy-and-physiology-2e/pages/11-5-muscles-of-the-pectoral-girdle-and-upper-limbs) and [pelvic girdle and lower limb chapter](https://openstax.org/books/anatomy-and-physiology/pages/11-6-appendicular-muscles-of-the-pelvic-girdle-and-lower-limbs). These are original illustrative projections over clothing, not copied textbook contours or medically validated segmentations. Deep muscles such as the rhomboids and soleus are represented by simplified location regions rather than a literal superficial dissection. Independent anatomical review remains outstanding.
+
+Added `scripts/anatomy-review.py`:
+
+- Validates all catalog keys, nondegenerate control polygons, canvas bounds, duplicate vertices and crossing edges. This standard-library check is included in the screenshot workflow.
+- Optional `--check-alpha` (Pillow required) samples the exact quadratic paths on a three-pixel grid on both sides of the body. The revised regions had **zero sampled points outside the opaque body**; this is a sampling check, not a proof for every pixel.
+- `--output artifacts/anatomy-refinement/index.html` creates an interactive browser review page using the unmodified production images and the same quadratic geometry. Regions can be isolated and the background toggled. It was visually inspected in light and dark backgrounds, including upper and lower body. This preview does not emulate SwiftUI color compositing, sizing or interactions and is not a native screenshot.
+
+Native verification was retried on October 4 (attempt 2 of run `37187550704`). GitHub again rejected the job before any steps started because the account is locked due to a billing issue. This retry used the earlier usability revision, not the new outlines. Native verification of the new geometry remains pending; local checks cannot replace it.
+
+### Remaining release checks
 
 1. Check small-screen and largest Dynamic Type layouts, VoiceOver and real-device performance. Review region outlines with a qualified anatomy/movement reviewer.
 2. Add duration/distance/assistance logging with backward-compatible persistence and category-specific validation. Retain the shared visual system.
