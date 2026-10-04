@@ -35,6 +35,31 @@ final class ScreenshotTests: XCTestCase {
 
     // MARK: - Passes
 
+    func test_captureWorkoutSocialSharing() {
+        openCompletedFixture(appearance: "dark")
+        app.buttons["Share workout"].tap()
+        XCTAssertTrue(app.navigationBars["Share workout"].waitForExistence(timeout: 10))
+        for style in [("Exercise highlight", "highlight"), ("Dark summary", "summary")] {
+            scrollToTop()
+            app.segmentedControls["workout-share-style"].buttons[style.0].tap()
+            for format in [("Story", "story"), ("Post", "post"), ("Reel", "reel")] {
+                scrollToTop()
+                app.segmentedControls["workout-share-format"].buttons[format.0].tap()
+                XCTAssertTrue(app.images["workout-share-rendered-\(style.1)-\(format.1)"].waitForExistence(timeout: 10))
+                capture(named: "social-\(style.1)-\(format.1)")
+            }
+        }
+        app.buttons["workout-share-preview-video"].tap()
+        XCTAssertTrue(app.otherElements["workout-share-video-player"].waitForExistence(timeout: 90))
+        capture(named: "social-reel-video-preview")
+        app.buttons["workout-share-send"].tap()
+        XCTAssertTrue(app.otherElements["ActivityListView"].waitForExistence(timeout: 20))
+        capture(named: "social-native-share-sheet")
+        app.swipeDown()
+        app.buttons["Close"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["recap-done"].waitForExistence(timeout: 5))
+    }
+
     func test_captureWorkoutCompletion() {
         openCompletedFixture(appearance: "dark")
         capture(named: "completion-01-summary")

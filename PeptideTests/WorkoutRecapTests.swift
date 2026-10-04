@@ -233,7 +233,8 @@ final class WorkoutRecapTests: XCTestCase {
             let alternate = WorkoutRecapEngine.derive(session, catalog: [:])
             attach(VStack { RecapMetrics(summary: alternate, unit: .imperial); RecapCalculationNotes(summary: alternate) }, name: "06-\(name)")
         }
-        attach(WorkoutShareCard(summary: summary, unit: .imperial, includeName: true, includeDate: true), name: "08-share")
+        attach(WorkoutSocialCanvas(summary: summary, unit: .imperial,
+            options: WorkoutShareOptions(format: .story, style: .summary, includeDate: true)), name: "08-share")
         for width in [CGFloat(320), 375, 393, 430] {
             attach(RecapMetrics(summary: summary, unit: .imperial), name: "metrics-\(Int(width))", width: width)
             attach(RecapMetrics(summary: summary, unit: .imperial).dynamicTypeSize(.accessibility5),

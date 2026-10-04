@@ -31,6 +31,18 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
+# Add-only exports do not request read/write library access. Keep legacy,
+# variable-access and asset-reading calls covered by the read-purpose check.
+PHOTO_USAGE_PATTERNS = {
+    "NSPhotoLibraryUsageDescription": (
+        r"\bPHAsset\b|\bPHImageManager\b|\bPHCachingImageManager\b|\bPHFetchResult\b|"
+        r"PHPhotoLibrary\.(?:requestAuthorization|authorizationStatus)\s*"
+        r"(?:\((?!\s*for\s*:\s*\.addOnly\b)|\{)|"
+        r"PHAssetChangeRequest\.(?:deleteAssets|init)\b"
+    ),
+    "NSPhotoLibraryAddUsageDescription": r"PHAssetChangeRequest|PHAssetCreationRequest|for:\s*\.addOnly",
+}
+
 
 def dataset_count(name: str, key: str | None = None) -> int:
     data = json.loads((REPO / "Peptide" / "Resources" / name).read_text())
@@ -208,7 +220,7 @@ def main() -> int:
         "NSHealthShareUsageDescription": r"HKHealthStore|HealthKit",
         "NSHealthUpdateUsageDescription": r"toShare:",
         "NSCameraUsageDescription": r"AVCaptureDevice|AVCaptureSession|UIImagePickerController",
-        "NSPhotoLibraryUsageDescription": r"PHAsset|PHPhotoLibrary|PHImageManager",
+        **PHOTO_USAGE_PATTERNS,
         "NSFaceIDUsageDescription": r"LAContext|LocalAuthentication",
         "NSMicrophoneUsageDescription": r"AVAudioRecorder",
         "NSLocationWhenInUseUsageDescription": r"CLLocationManager",
