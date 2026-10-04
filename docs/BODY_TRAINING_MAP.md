@@ -53,7 +53,16 @@ Added `scripts/anatomy-review.py`:
 
 Native verification was retried on October 4, first on the usability revision and then on outline revision `9290ec7` in [run 37189811480](https://github.com/Wrexist/Atlas/actions/runs/37189811480). GitHub again rejected the job before any steps started because the account is locked due to a billing issue. Native verification of the new geometry remains pending; local checks cannot replace it. The reviewed browser capture is `artifacts/anatomy-refinement/geometry-review-dark.jpg`.
 
-### Remaining release checks
+### Selection and readability refinement (2026-10-04)
+
+- Selecting a region now outlines it on the body and shows its specific name and role. The separate `View muscle history` action opens the sheet; it no longer interrupts the first tap. Changing the visible side clears a hidden selection, and changing training data clears stale selection.
+- The picker groups shared names such as Quads and Triceps into submenus. Every region has a distinct `regionName`, also used for the selected label, VoiceOver summary and history title. Group-level labels remain unchanged elsewhere; training totals are not regrouped or double-counted.
+- Asset hit testing first checks exact region paths, then searches outward up to ten display points for a nearby boundary. Drawing order resolves equal-distance ties. Distant background remains noninteractive. This tolerance applies only to the current asset pack; the older vector fallback keeps its existing behavior.
+- Role/intensity legends now live immediately beneath the body and ahead of the selection controls. All three body-explorer contexts use the shared placement.
+- Abs, front delts and lower traps received another contour pass. All 30 regions pass the local geometry and sampled alpha checks, with zero sampled points outside the opaque body. The updated browser geometry preview was visually inspected at `artifacts/anatomy-refinement/selection.html`; it does not verify native selection interactions.
+- Added native regression tests for unique region names and exact/near/distant taps, and extended UI capture for the selected state and explicit history action. Execution remains subject to the GitHub Actions billing blocker; no passing native result is claimed for these changes.
+
+### Release checklist
 
 1. Check small-screen and largest Dynamic Type layouts, VoiceOver and real-device performance. Review region outlines with a qualified anatomy/movement reviewer.
 2. Add duration/distance/assistance logging with backward-compatible persistence and category-specific validation. Retain the shared visual system.

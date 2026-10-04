@@ -205,6 +205,10 @@ final class ScreenshotTests: XCTestCase {
             reveal(explore)
             explore.tap()
             app.buttons["Upper chest"].firstMatch.tap()
+            let selectedHistory = app.buttons["selected-muscle-history"]
+            reveal(selectedHistory)
+            capture(named: "body-\(appearance)-03c-selected")
+            selectedHistory.tap()
             XCTAssertTrue(app.staticTexts["Incline Dumbbell Press"].firstMatch.waitForExistence(timeout: 5))
             capture(named: "body-\(appearance)-04-muscle-history")
             app.buttons["muscle-history-done"].tap()

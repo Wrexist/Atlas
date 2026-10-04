@@ -46,6 +46,22 @@ enum TrainingAnatomy {
         }
         return path
     }
+
+    /// Exact hits always win. Near misses choose the closest boundary within
+    /// ten display points; reversed drawing order resolves equal distances.
+    static func hitTest(_ point: CGPoint, in rect: CGRect,
+                        candidates: [AnatomicalMuscle], tolerance: Int = 10) -> AnatomicalMuscle? {
+        let paths = candidates.reversed().map { ($0, path(for: $0, in: rect)) }
+        if let exact = paths.first(where: { $0.1.contains(point) }) { return exact.0 }
+        guard tolerance > 0 else { return nil }
+        for distance in 1...tolerance {
+            if let nearby = paths.first(where: {
+                $0.1.cgPath.copy(strokingWithWidth: CGFloat(distance * 2),
+                                lineCap: .round, lineJoin: .round, miterLimit: 1).contains(point)
+            }) { return nearby.0 }
+        }
+        return nil
+    }
 }
 
 struct TrainingMuscleShape: Shape {

@@ -227,6 +227,7 @@ struct TrainOverviewView: View {
 
                 TrainingBodyExplorer(
                     highlights: MuscleMapView.intensityHighlights(from: frequencies),
+                    legend: .intensity(low: "Less", high: "Most"),
                     onIdentify: { inspectRecentMuscle($0) }
                 )
                 .frame(maxWidth: .infinity)
@@ -238,7 +239,6 @@ struct TrainOverviewView: View {
                     Text("Select Front or Back for a closer look. Tap a muscle for its exercises.")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
-                    intensityLegend
                     Text("Relative training score: primary work counts more than secondary work. Not a measure of growth or recovery.")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
@@ -257,14 +257,6 @@ struct TrainOverviewView: View {
         inspectedDays = selectedPeriod.rawValue
         inspectedPeriodLabel = selectedPeriod.detail
         inspectedMuscle = muscle
-    }
-
-    /// Tells the user what the heatmap colours mean — green = trained a
-    /// little this week, climbing through yellow, orange and red to
-    /// purple for the most-trained muscle — so the figure isn't a
-    /// mystery on first glance.
-    private var intensityLegend: some View {
-        MuscleHeatLegend(lowLabel: "Less", highLabel: "Most")
     }
 
     // MARK: - Top muscles row

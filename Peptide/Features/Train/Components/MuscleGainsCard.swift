@@ -55,15 +55,13 @@ struct MuscleGainsCard: View {
 
                 TrainingBodyExplorer(
                     highlights: highlights,
+                    legend: .intensity(low: mode == .regular ? "Rarely" : "Least",
+                                       high: mode == .regular ? "Every week" : "Most"),
                     onIdentify: { muscle in onIdentify?(muscle, historyDays) }
                 )
                 .frame(maxWidth: .infinity)
 
                 if hasHistory {
-                    MuscleHeatLegend(
-                        lowLabel: mode == .regular ? "Rarely" : "Least",
-                        highLabel: mode == .regular ? "Every week" : "Most"
-                    )
                     topGroupsRow
                     Text("Training scores weight primary work more than secondary work. They describe logged work, not measured muscle growth.")
                         .font(AppFont.caption)

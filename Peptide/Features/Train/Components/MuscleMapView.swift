@@ -75,6 +75,7 @@ struct MuscleMapView: View {
     var identifiesOnTap: Bool = true
     /// Called with the head the user tapped (e.g. to drive a detail sheet).
     var onIdentify: ((AnatomicalMuscle) -> Void)? = nil
+    var selectedMuscle: AnatomicalMuscle? = nil
 
     /// The head the user last tapped, surfaced as a floating label.
     @State private var identified: AnatomicalMuscle? = nil
@@ -156,9 +157,8 @@ struct MuscleMapView: View {
             let height = width / TrainingAnatomy.aspect
             let rect = CGRect(x: (size.width - width) / 2, y: (size.height - height) / 2,
                               width: width, height: height)
-            let hit = AnatomicalMuscle.allCases.last {
-                $0.isBack == (facing == .back) && TrainingAnatomy.path(for: $0, in: rect).contains(point)
-            }
+            let hit = TrainingAnatomy.hitTest(point, in: rect, candidates:
+                AnatomicalMuscle.allCases.filter { $0.isBack == (facing == .back) })
             if let onIdentify {
                 if let hit { onIdentify(hit) }
             } else {
@@ -249,6 +249,13 @@ struct MuscleMapView: View {
                             }
                         }
                 }
+            }
+            if TrainingAnatomy.isAvailable, let selectedMuscle,
+               selectedMuscle.isBack == (facing == .back) {
+                TrainingMuscleShape(muscle: selectedMuscle)
+                    .stroke(AppColor.textPrimary, lineWidth: 2)
+                    .aspectRatio(TrainingAnatomy.aspect, contentMode: .fit)
+                    .allowsHitTesting(false)
             }
         }
         .animation(reduceMotion ? nil : AppAnimation.springSmooth, value: highlights)
@@ -491,9 +498,9 @@ struct MuscleMapView: View {
                   !(facing == .back && !muscle.isBack)
             else { return nil }
             switch highlight {
-            case .primary:           return "\(muscle.displayName), primary"
-            case .secondary:         return "\(muscle.displayName), secondary"
-            case .intensity(let v):  return "\(muscle.displayName), relative training score \(Int(max(0, min(1, v)) * 100)) out of 100"
+            case .primary:           return "\(muscle.regionName), primary"
+            case .secondary:         return "\(muscle.regionName), secondary"
+            case .intensity(let v):  return "\(muscle.regionName), relative training score \(Int(max(0, min(1, v)) * 100)) out of 100"
             }
         }
         let view = facing == .front ? "Front view" : "Back view"

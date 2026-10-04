@@ -4,6 +4,25 @@ import UIKit
 
 @MainActor
 final class ExerciseVisualAssetsTests: XCTestCase {
+    func test_regionNamesDistinguishEveryPickerChoice() {
+        XCTAssertEqual(Set(AnatomicalMuscle.allCases.map(\.regionName)).count,
+                       AnatomicalMuscle.allCases.count)
+    }
+
+    func test_bodyHitTestingPreservesExactHitsAndRejectsDistantBackground() {
+        let rect = CGRect(x: 0, y: 0, width: 1024, height: 1536)
+        let front = AnatomicalMuscle.allCases.filter { !$0.isBack }
+        XCTAssertEqual(TrainingAnatomy.hitTest(CGPoint(x: 440, y: 360), in: rect,
+                                             candidates: front), .pecSternal)
+        XCTAssertNil(TrainingAnatomy.hitTest(CGPoint(x: 100, y: 100), in: rect,
+                                           candidates: front))
+        // Just outside the chest's lateral boundary, without another candidate
+        // stealing the nearby hit. Zero tolerance must preserve exact behavior.
+        let nearby = CGPoint(x: 374, y: 365)
+        XCTAssertNil(TrainingAnatomy.hitTest(nearby, in: rect, candidates: [.pecSternal], tolerance: 0))
+        XCTAssertEqual(TrainingAnatomy.hitTest(nearby, in: rect, candidates: [.pecSternal]), .pecSternal)
+    }
+
     func test_bodyMapAssetsCoverEveryRegionWithAlignedCanvas() throws {
         XCTAssertTrue(TrainingAnatomy.isAvailable)
         XCTAssertEqual(Set(TrainingAnatomy.regions.keys), Set(AnatomicalMuscle.allCases.map(\.rawValue)))

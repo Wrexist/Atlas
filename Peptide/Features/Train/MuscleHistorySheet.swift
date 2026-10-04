@@ -52,7 +52,7 @@ struct MuscleHistorySheet: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(AppColor.background.ignoresSafeArea())
-            .navigationTitle(muscle.displayName)
+            .navigationTitle(muscle.regionName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

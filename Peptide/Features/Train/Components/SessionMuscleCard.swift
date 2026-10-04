@@ -30,11 +30,6 @@ struct SessionMuscleCard: View {
                     onIdentify: { inspectedMuscle = $0 }
                 )
                 .frame(maxWidth: .infinity)
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: Spacing.lg) { legend }
-                    VStack(alignment: .leading, spacing: Spacing.sm) { legend }
-                }
-                .font(AppFont.caption)
             }
         }
         .task { await library.load() }
@@ -50,11 +45,4 @@ struct SessionMuscleCard: View {
         }
     }
 
-    @ViewBuilder
-    private var legend: some View {
-        Label("Primary", systemImage: "circle.fill")
-            .foregroundStyle(AppColor.trainingPrimaryMuscle)
-        Label("Secondary", systemImage: "circle.lefthalf.filled")
-            .foregroundStyle(AppColor.trainingSecondaryMuscle)
-    }
 }
