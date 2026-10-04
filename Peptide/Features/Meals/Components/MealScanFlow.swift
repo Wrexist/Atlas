@@ -946,6 +946,7 @@ private struct FoodItemEditCard: View {
     /// if fixing it is a separate hunt for the tap target.
     @FocusState private var nameFocused: Bool
     @State private var editingNutrition = false
+    @State private var editingPortion = false
 
     /// Quick-pick portion presets for each mode.
     private static let gramPresets: [Double] = [50, 100, 150, 200, 300]
@@ -958,6 +959,8 @@ private struct FoodItemEditCard: View {
                 Divider().overlay(AppColor.glassBorder)
                 modePicker
                 portionStepper
+                Button("Enter exact grams") { editingPortion = true }
+                    .font(AppFont.callout).minimumHitArea()
                 presetChips
                 HStack {
                     Button("Edit calories & macros") { editingNutrition = true }
@@ -995,6 +998,12 @@ private struct FoodItemEditCard: View {
                                onSave: { meal in item.correctNutrition(meal); editingNutrition = false },
                                onCancel: { editingNutrition = false },
                                explanation: "Enter values for the current portion. Later portion changes scale these corrected values. Reset estimate restores the scan’s original nutrition.")
+        }
+        .sheet(isPresented: $editingPortion) {
+            FoodPortionEditor(item: item) { grams in
+                item.grams = grams
+                item.portionMode = .grams
+            }
         }
     }
 
@@ -1141,15 +1150,15 @@ private struct FoodItemEditCard: View {
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
             stepperButton(icon: "minus.circle.fill", label: "Decrease grams") {
-                item.grams = max(5, (item.grams - 10).rounded())
+                item.grams = max(5, item.grams - 10)
             }
-            Text("\(Int(item.grams.rounded())) g")
+            Text("\(item.grams.formatted(.number.precision(.fractionLength(0...3)))) g")
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
                 .frame(minWidth: 64)
             stepperButton(icon: "plus.circle.fill", label: "Increase grams") {
-                item.grams = min(2000, (item.grams + 10).rounded())
+                item.grams = min(2000, item.grams + 10)
             }
         }
     }
@@ -1197,7 +1206,7 @@ private struct FoodItemEditCard: View {
     }
 
     private func chip(label: String, grams: Double) -> some View {
-        let isActive = Int(item.grams.rounded()) == Int(grams.rounded())
+        let isActive = abs(item.grams - grams.rounded()) < 0.0001
         return Button {
             item.grams = min(2000, max(5, grams.rounded()))
         } label: {

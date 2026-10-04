@@ -14,6 +14,7 @@ struct MealEntryEditorSheet: View {
     let onCancel: () -> Void
 
     @State private var category: MealCategory
+    @State private var name: String
     @State private var calories: String
     @State private var proteinG: String
     @State private var carbsG: String
@@ -23,7 +24,7 @@ struct MealEntryEditorSheet: View {
     @FocusState private var focusedField: MacroField?
 
     private enum MacroField: Hashable {
-        case calories, protein, carbs, fat
+        case name, calories, protein, carbs, fat
     }
 
     /// Portion multipliers applied to the entry as originally logged.
@@ -41,6 +42,7 @@ struct MealEntryEditorSheet: View {
         self.onDelete = onDelete
         self.onCancel = onCancel
         _category = State(initialValue: initial.category)
+        _name = State(initialValue: initial.name)
         _calories = State(initialValue: String(initial.calories))
         _proteinG = State(initialValue: String(initial.proteinG))
         _carbsG = State(initialValue: String(initial.carbsG))
@@ -66,6 +68,7 @@ struct MealEntryEditorSheet: View {
 
     private var hasChanges: Bool {
         category != initial.category
+            || name.trimmingCharacters(in: .whitespacesAndNewlines) != initial.name
             || editedMacros != originalMacros
             || !Calendar.current.isDate(date, equalTo: initial.date, toGranularity: .minute)
     }
@@ -79,6 +82,16 @@ struct MealEntryEditorSheet: View {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     summaryCard
+                    GlassCard(padding: Spacing.md) {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            Text("Meal name").font(AppFont.caption)
+                                .foregroundStyle(AppColor.textSecondary)
+                            TextField("Meal name", text: $name)
+                                .textInputAutocapitalization(.words)
+                                .focused($focusedField, equals: .name)
+                                .accessibilityLabel("Meal name")
+                        }
+                    }
                     MealCategoryPicker(selection: $category)
                     macrosCard
                     deleteButton
@@ -88,6 +101,7 @@ struct MealEntryEditorSheet: View {
                 .padding(.bottom, Spacing.xxxxl)
             }
             .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
             .background(AppColor.background)
             .navigationTitle("Edit meal")
             .navigationBarTitleDisplayMode(.inline)
@@ -97,7 +111,7 @@ struct MealEntryEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: commit)
-                        .disabled(!hasChanges || editedMacros == nil)
+                        .disabled(!hasChanges || editedMacros == nil || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .fontWeight(.semibold)
                 }
                 ToolbarItemGroup(placement: .keyboard) {
@@ -272,8 +286,10 @@ struct MealEntryEditorSheet: View {
     }
 
     private func commit() {
-        guard let macros = editedMacros else { return }
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let macros = editedMacros, !trimmedName.isEmpty else { return }
         var updated = initial
+        updated.name = trimmedName
         updated.category = category
         updated.calories = macros.calories
         updated.proteinG = macros.proteinG
