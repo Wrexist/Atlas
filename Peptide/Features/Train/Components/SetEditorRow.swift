@@ -193,7 +193,10 @@ struct SetEditorRow: View {
 
     private var completionToggle: some View {
         Button {
-            if !set.completed { Haptics.impact(.medium) }
+            weightFocused = false
+            repsFocused = false
+            if !set.completed { Haptics.impact(.light) }
+            else { Haptics.selection() }
             set.completed.toggle()
         } label: {
             Image(systemName: set.completed ? "checkmark.circle.fill" : (focusStyle ? "checkmark.circle" : "circle"))

@@ -9,9 +9,10 @@ struct WorkoutFocusView: View {
     let onFinish: () -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var service = WorkoutSessionService.shared
     @State private var library = ExerciseLibrary.shared
-    @State private var showDetails = false
+    @State private var detailExercise: Exercise?
 
     private var entry: WorkoutExerciseEntry? { session.selectedExercise }
     private var exercise: Exercise? { entry.flatMap { library.lookup(id: $0.exerciseID) } }
@@ -22,7 +23,10 @@ struct WorkoutFocusView: View {
                 VStack(spacing: Spacing.md) {
                     if let entry {
                         ExerciseHeroView(exercise: exercise)
+                            .id(exercise?.id)
+                            .transition(.opacity)
                             .frame(height: heroHeight(available: geometry.size.height))
+                            .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: exercise?.id)
                             .padding(.top, Spacing.sm)
                         exerciseStrip
                         setPanel(entry)
@@ -41,24 +45,22 @@ struct WorkoutFocusView: View {
         .scrollDismissesKeyboard(.interactively)
         .background(AppColor.trainingBackground.ignoresSafeArea())
         .task { await library.load() }
-        .sheet(isPresented: $showDetails) {
-            if let exercise {
+        .sheet(item: $detailExercise) { exercise in
                 NavigationStack {
                     ExerciseDetailView(exerciseID: exercise.id)
                         .toolbar {
                             ToolbarItem(placement: .confirmationAction) {
-                                Button("Done") { showDetails = false }
+                                Button("Done") { detailExercise = nil }
                             }
                         }
                 }
-            }
         }
     }
 
     private func heroHeight(available: CGFloat) -> CGFloat {
         if dynamicTypeSize.isAccessibilitySize { return 120 }
-        let expandedHeader = session.isPaused || session.focus?.rest != nil
-        return max(120, min(expandedHeader ? 190 : 250, available * (expandedHeader ? 0.23 : 0.30)))
+        // Completing a set must not resize the artwork and move the next tap.
+        return max(120, min(210, available * 0.26))
     }
 
     private var exerciseStrip: some View {
@@ -105,7 +107,7 @@ struct WorkoutFocusView: View {
                 }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
         .accessibilityLabel(Text(exercise?.name ?? item.exerciseID))
         .accessibilityValue(complete ? "Complete" : "In progress")
         .accessibilityAddTraits(selected ? .isSelected : [])
@@ -121,28 +123,13 @@ struct WorkoutFocusView: View {
                     .font(AppFont.callout)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer(minLength: Spacing.xs)
-                Button { showDetails = true } label: {
+                Button { detailExercise = exercise } label: {
                     Image(systemName: "info.circle").minimumHitArea()
                 }
                 .accessibilityLabel("Exercise instructions")
                 .disabled(exercise == nil)
             }
-            if session.isPaused {
-                Text("Workout paused").font(AppFont.title2)
-                Text("Resume when you are ready. Your sets are saved.")
-                    .font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
-                GlassButton(title: "Resume workout", icon: "play.fill", isFullWidth: true) {
-                    service.togglePause()
-                }
-            } else if let rest = session.focus?.rest {
-                WorkoutFocusRestHeader(
-                    rest: rest, target: restTitle(rest),
-                    onSkip: { service.skipRest() }, onAdjust: { service.adjustRest(by: $0) }
-                )
-            } else {
-                Text(progressTitle(entry)).font(AppFont.statValueSmall)
-                    .foregroundStyle(AppColor.textPrimary)
-            }
+            statusHeader(entry)
             Divider()
             if exercise?.equipmentKind == .dumbbell {
                 Text("Weight per dumbbell · Reps")
@@ -196,6 +183,43 @@ struct WorkoutFocusView: View {
         .background(AppColor.trainingPanel, in: RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius))
     }
 
+    private func statusHeader(_ entry: WorkoutExerciseEntry) -> some View {
+        // Reserve the same height at ordinary sizes; allow natural reflow at
+        // accessibility sizes. Only status content transitions, never the rows.
+        ZStack(alignment: .topLeading) {
+          Group {
+            if session.isPaused {
+              VStack(alignment: .leading, spacing: Spacing.sm) {
+                Text("Workout paused").font(AppFont.title2)
+                Text("Resume when you are ready. Your sets are saved.")
+                    .font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
+                GlassButton(title: "Resume workout", icon: "play.fill", isFullWidth: true) {
+                    service.togglePause()
+                }
+              }
+            } else if let rest = session.focus?.rest {
+                WorkoutFocusRestHeader(
+                    rest: rest, target: restTitle(rest),
+                    onSkip: { Haptics.selection(); service.skipRest() },
+                    onAdjust: { Haptics.selection(); service.adjustRest(by: $0) },
+                    onUndo: { Haptics.selection(); service.undoRestSourceSet() }
+                )
+            } else {
+              VStack(alignment: .leading, spacing: Spacing.sm) {
+                Text(progressTitle(entry)).font(AppFont.statValueSmall)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("Check a set when you finish. Tap its check again to undo.")
+                    .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
+              }
+            }
+          }
+          .transition(.opacity)
+        }
+        .frame(maxWidth: .infinity, minHeight: dynamicTypeSize.isAccessibilitySize ? nil : 148, alignment: .topLeading)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: session.focus?.rest == nil)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: session.isPaused)
+    }
+
     private func progressTitle(_ entry: WorkoutExerciseEntry) -> String {
         if let next = entry.sets.first(where: { !$0.completed }) { return "Set \(next.index) of \(entry.sets.count)" }
         return entry.sets.isEmpty ? "Add your first set" : "Exercise complete"
@@ -215,6 +239,7 @@ private struct WorkoutFocusRestHeader: View {
     let target: String
     let onSkip: () -> Void
     let onAdjust: (TimeInterval) -> Void
+    let onUndo: () -> Void
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -234,11 +259,21 @@ private struct WorkoutFocusRestHeader: View {
                 ProgressView(value: rest.remainingFraction(at: context.date))
                     .tint(AppColor.trainingSelection).accessibilityHidden(true)
                 HStack {
-                    Button("−15 sec") { onAdjust(-15) }.minimumHitArea()
+                    Button(action: onUndo) {
+                        Label("Undo set", systemImage: "arrow.uturn.backward")
+                            .minimumHitArea()
+                    }
+                    .accessibilityLabel("Undo last completed set")
+                    .accessibilityIdentifier("workout-undo-rest-set")
                     Spacer()
-                    Button("+15 sec") { onAdjust(15) }.minimumHitArea()
+                    Menu {
+                        Button("−15 sec") { onAdjust(-15) }
+                        Button("+15 sec") { onAdjust(15) }
+                    } label: {
+                        Label("Adjust", systemImage: "timer").minimumHitArea()
+                    }
                 }
-                .font(AppFont.caption)
+                .font(AppFont.subheadline)
             }
         }
     }

@@ -73,6 +73,11 @@ struct ActiveWorkoutView: View {
             let remaining = max(0, end.timeIntervalSinceNow)
             do { try await Task.sleep(for: .seconds(remaining)) }
             catch { return }
+            if scenePhase == .active, sessionService.activeSession?.isPaused == false,
+               sessionService.activeSession?.focus?.rest?.endsAt == end {
+                Haptics.selection()
+                AccessibilityNotification.Announcement("Rest finished. Your next set is ready.").post()
+            }
             sessionService.reconcileRest()
         }
         .onChange(of: sessionService.activeSession?.id) { _, _ in syncNameFromSession() }

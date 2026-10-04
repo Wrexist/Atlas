@@ -8,6 +8,10 @@ import SwiftUI
 /// destination types (`TrainNavigation`) without each tab re-creating
 /// its own stack.
 struct TrainContainerView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var exerciseBrowsing = ExerciseBrowsingState()
+    @State private var overviewScroll = ScrollPosition(edge: .top)
+    @Namespace private var exerciseTransition
     @State private var section: Section = .overview
     /// Owned here rather than per-section so a screen can push
     /// programmatically — creating a routine goes straight into its
@@ -50,7 +54,12 @@ struct TrainContainerView: View {
             .navigationDestination(for: TrainNavigation.self) { destination in
                 switch destination {
                 case .exerciseDetail(let id):
-                    ExerciseDetailView(exerciseID: id)
+                    if reduceMotion {
+                        ExerciseDetailView(exerciseID: id)
+                    } else {
+                        ExerciseDetailView(exerciseID: id)
+                            .navigationTransition(.zoom(sourceID: id, in: exerciseTransition))
+                    }
                 case .workoutDetail(let id):
                     // Resolve the session lazily so the destination
                     // works for deep-links from outside the History
@@ -152,7 +161,7 @@ struct TrainContainerView: View {
                         isSelected: section == item,
                         namespace: sectionIndicator
                     ) {
-                        withAnimation(AppAnimation.springSnappy) {
+                        withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) {
                             section = item
                         }
                     }
@@ -169,11 +178,11 @@ struct TrainContainerView: View {
     private var content: some View {
         switch section {
         case .overview:
-            TrainOverviewView()
+            TrainOverviewView(scrollPosition: $overviewScroll)
         case .routines:
             RoutinesView(path: $path)
         case .exercises:
-            ExerciseLibraryView()
+            ExerciseLibraryView(browsing: exerciseBrowsing, transitionNamespace: reduceMotion ? nil : exerciseTransition)
         case .history:
             WorkoutHistoryView()
         }

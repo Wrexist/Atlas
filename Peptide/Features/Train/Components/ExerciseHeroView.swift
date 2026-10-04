@@ -1,13 +1,21 @@
 import SwiftUI
+import UIKit
 
 struct ExerciseHeroView: View {
     let exercise: Exercise?
     var compact = false
 
+    /// UIKit's asset cache avoids decoding again on timer ticks. A missing
+    /// catalog image uses the same mapped fallback as an unillustrated entry.
+    private var posterImage: UIImage? {
+        guard let exercise, let asset = ExerciseVisualAssets.poster(for: exercise.id) else { return nil }
+        return UIImage(named: asset)
+    }
+
     var body: some View {
         Group {
-            if let exercise, let asset = ExerciseVisualAssets.poster(for: exercise.id) {
-                Image(asset)
+            if let exercise, let posterImage {
+                Image(uiImage: posterImage)
                     .resizable()
                     .scaledToFit()
                     .accessibilityLabel(Text("\(exercise.name) illustration"))
@@ -25,7 +33,7 @@ struct ExerciseHeroView: View {
                     identifiesOnTap: false
                 )
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text("Muscle map for \(exercise.name). Primary: \(exercise.primaryMuscles.joined(separator: ", ")). Secondary: \(exercise.secondaryMuscles.joined(separator: ", "))."))
+                .accessibilityLabel(Text("Muscle map for \(exercise.name). Primary: \(exercise.primaryMuscles.joined(separator: ", ")). Supporting: \(exercise.secondaryMuscles.joined(separator: ", "))."))
             } else {
                 Image(systemName: "figure.strengthtraining.traditional")
                     .font(AppFont.statValue)
@@ -34,6 +42,7 @@ struct ExerciseHeroView: View {
             }
         }
         .frame(maxWidth: .infinity)
+        .allowsHitTesting(false)
     }
 
     private func preferredOrientation(_ exercise: Exercise) -> MuscleMapView.Orientation {

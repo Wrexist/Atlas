@@ -107,7 +107,10 @@ struct CelebrationHostView: View {
     }
 
     private func presentAchievementConfetti() {
-        guard achievements.latestUnlock != nil else { return }
+        // The achievement toast carries its own artwork. Avoid replacing an
+        // in-flight habit/level-up burst with a second celebration for one tap.
+        guard achievements.latestUnlock != nil, center.current == nil,
+              levelUp == nil, burst == nil else { return }
         triggerBurst(colors: [AppColor.achievement, AppColor.accentLight], intensity: 60)
     }
 

@@ -12,6 +12,7 @@ struct TrainingBodyExplorer: View {
     @State private var side: Side = .both
     @State private var selected: AnatomicalMuscle?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private enum Side: String, CaseIterable {
         case both = "Both", front = "Front", back = "Back"
@@ -34,6 +35,7 @@ struct TrainingBodyExplorer: View {
     }
 
     private func select(_ muscle: AnatomicalMuscle) {
+        if selected != muscle { Haptics.selection() }
         if side != .both { side = muscle.isBack ? .back : .front }
         selected = muscle
     }
@@ -58,6 +60,7 @@ struct TrainingBodyExplorer: View {
             )
             .frame(maxWidth: side == .both ? .infinity : 340)
             .frame(maxWidth: .infinity)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: selected)
 
             HStack {
                 if side != .back { Text("Front").frame(maxWidth: .infinity) }
@@ -138,6 +141,7 @@ struct TrainingBodyExplorer: View {
             if size.isAccessibilitySize && side == .both { side = .front }
         }
         .onChange(of: side) { _, side in
+            Haptics.selection()
             if let selected, side != .both, selected.isBack != (side == .back) {
                 self.selected = nil
             }
@@ -148,7 +152,7 @@ struct TrainingBodyExplorer: View {
     @ViewBuilder
     private var roleLabels: some View {
         Label("Primary", systemImage: "circle.fill").foregroundStyle(primaryColor)
-        Label("Secondary", systemImage: "circle.lefthalf.filled").foregroundStyle(secondaryColor)
+        Label("Supporting", systemImage: "circle.lefthalf.filled").foregroundStyle(secondaryColor)
     }
 
     private var selectionDescription: String {
@@ -157,7 +161,7 @@ struct TrainingBodyExplorer: View {
         }
         switch highlight {
         case .primary: return "Primary muscle"
-        case .secondary: return "Secondary muscle"
+        case .secondary: return "Supporting muscle"
         case .intensity: return "Highlighted from logged training"
         }
     }

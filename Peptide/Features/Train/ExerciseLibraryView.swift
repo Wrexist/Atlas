@@ -12,11 +12,10 @@ import SwiftUI
 /// initial render shows the SwiftUI search-bar skeleton immediately
 /// instead of blocking on the JSON parse.
 struct ExerciseLibraryView: View {
+    @Bindable var browsing: ExerciseBrowsingState
+    var transitionNamespace: Namespace.ID?
     @State private var library = ExerciseLibrary.shared
-    @State private var query: String = ""
-    @State private var muscleFilter: MuscleGroup?
-    @State private var equipmentFilter: EquipmentKind?
-    @FocusState private var searchFocused: Bool
+    @State private var isLoading = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -29,21 +28,25 @@ struct ExerciseLibraryView: View {
         .navigationTitle("Exercises")
         .navigationBarTitleDisplayMode(.large)
         .searchable(
-            text: $query,
+            text: $browsing.query,
             placement: .navigationBarDrawer(displayMode: .always),
             prompt: Text("Search exercises, muscles, equipment")
         )
-        .task {
-            await library.load()
-        }
+        .task { await loadLibrary() }
+    }
+
+    private func loadLibrary() async {
+        isLoading = true
+        await library.load()
+        isLoading = false
     }
 
     // MARK: - Filter shelf
 
     private var filterShelf: some View {
         VStack(spacing: Spacing.xxs) {
-            MuscleGroupChipRow(selection: $muscleFilter)
-            EquipmentChipRow(selection: $equipmentFilter)
+            MuscleGroupChipRow(selection: $browsing.muscleFilter)
+            EquipmentChipRow(selection: $browsing.equipmentFilter)
         }
         .padding(.bottom, Spacing.xs)
     }
@@ -53,12 +56,15 @@ struct ExerciseLibraryView: View {
     @ViewBuilder
     private var content: some View {
         let results = library.filter(
-            query: query.isEmpty ? nil : query,
-            muscleGroup: muscleFilter,
-            equipment: equipmentFilter
+            query: browsing.query.isEmpty ? nil : browsing.query,
+            muscleGroup: browsing.muscleFilter,
+            equipment: browsing.equipmentFilter
         )
 
-        if library.bundled.isEmpty {
+        if !library.isLoaded && isLoading {
+            ProgressView("Loading exercises…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if library.bundled.isEmpty {
             emptyLibraryState
         } else if results.isEmpty {
             noResultsState
@@ -73,21 +79,28 @@ struct ExerciseLibraryView: View {
                 resultsCount(results.count)
 
                 ForEach(results) { exercise in
-                    NavigationLink(value: TrainNavigation.exerciseDetail(exercise.id)) {
-                        ExerciseRow(exercise: exercise)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, Spacing.screenPadding)
+                    VStack(spacing: 0) {
+                        NavigationLink(value: TrainNavigation.exerciseDetail(exercise.id)) {
+                            ExerciseRow(exercise: exercise)
+                                .exerciseTransitionSource(id: exercise.id, namespace: transitionNamespace)
+                        }
+                        .buttonStyle(ScalePressStyle(pressedScale: 0.99))
+                        .padding(.horizontal, Spacing.screenPadding)
 
-                    if exercise.id != results.last?.id {
-                        Divider()
-                            .background(AppColor.glassBorder)
-                            .padding(.leading, Spacing.screenPadding + 56 + Spacing.md)
+                        if exercise.id != results.last?.id {
+                            Divider()
+                                .background(AppColor.glassBorder)
+                                .padding(.leading, Spacing.screenPadding + 56 + Spacing.md)
+                        }
                     }
+                    .id(exercise.id)
                 }
             }
+            .scrollTargetLayout()
             .padding(.bottom, Spacing.xxxl)
         }
+        .scrollPosition(id: $browsing.visibleExerciseID, anchor: .top)
+        .scrollDismissesKeyboard(.interactively)
     }
 
     private func resultsCount(_ count: Int) -> some View {
@@ -96,11 +109,9 @@ struct ExerciseLibraryView: View {
                 .font(AppFont.footnote)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
-            if muscleFilter != nil || equipmentFilter != nil || !query.isEmpty {
+            if browsing.muscleFilter != nil || browsing.equipmentFilter != nil || !browsing.query.isEmpty {
                 Button("Clear filters") {
-                    muscleFilter = nil
-                    equipmentFilter = nil
-                    query = ""
+                    browsing.clear()
                 }
                 .font(AppFont.footnote)
                 .foregroundStyle(AppColor.accentPrimary)
@@ -118,9 +129,7 @@ struct ExerciseLibraryView: View {
             // "Clear the filters" also lives in the filter shelf, which by
             // this point has usually scrolled out of reach.
             action: .init(title: "Clear filters", icon: "xmark.circle.fill") {
-                query = ""
-                muscleFilter = nil
-                equipmentFilter = nil
+                browsing.clear()
             }
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -130,10 +139,10 @@ struct ExerciseLibraryView: View {
         EmptyStateView(
             icon: "exclamationmark.triangle",
             title: "Library unavailable",
-            message: "We couldn't load the exercise database. Pull down to refresh, or tap retry below.",
+            message: "We couldn't load the exercise database. Tap Retry to try again.",
             action: .init(title: "Retry", icon: "arrow.clockwise") {
                 library.reset()
-                Task { await library.load() }
+                Task { await loadLibrary() }
             }
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -142,7 +151,7 @@ struct ExerciseLibraryView: View {
 
 #Preview {
     NavigationStack {
-        ExerciseLibraryView()
+        ExerciseLibraryView(browsing: ExerciseBrowsingState())
             .navigationDestination(for: TrainNavigation.self) { dest in
                 switch dest {
                 case .exerciseDetail(let id): ExerciseDetailView(exerciseID: id)

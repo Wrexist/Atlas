@@ -258,6 +258,19 @@ final class WorkoutSessionService {
         persist(session)
     }
 
+    /// Undo only the set responsible for the currently displayed rest. Resolve
+    /// the live record so edits to load/reps made during rest are preserved.
+    func undoRestSourceSet() {
+        guard let session = activeSession, !session.isPaused,
+              let rest = session.focus?.rest,
+              let entry = session.exercises.first(where: { $0.id == rest.sourceEntryID }),
+              var set = entry.sets.first(where: { $0.id == rest.sourceSetID }), set.completed
+        else { return }
+        set.completed = false
+        updateSet(set, inExerciseEntryID: entry.id)
+        selectExercise(entry.id)
+    }
+
     /// Rest between sets for one exercise in the active session. `nil`
     /// falls back to the user's training-preferences default.
     func setRestSeconds(_ seconds: Int?, forExerciseEntryID entryID: UUID) {

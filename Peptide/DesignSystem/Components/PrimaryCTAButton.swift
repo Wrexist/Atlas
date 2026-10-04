@@ -36,11 +36,12 @@ struct PrimaryCTAButton: View {
                 }
                 Text(title)
                     .font(AppFont.scaled(16, weight: .bold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .foregroundStyle(AppColor.onAccent)
             .frame(maxWidth: .infinity)
+            .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.md)
             .frame(minHeight: Spacing.minimumHitTarget)
             .background { fill }

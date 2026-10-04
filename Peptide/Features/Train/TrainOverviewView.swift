@@ -18,6 +18,7 @@ import SwiftUI
 ///      compliance calendar so the visual language is consistent
 ///      across tabs.
 struct TrainOverviewView: View {
+    @Binding var scrollPosition: ScrollPosition
     @Environment(DataStore.self) private var dataStore
     @State private var library = ExerciseLibrary.shared
     @State private var sessions: [WorkoutSession] = []
@@ -37,9 +38,11 @@ struct TrainOverviewView: View {
     /// The muscle the user tapped on the map, presented as a detail sheet
     /// of the exercises they've logged for it.
     @State private var inspectedMuscle: AnatomicalMuscle?
-    @State private var selectedPeriod: TrainingMapPeriod = .week
+    @SceneStorage("train.overview.period") private var selectedPeriodRaw = 7
+    private var selectedPeriod: TrainingMapPeriod { TrainingMapPeriod(rawValue: selectedPeriodRaw) ?? .week }
     @State private var inspectedDays: Int? = 7
     @State private var inspectedPeriodLabel = "Last 7 days"
+    @SceneStorage("train.overview.details") private var showsTrainingDetails = false
 
     private enum TrainingMapPeriod: Int, CaseIterable {
         case today = 1, week = 7, month = 30
@@ -69,11 +72,14 @@ struct TrainOverviewView: View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
                 startWorkoutButton
+                recentWorkoutsCard
                 weeklyMuscleCard
                 if weekHasTraining {
                     topMusclesRow
                 }
-                MuscleGainsCard(
+                DisclosureGroup("Training trends & calendar", isExpanded: $showsTrainingDetails) {
+                  VStack(spacing: Spacing.lg) {
+                    MuscleGainsCard(
                     totals: totalFrequencies,
                     regularity: regularity,
                     onIdentify: { muscle, days in
@@ -81,13 +87,19 @@ struct TrainOverviewView: View {
                         inspectedPeriodLabel = days == nil ? "All workouts" : "Last 12 calendar weeks"
                         inspectedMuscle = muscle
                     }
-                )
-                recentWorkoutsCard
-                calendarCard
+                    )
+                    calendarCard
+                  }
+                  .padding(.top, Spacing.md)
+                }
+                .font(AppFont.headline)
+                .tint(AppColor.accentPrimary)
+                .accessibilityIdentifier("training-trends-disclosure")
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
         }
+        .scrollPosition($scrollPosition)
         .refreshable { refresh() }
         .task { @MainActor in
             await library.load()
@@ -103,6 +115,7 @@ struct TrainOverviewView: View {
             refresh()
         }
         .onChange(of: selectedPeriod) { _, _ in
+            Haptics.selection()
             refreshFrequencies()
         }
         .sheet(item: $inspectedMuscle) { muscle in
@@ -217,7 +230,9 @@ struct TrainOverviewView: View {
                     .accessibilityLabel("Workout history")
                 }
 
-                Picker("Training period", selection: $selectedPeriod) {
+                Picker("Training period", selection: Binding(
+                    get: { selectedPeriod }, set: { selectedPeriodRaw = $0.rawValue }
+                )) {
                     ForEach(TrainingMapPeriod.allCases, id: \.self) { period in
                         Text(period.title).tag(period)
                     }
@@ -320,14 +335,15 @@ struct TrainOverviewView: View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack {
-                    Text("Recent workouts")
+                    Text("Latest workout")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     if !sessions.isEmpty {
-                        Text("\(sessions.count) total")
-                            .font(AppFont.footnote)
-                            .foregroundStyle(AppColor.textSecondary)
+                        NavigationLink(value: TrainNavigation.workoutHistory) {
+                            Text("View all").font(AppFont.subheadline).minimumHitArea()
+                        }
+                        .accessibilityLabel("View workout history")
                     }
                 }
 
@@ -335,11 +351,8 @@ struct TrainOverviewView: View {
                     emptyRecentWorkouts
                 } else {
                     VStack(spacing: 0) {
-                        ForEach(Array(sessions.prefix(3))) { session in
+                        ForEach(Array(sessions.prefix(1))) { session in
                             recentWorkoutRow(session)
-                            if session.id != sessions.prefix(3).last?.id {
-                                Divider().background(AppColor.glassBorder)
-                            }
                         }
                     }
                 }
@@ -533,7 +546,7 @@ struct TrainingCalendarGrid: View {
 }
 
 #Preview {
-    TrainOverviewView()
+    TrainOverviewView(scrollPosition: .constant(ScrollPosition(edge: .top)))
         .environment(DataStore(seedSampleData: true))
         .padding(.top, Spacing.lg)
         .background(AppColor.background)

@@ -122,6 +122,42 @@ final class WorkoutFocusServiceTests: XCTestCase {
         XCTAssertNil(service.activeSession?.exercises[0].sets[0].completedAt)
     }
 
+    func test_restUndoPreservesEditedLoadAndIdentityAndPersists() throws {
+        let entry = start()
+        let sessionID = service.activeSession?.id
+        var set = entry.sets[0]
+        set.completed = true
+        service.updateSet(set, inExerciseEntryID: entry.id)
+        set.weightKg = 31.5
+        set.reps = 7
+        service.updateSet(set, inExerciseEntryID: entry.id)
+        service.undoRestSourceSet()
+        // A second tap has no rest source and cannot undo a different set.
+        service.undoRestSourceSet()
+        let restored = try XCTUnwrap(repo.loadActiveWorkoutSession())
+        XCTAssertEqual(restored.id, sessionID)
+        XCTAssertNil(restored.focus?.rest)
+        XCTAssertEqual(restored.selectedExercise?.id, entry.id)
+        let undone = try XCTUnwrap(restored.exercises.first?.sets.first)
+        XCTAssertEqual(undone.id, set.id)
+        XCTAssertEqual(undone.weightKg, 31.5)
+        XCTAssertEqual(undone.reps, 7)
+        XCTAssertFalse(undone.completed)
+        XCTAssertNil(undone.completedAt)
+        XCTAssertEqual(restored.completedSetCount, 0)
+    }
+
+    func test_restUndoDoesNotChangePausedWorkout() {
+        let entry = start()
+        var set = entry.sets[0]
+        set.completed = true
+        service.updateSet(set, inExerciseEntryID: entry.id)
+        service.togglePause()
+        service.undoRestSourceSet()
+        XCTAssertEqual(service.activeSession?.completedSetCount, 1)
+        XCTAssertNotNil(service.activeSession?.focus?.rest)
+    }
+
     func test_finalSetAndWarmupsDoNotStartRest() {
         let entry = start(sets: 1)
         var set = entry.sets[0]

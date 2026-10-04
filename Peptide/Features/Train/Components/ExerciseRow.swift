@@ -22,11 +22,10 @@ struct ExerciseRow: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
-                HStack(spacing: Spacing.xs) {
-                    musclePill
-                    equipmentPill
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Spacing.xs) { musclePill; equipmentPill }
+                    VStack(alignment: .leading, spacing: Spacing.xs) { musclePill; equipmentPill }
                 }
-                .lineLimit(1)
             }
 
             Spacer(minLength: Spacing.xs)

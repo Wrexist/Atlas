@@ -59,14 +59,14 @@ extension View {
 /// — used on inline toggles, chips, and rows so taps feel tactile without a
 /// full glass-press treatment.
 struct ScalePressStyle: ButtonStyle {
-    var pressedScale: CGFloat = 0.92
-    var pressedOpacity: Double = 0.7
+    var pressedScale: CGFloat = 0.97
+    var pressedOpacity: Double = 0.85
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(reduceMotion ? 1.0 : (configuration.isPressed ? pressedScale : 1.0))
             .opacity(configuration.isPressed ? pressedOpacity : 1.0)
-            .animation(AppAnimation.springSnappy, value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: configuration.isPressed)
     }
 }

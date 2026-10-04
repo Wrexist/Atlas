@@ -7,6 +7,7 @@ struct HomeView: View {
     @State private var showAchievementToast = false
     @State private var toastAchievement: Achievement?
     @State private var achievementService = AchievementService.shared
+    @State private var celebrationCenter = CelebrationCenter.shared
     @State private var showProgress = false
     /// Observed directly so the notification banner reacts to a fresh
     /// schedule report. DataStore exposes `notificationReport` as a passthrough,
@@ -629,7 +630,7 @@ struct HomeView: View {
                 PeptideDetailView(peptide: peptide)
             }
             .overlay {
-                if let achievement = toastAchievement {
+                if celebrationCenter.current == nil, let achievement = toastAchievement {
                     AchievementToastView(achievement: achievement, isShowing: $showAchievementToast)
                 }
             }

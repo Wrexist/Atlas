@@ -258,7 +258,7 @@ struct MuscleMapView: View {
                     .allowsHitTesting(false)
             }
         }
-        .animation(reduceMotion ? nil : AppAnimation.springSmooth, value: highlights)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.24), value: highlights)
     }
 
     /// Hue a trained muscle takes on in the asset renderer.

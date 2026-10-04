@@ -141,7 +141,7 @@ struct ExerciseDetailView: View {
             }
             if !exercise.secondaryMuscles.isEmpty {
                 muscleLegendCluster(
-                    title: "Secondary",
+                    title: "Supporting",
                     muscles: exercise.secondaryMuscles,
                     swatch: AppColor.trainingSecondaryMuscle
                 )

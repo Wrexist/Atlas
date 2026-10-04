@@ -224,6 +224,13 @@ final class ScreenshotTests: XCTestCase {
             first.tap()
             let skip = app.buttons["Skip"]
             XCTAssertTrue(skip.waitForExistence(timeout: 5))
+            let undo = app.buttons["workout-undo-rest-set"]
+            reveal(undo)
+            undo.tap()
+            XCTAssertFalse(skip.exists)
+            reveal(first)
+            first.tap()
+            XCTAssertTrue(skip.waitForExistence(timeout: 5))
             reveal(skip)
             skip.tap()
             scrollToTop()
@@ -243,6 +250,37 @@ final class ScreenshotTests: XCTestCase {
             app.alerts.buttons["Discard"].tap()
             app.terminate()
         }
+    }
+
+    func test_capturePremiumTrainingContinuity() {
+        launch(appearance: "dark")
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
+        dismissOverlaysIfNeeded()
+        app.tabBars.buttons["Train"].tap()
+        dismissOverlaysIfNeeded()
+        app.buttons["Exercises"].firstMatch.tap()
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
+        search.tap()
+        search.typeText("Incline Dumbbell Press")
+        let exercise = app.staticTexts["Incline Dumbbell Press"].firstMatch
+        XCTAssertTrue(exercise.waitForExistence(timeout: 10))
+        capture(named: "premium-01-library")
+        exercise.tap()
+        capture(named: "premium-02-exercise-detail")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.buttons["Routines"].firstMatch.tap()
+        app.buttons["Exercises"].firstMatch.tap()
+        XCTAssertEqual(app.searchFields.firstMatch.value as? String, "Incline Dumbbell Press")
+        XCTAssertTrue(exercise.exists)
+        capture(named: "premium-03-restored-search")
+        app.buttons["Overview"].firstMatch.tap()
+        scrollToTop()
+        capture(named: "premium-04-overview")
+        let trends = app.buttons["training-trends-disclosure"]
+        reveal(trends)
+        trends.tap()
+        capture(named: "premium-05-training-trends")
     }
 
     func test_captureExerciseRollout() {
