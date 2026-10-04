@@ -169,7 +169,8 @@ final class WorkoutSessionService {
             sets: [SetEntry(
                 index: 1,
                 weightKg: seed?.weightKg ?? 0,
-                reps: seed?.reps ?? 8
+                reps: seed?.reps ?? 8,
+                measurement: seed?.measurement
             )]
         )
         session.exercises.append(entry)
@@ -199,7 +200,8 @@ final class WorkoutSessionService {
             index: nextIndex,
             weightKg: prev?.weightKg ?? 0,
             reps: prev?.reps ?? 8,
-            rpe: prev?.rpe
+            rpe: prev?.rpe,
+            measurement: prev?.measurement
         )
         session.exercises[idx].sets.append(next)
         persist(session)
@@ -304,7 +306,7 @@ final class WorkoutSessionService {
             if session.id == activeSession?.id { continue }
             guard let exerciseEntry = session.exercises.first(where: { $0.exerciseID == id })
             else { continue }
-            let completed = exerciseEntry.sets.filter(\.completed)
+            let completed = exerciseEntry.sets.filter { $0.completed && $0.supportsRepLogging }
             if !completed.isEmpty { return completed }
         }
         return []

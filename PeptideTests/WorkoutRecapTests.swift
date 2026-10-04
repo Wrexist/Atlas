@@ -83,6 +83,21 @@ final class WorkoutRecapTests: XCTestCase {
         XCTAssertNil(set.externalVolumeKg)
     }
 
+    func test_repeatPreservesExplicitPairConventionAndRejectsTimedRepSeed() {
+        let routine = Routine(name: "Repeat", exercises: [
+            RoutineExercise(exerciseID: "Incline_Dumbbell_Press", index: 0, targetSets: 1, targetReps: 10)
+        ])
+        var prior = SetEntry(index: 1, weightKg: 25, reps: 10, completed: true,
+                             measurement: .init(kind: .repetitions, load: .eachPair))
+        var repeated = RoutineSeedEngine.sessionExercises(for: routine) { _ in prior }
+        XCTAssertEqual(repeated[0].sets[0].measurement?.load, .eachPair)
+        XCTAssertEqual(repeated[0].sets[0].weightKg, 25)
+        prior.measurement?.kind = .timed
+        repeated = RoutineSeedEngine.sessionExercises(for: routine) { _ in prior }
+        XCTAssertNil(repeated[0].sets[0].measurement)
+        XCTAssertEqual(repeated[0].sets[0].weightKg, 0)
+    }
+
     func test_missingMappingOneSetAndDuplicateIDs() {
         let set = SetEntry(index: 1, weightKg: 0, reps: 10, completed: true)
         let entry = WorkoutExerciseEntry(exerciseID: "definitely_not_real", index: 0, sets: [set, set])
@@ -172,6 +187,20 @@ final class WorkoutRecapTests: XCTestCase {
 
 @MainActor
 final class WorkoutCompletionPersistenceTests: XCTestCase {
+    func test_unsupportedMeasurementsCannotAwardRepOrLoadRecords() {
+        let repo = SwiftDataRepository.shared
+        repo.configureForTesting()
+        defer { repo.deleteAll() }
+        var session = WorkoutRecapFixture.push()
+        for e in session.exercises.indices {
+            for s in session.exercises[e].sets.indices {
+                session.exercises[e].sets[s].measurement = .init(kind: .assisted)
+            }
+        }
+        XCTAssertTrue(PRDetectionEngine.shared.ingest(session: session).isEmpty)
+        XCTAssertTrue(repo.loadPersonalRecords().isEmpty)
+    }
+
     func test_diskReopenRecoversDraftThenFinishedIdentity() throws {
         let repo = SwiftDataRepository.shared
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

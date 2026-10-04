@@ -273,7 +273,10 @@ struct WorkoutSessionDetailView: View {
                         .monospacedDigit()
                         .frame(width: 20, alignment: .leading)
                         .foregroundStyle(AppColor.textTertiary)
-                    if set.weightKg > 0 {
+                    if set.measurement != nil {
+                        Text(RecapFormat.set(set, unit: unit))
+                            .font(AppFont.callout).foregroundStyle(AppColor.textPrimary)
+                    } else if set.weightKg > 0 {
                         Text("\(unit.weightLabel(set.weightKg, fractionDigits: 1)) × \(set.reps)")
                             .font(AppFont.callout)
                             .foregroundStyle(AppColor.textPrimary)
@@ -336,13 +339,7 @@ struct WorkoutSessionDetailView: View {
 
     private var durationLabel: String? {
         guard session.finishedAt != nil else { return nil }
-        let interval = session.elapsedSeconds()
-        guard interval > 0 else { return nil }
-        let totalMinutes = Int(interval / 60)
-        if totalMinutes < 60 { return "\(totalMinutes)m" }
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
-        return minutes == 0 ? "\(hours)h" : "\(hours)h \(minutes)m"
+        return WorkoutRecapEngine.duration(of: session).label
     }
 }
 
@@ -373,7 +370,7 @@ extension RoutineExercise {
         let working = entry.sets.filter { !$0.isWarmup }
         let completed = working.filter(\.completed)
         let basis = completed.isEmpty ? working : completed
-        let reps = basis.first(where: { $0.reps > 0 })?.reps ?? Self.fallbackTargetReps
+        let reps = basis.first(where: { $0.supportsRepLogging && $0.reps > 0 })?.reps ?? Self.fallbackTargetReps
         self.init(
             exerciseID: entry.exerciseID,
             index: index,

@@ -100,6 +100,12 @@ struct SetEntry: Codable, Hashable, Identifiable, Sendable {
         externalVolumeKg ?? 0
     }
 
+    /// The existing live logger edits reps/load. Other measurements must not
+    /// silently become rep prescriptions when a saved workout is repeated.
+    var supportsRepLogging: Bool {
+        measurement == nil || measurement?.kind == .repetitions || measurement?.kind == .bodyweight
+    }
+
     var externalVolumeKg: Double? {
         guard completed, !isWarmup, weightKg.isFinite, weightKg > 0, reps > 0,
               measurement == nil || measurement?.kind == .repetitions || measurement?.kind == .bodyweight

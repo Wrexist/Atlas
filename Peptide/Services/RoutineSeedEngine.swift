@@ -51,10 +51,12 @@ enum RoutineSeedEngine {
         previous: SetEntry?
     ) -> [SetEntry] {
         let count = min(max(1, slot.targetSets), maxSeededSets)
-        let weight = SetEntryLimits.clampWeightKg(previous?.weightKg ?? 0)
+        let compatible = previous.flatMap { $0.supportsRepLogging ? $0 : nil }
+        let weight = SetEntryLimits.clampWeightKg(compatible?.weightKg ?? 0)
         let reps = SetEntryLimits.clampReps(slot.targetReps)
         return (1...count).map { index in
-            SetEntry(index: index, weightKg: weight, reps: reps, rpe: slot.targetRPE)
+            SetEntry(index: index, weightKg: weight, reps: reps, rpe: slot.targetRPE,
+                     measurement: compatible?.measurement)
         }
     }
 

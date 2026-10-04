@@ -45,6 +45,11 @@ struct SetEditorRow: View {
                 previousReference
                     .padding(.leading, Spacing.xxxl)
             }
+            if let load = set.measurement?.load, load != .recorded {
+                Text(load == .eachPair ? "Load per hand · both counted" :
+                    (load == .perSide ? "Load per side · entered reps counted once" : "Combined load"))
+                    .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+            }
         }
         .padding(.vertical, Spacing.xs)
         .contentShape(Rectangle())
@@ -213,9 +218,11 @@ struct SetEditorRow: View {
     /// doesn't update until the next render, so a second property write
     /// would overwrite the first.
     private func fill(from previous: SetEntry) {
+        guard previous.supportsRepLogging else { return }
         var filled = set
         filled.weightKg = previous.weightKg
         filled.reps = previous.reps
+        filled.measurement = previous.measurement
         set = filled
         Haptics.selection()
     }
