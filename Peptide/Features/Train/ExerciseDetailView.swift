@@ -4,6 +4,7 @@ import SwiftUI
 struct ExerciseDetailView: View {
     let exerciseID: String
     @State private var library = ExerciseLibrary.shared
+    @State private var loading = true
 
     private var exercise: Exercise? {
         library.lookup(id: exerciseID)
@@ -15,6 +16,7 @@ struct ExerciseDetailView: View {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     header(for: exercise)
                     metadataRow(for: exercise)
+                    ExerciseHistorySection(exercise: exercise)
                     muscleSection(for: exercise)
                     instructionsSection(for: exercise)
                 }
@@ -22,15 +24,26 @@ struct ExerciseDetailView: View {
                 .padding(.bottom, Spacing.xxxxl)
             } else if library.isLoaded {
                 missingState
-            } else {
+            } else if loading {
                 // Library hasn't finished loading — don't flash a
                 // false "not found" before the async load completes.
                 loadingState
+            } else {
+                VStack(spacing: Spacing.md) {
+                    Text("Couldn't load the exercise library.")
+                    Button("Retry") { Task { await loadLibrary() } }.minimumHitArea()
+                }.padding(Spacing.screenPadding)
             }
         }
         .background(AppColor.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
-        .task { await library.load() }
+        .task { await loadLibrary() }
+    }
+
+    private func loadLibrary() async {
+        loading = true
+        await library.load()
+        loading = false
     }
 
     // MARK: - Header
@@ -220,7 +233,8 @@ struct ExerciseDetailView: View {
 
 #Preview {
     NavigationStack {
-        ExerciseDetailView(exerciseID: "Barbell_Bench_Press")
+        ExerciseDetailView(exerciseID: "Barbell_Bench_Press_-_Medium_Grip")
     }
+    .environment(DataStore())
     .preferredColorScheme(.dark)
 }
