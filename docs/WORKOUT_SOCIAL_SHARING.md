@@ -93,3 +93,8 @@ Actions runner has been blocked by GitHub's account billing lock. Before release
 also exercise Photos denial/retry, cancellation during encoding, app backgrounding,
 large text, long workout names, missing anatomy assets, and on-device Instagram
 Story/Post/Reel import. Do not treat authored tests as executed tests.
+
+The native run for commit `9c2957f` was attempted:
+https://github.com/Wrexist/Atlas/actions/runs/37213083112
+Job 111468021253 failed before any steps with: "The job was not started because
+your account is locked due to a billing issue." No screenshots were produced.
