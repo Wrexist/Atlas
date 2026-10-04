@@ -48,6 +48,7 @@ final class SwiftDataRepository {
     /// the CloudKit-mirrored store (Guideline 5.1.3(ii); see
     /// `WeeklySummaryLocalStore`).
     private var summaryStore: WeeklySummaryLocalStore
+    private var mealDraftStore = MealScanDraftStore.shared
 
     private init() {
         summaryStore = .shared
@@ -163,6 +164,7 @@ final class SwiftDataRepository {
         container = nil
         isUsingFallbackStore = false
         summaryStore.deleteAll()
+        mealDraftStore.resetForAccountChange()
         let cloudFailureState: CloudSyncState = current != nil ? .unavailable : .noAccount
         cloudSyncState = cloudFailureState
 
@@ -276,6 +278,7 @@ final class SwiftDataRepository {
 
     /// Tests supply a unique temporary URL; no default production URL is used.
     func configurePersistentStoreForTesting(at url: URL) throws {
+        mealDraftStore = MealScanDraftStore(url: url.deletingLastPathComponent().appending(path: "test-meal-draft.json"))
         container = nil
         let configuration = ModelConfiguration(url: url, cloudKitDatabase: .none)
         container = try ModelContainer(for: Self.versionedSchema,
@@ -290,6 +293,8 @@ final class SwiftDataRepository {
 
     /// Replaces the container with an in-memory store. Call in test setUp only.
     func configureForTesting() {
+        mealDraftStore = MealScanDraftStore(url: FileManager.default.temporaryDirectory
+            .appending(path: "MealDraftTest-\(UUID().uuidString).json"))
         container = Self.makeInMemoryContainer()
         isUsingFallbackStore = false
         isInoperable = container == nil
@@ -331,6 +336,7 @@ final class SwiftDataRepository {
             try context.delete(model: StoredPersonalRecord.self)
             try context.save()
             summaryStore.deleteAll()
+            mealDraftStore.resetForAccountChange()
         } catch {
             AppLog.swiftData.error("deleteAll failed: \(error.localizedDescription, privacy: .public)")
         }
@@ -717,6 +723,33 @@ final class SwiftDataRepository {
             case .unavailable: "Device storage is unavailable. The workout has not been saved."
             case .failed: "The workout could not be written to device storage. Try again."
             }
+        }
+    }
+
+    /// Completion needs an explicit durable outcome. Restore only the profile
+    /// mutation on failure; unrelated objects in the shared context stay intact.
+    enum MealSaveError: Error { case unavailable }
+
+    func saveMealProfileDurably(_ profile: UserProfile) throws {
+        guard let context, !isUsingFallbackStore, !isInoperable else { throw MealSaveError.unavailable }
+        let existing = try canonicalProfileRow(in: context)
+        let previous = try existing?.toUserProfile()
+        var inserted: StoredProfile?
+        do {
+            if let existing { try existing.update(from: profile) }
+            else {
+                let row = try StoredProfile.make(from: profile)
+                context.insert(row)
+                inserted = row
+            }
+            #if DEBUG
+            if forceCommitFailureForTesting { throw MealSaveError.unavailable }
+            #endif
+            try context.save()
+        } catch {
+            if let existing, let previous { try? existing.update(from: previous) }
+            if let inserted { context.delete(inserted) }
+            throw error
         }
     }
 

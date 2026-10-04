@@ -123,6 +123,7 @@ struct HomeMealsSection: View {
             )
 
             let dayEntries = dataStore.mealEntries(for: selectedDay)
+            if !dayEntries.isEmpty { DailyMealNutrientsCard(entries: dayEntries) }
             if dailyConsumption.caloriesKcal > 0 || !dayEntries.isEmpty {
                 MealCategoriesCard(breakdown: dailyBreakdown)
 

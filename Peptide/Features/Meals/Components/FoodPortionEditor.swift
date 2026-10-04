@@ -14,30 +14,34 @@ enum FoodPortionInput {
 
 /// Local draft: typing and cancellation never alter the scan's portion.
 struct FoodPortionEditor: View {
-    let item: EditableFoodItem
+    let component: MealFoodComponent
     let onSave: (Double) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var amount: String
     @FocusState private var amountFocused: Bool
 
     init(item: EditableFoodItem, onSave: @escaping (Double) -> Void) {
-        self.item = item
-        self.onSave = onSave
-        _amount = State(initialValue: item.grams.formatted(.number.grouping(.never).precision(.fractionLength(0...3))))
+        self.init(component: item.component, onSave: onSave)
     }
 
-    private var preview: EditableFoodItem? {
+    init(component: MealFoodComponent, onSave: @escaping (Double) -> Void) {
+        self.component = component
+        self.onSave = onSave
+        _amount = State(initialValue: component.grams.formatted(.number.grouping(.never).precision(.fractionLength(0...3))))
+    }
+
+    private var preview: LoggableMeal? {
         guard let grams = FoodPortionInput.grams(amount) else { return nil }
-        var result = item
+        var result = component
         result.grams = grams
-        return result
+        return result.macros
     }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    Text(item.name).font(AppFont.headline)
+                    Text(component.name).font(AppFont.headline)
                     HStack {
                         Text("Amount")
                         TextField("Grams", text: $amount)

@@ -59,6 +59,15 @@ struct MealScanFlow: View {
     @State private var capturedAtDate: Date = Date()
     @State private var chosenLogDate: Date?
     @State private var hasLogged = false
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var recovery: MealScanDraft?
+    @State private var draftError: String?
+    @State private var draftPhoto: Data?
+    @State private var draftGeneration = MealScanDraftStore.shared.generation
+    @State private var checkedDraft = false
+    @State private var discardConfirmation = false
+    @State private var pendingEntries: [MealEntry] = []
+    @State private var undoRequested = false
     /// Day the Meals screen was showing when the scan started.
     var logDay: Date = Date()
 
@@ -82,6 +91,7 @@ struct MealScanFlow: View {
         case analyzing
         case review
         case error
+        case saving, logged, saveError
     }
 
     /// Drives the alert that explains why the camera couldn't open and
@@ -102,6 +112,9 @@ struct MealScanFlow: View {
                 case .analyzing:  analyzing
                 case .review:     reviewCard
                 case .error:      errorCard
+                case .saving: ProgressView(undoRequested ? "Undoing meal?" : "Saving meal?")
+                case .logged: loggedCard
+                case .saveError: saveErrorCard
                 }
             }
             .padding(Spacing.xl)
@@ -111,12 +124,29 @@ struct MealScanFlow: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close", action: onClose)
+                    Button("Close") {
+                        if phase == .logged { finishLogged() }
+                        else if phase != .review && phase != .saveError || persistDraft() { onClose() }
+                    }
                         .foregroundStyle(AppColor.textSecondary)
+                        .disabled(phase == .saving)
                 }
             }
         }
+        .interactiveDismissDisabled(phase == .review || phase == .saving || phase == .logged || phase == .saveError)
+        .task { loadDraft() }
+        .onChange(of: draftSnapshot) { _, _ in
+            if phase == .review { _ = persistDraft() }
+        }
+        .onChange(of: scenePhase) { _, value in
+            if value != .active && phase == .review { _ = persistDraft() }
+        }
+        .confirmationDialog("Discard this scan?", isPresented: $discardConfirmation, titleVisibility: .visible) {
+            Button("Discard scan", role: .destructive) { discardDraft() }
+            Button("Cancel", role: .cancel) {}
+        } message: { Text("Removes this device's unfinished scan and its edits. Logged meals are kept.") }
         .onDisappear {
+            if phase == .review { _ = persistDraft() }
             inFlightTask?.cancel()
             inFlightTask = nil
         }
@@ -186,6 +216,7 @@ struct MealScanFlow: View {
     /// allowance is checked first: a user who is out of scans should not
     /// be asked to consent to a send that will not happen.
     private func openImageSource(_ source: ImageSource) {
+        guard recovery == nil, draftError == nil else { return }
         refreshScansRemaining()
         guard scansRemaining != 0 else {
             showScanLimitPaywall = true
@@ -231,7 +262,24 @@ struct MealScanFlow: View {
     // MARK: - Phases
 
     private var picker: some View {
+        ScrollView {
         VStack(spacing: Spacing.lg) {
+            if let recovery {
+                GlassCard {
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        Text("Unfinished meal scan").font(AppFont.headline)
+                        Text("\(recovery.items.count) foods ? \(recovery.date.formatted(date: .abbreviated, time: .shortened))")
+                            .font(AppFont.callout)
+                        Button("Resume review") { resumeDraft(recovery) }.minimumHitArea()
+                        Button("Discard draft", role: .destructive) { discardConfirmation = true }.minimumHitArea()
+                    }
+                }
+            }
+            if let draftError {
+                Text(draftError).font(AppFont.callout)
+                Button("Retry draft recovery") { checkedDraft = false; loadDraft() }.minimumHitArea()
+                Button("Discard unreadable draft", role: .destructive) { discardConfirmation = true }.minimumHitArea()
+            }
             previewBox
             Text("Snap or pick a photo of your meal — Claude separates each food so you can fine-tune the portions before logging.")
                 .font(AppFont.subheadline)
@@ -252,6 +300,7 @@ struct MealScanFlow: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityHint("Opens the camera to capture a meal photo.")
+                    .disabled(recovery != nil || draftError != nil)
                 }
 
                 Button {
@@ -265,11 +314,13 @@ struct MealScanFlow: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityHint("Picks an existing photo from your library.")
+                .disabled(recovery != nil || draftError != nil)
             }
 
             if let scansRemaining {
                 scanAllowanceCaption(remaining: scansRemaining)
             }
+        }
         }
     }
 
@@ -524,12 +575,22 @@ struct MealScanFlow: View {
         // The CTA reserves its own space rather than floating, so the last
         // card always scrolls clear of it.
         .pinnedFooter {
+            VStack(spacing: Spacing.sm) {
+            if let draftError {
+                Text(draftError).font(AppFont.caption)
+                Button("Retry saving draft") { _ = persistDraft() }.minimumHitArea()
+            } else {
+                Text(dataStore.isEphemeral ? "Preview mode · Draft not saved" : "Draft saved on this device").font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
             GlassButton(title: addButtonTitle, style: .primary, isFullWidth: true) {
                 confirm()
             }
             .disabled(includedItems.isEmpty || hasLogged)
+            .accessibilityIdentifier("meal-scan-log")
             .padding(.top, Spacing.lg)
             .padding(.bottom, Spacing.sm)
+            }
         }
     }
 
@@ -594,10 +655,7 @@ struct MealScanFlow: View {
     private var retakeButton: some View {
         Button {
             Haptics.impact(.soft)
-            image = nil
-            selectedItem = nil
-            items = []
-            phase = .pickImage
+            discardConfirmation = true
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "arrow.counterclockwise")
@@ -659,6 +717,82 @@ struct MealScanFlow: View {
         }
     }
 
+    private var draftSnapshot: MealScanDraft {
+        MealScanDraft(items: items, photo: draftPhoto, date: logDate, category: category,
+                      suggestedName: suggestedMealName, name: mealName, combine: logAsOneMeal,
+                      pendingEntries: pendingEntries, undoRequested: undoRequested)
+    }
+
+    private func loadDraft() {
+        guard !checkedDraft else { return }
+        checkedDraft = true
+        #if DEBUG
+        if dataStore.isEphemeral && ProcessInfo.processInfo.arguments.contains("--food-review-fixture") {
+            recovery = MealScanDraft.reviewFixture()
+            return
+        }
+        #endif
+        guard !dataStore.isEphemeral else { return }
+        do {
+            recovery = try MealScanDraftStore.shared.load()
+            draftError = nil
+        } catch { draftError = "Couldn't read your saved scan. Retry or explicitly discard it to start again." }
+    }
+
+    @discardableResult private func persistDraft() -> Bool {
+        guard draftGeneration == MealScanDraftStore.shared.generation else {
+            draftError = "The account changed. Close this scan and reopen it."
+            return false
+        }
+        guard !dataStore.isEphemeral else { return true }
+        do {
+            try MealScanDraftStore.shared.save(draftSnapshot)
+            draftError = nil
+            return true
+        } catch {
+            draftError = "Couldn't save the latest draft edits. Keep this review open and retry."
+            return false
+        }
+    }
+
+    private func resumeDraft(_ draft: MealScanDraft) {
+        items = draft.items
+        draftPhoto = draft.photo
+        image = draft.photo.flatMap(UIImage.init(data:))
+        chosenLogDate = draft.date
+        category = draft.category
+        suggestedMealName = draft.suggestedName
+        mealName = draft.name
+        logAsOneMeal = draft.combine
+        pendingEntries = draft.pendingEntries
+        undoRequested = draft.undoRequested
+        recovery = nil
+        let savedIDs = Set(dataStore.profile.mealHistory.map(\.id))
+        if !pendingEntries.isEmpty {
+            if undoRequested { phase = .saveError }
+            else if pendingEntries.allSatisfy({ savedIDs.contains($0.id) }) {
+                hasLogged = true
+                phase = .logged
+            } else { phase = .saveError }
+        } else { phase = .review }
+    }
+
+    private func discardDraft() {
+        do {
+            if !dataStore.isEphemeral { try MealScanDraftStore.shared.discard() }
+            phase = .pickImage
+            recovery = nil
+            draftError = nil
+            items = []
+            image = nil
+            draftPhoto = nil
+            selectedItem = nil
+            pendingEntries = []
+            undoRequested = false
+            hasLogged = false
+        } catch { draftError = "Couldn't discard the draft. Please retry." }
+    }
+
     // MARK: - Actions
 
     private func loadImage(from item: PhotosPickerItem?) async {
@@ -709,11 +843,13 @@ struct MealScanFlow: View {
         do {
             let result = try await MealScannerService.shared.analyzeItems(image: image)
             try Task.checkCancellation()
+            guard !result.items.isEmpty else { throw MealScannerService.ScanError.noFoodDetected }
             await MainActor.run {
                 if !result.items.isEmpty, !storeService.isProUser {
                     MealScanQuota.recordSuccessfulScan()
                     refreshScansRemaining()
                 }
+                draftPhoto = (image.resizedTo(maxEdge: 1200) ?? image).jpegData(compressionQuality: 0.75)
                 items = result.items.map(EditableFoodItem.init(from:))
                 suggestedMealName = result.mealName
                 mealName = result.mealName ?? ""
@@ -726,7 +862,9 @@ struct MealScanFlow: View {
                 // dinner photo picked at 10am gets bucketed as snack
                 // (audit Meals M1).
                 category = MealCategory.auto(for: logDate)
+                chosenLogDate = logDate
                 phase = .review
+                _ = persistDraft()
                 Haptics.success()
             }
         } catch {
@@ -747,47 +885,96 @@ struct MealScanFlow: View {
     private func confirm() {
         let toLog = includedItems
         guard !toLog.isEmpty, !hasLogged else { return }
-        hasLogged = true
-
-        if logAsOneMeal {
-            let name = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
-            dataStore.logMealEntry(
-                MealEntry(
-                    date: logDate,
-                    category: category,
-                    // Falls back to the model's suggestion, then to a generic
-                    // label — an empty diary row would be worse than either.
+        pendingEntries = []
+        if pendingEntries.isEmpty {
+            if logAsOneMeal {
+                let name = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
+                pendingEntries = [MealEntry(date: logDate, category: category,
                     name: name.isEmpty ? (suggestedMealName ?? "Meal") : name,
-                    calories: totalCalories,
-                    proteinG: totalProtein,
-                    carbsG: totalCarbs,
-                    fatG: totalFat,
-                    sourceID: nil,
-                    source: .photo
-                )
-            )
-            Haptics.success()
-            onClose()
-            return
+                    calories: totalCalories, proteinG: totalProtein, carbsG: totalCarbs, fatG: totalFat,
+                    source: .photo, components: toLog.map(\.component))]
+            } else {
+                pendingEntries = toLog.map { item in
+                    MealEntry(id: item.id, date: logDate, category: category, name: item.name,
+                              calories: item.calories, proteinG: item.proteinG, carbsG: item.carbsG,
+                              fatG: item.fatG, source: .photo, components: [item.component])
+                }
+            }
         }
+        savePending()
+    }
 
-        for item in toLog {
-            dataStore.logMealEntry(
-                MealEntry(
-                    date: logDate,
-                    category: category,
-                    name: item.name,
-                    calories: item.calories,
-                    proteinG: item.proteinG,
-                    carbsG: item.carbsG,
-                    fatG: item.fatG,
-                    sourceID: nil,
-                    source: .photo
-                )
-            )
+    private func savePending() {
+        guard !pendingEntries.isEmpty, persistDraft() else { return }
+        phase = .saving
+        Task { @MainActor in
+            await Task.yield()
+            guard draftGeneration == MealScanDraftStore.shared.generation else {
+                phase = .saveError
+                return
+            }
+            do {
+                try dataStore.commitScannedMeals(pendingEntries, undo: undoRequested)
+                if undoRequested {
+                    pendingEntries = []
+                    undoRequested = false
+                    hasLogged = false
+                    // Fresh IDs allow the reviewed meal to be logged again after Undo.
+                    items = items.map { $0.withFreshIdentity() }
+                    phase = .review
+                    _ = persistDraft()
+                } else {
+                    hasLogged = true
+                    phase = .logged
+                    Haptics.success()
+                }
+            } catch {
+                phase = .saveError
+            }
         }
-        Haptics.success()
-        onClose()
+    }
+
+    private var loggedCard: some View {
+        VStack(spacing: Spacing.lg) {
+            Image(systemName: "checkmark.circle").font(.largeTitle).foregroundStyle(AppColor.positive)
+            Text("Meal logged").font(AppFont.title2)
+            Text("\(pendingEntries.reduce(0) { $0 + $1.calories }) kcal ? \(logDate.formatted(date: .abbreviated, time: .shortened))")
+                .font(AppFont.callout).multilineTextAlignment(.center)
+            Text(dataStore.isEphemeral ? "Preview mode · No meal saved to storage." : "Saved on this device.")
+                .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+            if let draftError { Text(draftError).font(AppFont.caption) }
+            GlassButton(title: "Done", isFullWidth: true) { finishLogged() }
+            Button("Undo meal log") {
+                undoRequested = true
+                savePending()
+            }.minimumHitArea()
+        }.accessibilityIdentifier("meal-scan-logged")
+    }
+
+    private var saveErrorCard: some View {
+        VStack(spacing: Spacing.lg) {
+            Image(systemName: "exclamationmark.triangle").font(.largeTitle)
+            Text(undoRequested ? "Couldn't undo the meal" : "Meal save needs attention").font(AppFont.title2)
+            Text("Retry to finish the interrupted action. Your saved draft keeps the same meal identities to prevent duplicates.")
+                .font(AppFont.callout).multilineTextAlignment(.center)
+            if let draftError { Text(draftError).font(AppFont.caption) }
+            GlassButton(title: "Retry", isFullWidth: true) { savePending() }
+            if !undoRequested && !pendingEntries.contains(where: { meal in dataStore.profile.mealHistory.contains { $0.id == meal.id } }) {
+                Button("Return to review") {
+                    pendingEntries = []
+                    phase = .review
+                    _ = persistDraft()
+                }.minimumHitArea()
+            }
+        }
+    }
+
+    private func finishLogged() {
+        do {
+            if !dataStore.isEphemeral { try MealScanDraftStore.shared.discard() }
+            phase = .pickImage
+            onClose()
+        } catch { draftError = "The meal is saved, but draft cleanup failed. Retry Done." }
     }
 
     /// Saves the item to the user's food library as a `CustomFood` so it
@@ -837,12 +1024,15 @@ struct MealScanFlow: View {
 /// a per-100g basis (derived from the model's portion estimate) so the
 /// grams stepper rescales calories/protein/carbs/fat live, matching the
 /// portion math the rest of the food flow already uses.
-struct EditableFoodItem: Identifiable, Hashable {
-    let id: UUID
+struct EditableFoodItem: Identifiable, Hashable, Codable {
+    var id: UUID
     var name: String
     var per100g: ScannedProduct.Nutriments
     let originalPer100g: ScannedProduct.Nutriments
     var nutritionEdited = false
+    var replacementSourceID: String?
+    var replacedName: String?
+    var replacedQuantityLabel: String?
     var grams: Double
     /// The model's original portion estimate, offered as a one-tap
     /// "Serving" preset so the user can snap back to it.
@@ -869,9 +1059,9 @@ struct EditableFoodItem: Identifiable, Hashable {
     /// early.
     static let uncertaintyThreshold: Double = 0.6
 
-    var isUncertain: Bool { confidence < Self.uncertaintyThreshold }
+    var isUncertain: Bool { replacementSourceID == nil && confidence < Self.uncertaintyThreshold }
 
-    enum PortionMode: String, CaseIterable, Identifiable, CustomStringConvertible {
+    enum PortionMode: String, CaseIterable, Identifiable, CustomStringConvertible, Codable {
         case serving, grams
         var id: Self { self }
         var label: String { self == .serving ? "Servings" : "Grams" }
@@ -881,6 +1071,12 @@ struct EditableFoodItem: Identifiable, Hashable {
     /// Current portion expressed in servings, where one serving is the
     /// model's depicted-portion estimate (`aiGrams`).
     var servings: Double { aiGrams > 0 ? grams / aiGrams : 1 }
+
+    var component: MealFoodComponent {
+        MealFoodComponent(id: id.uuidString, name: name, grams: grams,
+                          servingGrams: replacementSourceID == nil ? aiGrams : nil,
+                          servingLabel: quantityLabel.nilIfEmpty, per100g: per100g, sourceID: replacementSourceID)
+    }
 
     init(from item: MealScannerService.ScannedFoodItem) {
         id = item.id
@@ -906,6 +1102,12 @@ struct EditableFoodItem: Identifiable, Hashable {
         originalPer100g = per100g
     }
 
+    func withFreshIdentity() -> EditableFoodItem {
+        var copy = self
+        copy.id = UUID()
+        return copy
+    }
+
     mutating func correctNutrition(_ meal: LoggableMeal) {
         guard grams.isFinite, grams > 0,
               [meal.calories, meal.proteinG, meal.carbsG, meal.fatG].allSatisfy({ (0...100_000).contains($0) }) else { return }
@@ -919,7 +1121,23 @@ struct EditableFoodItem: Identifiable, Hashable {
 
     mutating func resetNutrition() {
         per100g = originalPer100g
+        replacementSourceID = nil
+        if let replacedName { name = replacedName }
+        if let replacedQuantityLabel { quantityLabel = replacedQuantityLabel }
+        replacedName = nil
+        replacedQuantityLabel = nil
         nutritionEdited = false
+        savedToLibrary = false
+    }
+
+    mutating func replace(with product: ScannedProduct) {
+        if replacedName == nil { replacedName = name; replacedQuantityLabel = quantityLabel }
+        name = product.name
+        per100g = product.per100g
+        replacementSourceID = product.barcode
+        quantityLabel = ""
+        portionMode = .grams
+        nutritionEdited = true
         savedToLibrary = false
     }
 
@@ -947,6 +1165,7 @@ private struct FoodItemEditCard: View {
     @FocusState private var nameFocused: Bool
     @State private var editingNutrition = false
     @State private var editingPortion = false
+    @State private var replacingFood = false
 
     /// Quick-pick portion presets for each mode.
     private static let gramPresets: [Double] = [50, 100, 150, 200, 300]
@@ -960,6 +1179,8 @@ private struct FoodItemEditCard: View {
                 modePicker
                 portionStepper
                 Button("Enter exact grams") { editingPortion = true }
+                    .font(AppFont.callout).minimumHitArea()
+                Button("Replace with another food") { replacingFood = true }
                     .font(AppFont.callout).minimumHitArea()
                 presetChips
                 HStack {
@@ -1004,6 +1225,9 @@ private struct FoodItemEditCard: View {
                 item.grams = grams
                 item.portionMode = .grams
             }
+        }
+        .sheet(isPresented: $replacingFood) {
+            ReplaceScannedFoodSheet(grams: item.grams) { item.replace(with: $0) }
         }
     }
 

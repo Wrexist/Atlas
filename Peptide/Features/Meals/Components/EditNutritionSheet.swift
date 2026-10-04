@@ -101,6 +101,15 @@ struct EditNutritionSheet: View {
             let c = Int(carbs),
             let f = Int(fat)
         else { return }
-        onSave(LoggableMeal(calories: kcal, proteinG: p, carbsG: c, fatG: f))
+        var result = LoggableMeal(calories: kcal, proteinG: p, carbsG: c, fatG: f)
+        if var component = initial?.components?.first, initial?.components?.count == 1,
+           component.grams.isFinite, component.grams > 0 {
+            component.per100g = .init(calories: Double(kcal) / component.grams * 100,
+                                     proteinG: Double(p) / component.grams * 100,
+                                     carbsG: Double(c) / component.grams * 100,
+                                     fatG: Double(f) / component.grams * 100, fiberG: nil, sugarsG: nil)
+            result.components = [component]
+        }
+        onSave(result)
     }
 }

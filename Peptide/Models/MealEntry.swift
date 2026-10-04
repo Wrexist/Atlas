@@ -130,6 +130,11 @@ struct MealEntry: Codable, Hashable, Identifiable, Sendable {
     /// into the same review sheet for a one-tap re-log.
     var sourceID: String?
     var source: MealSource
+    /// Optional additive data. Legacy meals remain valid with unknown portions.
+    var components: [MealFoodComponent]?
+
+    var fiberG: Double? { MealFoodComponent.completeTotal(components?.map(\.fiberG) ?? []) }
+    var sugarsG: Double? { MealFoodComponent.completeTotal(components?.map(\.sugarsG) ?? []) }
 
     init(
         id: UUID = UUID(),
@@ -141,7 +146,8 @@ struct MealEntry: Codable, Hashable, Identifiable, Sendable {
         carbsG: Int,
         fatG: Int,
         sourceID: String? = nil,
-        source: MealSource
+        source: MealSource,
+        components: [MealFoodComponent]? = nil
     ) {
         self.id = id
         self.date = date
@@ -153,6 +159,7 @@ struct MealEntry: Codable, Hashable, Identifiable, Sendable {
         self.fatG = fatG
         self.sourceID = sourceID
         self.source = source
+        self.components = components
     }
 }
 
@@ -177,7 +184,8 @@ extension MealEntry {
             carbsG: loggable.carbsG,
             fatG: loggable.fatG,
             sourceID: sourceID,
-            source: source
+            source: source,
+            components: loggable.components
         )
     }
 }

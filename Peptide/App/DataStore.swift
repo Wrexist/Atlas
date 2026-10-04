@@ -1113,6 +1113,40 @@ final class DataStore {
         }
     }
 
+    /// Stable IDs make retry and interrupted completion idempotent.
+    /// Health writes start only after the local profile commit succeeds.
+    @ObservationIgnored private var mealHealthWriteTask: Task<Void, Never>?
+
+    func commitScannedMeals(_ meals: [MealEntry], undo: Bool = false) throws {
+        var candidate = profile
+        var changed: [MealEntry] = []
+        for meal in meals {
+            if undo {
+                guard candidate.mealHistory.contains(where: { $0.id == meal.id }) else { continue }
+                LifestyleDataLogic.unlogMealEntry(from: &candidate, id: meal.id)
+            } else {
+                guard !candidate.mealHistory.contains(where: { $0.id == meal.id }) else { continue }
+                LifestyleDataLogic.logMealEntry(into: &candidate, entry: meal)
+            }
+            changed.append(meal)
+        }
+        if !isEphemeral { try repo.saveMealProfileDurably(candidate) }
+        profile = candidate
+        // Keep the established projection/achievement save path. It may save
+        // other pending changes; the meals above already have durable storage.
+        save()
+        if profile.healthKitNutritionEnabled && !isEphemeral {
+            let previous = mealHealthWriteTask
+            mealHealthWriteTask = Task {
+                await previous?.value
+                for meal in changed {
+                    if undo { await HealthKitService.shared.deleteSamples(forEntryID: meal.id) }
+                    else { await HealthKitService.shared.writeMealEntry(meal) }
+                }
+            }
+        }
+    }
+
     /// Updates a previously logged meal entry — category, macros, or
     /// date — keeping the per-day aggregate in lockstep. The previous
     /// implementation replaced the array element only, so editing
@@ -1616,6 +1650,8 @@ final class DataStore {
     func refreshTrainingGlanceables() {
         updateWidgetData()
     }
+
+
 
     /// Editing changes derived records and totals, but earns no second reward.
     func workoutWasEdited(exerciseIDs: Set<String>) {

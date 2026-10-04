@@ -325,7 +325,8 @@ enum LifestyleDataLogic {
             carbsG: entry.carbsG,
             fatG: entry.fatG,
             sourceID: entry.sourceID,
-            source: entry.source
+            source: entry.source,
+            components: entry.components
         )
     }
 

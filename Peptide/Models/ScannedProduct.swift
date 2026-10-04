@@ -90,7 +90,9 @@ extension ScannedProduct {
             calories: roundedNonNegative(per100g.calories * multiplier),
             proteinG: roundedNonNegative(per100g.proteinG * multiplier),
             carbsG:   roundedNonNegative(per100g.carbsG * multiplier),
-            fatG:     roundedNonNegative(per100g.fatG * multiplier)
+            fatG:     roundedNonNegative(per100g.fatG * multiplier),
+            components: [MealFoodComponent(id: barcode, name: name, grams: grams, servingGrams: servingGrams,
+                                           servingLabel: servingSizeText, per100g: per100g, sourceID: barcode)]
         )
     }
 
@@ -145,4 +147,5 @@ struct LoggableMeal: Hashable, Sendable {
     let proteinG: Int
     let carbsG: Int
     let fatG: Int
+    var components: [MealFoodComponent]? = nil
 }

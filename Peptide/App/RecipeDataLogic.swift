@@ -45,6 +45,7 @@ enum RecipeDataLogic {
             uniqueKeysWithValues: customFoods.map { ($0.foodID, $0) }
         )
         var calories = 0, protein = 0, carbs = 0, fat = 0
+        var snapshots: [MealFoodComponent] = []
         for component in recipe.components {
             let product: ScannedProduct?
             if component.foodID.hasPrefix("custom:") {
@@ -59,7 +60,12 @@ enum RecipeDataLogic {
             protein += meal.proteinG
             carbs += meal.carbsG
             fat += meal.fatG
+            if var snapshot = meal.components?.first {
+                snapshot.id = component.id.uuidString
+                snapshots.append(snapshot)
+            }
         }
-        return LoggableMeal(calories: calories, proteinG: protein, carbsG: carbs, fatG: fat)
+        return LoggableMeal(calories: calories, proteinG: protein, carbsG: carbs, fatG: fat,
+                           components: snapshots.count == recipe.components.count && !snapshots.isEmpty ? snapshots : nil)
     }
 }
