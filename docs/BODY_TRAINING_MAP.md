@@ -30,6 +30,17 @@ Muscle locations are illustrative, manually authored overlays, not anatomical se
 
 ## Remaining roadmap
 
+### Body usability refinement (2026-10-04)
+
+- `TrainingBodyExplorer` now supplies Both / Front / Back controls across the active/saved session card, recent training map and long-term training history. A single side can grow to 340 points wide; large accessibility text defaults to Front.
+- Front/back captions make orientation explicit. A full-width, minimum-44-point muscle menu provides an alternative to small anatomical tap targets, including in the long-term history card.
+- Session legends adapt to narrow widths; primary and secondary legend symbols differ as well as their colors. VoiceOver uses readable muscle names in stable order and identifies intensity values as relative training scores.
+- Asset highlights have lightly feathered edges and a less opaque primary tint to preserve more of the gray body's shading. The source illustrations and region coordinates remain unchanged; this is not an anatomical-accuracy upgrade.
+- Design lint passes with zero errors and warnings. Native verification of revision `98940d9` was attempted in [run 37187550704](https://github.com/Wrexist/Atlas/actions/runs/37187550704), but GitHub refused to start the job: **“The job was not started because your account is locked due to a billing issue.”** No new native build, UI pass or screenshot is claimed for this refinement. The successful run documented above verifies the previous revision only.
+- Once Actions is available, rerun `test_captureMuscleTraining`: it now also selects Front and Back, checks selection state and captures each side in both appearances.
+
+### Next priorities
+
 1. Check small-screen and largest Dynamic Type layouts, VoiceOver and real-device performance. Review region outlines with a qualified anatomy/movement reviewer.
 2. Add duration/distance/assistance logging with backward-compatible persistence and category-specific validation. Retain the shared visual system.
 3. Complete focused superset transitions and timer handling.
