@@ -53,13 +53,11 @@ struct MuscleGainsCard: View {
                     .pickerStyle(.segmented)
                 }
 
-                MuscleMapView(
+                TrainingBodyExplorer(
                     highlights: highlights,
                     onIdentify: { muscle in onIdentify?(muscle, historyDays) }
                 )
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: 320)
-                .animation(.easeInOut(duration: 0.4), value: mode)
 
                 if hasHistory {
                     MuscleHeatLegend(

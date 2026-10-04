@@ -192,6 +192,15 @@ final class ScreenshotTests: XCTestCase {
             app.buttons["Workout overview"].tap()
             XCTAssertTrue(app.staticTexts["Muscles trained"].waitForExistence(timeout: 10))
             capture(named: "body-\(appearance)-03-session")
+            let bodySide = app.segmentedControls["training-body-side"].firstMatch
+            reveal(bodySide)
+            bodySide.buttons["Front"].tap()
+            XCTAssertTrue(bodySide.buttons["Front"].isSelected)
+            capture(named: "body-\(appearance)-03a-front")
+            bodySide.buttons["Back"].tap()
+            XCTAssertTrue(bodySide.buttons["Back"].isSelected)
+            capture(named: "body-\(appearance)-03b-back")
+            bodySide.buttons["Both"].tap()
             let explore = app.buttons["explore-trained-muscles"]
             reveal(explore)
             explore.tap()

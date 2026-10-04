@@ -225,29 +225,20 @@ struct TrainOverviewView: View {
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("training-map-period")
 
-                MuscleMapView(
+                TrainingBodyExplorer(
                     highlights: MuscleMapView.intensityHighlights(from: frequencies),
                     onIdentify: { inspectRecentMuscle($0) }
                 )
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: 320)
-                .animation(AppAnimation.fadeInSlow, value: frequencies)
 
                 // Both of these describe heat that isn't there yet on a
                 // fresh install, where the subtitle above is already
                 // carrying the message.
                 if weekHasTraining {
-                    Text("Tap a muscle to see what you've trained it with.")
+                    Text("Select Front or Back for a closer look. Tap a muscle for its exercises.")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
                     intensityLegend
-                    Menu("Explore trained muscles") {
-                        ForEach(AnatomicalMuscle.allCases.filter { frequencies[$0] != nil }, id: \.self) { muscle in
-                            Button(muscle.displayName) { inspectRecentMuscle(muscle) }
-                        }
-                    }
-                    .font(AppFont.subheadline)
-                    .minimumHitArea()
                     Text("Relative training score: primary work counts more than secondary work. Not a measure of growth or recovery.")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)

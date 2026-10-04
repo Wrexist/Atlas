@@ -22,31 +22,19 @@ struct SessionMuscleCard: View {
                      ? "Complete a working set to light up your muscles."
                      : "Based on completed working sets in this workout.")
                     .font(AppFont.subheadline)
-                    .minimumHitArea()
                     .foregroundStyle(AppColor.textSecondary)
-                MuscleMapView(
+                TrainingBodyExplorer(
                     highlights: highlights,
                     primaryColor: AppColor.trainingPrimaryMuscle,
                     secondaryColor: AppColor.trainingSecondaryMuscle,
                     onIdentify: { inspectedMuscle = $0 }
                 )
                 .frame(maxWidth: .infinity)
-                HStack(spacing: Spacing.lg) {
-                    Label("Primary", systemImage: "circle.fill")
-                        .foregroundStyle(AppColor.trainingPrimaryMuscle)
-                    Label("Secondary", systemImage: "circle.fill")
-                        .foregroundStyle(AppColor.trainingSecondaryMuscle)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Spacing.lg) { legend }
+                    VStack(alignment: .leading, spacing: Spacing.sm) { legend }
                 }
                 .font(AppFont.caption)
-                if !highlights.isEmpty {
-                    Menu("Explore trained muscles") {
-                        ForEach(AnatomicalMuscle.allCases.filter { highlights[$0] != nil }, id: \.self) { muscle in
-                            Button(muscle.displayName) { inspectedMuscle = muscle }
-                        }
-                    }
-                    .font(AppFont.subheadline)
-                    .accessibilityIdentifier("explore-trained-muscles")
-                }
             }
         }
         .task { await library.load() }
@@ -60,5 +48,13 @@ struct SessionMuscleCard: View {
                 sessions: [session]
             )
         }
+    }
+
+    @ViewBuilder
+    private var legend: some View {
+        Label("Primary", systemImage: "circle.fill")
+            .foregroundStyle(AppColor.trainingPrimaryMuscle)
+        Label("Secondary", systemImage: "circle.lefthalf.filled")
+            .foregroundStyle(AppColor.trainingSecondaryMuscle)
     }
 }
