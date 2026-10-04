@@ -22,9 +22,7 @@ final class WorkoutShareController {
     private var preparedKey: WorkoutShareRenderKey?
     private var preparedURL: URL?
     private var preparedReducedMotion = false
-    private var ownedFiles: [URL] = []
-
-    deinit { for url in ownedFiles { WorkoutShareFiles.remove(url) } }
+    private let files = WorkoutShareFileOwner()
 
     func optionsChanged() {
         task?.cancel()
@@ -64,7 +62,7 @@ final class WorkoutShareController {
                     try Task.checkCancellation()
                     let image = try WorkoutSocialRenderer.image(summary: summary, unit: unit, options: options)
                     url = WorkoutShareFiles.makeURL(video: options.format.isVideo)
-                    ownedFiles.append(url)
+                    files.urls.append(url)
                     if options.format.isVideo {
                         guard let cgImage = image.cgImage else { throw WorkoutMediaError.render }
                         try await WorkoutMediaExporter().video(image: cgImage, to: url, reduceMotion: reduceMotion) { value in
@@ -102,4 +100,11 @@ final class WorkoutShareController {
             }
         }
     }
+}
+
+/// Keep deinitialization independent of the UI actor and Observation accessors.
+/// The controller owns this object for the full preview/share-sheet lifetime.
+private final class WorkoutShareFileOwner {
+    var urls: [URL] = []
+    deinit { for url in urls { WorkoutShareFiles.remove(url) } }
 }
