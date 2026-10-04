@@ -57,6 +57,8 @@ struct MealScanFlow: View {
     /// yesterday's bucket (audit Meals HIGH 2). Camera captures
     /// stamp Date() since there's no asset to read from.
     @State private var capturedAtDate: Date = Date()
+    @State private var chosenLogDate: Date?
+    @State private var hasLogged = false
     /// Day the Meals screen was showing when the scan started.
     var logDay: Date = Date()
 
@@ -65,6 +67,7 @@ struct MealScanFlow: View {
     /// viewing a past day puts it on that day unless the photo was taken
     /// on it, since the user chose the day explicitly.
     private var logDate: Date {
+        if let chosenLogDate { return chosenLogDate }
         let calendar = Calendar.current
         if calendar.isDateInToday(logDay) || calendar.isDate(capturedAtDate, inSameDayAs: logDay) {
             return capturedAtDate
@@ -142,6 +145,8 @@ struct MealScanFlow: View {
                 onPicked: { captured in
                     isShowingCamera = false
                     image = captured
+                    capturedAtDate = Date()
+                    chosenLogDate = nil
                     phase = .analyzing
                     inFlightTask?.cancel()
                     inFlightTask = Task { await runAnalysis(on: captured) }
@@ -163,13 +168,13 @@ struct MealScanFlow: View {
                             UIApplication.shared.open(url)
                         }
                     },
-                    secondaryButton: .cancel(Text("Use Library"))
+                    secondaryButton: .cancel(Text("Use Library")) { isShowingLibrary = true }
                 )
             case .restricted:
                 Alert(
                     title: Text("Camera Unavailable"),
                     message: Text("The camera is restricted on this device — likely by Screen Time or a profile policy. Pick a photo from your library to continue."),
-                    dismissButton: .default(Text("Use Library"))
+                    dismissButton: .default(Text("Use Library")) { isShowingLibrary = true }
                 )
             }
         }
@@ -506,17 +511,23 @@ struct MealScanFlow: View {
                 }
 
                 MealCategoryPicker(selection: $category)
+                DatePicker("Log meal on", selection: Binding(
+                    get: { logDate }, set: { chosenLogDate = $0 }
+                ), displayedComponents: [.date, .hourAndMinute])
+                Text("Photo estimates can miss ingredients and portions. Review each item’s calories and amounts before logging.")
+                    .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
             }
             .animation(AppAnimation.springSnappy, value: includedItems.count)
         }
         .scrollIndicators(.hidden)
+        .scrollDismissesKeyboard(.interactively)
         // The CTA reserves its own space rather than floating, so the last
         // card always scrolls clear of it.
         .pinnedFooter {
             GlassButton(title: addButtonTitle, style: .primary, isFullWidth: true) {
                 confirm()
             }
-            .disabled(includedItems.isEmpty)
+            .disabled(includedItems.isEmpty || hasLogged)
             .padding(.top, Spacing.lg)
             .padding(.bottom, Spacing.sm)
         }
@@ -612,10 +623,10 @@ struct MealScanFlow: View {
     /// the key text itself. That was already true before this change; the
     /// catalog sits at 13% coverage and is tracked separately.
     private var addButtonTitle: LocalizedStringKey {
-        if logAsOneMeal { return "Add to today" }
+        if logAsOneMeal { return "Log meal · \(totalCalories) kcal" }
         return includedItems.count <= 1
-            ? "Add to today"
-            : "Add \(includedItems.count) items"
+            ? "Log meal · \(totalCalories) kcal"
+            : "Log \(includedItems.count) items · \(totalCalories) kcal"
     }
 
     private var errorCard: some View {
@@ -657,6 +668,7 @@ struct MealScanFlow: View {
                 let data = try await item.loadTransferable(type: Data.self),
                 let ui = UIImage(data: data)
             else {
+                guard !Task.isCancelled else { return }
                 await MainActor.run {
                     errorText = "Couldn't load that photo. Try a different one."
                     phase = .error
@@ -669,13 +681,16 @@ struct MealScanFlow: View {
             // needs no Photos permission; falls back to now only when
             // the image carries no capture date.
             let capturedAt = PhotoCaptureDate.captureDate(fromImageData: data) ?? Date()
+            try Task.checkCancellation()
             await MainActor.run {
                 image = ui
                 capturedAtDate = capturedAt
+                chosenLogDate = nil
                 phase = .analyzing
             }
             await runAnalysis(on: ui)
         } catch {
+            guard !Task.isCancelled else { return }
             await MainActor.run {
                 // Never surface raw PHPhotosErrorDomain strings to
                 // the user — those read "The operation couldn't be
@@ -693,6 +708,7 @@ struct MealScanFlow: View {
     private func runAnalysis(on image: UIImage) async {
         do {
             let result = try await MealScannerService.shared.analyzeItems(image: image)
+            try Task.checkCancellation()
             await MainActor.run {
                 if !result.items.isEmpty, !storeService.isProUser {
                     MealScanQuota.recordSuccessfulScan()
@@ -714,6 +730,7 @@ struct MealScanFlow: View {
                 Haptics.success()
             }
         } catch {
+            guard !Task.isCancelled else { return }
             await MainActor.run {
                 errorText = error.localizedDescription
                 phase = .error
@@ -729,7 +746,8 @@ struct MealScanFlow: View {
     /// today logs into yesterday's bucket.
     private func confirm() {
         let toLog = includedItems
-        guard !toLog.isEmpty else { return }
+        guard !toLog.isEmpty, !hasLogged else { return }
+        hasLogged = true
 
         if logAsOneMeal {
             let name = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -823,6 +841,8 @@ struct EditableFoodItem: Identifiable, Hashable {
     let id: UUID
     var name: String
     var per100g: ScannedProduct.Nutriments
+    let originalPer100g: ScannedProduct.Nutriments
+    var nutritionEdited = false
     var grams: Double
     /// The model's original portion estimate, offered as a one-tap
     /// "Serving" preset so the user can snap back to it.
@@ -883,6 +903,24 @@ struct EditableFoodItem: Identifiable, Hashable {
             fiberG: nil,
             sugarsG: nil
         )
+        originalPer100g = per100g
+    }
+
+    mutating func correctNutrition(_ meal: LoggableMeal) {
+        guard grams.isFinite, grams > 0,
+              [meal.calories, meal.proteinG, meal.carbsG, meal.fatG].allSatisfy({ (0...100_000).contains($0) }) else { return }
+        per100g = .init(calories: Double(meal.calories) / grams * 100,
+                       proteinG: Double(meal.proteinG) / grams * 100,
+                       carbsG: Double(meal.carbsG) / grams * 100,
+                       fatG: Double(meal.fatG) / grams * 100, fiberG: nil, sugarsG: nil)
+        nutritionEdited = true
+        savedToLibrary = false
+    }
+
+    mutating func resetNutrition() {
+        per100g = originalPer100g
+        nutritionEdited = false
+        savedToLibrary = false
     }
 
     private func scaled(_ per100: Double) -> Int { Int((per100 * grams / 100).rounded()) }
@@ -907,6 +945,7 @@ private struct FoodItemEditCard: View {
     /// telling the user the name might be wrong is only half a feature
     /// if fixing it is a separate hunt for the tap target.
     @FocusState private var nameFocused: Bool
+    @State private var editingNutrition = false
 
     /// Quick-pick portion presets for each mode.
     private static let gramPresets: [Double] = [50, 100, 150, 200, 300]
@@ -920,6 +959,13 @@ private struct FoodItemEditCard: View {
                 modePicker
                 portionStepper
                 presetChips
+                HStack {
+                    Button("Edit calories & macros") { editingNutrition = true }
+                        .minimumHitArea()
+                    if item.nutritionEdited {
+                        Button("Reset estimate") { item.resetNutrition() }.minimumHitArea()
+                    }
+                }.font(AppFont.caption)
                 // Macros on the left, save affordance on the right —
                 // one balanced row instead of two stacked ones.
                 HStack(spacing: Spacing.sm) {
@@ -942,6 +988,14 @@ private struct FoodItemEditCard: View {
         // Only the include state animates. Binding this to the whole card
         // would re-animate every portion tap and every macro recount.
         .animation(AppAnimation.springSnappy, value: item.include)
+        .sheet(isPresented: $editingNutrition) {
+            EditNutritionSheet(productName: item.name,
+                               initial: LoggableMeal(calories: item.calories, proteinG: item.proteinG,
+                                                     carbsG: item.carbsG, fatG: item.fatG),
+                               onSave: { meal in item.correctNutrition(meal); editingNutrition = false },
+                               onCancel: { editingNutrition = false },
+                               explanation: "Enter values for the current portion. Later portion changes scale these corrected values. Reset estimate restores the scan’s original nutrition.")
+        }
     }
 
     /// Amber edge on a row the scanner wasn't sure of, so an uncertain
@@ -1019,13 +1073,13 @@ private struct FoodItemEditCard: View {
             HStack(spacing: 4) {
                 Image(systemName: "questionmark.circle.fill")
                     .font(AppFont.scaled(11))
-                Text("Not certain — check the name")
+                Text("Not certain — check this food")
                     .font(AppFont.caption)
             }
             .foregroundStyle(AppColor.warning)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("The scanner wasn't confident about this name. Tap to edit it.")
+        .accessibilityLabel("Check this food. Tap to edit its name. Use Edit calories and macros to correct its nutrition.")
     }
 
     private var modePicker: some View {
@@ -1108,13 +1162,14 @@ private struct FoodItemEditCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+        .minimumHitArea()
     }
 
     /// Snaps to the nearest half-serving and writes it back as grams,
     /// keeping `grams` the single source of truth for macro scaling.
     private func setServings(_ value: Double) {
         let snapped = max(0.5, (value * 2).rounded() / 2)
-        item.grams = (snapped * item.aiGrams).rounded()
+        item.grams = min(2000, max(5, (snapped * item.aiGrams).rounded()))
     }
 
     private var servingsLabel: String { "\(formatCount(item.servings))×" }
@@ -1144,7 +1199,7 @@ private struct FoodItemEditCard: View {
     private func chip(label: String, grams: Double) -> some View {
         let isActive = Int(item.grams.rounded()) == Int(grams.rounded())
         return Button {
-            item.grams = grams.rounded()
+            item.grams = min(2000, max(5, grams.rounded()))
         } label: {
             Text(label)
                 .font(AppFont.scaled(11, weight: .semibold))
