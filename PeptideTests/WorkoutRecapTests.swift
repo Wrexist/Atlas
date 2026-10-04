@@ -14,7 +14,8 @@ final class WorkoutRecapTests: XCTestCase {
     func test_fixtureSharedTotalsAndVerifiedRoles() async throws {
         let catalog = await catalog()
         XCTAssertEqual(catalog.count, 5)
-        let session = WorkoutRecapFixture.push()
+        let end = try XCTUnwrap(Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 1, hour: 12)))
+        let session = WorkoutRecapFixture.push(finishedAt: end)
         let summary = WorkoutRecapEngine.derive(session, catalog: catalog)
         XCTAssertEqual(summary.entries.count, 5)
         XCTAssertEqual(summary.workingSetCount, 15)
@@ -178,7 +179,8 @@ final class WorkoutCompletionPersistenceTests: XCTestCase {
         let url = directory.appendingPathComponent("recap.store")
         defer { repo.configureForTesting(); try? FileManager.default.removeItem(at: directory) }
         try repo.configurePersistentStoreForTesting(at: url)
-        let finished = WorkoutRecapFixture.push()
+        // Stored set timestamps use the established whole-second ISO8601 codec.
+        let finished = WorkoutRecapFixture.push(finishedAt: Date(timeIntervalSince1970: 1_790_000_000))
         var draft = finished
         draft.finishedAt = nil
         try repo.saveWorkoutDurably(draft)
