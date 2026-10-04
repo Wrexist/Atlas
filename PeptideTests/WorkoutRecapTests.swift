@@ -147,6 +147,69 @@ final class WorkoutRecapTests: XCTestCase {
         XCTAssertEqual(week.days.map(\.count), [2, 0, 0, 0, 0, 0, 0])
     }
 
+    func test_weekAcrossDaylightSavingUsesSevenLocalDays() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Stockholm"))
+        calendar.firstWeekday = 2
+        let end = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 10, day: 25, hour: 12)))
+        let week = WorkoutRecapEngine.week(sessions: [WorkoutRecapFixture.push(finishedAt: end)],
+                                           catalog: [:], now: end, calendar: calendar)
+        XCTAssertEqual(week.days.map { calendar.component(.day, from: $0.date) }, [19, 20, 21, 22, 23, 24, 25])
+        XCTAssertEqual(week.days.map(\.count), [0, 0, 0, 0, 0, 0, 1])
+        XCTAssertEqual(calendar.dateInterval(of: .weekOfYear, for: end)?.duration, 169 * 3600)
+    }
+
+    func test_editorValidatesChangedMeasurementAndPreservesManualHistory() throws {
+        let original = WorkoutRecapFixture.push()
+        var draft = original
+        draft.exercises[0].sets[0].measurement = .init(kind: .timed)
+        XCTAssertNotNil(WorkoutEditValidation.issue(in: draft, original: original))
+        XCTAssertThrowsError(try WorkoutEditValidation.validate(draft, original: original))
+        draft.exercises[0].sets[0].measurement?.seconds = 30
+        XCTAssertNil(WorkoutEditValidation.issue(in: draft, original: original))
+        draft.exercises[0].sets[0].measurement = .init(kind: .distance, meters: 0)
+        XCTAssertNotNil(WorkoutEditValidation.issue(in: draft, original: original))
+        draft.exercises[0].sets[0].measurement?.meters = 100
+        XCTAssertNil(WorkoutEditValidation.issue(in: draft, original: original))
+        let manual = WorkoutSession(name: "Manual workout", finishedAt: Date())
+        var editedManual = manual
+        editedManual.name = "Corrected name"
+        XCTAssertNil(WorkoutEditValidation.issue(in: editedManual, original: manual))
+        for e in draft.exercises.indices {
+            for s in draft.exercises[e].sets.indices { draft.exercises[e].sets[s].completed = false }
+        }
+        XCTAssertNotNil(WorkoutEditValidation.issue(in: draft, original: original))
+    }
+
+    func test_editorNumberParsingRejectsBlankPartialAndAmbiguousInput() {
+        let english = Locale(identifier: "en_US")
+        let swedish = Locale(identifier: "sv_SE")
+        XCTAssertEqual(WorkoutEditValidation.number("22.5", locale: english), 22.5)
+        XCTAssertEqual(WorkoutEditValidation.number("22,5", locale: swedish), 22.5)
+        XCTAssertNil(WorkoutEditValidation.number("1.234", locale: Locale(identifier: "de_DE")))
+        XCTAssertEqual(WorkoutEditValidation.number("١٢.٥", locale: english), 12.5)
+        for text in ["", " ", "-", ".", "12lb", "1,234.5", "1..2", "nan", "inf"] {
+            XCTAssertNil(WorkoutEditValidation.number(text, locale: english), text)
+        }
+    }
+
+    func test_manualHistoryCountsWorkoutWithoutInventingSetTotals() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 0))
+        let date = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 10, day: 1, hour: 12)))
+        let manual = WorkoutSession(name: "Manual workout", startedAt: date, finishedAt: date,
+                                    focus: WorkoutFocusState(timing: .notTracked))
+        let summary = WorkoutRecapEngine.derive(manual, catalog: [:])
+        XCTAssertEqual(summary.duration, .notTracked)
+        XCTAssertEqual(summary.workingSetLabel, "Not logged")
+        XCTAssertNil(summary.volumeKg)
+        XCTAssertTrue(summary.qualifiesForWeek)
+        XCTAssertEqual(WorkoutRecapEngine.week(sessions: [manual], catalog: [:], now: date, calendar: calendar).count, 1)
+        var unfinished = manual
+        unfinished.finishedAt = nil
+        XCTAssertFalse(WorkoutRecapEngine.derive(unfinished, catalog: [:]).qualifiesForWeek)
+    }
+
     func test_legacyJSONAndRoundTripKeepIdentityAndSemantics() throws {
         let original = SetEntry(index: 1, weightKg: 25, reps: 10, completed: true)
         let data = try JSONEncoder().encode(original)
@@ -171,10 +234,15 @@ final class WorkoutRecapTests: XCTestCase {
             attach(VStack { RecapMetrics(summary: alternate, unit: .imperial); RecapCalculationNotes(summary: alternate) }, name: "06-\(name)")
         }
         attach(WorkoutShareCard(summary: summary, unit: .imperial, includeName: true, includeDate: true), name: "08-share")
+        for width in [CGFloat(320), 375, 393, 430] {
+            attach(RecapMetrics(summary: summary, unit: .imperial), name: "metrics-\(Int(width))", width: width)
+            attach(RecapMetrics(summary: summary, unit: .imperial).dynamicTypeSize(.accessibility5),
+                   name: "metrics-xxxl-\(Int(width))", width: width)
+        }
     }
 
-    private func attach<V: View>(_ view: V, name: String) {
-        let renderer = ImageRenderer(content: view.padding(20).frame(width: 375)
+    private func attach<V: View>(_ view: V, name: String, width: CGFloat = 375) {
+        let renderer = ImageRenderer(content: view.padding(20).frame(width: width)
             .background(AppColor.recapBackground).environment(\.colorScheme, .dark))
         renderer.scale = 3
         guard let image = renderer.uiImage else { XCTFail("Image rendering failed: \(name)"); return }
@@ -187,6 +255,26 @@ final class WorkoutRecapTests: XCTestCase {
 
 @MainActor
 final class WorkoutCompletionPersistenceTests: XCTestCase {
+    func test_recapRefreshChangesWeekWithoutChangingSavedWorkout() async throws {
+        let repo = SwiftDataRepository.shared
+        repo.configureForTesting()
+        defer { repo.deleteAll() }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Stockholm"))
+        calendar.firstWeekday = 2
+        let sunday = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 10, day: 4, hour: 23, minute: 50)))
+        let session = WorkoutRecapFixture.push(finishedAt: sunday)
+        try repo.saveWorkoutDurably(session)
+        let store = WorkoutRecapStore(session: session)
+        await store.load(now: sunday, calendar: calendar)
+        XCTAssertEqual(store.week?.count, 1)
+        await store.load(now: sunday.addingTimeInterval(20 * 60), calendar: calendar)
+        XCTAssertEqual(store.week?.count, 0)
+        XCTAssertEqual(store.summary?.workingSetCount, 15)
+        XCTAssertEqual(store.session.id, session.id)
+        XCTAssertEqual(repo.loadAllWorkoutSessions().count, 1)
+    }
+
     func test_unsupportedMeasurementsCannotAwardRepOrLoadRecords() {
         let repo = SwiftDataRepository.shared
         repo.configureForTesting()
@@ -258,6 +346,9 @@ final class WorkoutCompletionPersistenceTests: XCTestCase {
         try store.saveEdits(edited)
         XCTAssertEqual(repo.loadAllWorkoutSessions().count, 1)
         XCTAssertEqual(repo.loadWorkoutSession(id: started.id)?.exercises[0].sets[0].reps, 8)
+        XCTAssertEqual(store.summary?.workingSetCount, 1)
+        XCTAssertEqual(store.summary?.volumeKg, 200)
+        XCTAssertEqual(store.summary?.entries.first?.volumeKg, 200)
         repo.forceCommitFailureForTesting = true
         edited.exercises[0].sets[0].reps = 99
         XCTAssertThrowsError(try store.saveEdits(edited))

@@ -10,21 +10,20 @@ final class WorkoutRecapStore {
 
     init(session: WorkoutSession) { self.session = session }
 
-    func load() async {
+    func load(now: Date = Date(), calendar: Calendar = .current) async {
         let library = ExerciseLibrary.shared
         await library.load()
-        refresh()
+        refresh(now: now, calendar: calendar)
     }
 
-    private func refresh() {
+    private func refresh(now: Date = Date(), calendar: Calendar = .current) {
         let library = ExerciseLibrary.shared
         let repo = SwiftDataRepository.shared
         library.attachCustomExercises(repo.loadCustomExercises())
         if let saved = repo.loadWorkoutSession(id: session.id) { session = saved }
-        let now = Date()
         var history: [WorkoutSession] = []
         historyUnavailable = false
-        if let interval = Calendar.current.dateInterval(of: .weekOfYear, for: now) {
+        if let interval = calendar.dateInterval(of: .weekOfYear, for: now) {
             do { history = try repo.loadWorkoutRecapWeek(in: interval.start..<interval.end) }
             catch { historyUnavailable = true }
         } else { historyUnavailable = true }
@@ -34,13 +33,11 @@ final class WorkoutRecapStore {
         }
         metadataUnavailable = !library.isLoaded
         summary = WorkoutRecapEngine.derive(session, catalog: catalog)
-        week = historyUnavailable ? nil : WorkoutRecapEngine.week(sessions: history, catalog: catalog, now: now)
+        week = historyUnavailable ? nil : WorkoutRecapEngine.week(sessions: history, catalog: catalog, now: now, calendar: calendar)
     }
 
     func saveEdits(_ edited: WorkoutSession) throws {
-        guard edited.id == session.id, edited.finishedAt != nil else {
-            throw SwiftDataRepository.WorkoutSaveError.failed
-        }
+        try WorkoutEditValidation.validate(edited, original: session)
         try SwiftDataRepository.shared.saveWorkoutDurably(edited)
         let affected = Set((session.exercises + edited.exercises).map(\.exerciseID))
         session = edited

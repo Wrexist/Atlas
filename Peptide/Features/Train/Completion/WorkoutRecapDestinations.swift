@@ -20,9 +20,9 @@ struct WorkoutRecapExercisesView: View {
                                             .frame(width: 64, height: 76)
                                         VStack(alignment: .leading, spacing: Spacing.xs) {
                                             Text(entry.name).font(AppFont.headline)
-                                            Text("\(entry.sets.count) working sets").font(AppFont.caption)
+                                            Text("\(entry.sets.count) working sets").font(AppFont.subheadline)
                                             if let volume = entry.volumeKg {
-                                                Text(RecapFormat.volume(volume, unit: unit)).font(AppFont.caption)
+                                                Text(RecapFormat.volume(volume, unit: unit)).font(AppFont.subheadline)
                                             }
                                         }
                                         Spacer(minLength: 0)
@@ -34,7 +34,7 @@ struct WorkoutRecapExercisesView: View {
                         }.buttonStyle(.plain)
                     }
                     if summary.entries.isEmpty {
-                        Text("No completed working sets in this workout.")
+                        Text(summary.session.exercises.isEmpty ? "No exercise or set details were recorded for this workout." : "No completed working sets in this workout.")
                     }
                 }
             }.padding(Spacing.screenPadding)
@@ -60,7 +60,7 @@ struct RecapSetRow: View {
             Text("Set \(set.index)\(set.isWarmup ? " · Warm-up" : "")\(set.completed ? "" : " · Unfinished")")
                 .foregroundStyle(AppColor.recapSecondary)
             Text(RecapFormat.set(set, unit: unit)).monospacedDigit()
-        }.font(AppFont.caption).accessibilityElement(children: .combine)
+        }.font(AppFont.subheadline).accessibilityElement(children: .combine)
     }
 }
 
@@ -76,7 +76,7 @@ struct WorkoutRecapExerciseDetail: View {
                     Text(exercise?.name ?? entry.exerciseID).font(AppFont.title2)
                     Text("All logged sets").font(AppFont.headline)
                     Text("Warm-ups and unfinished sets are excluded from completion totals.")
-                        .font(AppFont.caption).foregroundStyle(AppColor.recapSecondary)
+                        .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                     ForEach(entry.sets.sorted { $0.index < $1.index }) { set in
                         RecapCard { RecapSetRow(set: set, unit: unit) }
                     }
@@ -115,7 +115,7 @@ struct WorkoutMuscleDetailsView: View {
                                 VStack(alignment: .leading, spacing: Spacing.xs) {
                                     Text(muscle.name.capitalized).font(AppFont.headline)
                                     Text("\(muscle.role.rawValue) · \(muscle.setCount) contributing sets")
-                                        .font(AppFont.caption).foregroundStyle(AppColor.recapSecondary)
+                                        .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                                 }
                                 Spacer(minLength: 0)
                                 Image(systemName: "chevron.right").accessibilityHidden(true)
@@ -131,7 +131,7 @@ struct WorkoutMuscleDetailsView: View {
                         Text("Highlights are estimated from your logged exercises and completed working sets. They are not a direct measurement of muscle activation.")
                         Text("Warm-ups and unfinished sets are excluded. One set can contribute to several muscles; these counts must not be added to find workout sets.")
                         Text("A muscle can be primary in one exercise and supporting in another. Primary takes precedence on the map; exercise details show both roles. Gray means not highlighted by this mapping, not unused.")
-                    }.font(AppFont.caption).foregroundStyle(AppColor.recapSecondary)
+                    }.font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                 }
             }.padding(Spacing.screenPadding)
         }.recapScreen(title: "Muscle details")
@@ -160,10 +160,23 @@ struct WorkoutMuscleContributionsView: View {
 }
 
 struct WorkoutWeeklyProgressView: View {
-    let week: WorkoutRecapEngine.Week
+    let store: WorkoutRecapStore
     let unit: MeasurementUnit
     var body: some View {
         ScrollView {
+            if let week = store.week {
+                weeklyContent(week)
+            } else if store.historyUnavailable {
+                VStack(spacing: Spacing.lg) {
+                    Text("Weekly progress is unavailable.")
+                    Button("Retry") { Task { await store.load() } }.minimumHitArea()
+                }.padding(Spacing.screenPadding)
+            } else { ProgressView("Loading weekly progress…").padding(Spacing.screenPadding) }
+        }.recapScreen(title: "This week")
+            .refreshWorkoutRecap(store)
+    }
+
+    private func weeklyContent(_ week: WorkoutRecapEngine.Week) -> some View {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 Text("\(week.count) workouts this week").font(AppFont.title2)
                 RecapCard {
@@ -172,11 +185,11 @@ struct WorkoutWeeklyProgressView: View {
                         HStack(alignment: .bottom, spacing: Spacing.sm) {
                             ForEach(week.days) { day in
                                 VStack(spacing: Spacing.sm) {
-                                    Text(day.count.formatted()).font(AppFont.caption).monospacedDigit()
+                                    Text(day.count.formatted()).font(AppFont.subheadline).monospacedDigit()
                                     RoundedRectangle(cornerRadius: 4)
                                         .fill(day.count > 0 ? AppColor.recapButton : AppColor.recapRaised)
                                         .frame(height: day.count == 0 ? 2 : 100 * CGFloat(day.count) / CGFloat(max(1, week.days.map(\.count).max() ?? 1)))
-                                    Text(day.date.formatted(.dateTime.weekday(.narrow))).font(AppFont.caption)
+                                    Text(day.date.formatted(.dateTime.weekday(.narrow))).font(AppFont.subheadline)
                                 }.frame(maxWidth: .infinity)
                                     .accessibilityElement(children: .ignore)
                                     .accessibilityLabel("\(day.date.formatted(.dateTime.weekday(.wide))), \(day.count) workouts")
@@ -190,19 +203,40 @@ struct WorkoutWeeklyProgressView: View {
                             Text("Recorded volume this week").font(AppFont.headline)
                             Text(RecapFormat.volume(volume, unit: unit)).font(AppFont.title2).monospacedDigit()
                             Text("Supported external-load sets only. More logged volume is not a direct measure of strength.")
-                                .font(AppFont.caption).foregroundStyle(AppColor.recapSecondary)
+                                .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                         }
                     }
                 }
-                Text("Workouts are grouped by their start date in your current calendar and time zone. Only finished workouts with completed working sets count.")
-                    .font(AppFont.caption).foregroundStyle(AppColor.recapSecondary)
+                Text("Workouts are grouped by their start date in your current calendar and time zone. Finished workouts with working sets and saved manual workouts count. Warm-up-only and unfinished sessions are excluded.")
+                    .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                 if week.count == 0 { Text("No completed workouts this week yet.").font(AppFont.body) }
             }.padding(Spacing.screenPadding)
-        }.recapScreen(title: "This week")
+    }
+}
+
+/// Refreshes the current-calendar projection when a visible recap crosses a
+/// day/time-zone boundary, or returns from the background. No polling timer.
+private struct RecapRefreshModifier: ViewModifier {
+    let store: WorkoutRecapStore
+    @Environment(\.scenePhase) private var scenePhase
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { Task { await store.load() } }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+                Task { await store.load() }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
+                Task { await store.load() }
+            }
     }
 }
 
 extension View {
+    func refreshWorkoutRecap(_ store: WorkoutRecapStore) -> some View {
+        modifier(RecapRefreshModifier(store: store))
+    }
     func recapScreen(title: String) -> some View {
         background(AppColor.recapBackground.ignoresSafeArea())
             .foregroundStyle(AppColor.recapText).tint(AppColor.recapAction)

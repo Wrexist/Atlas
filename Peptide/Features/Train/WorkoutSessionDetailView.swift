@@ -10,7 +10,8 @@ import SwiftUI
 /// re-running ingest (which would mutate the records and return
 /// empty on re-open — same bug we fixed in WorkoutFinishView).
 struct WorkoutSessionDetailView: View {
-    @State var session: WorkoutSession
+    // One-time seed; successful edits explicitly replace the displayed value.
+    @State private var session: WorkoutSession
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
     @State private var sessionService = WorkoutSessionService.shared
@@ -21,9 +22,14 @@ struct WorkoutSessionDetailView: View {
     @State private var savedRoutineName: String?
     @State private var showingActiveWorkoutConflict = false
     @State private var showingEditor = false
+    @State private var showingSummary = false
 
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
     @State private var library = ExerciseLibrary.shared
+
+    init(session: WorkoutSession) {
+        _session = State(initialValue: session)
+    }
 
     var body: some View {
         ScrollView {
@@ -43,8 +49,18 @@ struct WorkoutSessionDetailView: View {
             .padding(.vertical, Spacing.lg)
         }
         .background(AppColor.background.ignoresSafeArea())
+        .sheet(isPresented: $showingSummary, onDismiss: {
+            if let latest = SwiftDataRepository.shared.loadWorkoutSession(id: session.id) { session = latest }
+        }) {
+            NavigationStack {
+                WorkoutFinishView(session: session, detectedPRs: [], unit: unit, celebratesSave: false) {
+                    showingSummary = false
+                }
+            }
+        }
         .sheet(isPresented: $showingEditor) {
             WorkoutSavedEditor(session: session, unit: unit) { edited in
+                try WorkoutEditValidation.validate(edited, original: session)
                 try SwiftDataRepository.shared.saveWorkoutDurably(edited)
                 let affected = Set((session.exercises + edited.exercises).map(\.exerciseID))
                 session = edited
@@ -89,6 +105,7 @@ struct WorkoutSessionDetailView: View {
 
     private var optionsMenu: some View {
         Menu {
+            Button("View summary", systemImage: "checkmark.circle") { showingSummary = true }
             Button("Edit workout", systemImage: "pencil") { showingEditor = true }
             Button {
                 repeatWorkout()

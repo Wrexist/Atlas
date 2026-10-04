@@ -80,15 +80,16 @@ struct RecapMetrics: View {
     @ViewBuilder private func metrics(horizontal: Bool) -> some View {
         metric("Duration", value: summary.duration.label, icon: "clock")
         if horizontal { Divider().frame(height: 64) }
-        metric("Working sets", value: summary.workingSetCount.formatted(), icon: "square.stack")
+        metric("Working sets", value: summary.workingSetLabel, icon: "square.stack")
         if horizontal { Divider().frame(height: 64) }
         metric("Volume", value: RecapFormat.volume(summary.volumeKg, unit: unit), icon: "dumbbell")
     }
     private func metric(_ title: String, value: String, icon: String) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Image(systemName: icon).foregroundStyle(AppColor.recapAction).accessibilityHidden(true)
-            valueText(value).monospacedDigit().fixedSize(horizontal: true, vertical: false)
-            Text(title).font(AppFont.caption).foregroundStyle(AppColor.recapSecondary)
+            valueText(value).monospacedDigit().fixedSize(horizontal: false, vertical: true)
+            Text(title).font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
@@ -98,10 +99,10 @@ struct RecapMetrics: View {
     private func valueText(_ value: String) -> Text {
         let parts = value.split(separator: " ", maxSplits: 1)
         if parts.count == 2, parts[0].contains(where: { $0.isNumber }) {
-            return Text(String(parts[0])).font(AppFont.scaled(28, weight: .semibold))
+            return Text(String(parts[0])).font(AppFont.title)
                 + Text(" " + String(parts[1])).font(AppFont.subheadline)
         }
-        return Text(value).font(AppFont.scaled(28, weight: .semibold))
+        return Text(value).font(AppFont.title)
     }
 }
 
@@ -150,7 +151,7 @@ struct RecapMuscleNames: View {
                 Label(role.rawValue, systemImage: role == .primary ? "circle.fill" : "circle.lefthalf.filled")
                     .foregroundStyle(role == .primary ? AppColor.trainingPrimaryMuscle : AppColor.trainingSecondaryMuscle)
                 Text(names.joined(separator: ", ")).foregroundStyle(AppColor.recapText)
-            }.font(AppFont.caption)
+            }.font(AppFont.subheadline)
         }
     }
 }

@@ -99,6 +99,31 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    func test_captureWorkoutCompletionEditValidation() {
+        openCompletedFixture(appearance: "dark")
+        app.buttons["Edit"].tap()
+        let firstSet = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recap-edit-set-")).firstMatch
+        XCTAssertTrue(firstSet.waitForExistence(timeout: 5))
+        firstSet.tap()
+        let load = app.textFields["Load (lb)"].firstMatch
+        XCTAssertTrue(load.waitForExistence(timeout: 5))
+        load.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        load.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20))
+        let save = app.buttons["save-workout-edits"]
+        XCTAssertFalse(save.isEnabled, "An empty field must not silently save its previous value")
+        capture(named: "completion-editor-invalid-input")
+        load.typeText("100")
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+        XCTAssertTrue(app.staticTexts["Workout saved"].waitForExistence(timeout: 5))
+        app.buttons["Edit"].tap()
+        XCTAssertTrue(firstSet.waitForExistence(timeout: 5))
+        firstSet.tap()
+        XCTAssertEqual(load.value as? String, "100")
+        app.buttons["Cancel"].tap()
+        app.buttons["recap-done"].tap()
+    }
+
     func test_captureWorkoutCompletionSaveError() {
         launch(appearance: "dark", extraArguments: ["--completion-fixture", "--completion-save-failure"])
         dismissOverlaysIfNeeded()

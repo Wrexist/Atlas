@@ -4,15 +4,18 @@ import SwiftUI
 struct WorkoutFinishView: View {
     let unit: MeasurementUnit
     let onClose: () -> Void
+    let celebratesSave: Bool
     @State private var store: WorkoutRecapStore
     @State private var editing = false
     @State private var sharing = false
     @State private var announced = false
 
     init(session: WorkoutSession, detectedPRs: [PRDetectionEngine.DetectedPR],
-         unit: MeasurementUnit, weeklySessionCount: Int? = nil, onClose: @escaping () -> Void) {
+         unit: MeasurementUnit, weeklySessionCount: Int? = nil, celebratesSave: Bool = true,
+         onClose: @escaping () -> Void) {
         self.unit = unit
         self.onClose = onClose
+        self.celebratesSave = celebratesSave
         _store = State(initialValue: WorkoutRecapStore(session: session))
     }
 
@@ -24,31 +27,26 @@ struct WorkoutFinishView: View {
                         Image(systemName: "checkmark.circle")
                             .font(AppFont.scaled(52, weight: .regular))
                             .foregroundStyle(AppColor.recapSuccess).accessibilityHidden(true)
-                        Text("Workout saved").font(AppFont.scaled(30, weight: .bold))
+                        Text("Workout saved").font(AppFont.title)
                         Text(summary.name).font(AppFont.headline).multilineTextAlignment(.center)
                         if let date = summary.session.finishedAt {
                             Text(date.formatted(date: .abbreviated, time: .shortened))
                                 .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                         }
                     }.frame(maxWidth: .infinity).padding(.vertical, Spacing.sm)
-                    if let week = store.week {
                         NavigationLink {
-                            WorkoutWeeklyProgressView(week: week, unit: unit)
+                            WorkoutWeeklyProgressView(store: store, unit: unit)
                         } label: {
                             HStack(spacing: Spacing.md) {
                                 Image(systemName: "chart.bar.fill").foregroundStyle(AppColor.recapSuccess)
-                                Text("\(week.count) workouts this week").font(AppFont.subheadline)
+                                Text(store.week.map { "\($0.count) workouts this week" } ?? "Weekly progress unavailable")
+                                    .font(AppFont.subheadline)
                                 Spacer()
                                 Image(systemName: "chevron.right")
                             }.padding(Spacing.cardPadding).frame(minHeight: 52)
                                 .background(AppColor.recapSuccess.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
                         }.buttonStyle(.plain).accessibilityIdentifier("recap-weekly")
-                    }
                     RecapMetrics(summary: summary, unit: unit)
-                    if store.historyUnavailable {
-                        Button("Weekly progress unavailable · Retry") { Task { await store.load() } }
-                            .font(AppFont.subheadline).frame(minHeight: 44)
-                    }
                     RecapCalculationNotes(summary: summary)
                     NavigationLink {
                         WorkoutRecapExercisesView(store: store, unit: unit)
@@ -63,7 +61,7 @@ struct WorkoutFinishView: View {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text("Muscle focus").font(AppFont.headline)
                             Text("Estimated from your logged exercises")
-                                .font(AppFont.caption).foregroundStyle(AppColor.recapSecondary)
+                                .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                             RecapAnatomy(muscles: summary.muscles)
                                 .frame(maxWidth: 250).frame(maxWidth: .infinity)
                             RecapMuscleNames(muscles: summary.muscles)
@@ -75,7 +73,7 @@ struct WorkoutFinishView: View {
                         }
                     }
                     if store.metadataUnavailable {
-                        Text("Exercise metadata is unavailable. Your saved sets are still shown.").font(AppFont.caption)
+                        Text("Exercise metadata is unavailable. Your saved sets are still shown.").font(AppFont.subheadline)
                         Button("Retry exercise metadata") { Task { await store.load() } }.frame(minHeight: 44)
                     }
                 }.padding(Spacing.screenPadding)
@@ -110,12 +108,13 @@ struct WorkoutFinishView: View {
         }
         .task {
             await store.load()
-            if !announced {
+            if celebratesSave && !announced {
                 announced = true
                 Haptics.success()
                 AccessibilityNotification.Announcement("Workout saved").post()
             }
         }
+        .refreshWorkoutRecap(store)
     }
 }
 
@@ -124,7 +123,7 @@ struct RecapMissingMapping: View {
     var body: some View {
         if count > 0 {
             Text("Muscle mapping unavailable for \(count) \(count == 1 ? "exercise" : "exercises")")
-                .font(AppFont.caption).foregroundStyle(AppColor.recapSecondary)
+                .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
         }
     }
 }
@@ -133,6 +132,7 @@ struct RecapCalculationNotes: View {
     let summary: WorkoutRecapEngine.Summary
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
+            if summary.session.exercises.isEmpty { Text("No exercise or set details were recorded for this workout.") }
             if summary.duration == .unavailable { Text("Duration unavailable: no valid elapsed time was recorded.") }
             if summary.duration == .notTracked { Text("This workout was logged without a timer.") }
             if summary.volumeKg == nil { Text("No supported external-load volume recorded.") }
@@ -140,6 +140,6 @@ struct RecapCalculationNotes: View {
                 Text("Volume excludes \(summary.excludedVolumeSets) sets without supported external-load measurements.")
             }
             if summary.hasLegacyLoad { Text("Volume uses loads as recorded. No equipment multiplier is assumed.") }
-        }.font(AppFont.caption).foregroundStyle(AppColor.recapSecondary)
+        }.font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
     }
 }

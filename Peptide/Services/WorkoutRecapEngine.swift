@@ -51,6 +51,14 @@ enum WorkoutRecapEngine {
         let excludedVolumeSets: Int
         let missingMappings: Int
         let hasLegacyLoad: Bool
+        var workingSetLabel: String {
+            session.exercises.isEmpty ? String(localized: "Not logged") : workingSetCount.formatted()
+        }
+        /// Legacy manual logs have a durable finish but no structured sets.
+        /// Keep counting those workouts without inventing their set totals.
+        var qualifiesForWeek: Bool {
+            session.finishedAt != nil && (workingSetCount > 0 || session.exercises.isEmpty)
+        }
         var name: String {
             let name = session.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             return name.isEmpty ? String(localized: "Workout") : name
@@ -127,7 +135,8 @@ enum WorkoutRecapEngine {
     }
 
     /// Current locale/calendar week. A qualifying workout is finished and has
-    /// at least one included working set. Start date matches Atlas history.
+    /// working sets or is a legacy manual log without structured exercise data.
+    /// Start date matches Atlas history.
     static func week(sessions: [WorkoutSession], catalog: [String: Exercise],
                      now: Date = Date(), calendar: Calendar = .current) -> Week {
         guard let interval = calendar.dateInterval(of: .weekOfYear, for: now) else {
@@ -138,7 +147,7 @@ enum WorkoutRecapEngine {
             guard let end = $0.finishedAt else { return false }
             return end <= now && $0.startedAt >= interval.start && $0.startedAt < interval.end
                 && seen.insert($0.id).inserted
-        }.map { derive($0, catalog: catalog) }.filter { $0.workingSetCount > 0 }
+        }.map { derive($0, catalog: catalog) }.filter(\.qualifiesForWeek)
         let days = (0..<7).compactMap { offset -> Day? in
             guard let date = calendar.date(byAdding: .day, value: offset, to: interval.start) else { return nil }
             return Day(date: date, count: included.filter { calendar.isDate($0.session.startedAt, inSameDayAs: date) }.count)

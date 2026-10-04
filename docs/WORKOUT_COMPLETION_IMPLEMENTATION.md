@@ -28,7 +28,7 @@ Finish confirmation → durable local repository write → Summary → Exercises
 - Canonical kilograms remain unchanged. Older sets retain recorded load × reps. Optional additive JSON metadata explicitly distinguishes combined total, each of a pair (×2), and per-side recorded reps (×1). Equipment names never imply a multiplier. Bodyweight contributes only recorded added external load; assistance, timed and distance sets contribute no invented rep volume. Legacy cardio/stretch entries are not reinterpreted as volume.
 - The editor exposes these explicit conventions and timed/distance measurements. The existing active logger retains its rep/load layout, with a small convention label for explicit loads. Reusing paired sets preserves their convention; timed/distance/assisted history does not become a rep/load seed or a rep/load personal record. Zero/bodyweight load is not presented as a misleading zero-volume workout; nil and unsupported totals render as unavailable with an explanation.
 - Duration uses persisted end minus start minus accumulated pauses, preserving Atlas's pause-excluding meaning. Invalid/missing timestamps are unavailable. New manual quick logs without duration are explicitly not tracked; ambiguous old zero-duration records stay unavailable.
-- Weekly grouping follows the existing start-date convention and `Calendar.current` local week/time zone. Qualifying recaps have a finish and at least one completed working set. Summary and weekly chart use the same projection. The query is limited to this week and throws on failure rather than fabricating zero. Planning preferences have defaults, not a reliably explicit completion goal; no goal, streak, comparison or record tiles are invented.
+- Weekly grouping follows the existing start-date convention and `Calendar.current` local week/time zone. Qualifying recaps have a finish and completed working sets, or are saved legacy manual logs without structured exercise data. Summary and weekly chart use the same projection. Manual logs retain their workout count but show “Not logged” for missing set totals. The query is limited to this week and throws on failure rather than fabricating zero. Planning preferences have defaults, not a reliably explicit completion goal; no goal, streak, comparison or record tiles are invented.
 - Raw bundled/custom exercise primary/supporting arrays drive mapping. The supplied fixture maps chest, shoulders and triceps; biceps are not invented. Primary wins a mixed-role summary, while drill-down preserves each exercise's role. Anatomy uses existing authored masks on the same 1024×1536 body coordinate system; no arbitrary ellipses or new 3D renderer. Named lists remain available if assets fail.
 - Native activity-sheet destinations determine available apps and Save Image. Existing Photos add permission is declared in both Info.plist and XcodeGen configuration. Cancellation is normal; a share error never changes the workout.
 
@@ -43,6 +43,7 @@ Finish confirmation → durable local repository write → Summary → Exercises
 - `Peptide/Features/Train/Completion/WorkoutSaveStatusView.swift`
 - `Peptide/Features/Train/Completion/WorkoutShareView.swift`
 - `Peptide/Services/WorkoutRecapEngine.swift`, `WorkoutRecapStore.swift`, `WorkoutRecapFixture.swift`
+- `Peptide/Services/WorkoutEditValidation.swift`
 - `Peptide/Services/WorkoutSessionService.swift`, `SwiftDataRepository.swift`, `ScreenshotMode.swift`
 - `Peptide/Services/PRDetectionEngine.swift`, `RoutineSeedEngine.swift`, `Peptide/Features/Train/Components/SetEditorRow.swift` (measurement compatibility only; pre-existing animation edits kept separate)
 - `Peptide/Models/Training/SetEntry.swift`, `WorkoutFocusState.swift`
@@ -84,6 +85,7 @@ xcodebuild test -project Peptide.xcodeproj -scheme PeptideUICapture \
   -only-testing:PeptideUITests/ScreenshotTests/test_captureWorkoutCompletion \
   -only-testing:PeptideUITests/ScreenshotTests/test_captureWorkoutCompletionLayouts \
   -only-testing:PeptideUITests/ScreenshotTests/test_captureWorkoutCompletionSaveError \
+  -only-testing:PeptideUITests/ScreenshotTests/test_captureWorkoutCompletionEditValidation \
   -parallel-testing-enabled NO -resultBundlePath Screenshots.xcresult
 xcrun xcresulttool export attachments --path TrainingTests.xcresult --output-path screenshots/training
 xcrun xcresulttool export attachments --path Screenshots.xcresult --output-path screenshots/ui
@@ -99,3 +101,16 @@ Remaining, ordered by importance:
 4. The existing catalog has many anatomy fallbacks, not full exercise-pose illustrations. They remain functional and accurately labeled.
 
 Native run result: [37199438351](https://github.com/Wrexist/Atlas/actions/runs/37199438351), commit `dc9927f`, failed before any steps ran. GitHub's annotation: “The job was not started because your account is locked due to a billing issue.” No current native screenshots or test results were produced. Follow-up source compatibility fixes therefore also remain unbuilt until a macOS runner is available.
+
+## Follow-up review, 2026-10-04
+
+- Removed horizontal fixed sizing from metric values in the vertical fallback, so large text can wrap instead of clipping. The horizontal metrics card still uses its ideal width to select the appropriate layout.
+- Summary and Weekly progress now refresh their shared store on app resume, calendar-day changes and time-zone changes. The weekly destination observes the store rather than capturing a stale week snapshot. Added tests for crossing Sunday/Monday and Stockholm's 169-hour daylight-saving week.
+- Share presentation is driven by an identifiable rendered image instead of a separate boolean/image pair. Privacy choices are captured at the explicit Share tap, before rendering begins.
+- Added a shared saved-edit validation boundary. Changing a completed set to timed/distance requires an actual positive measurement. A workout that previously had working sets must retain one. Older manual logs with no structured sets can still have their name/notes corrected.
+- Numeric fields retain invalid text and block Save, instead of silently saving the last successfully parsed value. Parsing uses the locale's decimal separator, supports decimal digits and rejects blank/ambiguous input. Unedited canonical loads are not rounded back into storage. Added keyboard Done and an isolated UI test for blank input, correction and persisted reload.
+- Kept history's intentional one-time session seed private and applied the same validation to its editor.
+- Added history → View summary, with no repeated success haptic/announcement and a refresh of history after recap edits. This makes manual/missing-duration branches accessible through real saved data. Legacy manual workouts continue to count toward weekly workouts while their missing structured set totals remain unavailable.
+- Raised recap supporting text from the existing 11-point caption token to the 15-point subheadline token. Metric values now use a native text-style token that respects the view's Dynamic Type environment. Added native snapshot cases at 320, 375, 393 and 430 points, including accessibility XXXL; those snapshots await macOS execution.
+
+Follow-up local checks: design lint has zero errors/warnings; all 288 contrast pairs pass; new/changed production Swift files pass syntax screening. Focused XCTest and UI additions are **not executed** here. A fresh native attempt, [37200711167](https://github.com/Wrexist/Atlas/actions/runs/37200711167) at `a741d2e`, was again rejected with the same billing-lock annotation and no executed steps. No new native screenshots exist from this pass.
