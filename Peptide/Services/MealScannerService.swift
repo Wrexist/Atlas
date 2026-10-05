@@ -590,7 +590,7 @@ final class MealScannerService: Sendable {
 
 // MARK: - Helpers
 
-private extension UIImage {
+extension UIImage {
     /// Aspect-preserving resize so the longest edge equals `maxEdge`.
     /// Returns nil when the input is already smaller than the limit so
     /// callers can fall through to the original.
