@@ -1418,11 +1418,12 @@ final class DataStore {
     /// so the meal-history list reads "Morning bowl" rather than
     /// the comma-joined ingredient list. Source tagged as
     /// `.custom` since recipes are user-defined compositions.
-    func logRecipe(_ recipe: Recipe, category: MealCategory? = nil, at date: Date = Date()) {
-        let totals = RecipeDataLogic.totals(
+    @discardableResult
+    func logRecipe(_ recipe: Recipe, category: MealCategory? = nil, at date: Date = Date()) -> MealEntry? {
+        guard let totals = RecipeDataLogic.review(
             for: recipe,
             customFoods: profile.customFoods
-        )
+        ).totals, totals.calories > 0 else { return nil }
         let chosenCategory = category ?? MealCategory.auto(for: date)
         let entry = MealEntry(
             loggable: totals,
@@ -1432,7 +1433,13 @@ final class DataStore {
             sourceID: nil,
             date: date
         )
-        logMealEntry(entry)
+        do {
+            try commitScannedMeals([entry])
+            return entry
+        } catch {
+            lastError = Self.saveFailureMessage
+            return nil
+        }
     }
 
     // MARK: - Food library

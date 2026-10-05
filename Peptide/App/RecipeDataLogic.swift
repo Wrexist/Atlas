@@ -9,6 +9,24 @@ import Foundation
 /// every log so an edit to an underlying food propagates without
 /// migrating the recipe.
 enum RecipeDataLogic {
+    struct Review {
+        let totals: LoggableMeal?
+        let unresolved: [Recipe.Component]
+    }
+
+    /// Logging is all-or-nothing; partial preview totals are never loggable.
+    static func review(for recipe: Recipe, customFoods: [CustomFood],
+                       cachedProductsByBarcode: [String: ScannedProduct] = [:]) -> Review {
+        let custom = Dictionary(customFoods.map { ($0.foodID, $0) }, uniquingKeysWith: { first, _ in first })
+        let unresolved = recipe.components.filter { component in
+            let product = component.foodID.hasPrefix("custom:")
+                ? custom[component.foodID]?.toScannedProduct() : cachedProductsByBarcode[component.foodID]
+            return product?.loggable(for: component.portion) == nil
+        }
+        guard !recipe.components.isEmpty, unresolved.isEmpty else { return Review(totals: nil, unresolved: unresolved) }
+        return Review(totals: totals(for: recipe, customFoods: customFoods,
+                                    cachedProductsByBarcode: cachedProductsByBarcode), unresolved: [])
+    }
 
     /// Inserts (or replaces by id) a recipe in the user's library.
     /// Newest-first sort by `updatedAt` so the list reads "what I
@@ -29,21 +47,14 @@ enum RecipeDataLogic {
         profile.recipes.removeAll { $0.id == id }
     }
 
-    /// Composite macro totals for a recipe. Iterates the components,
-    /// resolves each foodID through the user's `customFoods` (and
-    /// optionally a `cachedProductsByBarcode` map for OFF entries),
-    /// and sums the per-component `loggable(for:)` outputs. Components
-    /// whose food can't be resolved drop silently with a 0
-    /// contribution — better than blocking the whole log because a
-    /// custom food was deleted.
+    /// Preview totals may omit unresolved ingredients. Logging must use `review`
+    /// to require every ingredient and portion to resolve successfully.
     static func totals(
         for recipe: Recipe,
         customFoods: [CustomFood],
         cachedProductsByBarcode: [String: ScannedProduct] = [:]
     ) -> LoggableMeal {
-        let customByID: [String: CustomFood] = Dictionary(
-            uniqueKeysWithValues: customFoods.map { ($0.foodID, $0) }
-        )
+        let customByID = Dictionary(customFoods.map { ($0.foodID, $0) }, uniquingKeysWith: { first, _ in first })
         var calories = 0, protein = 0, carbs = 0, fat = 0
         var snapshots: [MealFoodComponent] = []
         for component in recipe.components {
