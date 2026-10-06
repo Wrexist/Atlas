@@ -221,82 +221,38 @@ for copy.)*
 ## "What's New" *(4000 char limit)*
 
 ```
-PeptideX is now Atlas — rebuilt into a complete health & fitness app.
+Atlas 1.3 — a big update to training and food logging.
 
-Everything you used for protocol tracking is still here. On top of it we added training, nutrition, recovery, and a daily momentum system that ties it all together — five tabs in one private app. No ads, no tracking, no account. Your logs stay on your device and in your private iCloud.
+TRAINING
+• New focused workout screen: one exercise at a time, with 3D anatomy showing the exact muscles you're working
+• Rest timer you can skip or adjust by 15 seconds, and pause the whole workout when life interrupts
+• Interactive body map — tap a muscle to see the workouts and sets that trained it
+• A recap after every workout, with full details you can edit later
+• Share a workout as a story image, a reel video or a highlight card
+• Plate calculator, right from an exercise's menu
+• Recent exercises first, and pick several at once
+• Repeat a past workout, save it as a routine, or delete it
 
-——
+FOOD
+• Log meals on any day, including photo scans
+• Meal scans are saved as you go — if the app closes, pick up where you left off
+• Exact gram portions, and Atlas remembers the portion you used last
+• Undo after logging, plus a history of the foods you've scanned
+• Smarter food library search with better matching
+• Recipes check every ingredient before logging, so totals are never quietly wrong
+• Free users get three AI meal scans a week; unlimited with Atlas Pro
 
-TRAIN — NEW
-Log a set in two taps. Atlas pre-fills your last weight and reps; confirm or adjust and move on. The rest timer fires automatically and drops a Lock Screen alert when you're ready.
-• 873-exercise library plus unlimited custom lifts
-• Automatic PR detection — weight, rep, and bodyweight records
-• Weekly muscle-volume heatmap
-• Full history — tap any session for every set, the muscle map, and every PR you hit
-
-——
-
-MEALS — NEW
-Three ways to log, all fast. Snap a photo and Atlas identifies each item separately — adjust portions, drop a misfire, save to your library. Scan a barcode from 200M+ products. Or point the camera at a nutrition label and Atlas reads it on-device.
-• Daily calorie + macro rings with goal-aware targets
-• One-tap "Recommended for you" targets with a live macro preview
-• Custom food library and recipes
-• Optional one-way sync to Apple Health
-
-——
-
-BIOLOGY — NEW
-HRV, resting heart rate, and sleep pulled from Apple Health each morning and blended into one Recovery Score — know whether to push or pull back before you leave the house.
-• Biological Age dial (Atlas Pro)
-• Biomarker trends: weight, body fat, waist, blood pressure
-• Lab tracking: testosterone, vitamin D, lipids, custom panels
-
-——
-
-HABITS — NEW
-Track any routine on a 6-month momentum heatmap. Daily, weekday, or X-per-week schedules with reminders on the days they're due. Streak-freeze shields one missed day a month so a single slip doesn't reset you.
-
-——
-
-ATLAS SCORE — NEW
-One number for your momentum. Every habit, dose, and meal you log earns points that build your level and tier, Bronze to Diamond. See it on Today, your Profile, and your Apple Watch.
-
-PROGRESS — NEW
-Your score trend, current vs. best streaks, and 30-day consistency — framed so you watch the line climb.
-
-ACHIEVEMENTS — NEW
-First PR, Perfect Week, dose milestones and more — celebrated the moment you earn them.
-
-——
-
-ALSO NEW
-• Rebuilt onboarding with a live workout demo
-• Today timeline — doses, meals, check-ins, and workouts in one feed
-• Apple Watch complications for Atlas Score and your health & training habits
-• Home Screen widgets + Live Activities in the Dynamic Island
-• AI Research assistant and AI Weekly Summary (Atlas Pro)
-
-——
-
-PROTOCOL TRACKING (Advanced)
-The peptide tools you know, refined: a 208-compound research database with citations, dose logging, a cycle calendar, dose edit/delete, and community stacks. Atlas does not prescribe or recommend doses — research and self-tracking only.
-
-——
-
-STABILITY
-Fixes iCloud sync (it was silently falling back to local-only storage), dose duplication on schedule edits, expired Pro entitlements staying active, and achievement toasts dismissing before you saw them — plus a deep correctness and performance pass throughout.
-
-——
-
-PRIVATE BY DEFAULT
-No ads, no tracking, no account required. Your logs live on-device or in your private iCloud — we can't see them. AI features (meal photo scan, research chat, weekly recap) send only what you submit to Anthropic's Claude to answer.
-
-Atlas is an educational reference and tracking journal, not medical advice. Always consult a licensed healthcare provider before changing any training, nutrition, supplement, or protocol.
+ALSO
+• Smoother celebrations for PRs, streaks and milestones — calmer when Reduce Motion is on
+• Badges and stats scale with larger text, plus VoiceOver improvements
+• Delete All Data now also clears reminders, achievements and live workouts
+• Deleting your account also revokes Sign in with Apple
+• Reliability fixes throughout
 
 Feedback → support@peptidesai.com
 ```
 
-*(3 479 / 4 000)*
+*(1 492 / 4 000)*
 
 ---
 
