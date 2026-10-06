@@ -19,7 +19,18 @@ struct LoggedCaloriePanel: View {
     /// kcal count. Starts at the pre-log value, eases to the post-log
     /// value on appear, locking the user's eye to the change they
     /// just caused.
-    @State private var displayed: Double = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hasRevealed = false
+
+    // State records presentation, never a copy of the caller's calorie total.
+    private var displayed: Double {
+        Double(reduceMotion || hasRevealed ? totalCalories : max(0, totalCalories - deltaCalories))
+    }
+
+    private var finalProgress: Double {
+        guard targetCalories > 0 else { return 0 }
+        return min(1, max(0, Double(totalCalories) / Double(targetCalories)))
+    }
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
@@ -48,7 +59,7 @@ struct LoggedCaloriePanel: View {
             .frame(width: 110, height: 110)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Today's calories: \(totalCalories) of \(targetCalories)")
-            .accessibilityValue("\(Int(ringTrim * 100)) percent")
+            .accessibilityValue("\(Int(finalProgress * 100)) percent")
 
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "plus.circle.fill")
@@ -62,12 +73,13 @@ struct LoggedCaloriePanel: View {
                     .monospacedDigit()
             }
         }
-        .onAppear {
-            // Start at "before". Animate to "after" so the eye sees
-            // the ring fill in and the number tick up in sync.
-            displayed = Double(max(0, totalCalories - deltaCalories))
-            withAnimation(.easeOut(duration: 1.1)) {
-                displayed = Double(totalCalories)
+        .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: totalCalories)
+        .task {
+            guard !hasRevealed else { return }
+            await Task.yield()
+            guard !Task.isCancelled else { return }
+            withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) {
+                hasRevealed = true
             }
         }
     }
@@ -79,6 +91,6 @@ struct LoggedCaloriePanel: View {
         // The number underneath still shows the actual value, so an
         // over-target day stays visible as a number even when the
         // ring is at max.
-        return CGFloat(min(1.0, displayed / Double(targetCalories)))
+        return CGFloat(min(1.0, max(0, displayed / Double(targetCalories))))
     }
 }

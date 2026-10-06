@@ -37,7 +37,12 @@ final class ScreenshotTests: XCTestCase {
 
     func test_captureFoodReviewRecovery() {
         launch(appearance: "dark", extraArguments: ["--food-review-fixture"])
-        app.tabBars.buttons["Meals"].tap()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+        dismissOverlaysIfNeeded()
+        let mealsTab = app.tabBars.buttons["Meals"]
+        XCTAssertTrue(mealsTab.waitForExistence(timeout: 10))
+        mealsTab.tap()
+        XCTAssertTrue(mealsTab.isSelected, "Meals navigation must succeed before testing food recovery")
         let scan = app.buttons["Snap photo"].firstMatch
         XCTAssertTrue(scan.waitForExistence(timeout: 10))
         scan.tap()
@@ -47,7 +52,7 @@ final class ScreenshotTests: XCTestCase {
         resume.tap()
         XCTAssertTrue(app.buttons["meal-scan-log"].waitForExistence(timeout: 10))
         capture(named: "food-scan-review")
-        let exact = app.buttons["Enter exact grams"]
+        let exact = app.buttons["Enter exact grams"].firstMatch
         for _ in 0..<5 where !exact.isHittable { app.swipeUp() }
         exact.tap()
         XCTAssertTrue(app.navigationBars["Exact portion"].waitForExistence(timeout: 5))

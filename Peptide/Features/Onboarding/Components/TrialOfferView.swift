@@ -19,9 +19,6 @@ struct TrialOfferView: View {
     @State private var isPurchasing = false
     @State private var isRestoring = false
     @State private var errorMessage: String?
-    @State private var sparklePhase = 0.0
-    @State private var ctaPulse = false
-    @State private var didReveal = false
     /// Selected billing cadence. Initialised to `.annual` then re-assigned
     /// from `OnboardingExperiment.variant(for: .paywallTierOrder)` inside
     /// the view's `.task` modifier — the experiment service is
@@ -113,7 +110,7 @@ struct TrialOfferView: View {
 
     var body: some View {
         ZStack {
-            sparkleField
+            AppColor.background.ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: Spacing.lg) {
@@ -121,10 +118,10 @@ struct TrialOfferView: View {
 
                     heroBadge
                     headline
+                    tierPicker
                     valueBanner
                     benefitsCard
                     socialProof
-                    tierPicker
 
                     Spacer(minLength: Spacing.md)
                 }
@@ -174,15 +171,7 @@ struct TrialOfferView: View {
             }
 
             await storeService.loadProducts()
-            withAnimation(AppAnimation.springBouncy) { didReveal = true }
-            if !reduceMotion {
-                withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) {
-                    sparklePhase = 1
-                }
-                withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
-                    ctaPulse = true
-                }
-            }
+
             Haptics.success()
         }
     }
@@ -190,27 +179,8 @@ struct TrialOfferView: View {
     // MARK: - Hero
 
     private var heroBadge: some View {
-        ZStack {
-            ForEach(0..<3, id: \.self) { ring in
-                Circle()
-                    .strokeBorder(AppColor.accentPrimary.opacity(0.35), lineWidth: 1)
-                    .frame(width: 130, height: 130)
-                    .scaleEffect(didReveal ? 1.0 + CGFloat(ring) * 0.18 : 0.6)
-                    .opacity(didReveal ? 0.55 - Double(ring) * 0.15 : 0)
-            }
-
-            // The app's own mark, not `gift.fill`. This is the screen that
-            // asks for money — a stock SF Symbol here says "generic upsell",
-            // while the logo the user has been looking at since the welcome
-            // screen says "the thing you have been setting up". HeroLogo
-            // already renders it as the brand disc and respects
-            // reduce-motion, so the paywall uses the same treatment the
-            // rest of onboarding does rather than inventing a parallel one.
-            HeroLogo(size: 96)
-                .scaleEffect(didReveal ? 1 : 0.4)
-                .opacity(didReveal ? 1 : 0)
-        }
-        .frame(height: 140)
+        MilestoneArtwork(size: 80, style: .emblem)
+            .frame(maxWidth: .infinity)
     }
 
     /// The headline follows `selectedTier`, and that is the whole point of it.
@@ -280,9 +250,7 @@ struct TrialOfferView: View {
                 .foregroundStyle(AppColor.textSecondary)
         }
         .multilineTextAlignment(.center)
-        .opacity(didReveal ? 1 : 0)
-        .offset(y: didReveal ? 0 : 12)
-        .animation(AppAnimation.springSnappy, value: selectedTier)
+        .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: selectedTier)
     }
 
     // MARK: - Benefits
@@ -290,13 +258,11 @@ struct TrialOfferView: View {
     private var benefitsCard: some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                ForEach(Array(benefits.enumerated()), id: \.offset) { index, benefit in
-                    benefitRow(icon: benefit.0, title: benefit.1, index: index)
+                ForEach(benefits, id: \.0) { benefit in
+                    benefitRow(icon: benefit.0, title: benefit.1)
                 }
             }
         }
-        .opacity(didReveal ? 1 : 0)
-        .offset(y: didReveal ? 0 : 16)
     }
 
     /// Outcomes, not features. The previous list named the machinery —
@@ -355,9 +321,6 @@ struct TrialOfferView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(caption)
-        .opacity(didReveal ? 1 : 0)
-        .offset(y: didReveal ? 0 : 10)
-        .animation(AppAnimation.springSmooth.delay(0.1), value: didReveal)
     }
 
     // MARK: - Trust line
@@ -378,11 +341,9 @@ struct TrialOfferView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Private by design. No ads, no tracking. Cancel anytime.")
-        .opacity(didReveal ? 1 : 0)
-        .animation(AppAnimation.springSmooth.delay(0.45), value: didReveal)
     }
 
-    private func benefitRow(icon: String, title: LocalizedStringKey, index: Int) -> some View {
+    private func benefitRow(icon: String, title: LocalizedStringKey) -> some View {
         HStack(spacing: Spacing.md) {
             ZStack {
                 Circle()
@@ -391,7 +352,6 @@ struct TrialOfferView: View {
                 Image(systemName: icon)
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
-                    .symbolEffect(.bounce, value: didReveal)
             }
             Text(title)
                 .font(AppFont.subheadline)
@@ -401,12 +361,6 @@ struct TrialOfferView: View {
                 .font(AppFont.scaled(16))
                 .foregroundStyle(AppColor.accentPrimary)
         }
-        .opacity(didReveal ? 1 : 0)
-        .offset(x: didReveal ? 0 : -16)
-        .animation(
-            AppAnimation.springSmooth.delay(0.15 + Double(index) * 0.06),
-            value: didReveal
-        )
     }
 
     // MARK: - Tier picker
@@ -421,9 +375,6 @@ struct TrialOfferView: View {
                 tierCard(tier)
             }
         }
-        .opacity(didReveal ? 1 : 0)
-        .offset(y: didReveal ? 0 : 16)
-        .animation(AppAnimation.springSmooth.delay(0.35), value: didReveal)
     }
 
     private func tierCard(_ tier: Tier) -> some View {
@@ -431,7 +382,7 @@ struct TrialOfferView: View {
         let isAnnual = tier == .annual
         return Button {
             Haptics.impact(.soft)
-            withAnimation(AppAnimation.springSnappy) { selectedTier = tier }
+            withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { selectedTier = tier }
         } label: {
             HStack(spacing: Spacing.md) {
                 ZStack {
@@ -576,8 +527,6 @@ struct TrialOfferView: View {
                         .fill(AppColor.accentFill)
                         .overlay(Capsule().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5))
                 }
-                .scaleEffect(ctaPulse && !isPurchasing ? 1.02 : 1.0)
-                .shadow(color: AppColor.accentPrimary.opacity(0.4), radius: ctaPulse ? 18 : 8, y: 4)
             }
             .buttonStyle(.plain)
             .disabled(isPurchasing || !arePricesLoaded)
@@ -627,33 +576,6 @@ struct TrialOfferView: View {
             .font(AppFont.scaled(11))
             .foregroundStyle(AppColor.accentLight)
         }
-    }
-
-    // MARK: - Sparkles
-
-    private var sparkleField: some View {
-        GeometryReader { proxy in
-            ZStack {
-                ForEach(0..<14, id: \.self) { index in
-                    sparkle(index: index, in: proxy.size)
-                }
-            }
-        }
-        .allowsHitTesting(false)
-    }
-
-    private func sparkle(index: Int, in size: CGSize) -> some View {
-        let seed = Double(index)
-        let xRatio = (sin(seed * 1.7) + 1) / 2
-        let yBase = (cos(seed * 2.3) + 1) / 2
-        let drift = (sparklePhase + seed / 14).truncatingRemainder(dividingBy: 1)
-        let y = (yBase + drift).truncatingRemainder(dividingBy: 1)
-        let scale = 0.5 + (sin(seed) + 1) / 2 * 0.6
-        return Image(systemName: "sparkle")
-            .font(AppFont.scaled(11))
-            .foregroundStyle(AppColor.accentLight.opacity(0.35))
-            .scaleEffect(scale)
-            .position(x: size.width * xRatio, y: size.height * (1 - y))
     }
 
     private var productForSelectedTier: Product? { product(for: selectedTier) }

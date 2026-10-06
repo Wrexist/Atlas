@@ -13,12 +13,16 @@ struct HabitCompletionChip: View {
     let weeklyTarget: Int?
     let onTap: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var completionTrigger = 0
+
     var body: some View {
         Button {
-            withAnimation(AppAnimation.springSnappy) { onTap() }
+            withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { onTap() }
         } label: {
             HStack(spacing: 6) {
                 marker
+                    .completionPulse(trigger: completionTrigger, isActive: isCompleted)
                 Text(habit.name)
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(isCompleted ? AppColor.textSecondary : AppColor.textPrimary)
@@ -28,6 +32,7 @@ struct HabitCompletionChip: View {
                         .font(AppFont.scaled(11, weight: .bold, design: .rounded))
                         .foregroundStyle(habit.tint)
                         .monospacedDigit()
+                        .contentTransition(.numericText())
                 }
                 if currentStreak >= 3 {
                     HStack(spacing: 2) {
@@ -51,6 +56,9 @@ struct HabitCompletionChip: View {
         .buttonStyle(.plain)
         .accessibilityLabel(habit.name)
         .accessibilityValue(accessibilityValue)
+        .onChange(of: isCompleted) { _, completed in
+            if completed { completionTrigger &+= 1 }
+        }
     }
 
     private var marker: some View {

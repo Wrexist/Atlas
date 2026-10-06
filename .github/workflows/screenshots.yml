@@ -138,3 +138,34 @@ jobs:
           path: screenshots/**
           if-no-files-found: warn
           retention-days: 14
+
+  unit-tests:
+    name: Full unit tests
+    runs-on: macos-15
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Install tools
+        run: brew install xcodegen swiftlint
+      - name: Generate project
+        run: xcodegen generate
+      - name: SwiftLint
+        run: swiftlint lint --reporter github-actions-logging
+      - name: Run complete unit suite
+        run: |
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin); print(next(x['udid'] for r in d['devices'].values() for x in r if 'iPhone' in x['name']))")
+          xcodebuild test -project Peptide.xcodeproj -scheme Peptide \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -parallel-testing-enabled NO -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO -only-testing:PeptideTests \
+            -resultBundlePath UnitTests.xcresult
+      - name: Upload unit test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-unit-test-results
+          path: UnitTests.xcresult
+          if-no-files-found: warn

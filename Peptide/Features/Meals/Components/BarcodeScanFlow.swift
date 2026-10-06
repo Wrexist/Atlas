@@ -623,9 +623,7 @@ struct BarcodeScanFlow: View {
 
     private var loggedCard: some View {
         VStack(spacing: Spacing.lg) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 56, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
+            MilestoneArtwork(size: 64)
 
             Text(addedTitle)
                 .font(AppFont.title2)

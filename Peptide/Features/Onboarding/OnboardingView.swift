@@ -26,6 +26,7 @@ import UIKit
 ///      — persisted via DataStore
 struct OnboardingView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("hasCompletedOnboarding") private var hasCompleted = false
     @AppStorage("experienceLevel") private var experienceLevel: String = "beginner"
     /// Unix timestamp of the moment the user tapped "I understand" on
@@ -299,7 +300,7 @@ struct OnboardingView: View {
                     readyStep.tag(Page.ready)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .animation(AppAnimation.springSmooth, value: page)
+                .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: page)
                 // `pinnedFooter`, not a floating overlay. The footer used
                 // to be `VStack { Spacer(); footer }` layered in this
                 // ZStack, which reserves no space whatsoever: every
@@ -457,7 +458,7 @@ struct OnboardingView: View {
             if page > 0 {
                 Button {
                     haptic()
-                    withAnimation(AppAnimation.springSnappy) { page = max(0, page - 1) }
+                    withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { page = max(0, page - 1) }
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(AppFont.scaled(16, weight: .semibold))
@@ -494,7 +495,7 @@ struct OnboardingView: View {
                             width: max(8, proxy.size.width * progressFraction),
                             height: 4
                         )
-                        .animation(AppAnimation.springSmooth, value: page)
+                        .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: page)
                 }
                 .frame(height: 4)
             }
@@ -504,7 +505,7 @@ struct OnboardingView: View {
                 .font(AppFont.scaled(11, weight: .semibold, design: .rounded))
                 .foregroundStyle(AppColor.textTertiary)
                 .contentTransition(.numericText())
-                .animation(AppAnimation.springSmooth, value: page)
+                .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: page)
         }
     }
 
@@ -735,7 +736,7 @@ struct OnboardingView: View {
         // Tear down the keyboard before the page transition so it can't
         // linger over the next card mid-animation.
         dismissKeyboard()
-        withAnimation(AppAnimation.springSnappy) { page = min(totalPages - 1, page + 1) }
+        withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { page = min(totalPages - 1, page + 1) }
     }
 
     /// Resigns the first responder app-wide. Covers the text fields that
@@ -762,9 +763,9 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.xl) {
             Spacer()
             HeroLogo(
-                color: AppColor.accentPrimary,
                 size: 148,
-                bounceTrigger: bounceTrigger
+                bounceTrigger: bounceTrigger,
+                isActive: page == Page.welcome
             )
             VStack(spacing: Spacing.md) {
                 Text("Welcome to\nAtlas.")
@@ -794,7 +795,7 @@ struct OnboardingView: View {
     private var signInStep: some View {
         VStack(spacing: Spacing.xl) {
             Spacer()
-            HeroIcon(symbol: "person.crop.circle.fill", bounceTrigger: bounceTrigger)
+            HeroIcon(symbol: "person.crop.circle.fill", bounceTrigger: bounceTrigger, isActive: page == Page.signIn)
             VStack(spacing: Spacing.md) {
                 Text("Save your\nprogress.")
                     .font(AppFont.scaled(38, weight: .bold, design: .rounded, relativeTo: .largeTitle))
@@ -968,7 +969,7 @@ struct OnboardingView: View {
 
     private var nameStep: some View {
         VStack(spacing: Spacing.xl) {
-            HeroIcon(symbol: "person.fill", bounceTrigger: bounceTrigger)
+            HeroIcon(symbol: "person.fill", bounceTrigger: bounceTrigger, isActive: page == Page.name)
                 .padding(.top, Spacing.xl)
             VStack(spacing: Spacing.sm) {
                 Text("What should we call you?")
@@ -1551,7 +1552,7 @@ struct OnboardingView: View {
                 )
                 .onChange(of: demoSet.completed) { _, completed in
                     if completed && !demoCelebrate {
-                        withAnimation(.spring(response: 0.4)) { demoCelebrate = true }
+                        withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { demoCelebrate = true }
                         if !UIAccessibility.isReduceMotionEnabled {
                             Haptics.success()
                         }
@@ -1569,9 +1570,11 @@ struct OnboardingView: View {
 
     private var successBanner: some View {
         HStack(spacing: Spacing.sm) {
-            Image(systemName: "checkmark.seal.fill")
-                .font(AppFont.scaled(20, weight: .semibold))
-                .foregroundStyle(AppColor.positive)
+            MilestoneArtwork(
+                symbol: "checkmark",
+                size: 48,
+                isActive: page == Page.demoSet && demoCelebrate
+            )
             Text("Set logged. Atlas tracks weight, reps, RPE — and lights up the muscles you trained.")
                 .font(AppFont.callout)
                 .foregroundStyle(AppColor.textPrimary)
@@ -1806,7 +1809,7 @@ struct OnboardingView: View {
     private var disclaimerStep: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
-                HeroIcon(symbol: "stethoscope", bounceTrigger: bounceTrigger)
+                HeroIcon(symbol: "stethoscope", bounceTrigger: bounceTrigger, isActive: page == Page.disclaimer)
                     .padding(.top, Spacing.xl)
                 VStack(spacing: Spacing.sm) {
                     Text("A quick safety note.")
@@ -1870,7 +1873,7 @@ struct OnboardingView: View {
     private var notificationsStep: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
-                HeroIcon(symbol: "bell.badge.fill", bounceTrigger: bounceTrigger)
+                HeroIcon(symbol: "bell.badge.fill", bounceTrigger: bounceTrigger, isActive: page == Page.notifications)
                     .padding(.top, Spacing.xl)
                 VStack(spacing: Spacing.sm) {
                     Text("Stay on track.")
@@ -1919,8 +1922,8 @@ struct OnboardingView: View {
                 HeroIcon(
                     symbol: "heart.fill",
                     color: AppColor.metricHeartRate,
-                    accent: AppColor.negative,
-                    bounceTrigger: bounceTrigger
+                    bounceTrigger: bounceTrigger,
+                    isActive: page == Page.health
                 )
                 .padding(.top, Spacing.xl)
                 VStack(spacing: Spacing.sm) {
@@ -2120,7 +2123,7 @@ struct OnboardingView: View {
     private var readyStep: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
-                ReadyHero(bounceTrigger: bounceTrigger)
+                ReadyHero(bounceTrigger: bounceTrigger, isActive: page == Page.ready)
                     .padding(.top, Spacing.xl)
                 if !name.isEmpty {
                     Text("You're set, \(name).")
@@ -2217,7 +2220,7 @@ struct OnboardingView: View {
     private var creatorCodeStep: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
-                HeroIcon(symbol: "person.text.rectangle", bounceTrigger: bounceTrigger)
+                HeroIcon(symbol: "person.text.rectangle", bounceTrigger: bounceTrigger, isActive: page == Page.creatorCode)
                     .padding(.top, Spacing.xl)
 
                 VStack(spacing: Spacing.sm) {

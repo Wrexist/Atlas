@@ -44,7 +44,7 @@ struct MetricRing<Center: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var animatedProgress: Double = 0
     @State private var hasAppeared = false
-    @State private var celebrationScale: CGFloat = 1.0
+    @State private var completionTrigger = 0
 
     init(
         progress: Double,
@@ -84,7 +84,7 @@ struct MetricRing<Center: View>: View {
             progressArc
 
             center()
-                .scaleEffect(celebrationScale)
+                .completionPulse(trigger: completionTrigger, isActive: celebrateAtCompletion && progress >= 1)
         }
         .frame(width: diameter, height: diameter)
         .onAppear { handleAppear() }
@@ -95,7 +95,7 @@ struct MetricRing<Center: View>: View {
 
     @ViewBuilder
     private var progressArc: some View {
-        let renderedProgress = appearAnimated ? animatedProgress : progress
+        let renderedProgress = appearAnimated && !reduceMotion ? animatedProgress : progress
         let arc = Circle()
             .trim(from: 0, to: renderedProgress)
             .stroke(
@@ -108,7 +108,7 @@ struct MetricRing<Center: View>: View {
                 style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round)
             )
             .rotationEffect(.degrees(-90))
-            .animation(.easeOut(duration: 0.6), value: progress)
+            .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: renderedProgress)
 
         arc
     }
@@ -144,7 +144,7 @@ struct MetricRing<Center: View>: View {
             animatedProgress = progress
         } else {
             hasAppeared = true
-            withAnimation(.spring(response: 0.7, dampingFraction: 0.85)) {
+            withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) {
                 animatedProgress = progress
             }
         }
@@ -153,24 +153,12 @@ struct MetricRing<Center: View>: View {
     private func handleProgressChange(from old: Double, to new: Double) {
         let clamped = max(0, min(1, new))
         if appearAnimated {
-            withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
+            withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) {
                 animatedProgress = clamped
             }
         }
         if celebrateAtCompletion, old < 1.0, clamped >= 1.0, !reduceMotion {
-            triggerCelebration()
-        }
-    }
-
-    private func triggerCelebration() {
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.55)) {
-            celebrationScale = 1.08
-        }
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(380))
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.78)) {
-                celebrationScale = 1.0
-            }
+            completionTrigger &+= 1
         }
     }
 }

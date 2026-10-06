@@ -30,7 +30,7 @@ struct AchievementsPreviewCard: View {
                 }
 
                 if unlocked.isEmpty {
-                    Text("Log doses, build streaks, and create protocols to start unlocking badges.")
+                    Text("Finish a workout, log meals, and build habits to start unlocking badges.")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -50,17 +50,7 @@ struct AchievementsPreviewCard: View {
 
     private func badge(_ achievement: Achievement) -> some View {
         VStack(spacing: Spacing.xs) {
-            ZStack {
-                Circle()
-                    .fill(AppColor.accentPrimary.opacity(0.18))
-                    .overlay {
-                        Circle().strokeBorder(AppColor.glassBorderActive, lineWidth: 1)
-                    }
-                Image(systemName: achievement.icon)
-                    .font(AppFont.scaled(16))
-                    .foregroundStyle(AppColor.accentLight)
-            }
-            .frame(width: 44, height: 44)
+            MilestoneArtwork(symbol: achievement.icon, tint: AppColor.achievement, size: 48, isActive: false)
 
             Text(achievement.title)
                 .font(AppFont.caption)

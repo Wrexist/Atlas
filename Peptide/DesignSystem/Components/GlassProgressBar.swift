@@ -12,6 +12,7 @@ struct GlassProgressBar: View {
     /// the row reads as one thing rather than a label and an accent.
     var gradient: [Color]?
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var animatedProgress: Double = 0
     @State private var hasAppeared = false
 
@@ -35,7 +36,7 @@ struct GlassProgressBar: View {
                             endPoint: .trailing
                         )
                     )
-                    .frame(width: geo.size.width * animatedProgress)
+                    .frame(width: geo.size.width * (reduceMotion ? clampedProgress : animatedProgress))
             }
         }
         .frame(height: height)
@@ -44,13 +45,13 @@ struct GlassProgressBar: View {
                 animatedProgress = clampedProgress
             } else {
                 hasAppeared = true
-                withAnimation(AppAnimation.springGentle) {
+                withAnimation(AppAnimation.motionAware(AppAnimation.springGentle, reduceMotion: reduceMotion)) {
                     animatedProgress = clampedProgress
                 }
             }
         }
         .onChange(of: progress) { _, newValue in
-            withAnimation(AppAnimation.springGentle) {
+            withAnimation(AppAnimation.motionAware(AppAnimation.springGentle, reduceMotion: reduceMotion)) {
                 animatedProgress = min(max(newValue, 0), 1)
             }
         }

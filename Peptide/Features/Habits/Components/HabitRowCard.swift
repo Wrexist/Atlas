@@ -12,6 +12,9 @@ struct HabitRowCard: View {
     let onToggleToday: () -> Void
     let onTap: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var completionTrigger = 0
+
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -37,18 +40,21 @@ struct HabitRowCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(habit.name). \(summary.currentStreak) day streak, \(summary.totalCompletedDays) days total.")
         .accessibilityAddTraits(.isButton)
+        .onChange(of: summary.isCompletedToday) { _, completed in
+            if completed { completionTrigger &+= 1 }
+        }
     }
 
     private var header: some View {
         HStack(spacing: Spacing.sm) {
-            ZStack {
-                Circle()
-                    .fill(habit.tint.opacity(0.18))
-                    .frame(width: 28, height: 28)
-                Image(systemName: habit.iconSymbol)
-                    .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(habit.tint)
-            }
+            MilestoneArtwork(
+                symbol: habit.iconSymbol,
+                tint: habit.tint,
+                size: 32,
+                style: .symbol,
+                trigger: completionTrigger,
+                playsOnArrival: false
+            )
             Text(habit.name)
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
@@ -73,7 +79,7 @@ struct HabitRowCard: View {
     private var todayButton: some View {
         Button {
             Haptics.impact(.soft)
-            withAnimation(AppAnimation.springSnappy) { onToggleToday() }
+            withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { onToggleToday() }
         } label: {
             ZStack {
                 Circle()
@@ -119,6 +125,8 @@ struct HabitRowCard: View {
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(tint)
             Text(value)
+                .monospacedDigit()
+                .contentTransition(.numericText())
                 .font(AppFont.scaled(11, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
             Text(label)

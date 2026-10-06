@@ -1,8 +1,7 @@
 import SwiftUI
 
-/// Centered "big moment" card for a level-up, reusing
-/// `AchievementToastView`'s glass + `symbolEffect(.bounce)` visual
-/// language. Presentational only — the host controls how long it stays
+/// A dimensional tier medal and the real level the user reached.
+/// Presentational only — the host controls how long it stays
 /// up and dismisses it. Honors Reduce Motion (opacity-only, no scale
 /// pop) and posts a VoiceOver announcement so the moment isn't silent
 /// for assistive-tech users.
@@ -14,22 +13,10 @@ struct CelebrationOverlayView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
-    @State private var iconBounce = 0
 
     var body: some View {
         VStack(spacing: Spacing.md) {
-            ZStack {
-                Circle()
-                    .fill(tint.opacity(0.18))
-                    .frame(width: 96, height: 96)
-                Circle()
-                    .strokeBorder(tint.opacity(0.5), lineWidth: 1)
-                    .frame(width: 96, height: 96)
-                Image(systemName: tierSymbol)
-                    .font(.system(size: 40, weight: .semibold))
-                    .foregroundStyle(tint)
-                    .symbolEffect(.bounce, value: iconBounce)
-            }
+            MilestoneArtwork(symbol: tierSymbol, tint: tint, size: 112)
 
             VStack(spacing: Spacing.xxs) {
                 Text("LEVEL \(level)")
@@ -55,17 +42,17 @@ struct CelebrationOverlayView: View {
                 }
                 .appShadow(AppShadow.glassDeep)
         }
-        .scaleEffect(appeared || reduceMotion ? 1 : 0.6)
+        .scaleEffect(appeared || reduceMotion ? 1 : 0.96)
         .opacity(appeared ? 1 : 0)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isStaticText)
         .accessibilityLabel("Level \(level) reached. \(tierName) tier.")
         .onAppear {
+            guard !appeared else { return }
             if reduceMotion {
                 appeared = true
             } else {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) { appeared = true }
-                iconBounce &+= 1
+                withAnimation(AppAnimation.springSmooth) { appeared = true }
             }
             // SwiftUI-native announcement so the moment isn't silent for
             // VoiceOver users (avoids importing UIKit just for this).

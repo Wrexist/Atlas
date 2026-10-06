@@ -17,7 +17,6 @@ struct MealStreakBadge: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulseTrigger: Int = 0
-    @State private var milestoneScale: CGFloat = 1.0
 
     /// Streak lengths that warrant the bigger celebration — first
     /// week, two weeks, monthly cadence, half-year, year. Tuned to
@@ -69,35 +68,20 @@ struct MealStreakBadge: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(voiceOverLabel)
         .onChange(of: currentStreak) { oldValue, newValue in
+            guard !reduceMotion, newValue > oldValue, Self.milestones.contains(newValue) else { return }
             pulseTrigger &+= 1
-            guard !reduceMotion,
-                  newValue > oldValue,
-                  Self.milestones.contains(newValue)
-            else { return }
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.55)) {
-                milestoneScale = 1.20
-            }
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(380))
-                withAnimation(.spring(response: 0.55, dampingFraction: 0.78)) {
-                    milestoneScale = 1.0
-                }
-            }
         }
     }
 
     private var flameIcon: some View {
-        Image(systemName: "flame.fill")
-            .font(AppFont.scaled(16, weight: .semibold))
-            .foregroundStyle(flameTint)
-            .symbolEffect(.bounce, value: pulseTrigger)
-            .scaleEffect(milestoneScale)
-            .shadow(
-                color: shouldShowGlow ? flameTint.opacity(0.55) : .clear,
-                radius: 8,
-                y: 2
-            )
-            .frame(width: 24)
+        MilestoneArtwork(
+            symbol: "flame.fill",
+            tint: flameTint,
+            size: 28,
+            style: .symbol,
+            trigger: pulseTrigger,
+            playsOnArrival: false
+        )
     }
 
     @ViewBuilder

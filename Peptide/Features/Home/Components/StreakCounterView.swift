@@ -6,7 +6,6 @@ struct StreakCounterView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulseTrigger = 0
-    @State private var milestoneScale: CGFloat = 1.0
 
     /// Streaks where the user crosses a meaningful threshold. Used to gate
     /// the celebration pulse so a routine increment from 4→5 doesn't feel
@@ -22,10 +21,6 @@ struct StreakCounterView: View {
         }
     }
 
-    private var showGlow: Bool {
-        currentStreak >= 7
-    }
-
     private var isNewBest: Bool {
         currentStreak > 0 && currentStreak >= bestStreak
     }
@@ -33,12 +28,14 @@ struct StreakCounterView: View {
     var body: some View {
         VStack(spacing: Spacing.xs) {
             HStack(spacing: Spacing.sm) {
-                Image(systemName: "flame.fill")
-                    .font(AppFont.scaled(20, weight: .semibold))
-                    .foregroundStyle(flameColor)
-                    .symbolEffect(.bounce, value: pulseTrigger)
-                    .modifier(ConditionalGlow(active: showGlow))
-                    .scaleEffect(milestoneScale)
+                MilestoneArtwork(
+                    symbol: "flame.fill",
+                    tint: flameColor,
+                    size: 28,
+                    style: .symbol,
+                    trigger: pulseTrigger,
+                    playsOnArrival: false
+                )
 
                 if currentStreak > 0 {
                     Text("\(currentStreak)")
@@ -60,7 +57,7 @@ struct StreakCounterView: View {
                 Text("New personal best!")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.accentLight)
-                    .transition(.scale(scale: 0.95).combined(with: .opacity))
+                    .transition(reduceMotion ? .opacity : .scale(scale: 0.95).combined(with: .opacity))
             } else if bestStreak > currentStreak && bestStreak > 0 {
                 Text("Best: \(bestStreak) days")
                     .font(AppFont.caption)
@@ -70,17 +67,8 @@ struct StreakCounterView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(voiceOverLabel)
         .onChange(of: currentStreak) { oldValue, newValue in
-            pulseTrigger &+= 1
             guard !reduceMotion, newValue > oldValue, Self.milestones.contains(newValue) else { return }
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.55)) {
-                milestoneScale = 1.18
-            }
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(380))
-                withAnimation(.spring(response: 0.55, dampingFraction: 0.75)) {
-                    milestoneScale = 1.0
-                }
-            }
+            pulseTrigger &+= 1
         }
     }
 
@@ -97,18 +85,6 @@ struct StreakCounterView: View {
             return "\(currentStreak) day streak. Best streak \(bestStreak) days."
         }
         return "\(currentStreak) day streak."
-    }
-}
-
-private struct ConditionalGlow: ViewModifier {
-    let active: Bool
-
-    func body(content: Content) -> some View {
-        if active {
-            content.appShadow(AppShadow.glassElevated)
-        } else {
-            content
-        }
     }
 }
 

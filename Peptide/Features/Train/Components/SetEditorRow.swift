@@ -26,6 +26,7 @@ struct SetEditorRow: View {
     @ScaledMetric(relativeTo: .callout) private var inputHeight: CGFloat = 48
     @FocusState private var weightFocused: Bool
     @FocusState private var repsFocused: Bool
+    @State private var completionTrigger = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -53,6 +54,9 @@ struct SetEditorRow: View {
         }
         .padding(.vertical, Spacing.xs)
         .contentShape(Rectangle())
+        .onChange(of: set.completed) { _, completed in
+            if completed { completionTrigger &+= 1 }
+        }
         // Focus mode has an explicit index menu. A second menu on the whole
         // row competes with the TextField's long-press selection gesture.
         .contextMenu {
@@ -208,6 +212,7 @@ struct SetEditorRow: View {
                 )
                 .frame(width: 32, height: 32)
                 .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+                .completionPulse(trigger: completionTrigger, isActive: set.completed)
                 .minimumHitArea()
         }
         .buttonStyle(.plain)
