@@ -1,6 +1,6 @@
-# Atlas update readiness — 2026-10-05
+# Atlas update readiness — 2026-10-06
 
-Status: implementation prepared; release blocked on native verification. No release or TestFlight upload was performed.
+Status: release verification in progress; no release-ready claim. No release or TestFlight upload was performed.
 
 ## This update
 
@@ -18,14 +18,20 @@ Status: implementation prepared; release blocked on native verification. No rele
 - Swift syntax parsing: passed for the nine changed/new Swift files. Parsing does not establish type correctness.
 - Focused XCTest coverage added in `PeptideTests/FoodLibraryLogicTests.swift`: recipe completeness, invalid portions, ranking/deduplication, remembered portions, and failed/successful durable recipe saves. Not executed here.
 - Existing `MealScanRecoveryTests` covers durable commit/retry/reopen/Undo identity and scan draft recovery; must be rerun.
-- Native attempt: https://github.com/Wrexist/Atlas/actions/runs/37259162751 . Job never started: account locked due to billing. No new native screenshots were produced. Windows has no Xcode or iOS simulator.
+- Billing is resolved. Native run https://github.com/Wrexist/Atlas/actions/runs/37345367332 compiled the app and passed 71 training tests. Its food UI test failed because the screenshot-mode reminder covered the Meals tab on iPhone SE. The test now dismisses the reminder using its existing control and asserts tab selection.
+- The full unit suite is now included as an independent job in the manual screenshots workflow. Run 37454464619 caught the motion preview compiler error. Corrected candidate ed1b7e8 is running at https://github.com/Wrexist/Atlas/actions/runs/37455074623 . Results pending; no full-suite pass or food screenshot pass claimed.
+- Backend: 65/65 Node tests passed locally with the installed Git OpenSSL added to the process PATH. The initial run lacked OpenSSL and failed three test files; no tests were removed or weakened.
+- Store metadata checker passed for repository copy and legal links. This does not verify live App Store Connect metadata or approval.
+- Repository secret names for signing are present. WEEKLY_SUMMARY_ENDPOINT and WEEKLY_SUMMARY_SECRET are absent and required by ios-testflight.yml; the owner has been given setup instructions. Existing credentials have not been validated. APPLE_REVOKE configuration is also absent, so automated Sign in with Apple revocation is not verified.
+- No signed archive, TestFlight upload, physical-device upgrade, or CloudKit/Health hardware verification has been completed. Windows still has no local Xcode/simulator.
+
 
 ## Release gates, in order
 
-1. Restore a functioning macOS runner or use a Mac. Generate the project with `xcodegen generate`. Run SwiftLint and the full `PeptideTests` suite using the repository PR-checks workflow. Run training validation and UI tests. Fix failures before proceeding.
+1. GitHub macOS runners are working again. Generate the project with `xcodegen generate`. Run SwiftLint and the full `PeptideTests` suite using the repository PR-checks workflow. Run training validation and UI tests. Fix failures before proceeding.
 2. Capture and inspect Meals, incomplete recipe repair, exact portions, saved/Undo, scanner recovery, workout recap, and sharing on small/large iPhones, light/dark, large text, VoiceOver, and Reduce Motion. Confirm denied camera/photo/Health permissions and offline lookup behavior. Screenshots must come from the final build.
 3. Verify an upgrade from the currently distributed build on a test account with existing workouts, meals, custom foods, recipes, favorites, and settings. Compare totals before/after; force quit and reopen. Do not reset storage. Test optional CloudKit and Health behavior on hardware using `CLOUDKIT_HARDWARE_TEST_PLAN.md`.
-4. Review the existing uncommitted premium-motion changes independently. This food patch does not stage those files or claim their native verification. Include only reviewed changes in the release candidate.
+4. Premium-motion changes are integrated at e152d83. Native compilation exposed a read-only accessibility preview override; ed1b7e8 removes it. Runtime motion/accessibility review remains required.
 5. Check the latest approved and TestFlight versions in App Store Connect. Supply an explicit valid higher marketing version to `ios-testflight.yml`; do not use the stale local `project.yml` version as release authority. Confirm matching app/watch/widget versions, signing, entitlements, privacy declarations, and release-service configuration. Credentials and store status have not been verified here.
 6. Build and distribute an internal TestFlight candidate only after tests pass. Smoke-test install, sign-in, purchase/restore, logging, editing, recovery, share/cancel, account deletion, and offline relaunch. Review crash reports before wider rollout.
 7. Finalize release notes, real-device App Store screenshots, support/privacy links, reviewer instructions, and privacy labels against the actual build. Submit and release through the established process after acceptance; no automatic publishing is part of this work.
