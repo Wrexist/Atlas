@@ -14,6 +14,7 @@ struct LoggedCaloriePanel: View {
     let deltaCalories: Int
     let totalCalories: Int
     let targetCalories: Int
+    var date: Date = Date()
 
     /// Animated number that drives both the ring fill and the displayed
     /// kcal count. Starts at the pre-log value, eases to the post-log
@@ -58,7 +59,7 @@ struct LoggedCaloriePanel: View {
             }
             .frame(width: 110, height: 110)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Today's calories: \(totalCalories) of \(targetCalories)")
+            .accessibilityLabel("Calories for \(date.formatted(date: .abbreviated, time: .omitted)): \(totalCalories) of \(targetCalories)")
             .accessibilityValue("\(Int(finalProgress * 100)) percent")
 
             HStack(spacing: Spacing.xs) {

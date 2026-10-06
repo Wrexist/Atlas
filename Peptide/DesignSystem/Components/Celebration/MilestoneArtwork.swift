@@ -172,8 +172,4 @@ private struct MilestoneArtworkPreview: View {
     MilestoneArtworkPreview().preferredColorScheme(.dark)
 }
 
-#Preview("Milestones · Reduce Motion") {
-    MilestoneArtworkPreview()
-        .environment(\.accessibilityReduceMotion, true)
-        .preferredColorScheme(.dark)
-}
+// Verify Reduce Motion using the simulator or device Accessibility settings.

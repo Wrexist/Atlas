@@ -941,7 +941,7 @@ struct MealScanFlow: View {
         VStack(spacing: Spacing.lg) {
             Image(systemName: "checkmark.circle").font(.largeTitle).foregroundStyle(AppColor.positive)
             Text("Meal logged").font(AppFont.title2)
-            Text("\(pendingEntries.reduce(0) { $0 + $1.calories }) kcal ? \(logDate.formatted(date: .abbreviated, time: .shortened))")
+            Text("\(pendingEntries.reduce(0) { $0 + $1.calories }) kcal - \(logDate.formatted(date: .abbreviated, time: .shortened))")
                 .font(AppFont.callout).multilineTextAlignment(.center)
             Text(dataStore.isEphemeral ? "Preview mode · No meal saved to storage." : "Saved on this device.")
                 .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)

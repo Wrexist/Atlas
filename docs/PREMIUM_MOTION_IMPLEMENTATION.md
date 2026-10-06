@@ -41,7 +41,7 @@ The existing celebration queues and PR calculations remain the source of events.
 This workspace runs Windows and has no Xcode or iOS simulator. Before release:
 
 1. Generate the Xcode project and build the app for iOS 18 and the current iOS simulator.
-2. Use the new light, dark, and Reduce Motion artwork previews. Replay should return every object to its original pose; under Reduce Motion it should remain still.
+2. Use the light and dark artwork previews, then enable Reduce Motion in simulator or device Settings. Replay should return every object to its original pose; under Reduce Motion it should remain still.
 3. Finish an ordinary workout and one with a PR. Confirm accurate statistics, visible Done, and no duplicate records or haptics from reappearing views.
 4. Trigger a habit completion and an achievement/level-up near each other. Confirm queues drain correctly and dismissing an old toast cannot dismiss the next one.
 5. Navigate onboarding forward/back, including its set demo and ready page. Adjacent preloaded pages should not animate early. Background/foreground the app and scroll artwork offscreen during a performance.

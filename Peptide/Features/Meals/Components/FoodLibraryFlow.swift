@@ -1576,7 +1576,8 @@ struct FoodLibraryFlow: View {
                     productName: snapshot.foodName,
                     deltaCalories: snapshot.calories,
                     totalCalories: dataStore.consumption(for: snapshot.date).caloriesKcal,
-                    targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories
+                    targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories,
+                    date: snapshot.date
                 )
             }
             VStack(spacing: Spacing.sm) {
