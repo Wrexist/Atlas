@@ -68,10 +68,9 @@ curl -sI https://wrexist.github.io/Peptide-ai/terms.html   | head -1
 ## Promotional Text *(170 chars — update anytime without a new build)*
 
 ```
-Free to start. Log workouts in 2 taps, scan meals by photo, and wake up to a
-Recovery Score built from your HRV and sleep. No ads. No tracking.
+New in 1.3: train one exercise at a time with a muscle map, get a recap after every session, and log food on any day in exact grams. Free to start, no ads.
 ```
-*(147 / 170)*
+*(155 / 170)*
 
 > Swap this out for launch events, seasonal campaigns, or new-feature
 > announcements without needing a build review. Keep the hook punchy
@@ -111,8 +110,7 @@ calorie counter,gym,nutrition,hrv,sleep,supplement,peptide,strength,protein,food
 ## Description *(4000 char limit)*
 
 ```
-Log every set in 2 taps. Snap a photo and Atlas logs the meal. Wake up
-to a Recovery Score built from your HRV, sleep, and resting heart rate.
+Train one exercise at a time and see every muscle you work. Log food by barcode, photo or exact grams. Wake up to a Recovery Score built from your HRV, sleep and resting heart rate.
 
 Your logs stay on your device and in your iCloud. No account, no ads, no tracking.
 
@@ -121,7 +119,7 @@ Your logs stay on your device and in your iCloud. No account, no ads, no trackin
 WORKOUTS
 Atlas pre-fills your last weight and reps — confirm or adjust and move on.
 Rest timer fires automatically and sends a Lock Screen alert when you're ready.
-• 200+ exercises plus unlimited custom lifts
+• 870+ exercises plus unlimited custom lifts
 • Automatic PR detection — weight, rep, and bodyweight records
 • Rest timer with Lock Screen notification
 • Weekly muscle volume heatmap by muscle group
@@ -133,7 +131,7 @@ NUTRITION
 Snap a photo and Atlas identifies the food. Scan a barcode from 200 million+
 products. Either way, macros are logged in seconds.
 • AI photo meal scanner — 3 free scans a week, never stored by Atlas
-• 200M+ product barcode database (Open Food Facts)
+• Barcode database with millions of products (Open Food Facts)
 • Daily calorie and macro rings with TDEE-based targets
 • Custom food library and recipe tracking
 • Optional one-way sync to Apple Health
@@ -160,11 +158,10 @@ or X-per-week schedules — optional reminders fire on the days they're due.
 
 PEPTIDE PROTOCOL TRACKING  (Advanced)
 For users following clinician-advised protocols. 208-compound research
-database with citations, dose logging, cycle calendar, and community stacks.
+database with citations, dose logging, and a cycle calendar.
 • 208 peptides with research citations across 6 categories
 • Up to 3 active protocols (free) — unlimited with Atlas Pro
 • Dose logging with site, time, and notes
-• Community stacks — browse, import, and share protocols
 
 Atlas does not prescribe, recommend, or calculate doses for any compound.
 Research and self-tracking only. Medical disclaimer required at first launch.
@@ -212,7 +209,7 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 963 / 4 000 — 37 chars of headroom. The SUBSCRIPTION TERMS block and
+*(3 941 / 4 000 — 59 chars of headroom. The SUBSCRIPTION TERMS block and
 both links are required by Guideline 3.1.2 — do not trim them to make room
 for copy.)*
 
@@ -751,8 +748,8 @@ Run through every item before hitting Submit in App Store Connect.
 - [ ] App Name: `Atlas: Fitness & Recovery`
 - [ ] Subtitle: `Workout Log, Macros & Habits`
 - [ ] Keywords pasted exactly (90 chars, no spaces after commas)
-- [ ] Promotional Text pasted (147 chars)
-- [ ] Description pasted (3 963 chars)
+- [ ] Promotional Text pasted (155 chars)
+- [ ] Description pasted (3 941 chars)
 - [ ] What's New pasted
 - [ ] Age rating set to 17+
 - [ ] App Privacy questionnaire: Yes, the two RevenueCat categories in "App Privacy" above, no tracking
