@@ -417,7 +417,8 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(bodySide.buttons["Back"].isSelected)
             capture(named: "body-\(appearance)-03b-back")
             bodySide.buttons["Both"].tap()
-            let explore = app.buttons["explore-trained-muscles"]
+            // The menu passes its identifier down to its icon and label too.
+            let explore = app.buttons["explore-trained-muscles"].firstMatch
             scrollOnScreen(explore)
             explore.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             app.buttons["Upper chest"].firstMatch.tap()
