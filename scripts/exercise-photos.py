@@ -16,8 +16,6 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from PIL import Image
-
 ROOT = Path(__file__).resolve().parent.parent
 CATALOG = ROOT / "Peptide" / "Resources" / "exercises.json"
 OUT = ROOT / "Peptide" / "Resources" / "ExercisePhotos"
@@ -34,6 +32,9 @@ def jobs():
 
 
 def fetch(job):
+    # Imported here so `--check` runs on a bare Python without Pillow.
+    from PIL import Image
+
     url, dest = job
     if dest.exists():
         return None
