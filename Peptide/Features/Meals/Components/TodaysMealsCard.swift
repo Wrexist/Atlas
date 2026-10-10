@@ -105,6 +105,8 @@ struct MealEntryRow: View {
     let onLogAgain: () -> Void
     let onDelete: () -> Void
 
+    @ScaledMetric(relativeTo: .body) private var tileSize: CGFloat = 44
+
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.timeStyle = .short
@@ -113,13 +115,21 @@ struct MealEntryRow: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: Spacing.sm) {
-                categoryBadge
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(entry.name)
-                        .font(AppFont.scaled(13, weight: .semibold))
-                        .foregroundStyle(AppColor.textPrimary)
-                        .lineLimit(1)
+            HStack(spacing: Spacing.md) {
+                categoryTile
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
+                        Text(entry.name)
+                            .font(AppFont.scaled(13, weight: .semibold))
+                            .foregroundStyle(AppColor.textPrimary)
+                            .lineLimit(1)
+                        Spacer(minLength: 0)
+                        Text("\(entry.calories) kcal")
+                            .font(AppFont.scaled(13, weight: .heavy))
+                            .monospacedDigit()
+                            .foregroundStyle(AppColor.textPrimary)
+                            .fixedSize()
+                    }
                     HStack(spacing: 6) {
                         Image(systemName: entry.source.icon)
                             .font(AppFont.scaled(8))
@@ -129,20 +139,15 @@ struct MealEntryRow: View {
                             .monospacedDigit()
                             .foregroundStyle(AppColor.textSecondary)
                     }
-                }
-                Spacer(minLength: 0)
-                VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                    Text("\(entry.calories) kcal")
-                        .font(AppFont.scaled(13, weight: .heavy))
-                        .monospacedDigit()
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text("\(entry.proteinG)P · \(entry.carbsG)C · \(entry.fatG)F")
-                        .font(AppFont.scaled(11, weight: .semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(AppColor.textSecondary)
+                    // At large Dynamic Type sizes three chips overflow one
+                    // line; stack them rather than truncating the grams.
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: Spacing.xs) { macroChips }
+                        VStack(alignment: .leading, spacing: Spacing.xs) { macroChips }
+                    }
                 }
             }
-            .padding(.vertical, Spacing.xs)
+            .padding(.vertical, Spacing.sm)
             .padding(.horizontal, Spacing.sm)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
@@ -174,21 +179,31 @@ struct MealEntryRow: View {
         .accessibilityAction(named: Text("Log again"), onLogAgain)
     }
 
-    private var categoryBadge: some View {
-        ZStack {
-            Circle()
-                .fill(entry.category.tint.opacity(0.20))
-                .frame(width: 30, height: 30)
-            Image(systemName: entry.category.icon)
-                .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(entry.category.tint)
-        }
+    /// `MealEntry` stores no photo (the scan image and the Open Food Facts
+    /// product image are both dropped at log time), so every row leads with
+    /// the category glyph in a thumbnail-sized tile.
+    private var categoryTile: some View {
+        RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
+            .fill(entry.category.tint.opacity(0.18))
+            .frame(width: tileSize, height: tileSize)
+            .overlay {
+                Image(systemName: entry.category.icon)
+                    .font(AppFont.scaled(16, weight: .semibold))
+                    .foregroundStyle(entry.category.tint)
+            }
+    }
+
+    @ViewBuilder
+    private var macroChips: some View {
+        MacroChip.protein(entry.proteinG)
+        MacroChip.carbs(entry.carbsG)
+        MacroChip.fat(entry.fatG)
     }
 
     private static func accessibilityLabel(for entry: MealEntry) -> String {
         let time = timeFormatter.string(from: entry.date)
         return String(
-            localized: "\(entry.name), \(entry.category.displayName) at \(time), \(entry.calories) kilocalories",
+            localized: "\(entry.name), \(entry.category.displayName) at \(time), \(entry.calories) kilocalories, \(entry.proteinG) grams protein, \(entry.carbsG) grams carbohydrate, \(entry.fatG) grams fat",
             comment: "VoiceOver readout for one meal entry in Today's meals list."
         )
     }
