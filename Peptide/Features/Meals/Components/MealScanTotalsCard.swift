@@ -12,6 +12,8 @@ struct MealScanTotalsCard: View {
     let carbsG: Int
     let fatG: Int
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     /// Energy shares, not gram shares. Four calories a gram for protein and
     /// carbohydrate, nine for fat — a gram split would show fat as a sliver
     /// of a meal it dominates.
@@ -37,6 +39,7 @@ struct MealScanTotalsCard: View {
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
                         .contentTransition(.numericText())
+                        .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: calories)
                     Text("kcal")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
@@ -73,6 +76,7 @@ struct MealScanTotalsCard: View {
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
                 .contentTransition(.numericText())
+                .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: grams)
             Spacer(minLength: Spacing.xs)
             Text(share.formatted(.percent.precision(.fractionLength(0))))
                 .font(AppFont.caption)
@@ -90,10 +94,10 @@ struct MealScanTotalsCard: View {
 
             arc(from: 0, to: shares.protein, tint: AppColor.macroProtein)
             arc(from: shares.protein, to: shares.protein + shares.carbs, tint: AppColor.macroCarbs)
-            arc(from: shares.protein + shares.carbs, to: 1, tint: AppColor.macroFat)
+            arc(from: shares.protein + shares.carbs, to: shares.protein + shares.carbs + shares.fat, tint: AppColor.macroFat)
         }
         .frame(width: 84, height: 84)
-        .animation(AppAnimation.springSmooth, value: calories)
+        .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: [proteinG, carbsG, fatG])
         .accessibilityHidden(true)
     }
 

@@ -22,16 +22,16 @@ final class PeptideUITests: XCTestCase {
     }
 
     func test_allTabsAreReachable() {
-        let tabs = ["Today", "Train", "Meals", "Biology", "Library"]
+        let tabs = ["Today", "Train", "Meals", "Biology", "Habits"]
         for tab in tabs {
             app.tabBars.buttons[tab].tap()
             XCTAssertTrue(app.tabBars.buttons[tab].isSelected, "\(tab) tab should be selected")
         }
     }
 
-    func test_libraryTab_loads() {
-        app.tabBars.buttons["Library"].tap()
-        XCTAssertTrue(app.tabBars.buttons["Library"].isSelected)
+    func test_habitsTab_loads() {
+        app.tabBars.buttons["Habits"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Habits"].isSelected)
     }
 
     func test_trainTab_loads() {

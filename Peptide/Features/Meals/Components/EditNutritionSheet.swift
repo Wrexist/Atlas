@@ -14,6 +14,7 @@ struct EditNutritionSheet: View {
     let initial: LoggableMeal?
     let onSave: (LoggableMeal) -> Void
     let onCancel: () -> Void
+    var explanation: String = "Numbers replace whatever the portion picker would compute. Reset on the review card to go back to Open Food Facts data."
 
     @State private var calories: String = ""
     @State private var protein: String = ""
@@ -39,7 +40,10 @@ struct EditNutritionSheet: View {
                 } header: {
                     Text("Macros")
                 } footer: {
-                    Text("Numbers replace whatever the portion picker would compute. Reset on the review card to go back to Open Food Facts data.")
+                    Text(explanation)
+                    if !isValid {
+                        Text("Enter whole numbers from 0 to 100,000 in every field.")
+                    }
                 }
             }
             .navigationTitle("Edit nutrition")
@@ -83,16 +87,29 @@ struct EditNutritionSheet: View {
     }
 
     private var isValid: Bool {
-        [calories, protein, carbs, fat].allSatisfy { Int($0) != nil }
+        [calories, protein, carbs, fat].allSatisfy {
+            guard let value = Int($0) else { return false }
+            return (0...100_000).contains(value)
+        }
     }
 
     private func save() {
+        guard isValid else { return }
         guard
             let kcal = Int(calories),
             let p = Int(protein),
             let c = Int(carbs),
             let f = Int(fat)
         else { return }
-        onSave(LoggableMeal(calories: kcal, proteinG: p, carbsG: c, fatG: f))
+        var result = LoggableMeal(calories: kcal, proteinG: p, carbsG: c, fatG: f)
+        if var component = initial?.components?.first, initial?.components?.count == 1,
+           component.grams.isFinite, component.grams > 0 {
+            component.per100g = .init(calories: Double(kcal) / component.grams * 100,
+                                     proteinG: Double(p) / component.grams * 100,
+                                     carbsG: Double(c) / component.grams * 100,
+                                     fatG: Double(f) / component.grams * 100, fiberG: nil, sugarsG: nil)
+            result.components = [component]
+        }
+        onSave(result)
     }
 }

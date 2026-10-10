@@ -14,6 +14,9 @@ struct MealEntryEditorSheet: View {
     let onCancel: () -> Void
 
     @State private var category: MealCategory
+    @State private var name: String
+    @State private var components: [MealFoodComponent]?
+    @State private var editingComponent: MealFoodComponent?
     @State private var calories: String
     @State private var proteinG: String
     @State private var carbsG: String
@@ -23,7 +26,7 @@ struct MealEntryEditorSheet: View {
     @FocusState private var focusedField: MacroField?
 
     private enum MacroField: Hashable {
-        case calories, protein, carbs, fat
+        case name, calories, protein, carbs, fat
     }
 
     /// Portion multipliers applied to the entry as originally logged.
@@ -41,6 +44,8 @@ struct MealEntryEditorSheet: View {
         self.onDelete = onDelete
         self.onCancel = onCancel
         _category = State(initialValue: initial.category)
+        _name = State(initialValue: initial.name)
+        _components = State(initialValue: initial.components)
         _calories = State(initialValue: String(initial.calories))
         _proteinG = State(initialValue: String(initial.proteinG))
         _carbsG = State(initialValue: String(initial.carbsG))
@@ -66,6 +71,8 @@ struct MealEntryEditorSheet: View {
 
     private var hasChanges: Bool {
         category != initial.category
+            || components != initial.components
+            || name.trimmingCharacters(in: .whitespacesAndNewlines) != initial.name
             || editedMacros != originalMacros
             || !Calendar.current.isDate(date, equalTo: initial.date, toGranularity: .minute)
     }
@@ -79,8 +86,38 @@ struct MealEntryEditorSheet: View {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     summaryCard
+                    GlassCard(padding: Spacing.md) {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            Text("Meal name").font(AppFont.caption)
+                                .foregroundStyle(AppColor.textSecondary)
+                            TextField("Meal name", text: $name)
+                                .textInputAutocapitalization(.words)
+                                .focused($focusedField, equals: .name)
+                                .accessibilityLabel("Meal name")
+                        }
+                    }
                     MealCategoryPicker(selection: $category)
                     macrosCard
+                    if let components, !components.isEmpty {
+                        GlassCard {
+                            VStack(alignment: .leading, spacing: Spacing.sm) {
+                                Text("Foods & portions").font(AppFont.headline)
+                                Text("Changing a portion recalculates all meal macros from these foods, replacing manual macro edits.")
+                                    .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                                ForEach(components) { component in
+                                    Button { editingComponent = component } label: {
+                                        HStack {
+                                            Text(component.name)
+                                            Spacer()
+                                            Text("\(component.grams.formatted()) g")
+                                            Image(systemName: "pencil")
+                                        }.frame(minHeight: 44)
+                                    }
+                                }
+                                MealNutrientDetails(components: components)
+                            }
+                        }
+                    }
                     deleteButton
                 }
                 .padding(.horizontal, Spacing.screenPadding)
@@ -88,6 +125,7 @@ struct MealEntryEditorSheet: View {
                 .padding(.bottom, Spacing.xxxxl)
             }
             .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
             .background(AppColor.background)
             .navigationTitle("Edit meal")
             .navigationBarTitleDisplayMode(.inline)
@@ -97,7 +135,7 @@ struct MealEntryEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: commit)
-                        .disabled(!hasChanges || editedMacros == nil)
+                        .disabled(!hasChanges || editedMacros == nil || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .fontWeight(.semibold)
                 }
                 ToolbarItemGroup(placement: .keyboard) {
@@ -116,6 +154,13 @@ struct MealEntryEditorSheet: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Subtracts \(initial.calories) kcal from that day's totals. This can't be undone.")
+            }
+            .sheet(item: $editingComponent) { component in
+                FoodPortionEditor(component: component) { grams in
+                    guard let index = components?.firstIndex(where: { $0.id == component.id }) else { return }
+                    components?[index].grams = grams
+                    if let components, let total = MealFoodComponent.totals(components) { apply(total) }
+                }
             }
         }
     }
@@ -207,6 +252,11 @@ struct MealEntryEditorSheet: View {
         return Button {
             Haptics.selection()
             apply(scaled)
+            components = initial.components?.map { original in
+                var copy = original
+                copy.grams *= factor
+                return copy
+            }
         } label: {
             Text(label)
                 .font(AppFont.scaled(13, weight: .semibold))
@@ -272,8 +322,11 @@ struct MealEntryEditorSheet: View {
     }
 
     private func commit() {
-        guard let macros = editedMacros else { return }
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let macros = editedMacros, !trimmedName.isEmpty else { return }
         var updated = initial
+        updated.name = trimmedName
+        updated.components = components
         updated.category = category
         updated.calories = macros.calories
         updated.proteinG = macros.proteinG

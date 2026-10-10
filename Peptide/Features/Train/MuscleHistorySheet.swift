@@ -6,6 +6,8 @@ import SwiftUI
 struct MuscleHistorySheet: View {
     let muscle: AnatomicalMuscle
     let history: [MuscleExerciseHistory]
+    var periodLabel: String = "Last 30 days"
+    var sessions: [WorkoutSession] = []
     @Environment(\.dismiss) private var dismiss
 
     private var totalSets: Int { history.reduce(0) { $0 + $1.sets } }
@@ -18,18 +20,44 @@ struct MuscleHistorySheet: View {
                     if history.isEmpty {
                         emptyState
                     } else {
-                        ForEach(history) { row($0) }
+                        ForEach(history) { item in
+                            VStack(alignment: .leading, spacing: Spacing.sm) {
+                                row(item)
+                                let contributing = sessions.filter {
+                                    item.sessionIDs.contains($0.id) && !$0.isActive
+                                }.sorted { $0.startedAt > $1.startedAt }
+                                if !contributing.isEmpty {
+                                    DisclosureGroup("Contributing workouts (\(contributing.count))") {
+                                        ForEach(contributing) { session in
+                                            NavigationLink {
+                                                WorkoutSessionDetailView(session: session)
+                                            } label: {
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text(session.name ?? "Workout")
+                                                    Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
+                                                        .font(AppFont.caption)
+                                                        .foregroundStyle(AppColor.textSecondary)
+                                                }
+                                                .padding(.vertical, Spacing.sm)
+                                            }
+                                        }
+                                    }
+                                    .font(AppFont.subheadline)
+                                }
+                            }
+                        }
                     }
                 }
                 .padding(Spacing.screenPadding)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(AppColor.background.ignoresSafeArea())
-            .navigationTitle(muscle.displayName)
+            .navigationTitle(muscle.regionName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .accessibilityIdentifier("muscle-history-done")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.accentPrimary)
                 }
@@ -41,8 +69,8 @@ struct MuscleHistorySheet: View {
 
     private var subtitle: some View {
         Text(history.isEmpty
-             ? "Last 30 days"
-             : "\(totalSets) \(totalSets == 1 ? "set" : "sets") · last 30 days")
+             ? periodLabel
+             : "\(totalSets) \(totalSets == 1 ? "set" : "sets") - \(periodLabel.lowercased())")
             .font(AppFont.subheadline)
             .foregroundStyle(AppColor.textSecondary)
     }
@@ -53,7 +81,7 @@ struct MuscleHistorySheet: View {
                 Image(systemName: "dumbbell")
                     .font(.title2)
                     .foregroundStyle(AppColor.textSecondary)
-                Text("No logged work for \(muscle.displayName.lowercased()) in the last 30 days.")
+                Text("No logged work for \(muscle.displayName.lowercased()) for this period.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)

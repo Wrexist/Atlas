@@ -1,0 +1,874 @@
+Exercise ID,Name,Category,Equipment,Primary muscles,Secondary muscles,Visual status,Asset,Instruction steps,Production action
+3_4_Sit-Up,3/4 Sit-Up,strength,body only,abdominals,,muscleMap,,5,Produce dedicated illustration
+90_90_Hamstring,90/90 Hamstring,stretching,body only,hamstrings,calves,muscleMap,,4,Produce dedicated illustration
+Ab_Crunch_Machine,Ab Crunch Machine,strength,machine,abdominals,,muscleMap,,4,Produce dedicated illustration
+Ab_Roller,Ab Roller,strength,other,abdominals,shoulders,muscleMap,,4,Produce dedicated illustration
+Adductor,Adductor,stretching,foam roll,adductors,,muscleMap,,3,Produce dedicated illustration
+Adductor_Groin,Adductor/Groin,stretching,,adductors,,muscleMap,,4,Produce dedicated illustration
+Advanced_Kettlebell_Windmill,Advanced Kettlebell Windmill,strength,kettlebells,abdominals,glutes; hamstrings; shoulders,muscleMap,,4,Produce dedicated illustration
+Air_Bike,Air Bike,strength,body only,abdominals,,muscleMap,,6,Produce dedicated illustration
+All_Fours_Quad_Stretch,All Fours Quad Stretch,stretching,body only,quadriceps,quadriceps,muscleMap,,3,Produce dedicated illustration
+Alternate_Hammer_Curl,Alternate Hammer Curl,strength,dumbbell,biceps,forearms,muscleMap,,6,Produce dedicated illustration
+Alternate_Heel_Touchers,Alternate Heel Touchers,strength,body only,abdominals,,muscleMap,,5,Produce dedicated illustration
+Alternate_Incline_Dumbbell_Curl,Alternate Incline Dumbbell Curl,strength,dumbbell,biceps,forearms,muscleMap,,5,Produce dedicated illustration
+Alternate_Leg_Diagonal_Bound,Alternate Leg Diagonal Bound,plyometrics,,quadriceps,abductors; adductors; calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Alternating_Cable_Shoulder_Press,Alternating Cable Shoulder Press,strength,cable,shoulders,triceps,muscleMap,,4,Produce dedicated illustration
+Alternating_Deltoid_Raise,Alternating Deltoid Raise,strength,dumbbell,shoulders,,muscleMap,,5,Produce dedicated illustration
+Alternating_Floor_Press,Alternating Floor Press,strength,kettlebells,chest,abdominals; shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Alternating_Hang_Clean,Alternating Hang Clean,strength,kettlebells,hamstrings,biceps; calves; forearms; glutes; lower back; traps,muscleMap,,3,Produce dedicated illustration
+Alternating_Kettlebell_Press,Alternating Kettlebell Press,strength,kettlebells,shoulders,triceps,muscleMap,,3,Produce dedicated illustration
+Alternating_Kettlebell_Row,Alternating Kettlebell Row,strength,kettlebells,middle back,biceps; lats,muscleMap,,3,Produce dedicated illustration
+Alternating_Renegade_Row,Alternating Renegade Row,strength,kettlebells,middle back,abdominals; biceps; chest; lats; triceps,muscleMap,,3,Produce dedicated illustration
+Ankle_Circles,Ankle Circles,stretching,,calves,,muscleMap,,3,Produce dedicated illustration
+Ankle_On_The_Knee,Ankle On The Knee,stretching,,glutes,,muscleMap,,3,Produce dedicated illustration
+Anterior_Tibialis-SMR,Anterior Tibialis-SMR,stretching,other,calves,,muscleMap,,2,Produce dedicated illustration
+Anti-Gravity_Press,Anti-Gravity Press,strength,barbell,shoulders,middle back; traps; triceps,muscleMap,,4,Produce dedicated illustration
+Arm_Circles,Arm Circles,stretching,,shoulders,traps,muscleMap,,3,Produce dedicated illustration
+Arnold_Dumbbell_Press,Arnold Dumbbell Press,strength,dumbbell,shoulders,triceps,muscleMap,,5,Produce dedicated illustration
+Around_The_Worlds,Around The Worlds,strength,dumbbell,chest,shoulders,muscleMap,,3,Produce dedicated illustration
+Atlas_Stone_Trainer,Atlas Stone Trainer,strongman,other,lower back,biceps; forearms; glutes; hamstrings; quadriceps,muscleMap,,4,Produce dedicated illustration
+Atlas_Stones,Atlas Stones,strongman,other,lower back,abdominals; adductors; biceps; calves; forearms; glutes; hamstrings; middle back; quadriceps; traps,muscleMap,,4,Produce dedicated illustration
+Axle_Deadlift,Axle Deadlift,strongman,other,lower back,forearms; glutes; hamstrings; middle back; quadriceps; traps,muscleMap,,4,Produce dedicated illustration
+Back_Flyes_-_With_Bands,Back Flyes - With Bands,strength,bands,shoulders,middle back; triceps,muscleMap,,6,Produce dedicated illustration
+Backward_Drag,Backward Drag,strongman,other,quadriceps,calves; forearms; glutes; hamstrings; lower back,muscleMap,,2,Produce dedicated illustration
+Backward_Medicine_Ball_Throw,Backward Medicine Ball Throw,plyometrics,medicine ball,shoulders,,muscleMap,,4,Produce dedicated illustration
+Balance_Board,Balance Board,strength,other,calves,hamstrings; quadriceps,muscleMap,,3,Produce dedicated illustration
+Ball_Leg_Curl,Ball Leg Curl,strength,exercise ball,hamstrings,calves; glutes,muscleMap,,5,Produce dedicated illustration
+Band_Assisted_Pull-Up,Band Assisted Pull-Up,strength,other,lats,abdominals; forearms; middle back,muscleMap,,4,Produce dedicated illustration
+Band_Good_Morning,Band Good Morning,powerlifting,bands,hamstrings,glutes; lower back,muscleMap,,3,Produce dedicated illustration
+Band_Good_Morning_Pull_Through,Band Good Morning (Pull Through),powerlifting,bands,hamstrings,glutes; lower back,muscleMap,,3,Produce dedicated illustration
+Band_Hip_Adductions,Band Hip Adductions,strength,bands,adductors,,muscleMap,,6,Produce dedicated illustration
+Band_Pull_Apart,Band Pull Apart,strength,bands,shoulders,middle back; traps,muscleMap,,4,Produce dedicated illustration
+Band_Skull_Crusher,Band Skull Crusher,strength,bands,triceps,,muscleMap,,3,Produce dedicated illustration
+Barbell_Ab_Rollout,Barbell Ab Rollout,strength,barbell,abdominals,lower back; shoulders,muscleMap,,4,Produce dedicated illustration
+Barbell_Ab_Rollout_-_On_Knees,Barbell Ab Rollout - On Knees,strength,barbell,abdominals,lower back; shoulders,muscleMap,,4,Produce dedicated illustration
+Barbell_Bench_Press_-_Medium_Grip,Barbell Bench Press - Medium Grip,strength,barbell,chest,shoulders; triceps,illustrated,atlas_barbell_bench_press___medium_grip,5,Review movement accuracy
+Barbell_Curl,Barbell Curl,strength,barbell,biceps,forearms,muscleMap,,5,Produce dedicated illustration
+Barbell_Curls_Lying_Against_An_Incline,Barbell Curls Lying Against An Incline,strength,barbell,biceps,,muscleMap,,4,Produce dedicated illustration
+Barbell_Deadlift,Barbell Deadlift,strength,barbell,lower back,calves; forearms; glutes; hamstrings; lats; middle back; quadriceps; traps,illustrated,atlas_barbell_deadlift,5,Review movement accuracy
+Barbell_Full_Squat,Barbell Full Squat,strength,barbell,quadriceps,calves; glutes; hamstrings; lower back,illustrated,atlas_barbell_full_squat,6,Review movement accuracy
+Barbell_Glute_Bridge,Barbell Glute Bridge,powerlifting,barbell,glutes,calves; hamstrings,muscleMap,,3,Produce dedicated illustration
+Barbell_Guillotine_Bench_Press,Barbell Guillotine Bench Press,strength,barbell,chest,shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Barbell_Hack_Squat,Barbell Hack Squat,strength,barbell,quadriceps,calves; forearms; hamstrings,muscleMap,,4,Produce dedicated illustration
+Barbell_Hip_Thrust,Barbell Hip Thrust,powerlifting,barbell,glutes,calves; hamstrings,muscleMap,,3,Produce dedicated illustration
+Barbell_Incline_Bench_Press_-_Medium_Grip,Barbell Incline Bench Press - Medium Grip,strength,barbell,chest,shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Barbell_Incline_Shoulder_Raise,Barbell Incline Shoulder Raise,strength,barbell,shoulders,chest,muscleMap,,4,Produce dedicated illustration
+Barbell_Lunge,Barbell Lunge,strength,barbell,quadriceps,calves; glutes; hamstrings,muscleMap,,5,Produce dedicated illustration
+Barbell_Rear_Delt_Row,Barbell Rear Delt Row,strength,barbell,shoulders,biceps; lats; middle back,muscleMap,,5,Produce dedicated illustration
+Barbell_Rollout_from_Bench,Barbell Rollout from Bench,strength,barbell,abdominals,glutes; hamstrings; lats; shoulders,muscleMap,,3,Produce dedicated illustration
+Barbell_Seated_Calf_Raise,Barbell Seated Calf Raise,strength,barbell,calves,,muscleMap,,6,Produce dedicated illustration
+Barbell_Shoulder_Press,Barbell Shoulder Press,strength,barbell,shoulders,chest; triceps,muscleMap,,5,Produce dedicated illustration
+Barbell_Shrug,Barbell Shrug,strength,barbell,traps,,muscleMap,,4,Produce dedicated illustration
+Barbell_Shrug_Behind_The_Back,Barbell Shrug Behind The Back,strength,barbell,traps,forearms; middle back,muscleMap,,4,Produce dedicated illustration
+Barbell_Side_Bend,Barbell Side Bend,strength,barbell,abdominals,lower back,muscleMap,,4,Produce dedicated illustration
+Barbell_Side_Split_Squat,Barbell Side Split Squat,strength,barbell,quadriceps,calves; hamstrings; lower back,muscleMap,,4,Produce dedicated illustration
+Barbell_Squat,Barbell Squat,strength,barbell,quadriceps,calves; glutes; hamstrings; lower back,muscleMap,,6,Produce dedicated illustration
+Barbell_Squat_To_A_Bench,Barbell Squat To A Bench,strength,barbell,quadriceps,calves; glutes; hamstrings; lower back,muscleMap,,8,Produce dedicated illustration
+Barbell_Step_Ups,Barbell Step Ups,strength,barbell,quadriceps,calves; glutes; hamstrings; quadriceps,muscleMap,,4,Produce dedicated illustration
+Barbell_Walking_Lunge,Barbell Walking Lunge,strength,barbell,quadriceps,calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Battling_Ropes,Battling Ropes,strength,other,shoulders,chest; forearms,muscleMap,,4,Produce dedicated illustration
+Bear_Crawl_Sled_Drags,Bear Crawl Sled Drags,strongman,other,quadriceps,calves; glutes; hamstrings,muscleMap,,2,Produce dedicated illustration
+Behind_Head_Chest_Stretch,Behind Head Chest Stretch,stretching,other,chest,shoulders,muscleMap,,4,Produce dedicated illustration
+Bench_Dips,Bench Dips,strength,body only,triceps,chest; shoulders,muscleMap,,4,Produce dedicated illustration
+Bench_Jump,Bench Jump,plyometrics,body only,quadriceps,calves; glutes; hamstrings,muscleMap,,5,Produce dedicated illustration
+Bench_Press_-_Powerlifting,Bench Press - Powerlifting,powerlifting,barbell,triceps,chest; forearms; lats; shoulders,muscleMap,,4,Produce dedicated illustration
+Bench_Press_-_With_Bands,Bench Press - With Bands,strength,bands,chest,shoulders; triceps,muscleMap,,7,Produce dedicated illustration
+Bench_Press_with_Chains,Bench Press with Chains,powerlifting,barbell,triceps,chest; lats; shoulders,muscleMap,,4,Produce dedicated illustration
+Bench_Sprint,Bench Sprint,plyometrics,other,quadriceps,calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Bent-Arm_Barbell_Pullover,Bent-Arm Barbell Pullover,strength,barbell,lats,chest; lats; shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Bent-Arm_Dumbbell_Pullover,Bent-Arm Dumbbell Pullover,strength,dumbbell,chest,lats; shoulders; triceps,muscleMap,,6,Produce dedicated illustration
+Bent-Knee_Hip_Raise,Bent-Knee Hip Raise,strength,body only,abdominals,,muscleMap,,5,Produce dedicated illustration
+Bent_Over_Barbell_Row,Bent Over Barbell Row,strength,barbell,middle back,biceps; lats; shoulders,illustrated,atlas_bent_over_barbell_row,4,Review movement accuracy
+Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench,Bent Over Dumbbell Rear Delt Raise With Head On Bench,strength,dumbbell,shoulders,,muscleMap,,5,Produce dedicated illustration
+Bent_Over_Low-Pulley_Side_Lateral,Bent Over Low-Pulley Side Lateral,strength,cable,shoulders,lower back; middle back; traps,muscleMap,,5,Produce dedicated illustration
+Bent_Over_One-Arm_Long_Bar_Row,Bent Over One-Arm Long Bar Row,strength,barbell,middle back,biceps; lats; lower back; traps,muscleMap,,6,Produce dedicated illustration
+Bent_Over_Two-Arm_Long_Bar_Row,Bent Over Two-Arm Long Bar Row,strength,barbell,middle back,biceps; lats,muscleMap,,6,Produce dedicated illustration
+Bent_Over_Two-Dumbbell_Row,Bent Over Two-Dumbbell Row,strength,dumbbell,middle back,biceps; lats; shoulders,muscleMap,,4,Produce dedicated illustration
+Bent_Over_Two-Dumbbell_Row_With_Palms_In,Bent Over Two-Dumbbell Row With Palms In,strength,dumbbell,middle back,biceps; lats,muscleMap,,4,Produce dedicated illustration
+Bent_Press,Bent Press,strength,kettlebells,abdominals,glutes; hamstrings; lower back; quadriceps; shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Bicycling,Bicycling,cardio,other,quadriceps,calves; glutes; hamstrings,muscleMap,,1,Produce dedicated illustration
+Bicycling_Stationary,"Bicycling, Stationary",cardio,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,2,Produce dedicated illustration
+Board_Press,Board Press,powerlifting,barbell,triceps,chest; forearms; lats; shoulders,muscleMap,,4,Produce dedicated illustration
+Body-Up,Body-Up,strength,body only,triceps,abdominals; forearms,muscleMap,,4,Produce dedicated illustration
+Body_Tricep_Press,Body Tricep Press,strength,body only,triceps,,muscleMap,,5,Produce dedicated illustration
+Bodyweight_Flyes,Bodyweight Flyes,strength,e-z curl bar,chest,abdominals; shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Bodyweight_Mid_Row,Bodyweight Mid Row,strength,other,middle back,biceps; lats,muscleMap,,3,Produce dedicated illustration
+Bodyweight_Squat,Bodyweight Squat,strength,body only,quadriceps,glutes; hamstrings,muscleMap,,3,Produce dedicated illustration
+Bodyweight_Walking_Lunge,Bodyweight Walking Lunge,strength,,quadriceps,calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Bosu_Ball_Cable_Crunch_With_Side_Bends,Bosu Ball Cable Crunch With Side Bends,strength,cable,abdominals,,muscleMap,,10,Produce dedicated illustration
+Bottoms-Up_Clean_From_The_Hang_Position,Bottoms-Up Clean From The Hang Position,strength,kettlebells,forearms,biceps; shoulders,muscleMap,,2,Produce dedicated illustration
+Bottoms_Up,Bottoms Up,strength,body only,abdominals,,muscleMap,,3,Produce dedicated illustration
+Box_Jump_Multiple_Response,Box Jump (Multiple Response),plyometrics,other,hamstrings,abductors; adductors; calves; glutes; quadriceps,muscleMap,,3,Produce dedicated illustration
+Box_Skip,Box Skip,plyometrics,other,hamstrings,abductors; adductors; calves; glutes; quadriceps,muscleMap,,5,Produce dedicated illustration
+Box_Squat,Box Squat,powerlifting,barbell,quadriceps,adductors; calves; glutes; hamstrings; lower back,muscleMap,,4,Produce dedicated illustration
+Box_Squat_with_Bands,Box Squat with Bands,powerlifting,barbell,quadriceps,abductors; adductors; calves; glutes; hamstrings; lower back,muscleMap,,4,Produce dedicated illustration
+Box_Squat_with_Chains,Box Squat with Chains,strength,barbell,quadriceps,abductors; adductors; calves; glutes; hamstrings; lower back,muscleMap,,5,Produce dedicated illustration
+Brachialis-SMR,Brachialis-SMR,stretching,foam roll,biceps,,muscleMap,,2,Produce dedicated illustration
+Bradford_Rocky_Presses,Bradford/Rocky Presses,strength,barbell,shoulders,triceps,muscleMap,,6,Produce dedicated illustration
+Butt-Ups,Butt-Ups,strength,body only,abdominals,,muscleMap,,5,Produce dedicated illustration
+Butt_Lift_Bridge,Butt Lift (Bridge),strength,body only,glutes,hamstrings,muscleMap,,3,Produce dedicated illustration
+Butterfly,Butterfly,strength,machine,chest,,muscleMap,,5,Produce dedicated illustration
+Cable_Chest_Press,Cable Chest Press,strength,cable,chest,shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Cable_Crossover,Cable Crossover,strength,cable,chest,shoulders,muscleMap,,5,Produce dedicated illustration
+Cable_Crunch,Cable Crunch,strength,cable,abdominals,,muscleMap,,6,Produce dedicated illustration
+Cable_Deadlifts,Cable Deadlifts,strength,cable,quadriceps,forearms; glutes; hamstrings; lower back,muscleMap,,4,Produce dedicated illustration
+Cable_Hammer_Curls_-_Rope_Attachment,Cable Hammer Curls - Rope Attachment,strength,cable,biceps,,muscleMap,,6,Produce dedicated illustration
+Cable_Hip_Adduction,Cable Hip Adduction,strength,cable,quadriceps,,muscleMap,,7,Produce dedicated illustration
+Cable_Incline_Pushdown,Cable Incline Pushdown,strength,cable,lats,,muscleMap,,5,Produce dedicated illustration
+Cable_Incline_Triceps_Extension,Cable Incline Triceps Extension,strength,cable,triceps,,muscleMap,,5,Produce dedicated illustration
+Cable_Internal_Rotation,Cable Internal Rotation,strength,cable,shoulders,,muscleMap,,5,Produce dedicated illustration
+Cable_Iron_Cross,Cable Iron Cross,strength,cable,chest,,muscleMap,,5,Produce dedicated illustration
+Cable_Judo_Flip,Cable Judo Flip,strength,cable,abdominals,,muscleMap,,5,Produce dedicated illustration
+Cable_Lying_Triceps_Extension,Cable Lying Triceps Extension,strength,cable,triceps,,muscleMap,,5,Produce dedicated illustration
+Cable_One_Arm_Tricep_Extension,Cable One Arm Tricep Extension,strength,cable,triceps,,muscleMap,,6,Produce dedicated illustration
+Cable_Preacher_Curl,Cable Preacher Curl,strength,cable,biceps,forearms,muscleMap,,7,Produce dedicated illustration
+Cable_Rear_Delt_Fly,Cable Rear Delt Fly,strength,cable,shoulders,,muscleMap,,4,Produce dedicated illustration
+Cable_Reverse_Crunch,Cable Reverse Crunch,strength,cable,abdominals,,muscleMap,,6,Produce dedicated illustration
+Cable_Rope_Overhead_Triceps_Extension,Cable Rope Overhead Triceps Extension,strength,cable,triceps,,muscleMap,,5,Produce dedicated illustration
+Cable_Rope_Rear-Delt_Rows,Cable Rope Rear-Delt Rows,strength,cable,shoulders,biceps; middle back,muscleMap,,6,Produce dedicated illustration
+Cable_Russian_Twists,Cable Russian Twists,strength,cable,abdominals,,muscleMap,,7,Produce dedicated illustration
+Cable_Seated_Crunch,Cable Seated Crunch,strength,cable,abdominals,,muscleMap,,5,Produce dedicated illustration
+Cable_Seated_Lateral_Raise,Cable Seated Lateral Raise,strength,cable,shoulders,middle back; traps,muscleMap,,7,Produce dedicated illustration
+Cable_Shoulder_Press,Cable Shoulder Press,strength,cable,shoulders,triceps,muscleMap,,4,Produce dedicated illustration
+Cable_Shrugs,Cable Shrugs,strength,cable,traps,,muscleMap,,5,Produce dedicated illustration
+Cable_Wrist_Curl,Cable Wrist Curl,strength,cable,forearms,,muscleMap,,6,Produce dedicated illustration
+Calf-Machine_Shoulder_Shrug,Calf-Machine Shoulder Shrug,strength,machine,traps,,muscleMap,,4,Produce dedicated illustration
+Calf_Press,Calf Press,strength,machine,calves,,muscleMap,,4,Produce dedicated illustration
+Calf_Press_On_The_Leg_Press_Machine,Calf Press On The Leg Press Machine,strength,machine,calves,,muscleMap,,5,Produce dedicated illustration
+Calf_Raise_On_A_Dumbbell,Calf Raise On A Dumbbell,strength,dumbbell,calves,,muscleMap,,5,Produce dedicated illustration
+Calf_Raises_-_With_Bands,Calf Raises - With Bands,strength,bands,calves,,muscleMap,,5,Produce dedicated illustration
+Calf_Stretch_Elbows_Against_Wall,Calf Stretch Elbows Against Wall,stretching,,calves,,muscleMap,,3,Produce dedicated illustration
+Calf_Stretch_Hands_Against_Wall,Calf Stretch Hands Against Wall,stretching,,calves,,muscleMap,,3,Produce dedicated illustration
+Calves-SMR,Calves-SMR,stretching,foam roll,calves,,muscleMap,,2,Produce dedicated illustration
+Car_Deadlift,Car Deadlift,strongman,other,quadriceps,forearms; glutes; hamstrings; lower back; traps,muscleMap,,4,Produce dedicated illustration
+Car_Drivers,Car Drivers,strength,barbell,shoulders,forearms,muscleMap,,4,Produce dedicated illustration
+Carioca_Quick_Step,Carioca Quick Step,plyometrics,,adductors,abdominals; abductors; calves; glutes; hamstrings; quadriceps,muscleMap,,3,Produce dedicated illustration
+Cat_Stretch,Cat Stretch,stretching,,lower back,middle back; traps,muscleMap,,3,Produce dedicated illustration
+Catch_and_Overhead_Throw,Catch and Overhead Throw,plyometrics,medicine ball,lats,abdominals; chest; shoulders,muscleMap,,3,Produce dedicated illustration
+Chain_Handle_Extension,Chain Handle Extension,powerlifting,other,triceps,,muscleMap,,3,Produce dedicated illustration
+Chain_Press,Chain Press,powerlifting,other,chest,shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Chair_Leg_Extended_Stretch,Chair Leg Extended Stretch,stretching,other,hamstrings,adductors,muscleMap,,4,Produce dedicated illustration
+Chair_Lower_Back_Stretch,Chair Lower Back Stretch,stretching,,lats,lower back,muscleMap,,3,Produce dedicated illustration
+Chair_Squat,Chair Squat,strength,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,6,Produce dedicated illustration
+Chair_Upper_Body_Stretch,Chair Upper Body Stretch,stretching,other,shoulders,biceps; chest,muscleMap,,2,Produce dedicated illustration
+Chest_And_Front_Of_Shoulder_Stretch,Chest And Front Of Shoulder Stretch,stretching,other,chest,shoulders,muscleMap,,3,Produce dedicated illustration
+Chest_Push_from_3_point_stance,Chest Push from 3 point stance,plyometrics,medicine ball,chest,abdominals; shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Chest_Push_multiple_response,Chest Push (multiple response),plyometrics,medicine ball,chest,abdominals; shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Chest_Push_single_response,Chest Push (single response),plyometrics,medicine ball,chest,abdominals; shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Chest_Push_with_Run_Release,Chest Push with Run Release,plyometrics,medicine ball,chest,abdominals; shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Chest_Stretch_on_Stability_Ball,Chest Stretch on Stability Ball,stretching,exercise ball,chest,,muscleMap,,3,Produce dedicated illustration
+Childs_Pose,Child's Pose,stretching,,lower back,glutes; middle back,muscleMap,,3,Produce dedicated illustration
+Chin-Up,Chin-Up,strength,body only,lats,biceps; forearms; middle back,muscleMap,,5,Produce dedicated illustration
+Chin_To_Chest_Stretch,Chin To Chest Stretch,stretching,,neck,traps,muscleMap,,2,Produce dedicated illustration
+Circus_Bell,Circus Bell,strongman,other,shoulders,forearms; glutes; hamstrings; lower back; traps; triceps,muscleMap,,4,Produce dedicated illustration
+Clean,Clean,olympic weightlifting,barbell,hamstrings,calves; forearms; glutes; lower back; quadriceps; shoulders; traps,muscleMap,,6,Produce dedicated illustration
+Clean_Deadlift,Clean Deadlift,olympic weightlifting,barbell,hamstrings,forearms; glutes; lower back; middle back; quadriceps; traps,muscleMap,,3,Produce dedicated illustration
+Clean_Pull,Clean Pull,olympic weightlifting,barbell,quadriceps,forearms; glutes; hamstrings; lower back; traps,muscleMap,,3,Produce dedicated illustration
+Clean_Shrug,Clean Shrug,olympic weightlifting,barbell,traps,forearms; shoulders,muscleMap,,2,Produce dedicated illustration
+Clean_and_Jerk,Clean and Jerk,olympic weightlifting,barbell,shoulders,abdominals; glutes; hamstrings; lower back; quadriceps; traps; triceps,muscleMap,,8,Produce dedicated illustration
+Clean_and_Press,Clean and Press,strength,barbell,shoulders,abdominals; calves; glutes; hamstrings; lower back; middle back; quadriceps; shoulders; traps; triceps,muscleMap,,7,Produce dedicated illustration
+Clean_from_Blocks,Clean from Blocks,olympic weightlifting,barbell,quadriceps,calves; glutes; hamstrings; shoulders; traps,muscleMap,,4,Produce dedicated illustration
+Clock_Push-Up,Clock Push-Up,strength,body only,chest,shoulders; triceps,muscleMap,,6,Produce dedicated illustration
+Close-Grip_Barbell_Bench_Press,Close-Grip Barbell Bench Press,strength,barbell,triceps,chest; shoulders,muscleMap,,5,Produce dedicated illustration
+Close-Grip_Dumbbell_Press,Close-Grip Dumbbell Press,strength,dumbbell,triceps,chest; shoulders,muscleMap,,5,Produce dedicated illustration
+Close-Grip_EZ-Bar_Curl_with_Band,Close-Grip EZ-Bar Curl with Band,strength,e-z curl bar,biceps,forearms,muscleMap,,5,Produce dedicated illustration
+Close-Grip_EZ-Bar_Press,Close-Grip EZ-Bar Press,strength,e-z curl bar,triceps,chest; shoulders,muscleMap,,5,Produce dedicated illustration
+Close-Grip_EZ_Bar_Curl,Close-Grip EZ Bar Curl,strength,barbell,biceps,forearms,muscleMap,,5,Produce dedicated illustration
+Close-Grip_Front_Lat_Pulldown,Close-Grip Front Lat Pulldown,strength,cable,lats,biceps; middle back; shoulders,muscleMap,,6,Produce dedicated illustration
+Close-Grip_Push-Up_off_of_a_Dumbbell,Close-Grip Push-Up off of a Dumbbell,strength,body only,triceps,abdominals; chest; shoulders,muscleMap,,4,Produce dedicated illustration
+Close-Grip_Standing_Barbell_Curl,Close-Grip Standing Barbell Curl,strength,barbell,biceps,forearms,muscleMap,,5,Produce dedicated illustration
+Cocoons,Cocoons,strength,body only,abdominals,,muscleMap,,3,Produce dedicated illustration
+Conans_Wheel,Conan's Wheel,strongman,other,quadriceps,abdominals; biceps; calves; forearms; lower back; shoulders; traps,muscleMap,,2,Produce dedicated illustration
+Concentration_Curls,Concentration Curls,strength,dumbbell,biceps,forearms,muscleMap,,5,Produce dedicated illustration
+Cross-Body_Crunch,Cross-Body Crunch,strength,body only,abdominals,,muscleMap,,5,Produce dedicated illustration
+Cross_Body_Hammer_Curl,Cross Body Hammer Curl,strength,dumbbell,biceps,forearms,muscleMap,,4,Produce dedicated illustration
+Cross_Over_-_With_Bands,Cross Over - With Bands,strength,bands,chest,biceps; shoulders,muscleMap,,6,Produce dedicated illustration
+Crossover_Reverse_Lunge,Crossover Reverse Lunge,stretching,,lower back,abdominals; abductors; glutes; hamstrings; quadriceps,muscleMap,,3,Produce dedicated illustration
+Crucifix,Crucifix,strongman,other,shoulders,forearms,muscleMap,,2,Produce dedicated illustration
+Crunch_-_Hands_Overhead,Crunch - Hands Overhead,strength,body only,abdominals,,muscleMap,,5,Produce dedicated illustration
+Crunch_-_Legs_On_Exercise_Ball,Crunch - Legs On Exercise Ball,strength,body only,abdominals,,muscleMap,,7,Produce dedicated illustration
+Crunches,Crunches,strength,body only,abdominals,,muscleMap,,6,Produce dedicated illustration
+Cuban_Press,Cuban Press,strength,dumbbell,shoulders,traps,muscleMap,,5,Produce dedicated illustration
+Dancers_Stretch,Dancer's Stretch,stretching,,lower back,abductors; glutes,muscleMap,,4,Produce dedicated illustration
+Dead_Bug,Dead Bug,strength,body only,abdominals,,muscleMap,,7,Produce dedicated illustration
+Deadlift_with_Bands,Deadlift with Bands,powerlifting,barbell,lower back,forearms; glutes; hamstrings; middle back; quadriceps; traps,muscleMap,,3,Produce dedicated illustration
+Deadlift_with_Chains,Deadlift with Chains,powerlifting,barbell,lower back,forearms; glutes; hamstrings; middle back; quadriceps; traps,muscleMap,,4,Produce dedicated illustration
+Decline_Barbell_Bench_Press,Decline Barbell Bench Press,strength,barbell,chest,shoulders; triceps,muscleMap,,6,Produce dedicated illustration
+Decline_Close-Grip_Bench_To_Skull_Crusher,Decline Close-Grip Bench To Skull Crusher,strength,barbell,triceps,chest; shoulders,muscleMap,,7,Produce dedicated illustration
+Decline_Crunch,Decline Crunch,strength,body only,abdominals,,muscleMap,,6,Produce dedicated illustration
+Decline_Dumbbell_Bench_Press,Decline Dumbbell Bench Press,strength,dumbbell,chest,shoulders; triceps,muscleMap,,6,Produce dedicated illustration
+Decline_Dumbbell_Flyes,Decline Dumbbell Flyes,strength,dumbbell,chest,,muscleMap,,5,Produce dedicated illustration
+Decline_Dumbbell_Triceps_Extension,Decline Dumbbell Triceps Extension,strength,dumbbell,triceps,,muscleMap,,5,Produce dedicated illustration
+Decline_EZ_Bar_Triceps_Extension,Decline EZ Bar Triceps Extension,strength,barbell,triceps,,muscleMap,,5,Produce dedicated illustration
+Decline_Oblique_Crunch,Decline Oblique Crunch,strength,body only,abdominals,,muscleMap,,6,Produce dedicated illustration
+Decline_Push-Up,Decline Push-Up,strength,,chest,shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Decline_Reverse_Crunch,Decline Reverse Crunch,strength,body only,abdominals,,muscleMap,,5,Produce dedicated illustration
+Decline_Smith_Press,Decline Smith Press,strength,machine,chest,shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Deficit_Deadlift,Deficit Deadlift,powerlifting,barbell,lower back,forearms; glutes; hamstrings; middle back; quadriceps; traps,muscleMap,,3,Produce dedicated illustration
+Depth_Jump_Leap,Depth Jump Leap,plyometrics,other,quadriceps,abductors; adductors; calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Dip_Machine,Dip Machine,strength,machine,triceps,chest; shoulders,muscleMap,,5,Produce dedicated illustration
+Dips_-_Chest_Version,Dips - Chest Version,strength,other,chest,shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Dips_-_Triceps_Version,Dips - Triceps Version,strength,body only,triceps,chest; shoulders,muscleMap,,4,Produce dedicated illustration
+Donkey_Calf_Raises,Donkey Calf Raises,strength,other,calves,,muscleMap,,5,Produce dedicated illustration
+Double_Kettlebell_Alternating_Hang_Clean,Double Kettlebell Alternating Hang Clean,strength,kettlebells,hamstrings,biceps; calves; forearms; glutes; lower back; quadriceps; traps,muscleMap,,3,Produce dedicated illustration
+Double_Kettlebell_Jerk,Double Kettlebell Jerk,strength,kettlebells,shoulders,calves; quadriceps; triceps,muscleMap,,7,Produce dedicated illustration
+Double_Kettlebell_Push_Press,Double Kettlebell Push Press,strength,kettlebells,shoulders,calves; quadriceps; triceps,muscleMap,,3,Produce dedicated illustration
+Double_Kettlebell_Snatch,Double Kettlebell Snatch,strength,kettlebells,shoulders,glutes; hamstrings; quadriceps,muscleMap,,3,Produce dedicated illustration
+Double_Kettlebell_Windmill,Double Kettlebell Windmill,strength,kettlebells,abdominals,glutes; hamstrings; shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Double_Leg_Butt_Kick,Double Leg Butt Kick,plyometrics,body only,quadriceps,abductors; adductors; calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Downward_Facing_Balance,Downward Facing Balance,strength,exercise ball,glutes,abdominals; hamstrings,muscleMap,,2,Produce dedicated illustration
+Drag_Curl,Drag Curl,strength,barbell,biceps,forearms,muscleMap,,4,Produce dedicated illustration
+Drop_Push,Drop Push,plyometrics,other,chest,shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Dumbbell_Alternate_Bicep_Curl,Dumbbell Alternate Bicep Curl,strength,dumbbell,biceps,forearms,muscleMap,,5,Produce dedicated illustration
+Dumbbell_Bench_Press,Dumbbell Bench Press,strength,dumbbell,chest,shoulders; triceps,illustrated,atlas_dumbbell_bench_press,5,Review movement accuracy
+Dumbbell_Bench_Press_with_Neutral_Grip,Dumbbell Bench Press with Neutral Grip,strength,dumbbell,chest,shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Dumbbell_Bicep_Curl,Dumbbell Bicep Curl,strength,dumbbell,biceps,forearms,illustrated,atlas_dumbbell_bicep_curl,4,Review movement accuracy
+Dumbbell_Clean,Dumbbell Clean,strength,dumbbell,hamstrings,calves; forearms; glutes; lower back; quadriceps; shoulders; traps,muscleMap,,5,Produce dedicated illustration
+Dumbbell_Floor_Press,Dumbbell Floor Press,powerlifting,dumbbell,triceps,chest; shoulders,muscleMap,,3,Produce dedicated illustration
+Dumbbell_Flyes,Dumbbell Flyes,strength,dumbbell,chest,,muscleMap,,5,Produce dedicated illustration
+Dumbbell_Incline_Row,Dumbbell Incline Row,strength,dumbbell,middle back,biceps; forearms; lats; shoulders,muscleMap,,4,Produce dedicated illustration
+Dumbbell_Incline_Shoulder_Raise,Dumbbell Incline Shoulder Raise,strength,dumbbell,shoulders,triceps,muscleMap,,5,Produce dedicated illustration
+Dumbbell_Lunges,Dumbbell Lunges,strength,dumbbell,quadriceps,calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Dumbbell_Lying_One-Arm_Rear_Lateral_Raise,Dumbbell Lying One-Arm Rear Lateral Raise,strength,dumbbell,shoulders,middle back,muscleMap,,5,Produce dedicated illustration
+Dumbbell_Lying_Pronation,Dumbbell Lying Pronation,strength,dumbbell,forearms,,muscleMap,,6,Produce dedicated illustration
+Dumbbell_Lying_Rear_Lateral_Raise,Dumbbell Lying Rear Lateral Raise,strength,dumbbell,shoulders,,muscleMap,,5,Produce dedicated illustration
+Dumbbell_Lying_Supination,Dumbbell Lying Supination,strength,dumbbell,forearms,,muscleMap,,6,Produce dedicated illustration
+Dumbbell_One-Arm_Shoulder_Press,Dumbbell One-Arm Shoulder Press,strength,dumbbell,shoulders,triceps,muscleMap,,6,Produce dedicated illustration
+Dumbbell_One-Arm_Triceps_Extension,Dumbbell One-Arm Triceps Extension,strength,dumbbell,triceps,,muscleMap,,6,Produce dedicated illustration
+Dumbbell_One-Arm_Upright_Row,Dumbbell One-Arm Upright Row,strength,dumbbell,shoulders,biceps; traps,muscleMap,,5,Produce dedicated illustration
+Dumbbell_Prone_Incline_Curl,Dumbbell Prone Incline Curl,strength,dumbbell,biceps,,muscleMap,,6,Produce dedicated illustration
+Dumbbell_Raise,Dumbbell Raise,strength,dumbbell,shoulders,biceps,muscleMap,,4,Produce dedicated illustration
+Dumbbell_Rear_Lunge,Dumbbell Rear Lunge,strength,dumbbell,quadriceps,calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Dumbbell_Scaption,Dumbbell Scaption,strength,dumbbell,shoulders,traps,muscleMap,,3,Produce dedicated illustration
+Dumbbell_Seated_Box_Jump,Dumbbell Seated Box Jump,plyometrics,dumbbell,quadriceps,calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Dumbbell_Seated_One-Leg_Calf_Raise,Dumbbell Seated One-Leg Calf Raise,strength,dumbbell,calves,,muscleMap,,6,Produce dedicated illustration
+Dumbbell_Shoulder_Press,Dumbbell Shoulder Press,strength,dumbbell,shoulders,triceps,muscleMap,,6,Produce dedicated illustration
+Dumbbell_Shrug,Dumbbell Shrug,strength,dumbbell,traps,,muscleMap,,4,Produce dedicated illustration
+Dumbbell_Side_Bend,Dumbbell Side Bend,strength,dumbbell,abdominals,,muscleMap,,4,Produce dedicated illustration
+Dumbbell_Squat,Dumbbell Squat,strength,dumbbell,quadriceps,calves; glutes; hamstrings; lower back,muscleMap,,5,Produce dedicated illustration
+Dumbbell_Squat_To_A_Bench,Dumbbell Squat To A Bench,strength,dumbbell,quadriceps,calves; glutes; hamstrings; lower back,muscleMap,,5,Produce dedicated illustration
+Dumbbell_Step_Ups,Dumbbell Step Ups,strength,dumbbell,quadriceps,calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Dumbbell_Tricep_Extension_-Pronated_Grip,Dumbbell Tricep Extension -Pronated Grip,strength,dumbbell,triceps,,muscleMap,,4,Produce dedicated illustration
+Dynamic_Back_Stretch,Dynamic Back Stretch,stretching,,lats,,muscleMap,,2,Produce dedicated illustration
+Dynamic_Chest_Stretch,Dynamic Chest Stretch,stretching,,chest,middle back,muscleMap,,2,Produce dedicated illustration
+EZ-Bar_Curl,EZ-Bar Curl,strength,e-z curl bar,biceps,,muscleMap,,5,Produce dedicated illustration
+EZ-Bar_Skullcrusher,EZ-Bar Skullcrusher,strength,e-z curl bar,triceps,forearms,muscleMap,,4,Produce dedicated illustration
+Elbow_Circles,Elbow Circles,stretching,,shoulders,traps,muscleMap,,3,Produce dedicated illustration
+Elbow_to_Knee,Elbow to Knee,strength,body only,abdominals,,muscleMap,,3,Produce dedicated illustration
+Elbows_Back,Elbows Back,stretching,,chest,shoulders,muscleMap,,3,Produce dedicated illustration
+Elevated_Back_Lunge,Elevated Back Lunge,strength,barbell,quadriceps,glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Elevated_Cable_Rows,Elevated Cable Rows,strength,cable,lats,middle back; traps,muscleMap,,7,Produce dedicated illustration
+Elliptical_Trainer,Elliptical Trainer,cardio,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,2,Produce dedicated illustration
+Exercise_Ball_Crunch,Exercise Ball Crunch,strength,exercise ball,abdominals,,muscleMap,,5,Produce dedicated illustration
+Exercise_Ball_Pull-In,Exercise Ball Pull-In,strength,exercise ball,abdominals,,muscleMap,,5,Produce dedicated illustration
+Extended_Range_One-Arm_Kettlebell_Floor_Press,Extended Range One-Arm Kettlebell Floor Press,strength,kettlebells,chest,shoulders; triceps,muscleMap,,2,Produce dedicated illustration
+External_Rotation,External Rotation,strength,dumbbell,shoulders,,muscleMap,,6,Produce dedicated illustration
+External_Rotation_with_Band,External Rotation with Band,strength,bands,shoulders,,muscleMap,,5,Produce dedicated illustration
+External_Rotation_with_Cable,External Rotation with Cable,strength,cable,shoulders,,muscleMap,,4,Produce dedicated illustration
+Face_Pull,Face Pull,strength,cable,shoulders,middle back,muscleMap,,1,Produce dedicated illustration
+Farmers_Walk,Farmer's Walk,strongman,other,forearms,abdominals; glutes; hamstrings; lower back; quadriceps; traps,muscleMap,,3,Produce dedicated illustration
+Fast_Skipping,Fast Skipping,plyometrics,body only,quadriceps,abductors; adductors; calves; glutes; hamstrings,muscleMap,,3,Produce dedicated illustration
+Finger_Curls,Finger Curls,strength,barbell,forearms,,muscleMap,,4,Produce dedicated illustration
+Flat_Bench_Cable_Flyes,Flat Bench Cable Flyes,strength,cable,chest,,muscleMap,,7,Produce dedicated illustration
+Flat_Bench_Leg_Pull-In,Flat Bench Leg Pull-In,strength,body only,abdominals,,muscleMap,,5,Produce dedicated illustration
+Flat_Bench_Lying_Leg_Raise,Flat Bench Lying Leg Raise,strength,body only,abdominals,,muscleMap,,4,Produce dedicated illustration
+Flexor_Incline_Dumbbell_Curls,Flexor Incline Dumbbell Curls,strength,dumbbell,biceps,,muscleMap,,6,Produce dedicated illustration
+Floor_Glute-Ham_Raise,Floor Glute-Ham Raise,strength,,hamstrings,calves; glutes,muscleMap,,4,Produce dedicated illustration
+Floor_Press,Floor Press,powerlifting,barbell,triceps,chest; shoulders,muscleMap,,3,Produce dedicated illustration
+Floor_Press_with_Chains,Floor Press with Chains,powerlifting,barbell,triceps,chest; shoulders,muscleMap,,4,Produce dedicated illustration
+Flutter_Kicks,Flutter Kicks,strength,body only,glutes,hamstrings,muscleMap,,5,Produce dedicated illustration
+Foot-SMR,Foot-SMR,stretching,other,calves,,muscleMap,,2,Produce dedicated illustration
+Forward_Drag_with_Press,Forward Drag with Press,strongman,other,chest,calves; glutes; hamstrings; quadriceps; shoulders; triceps,muscleMap,,2,Produce dedicated illustration
+Frankenstein_Squat,Frankenstein Squat,olympic weightlifting,barbell,quadriceps,abdominals; calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Freehand_Jump_Squat,Freehand Jump Squat,strength,body only,quadriceps,calves; glutes; hamstrings,muscleMap,,6,Produce dedicated illustration
+Frog_Hops,Frog Hops,stretching,,quadriceps,calves; glutes; hamstrings,muscleMap,,2,Produce dedicated illustration
+Frog_Sit-Ups,Frog Sit-Ups,strength,body only,abdominals,,muscleMap,,7,Produce dedicated illustration
+Front_Barbell_Squat,Front Barbell Squat,strength,barbell,quadriceps,calves; glutes; hamstrings,muscleMap,,6,Produce dedicated illustration
+Front_Barbell_Squat_To_A_Bench,Front Barbell Squat To A Bench,strength,barbell,quadriceps,calves; glutes; hamstrings,muscleMap,,6,Produce dedicated illustration
+Front_Box_Jump,Front Box Jump,plyometrics,other,hamstrings,abductors; adductors; calves; glutes; quadriceps,muscleMap,,4,Produce dedicated illustration
+Front_Cable_Raise,Front Cable Raise,strength,cable,shoulders,,muscleMap,,5,Produce dedicated illustration
+Front_Cone_Hops_or_hurdle_hops,Front Cone Hops (or hurdle hops),plyometrics,other,quadriceps,abductors; adductors; calves; glutes; hamstrings,muscleMap,,5,Produce dedicated illustration
+Front_Dumbbell_Raise,Front Dumbbell Raise,strength,dumbbell,shoulders,,muscleMap,,4,Produce dedicated illustration
+Front_Incline_Dumbbell_Raise,Front Incline Dumbbell Raise,strength,dumbbell,shoulders,,muscleMap,,5,Produce dedicated illustration
+Front_Leg_Raises,Front Leg Raises,stretching,body only,hamstrings,,muscleMap,,2,Produce dedicated illustration
+Front_Plate_Raise,Front Plate Raise,strength,other,shoulders,,muscleMap,,4,Produce dedicated illustration
+Front_Raise_And_Pullover,Front Raise And Pullover,strength,barbell,chest,lats; shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Front_Squat_Clean_Grip,Front Squat (Clean Grip),strength,barbell,quadriceps,abdominals; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Front_Squats_With_Two_Kettlebells,Front Squats With Two Kettlebells,strength,kettlebells,quadriceps,calves; glutes,muscleMap,,3,Produce dedicated illustration
+Front_Two-Dumbbell_Raise,Front Two-Dumbbell Raise,strength,dumbbell,shoulders,,muscleMap,,4,Produce dedicated illustration
+Full_Range-Of-Motion_Lat_Pulldown,Full Range-Of-Motion Lat Pulldown,strength,cable,lats,biceps; middle back; shoulders,muscleMap,,2,Produce dedicated illustration
+Gironda_Sternum_Chins,Gironda Sternum Chins,strength,other,lats,biceps; middle back,muscleMap,,6,Produce dedicated illustration
+Glute_Ham_Raise,Glute Ham Raise,powerlifting,machine,hamstrings,calves; glutes,muscleMap,,3,Produce dedicated illustration
+Glute_Kickback,Glute Kickback,strength,body only,glutes,hamstrings,muscleMap,,4,Produce dedicated illustration
+Goblet_Squat,Goblet Squat,strength,kettlebells,quadriceps,calves; glutes; hamstrings; shoulders,muscleMap,,3,Produce dedicated illustration
+Good_Morning,Good Morning,powerlifting,barbell,hamstrings,abdominals; glutes; lower back,muscleMap,,3,Produce dedicated illustration
+Good_Morning_off_Pins,Good Morning off Pins,powerlifting,barbell,hamstrings,abdominals; glutes; lower back,muscleMap,,2,Produce dedicated illustration
+Gorilla_Chin_Crunch,Gorilla Chin/Crunch,strength,body only,abdominals,biceps; lats,muscleMap,,5,Produce dedicated illustration
+Groin_and_Back_Stretch,Groin and Back Stretch,stretching,,adductors,,muscleMap,,3,Produce dedicated illustration
+Groiners,Groiners,stretching,body only,adductors,,muscleMap,,3,Produce dedicated illustration
+Hack_Squat,Hack Squat,strength,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,7,Produce dedicated illustration
+Hammer_Curls,Hammer Curls,strength,dumbbell,biceps,,muscleMap,,5,Produce dedicated illustration
+Hammer_Grip_Incline_DB_Bench_Press,Hammer Grip Incline DB Bench Press,strength,dumbbell,chest,shoulders; triceps,muscleMap,,7,Produce dedicated illustration
+Hamstring-SMR,Hamstring-SMR,stretching,foam roll,hamstrings,,muscleMap,,3,Produce dedicated illustration
+Hamstring_Stretch,Hamstring Stretch,stretching,,hamstrings,,muscleMap,,3,Produce dedicated illustration
+Handstand_Push-Ups,Handstand Push-Ups,strength,body only,shoulders,triceps,muscleMap,,5,Produce dedicated illustration
+Hang_Clean,Hang Clean,olympic weightlifting,barbell,quadriceps,calves; forearms; glutes; hamstrings; lower back; shoulders; traps,muscleMap,,3,Produce dedicated illustration
+Hang_Clean_-_Below_the_Knees,Hang Clean - Below the Knees,olympic weightlifting,barbell,quadriceps,calves; forearms; glutes; hamstrings; lower back; shoulders; traps,muscleMap,,4,Produce dedicated illustration
+Hang_Snatch,Hang Snatch,olympic weightlifting,barbell,hamstrings,abdominals; calves; forearms; glutes; lower back; quadriceps; shoulders; traps,muscleMap,,4,Produce dedicated illustration
+Hang_Snatch_-_Below_Knees,Hang Snatch - Below Knees,olympic weightlifting,barbell,hamstrings,abdominals; calves; forearms; glutes; lower back; quadriceps; shoulders; traps,muscleMap,,4,Produce dedicated illustration
+Hanging_Bar_Good_Morning,Hanging Bar Good Morning,powerlifting,barbell,hamstrings,abdominals; glutes; lower back,muscleMap,,4,Produce dedicated illustration
+Hanging_Leg_Raise,Hanging Leg Raise,strength,body only,abdominals,,muscleMap,,4,Produce dedicated illustration
+Hanging_Pike,Hanging Pike,strength,body only,abdominals,,muscleMap,,5,Produce dedicated illustration
+Heaving_Snatch_Balance,Heaving Snatch Balance,olympic weightlifting,barbell,quadriceps,abdominals; forearms; glutes; hamstrings; shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Heavy_Bag_Thrust,Heavy Bag Thrust,plyometrics,other,chest,abdominals; shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+High_Cable_Curls,High Cable Curls,strength,cable,biceps,,muscleMap,,4,Produce dedicated illustration
+Hip_Circles_prone,Hip Circles (prone),stretching,body only,abductors,adductors,muscleMap,,3,Produce dedicated illustration
+Hip_Extension_with_Bands,Hip Extension with Bands,strength,bands,glutes,hamstrings,muscleMap,,4,Produce dedicated illustration
+Hip_Flexion_with_Band,Hip Flexion with Band,strength,bands,quadriceps,,muscleMap,,4,Produce dedicated illustration
+Hip_Lift_with_Band,Hip Lift with Band,powerlifting,bands,glutes,calves; hamstrings,muscleMap,,4,Produce dedicated illustration
+Hug_A_Ball,Hug A Ball,stretching,exercise ball,lower back,calves; glutes,muscleMap,,3,Produce dedicated illustration
+Hug_Knees_To_Chest,Hug Knees To Chest,stretching,,lower back,glutes,muscleMap,,3,Produce dedicated illustration
+Hurdle_Hops,Hurdle Hops,plyometrics,other,hamstrings,abductors; adductors; calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Hyperextensions_Back_Extensions,Hyperextensions (Back Extensions),strength,other,lower back,glutes; hamstrings,muscleMap,,6,Produce dedicated illustration
+Hyperextensions_With_No_Hyperextension_Bench,Hyperextensions With No Hyperextension Bench,strength,body only,lower back,glutes; hamstrings,muscleMap,,5,Produce dedicated illustration
+IT_Band_and_Glute_Stretch,IT Band and Glute Stretch,stretching,other,abductors,,muscleMap,,2,Produce dedicated illustration
+Iliotibial_Tract-SMR,Iliotibial Tract-SMR,stretching,foam roll,abductors,,muscleMap,,3,Produce dedicated illustration
+Inchworm,Inchworm,stretching,body only,hamstrings,,muscleMap,,5,Produce dedicated illustration
+Incline_Barbell_Triceps_Extension,Incline Barbell Triceps Extension,strength,barbell,triceps,forearms,muscleMap,,6,Produce dedicated illustration
+Incline_Bench_Pull,Incline Bench Pull,strength,barbell,middle back,lats; shoulders,muscleMap,,7,Produce dedicated illustration
+Incline_Cable_Chest_Press,Incline Cable Chest Press,strength,cable,chest,shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Incline_Cable_Flye,Incline Cable Flye,strength,cable,chest,shoulders,muscleMap,,6,Produce dedicated illustration
+Incline_Dumbbell_Bench_With_Palms_Facing_In,Incline Dumbbell Bench With Palms Facing In,strength,dumbbell,chest,shoulders; triceps,muscleMap,,7,Produce dedicated illustration
+Incline_Dumbbell_Curl,Incline Dumbbell Curl,strength,dumbbell,biceps,,muscleMap,,4,Produce dedicated illustration
+Incline_Dumbbell_Flyes,Incline Dumbbell Flyes,strength,dumbbell,chest,shoulders,muscleMap,,6,Produce dedicated illustration
+Incline_Dumbbell_Flyes_-_With_A_Twist,Incline Dumbbell Flyes - With A Twist,strength,dumbbell,chest,shoulders,muscleMap,,6,Produce dedicated illustration
+Incline_Dumbbell_Press,Incline Dumbbell Press,strength,dumbbell,chest,shoulders; triceps,illustrated,atlas_incline_dumbbell_press,7,Review movement accuracy
+Incline_Hammer_Curls,Incline Hammer Curls,strength,dumbbell,biceps,,muscleMap,,3,Produce dedicated illustration
+Incline_Inner_Biceps_Curl,Incline Inner Biceps Curl,strength,dumbbell,biceps,,muscleMap,,5,Produce dedicated illustration
+Incline_Push-Up,Incline Push-Up,strength,body only,chest,shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Incline_Push-Up_Close-Grip,Incline Push-Up Close-Grip,strength,body only,triceps,chest; shoulders,muscleMap,,5,Produce dedicated illustration
+Incline_Push-Up_Depth_Jump,Incline Push-Up Depth Jump,plyometrics,other,chest,shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Incline_Push-Up_Medium,Incline Push-Up Medium,strength,body only,chest,abdominals; shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Incline_Push-Up_Reverse_Grip,Incline Push-Up Reverse Grip,strength,body only,chest,abdominals; shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Incline_Push-Up_Wide,Incline Push-Up Wide,strength,body only,chest,abdominals; shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Intermediate_Groin_Stretch,Intermediate Groin Stretch,stretching,other,hamstrings,,muscleMap,,2,Produce dedicated illustration
+Intermediate_Hip_Flexor_and_Quad_Stretch,Intermediate Hip Flexor and Quad Stretch,stretching,other,quadriceps,,muscleMap,,2,Produce dedicated illustration
+Internal_Rotation_with_Band,Internal Rotation with Band,strength,bands,shoulders,,muscleMap,,5,Produce dedicated illustration
+Inverted_Row,Inverted Row,strength,,middle back,lats,muscleMap,,5,Produce dedicated illustration
+Inverted_Row_with_Straps,Inverted Row with Straps,strength,other,middle back,biceps; lats,muscleMap,,4,Produce dedicated illustration
+Iron_Cross,Iron Cross,strength,dumbbell,shoulders,chest; glutes; hamstrings; lower back; quadriceps; traps,muscleMap,,0,Verify movement reference before production
+Iron_Crosses_stretch,Iron Crosses (stretch),stretching,,quadriceps,,muscleMap,,3,Produce dedicated illustration
+Isometric_Chest_Squeezes,Isometric Chest Squeezes,plyometrics,body only,chest,shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Isometric_Neck_Exercise_-_Front_And_Back,Isometric Neck Exercise - Front And Back,strength,body only,neck,,muscleMap,,5,Produce dedicated illustration
+Isometric_Neck_Exercise_-_Sides,Isometric Neck Exercise - Sides,strength,body only,neck,,muscleMap,,5,Produce dedicated illustration
+Isometric_Wipers,Isometric Wipers,strength,body only,chest,abdominals; shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+JM_Press,JM Press,strength,barbell,triceps,chest; shoulders,muscleMap,,5,Produce dedicated illustration
+Jackknife_Sit-Up,Jackknife Sit-Up,strength,body only,abdominals,,muscleMap,,4,Produce dedicated illustration
+Janda_Sit-Up,Janda Sit-Up,strength,body only,abdominals,,muscleMap,,4,Produce dedicated illustration
+Jefferson_Squats,Jefferson Squats,strength,barbell,quadriceps,calves; glutes; hamstrings; lower back; traps,muscleMap,,7,Produce dedicated illustration
+Jerk_Balance,Jerk Balance,olympic weightlifting,barbell,shoulders,glutes; hamstrings; quadriceps; triceps,muscleMap,,3,Produce dedicated illustration
+Jerk_Dip_Squat,Jerk Dip Squat,olympic weightlifting,barbell,quadriceps,abdominals; calves,muscleMap,,2,Produce dedicated illustration
+Jogging_Treadmill,"Jogging, Treadmill",cardio,machine,quadriceps,glutes; hamstrings,muscleMap,,2,Produce dedicated illustration
+Keg_Load,Keg Load,strongman,other,lower back,abdominals; biceps; calves; forearms; glutes; hamstrings; middle back; quadriceps; shoulders; traps,muscleMap,,4,Produce dedicated illustration
+Kettlebell_Arnold_Press,Kettlebell Arnold Press,strength,kettlebells,shoulders,triceps,muscleMap,,3,Produce dedicated illustration
+Kettlebell_Dead_Clean,Kettlebell Dead Clean,strength,kettlebells,hamstrings,calves; glutes; lower back; quadriceps; traps,muscleMap,,3,Produce dedicated illustration
+Kettlebell_Figure_8,Kettlebell Figure 8,strength,kettlebells,abdominals,hamstrings; shoulders,muscleMap,,2,Produce dedicated illustration
+Kettlebell_Hang_Clean,Kettlebell Hang Clean,strength,kettlebells,hamstrings,calves; glutes; lower back; shoulders; traps,muscleMap,,3,Produce dedicated illustration
+Kettlebell_One-Legged_Deadlift,Kettlebell One-Legged Deadlift,strength,kettlebells,hamstrings,glutes; lower back,muscleMap,,3,Produce dedicated illustration
+Kettlebell_Pass_Between_The_Legs,Kettlebell Pass Between The Legs,strength,kettlebells,abdominals,glutes; hamstrings; shoulders,muscleMap,,2,Produce dedicated illustration
+Kettlebell_Pirate_Ships,Kettlebell Pirate Ships,strength,kettlebells,shoulders,abdominals,muscleMap,,4,Produce dedicated illustration
+Kettlebell_Pistol_Squat,Kettlebell Pistol Squat,strength,kettlebells,quadriceps,calves; glutes; hamstrings; shoulders,muscleMap,,4,Produce dedicated illustration
+Kettlebell_Seated_Press,Kettlebell Seated Press,strength,kettlebells,shoulders,triceps,muscleMap,,3,Produce dedicated illustration
+Kettlebell_Seesaw_Press,Kettlebell Seesaw Press,strength,kettlebells,shoulders,triceps,muscleMap,,3,Produce dedicated illustration
+Kettlebell_Sumo_High_Pull,Kettlebell Sumo High Pull,strength,kettlebells,traps,adductors; glutes; hamstrings; quadriceps; shoulders,muscleMap,,2,Produce dedicated illustration
+Kettlebell_Thruster,Kettlebell Thruster,strength,kettlebells,shoulders,quadriceps; triceps,muscleMap,,4,Produce dedicated illustration
+Kettlebell_Turkish_Get-Up_Lunge_style,Kettlebell Turkish Get-Up (Lunge style),strength,kettlebells,shoulders,abdominals; hamstrings; quadriceps; triceps,muscleMap,,3,Produce dedicated illustration
+Kettlebell_Turkish_Get-Up_Squat_style,Kettlebell Turkish Get-Up (Squat style),strength,kettlebells,shoulders,abdominals; calves; hamstrings; quadriceps; triceps,muscleMap,,3,Produce dedicated illustration
+Kettlebell_Windmill,Kettlebell Windmill,strength,kettlebells,abdominals,glutes; hamstrings; shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Kipping_Muscle_Up,Kipping Muscle Up,strength,other,lats,abdominals; biceps; forearms; middle back; shoulders; traps; triceps,muscleMap,,5,Produce dedicated illustration
+Knee_Across_The_Body,Knee Across The Body,stretching,,glutes,abductors; lower back,muscleMap,,2,Produce dedicated illustration
+Knee_Circles,Knee Circles,stretching,body only,calves,hamstrings; quadriceps,muscleMap,,3,Produce dedicated illustration
+Knee_Hip_Raise_On_Parallel_Bars,Knee/Hip Raise On Parallel Bars,strength,other,abdominals,,muscleMap,,5,Produce dedicated illustration
+Knee_Tuck_Jump,Knee Tuck Jump,plyometrics,body only,hamstrings,abductors; adductors; calves; glutes; quadriceps,muscleMap,,3,Produce dedicated illustration
+Kneeling_Arm_Drill,Kneeling Arm Drill,plyometrics,,shoulders,abdominals,muscleMap,,4,Produce dedicated illustration
+Kneeling_Cable_Crunch_With_Alternating_Oblique_Twists,Kneeling Cable Crunch With Alternating Oblique Twists,strength,cable,abdominals,,muscleMap,,9,Produce dedicated illustration
+Kneeling_Cable_Triceps_Extension,Kneeling Cable Triceps Extension,strength,cable,triceps,,muscleMap,,7,Produce dedicated illustration
+Kneeling_Forearm_Stretch,Kneeling Forearm Stretch,stretching,,forearms,,muscleMap,,2,Produce dedicated illustration
+Kneeling_High_Pulley_Row,Kneeling High Pulley Row,strength,cable,lats,biceps; middle back,muscleMap,,3,Produce dedicated illustration
+Kneeling_Hip_Flexor,Kneeling Hip Flexor,stretching,,quadriceps,quadriceps,muscleMap,,2,Produce dedicated illustration
+Kneeling_Jump_Squat,Kneeling Jump Squat,olympic weightlifting,barbell,glutes,calves; hamstrings; quadriceps,muscleMap,,4,Produce dedicated illustration
+Kneeling_Single-Arm_High_Pulley_Row,Kneeling Single-Arm High Pulley Row,strength,cable,lats,biceps; middle back,muscleMap,,4,Produce dedicated illustration
+Kneeling_Squat,Kneeling Squat,powerlifting,barbell,glutes,abdominals; hamstrings; lower back,muscleMap,,3,Produce dedicated illustration
+Landmine_180s,Landmine 180's,strength,barbell,abdominals,glutes; lower back; shoulders,muscleMap,,5,Produce dedicated illustration
+Landmine_Linear_Jammer,Landmine Linear Jammer,strength,barbell,shoulders,abdominals; calves; chest; hamstrings; quadriceps; triceps,muscleMap,,5,Produce dedicated illustration
+Lateral_Bound,Lateral Bound,plyometrics,body only,adductors,abductors; calves; glutes; hamstrings; quadriceps,muscleMap,,5,Produce dedicated illustration
+Lateral_Box_Jump,Lateral Box Jump,plyometrics,other,adductors,abductors; calves; glutes; hamstrings; quadriceps,muscleMap,,5,Produce dedicated illustration
+Lateral_Cone_Hops,Lateral Cone Hops,plyometrics,other,adductors,abductors; calves; glutes; hamstrings; quadriceps,muscleMap,,4,Produce dedicated illustration
+Lateral_Raise_-_With_Bands,Lateral Raise - With Bands,strength,bands,shoulders,,muscleMap,,4,Produce dedicated illustration
+Latissimus_Dorsi-SMR,Latissimus Dorsi-SMR,stretching,foam roll,lats,,muscleMap,,2,Produce dedicated illustration
+Leg-Over_Floor_Press,Leg-Over Floor Press,strength,kettlebells,chest,shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Leg-Up_Hamstring_Stretch,Leg-Up Hamstring Stretch,stretching,,hamstrings,,muscleMap,,3,Produce dedicated illustration
+Leg_Extensions,Leg Extensions,strength,machine,quadriceps,,muscleMap,,4,Produce dedicated illustration
+Leg_Lift,Leg Lift,strength,body only,glutes,hamstrings,muscleMap,,5,Produce dedicated illustration
+Leg_Press,Leg Press,strength,machine,quadriceps,calves; glutes; hamstrings,illustrated,atlas_leg_press,5,Review movement accuracy
+Leg_Pull-In,Leg Pull-In,strength,body only,abdominals,,muscleMap,,4,Produce dedicated illustration
+Leverage_Chest_Press,Leverage Chest Press,strength,machine,chest,shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Leverage_Deadlift,Leverage Deadlift,strength,machine,quadriceps,glutes; hamstrings,muscleMap,,2,Produce dedicated illustration
+Leverage_Decline_Chest_Press,Leverage Decline Chest Press,strength,machine,chest,shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Leverage_High_Row,Leverage High Row,strength,machine,middle back,lats,muscleMap,,4,Produce dedicated illustration
+Leverage_Incline_Chest_Press,Leverage Incline Chest Press,strength,machine,chest,shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Leverage_Iso_Row,Leverage Iso Row,strength,machine,lats,biceps; middle back,muscleMap,,3,Produce dedicated illustration
+Leverage_Shoulder_Press,Leverage Shoulder Press,strength,machine,shoulders,triceps,muscleMap,,3,Produce dedicated illustration
+Leverage_Shrug,Leverage Shrug,strength,machine,traps,forearms,muscleMap,,5,Produce dedicated illustration
+Linear_3-Part_Start_Technique,Linear 3-Part Start Technique,plyometrics,,hamstrings,calves; quadriceps,muscleMap,,4,Produce dedicated illustration
+Linear_Acceleration_Wall_Drill,Linear Acceleration Wall Drill,plyometrics,,hamstrings,calves; glutes; quadriceps,muscleMap,,4,Produce dedicated illustration
+Linear_Depth_Jump,Linear Depth Jump,plyometrics,other,quadriceps,calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Log_Lift,Log Lift,strongman,other,shoulders,abdominals; chest; glutes; hamstrings; lower back; middle back; quadriceps; traps; triceps,muscleMap,,3,Produce dedicated illustration
+London_Bridges,London Bridges,strength,other,lats,biceps; forearms; middle back,muscleMap,,4,Produce dedicated illustration
+Looking_At_Ceiling,Looking At Ceiling,stretching,,quadriceps,,muscleMap,,2,Produce dedicated illustration
+Low_Cable_Crossover,Low Cable Crossover,strength,cable,chest,shoulders,muscleMap,,4,Produce dedicated illustration
+Low_Cable_Triceps_Extension,Low Cable Triceps Extension,strength,cable,triceps,,muscleMap,,6,Produce dedicated illustration
+Low_Pulley_Row_To_Neck,Low Pulley Row To Neck,strength,cable,shoulders,biceps; middle back; traps,muscleMap,,5,Produce dedicated illustration
+Lower_Back-SMR,Lower Back-SMR,stretching,foam roll,lower back,,muscleMap,,2,Produce dedicated illustration
+Lower_Back_Curl,Lower Back Curl,stretching,body only,abdominals,,muscleMap,,2,Produce dedicated illustration
+Lunge_Pass_Through,Lunge Pass Through,strength,kettlebells,hamstrings,calves; glutes; quadriceps,muscleMap,,5,Produce dedicated illustration
+Lunge_Sprint,Lunge Sprint,strength,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Lying_Bent_Leg_Groin,Lying Bent Leg Groin,stretching,other,adductors,,muscleMap,,3,Produce dedicated illustration
+Lying_Cable_Curl,Lying Cable Curl,strength,cable,biceps,,muscleMap,,6,Produce dedicated illustration
+Lying_Cambered_Barbell_Row,Lying Cambered Barbell Row,strength,barbell,middle back,biceps; lats; traps,muscleMap,,4,Produce dedicated illustration
+Lying_Close-Grip_Bar_Curl_On_High_Pulley,Lying Close-Grip Bar Curl On High Pulley,strength,cable,biceps,,muscleMap,,7,Produce dedicated illustration
+Lying_Close-Grip_Barbell_Triceps_Extension_Behind_The_Head,Lying Close-Grip Barbell Triceps Extension Behind The Head,strength,barbell,triceps,,muscleMap,,5,Produce dedicated illustration
+Lying_Close-Grip_Barbell_Triceps_Press_To_Chin,Lying Close-Grip Barbell Triceps Press To Chin,strength,e-z curl bar,triceps,,muscleMap,,5,Produce dedicated illustration
+Lying_Crossover,Lying Crossover,stretching,body only,abductors,,muscleMap,,4,Produce dedicated illustration
+Lying_Dumbbell_Tricep_Extension,Lying Dumbbell Tricep Extension,strength,dumbbell,triceps,chest; shoulders,muscleMap,,4,Produce dedicated illustration
+Lying_Face_Down_Plate_Neck_Resistance,Lying Face Down Plate Neck Resistance,strength,other,neck,,muscleMap,,4,Produce dedicated illustration
+Lying_Face_Up_Plate_Neck_Resistance,Lying Face Up Plate Neck Resistance,strength,other,neck,,muscleMap,,4,Produce dedicated illustration
+Lying_Glute,Lying Glute,stretching,body only,glutes,abductors,muscleMap,,4,Produce dedicated illustration
+Lying_Hamstring,Lying Hamstring,stretching,other,hamstrings,calves,muscleMap,,3,Produce dedicated illustration
+Lying_High_Bench_Barbell_Curl,Lying High Bench Barbell Curl,strength,barbell,biceps,,muscleMap,,4,Produce dedicated illustration
+Lying_Leg_Curls,Lying Leg Curls,strength,machine,hamstrings,,muscleMap,,4,Produce dedicated illustration
+Lying_Machine_Squat,Lying Machine Squat,strength,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,6,Produce dedicated illustration
+Lying_One-Arm_Lateral_Raise,Lying One-Arm Lateral Raise,strength,dumbbell,shoulders,,muscleMap,,5,Produce dedicated illustration
+Lying_Prone_Quadriceps,Lying Prone Quadriceps,stretching,body only,quadriceps,,muscleMap,,4,Produce dedicated illustration
+Lying_Rear_Delt_Raise,Lying Rear Delt Raise,strength,dumbbell,shoulders,,muscleMap,,5,Produce dedicated illustration
+Lying_Supine_Dumbbell_Curl,Lying Supine Dumbbell Curl,strength,dumbbell,biceps,,muscleMap,,5,Produce dedicated illustration
+Lying_T-Bar_Row,Lying T-Bar Row,strength,machine,middle back,biceps; lats,muscleMap,,6,Produce dedicated illustration
+Lying_Triceps_Press,Lying Triceps Press,strength,e-z curl bar,triceps,,muscleMap,,5,Produce dedicated illustration
+Machine_Bench_Press,Machine Bench Press,strength,machine,chest,shoulders; triceps,muscleMap,,7,Produce dedicated illustration
+Machine_Bicep_Curl,Machine Bicep Curl,strength,machine,biceps,,muscleMap,,4,Produce dedicated illustration
+Machine_Preacher_Curls,Machine Preacher Curls,strength,machine,biceps,,muscleMap,,5,Produce dedicated illustration
+Machine_Shoulder_Military_Press,Machine Shoulder (Military) Press,strength,machine,shoulders,triceps,muscleMap,,5,Produce dedicated illustration
+Machine_Triceps_Extension,Machine Triceps Extension,strength,machine,triceps,,muscleMap,,4,Produce dedicated illustration
+Medicine_Ball_Chest_Pass,Medicine Ball Chest Pass,plyometrics,medicine ball,chest,shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Medicine_Ball_Full_Twist,Medicine Ball Full Twist,plyometrics,medicine ball,abdominals,shoulders,muscleMap,,4,Produce dedicated illustration
+Medicine_Ball_Scoop_Throw,Medicine Ball Scoop Throw,plyometrics,medicine ball,shoulders,abdominals; hamstrings; quadriceps,muscleMap,,3,Produce dedicated illustration
+Middle_Back_Shrug,Middle Back Shrug,strength,dumbbell,middle back,,muscleMap,,4,Produce dedicated illustration
+Middle_Back_Stretch,Middle Back Stretch,stretching,,middle back,abdominals; lats; lower back,muscleMap,,2,Produce dedicated illustration
+Mixed_Grip_Chin,Mixed Grip Chin,strength,other,middle back,biceps; lats,muscleMap,,5,Produce dedicated illustration
+Monster_Walk,Monster Walk,strength,bands,abductors,,muscleMap,,3,Produce dedicated illustration
+Mountain_Climbers,Mountain Climbers,plyometrics,,quadriceps,chest; hamstrings; shoulders,muscleMap,,2,Produce dedicated illustration
+Moving_Claw_Series,Moving Claw Series,plyometrics,,hamstrings,calves; quadriceps,muscleMap,,3,Produce dedicated illustration
+Muscle_Snatch,Muscle Snatch,olympic weightlifting,barbell,hamstrings,glutes; lower back; quadriceps; shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Muscle_Up,Muscle Up,strength,other,lats,abdominals; biceps; forearms; middle back; shoulders; traps; triceps,muscleMap,,4,Produce dedicated illustration
+Narrow_Stance_Hack_Squats,Narrow Stance Hack Squats,strength,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,7,Produce dedicated illustration
+Narrow_Stance_Leg_Press,Narrow Stance Leg Press,strength,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,5,Produce dedicated illustration
+Narrow_Stance_Squats,Narrow Stance Squats,strength,barbell,quadriceps,calves; glutes; hamstrings; lower back,muscleMap,,6,Produce dedicated illustration
+Natural_Glute_Ham_Raise,Natural Glute Ham Raise,strength,body only,hamstrings,calves; glutes; lower back,muscleMap,,4,Produce dedicated illustration
+Neck-SMR,Neck-SMR,stretching,other,neck,,muscleMap,,2,Produce dedicated illustration
+Neck_Press,Neck Press,strength,barbell,chest,shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Oblique_Crunches,Oblique Crunches,strength,body only,abdominals,,muscleMap,,7,Produce dedicated illustration
+Oblique_Crunches_-_On_The_Floor,Oblique Crunches - On The Floor,strength,body only,abdominals,,muscleMap,,5,Produce dedicated illustration
+Olympic_Squat,Olympic Squat,olympic weightlifting,barbell,quadriceps,calves; glutes; hamstrings,muscleMap,,3,Produce dedicated illustration
+On-Your-Back_Quad_Stretch,On-Your-Back Quad Stretch,stretching,other,quadriceps,,muscleMap,,4,Produce dedicated illustration
+On_Your_Side_Quad_Stretch,On Your Side Quad Stretch,stretching,,quadriceps,,muscleMap,,2,Produce dedicated illustration
+One-Arm_Dumbbell_Row,One-Arm Dumbbell Row,strength,dumbbell,middle back,biceps; lats; shoulders,muscleMap,,7,Produce dedicated illustration
+One-Arm_Flat_Bench_Dumbbell_Flye,One-Arm Flat Bench Dumbbell Flye,strength,dumbbell,chest,,muscleMap,,6,Produce dedicated illustration
+One-Arm_High-Pulley_Cable_Side_Bends,One-Arm High-Pulley Cable Side Bends,strength,cable,abdominals,,muscleMap,,8,Produce dedicated illustration
+One-Arm_Incline_Lateral_Raise,One-Arm Incline Lateral Raise,strength,dumbbell,shoulders,,muscleMap,,6,Produce dedicated illustration
+One-Arm_Kettlebell_Clean,One-Arm Kettlebell Clean,strength,kettlebells,hamstrings,glutes; lower back; shoulders; traps,muscleMap,,3,Produce dedicated illustration
+One-Arm_Kettlebell_Clean_and_Jerk,One-Arm Kettlebell Clean and Jerk,strength,kettlebells,shoulders,,muscleMap,,6,Produce dedicated illustration
+One-Arm_Kettlebell_Floor_Press,One-Arm Kettlebell Floor Press,strength,kettlebells,chest,triceps,muscleMap,,3,Produce dedicated illustration
+One-Arm_Kettlebell_Jerk,One-Arm Kettlebell Jerk,strength,kettlebells,shoulders,calves; quadriceps; triceps,muscleMap,,4,Produce dedicated illustration
+One-Arm_Kettlebell_Military_Press_To_The_Side,One-Arm Kettlebell Military Press To The Side,strength,kettlebells,shoulders,triceps,muscleMap,,3,Produce dedicated illustration
+One-Arm_Kettlebell_Para_Press,One-Arm Kettlebell Para Press,strength,kettlebells,shoulders,triceps,muscleMap,,3,Produce dedicated illustration
+One-Arm_Kettlebell_Push_Press,One-Arm Kettlebell Push Press,strength,kettlebells,shoulders,calves; quadriceps; triceps,muscleMap,,3,Produce dedicated illustration
+One-Arm_Kettlebell_Row,One-Arm Kettlebell Row,strength,kettlebells,middle back,biceps; lats,muscleMap,,1,Produce dedicated illustration
+One-Arm_Kettlebell_Snatch,One-Arm Kettlebell Snatch,strength,kettlebells,shoulders,calves; glutes; hamstrings; lower back; traps; triceps,muscleMap,,3,Produce dedicated illustration
+One-Arm_Kettlebell_Split_Jerk,One-Arm Kettlebell Split Jerk,strength,kettlebells,shoulders,glutes; hamstrings; quadriceps; triceps,muscleMap,,5,Produce dedicated illustration
+One-Arm_Kettlebell_Split_Snatch,One-Arm Kettlebell Split Snatch,strength,kettlebells,shoulders,hamstrings; quadriceps,muscleMap,,4,Produce dedicated illustration
+One-Arm_Kettlebell_Swings,One-Arm Kettlebell Swings,strength,kettlebells,hamstrings,calves; glutes; lower back; shoulders,muscleMap,,0,Verify movement reference before production
+One-Arm_Long_Bar_Row,One-Arm Long Bar Row,strength,barbell,middle back,biceps; lats,muscleMap,,5,Produce dedicated illustration
+One-Arm_Medicine_Ball_Slam,One-Arm Medicine Ball Slam,strength,medicine ball,abdominals,lats; shoulders,muscleMap,,4,Produce dedicated illustration
+One-Arm_Open_Palm_Kettlebell_Clean,One-Arm Open Palm Kettlebell Clean,strength,kettlebells,hamstrings,forearms; glutes; lower back; quadriceps; shoulders,muscleMap,,4,Produce dedicated illustration
+One-Arm_Overhead_Kettlebell_Squats,One-Arm Overhead Kettlebell Squats,strength,kettlebells,quadriceps,calves; glutes; hamstrings; shoulders,muscleMap,,3,Produce dedicated illustration
+One-Arm_Side_Deadlift,One-Arm Side Deadlift,strength,barbell,quadriceps,abdominals; calves; glutes; hamstrings; lower back; traps,muscleMap,,6,Produce dedicated illustration
+One-Arm_Side_Laterals,One-Arm Side Laterals,strength,dumbbell,shoulders,,muscleMap,,6,Produce dedicated illustration
+One-Legged_Cable_Kickback,One-Legged Cable Kickback,strength,cable,glutes,hamstrings,muscleMap,,6,Produce dedicated illustration
+One_Arm_Against_Wall,One Arm Against Wall,stretching,,lats,,muscleMap,,2,Produce dedicated illustration
+One_Arm_Chin-Up,One Arm Chin-Up,strength,other,middle back,biceps; forearms; lats,muscleMap,,7,Produce dedicated illustration
+One_Arm_Dumbbell_Bench_Press,One Arm Dumbbell Bench Press,strength,dumbbell,chest,shoulders; triceps,muscleMap,,7,Produce dedicated illustration
+One_Arm_Dumbbell_Preacher_Curl,One Arm Dumbbell Preacher Curl,strength,dumbbell,biceps,,muscleMap,,5,Produce dedicated illustration
+One_Arm_Floor_Press,One Arm Floor Press,strength,barbell,triceps,chest; shoulders,muscleMap,,7,Produce dedicated illustration
+One_Arm_Lat_Pulldown,One Arm Lat Pulldown,strength,cable,lats,biceps; middle back,muscleMap,,4,Produce dedicated illustration
+One_Arm_Pronated_Dumbbell_Triceps_Extension,One Arm Pronated Dumbbell Triceps Extension,strength,dumbbell,triceps,,muscleMap,,6,Produce dedicated illustration
+One_Arm_Supinated_Dumbbell_Triceps_Extension,One Arm Supinated Dumbbell Triceps Extension,strength,dumbbell,triceps,,muscleMap,,7,Produce dedicated illustration
+One_Half_Locust,One Half Locust,stretching,,quadriceps,abdominals; biceps; chest,muscleMap,,4,Produce dedicated illustration
+One_Handed_Hang,One Handed Hang,stretching,other,lats,biceps,muscleMap,,1,Produce dedicated illustration
+One_Knee_To_Chest,One Knee To Chest,stretching,,glutes,hamstrings; lower back,muscleMap,,4,Produce dedicated illustration
+One_Leg_Barbell_Squat,One Leg Barbell Squat,strength,barbell,quadriceps,calves; glutes; hamstrings,muscleMap,,7,Produce dedicated illustration
+Open_Palm_Kettlebell_Clean,Open Palm Kettlebell Clean,strength,kettlebells,hamstrings,glutes; lower back; quadriceps; shoulders,muscleMap,,3,Produce dedicated illustration
+Otis-Up,Otis-Up,strength,other,abdominals,chest; shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Overhead_Cable_Curl,Overhead Cable Curl,strength,cable,biceps,,muscleMap,,6,Produce dedicated illustration
+Overhead_Lat,Overhead Lat,stretching,other,lats,triceps,muscleMap,,3,Produce dedicated illustration
+Overhead_Slam,Overhead Slam,plyometrics,medicine ball,lats,,muscleMap,,4,Produce dedicated illustration
+Overhead_Squat,Overhead Squat,olympic weightlifting,barbell,quadriceps,abdominals; calves; glutes; hamstrings; lower back; shoulders; triceps,muscleMap,,6,Produce dedicated illustration
+Overhead_Stretch,Overhead Stretch,stretching,,abdominals,chest; forearms; lats; triceps,muscleMap,,2,Produce dedicated illustration
+Overhead_Triceps,Overhead Triceps,stretching,body only,triceps,lats,muscleMap,,3,Produce dedicated illustration
+Pallof_Press,Pallof Press,strength,cable,abdominals,chest; shoulders; triceps,muscleMap,,6,Produce dedicated illustration
+Pallof_Press_With_Rotation,Pallof Press With Rotation,strength,cable,abdominals,chest; shoulders; triceps,muscleMap,,9,Produce dedicated illustration
+Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench,Palms-Down Dumbbell Wrist Curl Over A Bench,strength,dumbbell,forearms,,muscleMap,,7,Produce dedicated illustration
+Palms-Down_Wrist_Curl_Over_A_Bench,Palms-Down Wrist Curl Over A Bench,strength,barbell,forearms,,muscleMap,,7,Produce dedicated illustration
+Palms-Up_Barbell_Wrist_Curl_Over_A_Bench,Palms-Up Barbell Wrist Curl Over A Bench,strength,barbell,forearms,,muscleMap,,7,Produce dedicated illustration
+Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench,Palms-Up Dumbbell Wrist Curl Over A Bench,strength,dumbbell,forearms,,muscleMap,,7,Produce dedicated illustration
+Parallel_Bar_Dip,Parallel Bar Dip,strength,other,triceps,chest; shoulders,muscleMap,,4,Produce dedicated illustration
+Pelvic_Tilt_Into_Bridge,Pelvic Tilt Into Bridge,stretching,,lower back,,muscleMap,,3,Produce dedicated illustration
+Peroneals-SMR,Peroneals-SMR,stretching,foam roll,calves,,muscleMap,,2,Produce dedicated illustration
+Peroneals_Stretch,Peroneals Stretch,stretching,other,calves,,muscleMap,,2,Produce dedicated illustration
+Physioball_Hip_Bridge,Physioball Hip Bridge,strength,exercise ball,glutes,hamstrings,muscleMap,,3,Produce dedicated illustration
+Pin_Presses,Pin Presses,powerlifting,barbell,triceps,chest; forearms; lats; middle back; shoulders,muscleMap,,6,Produce dedicated illustration
+Piriformis-SMR,Piriformis-SMR,stretching,foam roll,glutes,,muscleMap,,2,Produce dedicated illustration
+Plank,Plank,strength,body only,abdominals,,illustrated,atlas_plank,2,Review movement accuracy
+Plate_Pinch,Plate Pinch,strength,other,forearms,,muscleMap,,5,Produce dedicated illustration
+Plate_Twist,Plate Twist,strength,other,abdominals,,muscleMap,,5,Produce dedicated illustration
+Platform_Hamstring_Slides,Platform Hamstring Slides,strength,other,hamstrings,glutes,muscleMap,,4,Produce dedicated illustration
+Plie_Dumbbell_Squat,Plie Dumbbell Squat,strength,dumbbell,quadriceps,abdominals; calves; glutes; hamstrings,muscleMap,,5,Produce dedicated illustration
+Plyo_Kettlebell_Pushups,Plyo Kettlebell Pushups,strength,kettlebells,chest,shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Plyo_Push-up,Plyo Push-up,plyometrics,body only,chest,shoulders; triceps,muscleMap,,6,Produce dedicated illustration
+Posterior_Tibialis_Stretch,Posterior Tibialis Stretch,stretching,other,calves,,muscleMap,,2,Produce dedicated illustration
+Power_Clean,Power Clean,strength,barbell,hamstrings,calves; forearms; glutes; lower back; middle back; quadriceps; shoulders; traps; triceps,muscleMap,,24,Produce dedicated illustration
+Power_Clean_from_Blocks,Power Clean from Blocks,olympic weightlifting,barbell,hamstrings,quadriceps,muscleMap,,5,Produce dedicated illustration
+Power_Jerk,Power Jerk,olympic weightlifting,barbell,quadriceps,abdominals; calves; glutes; hamstrings; shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Power_Partials,Power Partials,strength,dumbbell,shoulders,,muscleMap,,5,Produce dedicated illustration
+Power_Snatch,Power Snatch,olympic weightlifting,barbell,hamstrings,calves; glutes; lower back; quadriceps; shoulders; traps; triceps,muscleMap,,5,Produce dedicated illustration
+Power_Snatch_from_Blocks,Power Snatch from Blocks,olympic weightlifting,barbell,quadriceps,calves; forearms; glutes; hamstrings; lower back; shoulders; traps; triceps,muscleMap,,5,Produce dedicated illustration
+Power_Stairs,Power Stairs,strongman,other,hamstrings,adductors; calves; glutes; lower back; quadriceps; shoulders; traps,muscleMap,,4,Produce dedicated illustration
+Preacher_Curl,Preacher Curl,strength,barbell,biceps,,muscleMap,,5,Produce dedicated illustration
+Preacher_Hammer_Dumbbell_Curl,Preacher Hammer Dumbbell Curl,strength,dumbbell,biceps,forearms,muscleMap,,4,Produce dedicated illustration
+Press_Sit-Up,Press Sit-Up,strength,barbell,abdominals,chest; shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Prone_Manual_Hamstring,Prone Manual Hamstring,strength,,hamstrings,,muscleMap,,3,Produce dedicated illustration
+Prowler_Sprint,Prowler Sprint,cardio,other,hamstrings,calves; chest; glutes; quadriceps; shoulders,muscleMap,,3,Produce dedicated illustration
+Pull_Through,Pull Through,strength,cable,glutes,hamstrings; lower back,muscleMap,,2,Produce dedicated illustration
+Pullups,Pullups,strength,body only,lats,biceps; middle back,illustrated,atlas_pullups,5,Review movement accuracy
+Push-Up_Wide,Push-Up Wide,strength,body only,chest,abdominals; shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Push-Ups_-_Close_Triceps_Position,Push-Ups - Close Triceps Position,strength,body only,triceps,chest; shoulders,muscleMap,,4,Produce dedicated illustration
+Push-Ups_With_Feet_Elevated,Push-Ups With Feet Elevated,strength,body only,chest,shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Push-Ups_With_Feet_On_An_Exercise_Ball,Push-Ups With Feet On An Exercise Ball,strength,exercise ball,chest,shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Push_Press,Push Press,olympic weightlifting,barbell,shoulders,quadriceps; triceps,muscleMap,,0,Verify movement reference before production
+Push_Press_-_Behind_the_Neck,Push Press - Behind the Neck,olympic weightlifting,barbell,shoulders,calves; quadriceps; triceps,muscleMap,,3,Produce dedicated illustration
+Push_Up_to_Side_Plank,Push Up to Side Plank,strength,body only,chest,abdominals; shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Pushups,Pushups,strength,body only,chest,shoulders; triceps,illustrated,atlas_pushups,4,Review movement accuracy
+Pushups_Close_and_Wide_Hand_Positions,Pushups (Close and Wide Hand Positions),strength,body only,chest,shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Pyramid,Pyramid,stretching,exercise ball,lower back,shoulders,muscleMap,,2,Produce dedicated illustration
+Quad_Stretch,Quad Stretch,stretching,other,quadriceps,,muscleMap,,2,Produce dedicated illustration
+Quadriceps-SMR,Quadriceps-SMR,stretching,foam roll,quadriceps,,muscleMap,,2,Produce dedicated illustration
+Quick_Leap,Quick Leap,plyometrics,other,quadriceps,calves; hamstrings,muscleMap,,4,Produce dedicated illustration
+Rack_Delivery,Rack Delivery,olympic weightlifting,barbell,shoulders,forearms; traps,muscleMap,,3,Produce dedicated illustration
+Rack_Pull_with_Bands,Rack Pull with Bands,powerlifting,barbell,lower back,forearms; glutes; hamstrings; quadriceps; traps,muscleMap,,3,Produce dedicated illustration
+Rack_Pulls,Rack Pulls,powerlifting,barbell,lower back,forearms; glutes; hamstrings; traps,muscleMap,,3,Produce dedicated illustration
+Rear_Leg_Raises,Rear Leg Raises,stretching,body only,quadriceps,,muscleMap,,2,Produce dedicated illustration
+Recumbent_Bike,Recumbent Bike,cardio,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,3,Produce dedicated illustration
+Return_Push_from_Stance,Return Push from Stance,plyometrics,medicine ball,shoulders,chest; triceps,muscleMap,,5,Produce dedicated illustration
+Reverse_Band_Bench_Press,Reverse Band Bench Press,powerlifting,barbell,triceps,chest; forearms; lats; middle back; shoulders,muscleMap,,4,Produce dedicated illustration
+Reverse_Band_Box_Squat,Reverse Band Box Squat,powerlifting,barbell,quadriceps,abductors; adductors; calves; forearms; glutes; hamstrings; lower back,muscleMap,,4,Produce dedicated illustration
+Reverse_Band_Deadlift,Reverse Band Deadlift,powerlifting,barbell,lower back,abductors; adductors; calves; glutes; hamstrings; quadriceps,muscleMap,,5,Produce dedicated illustration
+Reverse_Band_Power_Squat,Reverse Band Power Squat,powerlifting,barbell,quadriceps,adductors; calves; glutes; hamstrings; lower back,muscleMap,,4,Produce dedicated illustration
+Reverse_Band_Sumo_Deadlift,Reverse Band Sumo Deadlift,powerlifting,barbell,hamstrings,abductors; adductors; calves; forearms; glutes; lower back; quadriceps; traps,muscleMap,,5,Produce dedicated illustration
+Reverse_Barbell_Curl,Reverse Barbell Curl,strength,barbell,biceps,forearms,muscleMap,,4,Produce dedicated illustration
+Reverse_Barbell_Preacher_Curls,Reverse Barbell Preacher Curls,strength,e-z curl bar,biceps,forearms,muscleMap,,5,Produce dedicated illustration
+Reverse_Cable_Curl,Reverse Cable Curl,strength,cable,biceps,forearms,muscleMap,,4,Produce dedicated illustration
+Reverse_Crunch,Reverse Crunch,strength,body only,abdominals,,muscleMap,,5,Produce dedicated illustration
+Reverse_Flyes,Reverse Flyes,strength,dumbbell,shoulders,,muscleMap,,6,Produce dedicated illustration
+Reverse_Flyes_With_External_Rotation,Reverse Flyes With External Rotation,strength,dumbbell,shoulders,,muscleMap,,7,Produce dedicated illustration
+Reverse_Grip_Bent-Over_Rows,Reverse Grip Bent-Over Rows,strength,barbell,middle back,biceps; lats; shoulders,muscleMap,,5,Produce dedicated illustration
+Reverse_Grip_Triceps_Pushdown,Reverse Grip Triceps Pushdown,strength,cable,triceps,,muscleMap,,5,Produce dedicated illustration
+Reverse_Hyperextension,Reverse Hyperextension,strength,machine,hamstrings,calves; glutes,muscleMap,,5,Produce dedicated illustration
+Reverse_Machine_Flyes,Reverse Machine Flyes,strength,machine,shoulders,,muscleMap,,4,Produce dedicated illustration
+Reverse_Plate_Curls,Reverse Plate Curls,strength,other,biceps,forearms,muscleMap,,5,Produce dedicated illustration
+Reverse_Triceps_Bench_Press,Reverse Triceps Bench Press,strength,barbell,triceps,chest; shoulders,muscleMap,,5,Produce dedicated illustration
+Rhomboids-SMR,Rhomboids-SMR,stretching,foam roll,middle back,traps,muscleMap,,2,Produce dedicated illustration
+Rickshaw_Carry,Rickshaw Carry,strongman,other,forearms,abdominals; calves; glutes; hamstrings; lower back; quadriceps; traps,muscleMap,,2,Produce dedicated illustration
+Rickshaw_Deadlift,Rickshaw Deadlift,strongman,other,quadriceps,forearms; glutes; hamstrings; lower back; traps,muscleMap,,3,Produce dedicated illustration
+Ring_Dips,Ring Dips,strength,other,triceps,chest; shoulders,muscleMap,,4,Produce dedicated illustration
+Rocket_Jump,Rocket Jump,plyometrics,body only,quadriceps,calves; hamstrings,muscleMap,,3,Produce dedicated illustration
+Rocking_Standing_Calf_Raise,Rocking Standing Calf Raise,strength,barbell,calves,,muscleMap,,8,Produce dedicated illustration
+Rocky_Pull-Ups_Pulldowns,Rocky Pull-Ups/Pulldowns,strength,other,lats,biceps; middle back; shoulders,muscleMap,,6,Produce dedicated illustration
+Romanian_Deadlift,Romanian Deadlift,strength,barbell,hamstrings,calves; glutes; lower back,muscleMap,,5,Produce dedicated illustration
+Romanian_Deadlift_from_Deficit,Romanian Deadlift from Deficit,olympic weightlifting,barbell,hamstrings,forearms; glutes; lower back; traps,muscleMap,,3,Produce dedicated illustration
+Rope_Climb,Rope Climb,strength,other,lats,biceps; forearms; middle back; shoulders,muscleMap,,5,Produce dedicated illustration
+Rope_Crunch,Rope Crunch,strength,cable,abdominals,,muscleMap,,5,Produce dedicated illustration
+Rope_Jumping,Rope Jumping,cardio,other,quadriceps,calves; hamstrings,muscleMap,,2,Produce dedicated illustration
+Rope_Straight-Arm_Pulldown,Rope Straight-Arm Pulldown,strength,cable,lats,,muscleMap,,4,Produce dedicated illustration
+Round_The_World_Shoulder_Stretch,Round The World Shoulder Stretch,stretching,other,shoulders,biceps; chest,muscleMap,,3,Produce dedicated illustration
+Rowing_Stationary,"Rowing, Stationary",cardio,machine,quadriceps,biceps; calves; glutes; hamstrings; lower back; middle back,muscleMap,,3,Produce dedicated illustration
+Runners_Stretch,Runner's Stretch,stretching,,hamstrings,calves,muscleMap,,3,Produce dedicated illustration
+Running_Treadmill,"Running, Treadmill",cardio,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,2,Produce dedicated illustration
+Russian_Twist,Russian Twist,strength,body only,abdominals,lower back,muscleMap,,5,Produce dedicated illustration
+Sandbag_Load,Sandbag Load,strongman,other,quadriceps,abdominals; biceps; calves; forearms; glutes; hamstrings; lower back; middle back; shoulders; traps,muscleMap,,4,Produce dedicated illustration
+Scapular_Pull-Up,Scapular Pull-Up,strength,,traps,lats; middle back,muscleMap,,3,Produce dedicated illustration
+Scissor_Kick,Scissor Kick,stretching,body only,abdominals,,muscleMap,,5,Produce dedicated illustration
+Scissors_Jump,Scissors Jump,plyometrics,body only,quadriceps,glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Seated_Band_Hamstring_Curl,Seated Band Hamstring Curl,strength,other,hamstrings,,muscleMap,,4,Produce dedicated illustration
+Seated_Barbell_Military_Press,Seated Barbell Military Press,strength,barbell,shoulders,triceps,muscleMap,,5,Produce dedicated illustration
+Seated_Barbell_Twist,Seated Barbell Twist,strength,barbell,abdominals,,muscleMap,,6,Produce dedicated illustration
+Seated_Bent-Over_One-Arm_Dumbbell_Triceps_Extension,Seated Bent-Over One-Arm Dumbbell Triceps Extension,strength,dumbbell,triceps,,muscleMap,,7,Produce dedicated illustration
+Seated_Bent-Over_Rear_Delt_Raise,Seated Bent-Over Rear Delt Raise,strength,dumbbell,shoulders,,muscleMap,,6,Produce dedicated illustration
+Seated_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension,Seated Bent-Over Two-Arm Dumbbell Triceps Extension,strength,dumbbell,triceps,,muscleMap,,6,Produce dedicated illustration
+Seated_Biceps,Seated Biceps,stretching,body only,biceps,chest; shoulders,muscleMap,,3,Produce dedicated illustration
+Seated_Cable_Rows,Seated Cable Rows,strength,cable,middle back,biceps; lats; shoulders,illustrated,atlas_seated_cable_rows,5,Review movement accuracy
+Seated_Cable_Shoulder_Press,Seated Cable Shoulder Press,strength,cable,shoulders,triceps,muscleMap,,4,Produce dedicated illustration
+Seated_Calf_Raise,Seated Calf Raise,strength,machine,calves,,muscleMap,,6,Produce dedicated illustration
+Seated_Calf_Stretch,Seated Calf Stretch,stretching,,calves,hamstrings; lower back,muscleMap,,4,Produce dedicated illustration
+Seated_Close-Grip_Concentration_Barbell_Curl,Seated Close-Grip Concentration Barbell Curl,strength,barbell,biceps,,muscleMap,,5,Produce dedicated illustration
+Seated_Dumbbell_Curl,Seated Dumbbell Curl,strength,dumbbell,biceps,,muscleMap,,5,Produce dedicated illustration
+Seated_Dumbbell_Inner_Biceps_Curl,Seated Dumbbell Inner Biceps Curl,strength,dumbbell,biceps,,muscleMap,,6,Produce dedicated illustration
+Seated_Dumbbell_Palms-Down_Wrist_Curl,Seated Dumbbell Palms-Down Wrist Curl,strength,dumbbell,forearms,,muscleMap,,7,Produce dedicated illustration
+Seated_Dumbbell_Palms-Up_Wrist_Curl,Seated Dumbbell Palms-Up Wrist Curl,strength,dumbbell,forearms,,muscleMap,,7,Produce dedicated illustration
+Seated_Dumbbell_Press,Seated Dumbbell Press,strength,dumbbell,shoulders,triceps,muscleMap,,6,Produce dedicated illustration
+Seated_Flat_Bench_Leg_Pull-In,Seated Flat Bench Leg Pull-In,strength,body only,abdominals,,muscleMap,,4,Produce dedicated illustration
+Seated_Floor_Hamstring_Stretch,Seated Floor Hamstring Stretch,stretching,,hamstrings,calves,muscleMap,,2,Produce dedicated illustration
+Seated_Front_Deltoid,Seated Front Deltoid,stretching,body only,shoulders,chest,muscleMap,,3,Produce dedicated illustration
+Seated_Glute,Seated Glute,stretching,body only,glutes,adductors,muscleMap,,3,Produce dedicated illustration
+Seated_Good_Mornings,Seated Good Mornings,powerlifting,barbell,lower back,glutes,muscleMap,,4,Produce dedicated illustration
+Seated_Hamstring,Seated Hamstring,stretching,,hamstrings,calves,muscleMap,,3,Produce dedicated illustration
+Seated_Hamstring_and_Calf_Stretch,Seated Hamstring and Calf Stretch,stretching,other,hamstrings,calves,muscleMap,,2,Produce dedicated illustration
+Seated_Head_Harness_Neck_Resistance,Seated Head Harness Neck Resistance,strength,other,neck,,muscleMap,,6,Produce dedicated illustration
+Seated_Leg_Curl,Seated Leg Curl,strength,machine,hamstrings,,muscleMap,,5,Produce dedicated illustration
+Seated_Leg_Tucks,Seated Leg Tucks,strength,body only,abdominals,,muscleMap,,4,Produce dedicated illustration
+Seated_One-Arm_Dumbbell_Palms-Down_Wrist_Curl,Seated One-Arm Dumbbell Palms-Down Wrist Curl,strength,dumbbell,forearms,,muscleMap,,6,Produce dedicated illustration
+Seated_One-Arm_Dumbbell_Palms-Up_Wrist_Curl,Seated One-Arm Dumbbell Palms-Up Wrist Curl,strength,dumbbell,forearms,,muscleMap,,6,Produce dedicated illustration
+Seated_One-arm_Cable_Pulley_Rows,Seated One-arm Cable Pulley Rows,strength,cable,middle back,biceps; lats; traps,muscleMap,,6,Produce dedicated illustration
+Seated_Overhead_Stretch,Seated Overhead Stretch,stretching,,abdominals,,muscleMap,,4,Produce dedicated illustration
+Seated_Palm-Up_Barbell_Wrist_Curl,Seated Palm-Up Barbell Wrist Curl,strength,barbell,forearms,,muscleMap,,5,Produce dedicated illustration
+Seated_Palms-Down_Barbell_Wrist_Curl,Seated Palms-Down Barbell Wrist Curl,strength,barbell,forearms,,muscleMap,,5,Produce dedicated illustration
+Seated_Side_Lateral_Raise,Seated Side Lateral Raise,strength,dumbbell,shoulders,,muscleMap,,4,Produce dedicated illustration
+Seated_Triceps_Press,Seated Triceps Press,strength,dumbbell,triceps,,muscleMap,,4,Produce dedicated illustration
+Seated_Two-Arm_Palms-Up_Low-Pulley_Wrist_Curl,Seated Two-Arm Palms-Up Low-Pulley Wrist Curl,strength,cable,forearms,,muscleMap,,9,Produce dedicated illustration
+See-Saw_Press_Alternating_Side_Press,See-Saw Press (Alternating Side Press),strength,dumbbell,shoulders,abdominals; triceps,muscleMap,,5,Produce dedicated illustration
+Shotgun_Row,Shotgun Row,strength,cable,lats,biceps; middle back,muscleMap,,4,Produce dedicated illustration
+Shoulder_Circles,Shoulder Circles,stretching,,shoulders,traps,muscleMap,,2,Produce dedicated illustration
+Shoulder_Press_-_With_Bands,Shoulder Press - With Bands,strength,bands,shoulders,triceps,muscleMap,,3,Produce dedicated illustration
+Shoulder_Raise,Shoulder Raise,stretching,,shoulders,lats,muscleMap,,1,Produce dedicated illustration
+Shoulder_Stretch,Shoulder Stretch,stretching,,shoulders,,muscleMap,,1,Produce dedicated illustration
+Side-Lying_Floor_Stretch,Side-Lying Floor Stretch,stretching,,lats,,muscleMap,,2,Produce dedicated illustration
+Side_Bridge,Side Bridge,strength,body only,abdominals,shoulders,muscleMap,,0,Verify movement reference before production
+Side_Hop-Sprint,Side Hop-Sprint,plyometrics,other,quadriceps,abductors; adductors; calves; hamstrings,muscleMap,,3,Produce dedicated illustration
+Side_Jackknife,Side Jackknife,strength,body only,abdominals,,muscleMap,,0,Verify movement reference before production
+Side_Lateral_Raise,Side Lateral Raise,strength,dumbbell,shoulders,,illustrated,atlas_side_lateral_raise,4,Review movement accuracy
+Side_Laterals_to_Front_Raise,Side Laterals to Front Raise,strength,dumbbell,shoulders,traps,muscleMap,,6,Produce dedicated illustration
+Side_Leg_Raises,Side Leg Raises,stretching,body only,adductors,,muscleMap,,3,Produce dedicated illustration
+Side_Lying_Groin_Stretch,Side Lying Groin Stretch,stretching,,adductors,hamstrings,muscleMap,,3,Produce dedicated illustration
+Side_Neck_Stretch,Side Neck Stretch,stretching,,neck,,muscleMap,,2,Produce dedicated illustration
+Side_Standing_Long_Jump,Side Standing Long Jump,plyometrics,,quadriceps,calves; glutes; hamstrings,muscleMap,,3,Produce dedicated illustration
+Side_To_Side_Chins,Side To Side Chins,strength,other,lats,biceps; forearms; middle back; shoulders,muscleMap,,7,Produce dedicated illustration
+Side_Wrist_Pull,Side Wrist Pull,stretching,,shoulders,forearms; lats,muscleMap,,2,Produce dedicated illustration
+Side_to_Side_Box_Shuffle,Side to Side Box Shuffle,plyometrics,other,quadriceps,abductors; adductors; calves; hamstrings,muscleMap,,3,Produce dedicated illustration
+Single-Arm_Cable_Crossover,Single-Arm Cable Crossover,strength,cable,chest,,muscleMap,,5,Produce dedicated illustration
+Single-Arm_Linear_Jammer,Single-Arm Linear Jammer,strength,barbell,shoulders,chest; triceps,muscleMap,,4,Produce dedicated illustration
+Single-Arm_Push-Up,Single-Arm Push-Up,strength,body only,chest,shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Single-Cone_Sprint_Drill,Single-Cone Sprint Drill,plyometrics,other,quadriceps,calves; glutes; hamstrings,muscleMap,,3,Produce dedicated illustration
+Single-Leg_High_Box_Squat,Single-Leg High Box Squat,strength,other,quadriceps,glutes; hamstrings,muscleMap,,3,Produce dedicated illustration
+Single-Leg_Hop_Progression,Single-Leg Hop Progression,plyometrics,other,quadriceps,abductors; adductors; calves; hamstrings,muscleMap,,4,Produce dedicated illustration
+Single-Leg_Lateral_Hop,Single-Leg Lateral Hop,plyometrics,other,quadriceps,abductors; adductors; calves; hamstrings,muscleMap,,4,Produce dedicated illustration
+Single-Leg_Leg_Extension,Single-Leg Leg Extension,strength,machine,quadriceps,,muscleMap,,4,Produce dedicated illustration
+Single-Leg_Stride_Jump,Single-Leg Stride Jump,plyometrics,other,quadriceps,abductors; adductors; calves; hamstrings,muscleMap,,3,Produce dedicated illustration
+Single_Dumbbell_Raise,Single Dumbbell Raise,strength,dumbbell,shoulders,forearms; traps,muscleMap,,3,Produce dedicated illustration
+Single_Leg_Butt_Kick,Single Leg Butt Kick,plyometrics,body only,quadriceps,calves; hamstrings,muscleMap,,4,Produce dedicated illustration
+Single_Leg_Glute_Bridge,Single Leg Glute Bridge,strength,body only,glutes,hamstrings,muscleMap,,4,Produce dedicated illustration
+Single_Leg_Push-off,Single Leg Push-off,plyometrics,other,quadriceps,calves; hamstrings,muscleMap,,3,Produce dedicated illustration
+Sit-Up,Sit-Up,strength,body only,abdominals,,muscleMap,,5,Produce dedicated illustration
+Sit_Squats,Sit Squats,stretching,,quadriceps,abductors; glutes; hamstrings,muscleMap,,3,Produce dedicated illustration
+Skating,Skating,cardio,other,quadriceps,abductors; adductors; calves; glutes; hamstrings,muscleMap,,2,Produce dedicated illustration
+Sled_Drag_-_Harness,Sled Drag - Harness,strongman,other,quadriceps,calves; glutes; hamstrings,muscleMap,,2,Produce dedicated illustration
+Sled_Overhead_Backward_Walk,Sled Overhead Backward Walk,strength,other,shoulders,calves; middle back; quadriceps,muscleMap,,3,Produce dedicated illustration
+Sled_Overhead_Triceps_Extension,Sled Overhead Triceps Extension,strength,other,triceps,,muscleMap,,4,Produce dedicated illustration
+Sled_Push,Sled Push,strongman,other,quadriceps,calves; chest; glutes; hamstrings; triceps,muscleMap,,2,Produce dedicated illustration
+Sled_Reverse_Flye,Sled Reverse Flye,strength,other,shoulders,,muscleMap,,4,Produce dedicated illustration
+Sled_Row,Sled Row,strength,other,middle back,biceps; lats,muscleMap,,4,Produce dedicated illustration
+Sledgehammer_Swings,Sledgehammer Swings,plyometrics,other,abdominals,calves; forearms; lats; middle back; shoulders,muscleMap,,4,Produce dedicated illustration
+Smith_Incline_Shoulder_Raise,Smith Incline Shoulder Raise,strength,barbell,shoulders,chest,muscleMap,,6,Produce dedicated illustration
+Smith_Machine_Behind_the_Back_Shrug,Smith Machine Behind the Back Shrug,strength,machine,traps,shoulders,muscleMap,,5,Produce dedicated illustration
+Smith_Machine_Bench_Press,Smith Machine Bench Press,strength,machine,chest,shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Smith_Machine_Bent_Over_Row,Smith Machine Bent Over Row,strength,machine,middle back,biceps; lats; shoulders,muscleMap,,6,Produce dedicated illustration
+Smith_Machine_Calf_Raise,Smith Machine Calf Raise,strength,machine,calves,,muscleMap,,5,Produce dedicated illustration
+Smith_Machine_Close-Grip_Bench_Press,Smith Machine Close-Grip Bench Press,strength,machine,triceps,chest; shoulders,muscleMap,,5,Produce dedicated illustration
+Smith_Machine_Decline_Press,Smith Machine Decline Press,strength,machine,chest,shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Smith_Machine_Hang_Power_Clean,Smith Machine Hang Power Clean,strength,machine,hamstrings,glutes; lower back; quadriceps; shoulders; traps,muscleMap,,6,Produce dedicated illustration
+Smith_Machine_Hip_Raise,Smith Machine Hip Raise,strength,machine,abdominals,,muscleMap,,4,Produce dedicated illustration
+Smith_Machine_Incline_Bench_Press,Smith Machine Incline Bench Press,strength,machine,chest,shoulders; triceps,muscleMap,,5,Produce dedicated illustration
+Smith_Machine_Leg_Press,Smith Machine Leg Press,strength,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,3,Produce dedicated illustration
+Smith_Machine_One-Arm_Upright_Row,Smith Machine One-Arm Upright Row,strength,machine,shoulders,biceps; traps,muscleMap,,5,Produce dedicated illustration
+Smith_Machine_Overhead_Shoulder_Press,Smith Machine Overhead Shoulder Press,strength,machine,shoulders,triceps,muscleMap,,5,Produce dedicated illustration
+Smith_Machine_Pistol_Squat,Smith Machine Pistol Squat,strength,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,5,Produce dedicated illustration
+Smith_Machine_Reverse_Calf_Raises,Smith Machine Reverse Calf Raises,strength,machine,calves,,muscleMap,,6,Produce dedicated illustration
+Smith_Machine_Squat,Smith Machine Squat,strength,machine,quadriceps,calves; glutes; hamstrings; lower back,muscleMap,,6,Produce dedicated illustration
+Smith_Machine_Stiff-Legged_Deadlift,Smith Machine Stiff-Legged Deadlift,strength,machine,hamstrings,glutes; lower back,muscleMap,,5,Produce dedicated illustration
+Smith_Machine_Upright_Row,Smith Machine Upright Row,strength,machine,traps,biceps; middle back; shoulders,muscleMap,,5,Produce dedicated illustration
+Smith_Single-Leg_Split_Squat,Smith Single-Leg Split Squat,strength,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,7,Produce dedicated illustration
+Snatch,Snatch,olympic weightlifting,barbell,quadriceps,biceps; glutes; hamstrings; lower back; shoulders; traps; triceps,muscleMap,,7,Produce dedicated illustration
+Snatch_Balance,Snatch Balance,olympic weightlifting,barbell,quadriceps,calves; glutes; hamstrings; shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Snatch_Deadlift,Snatch Deadlift,olympic weightlifting,barbell,hamstrings,forearms; glutes; hamstrings; lower back; quadriceps; traps,muscleMap,,3,Produce dedicated illustration
+Snatch_Pull,Snatch Pull,strength,barbell,hamstrings,calves; glutes; lower back; quadriceps; traps,muscleMap,,4,Produce dedicated illustration
+Snatch_Shrug,Snatch Shrug,olympic weightlifting,barbell,traps,forearms; shoulders,muscleMap,,2,Produce dedicated illustration
+Snatch_from_Blocks,Snatch from Blocks,olympic weightlifting,barbell,quadriceps,calves; forearms; glutes; hamstrings; lower back; shoulders; traps; triceps,muscleMap,,5,Produce dedicated illustration
+Speed_Band_Overhead_Triceps,Speed Band Overhead Triceps,strength,bands,triceps,,muscleMap,,4,Produce dedicated illustration
+Speed_Box_Squat,Speed Box Squat,powerlifting,barbell,quadriceps,calves; glutes; hamstrings,muscleMap,,5,Produce dedicated illustration
+Speed_Squats,Speed Squats,strength,barbell,quadriceps,calves; glutes; hamstrings; lower back,muscleMap,,6,Produce dedicated illustration
+Spell_Caster,Spell Caster,strength,dumbbell,abdominals,glutes; shoulders,muscleMap,,4,Produce dedicated illustration
+Spider_Crawl,Spider Crawl,strength,body only,abdominals,chest; shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Spider_Curl,Spider Curl,strength,e-z curl bar,biceps,,muscleMap,,7,Produce dedicated illustration
+Spinal_Stretch,Spinal Stretch,stretching,,middle back,lats; lower back; neck; traps,muscleMap,,4,Produce dedicated illustration
+Split_Clean,Split Clean,olympic weightlifting,barbell,quadriceps,calves; forearms; glutes; hamstrings; lower back; shoulders; traps,muscleMap,,6,Produce dedicated illustration
+Split_Jerk,Split Jerk,olympic weightlifting,barbell,quadriceps,glutes; hamstrings; shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Split_Jump,Split Jump,plyometrics,body only,quadriceps,calves; glutes; hamstrings,muscleMap,,5,Produce dedicated illustration
+Split_Snatch,Split Snatch,olympic weightlifting,barbell,hamstrings,calves; forearms; glutes; hamstrings; lower back; quadriceps; shoulders; traps; triceps,muscleMap,,6,Produce dedicated illustration
+Split_Squat_with_Dumbbells,Split Squat with Dumbbells,strength,dumbbell,quadriceps,glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Split_Squats,Split Squats,stretching,,hamstrings,calves; glutes; quadriceps,muscleMap,,2,Produce dedicated illustration
+Squat_Jerk,Squat Jerk,strength,barbell,quadriceps,calves; glutes; hamstrings; shoulders; triceps,muscleMap,,3,Produce dedicated illustration
+Squat_with_Bands,Squat with Bands,powerlifting,barbell,quadriceps,adductors; calves; glutes; hamstrings; lower back,muscleMap,,4,Produce dedicated illustration
+Squat_with_Chains,Squat with Chains,powerlifting,barbell,quadriceps,adductors; calves; glutes; hamstrings; lower back,muscleMap,,4,Produce dedicated illustration
+Squat_with_Plate_Movers,Squat with Plate Movers,strength,barbell,quadriceps,abductors; adductors; calves; glutes; hamstrings,muscleMap,,8,Produce dedicated illustration
+Squats_-_With_Bands,Squats - With Bands,strength,bands,quadriceps,calves; glutes; hamstrings; lower back,muscleMap,,5,Produce dedicated illustration
+Stairmaster,Stairmaster,cardio,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,3,Produce dedicated illustration
+Standing_Alternating_Dumbbell_Press,Standing Alternating Dumbbell Press,strength,dumbbell,shoulders,triceps,muscleMap,,4,Produce dedicated illustration
+Standing_Barbell_Calf_Raise,Standing Barbell Calf Raise,strength,barbell,calves,,muscleMap,,6,Produce dedicated illustration
+Standing_Barbell_Press_Behind_Neck,Standing Barbell Press Behind Neck,strength,barbell,shoulders,triceps,muscleMap,,6,Produce dedicated illustration
+Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension,Standing Bent-Over One-Arm Dumbbell Triceps Extension,strength,dumbbell,triceps,shoulders,muscleMap,,6,Produce dedicated illustration
+Standing_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension,Standing Bent-Over Two-Arm Dumbbell Triceps Extension,strength,dumbbell,triceps,,muscleMap,,4,Produce dedicated illustration
+Standing_Biceps_Cable_Curl,Standing Biceps Cable Curl,strength,cable,biceps,,muscleMap,,4,Produce dedicated illustration
+Standing_Biceps_Stretch,Standing Biceps Stretch,stretching,other,biceps,chest; shoulders,muscleMap,,2,Produce dedicated illustration
+Standing_Bradford_Press,Standing Bradford Press,strength,barbell,shoulders,triceps,muscleMap,,6,Produce dedicated illustration
+Standing_Cable_Chest_Press,Standing Cable Chest Press,strength,cable,chest,shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Standing_Cable_Lift,Standing Cable Lift,strength,cable,abdominals,shoulders,muscleMap,,8,Produce dedicated illustration
+Standing_Cable_Wood_Chop,Standing Cable Wood Chop,strength,cable,abdominals,shoulders,muscleMap,,8,Produce dedicated illustration
+Standing_Calf_Raises,Standing Calf Raises,strength,machine,calves,,muscleMap,,5,Produce dedicated illustration
+Standing_Concentration_Curl,Standing Concentration Curl,strength,dumbbell,biceps,forearms,muscleMap,,4,Produce dedicated illustration
+Standing_Dumbbell_Calf_Raise,Standing Dumbbell Calf Raise,strength,dumbbell,calves,,muscleMap,,4,Produce dedicated illustration
+Standing_Dumbbell_Press,Standing Dumbbell Press,strength,dumbbell,shoulders,triceps,muscleMap,,3,Produce dedicated illustration
+Standing_Dumbbell_Reverse_Curl,Standing Dumbbell Reverse Curl,strength,dumbbell,biceps,forearms,muscleMap,,4,Produce dedicated illustration
+Standing_Dumbbell_Straight-Arm_Front_Delt_Raise_Above_Head,Standing Dumbbell Straight-Arm Front Delt Raise Above Head,strength,dumbbell,shoulders,,muscleMap,,5,Produce dedicated illustration
+Standing_Dumbbell_Triceps_Extension,Standing Dumbbell Triceps Extension,strength,dumbbell,triceps,,muscleMap,,5,Produce dedicated illustration
+Standing_Dumbbell_Upright_Row,Standing Dumbbell Upright Row,strength,dumbbell,traps,biceps; shoulders,muscleMap,,4,Produce dedicated illustration
+Standing_Elevated_Quad_Stretch,Standing Elevated Quad Stretch,stretching,other,quadriceps,,muscleMap,,3,Produce dedicated illustration
+Standing_Front_Barbell_Raise_Over_Head,Standing Front Barbell Raise Over Head,strength,barbell,shoulders,,muscleMap,,5,Produce dedicated illustration
+Standing_Gastrocnemius_Calf_Stretch,Standing Gastrocnemius Calf Stretch,stretching,,calves,hamstrings,muscleMap,,3,Produce dedicated illustration
+Standing_Hamstring_and_Calf_Stretch,Standing Hamstring and Calf Stretch,stretching,other,hamstrings,,muscleMap,,3,Produce dedicated illustration
+Standing_Hip_Circles,Standing Hip Circles,stretching,body only,abductors,adductors,muscleMap,,4,Produce dedicated illustration
+Standing_Hip_Flexors,Standing Hip Flexors,stretching,,quadriceps,,muscleMap,,2,Produce dedicated illustration
+Standing_Inner-Biceps_Curl,Standing Inner-Biceps Curl,strength,dumbbell,biceps,,muscleMap,,7,Produce dedicated illustration
+Standing_Lateral_Stretch,Standing Lateral Stretch,stretching,,abdominals,,muscleMap,,4,Produce dedicated illustration
+Standing_Leg_Curl,Standing Leg Curl,strength,machine,hamstrings,,muscleMap,,5,Produce dedicated illustration
+Standing_Long_Jump,Standing Long Jump,plyometrics,body only,quadriceps,calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Standing_Low-Pulley_Deltoid_Raise,Standing Low-Pulley Deltoid Raise,strength,cable,shoulders,forearms,muscleMap,,6,Produce dedicated illustration
+Standing_Low-Pulley_One-Arm_Triceps_Extension,Standing Low-Pulley One-Arm Triceps Extension,strength,cable,triceps,chest; shoulders,muscleMap,,5,Produce dedicated illustration
+Standing_Military_Press,Standing Military Press,strength,barbell,shoulders,triceps,muscleMap,,6,Produce dedicated illustration
+Standing_Olympic_Plate_Hand_Squeeze,Standing Olympic Plate Hand Squeeze,strength,other,forearms,biceps,muscleMap,,4,Produce dedicated illustration
+Standing_One-Arm_Cable_Curl,Standing One-Arm Cable Curl,strength,cable,biceps,,muscleMap,,6,Produce dedicated illustration
+Standing_One-Arm_Dumbbell_Curl_Over_Incline_Bench,Standing One-Arm Dumbbell Curl Over Incline Bench,strength,dumbbell,biceps,,muscleMap,,6,Produce dedicated illustration
+Standing_One-Arm_Dumbbell_Triceps_Extension,Standing One-Arm Dumbbell Triceps Extension,strength,dumbbell,triceps,chest; shoulders,muscleMap,,6,Produce dedicated illustration
+Standing_Overhead_Barbell_Triceps_Extension,Standing Overhead Barbell Triceps Extension,strength,barbell,triceps,shoulders,muscleMap,,5,Produce dedicated illustration
+Standing_Palm-In_One-Arm_Dumbbell_Press,Standing Palm-In One-Arm Dumbbell Press,strength,dumbbell,shoulders,triceps,muscleMap,,7,Produce dedicated illustration
+Standing_Palms-In_Dumbbell_Press,Standing Palms-In Dumbbell Press,strength,dumbbell,shoulders,triceps,muscleMap,,4,Produce dedicated illustration
+Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl,Standing Palms-Up Barbell Behind The Back Wrist Curl,strength,barbell,forearms,,muscleMap,,6,Produce dedicated illustration
+Standing_Pelvic_Tilt,Standing Pelvic Tilt,stretching,,lower back,glutes,muscleMap,,3,Produce dedicated illustration
+Standing_Rope_Crunch,Standing Rope Crunch,strength,cable,abdominals,,muscleMap,,4,Produce dedicated illustration
+Standing_Soleus_And_Achilles_Stretch,Standing Soleus And Achilles Stretch,stretching,,calves,,muscleMap,,2,Produce dedicated illustration
+Standing_Toe_Touches,Standing Toe Touches,stretching,,hamstrings,calves,muscleMap,,2,Produce dedicated illustration
+Standing_Towel_Triceps_Extension,Standing Towel Triceps Extension,strength,body only,triceps,,muscleMap,,4,Produce dedicated illustration
+Standing_Two-Arm_Overhead_Throw,Standing Two-Arm Overhead Throw,plyometrics,medicine ball,shoulders,chest; lats,muscleMap,,3,Produce dedicated illustration
+Star_Jump,Star Jump,plyometrics,body only,quadriceps,calves; glutes; hamstrings; shoulders,muscleMap,,3,Produce dedicated illustration
+Step-up_with_Knee_Raise,Step-up with Knee Raise,strength,body only,glutes,hamstrings; quadriceps,muscleMap,,3,Produce dedicated illustration
+Step_Mill,Step Mill,cardio,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,2,Produce dedicated illustration
+Stiff-Legged_Barbell_Deadlift,Stiff-Legged Barbell Deadlift,strength,barbell,hamstrings,glutes; lower back,muscleMap,,5,Produce dedicated illustration
+Stiff-Legged_Dumbbell_Deadlift,Stiff-Legged Dumbbell Deadlift,strength,dumbbell,hamstrings,glutes; lower back,muscleMap,,5,Produce dedicated illustration
+Stiff_Leg_Barbell_Good_Morning,Stiff Leg Barbell Good Morning,strength,barbell,lower back,glutes; hamstrings,muscleMap,,6,Produce dedicated illustration
+Stomach_Vacuum,Stomach Vacuum,stretching,body only,abdominals,,muscleMap,,5,Produce dedicated illustration
+Straight-Arm_Dumbbell_Pullover,Straight-Arm Dumbbell Pullover,strength,dumbbell,chest,lats; shoulders; triceps,muscleMap,,6,Produce dedicated illustration
+Straight-Arm_Pulldown,Straight-Arm Pulldown,strength,cable,lats,,muscleMap,,5,Produce dedicated illustration
+Straight_Bar_Bench_Mid_Rows,Straight Bar Bench Mid Rows,strength,barbell,middle back,biceps; lats,muscleMap,,3,Produce dedicated illustration
+Straight_Raises_on_Incline_Bench,Straight Raises on Incline Bench,strength,barbell,shoulders,traps,muscleMap,,4,Produce dedicated illustration
+Stride_Jump_Crossover,Stride Jump Crossover,plyometrics,other,quadriceps,abductors; adductors; calves; hamstrings,muscleMap,,4,Produce dedicated illustration
+Sumo_Deadlift,Sumo Deadlift,powerlifting,barbell,hamstrings,adductors; forearms; glutes; lower back; middle back; quadriceps; traps,muscleMap,,4,Produce dedicated illustration
+Sumo_Deadlift_with_Bands,Sumo Deadlift with Bands,powerlifting,barbell,hamstrings,adductors; forearms; glutes; lower back; middle back; quadriceps; traps,muscleMap,,5,Produce dedicated illustration
+Sumo_Deadlift_with_Chains,Sumo Deadlift with Chains,powerlifting,barbell,hamstrings,abductors; adductors; forearms; glutes; lower back; middle back; quadriceps; traps,muscleMap,,5,Produce dedicated illustration
+Superman,Superman,stretching,body only,lower back,glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Supine_Chest_Throw,Supine Chest Throw,plyometrics,medicine ball,triceps,chest; shoulders,muscleMap,,4,Produce dedicated illustration
+Supine_One-Arm_Overhead_Throw,Supine One-Arm Overhead Throw,plyometrics,medicine ball,abdominals,chest; lats; shoulders,muscleMap,,3,Produce dedicated illustration
+Supine_Two-Arm_Overhead_Throw,Supine Two-Arm Overhead Throw,plyometrics,medicine ball,abdominals,chest; lats; shoulders,muscleMap,,4,Produce dedicated illustration
+Suspended_Fallout,Suspended Fallout,strength,other,abdominals,chest; lower back; shoulders,muscleMap,,5,Produce dedicated illustration
+Suspended_Push-Up,Suspended Push-Up,strength,other,chest,shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Suspended_Reverse_Crunch,Suspended Reverse Crunch,strength,other,abdominals,,muscleMap,,4,Produce dedicated illustration
+Suspended_Row,Suspended Row,strength,other,middle back,biceps; lats,muscleMap,,3,Produce dedicated illustration
+Suspended_Split_Squat,Suspended Split Squat,strength,other,quadriceps,abductors; adductors; calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Svend_Press,Svend Press,strength,other,chest,forearms; shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+T-Bar_Row_with_Handle,T-Bar Row with Handle,strength,barbell,middle back,biceps; lats,muscleMap,,5,Produce dedicated illustration
+Tate_Press,Tate Press,strength,dumbbell,triceps,chest; shoulders,muscleMap,,5,Produce dedicated illustration
+The_Straddle,The Straddle,stretching,,hamstrings,adductors; calves,muscleMap,,2,Produce dedicated illustration
+Thigh_Abductor,Thigh Abductor,strength,machine,abductors,glutes,muscleMap,,4,Produce dedicated illustration
+Thigh_Adductor,Thigh Adductor,strength,machine,adductors,glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Tire_Flip,Tire Flip,strongman,other,quadriceps,calves; chest; forearms; glutes; hamstrings; lower back; shoulders; traps; triceps,muscleMap,,3,Produce dedicated illustration
+Toe_Touchers,Toe Touchers,stretching,body only,abdominals,,muscleMap,,6,Produce dedicated illustration
+Torso_Rotation,Torso Rotation,stretching,exercise ball,abdominals,,muscleMap,,2,Produce dedicated illustration
+Trail_Running_Walking,Trail Running/Walking,cardio,,quadriceps,calves; glutes; hamstrings,muscleMap,,2,Produce dedicated illustration
+Trap_Bar_Deadlift,Trap Bar Deadlift,strength,other,quadriceps,glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Tricep_Dumbbell_Kickback,Tricep Dumbbell Kickback,strength,dumbbell,triceps,,muscleMap,,4,Produce dedicated illustration
+Tricep_Side_Stretch,Tricep Side Stretch,stretching,,triceps,shoulders,muscleMap,,1,Produce dedicated illustration
+Triceps_Overhead_Extension_with_Rope,Triceps Overhead Extension with Rope,strength,cable,triceps,,muscleMap,,4,Produce dedicated illustration
+Triceps_Pushdown,Triceps Pushdown,strength,cable,triceps,,muscleMap,,5,Produce dedicated illustration
+Triceps_Pushdown_-_Rope_Attachment,Triceps Pushdown - Rope Attachment,strength,cable,triceps,,muscleMap,,5,Produce dedicated illustration
+Triceps_Pushdown_-_V-Bar_Attachment,Triceps Pushdown - V-Bar Attachment,strength,cable,triceps,,muscleMap,,5,Produce dedicated illustration
+Triceps_Stretch,Triceps Stretch,stretching,,triceps,lats,muscleMap,,1,Produce dedicated illustration
+Tuck_Crunch,Tuck Crunch,strength,body only,abdominals,,muscleMap,,6,Produce dedicated illustration
+Two-Arm_Dumbbell_Preacher_Curl,Two-Arm Dumbbell Preacher Curl,strength,dumbbell,biceps,,muscleMap,,4,Produce dedicated illustration
+Two-Arm_Kettlebell_Clean,Two-Arm Kettlebell Clean,strength,kettlebells,shoulders,calves; glutes; hamstrings; lower back; traps,muscleMap,,3,Produce dedicated illustration
+Two-Arm_Kettlebell_Jerk,Two-Arm Kettlebell Jerk,strength,kettlebells,shoulders,calves; quadriceps; triceps,muscleMap,,1,Produce dedicated illustration
+Two-Arm_Kettlebell_Military_Press,Two-Arm Kettlebell Military Press,strength,kettlebells,shoulders,triceps,muscleMap,,2,Produce dedicated illustration
+Two-Arm_Kettlebell_Row,Two-Arm Kettlebell Row,strength,kettlebells,middle back,biceps; lats,muscleMap,,2,Produce dedicated illustration
+Underhand_Cable_Pulldowns,Underhand Cable Pulldowns,strength,cable,lats,biceps; middle back; shoulders,muscleMap,,6,Produce dedicated illustration
+Upper_Back-Leg_Grab,Upper Back-Leg Grab,stretching,,hamstrings,lower back; middle back,muscleMap,,2,Produce dedicated illustration
+Upper_Back_Stretch,Upper Back Stretch,stretching,,middle back,middle back,muscleMap,,1,Produce dedicated illustration
+Upright_Barbell_Row,Upright Barbell Row,strength,barbell,shoulders,traps,muscleMap,,4,Produce dedicated illustration
+Upright_Cable_Row,Upright Cable Row,strength,cable,traps,shoulders,muscleMap,,4,Produce dedicated illustration
+Upright_Row_-_With_Bands,Upright Row - With Bands,strength,bands,traps,shoulders,muscleMap,,4,Produce dedicated illustration
+Upward_Stretch,Upward Stretch,stretching,,shoulders,chest; lats,muscleMap,,2,Produce dedicated illustration
+V-Bar_Pulldown,V-Bar Pulldown,strength,cable,lats,biceps; middle back; shoulders,muscleMap,,6,Produce dedicated illustration
+V-Bar_Pullup,V-Bar Pullup,strength,body only,lats,biceps; middle back; shoulders,muscleMap,,5,Produce dedicated illustration
+Vertical_Swing,Vertical Swing,plyometrics,dumbbell,hamstrings,glutes; quadriceps; shoulders,muscleMap,,4,Produce dedicated illustration
+Walking_Treadmill,"Walking, Treadmill",cardio,machine,quadriceps,calves; glutes; hamstrings,muscleMap,,2,Produce dedicated illustration
+Weighted_Ball_Hyperextension,Weighted Ball Hyperextension,strength,exercise ball,lower back,glutes; hamstrings; middle back,muscleMap,,4,Produce dedicated illustration
+Weighted_Ball_Side_Bend,Weighted Ball Side Bend,strength,exercise ball,abdominals,,muscleMap,,7,Produce dedicated illustration
+Weighted_Bench_Dip,Weighted Bench Dip,strength,other,triceps,chest; shoulders,muscleMap,,5,Produce dedicated illustration
+Weighted_Crunches,Weighted Crunches,strength,medicine ball,abdominals,,muscleMap,,5,Produce dedicated illustration
+Weighted_Jump_Squat,Weighted Jump Squat,strength,barbell,quadriceps,calves; glutes; hamstrings; lower back,muscleMap,,4,Produce dedicated illustration
+Weighted_Pull_Ups,Weighted Pull Ups,strength,other,lats,biceps; middle back,muscleMap,,4,Produce dedicated illustration
+Weighted_Sissy_Squat,Weighted Sissy Squat,strength,barbell,quadriceps,calves; glutes; hamstrings,muscleMap,,4,Produce dedicated illustration
+Weighted_Sit-Ups_-_With_Bands,Weighted Sit-Ups - With Bands,strength,other,abdominals,,muscleMap,,4,Produce dedicated illustration
+Weighted_Squat,Weighted Squat,strength,other,quadriceps,calves; glutes; hamstrings,muscleMap,,5,Produce dedicated illustration
+Wide-Grip_Barbell_Bench_Press,Wide-Grip Barbell Bench Press,strength,barbell,chest,shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Wide-Grip_Decline_Barbell_Bench_Press,Wide-Grip Decline Barbell Bench Press,strength,barbell,chest,shoulders; triceps,muscleMap,,4,Produce dedicated illustration
+Wide-Grip_Decline_Barbell_Pullover,Wide-Grip Decline Barbell Pullover,strength,barbell,chest,shoulders; triceps,muscleMap,,6,Produce dedicated illustration
+Wide-Grip_Lat_Pulldown,Wide-Grip Lat Pulldown,strength,cable,lats,biceps; middle back; shoulders,muscleMap,,6,Produce dedicated illustration
+Wide-Grip_Pulldown_Behind_The_Neck,Wide-Grip Pulldown Behind The Neck,strength,cable,lats,biceps; middle back; shoulders,muscleMap,,6,Produce dedicated illustration
+Wide-Grip_Rear_Pull-Up,Wide-Grip Rear Pull-Up,strength,body only,lats,biceps; middle back; shoulders,muscleMap,,5,Produce dedicated illustration
+Wide-Grip_Standing_Barbell_Curl,Wide-Grip Standing Barbell Curl,strength,barbell,biceps,,muscleMap,,5,Produce dedicated illustration
+Wide_Stance_Barbell_Squat,Wide Stance Barbell Squat,strength,barbell,quadriceps,calves; glutes; hamstrings; lower back,muscleMap,,6,Produce dedicated illustration
+Wide_Stance_Stiff_Legs,Wide Stance Stiff Legs,olympic weightlifting,barbell,hamstrings,adductors; glutes; lower back,muscleMap,,2,Produce dedicated illustration
+Wind_Sprints,Wind Sprints,strength,body only,abdominals,,muscleMap,,4,Produce dedicated illustration
+Windmills,Windmills,stretching,,abductors,glutes; hamstrings; lower back,muscleMap,,3,Produce dedicated illustration
+Worlds_Greatest_Stretch,World's Greatest Stretch,stretching,,hamstrings,calves; glutes; quadriceps,muscleMap,,3,Produce dedicated illustration
+Wrist_Circles,Wrist Circles,stretching,body only,forearms,,muscleMap,,3,Produce dedicated illustration
+Wrist_Roller,Wrist Roller,strength,other,forearms,shoulders,muscleMap,,5,Produce dedicated illustration
+Wrist_Rotations_with_Straight_Bar,Wrist Rotations with Straight Bar,strength,barbell,forearms,,muscleMap,,3,Produce dedicated illustration
+Yoke_Walk,Yoke Walk,strongman,other,quadriceps,abdominals; abductors; adductors; calves; glutes; hamstrings; lower back,muscleMap,,3,Produce dedicated illustration
+Zercher_Squats,Zercher Squats,strength,barbell,quadriceps,calves; glutes; hamstrings,muscleMap,,6,Produce dedicated illustration
+Zottman_Curl,Zottman Curl,strength,dumbbell,biceps,forearms,muscleMap,,8,Produce dedicated illustration
+Zottman_Preacher_Curl,Zottman Preacher Curl,strength,dumbbell,biceps,forearms,muscleMap,,6,Produce dedicated illustration

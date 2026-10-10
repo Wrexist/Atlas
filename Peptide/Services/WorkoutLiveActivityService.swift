@@ -86,39 +86,23 @@ final class WorkoutLiveActivityService {
     func update(_ session: WorkoutSession) {
         guard #available(iOS 16.1, *),
               let activity = currentActivity(for: session.id) else { return }
-        let existing = activity.content.state
-        var next = Self.state(for: session)
-        next.restEndsAt = existing.restEndsAt
-        next.restTotalSeconds = existing.restTotalSeconds
-        push(next, to: activity)
-    }
-
-    /// Mirrors `RestTimerState` onto the activity. Pass the state's own
-    /// `targetEnd` — that absolute date is the single timing source for
-    /// the overlay, the local notification, and now the lock screen.
-    /// Nil ends the rest presentation.
-    func updateRest(endsAt: Date?, totalSeconds: Double) {
-        guard #available(iOS 16.1, *), let activity = currentActivity() else { return }
-        var next = activity.content.state
-        next.restEndsAt = endsAt
-        next.restTotalSeconds = endsAt == nil ? 0 : totalSeconds
-        push(next, to: activity)
+        push(Self.state(for: session), to: activity)
     }
 
     /// Flips the activity into its summary beat, then dismisses it.
     func finish(_ session: WorkoutSession) {
         guard #available(iOS 16.1, *),
               let activity = currentActivity(for: session.id) else { return }
-        var final = Self.state(for: session)
-        final.restEndsAt = nil
-        final.restTotalSeconds = 0
-        final.finishedAt = session.finishedAt ?? Date()
+        var finalState = Self.state(for: session)
+        finalState.restEndsAt = nil
+        finalState.restTotalSeconds = 0
+        finalState.finishedAt = session.finishedAt ?? Date()
 
         cancelPendingDismiss()
         let token = UUID()
         dismissToken = token
         dismissTask = Task { [weak self] in
-            await activity.update(ActivityContent(state: final, staleDate: nil))
+            await activity.update(ActivityContent(state: finalState, staleDate: nil))
             do {
                 try await Task.sleep(nanoseconds: Self.summarySeconds * 1_000_000_000)
             } catch {
@@ -190,7 +174,11 @@ final class WorkoutLiveActivityService {
             totalSets: session.exercises.reduce(0) { total, entry in
                 total + entry.sets.filter { !$0.isWarmup }.count
             },
-            exerciseCount: session.exercises.count
+            exerciseCount: session.exercises.count,
+            restEndsAt: session.isPaused ? nil : session.focus?.rest?.endsAt,
+            restTotalSeconds: session.focus?.rest?.totalSeconds ?? 0,
+            activeTimerStartedAt: session.startedAt.addingTimeInterval(session.focus?.pausedSeconds ?? 0),
+            pausedElapsedSeconds: session.isPaused ? session.elapsedSeconds() : nil
         )
     }
 
@@ -198,11 +186,7 @@ final class WorkoutLiveActivityService {
     /// unchecked working set, falling back to the last one they touched
     /// so a finished-but-not-sealed workout doesn't blank the label.
     private static func currentExerciseName(in session: WorkoutSession) -> String {
-        let ordered = session.exercises.sorted { $0.index < $1.index }
-        let pending = ordered.first { entry in
-            entry.sets.contains { !$0.completed && !$0.isWarmup }
-        }
-        guard let entry = pending ?? ordered.last else { return "" }
-        return ExerciseLibrary.shared.lookup(id: entry.exerciseID)?.name ?? ""
+        guard let entry = session.selectedExercise else { return "" }
+        return ExerciseLibrary.shared.lookup(id: entry.exerciseID)?.name ?? entry.exerciseID
     }
 }

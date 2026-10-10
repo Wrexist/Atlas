@@ -60,4 +60,31 @@ final class EditableFoodItemTests: XCTestCase {
             confidence: confidence
         )
     }
+
+    func testNutritionCorrectionScalesWithPortionAndResetsWithoutChangingPortion() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9))
+        item.savedToLibrary = true
+        item.correctNutrition(.init(calories: 300, proteinG: 12, carbsG: 45, fatG: 8))
+        XCTAssertEqual(item.calories, 300)
+        XCTAssertTrue(item.nutritionEdited)
+        XCTAssertFalse(item.savedToLibrary)
+        item.grams = 100
+        XCTAssertEqual(item.calories, 150)
+        XCTAssertEqual(item.proteinG, 6)
+        XCTAssertEqual(item.fatG, 4)
+        item.resetNutrition()
+        XCTAssertEqual(item.grams, 100)
+        XCTAssertEqual(item.calories, 100)
+        XCTAssertFalse(item.nutritionEdited)
+    }
+
+    func testInvalidNutritionCorrectionLeavesEstimateUntouched() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9))
+        item.correctNutrition(.init(calories: -1, proteinG: 1, carbsG: 1, fatG: 1))
+        XCTAssertEqual(item.calories, 200)
+        XCTAssertFalse(item.nutritionEdited)
+        item.grams = 0
+        item.correctNutrition(.init(calories: 100, proteinG: 1, carbsG: 1, fatG: 1))
+        XCTAssertFalse(item.nutritionEdited)
+    }
 }

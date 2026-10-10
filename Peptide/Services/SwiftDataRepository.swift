@@ -48,9 +48,25 @@ final class SwiftDataRepository {
     /// the CloudKit-mirrored store (Guideline 5.1.3(ii); see
     /// `WeeklySummaryLocalStore`).
     private var summaryStore: WeeklySummaryLocalStore
+    private var mealDraftStore = MealScanDraftStore.shared
 
     private init() {
         summaryStore = .shared
+        #if DEBUG
+        if WorkoutRecapFixture.isRequested {
+            // Explicit UI-test launch only. Never opens or resets user storage.
+            container = Self.makeInMemoryContainer()
+            isInoperable = container == nil
+            var fixture = WorkoutRecapFixture.push()
+            if ProcessInfo.processInfo.arguments.contains("--completion-long-name") {
+                fixture.name = "Upper body strength — a longer workout name for accessibility review"
+            }
+            fixture.finishedAt = nil
+            upsertWorkoutSession(fixture)
+            failNextCompletionForTesting = ProcessInfo.processInfo.arguments.contains("--completion-save-failure")
+            return
+        }
+        #endif
         let token = FileManager.default.ubiquityIdentityToken
         lastObservedIdentityToken = token
         let iCloudAvailable = token != nil
@@ -148,6 +164,7 @@ final class SwiftDataRepository {
         container = nil
         isUsingFallbackStore = false
         summaryStore.deleteAll()
+        mealDraftStore.resetForAccountChange()
         let cloudFailureState: CloudSyncState = current != nil ? .unavailable : .noAccount
         cloudSyncState = cloudFailureState
 
@@ -258,16 +275,33 @@ final class SwiftDataRepository {
     /// construct row-level fixtures (e.g. duplicate profile rows) that
     /// the public API rightly refuses to create.
     var contextForTesting: ModelContext? { context }
+
+    /// Tests supply a unique temporary URL; no default production URL is used.
+    func configurePersistentStoreForTesting(at url: URL) throws {
+        mealDraftStore = MealScanDraftStore(url: url.deletingLastPathComponent().appending(path: "test-meal-draft.json"))
+        container = nil
+        let configuration = ModelConfiguration(url: url, cloudKitDatabase: .none)
+        container = try ModelContainer(for: Self.versionedSchema,
+            migrationPlan: PeptideAtlasMigrationPlan.self, configurations: configuration)
+        isUsingFallbackStore = false
+        isInoperable = false
+        commitDidFail = false
+        forceCommitFailureForTesting = false
+        failNextCompletionForTesting = false
+    }
     #endif
 
     /// Replaces the container with an in-memory store. Call in test setUp only.
     func configureForTesting() {
+        mealDraftStore = MealScanDraftStore(url: FileManager.default.temporaryDirectory
+            .appending(path: "MealDraftTest-\(UUID().uuidString).json"))
         container = Self.makeInMemoryContainer()
         isUsingFallbackStore = false
         isInoperable = container == nil
         commitDidFail = false
         #if DEBUG
         forceCommitFailureForTesting = false
+        failNextCompletionForTesting = false
         #endif
         summaryStore = WeeklySummaryLocalStore(
             fileURL: FileManager.default.temporaryDirectory
@@ -302,6 +336,7 @@ final class SwiftDataRepository {
             try context.delete(model: StoredPersonalRecord.self)
             try context.save()
             summaryStore.deleteAll()
+            mealDraftStore.resetForAccountChange()
         } catch {
             AppLog.swiftData.error("deleteAll failed: \(error.localizedDescription, privacy: .public)")
         }
@@ -681,6 +716,69 @@ final class SwiftDataRepository {
 
     // MARK: - Workout sessions
 
+    enum WorkoutSaveError: LocalizedError {
+        case unavailable, failed
+        var errorDescription: String? {
+            switch self {
+            case .unavailable: "Device storage is unavailable. The workout has not been saved."
+            case .failed: "The workout could not be written to device storage. Try again."
+            }
+        }
+    }
+
+    /// Completion needs an explicit durable outcome. Restore only the profile
+    /// mutation on failure; unrelated objects in the shared context stay intact.
+    enum MealSaveError: Error { case unavailable }
+
+    func saveMealProfileDurably(_ profile: UserProfile) throws {
+        guard let context, !isUsingFallbackStore, !isInoperable else { throw MealSaveError.unavailable }
+        let existing = try canonicalProfileRow(in: context)
+        let previous = try existing?.toUserProfile()
+        var inserted: StoredProfile?
+        do {
+            if let existing { try existing.update(from: profile) }
+            else {
+                let row = try StoredProfile.make(from: profile)
+                context.insert(row)
+                inserted = row
+            }
+            #if DEBUG
+            if forceCommitFailureForTesting { throw MealSaveError.unavailable }
+            #endif
+            try context.save()
+        } catch {
+            if let existing, let previous { try? existing.update(from: previous) }
+            if let inserted { context.delete(inserted) }
+            throw error
+        }
+    }
+
+    /// Required durable boundary for completion and editing. A failed write
+    /// restores only this row, never rolling back unrelated app changes.
+    func saveWorkoutDurably(_ session: WorkoutSession) throws {
+        #if DEBUG
+        if failNextCompletionForTesting {
+            failNextCompletionForTesting = false
+            throw WorkoutSaveError.failed
+        }
+        #endif
+        guard !isUsingFallbackStore, let context else { throw WorkoutSaveError.unavailable }
+        let sessionID = session.id
+        let descriptor = FetchDescriptor<StoredWorkoutSession>(predicate: #Predicate { $0.id == sessionID })
+        let existing = try context.fetch(descriptor).first
+        let previous = try existing?.toWorkoutSession()
+        let prepared = try StoredWorkoutSession.make(from: session)
+        do {
+            if let existing { try existing.update(from: session) }
+            else { context.insert(prepared) }
+            guard commit() else { throw WorkoutSaveError.failed }
+        } catch {
+            if let existing, let previous { try? existing.update(from: previous) }
+            else { context.delete(prepared) }
+            throw error
+        }
+    }
+
     /// Upserts a single workout session. Used by the live workout
     /// screen as the user checks sets — one call per save event. The
     /// `commit()` call inside flushes the SwiftData context so widgets
@@ -764,6 +862,17 @@ final class SwiftDataRepository {
             AppLog.swiftData.error("Load workout session by id failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
+    }
+
+    /// Recap needs to distinguish an empty week from a failed history read.
+    func loadWorkoutRecapWeek(in range: Range<Date>) throws -> [WorkoutSession] {
+        guard let context else { throw WorkoutSaveError.unavailable }
+        let start = range.lowerBound
+        let end = range.upperBound
+        let descriptor = FetchDescriptor<StoredWorkoutSession>(
+            predicate: #Predicate { $0.startedAt >= start && $0.startedAt < end },
+            sortBy: [SortDescriptor(\.startedAt)])
+        return try context.fetch(descriptor).map { try $0.toWorkoutSession() }
     }
 
     /// Uncapped full-history fetch, oldest first. Exists for correctness
@@ -1065,6 +1174,7 @@ final class SwiftDataRepository {
     /// genuinely broken store, so persistence-failure handling (banner,
     /// projection gating) is testable deterministically.
     var forceCommitFailureForTesting = false
+    private var failNextCompletionForTesting = false
     #endif
 
     // MARK: - Private

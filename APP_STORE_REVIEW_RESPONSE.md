@@ -113,7 +113,7 @@ screen that ties them together.
 VALUE TO THE USER
 1. Log workouts in two taps — weight and reps are pre-filled from the
    last session; rest timer fires automatically.
-2. Scan meals by barcode (200M+ products) or photo (AI vision).
+2. Scan meals by barcode (millions of products) or photo (AI vision).
 3. Wake up to a Recovery Score built from HRV, resting heart rate,
    and sleep pulled from Apple Health.
 4. Track any habit with a 6-month momentum heatmap and streak counter.

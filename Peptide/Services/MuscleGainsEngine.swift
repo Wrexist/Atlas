@@ -30,7 +30,7 @@ enum MuscleGainsEngine {
         for session in sessions {
             for entry in session.exercises {
                 guard let exercise = library.lookup(id: entry.exerciseID) else { continue }
-                let workingSets = entry.sets.filter { $0.completed && !$0.isWarmup }
+                let workingSets = entry.completedWorkingSets
                 guard !workingSets.isEmpty else { continue }
                 let setCount = Double(workingSets.count)
 
@@ -71,7 +71,7 @@ enum MuscleGainsEngine {
             else { continue }
             for entry in session.exercises {
                 guard let exercise = library.lookup(id: entry.exerciseID) else { continue }
-                guard entry.sets.contains(where: { $0.completed && !$0.isWarmup }) else { continue }
+                guard !entry.completedWorkingSets.isEmpty else { continue }
 
                 let heads = WeeklyMuscleHeatmap.stimulusHeads(for: exercise)
                 let stimulated = heads.primary.filter { $0.value > 0.25 }.keys

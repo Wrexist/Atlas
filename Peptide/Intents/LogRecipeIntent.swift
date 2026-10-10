@@ -39,22 +39,23 @@ struct LogRecipeIntent: AppIntent {
                 return .notFound
             }
 
-            let totals = RecipeDataLogic.totals(
+            guard let totals = RecipeDataLogic.review(
                 for: target,
                 customFoods: store.profile.customFoods
-            )
-            guard totals.calories > 0 else {
+            ).totals, totals.calories > 0 else {
                 return .empty
             }
 
             let now = Date()
             let category = MealCategory.auto(for: now)
-            store.logRecipe(target, category: category, at: now)
+            guard store.logRecipe(target, category: category, at: now) != nil else { return .saveFailed }
             store.flushPendingSave()
             return .logged(name: target.name, calories: totals.calories, category: category)
         }
 
         switch outcome {
+        case .saveFailed:
+            return .result(dialog: "The meal couldn't be saved. Open Atlas and retry.")
         case .notFound:
             return .result(dialog: IntentDialog(
                 LocalizedStringResource(
@@ -65,7 +66,7 @@ struct LogRecipeIntent: AppIntent {
         case .empty:
             return .result(dialog: IntentDialog(
                 LocalizedStringResource(
-                    "That recipe doesn't add up to any calories — open Atlas to fix the ingredient list.",
+                    "That recipe has missing foods, invalid portions, or no calories — open Atlas to fix the ingredient list.",
                     comment: "Siri response when a recipe sums to zero (every component food was deleted)."
                 )
             ))
@@ -83,5 +84,6 @@ struct LogRecipeIntent: AppIntent {
         case logged(name: String, calories: Int, category: MealCategory)
         case notFound
         case empty
+        case saveFailed
     }
 }

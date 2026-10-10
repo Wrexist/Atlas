@@ -1,0 +1,4367 @@
+[
+  {
+    "id": "3_4_Sit-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "90_90_Hamstring",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Ab_Crunch_Machine",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Ab_Roller",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Adductor",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Adductor_Groin",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Advanced_Kettlebell_Windmill",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Air_Bike",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "All_Fours_Quad_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Alternate_Hammer_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Alternate_Heel_Touchers",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Alternate_Incline_Dumbbell_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Alternate_Leg_Diagonal_Bound",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Alternating_Cable_Shoulder_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Alternating_Deltoid_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Alternating_Floor_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Alternating_Hang_Clean",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Alternating_Kettlebell_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Alternating_Kettlebell_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Alternating_Renegade_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Ankle_Circles",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Ankle_On_The_Knee",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Anterior_Tibialis-SMR",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Anti-Gravity_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Arm_Circles",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Arnold_Dumbbell_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Around_The_Worlds",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Atlas_Stone_Trainer",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Atlas_Stones",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Axle_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Back_Flyes_-_With_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Backward_Drag",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Backward_Medicine_Ball_Throw",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Balance_Board",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Ball_Leg_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Band_Assisted_Pull-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Band_Good_Morning",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Band_Good_Morning_Pull_Through",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Band_Hip_Adductions",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Band_Pull_Apart",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Band_Skull_Crusher",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Ab_Rollout",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Ab_Rollout_-_On_Knees",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Bench_Press_-_Medium_Grip",
+    "status": "illustrated",
+    "asset": "atlas_barbell_bench_press___medium_grip"
+  },
+  {
+    "id": "Barbell_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Curls_Lying_Against_An_Incline",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Deadlift",
+    "status": "illustrated",
+    "asset": "atlas_barbell_deadlift"
+  },
+  {
+    "id": "Barbell_Full_Squat",
+    "status": "illustrated",
+    "asset": "atlas_barbell_full_squat"
+  },
+  {
+    "id": "Barbell_Glute_Bridge",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Guillotine_Bench_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Hack_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Hip_Thrust",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Incline_Shoulder_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Lunge",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Rear_Delt_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Rollout_from_Bench",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Seated_Calf_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Shoulder_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Shrug",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Shrug_Behind_The_Back",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Side_Bend",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Side_Split_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Squat_To_A_Bench",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Step_Ups",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Barbell_Walking_Lunge",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Battling_Ropes",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bear_Crawl_Sled_Drags",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Behind_Head_Chest_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bench_Dips",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bench_Jump",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bench_Press_-_Powerlifting",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bench_Press_-_With_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bench_Press_with_Chains",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bench_Sprint",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bent-Arm_Barbell_Pullover",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bent-Arm_Dumbbell_Pullover",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bent-Knee_Hip_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bent_Over_Barbell_Row",
+    "status": "illustrated",
+    "asset": "atlas_bent_over_barbell_row"
+  },
+  {
+    "id": "Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bent_Over_Low-Pulley_Side_Lateral",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bent_Over_One-Arm_Long_Bar_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bent_Over_Two-Arm_Long_Bar_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bent_Over_Two-Dumbbell_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bent_Over_Two-Dumbbell_Row_With_Palms_In",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bent_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bicycling",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bicycling_Stationary",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Board_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Body-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Body_Tricep_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bodyweight_Flyes",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bodyweight_Mid_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bodyweight_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bodyweight_Walking_Lunge",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bosu_Ball_Cable_Crunch_With_Side_Bends",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bottoms-Up_Clean_From_The_Hang_Position",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bottoms_Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Box_Jump_Multiple_Response",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Box_Skip",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Box_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Box_Squat_with_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Box_Squat_with_Chains",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Brachialis-SMR",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Bradford_Rocky_Presses",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Butt-Ups",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Butt_Lift_Bridge",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Butterfly",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Chest_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Crossover",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Crunch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Deadlifts",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Hammer_Curls_-_Rope_Attachment",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Hip_Adduction",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Incline_Pushdown",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Incline_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Internal_Rotation",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Iron_Cross",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Judo_Flip",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Lying_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_One_Arm_Tricep_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Preacher_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Rear_Delt_Fly",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Reverse_Crunch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Rope_Overhead_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Rope_Rear-Delt_Rows",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Russian_Twists",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Seated_Crunch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Seated_Lateral_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Shoulder_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Shrugs",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cable_Wrist_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Calf-Machine_Shoulder_Shrug",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Calf_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Calf_Press_On_The_Leg_Press_Machine",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Calf_Raise_On_A_Dumbbell",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Calf_Raises_-_With_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Calf_Stretch_Elbows_Against_Wall",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Calf_Stretch_Hands_Against_Wall",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Calves-SMR",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Car_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Car_Drivers",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Carioca_Quick_Step",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cat_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Catch_and_Overhead_Throw",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Chain_Handle_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Chain_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Chair_Leg_Extended_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Chair_Lower_Back_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Chair_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Chair_Upper_Body_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Chest_And_Front_Of_Shoulder_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Chest_Push_from_3_point_stance",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Chest_Push_multiple_response",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Chest_Push_single_response",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Chest_Push_with_Run_Release",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Chest_Stretch_on_Stability_Ball",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Childs_Pose",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Chin-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Chin_To_Chest_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Circus_Bell",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Clean",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Clean_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Clean_Pull",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Clean_Shrug",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Clean_and_Jerk",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Clean_and_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Clean_from_Blocks",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Clock_Push-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Close-Grip_Barbell_Bench_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Close-Grip_Dumbbell_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Close-Grip_EZ-Bar_Curl_with_Band",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Close-Grip_EZ-Bar_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Close-Grip_EZ_Bar_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Close-Grip_Front_Lat_Pulldown",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Close-Grip_Push-Up_off_of_a_Dumbbell",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Close-Grip_Standing_Barbell_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cocoons",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Conans_Wheel",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Concentration_Curls",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cross-Body_Crunch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cross_Body_Hammer_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cross_Over_-_With_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Crossover_Reverse_Lunge",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Crucifix",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Crunch_-_Hands_Overhead",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Crunch_-_Legs_On_Exercise_Ball",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Crunches",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Cuban_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dancers_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dead_Bug",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Deadlift_with_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Deadlift_with_Chains",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Decline_Barbell_Bench_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Decline_Close-Grip_Bench_To_Skull_Crusher",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Decline_Crunch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Decline_Dumbbell_Bench_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Decline_Dumbbell_Flyes",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Decline_Dumbbell_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Decline_EZ_Bar_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Decline_Oblique_Crunch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Decline_Push-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Decline_Reverse_Crunch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Decline_Smith_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Deficit_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Depth_Jump_Leap",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dip_Machine",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dips_-_Chest_Version",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dips_-_Triceps_Version",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Donkey_Calf_Raises",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Double_Kettlebell_Alternating_Hang_Clean",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Double_Kettlebell_Jerk",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Double_Kettlebell_Push_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Double_Kettlebell_Snatch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Double_Kettlebell_Windmill",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Double_Leg_Butt_Kick",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Downward_Facing_Balance",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Drag_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Drop_Push",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Alternate_Bicep_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Bench_Press",
+    "status": "illustrated",
+    "asset": "atlas_dumbbell_bench_press"
+  },
+  {
+    "id": "Dumbbell_Bench_Press_with_Neutral_Grip",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Bicep_Curl",
+    "status": "illustrated",
+    "asset": "atlas_dumbbell_bicep_curl"
+  },
+  {
+    "id": "Dumbbell_Clean",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Floor_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Flyes",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Incline_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Incline_Shoulder_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Lunges",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Lying_One-Arm_Rear_Lateral_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Lying_Pronation",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Lying_Rear_Lateral_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Lying_Supination",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_One-Arm_Shoulder_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_One-Arm_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_One-Arm_Upright_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Prone_Incline_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Rear_Lunge",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Scaption",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Seated_Box_Jump",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Seated_One-Leg_Calf_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Shoulder_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Shrug",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Side_Bend",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Squat_To_A_Bench",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Step_Ups",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dumbbell_Tricep_Extension_-Pronated_Grip",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dynamic_Back_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Dynamic_Chest_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "EZ-Bar_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "EZ-Bar_Skullcrusher",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Elbow_Circles",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Elbow_to_Knee",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Elbows_Back",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Elevated_Back_Lunge",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Elevated_Cable_Rows",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Elliptical_Trainer",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Exercise_Ball_Crunch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Exercise_Ball_Pull-In",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Extended_Range_One-Arm_Kettlebell_Floor_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "External_Rotation",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "External_Rotation_with_Band",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "External_Rotation_with_Cable",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Face_Pull",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Farmers_Walk",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Fast_Skipping",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Finger_Curls",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Flat_Bench_Cable_Flyes",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Flat_Bench_Leg_Pull-In",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Flat_Bench_Lying_Leg_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Flexor_Incline_Dumbbell_Curls",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Floor_Glute-Ham_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Floor_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Floor_Press_with_Chains",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Flutter_Kicks",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Foot-SMR",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Forward_Drag_with_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Frankenstein_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Freehand_Jump_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Frog_Hops",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Frog_Sit-Ups",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Front_Barbell_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Front_Barbell_Squat_To_A_Bench",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Front_Box_Jump",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Front_Cable_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Front_Cone_Hops_or_hurdle_hops",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Front_Dumbbell_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Front_Incline_Dumbbell_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Front_Leg_Raises",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Front_Plate_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Front_Raise_And_Pullover",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Front_Squat_Clean_Grip",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Front_Squats_With_Two_Kettlebells",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Front_Two-Dumbbell_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Full_Range-Of-Motion_Lat_Pulldown",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Gironda_Sternum_Chins",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Glute_Ham_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Glute_Kickback",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Goblet_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Good_Morning",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Good_Morning_off_Pins",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Gorilla_Chin_Crunch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Groin_and_Back_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Groiners",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hack_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hammer_Curls",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hammer_Grip_Incline_DB_Bench_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hamstring-SMR",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hamstring_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Handstand_Push-Ups",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hang_Clean",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hang_Clean_-_Below_the_Knees",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hang_Snatch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hang_Snatch_-_Below_Knees",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hanging_Bar_Good_Morning",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hanging_Leg_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hanging_Pike",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Heaving_Snatch_Balance",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Heavy_Bag_Thrust",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "High_Cable_Curls",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hip_Circles_prone",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hip_Extension_with_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hip_Flexion_with_Band",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hip_Lift_with_Band",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hug_A_Ball",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hug_Knees_To_Chest",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hurdle_Hops",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hyperextensions_Back_Extensions",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Hyperextensions_With_No_Hyperextension_Bench",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "IT_Band_and_Glute_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Iliotibial_Tract-SMR",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Inchworm",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Barbell_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Bench_Pull",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Cable_Chest_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Cable_Flye",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Dumbbell_Bench_With_Palms_Facing_In",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Dumbbell_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Dumbbell_Flyes",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Dumbbell_Flyes_-_With_A_Twist",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Dumbbell_Press",
+    "status": "illustrated",
+    "asset": "atlas_incline_dumbbell_press"
+  },
+  {
+    "id": "Incline_Hammer_Curls",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Inner_Biceps_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Push-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Push-Up_Close-Grip",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Push-Up_Depth_Jump",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Push-Up_Medium",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Push-Up_Reverse_Grip",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Incline_Push-Up_Wide",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Intermediate_Groin_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Intermediate_Hip_Flexor_and_Quad_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Internal_Rotation_with_Band",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Inverted_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Inverted_Row_with_Straps",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Iron_Cross",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Iron_Crosses_stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Isometric_Chest_Squeezes",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Isometric_Neck_Exercise_-_Front_And_Back",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Isometric_Neck_Exercise_-_Sides",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Isometric_Wipers",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "JM_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Jackknife_Sit-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Janda_Sit-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Jefferson_Squats",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Jerk_Balance",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Jerk_Dip_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Jogging_Treadmill",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Keg_Load",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_Arnold_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_Dead_Clean",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_Figure_8",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_Hang_Clean",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_One-Legged_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_Pass_Between_The_Legs",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_Pirate_Ships",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_Pistol_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_Seated_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_Seesaw_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_Sumo_High_Pull",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_Thruster",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_Turkish_Get-Up_Lunge_style",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_Turkish_Get-Up_Squat_style",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kettlebell_Windmill",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kipping_Muscle_Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Knee_Across_The_Body",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Knee_Circles",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Knee_Hip_Raise_On_Parallel_Bars",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Knee_Tuck_Jump",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kneeling_Arm_Drill",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kneeling_Cable_Crunch_With_Alternating_Oblique_Twists",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kneeling_Cable_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kneeling_Forearm_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kneeling_High_Pulley_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kneeling_Hip_Flexor",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kneeling_Jump_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kneeling_Single-Arm_High_Pulley_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Kneeling_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Landmine_180s",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Landmine_Linear_Jammer",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lateral_Bound",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lateral_Box_Jump",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lateral_Cone_Hops",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lateral_Raise_-_With_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Latissimus_Dorsi-SMR",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Leg-Over_Floor_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Leg-Up_Hamstring_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Leg_Extensions",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Leg_Lift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Leg_Press",
+    "status": "illustrated",
+    "asset": "atlas_leg_press"
+  },
+  {
+    "id": "Leg_Pull-In",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Leverage_Chest_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Leverage_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Leverage_Decline_Chest_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Leverage_High_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Leverage_Incline_Chest_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Leverage_Iso_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Leverage_Shoulder_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Leverage_Shrug",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Linear_3-Part_Start_Technique",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Linear_Acceleration_Wall_Drill",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Linear_Depth_Jump",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Log_Lift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "London_Bridges",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Looking_At_Ceiling",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Low_Cable_Crossover",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Low_Cable_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Low_Pulley_Row_To_Neck",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lower_Back-SMR",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lower_Back_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lunge_Pass_Through",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lunge_Sprint",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Bent_Leg_Groin",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Cable_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Cambered_Barbell_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Close-Grip_Bar_Curl_On_High_Pulley",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Close-Grip_Barbell_Triceps_Extension_Behind_The_Head",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Close-Grip_Barbell_Triceps_Press_To_Chin",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Crossover",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Dumbbell_Tricep_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Face_Down_Plate_Neck_Resistance",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Face_Up_Plate_Neck_Resistance",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Glute",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Hamstring",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_High_Bench_Barbell_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Leg_Curls",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Machine_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_One-Arm_Lateral_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Prone_Quadriceps",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Rear_Delt_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Supine_Dumbbell_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_T-Bar_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Lying_Triceps_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Machine_Bench_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Machine_Bicep_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Machine_Preacher_Curls",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Machine_Shoulder_Military_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Machine_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Medicine_Ball_Chest_Pass",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Medicine_Ball_Full_Twist",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Medicine_Ball_Scoop_Throw",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Middle_Back_Shrug",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Middle_Back_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Mixed_Grip_Chin",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Monster_Walk",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Mountain_Climbers",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Moving_Claw_Series",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Muscle_Snatch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Muscle_Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Narrow_Stance_Hack_Squats",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Narrow_Stance_Leg_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Narrow_Stance_Squats",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Natural_Glute_Ham_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Neck-SMR",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Neck_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Oblique_Crunches",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Oblique_Crunches_-_On_The_Floor",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Olympic_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "On-Your-Back_Quad_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "On_Your_Side_Quad_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Dumbbell_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Flat_Bench_Dumbbell_Flye",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_High-Pulley_Cable_Side_Bends",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Incline_Lateral_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Kettlebell_Clean",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Kettlebell_Clean_and_Jerk",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Kettlebell_Floor_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Kettlebell_Jerk",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Kettlebell_Military_Press_To_The_Side",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Kettlebell_Para_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Kettlebell_Push_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Kettlebell_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Kettlebell_Snatch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Kettlebell_Split_Jerk",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Kettlebell_Split_Snatch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Kettlebell_Swings",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Long_Bar_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Medicine_Ball_Slam",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Open_Palm_Kettlebell_Clean",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Overhead_Kettlebell_Squats",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Side_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Arm_Side_Laterals",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One-Legged_Cable_Kickback",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One_Arm_Against_Wall",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One_Arm_Chin-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One_Arm_Dumbbell_Bench_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One_Arm_Dumbbell_Preacher_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One_Arm_Floor_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One_Arm_Lat_Pulldown",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One_Arm_Pronated_Dumbbell_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One_Arm_Supinated_Dumbbell_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One_Half_Locust",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One_Handed_Hang",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One_Knee_To_Chest",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "One_Leg_Barbell_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Open_Palm_Kettlebell_Clean",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Otis-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Overhead_Cable_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Overhead_Lat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Overhead_Slam",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Overhead_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Overhead_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Overhead_Triceps",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Pallof_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Pallof_Press_With_Rotation",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Palms-Down_Wrist_Curl_Over_A_Bench",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Palms-Up_Barbell_Wrist_Curl_Over_A_Bench",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Parallel_Bar_Dip",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Pelvic_Tilt_Into_Bridge",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Peroneals-SMR",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Peroneals_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Physioball_Hip_Bridge",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Pin_Presses",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Piriformis-SMR",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Plank",
+    "status": "illustrated",
+    "asset": "atlas_plank"
+  },
+  {
+    "id": "Plate_Pinch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Plate_Twist",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Platform_Hamstring_Slides",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Plie_Dumbbell_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Plyo_Kettlebell_Pushups",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Plyo_Push-up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Posterior_Tibialis_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Power_Clean",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Power_Clean_from_Blocks",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Power_Jerk",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Power_Partials",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Power_Snatch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Power_Snatch_from_Blocks",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Power_Stairs",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Preacher_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Preacher_Hammer_Dumbbell_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Press_Sit-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Prone_Manual_Hamstring",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Prowler_Sprint",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Pull_Through",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Pullups",
+    "status": "illustrated",
+    "asset": "atlas_pullups"
+  },
+  {
+    "id": "Push-Up_Wide",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Push-Ups_-_Close_Triceps_Position",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Push-Ups_With_Feet_Elevated",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Push-Ups_With_Feet_On_An_Exercise_Ball",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Push_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Push_Press_-_Behind_the_Neck",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Push_Up_to_Side_Plank",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Pushups",
+    "status": "illustrated",
+    "asset": "atlas_pushups"
+  },
+  {
+    "id": "Pushups_Close_and_Wide_Hand_Positions",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Pyramid",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Quad_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Quadriceps-SMR",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Quick_Leap",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rack_Delivery",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rack_Pull_with_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rack_Pulls",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rear_Leg_Raises",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Recumbent_Bike",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Return_Push_from_Stance",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Band_Bench_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Band_Box_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Band_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Band_Power_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Band_Sumo_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Barbell_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Barbell_Preacher_Curls",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Cable_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Crunch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Flyes",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Flyes_With_External_Rotation",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Grip_Bent-Over_Rows",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Grip_Triceps_Pushdown",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Hyperextension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Machine_Flyes",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Plate_Curls",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Reverse_Triceps_Bench_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rhomboids-SMR",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rickshaw_Carry",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rickshaw_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Ring_Dips",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rocket_Jump",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rocking_Standing_Calf_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rocky_Pull-Ups_Pulldowns",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Romanian_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Romanian_Deadlift_from_Deficit",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rope_Climb",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rope_Crunch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rope_Jumping",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rope_Straight-Arm_Pulldown",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Round_The_World_Shoulder_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Rowing_Stationary",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Runners_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Running_Treadmill",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Russian_Twist",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Sandbag_Load",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Scapular_Pull-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Scissor_Kick",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Scissors_Jump",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Band_Hamstring_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Barbell_Military_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Barbell_Twist",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Bent-Over_Rear_Delt_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Biceps",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Cable_Rows",
+    "status": "illustrated",
+    "asset": "atlas_seated_cable_rows"
+  },
+  {
+    "id": "Seated_Cable_Shoulder_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Calf_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Calf_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Close-Grip_Concentration_Barbell_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Dumbbell_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Dumbbell_Inner_Biceps_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Dumbbell_Palms-Up_Wrist_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Dumbbell_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Flat_Bench_Leg_Pull-In",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Floor_Hamstring_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Front_Deltoid",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Glute",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Good_Mornings",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Hamstring",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Hamstring_and_Calf_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Head_Harness_Neck_Resistance",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Leg_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Leg_Tucks",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_One-Arm_Dumbbell_Palms-Down_Wrist_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_One-Arm_Dumbbell_Palms-Up_Wrist_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_One-arm_Cable_Pulley_Rows",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Overhead_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Palm-Up_Barbell_Wrist_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Palms-Down_Barbell_Wrist_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Side_Lateral_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Triceps_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Seated_Two-Arm_Palms-Up_Low-Pulley_Wrist_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "See-Saw_Press_Alternating_Side_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Shotgun_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Shoulder_Circles",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Shoulder_Press_-_With_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Shoulder_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Shoulder_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Side-Lying_Floor_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Side_Bridge",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Side_Hop-Sprint",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Side_Jackknife",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Side_Lateral_Raise",
+    "status": "illustrated",
+    "asset": "atlas_side_lateral_raise"
+  },
+  {
+    "id": "Side_Laterals_to_Front_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Side_Leg_Raises",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Side_Lying_Groin_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Side_Neck_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Side_Standing_Long_Jump",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Side_To_Side_Chins",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Side_Wrist_Pull",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Side_to_Side_Box_Shuffle",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Single-Arm_Cable_Crossover",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Single-Arm_Linear_Jammer",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Single-Arm_Push-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Single-Cone_Sprint_Drill",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Single-Leg_High_Box_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Single-Leg_Hop_Progression",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Single-Leg_Lateral_Hop",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Single-Leg_Leg_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Single-Leg_Stride_Jump",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Single_Dumbbell_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Single_Leg_Butt_Kick",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Single_Leg_Glute_Bridge",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Single_Leg_Push-off",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Sit-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Sit_Squats",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Skating",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Sled_Drag_-_Harness",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Sled_Overhead_Backward_Walk",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Sled_Overhead_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Sled_Push",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Sled_Reverse_Flye",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Sled_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Sledgehammer_Swings",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Incline_Shoulder_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Behind_the_Back_Shrug",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Bench_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Bent_Over_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Calf_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Close-Grip_Bench_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Decline_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Hang_Power_Clean",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Hip_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Incline_Bench_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Leg_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_One-Arm_Upright_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Overhead_Shoulder_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Pistol_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Reverse_Calf_Raises",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Stiff-Legged_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Machine_Upright_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Smith_Single-Leg_Split_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Snatch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Snatch_Balance",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Snatch_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Snatch_Pull",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Snatch_Shrug",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Snatch_from_Blocks",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Speed_Band_Overhead_Triceps",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Speed_Box_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Speed_Squats",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Spell_Caster",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Spider_Crawl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Spider_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Spinal_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Split_Clean",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Split_Jerk",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Split_Jump",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Split_Snatch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Split_Squat_with_Dumbbells",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Split_Squats",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Squat_Jerk",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Squat_with_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Squat_with_Chains",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Squat_with_Plate_Movers",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Squats_-_With_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Stairmaster",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Alternating_Dumbbell_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Barbell_Calf_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Barbell_Press_Behind_Neck",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Biceps_Cable_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Biceps_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Bradford_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Cable_Chest_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Cable_Lift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Cable_Wood_Chop",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Calf_Raises",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Concentration_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Dumbbell_Calf_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Dumbbell_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Dumbbell_Reverse_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Dumbbell_Straight-Arm_Front_Delt_Raise_Above_Head",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Dumbbell_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Dumbbell_Upright_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Elevated_Quad_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Front_Barbell_Raise_Over_Head",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Gastrocnemius_Calf_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Hamstring_and_Calf_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Hip_Circles",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Hip_Flexors",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Inner-Biceps_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Lateral_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Leg_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Long_Jump",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Low-Pulley_Deltoid_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Low-Pulley_One-Arm_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Military_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Olympic_Plate_Hand_Squeeze",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_One-Arm_Cable_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_One-Arm_Dumbbell_Curl_Over_Incline_Bench",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_One-Arm_Dumbbell_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Overhead_Barbell_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Palm-In_One-Arm_Dumbbell_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Palms-In_Dumbbell_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Pelvic_Tilt",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Rope_Crunch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Soleus_And_Achilles_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Toe_Touches",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Towel_Triceps_Extension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Standing_Two-Arm_Overhead_Throw",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Star_Jump",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Step-up_with_Knee_Raise",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Step_Mill",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Stiff-Legged_Barbell_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Stiff-Legged_Dumbbell_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Stiff_Leg_Barbell_Good_Morning",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Stomach_Vacuum",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Straight-Arm_Dumbbell_Pullover",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Straight-Arm_Pulldown",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Straight_Bar_Bench_Mid_Rows",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Straight_Raises_on_Incline_Bench",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Stride_Jump_Crossover",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Sumo_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Sumo_Deadlift_with_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Sumo_Deadlift_with_Chains",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Superman",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Supine_Chest_Throw",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Supine_One-Arm_Overhead_Throw",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Supine_Two-Arm_Overhead_Throw",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Suspended_Fallout",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Suspended_Push-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Suspended_Reverse_Crunch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Suspended_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Suspended_Split_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Svend_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "T-Bar_Row_with_Handle",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Tate_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "The_Straddle",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Thigh_Abductor",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Thigh_Adductor",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Tire_Flip",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Toe_Touchers",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Torso_Rotation",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Trail_Running_Walking",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Trap_Bar_Deadlift",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Tricep_Dumbbell_Kickback",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Tricep_Side_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Triceps_Overhead_Extension_with_Rope",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Triceps_Pushdown",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Triceps_Pushdown_-_Rope_Attachment",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Triceps_Pushdown_-_V-Bar_Attachment",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Triceps_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Tuck_Crunch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Two-Arm_Dumbbell_Preacher_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Two-Arm_Kettlebell_Clean",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Two-Arm_Kettlebell_Jerk",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Two-Arm_Kettlebell_Military_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Two-Arm_Kettlebell_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Underhand_Cable_Pulldowns",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Upper_Back-Leg_Grab",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Upper_Back_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Upright_Barbell_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Upright_Cable_Row",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Upright_Row_-_With_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Upward_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "V-Bar_Pulldown",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "V-Bar_Pullup",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Vertical_Swing",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Walking_Treadmill",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Weighted_Ball_Hyperextension",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Weighted_Ball_Side_Bend",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Weighted_Bench_Dip",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Weighted_Crunches",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Weighted_Jump_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Weighted_Pull_Ups",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Weighted_Sissy_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Weighted_Sit-Ups_-_With_Bands",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Weighted_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Wide-Grip_Barbell_Bench_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Wide-Grip_Decline_Barbell_Bench_Press",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Wide-Grip_Decline_Barbell_Pullover",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Wide-Grip_Lat_Pulldown",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Wide-Grip_Pulldown_Behind_The_Neck",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Wide-Grip_Rear_Pull-Up",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Wide-Grip_Standing_Barbell_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Wide_Stance_Barbell_Squat",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Wide_Stance_Stiff_Legs",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Wind_Sprints",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Windmills",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Worlds_Greatest_Stretch",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Wrist_Circles",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Wrist_Roller",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Wrist_Rotations_with_Straight_Bar",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Yoke_Walk",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Zercher_Squats",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Zottman_Curl",
+    "status": "muscleMap",
+    "asset": null
+  },
+  {
+    "id": "Zottman_Preacher_Curl",
+    "status": "muscleMap",
+    "asset": null
+  }
+]

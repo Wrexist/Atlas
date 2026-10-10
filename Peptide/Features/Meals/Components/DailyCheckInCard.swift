@@ -4,7 +4,7 @@ import SwiftUI
 ///
 ///   • **Empty** (no check-in for today yet) — a prompt with a
 ///     CTA button. Visually loud-ish so users notice the action;
-///     the pulse animation draws the eye on first open of the day.
+///     a brief artwork entrance introduces the action.
 ///   • **Filled** (today already checked in) — compact summary of
 ///     today's five scores with an "Edit" affordance for users
 ///     who want to correct a number.
@@ -17,7 +17,7 @@ struct DailyCheckInCard: View {
     let onTap: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var promptPulse: Bool = false
+    @State private var completionTrigger = 0
 
     var body: some View {
         Button(action: onTap) {
@@ -30,11 +30,9 @@ struct DailyCheckInCard: View {
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(todayEntry == nil ? "Opens the daily check-in sheet." : "Opens the check-in to edit today's values.")
-        .onAppear {
-            guard !reduceMotion, todayEntry == nil else { return }
-            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
-                promptPulse = true
-            }
+        .animation(AppAnimation.motionAware(AppAnimation.fadeIn, reduceMotion: reduceMotion), value: todayEntry == nil)
+        .onChange(of: todayEntry == nil) { wasEmpty, isEmpty in
+            if wasEmpty && !isEmpty { completionTrigger &+= 1 }
         }
     }
 
@@ -42,24 +40,7 @@ struct DailyCheckInCard: View {
 
     private var empty: some View {
         HStack(alignment: .center, spacing: Spacing.md) {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                AppColor.accentPrimary.opacity(0.45),
-                                AppColor.accentLight.opacity(0.20),
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 44, height: 44)
-                    .scaleEffect(promptPulse ? 1.06 : 1.0)
-                Image(systemName: "heart.text.square.fill")
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.textPrimary)
-            }
+            MilestoneArtwork(symbol: "heart.text.square.fill", size: 44, style: .symbol)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Daily check-in")
@@ -90,14 +71,7 @@ struct DailyCheckInCard: View {
 
     private func filled(entry: OutcomeEntry) -> some View {
         HStack(alignment: .center, spacing: Spacing.md) {
-            ZStack {
-                Circle()
-                    .fill(AppColor.accentLight.opacity(0.22))
-                    .frame(width: 44, height: 44)
-                Image(systemName: "checkmark.seal.fill")
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
-            }
+            MilestoneArtwork(size: 48, trigger: completionTrigger, isActive: completionTrigger > 0)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Today's check-in")

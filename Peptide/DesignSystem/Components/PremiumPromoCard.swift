@@ -155,22 +155,10 @@ extension PremiumPromoCard where Trailing == BrandGlyphMark {
     }
 }
 
-/// Soft glass "A" mark — stand-in for the brand glyph until a real
-/// asset is wired. Sits in the trailing slot so the cosmic card
-/// reads as a product card, not a hero banner.
+/// A quiet, sculpted brand seal shared with the premium offer screens.
 struct BrandGlyphMark: View {
     var body: some View {
-        ZStack {
-            Color.clear
-                .glassControl(
-                    .rect(cornerRadius: 18),
-                    border: AppColor.textPrimary.opacity(0.18),
-                    interactive: false
-                )
-            Text("A")
-                .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
-                .foregroundStyle(AppColor.textPrimary.opacity(0.85))
-        }
+        MilestoneArtwork(size: 70, style: .emblem, isActive: false)
     }
 }
 

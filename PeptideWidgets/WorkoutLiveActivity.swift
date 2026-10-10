@@ -14,7 +14,7 @@ import WidgetKit
 ///
 /// Started and updated by `WorkoutLiveActivityService`. The rest
 /// countdown is rendered from `restEndsAt`, the same absolute date
-/// `RestTimerOverlay` and its local notification already run on, so
+/// the persisted workout rest and its local notification already run on, so
 /// nothing here can drift from what the app shows.
 @available(iOS 16.1, *)
 struct WorkoutLiveActivity: Widget {
@@ -103,14 +103,21 @@ private enum WorkoutActivityStyle {
     /// to the values `DoseWindowLiveActivity` uses for the same beats.
     static func accent(for state: WorkoutActivityAttributes.ContentState) -> Color {
         switch state.status() {
+        case .paused:   return Color.gray
         case .lifting:  return Color(red: 0.216, green: 0.541, blue: 0.867)
         case .resting:  return Color(red: 1.00, green: 0.70, blue: 0.20)
         case .finished: return Color(red: 0.36, green: 0.78, blue: 0.55)
         }
     }
 
+    static func pausedTime(_ state: WorkoutActivityAttributes.ContentState) -> String {
+        let seconds = max(0, state.pausedElapsedSeconds ?? 0)
+        return String(format: "%d:%02d", seconds / 60, seconds % 60)
+    }
+
     static func glyph(for state: WorkoutActivityAttributes.ContentState) -> String {
         switch state.status() {
+        case .paused:   return "pause.fill"
         case .lifting:  return "figure.strengthtraining.traditional"
         case .resting:  return "hourglass"
         case .finished: return "checkmark.circle.fill"
@@ -121,6 +128,8 @@ private enum WorkoutActivityStyle {
     /// when there's no exercise to name yet.
     static func subtitle(for state: WorkoutActivityAttributes.ContentState) -> String {
         switch state.status() {
+        case .paused:
+            return "Workout paused"
         case .finished:
             return "\(state.completedSets) sets · done"
         case .resting, .lifting:
@@ -208,9 +217,13 @@ private struct WorkoutLockView: View {
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
             }
+        case .paused:
+            Text(WorkoutActivityStyle.pausedTime(state))
+                .font(.title3.monospacedDigit())
+                .accessibilityLabel("Workout paused")
         case .lifting:
             VStack(alignment: .trailing, spacing: 0) {
-                Text(attributes.startedAt, style: .timer)
+                Text(state.activeTimerStartedAt ?? attributes.startedAt, style: .timer)
                     .font(.system(size: 22, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .multilineTextAlignment(.trailing)
@@ -237,7 +250,7 @@ private struct LockRing: View {
         switch state.status() {
         case .resting:  return state.restProgress()
         case .finished: return 1
-        case .lifting:  return state.setProgress
+        case .lifting, .paused: return state.setProgress
         }
     }
 
@@ -326,8 +339,12 @@ private struct IslandTimer: View {
                 Text("rest")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.6))
+            case .paused:
+                Text(WorkoutActivityStyle.pausedTime(state))
+                    .font(.headline.monospacedDigit())
+                    .accessibilityLabel("Workout paused")
             case .lifting:
-                Text(attributes.startedAt, style: .timer)
+                Text(state.activeTimerStartedAt ?? attributes.startedAt, style: .timer)
                     .font(.system(size: 17, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .multilineTextAlignment(.trailing)
@@ -363,8 +380,12 @@ private struct CompactTiming: View {
                     .foregroundStyle(accent)
                     .frame(maxWidth: 44)
             }
+        case .paused:
+            Image(systemName: "pause.fill")
+                .foregroundStyle(accent)
+                .accessibilityLabel("Workout paused")
         case .lifting:
-            Text(attributes.startedAt, style: .timer)
+            Text(state.activeTimerStartedAt ?? attributes.startedAt, style: .timer)
                 .font(.system(size: 13, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(accent)

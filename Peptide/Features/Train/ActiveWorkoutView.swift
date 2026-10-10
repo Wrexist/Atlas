@@ -3,18 +3,11 @@ import SwiftUI
 import UIKit
 #endif
 
-/// Full-screen modal that hosts the in-progress workout. Top section:
-/// editable name, live elapsed timer, finish action. Middle: scrollable
-/// list of `WorkoutExerciseCard`s. Bottom: "Add exercise" CTA.
-///
-/// State lives in `WorkoutSessionService`; the view is a thin
-/// presentation layer that mirrors the service's `activeSession` and
-/// dispatches mutations back through service methods. That keeps the
-/// "active session is a global truth" invariant straightforward —
-/// any other surface (watch, finish screen, widgets) reading the
-/// same service sees the same numbers.
+/// Focused workout presentation with an overview for managing every exercise.
+/// Session data, selection, rest and pause state belong to WorkoutSessionService.
 struct ActiveWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(DataStore.self) private var dataStore
     @Environment(\.requestReview) private var requestReview
     @State private var sessionService = WorkoutSessionService.shared
@@ -29,12 +22,11 @@ struct ActiveWorkoutView: View {
     @State private var isReviewMoment = false
     @State private var workoutName: String = ""
     @FocusState private var nameFieldFocused: Bool
-    /// In-workout rest timer. Driven by the per-exercise restSeconds
-    /// or the training preferences default; surfaces a countdown
-    /// overlay above the bottom edge and schedules a local
-    /// notification so the user gets a buzz even when the phone is
-    /// face-down (audit Train H2).
-    @State private var restTimer = RestTimerState.inactive
+    @State private var showOverview = false
+    @State private var saving = false
+    @State private var saveError: String?
+    @State private var pendingEffort: Int?
+    @State private var pendingNote: String?
 
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
 
@@ -44,7 +36,11 @@ struct ActiveWorkoutView: View {
 
     var body: some View {
         NavigationStack {
-            if let session = sessionService.activeSession {
+            if saving || saveError != nil {
+                WorkoutSaveStatusView(saving: saving, error: saveError,
+                    retry: { finish(perceivedEffort: pendingEffort, note: pendingNote) },
+                    returnToWorkout: { sessionService.cancelFinishAttempt(); saveError = nil })
+            } else if let session = sessionService.activeSession {
                 content(for: session)
             } else if let finished = finishedSession {
                 WorkoutFinishView(
@@ -59,7 +55,31 @@ struct ActiveWorkoutView: View {
                 noActiveSession
             }
         }
-        .onAppear { syncNameFromSession() }
+        .interactiveDismissDisabled(saving || saveError != nil)
+        // Keep the presenter alive when finishing replaces the active content
+        // with the summary. A sheet attached to content(for:) vanished with
+        // that branch and its dismiss action could close the workout cover.
+        .sheet(isPresented: $showFinishSheet) {
+            FinishWorkoutSheet { effort, note in
+                finish(perceivedEffort: effort, note: note)
+            }
+        }
+        .onAppear { syncNameFromSession(); sessionService.reconcileRest() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { sessionService.reconcileRest() }
+        }
+        .task(id: sessionService.activeSession?.focus?.rest?.endsAt) {
+            guard let end = sessionService.activeSession?.focus?.rest?.endsAt else { return }
+            let remaining = max(0, end.timeIntervalSinceNow)
+            do { try await Task.sleep(for: .seconds(remaining)) }
+            catch { return }
+            if scenePhase == .active, sessionService.activeSession?.isPaused == false,
+               sessionService.activeSession?.focus?.rest?.endsAt == end {
+                Haptics.selection()
+                AccessibilityNotification.Announcement("Rest finished. Your next set is ready.").post()
+            }
+            sessionService.reconcileRest()
+        }
         .onChange(of: sessionService.activeSession?.id) { _, _ in syncNameFromSession() }
     }
 
@@ -102,19 +122,31 @@ struct ActiveWorkoutView: View {
     }
 
     private func finish(perceivedEffort: Int?, note: String?) {
+        guard !saving else { return }
         // Persist the latest workout-name edit FIRST — the .onSubmit-only
         // binding meant a user who typed "Push Day A" then tapped Finish
         // without hitting Return saved the session with a nil name (audit
         // Train C3).
         commitWorkoutName()
-        guard let finished = sessionService.finishWorkout(perceivedEffort: perceivedEffort, note: note)
-        else { return }
-        finishedSession = finished.session
-        finishedPRs = finished.detectedPRs
-        isReviewMoment = ReviewPromptService.isWorkoutReviewMoment(
-            detectedPRCount: finished.detectedPRs.count,
-            completedWorkoutCount: SwiftDataRepository.shared.workoutSessionCount()
-        )
+        pendingEffort = perceivedEffort
+        pendingNote = note
+        showFinishSheet = false
+        saveError = nil
+        saving = true
+        Task { @MainActor in
+            await Task.yield()
+            if let finished = sessionService.finishWorkout(perceivedEffort: perceivedEffort, note: note) {
+                finishedSession = finished.session
+                finishedPRs = finished.detectedPRs
+                isReviewMoment = ReviewPromptService.isWorkoutReviewMoment(
+                    detectedPRCount: finished.detectedPRs.count,
+                    completedWorkoutCount: SwiftDataRepository.shared.workoutSessionCount())
+            } else {
+                saveError = sessionService.lastFinishError ?? "Could not save workout. Return to your workout and try again."
+                AccessibilityNotification.Announcement("Could not save workout").post()
+            }
+            saving = false
+        }
     }
 
     private func syncNameFromSession() {
@@ -139,49 +171,40 @@ struct ActiveWorkoutView: View {
     // MARK: - Content
 
     private func content(for session: WorkoutSession) -> some View {
-        ScrollView {
-            VStack(spacing: Spacing.lg) {
-                heroHeader(for: session)
-                exerciseStack(for: session)
-                addExerciseButton
-            }
-            .padding(.horizontal, Spacing.screenPadding)
-            .padding(.bottom, Spacing.xxxxl)
-        }
-        .scrollDismissesKeyboard(.interactively)
-        .background(AppColor.background.ignoresSafeArea())
+        WorkoutFocusView(
+            session: session, unit: unit,
+            onAddExercise: { showExercisePicker = true },
+            onFinish: { showFinishSheet = true }
+        )
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button(action: minimize) {
-                    Image(systemName: "chevron.down")
-                        .font(AppFont.scaled(16, weight: .semibold))
-                        .foregroundStyle(AppColor.textSecondary)
-                        .minimumHitArea()
-                }
-                .accessibilityLabel("Minimize workout")
-                .accessibilityHint("Keeps the workout running. Resume it from the Train tab.")
+                GlassIconButton(icon: "xmark", accessibilityLabel: "Minimize workout", action: minimize)
             }
-            ToolbarItem(placement: .topBarLeading) {
-                Button("Discard", role: .destructive) {
-                    showDiscardConfirm = true
+            ToolbarItem(placement: .principal) {
+                Menu {
+                    Button("Workout overview", systemImage: "list.bullet") { showOverview = true }
+                    Button("Add exercise", systemImage: "plus") { showExercisePicker = true }
+                    Button("Finish workout", systemImage: "checkmark") { showFinishSheet = true }
+                        .disabled(session.completedSetCount == 0)
+                    Button(role: .destructive) { showDiscardConfirm = true } label: {
+                        Label("Discard workout", systemImage: "trash")
+                    }
+                } label: {
+                    Label("Workout", systemImage: "ellipsis.circle")
+                        .font(AppFont.callout).foregroundStyle(AppColor.textPrimary).minimumHitArea()
                 }
-                .foregroundStyle(AppColor.destructive)
+                .accessibilityLabel("Workout options")
+                .accessibilityIdentifier("workout-options")
             }
             ToolbarItem(placement: .topBarTrailing) {
-                // Empty session is allowed to exit too — the alert
-                // copy redirects to Discard when nothing's logged so
-                // the user isn't stuck in a "Finish disabled / Discard
-                // only" trap (audit Train M3).
-                Button(session.completedSetCount == 0 ? "Exit" : "Finish") {
-                    if session.completedSetCount == 0 {
-                        showDiscardConfirm = true
-                    } else {
-                        showFinishSheet = true
-                    }
+                GlassIconButton(
+                    icon: session.isPaused ? "play.fill" : "pause.fill",
+                    accessibilityLabel: session.isPaused ? "Resume workout" : "Pause workout"
+                ) {
+                    dismissKeyboard()
+                    sessionService.togglePause()
                 }
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.accentPrimary)
             }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
@@ -192,14 +215,33 @@ struct ActiveWorkoutView: View {
                 .fontWeight(.semibold)
             }
         }
+        .sheet(isPresented: $showOverview, onDismiss: commitWorkoutName) {
+            NavigationStack {
+                ScrollView {
+                    VStack(spacing: Spacing.lg) {
+                        if let liveSession = sessionService.activeSession {
+                            heroHeader(for: liveSession)
+                            SessionMuscleCard(session: liveSession)
+                            exerciseStack(for: liveSession).disabled(liveSession.isPaused)
+                        }
+                    }
+                    .padding(Spacing.screenPadding)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .background(AppColor.background.ignoresSafeArea())
+                .navigationTitle("Workout overview")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { commitWorkoutName(); showOverview = false }
+                            .accessibilityIdentifier("workout-overview-done")
+                    }
+                }
+            }
+        }
         .sheet(isPresented: $showExercisePicker) {
             ExercisePickerSheet { exercise in
                 sessionService.addExercise(exercise)
-            }
-        }
-        .sheet(isPresented: $showFinishSheet) {
-            FinishWorkoutSheet { effort, note in
-                finish(perceivedEffort: effort, note: note)
             }
         }
         .alert("Discard this workout?", isPresented: $showDiscardConfirm) {
@@ -210,10 +252,6 @@ struct ActiveWorkoutView: View {
             Button("Keep going", role: .cancel) {}
         } message: {
             Text("Nothing logged so far will be saved.")
-        }
-        .overlay(alignment: .bottom) {
-            RestTimerOverlay(state: $restTimer)
-                .animation(AppAnimation.springSmooth, value: restTimer.isRunning)
         }
     }
 
@@ -297,16 +335,7 @@ struct ActiveWorkoutView: View {
                         },
                         effectiveRestSeconds: entry.restSeconds ?? defaultRestSeconds,
                         onSetUpdate: { updated in
-                            // Detect the "just got checked off"
-                            // transition so we can kick the rest
-                            // timer. We compare against the entry's
-                            // current snapshot before persisting.
-                            let priorSnapshot = entry.sets.first(where: { $0.id == updated.id })
-                            let wasIncomplete = priorSnapshot?.completed == false
                             sessionService.updateSet(updated, inExerciseEntryID: entry.id)
-                            if wasIncomplete && updated.completed && !updated.isWarmup {
-                                restTimer.start(seconds: entry.restSeconds ?? defaultRestSeconds)
-                            }
                         },
                         onAddSet: {
                             sessionService.addSet(toExerciseID: entry.id)
@@ -345,26 +374,6 @@ struct ActiveWorkoutView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.bottom, Spacing.md)
-    }
-
-    private var addExerciseButton: some View {
-        Button {
-            showExercisePicker = true
-        } label: {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "plus.circle.fill")
-                Text("Add exercise")
-            }
-            .font(AppFont.headline)
-            .foregroundStyle(AppColor.background)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.accentPrimary)
-            )
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: - No active session fallback
@@ -410,10 +419,9 @@ private struct FinishWorkoutSheet: View {
                     noteSection
 
                     PrimaryCTAButton(title: "Finish workout", icon: "checkmark") {
-                        Haptics.success()
                         onFinish(effort, trimmedNote)
-                        dismiss()
                     }
+                    .accessibilityIdentifier("confirm-finish-workout")
                 }
                 .padding(Spacing.screenPadding)
             }

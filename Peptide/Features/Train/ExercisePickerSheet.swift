@@ -18,7 +18,8 @@ struct ExercisePickerSheet: View {
     @State private var muscleFilter: MuscleGroup?
     @State private var equipmentFilter: EquipmentKind?
     @State private var creatingCustomExercise: Bool = false
-    @State private var selection: [Exercise] = []
+    @State private var picks = ExercisePickerSelection()
+    @State private var isLoading = true
     @State private var recentExercises: [Exercise] = []
 
     /// How many finished sessions feed the Recent section, and how many
@@ -59,9 +60,14 @@ struct ExercisePickerSheet: View {
                 prompt: Text("Search exercises")
             )
             .pinnedFooter {
-                if !selection.isEmpty {
-                    GlassButton(title: "Add (\(selection.count))", icon: "plus", isFullWidth: true) {
-                        commit(selection)
+                if !picks.exercises.isEmpty {
+                    VStack(spacing: Spacing.sm) {
+                        selectionTray
+                        GlassButton(title: "Add (\(picks.exercises.count))", icon: "plus", isFullWidth: true) {
+                            commit()
+                        }
+                        .disabled(picks.committed)
+                        .accessibilityIdentifier("exercise-picker-add")
                     }
                     .padding(.horizontal, Spacing.screenPadding)
                     .padding(.top, Spacing.md)
@@ -69,8 +75,7 @@ struct ExercisePickerSheet: View {
                 }
             }
             .task {
-                await library.load()
-                loadRecent()
+                await loadLibrary()
             }
             .sheet(isPresented: $creatingCustomExercise) {
                 CustomExerciseEditorSheet { custom in
@@ -82,16 +87,71 @@ struct ExercisePickerSheet: View {
                     // Add the newly created exercise (after anything
                     // already picked) so the user goes straight back
                     // into their workout with the new lift added.
-                    commit(selection + [custom.asExercise()])
+                    commit(adding: custom.asExercise())
                 }
             }
         }
+    }
+
+    private var selectionTray: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack {
+                Text("Selected · In workout order").font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                Spacer(minLength: Spacing.sm)
+                Button("Clear") { picks.clear() }
+                    .font(AppFont.callout).minimumHitArea()
+                    .accessibilityLabel("Clear selected exercises")
+            }
+            ScrollView(.horizontal) {
+                HStack(spacing: Spacing.sm) {
+                    ForEach(picks.exercises) { exercise in
+                        Button {
+                            picks.remove(id: exercise.id)
+                            Haptics.selection()
+                        } label: {
+                            HStack(spacing: Spacing.xs) {
+                                Text(exercise.name).font(AppFont.callout)
+                                    .lineLimit(2).multilineTextAlignment(.leading)
+                                Image(systemName: "xmark.circle.fill").accessibilityHidden(true)
+                            }
+                            .padding(.horizontal, Spacing.sm)
+                            .frame(minHeight: 44)
+                            .frame(maxWidth: 240)
+                            .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: Spacing.sm))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Remove \(exercise.name) from selection")
+                    }
+                }
+            }.scrollIndicators(.hidden)
+        }
+        .accessibilityIdentifier("exercise-picker-selection")
+    }
+
+    private func loadLibrary() async {
+        isLoading = true
+        await library.load()
+        loadRecent()
+        isLoading = false
+    }
+
+    private func clearFilters() {
+        query = ""
+        muscleFilter = nil
+        equipmentFilter = nil
     }
 
     private var filterShelf: some View {
         VStack(spacing: 0) {
             MuscleGroupChipRow(selection: $muscleFilter)
             EquipmentChipRow(selection: $equipmentFilter)
+            if !query.isEmpty || muscleFilter != nil || equipmentFilter != nil {
+                Button("Clear search and filters", action: clearFilters)
+                    .font(AppFont.caption).minimumHitArea()
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.horizontal, Spacing.screenPadding)
+            }
         }
         .padding(.bottom, Spacing.xs)
     }
@@ -103,13 +163,25 @@ struct ExercisePickerSheet: View {
             muscleGroup: muscleFilter,
             equipment: equipmentFilter
         )
-        if results.isEmpty {
+        if !library.isLoaded && isLoading {
+            ProgressView("Loading exercises…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if !library.isLoaded {
+            EmptyStateView(icon: "exclamationmark.triangle", title: "Library unavailable",
+                           message: "Couldn't load exercises. Your selections are still here.",
+                           action: .init(title: "Retry", icon: "arrow.clockwise") {
+                Task { await loadLibrary() }
+            })
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if results.isEmpty {
             VStack(spacing: Spacing.md) {
                 EmptyStateView(
                     icon: "magnifyingglass",
                     title: "No matches",
                     message: "Don't see your lift? Create a custom exercise to add it to your routine."
                 )
+                Button("Clear search and filters", action: clearFilters)
+                    .minimumHitArea()
                 Button {
                     creatingCustomExercise = true
                 } label: {
@@ -141,6 +213,7 @@ struct ExercisePickerSheet: View {
                 }
                 .padding(.bottom, Spacing.xxxl)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
     }
 
@@ -172,35 +245,34 @@ struct ExercisePickerSheet: View {
     }
 
     private func row(_ exercise: Exercise) -> some View {
-        let isSelected = selection.contains { $0.id == exercise.id }
+        let isSelected = picks.exercises.contains { $0.id == exercise.id }
         return Button {
             toggle(exercise)
         } label: {
-            ExerciseRow(exercise: exercise, showsChevron: false)
-                .overlay(alignment: .trailing) {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
-                        .font(AppFont.scaled(20, weight: .semibold))
-                        .foregroundStyle(AppColor.accentPrimary)
-                        .accessibilityHidden(true)
-                }
+            HStack(spacing: Spacing.sm) {
+                ExerciseRow(exercise: exercise, showsChevron: false)
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
+                    .font(AppFont.scaled(20, weight: .semibold))
+                    .foregroundStyle(AppColor.accentPrimary)
+                    .accessibilityHidden(true)
+            }
         }
         .buttonStyle(.plain)
         .padding(.horizontal, Spacing.screenPadding)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityHint(isSelected ? "Removes from selection" : "Adds to selection")
     }
 
     // MARK: - Selection
 
     private func toggle(_ exercise: Exercise) {
         Haptics.selection()
-        if let index = selection.firstIndex(where: { $0.id == exercise.id }) {
-            selection.remove(at: index)
-        } else {
-            selection.append(exercise)
-        }
+        picks.toggle(exercise)
     }
 
-    private func commit(_ exercises: [Exercise]) {
+    private func commit(adding custom: Exercise? = nil) {
+        let exercises = picks.takeForCommit(adding: custom)
+        guard !exercises.isEmpty else { return }
         for exercise in exercises {
             onSelect(exercise)
         }

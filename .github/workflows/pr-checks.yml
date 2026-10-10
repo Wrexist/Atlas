@@ -114,7 +114,11 @@ jobs:
     # — not a trade worth making for wall-clock. So: give the job room
     # to finish. This is a ceiling, not a duration; a normal run still
     # costs what it always did.
-    timeout-minutes: 40
+    #
+    # The opt-in `run-ui-tests` path also runs ScreenshotTests. That step
+    # took 14 min with ten tests failing early and pushed a labelled run
+    # to 38m41s of the old 40 min ceiling; a passing suite takes longer.
+    timeout-minutes: 75
 
     steps:
       - uses: actions/checkout@v4

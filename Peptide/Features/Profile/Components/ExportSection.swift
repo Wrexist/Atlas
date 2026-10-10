@@ -217,6 +217,7 @@ struct ExportSection: View {
 
 struct ShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
+    var onCompletion: (@MainActor (Error?) -> Void)? = nil
 
     /// Convenience for the URL-only callers that pre-date the
     /// generalisation — preserves the original `ShareSheet(urls:)`
@@ -226,12 +227,18 @@ struct ShareSheet: UIViewControllerRepresentable {
         self.activityItems = urls
     }
 
-    init(activityItems: [Any]) {
+    init(activityItems: [Any], onCompletion: (@MainActor (Error?) -> Void)? = nil) {
         self.activityItems = activityItems
+        self.onCompletion = onCompletion
     }
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        let completion = onCompletion
+        controller.completionWithItemsHandler = { _, _, _, error in
+            Task { @MainActor in completion?(error) }
+        }
+        return controller
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}

@@ -24,6 +24,10 @@ struct MacroSummaryRow: View {
     /// Undo chip beside the quick-adds.
     let onUndoWater: (() -> Void)?
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var waterFeedback = 0
+    @State private var selectedWaterAmount: Double?
+
     init(
         targets: NutritionTargets,
         consumed: DailyConsumption,
@@ -101,6 +105,9 @@ struct MacroSummaryRow: View {
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(cardBackground)
+        .onChange(of: consumed.waterFluidOunces) { oldValue, newValue in
+            if selectedWaterAmount != nil && newValue > oldValue { waterFeedback &+= 1 }
+        }
     }
 
     private var ringStack: some View {
@@ -168,7 +175,7 @@ struct MacroSummaryRow: View {
             )
             .rotationEffect(.degrees(-90))
             .frame(width: diameter, height: diameter)
-            .animation(.spring(response: 0.55, dampingFraction: 0.85), value: progress)
+            .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: progress)
     }
 
     private func legend(title: LocalizedStringKey, value: String, target: String, color: Color) -> some View {
@@ -186,6 +193,8 @@ struct MacroSummaryRow: View {
                     .tracking(0.6)
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(value)
+                        .contentTransition(.numericText())
+                        .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: value)
                         .font(AppFont.scaled(20, weight: .semibold, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
@@ -237,11 +246,13 @@ struct MacroSummaryRow: View {
     private func quickAddButton(_ option: QuickAddOption) -> some View {
         Button {
             Haptics.impact(.light)
+            selectedWaterAmount = option.fluidOunces
             onAddWater(option.fluidOunces)
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "drop.fill")
                     .font(AppFont.scaled(11, weight: .bold))
+                    .completionPulse(trigger: waterFeedback, isActive: selectedWaterAmount == option.fluidOunces)
                 Text(option.label)
                     .font(AppFont.scaled(11, weight: .semibold))
             }

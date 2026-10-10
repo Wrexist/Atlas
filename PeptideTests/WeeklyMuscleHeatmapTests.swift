@@ -18,6 +18,34 @@ final class WeeklyMuscleHeatmapTests: XCTestCase {
 
     // MARK: - AnatomicalMuscle.regions(forRawMuscle:)
 
+    func test_completedExercises_excludesPlannedWarmupAndUndoneWork() {
+        var workout = WorkoutSession(exercises: [
+            WorkoutExerciseEntry(exerciseID: "Incline_Dumbbell_Press", index: 0, sets: [
+                SetEntry(index: 1, weightKg: 20, reps: 10, completed: true)
+            ]),
+            WorkoutExerciseEntry(exerciseID: "Barbell_Full_Squat", index: 1, sets: [
+                SetEntry(index: 1, weightKg: 40, reps: 10, completed: true, isWarmup: true),
+                SetEntry(index: 2, weightKg: 60, reps: 8, completed: false)
+            ])
+        ])
+        XCTAssertEqual(WeeklyMuscleHeatmap.completedExercises(from: workout, library: library).map(\.id),
+                       ["Incline_Dumbbell_Press"])
+        workout.exercises[0].sets[0].completed = false
+        XCTAssertTrue(WeeklyMuscleHeatmap.completedExercises(from: workout, library: library).isEmpty)
+    }
+
+    func test_periodHistory_matchesMapAndRejectsFutureSessions() {
+        let today = session(daysAgo: 0, exerciseID: "Dumbbell_Bicep_Curl", workingSets: 2)
+        let older = session(daysAgo: 10, exerciseID: "Dumbbell_Bicep_Curl", workingSets: 3)
+        let future = session(daysAgo: -2, exerciseID: "Dumbbell_Bicep_Curl", workingSets: 20)
+        let sessions = [today, older, future]
+        XCTAssertEqual(WeeklyMuscleHeatmap.history(for: .biceps, from: sessions, library: library, days: 7).first?.sets, 2)
+        XCTAssertEqual(WeeklyMuscleHeatmap.history(for: .biceps, from: sessions, library: library, days: 30).first?.sets, 5)
+        XCTAssertEqual(WeeklyMuscleHeatmap.history(for: .biceps, from: sessions, library: library, days: nil).first?.sets, 5)
+        XCTAssertTrue(WeeklyMuscleHeatmap.frequencies(from: [future], library: library).isEmpty)
+        XCTAssertTrue(WeeklyMuscleHeatmap.frequencies(from: sessions, library: library, days: 0).isEmpty)
+    }
+
     func test_regions_singleMuscle_resolvesToExpectedHeads() {
         XCTAssertEqual(AnatomicalMuscle.regions(forRawMuscle: "chest"),
                        [.pecSternal, .pecClavicular])

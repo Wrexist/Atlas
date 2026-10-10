@@ -1,0 +1,92 @@
+{
+  "Incline_Dumbbell_Press": {
+    "asset": "atlas_incline_dumbbell_press",
+    "sha256": "958f71ef2974f079a773a9117b71d1b29d9375c9d8cdd8aee70b360b0b590a2b",
+    "review": "Visual inspection; not clinical movement validation",
+    "prompt": "See docs/EXERCISE_FOCUS_IMPLEMENTATION.md"
+  },
+  "Barbell_Full_Squat": {
+    "asset": "atlas_barbell_full_squat",
+    "sha256": "c23d1ecb7602770c44e074cdf54ded35089fd745eae3f89943b761c84ad13c6c",
+    "review": "Visual inspection; not clinical movement validation",
+    "generator": "built-in image_gen",
+    "posePrompt": "Barbell back squat at bottom position, hips below knees, both heels planted, knees following toes, neutral spine and neck, bar securely across upper back below neck, hands holding bar outside shoulders. Three-quarter front view. Quadriceps orange, visible glute/hamstring and calves blue."
+  },
+  "Barbell_Deadlift": {
+    "asset": "atlas_barbell_deadlift",
+    "sha256": "6a0605ea948cebf9e1c4ceb9b1940b16aa28a2a4d983e28b12f0969fe3318a03",
+    "review": "Visual inspection; not clinical movement validation",
+    "generator": "built-in image_gen",
+    "posePrompt": "Conventional barbell deadlift in mid-ascent just below knees, bar close to shins, hip hinge neutral spine, straight arms, shoulder width pronated grip, feet flat. Three-quarter rear-side view to show lower back. Lumbar erectors orange, visible glutes hamstrings quads lats blue."
+  },
+  "Dumbbell_Bicep_Curl": {
+    "asset": "atlas_dumbbell_bicep_curl",
+    "sha256": "0301baeec0b3b953da54d21351e7403216c6c1f12af25b4df50de01cba8aeadf",
+    "review": "Visual inspection; not clinical movement validation",
+    "generator": "built-in image_gen",
+    "posePrompt": "Standing simultaneous dumbbell biceps curl, elbows close to sides, upper arms vertical, both forearms flexed to about 100 degrees, palms up, one realistic dumbbell in each hand, torso upright. Three-quarter front view. Biceps orange and forearms blue."
+  },
+  "Pushups": {
+    "asset": "atlas_pushups",
+    "sha256": "00dac95e7ddd37554c3ab45c59823ad07b1f8f83371f6ebf6aac35d80c322f2a",
+    "review": "Visual inspection; not clinical movement validation",
+    "generator": "built-in image_gen",
+    "posePrompt": "Standard floor push-up in lowered position, palms under slightly outside shoulders, elbows bent about 90 degrees, body straight from head through heels, supported only by hands and toes, no knee contact. Low three-quarter front-side view shows chest. Pectorals orange and deltoids/triceps blue."
+  },
+  "Pullups": {
+    "asset": "atlas_pullups",
+    "sha256": "1545c2a81443ad66d9d2844b2d921df2bf28b56b2b871a3dba030d07d06ab34b",
+    "review": "Visual inspection; not clinical movement validation",
+    "generator": "built-in image_gen",
+    "posePrompt": "Pronated-grip pull-up near top, hands slightly wider than shoulders gripping one straight horizontal pull-up bar, elbows flexed, chin above bar, feet hanging freely together. Rear three-quarter view clearly shows back, single bar on two simple dark uprights visible. Lats orange, biceps and middle back blue."
+  },
+  "Bent_Over_Barbell_Row": {
+    "asset": "atlas_bent_over_barbell_row",
+    "sha256": "1f93bb7a7484135e603b1edb69def40f3b3acb4755a75deb8d6e8d9c7c8e6f04",
+    "review": "Visual inspection; not clinical movement validation",
+    "generator": "built-in image_gen",
+    "posePrompt": "Bent-over barbell row, neutral spine, hips hinged, torso nearly horizontal, knees slightly bent, feet flat. Bar held in both hands pronated shoulder-width grip drawn up to lower ribs, elbows behind torso. Rear three-quarter side view to show back and face profile. Middle back rhomboids orange, visible lats, biceps and rear deltoids blue."
+  },
+  "Side_Lateral_Raise": {
+    "asset": "atlas_side_lateral_raise",
+    "sha256": "de1e5fe571f315d779e1b9d6e2dad20555b342ab220789041b10d48762ee4169",
+    "review": "Visual inspection; not clinical movement validation",
+    "generator": "built-in image_gen",
+    "posePrompt": "Standing dumbbell side lateral raise at top, arms out to sides just below shoulder level, elbows slightly bent, palms facing floor neutral wrists, one dark dumbbell in each hand. Upright stable torso. Front three-quarter view. Only deltoid shoulder muscles orange, all other muscles gray."
+  },
+  "Barbell_Bench_Press_-_Medium_Grip": {
+    "asset": "atlas_barbell_bench_press___medium_grip",
+    "sha256": "bbf8e4a1008ab9cc2addf34be6363b751bde166bcfb8c9003bc69c5e76a957d4",
+    "review": "Visual inspection; not clinical movement validation",
+    "generator": "built-in image_gen",
+    "posePrompt": "Flat barbell bench press at lowered position. Man lying supine on HORIZONTAL flat graphite padded bench, feet planted wide on floor, both hands grasp single barbell medium pronated grip just wider than shoulders, bar just above lower chest, elbows bent about 90degrees. Three-quarter side view clearly shows chest, equipment, head and feet. Pectorals orange, deltoids and triceps blue. No incline."
+  },
+  "Leg_Press": {
+    "asset": "atlas_leg_press",
+    "sha256": "2c5ef4c7b609e16ded9818d5c64c968440c16d7c6b636932a9077be0980e4d01",
+    "review": "Visual inspection; not clinical movement validation",
+    "generator": "built-in image_gen",
+    "posePrompt": "45-degree sled leg press machine, subject supported on angled padded seat with back and head resting firmly against backrest, feet shoulder-width flat on a single broad footplate, knees flexed about 90 degrees, hands holding seat handles. Show complete realistic graphite machine, rails connect platform to base, side three-quarter view showing thighs and feet. Quadriceps orange, visible glutes hamstrings calves blue."
+  },
+  "Seated_Cable_Rows": {
+    "asset": "atlas_seated_cable_rows",
+    "sha256": "d435973f85b05322637cda2b381b2d8a68f9c78bed039e0d65eee3e50fd97e92",
+    "review": "Visual inspection; not clinical movement validation",
+    "generator": "built-in image_gen",
+    "posePrompt": "Seated cable row with narrow neutral V handle, seated on horizontal bench, knees slightly bent, feet on two front footrests, torso upright, elbows pulled back with V handle at abdomen. Hands visibly grip handle, one taut straight cable connects handle forward to low pulley and compact weight stack. Three-quarter rear side view shows back, both hands and cable route. Middle back orange, lats biceps and rear shoulders blue."
+  },
+  "Plank": {
+    "asset": "atlas_plank",
+    "sha256": "ee5032c97f988b0f852531f1b0dc664693c8a731c59d9010133702710c406899",
+    "review": "Visual inspection; not clinical movement validation",
+    "generator": "built-in image_gen",
+    "posePrompt": "Forearm plank: straight neutral body from head to heels, facing floor, elbows directly under shoulders, both forearms resting parallel on floor, toes on floor, knees off floor, no hip sag or raised hips. Low front-side three-quarter view revealing the abdomen and contact points. Abdominal rectus and obliques orange, all other muscles gray. No equipment."
+  },
+  "Dumbbell_Bench_Press": {
+    "asset": "atlas_dumbbell_bench_press",
+    "sha256": "ee43592a2871147036300ce800c042c098c6b42bdd2bf414b44d8937e4a00286",
+    "review": "Visual inspection; not clinical movement validation",
+    "generator": "built-in image_gen",
+    "posePrompt": "Flat dumbbell bench press at upper position, figure supine on HORIZONTAL graphite padded bench, feet flat on floor, head and back fully supported, two separate dumbbells directly above chest, palms facing toward feet, arms almost straight without hyperextension, shoulder blades stable. Three-quarter front side view, complete body and bench visible. Chest orange, shoulders and triceps blue. Flat bench, not incline."
+  }
+}

@@ -17,50 +17,89 @@ struct SetEditorRow: View {
     /// without it an imperial user typing "225" stores 225 kg.
     let unit: MeasurementUnit
     let onDelete: () -> Void
+    var focusStyle = false
+    var isCurrent = false
+    var isPaused = false
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .callout) private var inputHeight: CGFloat = 48
     @FocusState private var weightFocused: Bool
     @FocusState private var repsFocused: Bool
+    @State private var completionTrigger = 0
 
     var body: some View {
-        HStack(spacing: Spacing.xs) {
-            indexBadge
-
-            previousReference
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            weightField
-            repsField
-
-            completionToggle
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            let rowLayout = focusStyle && dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.sm))
+                : AnyLayout(HStackLayout(spacing: Spacing.sm))
+            rowLayout {
+                indexBadge
+                if !focusStyle {
+                    previousReference.frame(maxWidth: .infinity, alignment: .leading)
+                }
+                weightField
+                repsField
+                completionToggle
+            }
+            if focusStyle && (previousSet != nil || set.isWarmup) {
+                previousReference
+                    .padding(.leading, Spacing.xxxl)
+            }
+            if let load = set.measurement?.load, load != .recorded {
+                Text(load == .eachPair ? "Load per hand · both counted" :
+                    (load == .perSide ? "Load per side · entered reps counted once" : "Combined load"))
+                    .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+            }
         }
         .padding(.vertical, Spacing.xs)
         .contentShape(Rectangle())
-        // .swipeActions is a no-op outside List/Form (audit Train
-        // M1 — sets live in a VStack), so a long-press contextMenu
-        // is the only way to expose the delete affordance without
-        // restructuring the parent container.
+        .onChange(of: set.completed) { _, completed in
+            if completed { completionTrigger &+= 1 }
+        }
+        // Focus mode has an explicit index menu. A second menu on the whole
+        // row competes with the TextField's long-press selection gesture.
         .contextMenu {
-            Button(action: toggleWarmup) {
-                Label(set.isWarmup ? "Mark as working set" : "Mark as warm-up",
-                      systemImage: set.isWarmup ? "dumbbell" : "flame")
-            }
-            Button(role: .destructive, action: onDelete) {
-                Label("Delete set", systemImage: "trash")
+            if !focusStyle {
+                Button(action: toggleWarmup) {
+                    Label(set.isWarmup ? "Mark as working set" : "Mark as warm-up",
+                          systemImage: set.isWarmup ? "dumbbell" : "flame")
+                }
+                Button(role: .destructive, action: onDelete) {
+                    Label("Delete set", systemImage: "trash")
+                }
             }
         }
     }
 
+    @ViewBuilder
     private var indexBadge: some View {
+        if focusStyle {
+            Menu {
+                Button(action: toggleWarmup) {
+                    Label(set.isWarmup ? "Mark as working set" : "Mark as warm-up", systemImage: "flame")
+                }
+                Button(role: .destructive, action: onDelete) {
+                    Label("Delete set", systemImage: "trash")
+                }
+            } label: {
+                indexLabel.minimumHitArea()
+            }
+            .accessibilityLabel(Text("Options for set \(set.index)"))
+        } else {
+            indexLabel
+        }
+    }
+
+    private var indexLabel: some View {
         Text("\(set.index)")
             .font(AppFont.caption.weight(.semibold))
             .monospacedDigit()
-            .foregroundStyle(set.completed ? AppColor.background : AppColor.textPrimary)
-            .frame(width: 24, height: 24)
+            .foregroundStyle(isCurrent ? AppColor.trainingSelection : AppColor.textPrimary)
+            .frame(minWidth: 24, minHeight: 24)
             .background(
                 Circle()
-                    .fill(set.completed
-                          ? AppColor.accentPrimary
-                          : AppColor.surfaceSecondary.opacity(0.6))
+                    .fill(isCurrent ? AppColor.trainingInput : AppColor.surfaceSecondary)
             )
             .overlay(
                 Circle().stroke(AppColor.glassBorder, lineWidth: 0.5)
@@ -93,25 +132,33 @@ struct SetEditorRow: View {
     }
 
     private var weightField: some View {
-        TextField(unit.weightSuffix,
-                  value: Binding(
-                    get: { unit.weightForDisplay(set.weightKg) },
-                    set: { set.weightKg = SetEntryLimits.clampWeightKg(unit.kilograms(fromDisplayed: $0)) }
-                  ),
-                  format: .number.precision(.fractionLength(0...1)))
-            .keyboardType(.decimalPad)
-            .multilineTextAlignment(.center)
-            .font(AppFont.callout.weight(.semibold))
-            .foregroundStyle(AppColor.textPrimary)
-            .monospacedDigit()
-            .focused($weightFocused)
-            .frame(width: 60, height: 32)
+        HStack(spacing: Spacing.xs) {
+            TextField(unit.weightSuffix,
+                      value: Binding(
+                        get: { unit.weightForDisplay(set.weightKg) },
+                        set: { set.weightKg = SetEntryLimits.clampWeightKg(unit.kilograms(fromDisplayed: $0)) }
+                      ),
+                      format: .number.precision(.fractionLength(0...1)))
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.center)
+                .font(AppFont.callout.weight(.semibold))
+                .foregroundStyle(AppColor.textPrimary)
+                .monospacedDigit()
+                .focused($weightFocused)
+                .accessibilityIdentifier("workout-weight-\(set.index)")
+            if focusStyle {
+                Text(unit.weightSuffix).font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+            }
+        }
+            .frame(width: focusStyle ? nil : 60, height: focusStyle ? inputHeight : 32)
+            .frame(maxWidth: focusStyle ? .infinity : nil)
+            .padding(.horizontal, focusStyle ? Spacing.sm : 0)
             .background(
-                RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.6))
+                RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)
+                    .fill(focusStyle ? AppColor.trainingInput : AppColor.surfaceSecondary.opacity(0.6))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)
                     .stroke(weightFocused ? AppColor.accentPrimary : AppColor.glassBorder,
                             lineWidth: weightFocused ? 1 : 0.5)
             )
@@ -132,13 +179,15 @@ struct SetEditorRow: View {
             .foregroundStyle(AppColor.textPrimary)
             .monospacedDigit()
             .focused($repsFocused)
-            .frame(width: 48, height: 32)
+            .accessibilityIdentifier("workout-reps-\(set.index)")
+            .frame(width: focusStyle ? nil : 48, height: focusStyle ? inputHeight : 32)
+            .frame(maxWidth: focusStyle ? .infinity : nil)
             .background(
-                RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.6))
+                RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)
+                    .fill(focusStyle ? AppColor.trainingInput : AppColor.surfaceSecondary.opacity(0.6))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)
                     .stroke(repsFocused ? AppColor.accentPrimary : AppColor.glassBorder,
                             lineWidth: repsFocused ? 1 : 0.5)
             )
@@ -148,29 +197,40 @@ struct SetEditorRow: View {
 
     private var completionToggle: some View {
         Button {
-            if !set.completed { Haptics.impact(.medium) }
+            weightFocused = false
+            repsFocused = false
+            if !set.completed { Haptics.impact(.light) }
+            else { Haptics.selection() }
             set.completed.toggle()
         } label: {
-            Image(systemName: set.completed ? "checkmark.circle.fill" : "circle")
+            Image(systemName: set.completed ? "checkmark.circle.fill" : (focusStyle ? "checkmark.circle" : "circle"))
                 .font(AppFont.scaled(24, weight: .semibold))
-                .foregroundStyle(set.completed
-                                 ? AppColor.positive
-                                 : AppColor.textTertiary)
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(
+                    set.completed ? AppColor.onAccent : AppColor.textTertiary,
+                    set.completed ? (focusStyle ? AppColor.trainingComplete : AppColor.positive) : AppColor.textTertiary
+                )
                 .frame(width: 32, height: 32)
-                .contentTransition(.symbolEffect(.replace))
+                .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+                .completionPulse(trigger: completionTrigger, isActive: set.completed)
                 .minimumHitArea()
         }
         .buttonStyle(.plain)
+        .disabled(isPaused)
+        .accessibilityIdentifier("workout-complete-\(set.index)")
         .accessibilityLabel(set.completed ? "Set complete" : "Mark set complete")
+        .accessibilityValue(isCurrent ? "Current set" : "")
     }
 
     /// One write, not two: the parent's binding re-reads a snapshot that
     /// doesn't update until the next render, so a second property write
     /// would overwrite the first.
     private func fill(from previous: SetEntry) {
+        guard previous.supportsRepLogging else { return }
         var filled = set
         filled.weightKg = previous.weightKg
         filled.reps = previous.reps
+        filled.measurement = previous.measurement
         set = filled
         Haptics.selection()
     }

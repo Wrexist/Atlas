@@ -18,6 +18,7 @@ import SwiftUI
 ///      compliance calendar so the visual language is consistent
 ///      across tabs.
 struct TrainOverviewView: View {
+    @Binding var scrollPosition: ScrollPosition
     @Environment(DataStore.self) private var dataStore
     @State private var library = ExerciseLibrary.shared
     @State private var sessions: [WorkoutSession] = []
@@ -37,6 +38,23 @@ struct TrainOverviewView: View {
     /// The muscle the user tapped on the map, presented as a detail sheet
     /// of the exercises they've logged for it.
     @State private var inspectedMuscle: AnatomicalMuscle?
+    @SceneStorage("train.overview.period") private var selectedPeriodRaw = 7
+    private var selectedPeriod: TrainingMapPeriod { TrainingMapPeriod(rawValue: selectedPeriodRaw) ?? .week }
+    @State private var inspectedDays: Int? = 7
+    @State private var inspectedPeriodLabel = "Last 7 days"
+    @SceneStorage("train.overview.details") private var showsTrainingDetails = false
+
+    private enum TrainingMapPeriod: Int, CaseIterable {
+        case today = 1, week = 7, month = 30
+        var title: String {
+            switch self {
+            case .today: "Today"
+            case .week: "7 days"
+            case .month: "30 days"
+            }
+        }
+        var detail: String { self == .today ? "Today" : "Last \(rawValue) days" }
+    }
     /// Personalization brief Phase 9/10: a one-line read on how this
     /// week's session count compares to this user's own recent training
     /// history — never a population norm, and `nil` (not a guess) below
@@ -54,21 +72,34 @@ struct TrainOverviewView: View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
                 startWorkoutButton
+                recentWorkoutsCard
                 weeklyMuscleCard
                 if weekHasTraining {
                     topMusclesRow
                 }
-                MuscleGainsCard(
+                DisclosureGroup("Training trends & calendar", isExpanded: $showsTrainingDetails) {
+                  VStack(spacing: Spacing.lg) {
+                    MuscleGainsCard(
                     totals: totalFrequencies,
                     regularity: regularity,
-                    onIdentify: { inspectedMuscle = $0 }
-                )
-                recentWorkoutsCard
-                calendarCard
+                    onIdentify: { muscle, days in
+                        inspectedDays = days
+                        inspectedPeriodLabel = days == nil ? "All workouts" : "Last 12 calendar weeks"
+                        inspectedMuscle = muscle
+                    }
+                    )
+                    calendarCard
+                  }
+                  .padding(.top, Spacing.md)
+                }
+                .font(AppFont.headline)
+                .tint(AppColor.accentPrimary)
+                .accessibilityIdentifier("training-trends-disclosure")
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
         }
+        .scrollPosition($scrollPosition)
         .refreshable { refresh() }
         .task { @MainActor in
             await library.load()
@@ -83,12 +114,18 @@ struct TrainOverviewView: View {
         .task(id: dataStore.revision) { @MainActor in
             refresh()
         }
+        .onChange(of: selectedPeriod) { _, _ in
+            Haptics.selection()
+            refreshFrequencies()
+        }
         .sheet(item: $inspectedMuscle) { muscle in
             MuscleHistorySheet(
                 muscle: muscle,
                 history: WeeklyMuscleHeatmap.history(
-                    for: muscle, from: sessions, library: library
-                )
+                    for: muscle, from: sessions, library: library, days: inspectedDays
+                ),
+                periodLabel: inspectedPeriodLabel,
+                sessions: sessions
             )
         }
     }
@@ -111,10 +148,7 @@ struct TrainOverviewView: View {
     /// the heatmap, recents, and calendar update live.
     private func refresh() {
         sessions = SwiftDataRepository.shared.loadWorkoutSessions()
-        frequencies = WeeklyMuscleHeatmap.frequencies(
-            from: sessions,
-            library: library
-        )
+        refreshFrequencies()
         totalFrequencies = MuscleGainsEngine.totalFrequencies(
             from: sessions,
             library: library
@@ -124,6 +158,12 @@ struct TrainOverviewView: View {
             library: library
         )
         trainingContextCaption = Self.trainingContextCaption(for: sessions)
+    }
+
+    private func refreshFrequencies() {
+        frequencies = WeeklyMuscleHeatmap.frequencies(
+            from: sessions, library: library, days: selectedPeriod.rawValue
+        )
     }
 
     /// Builds the "how does this week compare" caption from the user's
@@ -170,11 +210,11 @@ struct TrainOverviewView: View {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack(alignment: .top, spacing: Spacing.md) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("This week")
+                        Text("Muscles trained")
                             .font(AppFont.title)
                             .foregroundStyle(AppColor.textPrimary)
                         Text(weekHasTraining
-                             ? "Muscles you trained over the past 7 days."
+                             ? "Completed working sets - \(selectedPeriod.detail.lowercased())"
                              : "Log a workout and watch your body light up.")
                             .font(AppFont.subheadline)
                             .foregroundStyle(AppColor.textSecondary)
@@ -190,25 +230,36 @@ struct TrainOverviewView: View {
                     .accessibilityLabel("Workout history")
                 }
 
-                MuscleMapView(
+                Picker("Training period", selection: Binding(
+                    get: { selectedPeriod }, set: { selectedPeriodRaw = $0.rawValue }
+                )) {
+                    ForEach(TrainingMapPeriod.allCases, id: \.self) { period in
+                        Text(period.title).tag(period)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("training-map-period")
+
+                TrainingBodyExplorer(
                     highlights: MuscleMapView.intensityHighlights(from: frequencies),
-                    onIdentify: { inspectedMuscle = $0 }
+                    legend: .intensity(low: "Less", high: "Most"),
+                    onIdentify: { inspectRecentMuscle($0) }
                 )
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: 320)
-                .animation(AppAnimation.fadeInSlow, value: frequencies)
 
                 // Both of these describe heat that isn't there yet on a
                 // fresh install, where the subtitle above is already
                 // carrying the message.
                 if weekHasTraining {
-                    Text("Tap a muscle to see what you've trained it with.")
+                    Text("Select Front or Back for a closer look. Tap a muscle for its exercises.")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
-                    intensityLegend
+                    Text("Relative training score: primary work counts more than secondary work. Not a measure of growth or recovery.")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
                 }
 
-                if let trainingContextCaption {
+                if selectedPeriod == .week, let trainingContextCaption {
                     Text(trainingContextCaption)
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
@@ -217,12 +268,10 @@ struct TrainOverviewView: View {
         }
     }
 
-    /// Tells the user what the heatmap colours mean — green = trained a
-    /// little this week, climbing through yellow, orange and red to
-    /// purple for the most-trained muscle — so the figure isn't a
-    /// mystery on first glance.
-    private var intensityLegend: some View {
-        MuscleHeatLegend(lowLabel: "Less", highLabel: "Most")
+    private func inspectRecentMuscle(_ muscle: AnatomicalMuscle) {
+        inspectedDays = selectedPeriod.rawValue
+        inspectedPeriodLabel = selectedPeriod.detail
+        inspectedMuscle = muscle
     }
 
     // MARK: - Top muscles row
@@ -264,7 +313,7 @@ struct TrainOverviewView: View {
             Text(muscle.displayName)
                 .font(AppFont.chipText)
                 .foregroundStyle(AppColor.textPrimary)
-            Text("\(setCount) \(setCount == 1 ? "set" : "sets")")
+            Text("\(setCount) weighted pts")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
         }
@@ -286,14 +335,15 @@ struct TrainOverviewView: View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack {
-                    Text("Recent workouts")
+                    Text("Latest workout")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     if !sessions.isEmpty {
-                        Text("\(sessions.count) total")
-                            .font(AppFont.footnote)
-                            .foregroundStyle(AppColor.textSecondary)
+                        NavigationLink(value: TrainNavigation.workoutHistory) {
+                            Text("View all").font(AppFont.subheadline).minimumHitArea()
+                        }
+                        .accessibilityLabel("View workout history")
                     }
                 }
 
@@ -301,11 +351,8 @@ struct TrainOverviewView: View {
                     emptyRecentWorkouts
                 } else {
                     VStack(spacing: 0) {
-                        ForEach(Array(sessions.prefix(3))) { session in
+                        ForEach(Array(sessions.prefix(1))) { session in
                             recentWorkoutRow(session)
-                            if session.id != sessions.prefix(3).last?.id {
-                                Divider().background(AppColor.glassBorder)
-                            }
                         }
                     }
                 }
@@ -499,7 +546,7 @@ struct TrainingCalendarGrid: View {
 }
 
 #Preview {
-    TrainOverviewView()
+    TrainOverviewView(scrollPosition: .constant(ScrollPosition(edge: .top)))
         .environment(DataStore(seedSampleData: true))
         .padding(.top, Spacing.lg)
         .background(AppColor.background)

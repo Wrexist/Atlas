@@ -14,10 +14,18 @@ import SwiftUI
 struct RecipeLogConfirmSheet: View {
     let recipe: Recipe
     let customFoods: [CustomFood]
-    let onLog: (MealCategory) -> Void
+    let onLog: (MealCategory) -> Bool
     let onCancel: () -> Void
+    var logDate: Date = Date()
+    var onEdit: (() -> Void)? = nil
 
     @State private var category: MealCategory = MealCategory.auto(for: Date())
+    @State private var didLog = false
+    @State private var saveFailed = false
+
+    private var review: RecipeDataLogic.Review {
+        RecipeDataLogic.review(for: recipe, customFoods: customFoods)
+    }
 
     private var totals: LoggableMeal {
         RecipeDataLogic.totals(for: recipe, customFoods: customFoods)
@@ -28,7 +36,23 @@ struct RecipeLogConfirmSheet: View {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     headerCard
-                    macrosCard
+                    if review.totals != nil { macrosCard }
+                    else {
+                        GlassCard {
+                            VStack(alignment: .leading, spacing: Spacing.sm) {
+                                Text("Check ingredients before logging").font(AppFont.headline)
+                                Text("Some foods or portions are unavailable. Fix them so the full recipe is counted.")
+                                    .font(AppFont.callout)
+                                ForEach(review.unresolved) { component in
+                                    Text(component.cachedName.isEmpty ? "Unknown ingredient" : component.cachedName)
+                                }
+                                if let onEdit { Button("Edit ingredients", action: onEdit).minimumHitArea() }
+                            }
+                        }
+                    }
+                    Text("Logging on \(logDate.formatted(date: .abbreviated, time: .shortened))")
+                        .font(AppFont.caption)
+                    if saveFailed { Text("Couldn't save the recipe. Retry; nothing was added.").font(AppFont.callout) }
                     MealCategoryPicker(selection: $category)
                     confirmButton
                 }
@@ -46,6 +70,7 @@ struct RecipeLogConfirmSheet: View {
                 }
             }
         }
+        .onAppear { category = MealCategory.auto(for: logDate) }
     }
 
     private var headerCard: some View {
@@ -110,13 +135,15 @@ struct RecipeLogConfirmSheet: View {
 
     private var confirmButton: some View {
         GlassButton(
-            title: "Log to today",
+            title: "Log recipe",
             icon: "checkmark.circle.fill",
             style: .primary,
             isFullWidth: true
         ) {
-            onLog(category)
+            guard !didLog, review.totals != nil else { return }
+            didLog = onLog(category)
+            saveFailed = !didLog
         }
-        .disabled(totals.calories == 0)
+        .disabled(review.totals == nil || totals.calories == 0 || didLog)
     }
 }

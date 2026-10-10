@@ -4,22 +4,14 @@ struct AchievementToastView: View {
     let achievement: Achievement
     @Binding var isShowing: Bool
 
-    @Environment(DataStore.self) private var dataStore
-    @State private var iconBounce = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         if isShowing {
             VStack {
                 HStack(spacing: Spacing.md) {
-                    Image(systemName: achievement.icon)
-                        .font(AppFont.scaled(20))
-                        .foregroundStyle(AppColor.accentLight)
-                        .frame(width: 40, height: 40)
-                        .background {
-                            Circle()
-                                .fill(AppColor.accentPrimary.opacity(0.2))
-                        }
-                        .symbolEffect(.bounce, value: iconBounce)
+                    MilestoneArtwork(symbol: achievement.icon, tint: AppColor.achievement, size: 48)
+                        .id(achievement.id)
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text("Achievement Unlocked!")
@@ -33,7 +25,7 @@ struct AchievementToastView: View {
                     Spacer()
 
                     Button {
-                        withAnimation(AppAnimation.springSnappy) { isShowing = false }
+                        withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { isShowing = false }
                     } label: {
                         Image(systemName: "xmark")
                             .font(AppFont.scaled(11, weight: .bold))
@@ -54,7 +46,7 @@ struct AchievementToastView: View {
                         }
                 }
                 .padding(.horizontal, Spacing.screenPadding)
-                .transition(.move(edge: .top).combined(with: .opacity))
+                .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("Achievement unlocked: \(achievement.title)")
                 .accessibilityValue(achievement.description)
@@ -63,14 +55,18 @@ struct AchievementToastView: View {
                 Spacer()
             }
             .padding(.top, Spacing.sm)
-            .task {
-                // Brief warmup so the slide-in transition reads before the
-                // bounce + haptic — landing them simultaneously feels jittery.
-                try? await Task.sleep(for: .milliseconds(120))
-                iconBounce &+= 1
-                Haptics.success()
-                try? await Task.sleep(for: .seconds(4))
-                withAnimation(AppAnimation.springSmooth) { isShowing = false }
+            .task(id: achievement.id) {
+                // A canceled toast must not dismiss the next queued achievement.
+                do {
+                    try await Task.sleep(for: .milliseconds(120))
+                    Haptics.success()
+                    try await Task.sleep(for: .seconds(4))
+                    withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) {
+                        isShowing = false
+                    }
+                } catch {
+                    return
+                }
             }
         }
     }

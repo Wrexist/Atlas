@@ -32,10 +32,10 @@ enum MuscleHighlight: Hashable, Sendable {
 ///   calm baseline so the surface still reads as the user's body
 ///   even before they've logged anything.
 ///
-/// Render performance: a single `Canvas` draws the silhouette + every
-/// muscle in one pass, so even when the highlights animate on
-/// workout finish the view stays at 60fps on small phones.
+/// Uses shaded asset layers when available, with a Canvas fallback.
 struct MuscleMapView: View {
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let highlights: [AnatomicalMuscle: MuscleHighlight]
     var orientation: Orientation = .both
@@ -75,6 +75,7 @@ struct MuscleMapView: View {
     var identifiesOnTap: Bool = true
     /// Called with the head the user tapped (e.g. to drive a detail sheet).
     var onIdentify: ((AnatomicalMuscle) -> Void)? = nil
+    var selectedMuscle: AnatomicalMuscle? = nil
 
     /// The head the user last tapped, surfaced as a floating label.
     @State private var identified: AnatomicalMuscle? = nil
@@ -86,7 +87,7 @@ struct MuscleMapView: View {
     var body: some View {
         // Prefer the photoreal asset pack when it's bundled; otherwise
         // draw the vector figure. Same API either way — see AnatomyAssets.
-        if AnatomyAssets.isAvailable {
+        if TrainingAnatomy.isAvailable || AnatomyAssets.isAvailable {
             assetMap
         } else {
             vectorMap
@@ -151,6 +152,20 @@ struct MuscleMapView: View {
     }
 
     private func identify(at point: CGPoint, facing: Facing, size: CGSize) {
+        if TrainingAnatomy.isAvailable {
+            let width = min(size.width, size.height * TrainingAnatomy.aspect)
+            let height = width / TrainingAnatomy.aspect
+            let rect = CGRect(x: (size.width - width) / 2, y: (size.height - height) / 2,
+                              width: width, height: height)
+            let hit = TrainingAnatomy.hitTest(point, in: rect, candidates:
+                AnatomicalMuscle.allCases.filter { $0.isBack == (facing == .back) })
+            if let onIdentify {
+                if let hit { onIdentify(hit) }
+            } else {
+                identified = hit
+            }
+            return
+        }
         let scale = min(size.width, size.height / 2.4)
         guard scale > 0 else { return }
         let xOffset = (size.width - scale) / 2
@@ -192,13 +207,15 @@ struct MuscleMapView: View {
                     .accessibilityLabel(accessibilityLabel(for: .back))
             }
         }
-        .aspectRatio(orientation == .both ? BodyAnatomy.aspect * 2 : BodyAnatomy.aspect,
+        .aspectRatio((TrainingAnatomy.isAvailable ? TrainingAnatomy.aspect : BodyAnatomy.aspect) * (orientation == .both ? 2 : 1),
                      contentMode: .fit)
         .overlay(alignment: .top) { identifyLabel }
     }
 
     private func assetFigure(facing: Facing) -> some View {
-        let base = facing == .front ? AnatomyAssets.bodyFront : AnatomyAssets.bodyBack
+        let base = TrainingAnatomy.isAvailable
+            ? (facing == .front ? TrainingAnatomy.front : TrainingAnatomy.back)
+            : (facing == .front ? AnatomyAssets.bodyFront : AnatomyAssets.bodyBack)
         let muscles = facing == .front
             ? AnatomicalMuscle.allCases.filter { !$0.isBack }
             : AnatomicalMuscle.allCases.filter { $0.isBack }
@@ -220,15 +237,28 @@ struct MuscleMapView: View {
                         .scaledToFit()
                         .colorMultiply(tintColor(for: highlight))
                         .opacity(tintStrength(for: highlight))
-                        .mask(
-                            Image(AnatomyAssets.mask(for: muscle))
-                                .resizable()
-                                .scaledToFit()
-                        )
+                        .mask {
+                            if TrainingAnatomy.isAvailable {
+                                TrainingMuscleShape(muscle: muscle)
+                                    .aspectRatio(TrainingAnatomy.aspect, contentMode: .fit)
+                                    .blur(radius: 0.65)
+                            } else {
+                                Image(AnatomyAssets.mask(for: muscle))
+                                    .resizable()
+                                    .scaledToFit()
+                            }
+                        }
                 }
             }
+            if TrainingAnatomy.isAvailable, let selectedMuscle,
+               selectedMuscle.isBack == (facing == .back) {
+                TrainingMuscleShape(muscle: selectedMuscle)
+                    .stroke(AppColor.textPrimary, lineWidth: 2)
+                    .aspectRatio(TrainingAnatomy.aspect, contentMode: .fit)
+                    .allowsHitTesting(false)
+            }
         }
-        .animation(AppAnimation.springSmooth, value: highlights)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.24), value: highlights)
     }
 
     /// Hue a trained muscle takes on in the asset renderer.
@@ -246,7 +276,7 @@ struct MuscleMapView: View {
     /// a faint wash and a hammered one is saturated.
     private func tintStrength(for highlight: MuscleHighlight) -> Double {
         switch highlight {
-        case .primary:           return 1.0
+        case .primary:           return 0.88
         case .secondary:         return 0.75
         case .intensity(let v):  return 0.3 + min(max(v, 0), 1) * 0.7
         }
@@ -462,14 +492,15 @@ struct MuscleMapView: View {
     // MARK: - Accessibility
 
     private func accessibilityLabel(for facing: Facing) -> Text {
-        let lit = highlights.compactMap { (muscle, highlight) -> String? in
+        let lit = AnatomicalMuscle.allCases.compactMap { muscle -> String? in
+            guard let highlight = highlights[muscle] else { return nil }
             guard !(facing == .front && muscle.isBack),
                   !(facing == .back && !muscle.isBack)
             else { return nil }
             switch highlight {
-            case .primary:           return "\(muscle.rawValue) (primary)"
-            case .secondary:         return "\(muscle.rawValue) (secondary)"
-            case .intensity(let v):  return "\(muscle.rawValue) (\(Int(v * 100))%)"
+            case .primary:           return "\(muscle.regionName), primary"
+            case .secondary:         return "\(muscle.regionName), secondary"
+            case .intensity(let v):  return "\(muscle.regionName), relative training score \(Int(max(0, min(1, v)) * 100)) out of 100"
             }
         }
         let view = facing == .front ? "Front view" : "Back view"

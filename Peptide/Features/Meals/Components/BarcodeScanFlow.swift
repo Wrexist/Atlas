@@ -623,9 +623,7 @@ struct BarcodeScanFlow: View {
 
     private var loggedCard: some View {
         VStack(spacing: Spacing.lg) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 56, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
+            MilestoneArtwork(size: 64)
 
             Text(addedTitle)
                 .font(AppFont.title2)
@@ -642,7 +640,8 @@ struct BarcodeScanFlow: View {
                     productName: snapshot.productName,
                     deltaCalories: snapshot.calories,
                     totalCalories: dataStore.consumption(for: snapshot.date).caloriesKcal,
-                    targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories
+                    targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories,
+                    date: snapshot.date
                 )
             }
 

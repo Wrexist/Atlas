@@ -1113,6 +1113,40 @@ final class DataStore {
         }
     }
 
+    /// Stable IDs make retry and interrupted completion idempotent.
+    /// Health writes start only after the local profile commit succeeds.
+    @ObservationIgnored private var mealHealthWriteTask: Task<Void, Never>?
+
+    func commitScannedMeals(_ meals: [MealEntry], undo: Bool = false) throws {
+        var candidate = profile
+        var changed: [MealEntry] = []
+        for meal in meals {
+            if undo {
+                guard candidate.mealHistory.contains(where: { $0.id == meal.id }) else { continue }
+                LifestyleDataLogic.unlogMealEntry(from: &candidate, id: meal.id)
+            } else {
+                guard !candidate.mealHistory.contains(where: { $0.id == meal.id }) else { continue }
+                LifestyleDataLogic.logMealEntry(into: &candidate, entry: meal)
+            }
+            changed.append(meal)
+        }
+        if !isEphemeral { try repo.saveMealProfileDurably(candidate) }
+        profile = candidate
+        // Keep the established projection/achievement save path. It may save
+        // other pending changes; the meals above already have durable storage.
+        save()
+        if profile.healthKitNutritionEnabled && !isEphemeral {
+            let previous = mealHealthWriteTask
+            mealHealthWriteTask = Task {
+                await previous?.value
+                for meal in changed {
+                    if undo { await HealthKitService.shared.deleteSamples(forEntryID: meal.id) }
+                    else { await HealthKitService.shared.writeMealEntry(meal) }
+                }
+            }
+        }
+    }
+
     /// Updates a previously logged meal entry — category, macros, or
     /// date — keeping the per-day aggregate in lockstep. The previous
     /// implementation replaced the array element only, so editing
@@ -1384,11 +1418,12 @@ final class DataStore {
     /// so the meal-history list reads "Morning bowl" rather than
     /// the comma-joined ingredient list. Source tagged as
     /// `.custom` since recipes are user-defined compositions.
-    func logRecipe(_ recipe: Recipe, category: MealCategory? = nil, at date: Date = Date()) {
-        let totals = RecipeDataLogic.totals(
+    @discardableResult
+    func logRecipe(_ recipe: Recipe, category: MealCategory? = nil, at date: Date = Date()) -> MealEntry? {
+        guard let totals = RecipeDataLogic.review(
             for: recipe,
             customFoods: profile.customFoods
-        )
+        ).totals, totals.calories > 0 else { return nil }
         let chosenCategory = category ?? MealCategory.auto(for: date)
         let entry = MealEntry(
             loggable: totals,
@@ -1398,7 +1433,13 @@ final class DataStore {
             sourceID: nil,
             date: date
         )
-        logMealEntry(entry)
+        do {
+            try commitScannedMeals([entry])
+            return entry
+        } catch {
+            lastError = Self.saveFailureMessage
+            return nil
+        }
     }
 
     // MARK: - Food library
@@ -1534,7 +1575,8 @@ final class DataStore {
             finishedAt: finishedAt,
             exercises: [],
             note: "Quick-log · \(entry.sets) sets × \(entry.reps) reps",
-            perceivedEffort: nil
+            perceivedEffort: nil,
+            focus: WorkoutFocusState(timing: entry.durationMinutes > 0 ? .tracked : .notTracked)
         )
         repo.beginSaveBatch()
         repo.upsertWorkoutSession(session)
@@ -1616,6 +1658,17 @@ final class DataStore {
         updateWidgetData()
     }
 
+
+
+    /// Editing changes derived records and totals, but earns no second reward.
+    func workoutWasEdited(exerciseIDs: Set<String>) {
+        PRDetectionEngine.shared.recompute(exerciseIDs: exerciseIDs)
+        cacheVersion &+= 1
+        revision &+= 1
+        updateWidgetData()
+        updateWatchData()
+    }
+
     /// (count, totalMinutes) for workout sessions logged on `date`'s
     /// calendar day.
     func workoutSummary(for date: Date = Date()) -> (count: Int, minutes: Int) {
@@ -1633,8 +1686,8 @@ final class DataStore {
         let sessions = repo.loadWorkoutSessions(startedBetween: dayStart..<dayEnd)
         let count = sessions.count
         let minutes = sessions.reduce(0) { acc, session in
-            guard let finished = session.finishedAt else { return acc }
-            let secs = finished.timeIntervalSince(session.startedAt)
+            guard session.finishedAt != nil else { return acc }
+            let secs = session.elapsedSeconds()
             return acc + max(0, Int(secs / 60))
         }
         return (count, minutes)

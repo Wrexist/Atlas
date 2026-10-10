@@ -120,8 +120,8 @@ final class WorkoutSessionServiceTests: XCTestCase {
         )
     }
 
-    func test_finishWorkout_setsFinishedAt_andClearsActive() {
-        _ = service.startWorkout()
+    func test_finishWorkout_setsFinishedAt_andClearsActive() throws {
+        try service.startWorkoutWithOneCompletedSet()
         let finished = service.finishWorkout(perceivedEffort: 4, note: "Good day")
         // FinishedWorkout is a wrapper — (session, detectedPRs) — so the
         // session's own fields are one level down, not beside it.

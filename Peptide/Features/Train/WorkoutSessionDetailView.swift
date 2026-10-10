@@ -10,7 +10,8 @@ import SwiftUI
 /// re-running ingest (which would mutate the records and return
 /// empty on re-open — same bug we fixed in WorkoutFinishView).
 struct WorkoutSessionDetailView: View {
-    let session: WorkoutSession
+    // One-time seed; successful edits explicitly replace the displayed value.
+    @State private var session: WorkoutSession
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
     @State private var sessionService = WorkoutSessionService.shared
@@ -20,22 +21,21 @@ struct WorkoutSessionDetailView: View {
     @State private var routineNameDraft = ""
     @State private var savedRoutineName: String?
     @State private var showingActiveWorkoutConflict = false
+    @State private var showingEditor = false
+    @State private var showingSummary = false
 
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
     @State private var library = ExerciseLibrary.shared
 
-    private var muscleHighlights: [AnatomicalMuscle: MuscleHighlight] {
-        let exercises = session.exercises.compactMap { library.lookup(id: $0.exerciseID) }
-        return MuscleMapView.highlights(forExercises: exercises)
+    init(session: WorkoutSession) {
+        _session = State(initialValue: session)
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 header
-                MuscleMapView(highlights: muscleHighlights)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 320)
+                SessionMuscleCard(session: session)
                 statsRow
                 if let effort = session.perceivedEffort {
                     perceivedEffortChip(effort)
@@ -49,6 +49,24 @@ struct WorkoutSessionDetailView: View {
             .padding(.vertical, Spacing.lg)
         }
         .background(AppColor.background.ignoresSafeArea())
+        .sheet(isPresented: $showingSummary, onDismiss: {
+            if let latest = SwiftDataRepository.shared.loadWorkoutSession(id: session.id) { session = latest }
+        }) {
+            NavigationStack {
+                WorkoutFinishView(session: session, detectedPRs: [], unit: unit, celebratesSave: false) {
+                    showingSummary = false
+                }
+            }
+        }
+        .sheet(isPresented: $showingEditor) {
+            WorkoutSavedEditor(session: session, unit: unit) { edited in
+                try WorkoutEditValidation.validate(edited, original: session)
+                try SwiftDataRepository.shared.saveWorkoutDurably(edited)
+                let affected = Set((session.exercises + edited.exercises).map(\.exerciseID))
+                session = edited
+                dataStore.workoutWasEdited(exerciseIDs: affected)
+            }
+        }
         .navigationTitle(session.name ?? "Workout")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -87,6 +105,8 @@ struct WorkoutSessionDetailView: View {
 
     private var optionsMenu: some View {
         Menu {
+            Button("View summary", systemImage: "checkmark.circle") { showingSummary = true }
+            Button("Edit workout", systemImage: "pencil") { showingEditor = true }
             Button {
                 repeatWorkout()
             } label: {
@@ -252,6 +272,8 @@ struct WorkoutSessionDetailView: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             let exercise = library.lookup(id: entry.exerciseID)
             HStack {
+                ExerciseImageView(exercise: exercise)
+                    .frame(width: 44, height: 44)
                 Text(exercise?.name ?? entry.exerciseID)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
@@ -268,7 +290,10 @@ struct WorkoutSessionDetailView: View {
                         .monospacedDigit()
                         .frame(width: 20, alignment: .leading)
                         .foregroundStyle(AppColor.textTertiary)
-                    if set.weightKg > 0 {
+                    if set.measurement != nil {
+                        Text(RecapFormat.set(set, unit: unit))
+                            .font(AppFont.callout).foregroundStyle(AppColor.textPrimary)
+                    } else if set.weightKg > 0 {
                         Text("\(unit.weightLabel(set.weightKg, fractionDigits: 1)) × \(set.reps)")
                             .font(AppFont.callout)
                             .foregroundStyle(AppColor.textPrimary)
@@ -330,14 +355,8 @@ struct WorkoutSessionDetailView: View {
     }
 
     private var durationLabel: String? {
-        guard let finished = session.finishedAt else { return nil }
-        let interval = finished.timeIntervalSince(session.startedAt)
-        guard interval > 0 else { return nil }
-        let totalMinutes = Int(interval / 60)
-        if totalMinutes < 60 { return "\(totalMinutes)m" }
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
-        return minutes == 0 ? "\(hours)h" : "\(hours)h \(minutes)m"
+        guard session.finishedAt != nil else { return nil }
+        return WorkoutRecapEngine.duration(of: session).label
     }
 }
 
@@ -368,7 +387,7 @@ extension RoutineExercise {
         let working = entry.sets.filter { !$0.isWarmup }
         let completed = working.filter(\.completed)
         let basis = completed.isEmpty ? working : completed
-        let reps = basis.first(where: { $0.reps > 0 })?.reps ?? Self.fallbackTargetReps
+        let reps = basis.first(where: { $0.supportsRepLogging && $0.reps > 0 })?.reps ?? Self.fallbackTargetReps
         self.init(
             exerciseID: entry.exerciseID,
             index: index,

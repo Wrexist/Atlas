@@ -89,7 +89,10 @@ final class PRDetectionEngine {
 
         for (exerciseID, entries) in grouped {
             if let restrictTo, !restrictTo.contains(exerciseID) { continue }
-            let allSets = entries.flatMap(\.sets).filter { $0.completed && !$0.isWarmup }
+            let allSets = entries.flatMap(\.sets).filter {
+                $0.completed && !$0.isWarmup && ($0.measurement == nil
+                    || $0.measurement?.kind == .repetitions || $0.measurement?.kind == .bodyweight)
+            }
             guard !allSets.isEmpty else { continue }
 
             let bestE1RM = allSets.compactMap(\.estimatedOneRepMaxKg).max() ?? 0

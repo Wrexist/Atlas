@@ -7,6 +7,7 @@ struct HomeView: View {
     @State private var showAchievementToast = false
     @State private var toastAchievement: Achievement?
     @State private var achievementService = AchievementService.shared
+    @State private var celebrationCenter = CelebrationCenter.shared
     @State private var showProgress = false
     /// Observed directly so the notification banner reacts to a fresh
     /// schedule report. DataStore exposes `notificationReport` as a passthrough,
@@ -629,7 +630,7 @@ struct HomeView: View {
                 PeptideDetailView(peptide: peptide)
             }
             .overlay {
-                if let achievement = toastAchievement {
+                if celebrationCenter.current == nil, let achievement = toastAchievement {
                     AchievementToastView(achievement: achievement, isShowing: $showAchievementToast)
                 }
             }
@@ -791,8 +792,8 @@ struct HomeView: View {
                 let reps = sets.reduce(0) { $0 + $1.reps }
                 let avgReps = sets.isEmpty ? 0 : reps / sets.count
                 let duration: Int = {
-                    guard let finished = session.finishedAt else { return 0 }
-                    return max(0, Int(finished.timeIntervalSince(session.startedAt) / 60))
+                    guard session.finishedAt != nil else { return 0 }
+                    return session.elapsedSeconds() / 60
                 }()
                 return WorkoutEntry(
                     id: session.id,
@@ -1063,7 +1064,11 @@ struct HomeView: View {
     /// user has to resolve state-transition decisions before we ask
     /// them to share. Only one prompt fires per Home appear.
     private func checkMilestonePrompt() {
-        guard milestonePrompt == nil,
+        // TabView can call onAppear for retained, off-screen tabs during
+        // modal transitions. A Today prompt must never replace Train's
+        // workout cover or completion summary.
+        guard appState.selectedTab == .today,
+              milestonePrompt == nil,
               milestoneShareProtocol == nil,
               completionPrompt == nil,
               !showProfileCustomization
@@ -1083,7 +1088,7 @@ struct HomeView: View {
             let days = max(0, daysPastCycleEnd(of: pending))
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(800))
-                guard completionPrompt == nil else { return }
+                guard appState.selectedTab == .today, completionPrompt == nil else { return }
                 completionPrompt = CompletionPromptItem(proto: pending, daysPastEnd: days)
             }
             return
@@ -1095,7 +1100,7 @@ struct HomeView: View {
         // Defer slightly so the home tab's appear animation lands first.
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(800))
-            guard milestonePrompt == nil else { return }
+            guard appState.selectedTab == .today, milestonePrompt == nil else { return }
             milestonePrompt = MilestonePromptItem(proto: pending.proto, milestone: pending.milestone)
         }
     }

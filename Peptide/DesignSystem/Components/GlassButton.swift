@@ -33,7 +33,7 @@ struct GlassButton: View {
                 label.glassControl(.capsule, tint: tint, border: border)
             }
         }
-        .buttonStyle(GlassPressStyle())
+        .buttonStyle(ScalePressStyle())
     }
 
     private var label: some View {
@@ -45,9 +45,7 @@ struct GlassButton: View {
             }
             Text(title)
                 .font(AppFont.headline)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .truncationMode(.tail)
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: isFullWidth ? .infinity : nil)
@@ -109,17 +107,8 @@ struct GlassIconButton: View {
                     border: tinted ? AppColor.glassBorderActive : AppColor.glassBorder
                 )
         }
-        .buttonStyle(GlassPressStyle())
+        .buttonStyle(ScalePressStyle())
         .accessibilityLabel(accessibilityLabel)
-    }
-}
-
-private struct GlassPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .opacity(configuration.isPressed ? 0.8 : 1.0)
-            .animation(AppAnimation.springSnappy, value: configuration.isPressed)
     }
 }
 

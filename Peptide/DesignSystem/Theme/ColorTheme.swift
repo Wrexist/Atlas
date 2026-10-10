@@ -21,6 +21,17 @@ import UIKit
 /// concept, not the brand — but they still carry a light variant where the
 /// dark-mode value would fail contrast on a light surface.
 enum AppColor {
+    // Quiet workout recap palette. Explicit surface tokens, no glass layers.
+    static let recapBackground = Color(light: 0xF4F6F8, dark: 0x0B0F12)
+    static let recapCard = Color(light: 0xFCFCFD, dark: 0x151A1E)
+    static let recapRaised = Color(light: 0xEDF1F5, dark: 0x1B2228)
+    static let recapBorder = Color(light: 0xCDD5DD, dark: 0x2A333B)
+    static let recapText = Color(light: 0x18212A, dark: 0xF5F7FA)
+    static let recapSecondary = Color(light: 0x4B5965, dark: 0xB5BEC7)
+    static let recapAction = Color(light: 0x007287, dark: 0x12CDEA)
+    static let recapButton = Color(light: 0x12CDEA, dark: 0x12CDEA)
+    static let recapButtonInk = Color(light: 0x0B0F12, dark: 0x0B0F12)
+    static let recapSuccess = Color(light: 0x187848, dark: 0x59D99B)
     // MARK: - Surfaces
     //
     // The dark values are lifted off pure black (was `0x0A0A0A`) so Liquid
@@ -31,6 +42,16 @@ enum AppColor {
     static let background = Color(light: 0xF4F4F7, dark: 0x101013)
     static let surfaceElevated = Color(light: 0xFCFCFD, dark: 0x1C1C21)
     static let surfaceSecondary = Color(light: 0xFAFAFC, dark: 0x17171B)
+
+    // MARK: - Exercise demonstration
+
+    static let trainingBackground = Color(light: 0xEAF3F9, dark: 0x151D27)
+    static let trainingPanel = Color(light: 0xFCFCFD, dark: 0x232A34)
+    static let trainingInput = Color(light: 0xF3F4F8, dark: 0x303845)
+    static let trainingSelection = Color(light: 0x2465DF, dark: 0x80ADFF)
+    static let trainingComplete = Color(light: 0x19843D, dark: 0x238943)
+    static let trainingPrimaryMuscle = Color(light: 0xB84813, dark: 0xFFAC73)
+    static let trainingSecondaryMuscle = Color(light: 0x2465DF, dark: 0x80ADFF)
 
     // MARK: - Brand accents
 

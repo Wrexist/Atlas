@@ -94,6 +94,26 @@ enum AnatomicalMuscle: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
+    /// Distinguishes regions that share a simple group name in the overview.
+    var regionName: String {
+        switch self {
+        case .quadRectus: "Central quads"
+        case .quadLateralis: "Outer quads"
+        case .quadMedialis: "Inner quads"
+        case .tricepsLong: "Triceps — long head"
+        case .tricepsLateral: "Triceps — lateral head"
+        case .hamstringLateral: "Outer hamstrings"
+        case .hamstringMedial: "Inner hamstrings"
+        case .gastrocnemius: "Calves — gastrocnemius"
+        case .soleus: "Calves — soleus"
+        case .forearmFront: "Forearms — front"
+        case .forearmBack: "Forearms — back"
+        case .deltLateralFront: "Side delts — front view"
+        case .deltLateralBack: "Side delts — back view"
+        default: displayName
+        }
+    }
+
     /// Per-head emphasis weights (0…1) for a raw dataset muscle string,
     /// specialised by the exercise name where a recognised cue exists.
     /// 1.0 = full stimulus for that head; lower = worked less by this

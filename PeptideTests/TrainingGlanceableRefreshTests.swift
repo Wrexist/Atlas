@@ -41,8 +41,8 @@ final class TrainingGlanceableRefreshTests: XCTestCase {
         XCTAssertGreaterThan(store.widgetUpdateCountForTesting, baseline)
     }
 
-    func test_finishingAWorkout_refreshesTheWidgetPayload() {
-        WorkoutSessionService.shared.startWorkout()
+    func test_finishingAWorkout_refreshesTheWidgetPayload() throws {
+        try WorkoutSessionService.shared.startWorkoutWithOneCompletedSet()
         let baseline = store.widgetUpdateCountForTesting
 
         WorkoutSessionService.shared.finishWorkout()
@@ -59,10 +59,10 @@ final class TrainingGlanceableRefreshTests: XCTestCase {
         XCTAssertGreaterThan(store.widgetUpdateCountForTesting, baseline)
     }
 
-    func test_finishedWorkout_landsInTheNextSnapshotAsHistory() {
+    func test_finishedWorkout_landsInTheNextSnapshotAsHistory() throws {
         // The end-to-end shape of the fix: after a finish, the payload
         // describes a completed workout and no workout in progress.
-        WorkoutSessionService.shared.startWorkout()
+        try WorkoutSessionService.shared.startWorkoutWithOneCompletedSet()
         WorkoutSessionService.shared.finishWorkout()
 
         let snapshot = WidgetSnapshotBuilder.build(

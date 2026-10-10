@@ -53,6 +53,11 @@ struct WorkoutExerciseEntry: Codable, Hashable, Identifiable, Sendable {
         sets.reduce(0) { $0 + $1.volumeKg }
     }
 
+    /// Canonical inclusion rule for training maps and exercise history.
+    var completedWorkingSets: [SetEntry] {
+        sets.filter { $0.completed && !$0.isWarmup }
+    }
+
     /// Top working set's estimated 1RM, used for PR detection. Returns
     /// `nil` when no set is eligible.
     var topEstimatedOneRepMaxKg: Double? {
@@ -95,6 +100,7 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     /// User's "How did it go?" rating 1–5, captured on the finish
     /// screen. Optional.
     var perceivedEffort: Int?
+    var focus: WorkoutFocusState?
 
     init(
         id: UUID = UUID(),
@@ -105,7 +111,8 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
         finishedAt: Date? = nil,
         exercises: [WorkoutExerciseEntry] = [],
         note: String? = nil,
-        perceivedEffort: Int? = nil
+        perceivedEffort: Int? = nil,
+        focus: WorkoutFocusState? = nil
     ) {
         self.id = id
         self.name = name
@@ -116,6 +123,7 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
         self.exercises = exercises
         self.note = note
         self.perceivedEffort = perceivedEffort
+        self.focus = focus
     }
 
     /// `true` while the user is mid-workout — exactly one session per
@@ -127,8 +135,8 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     /// while active so the UI can render a live duration without the
     /// service pumping a publisher.
     func elapsedSeconds(now: Date = Date()) -> Int {
-        let end = finishedAt ?? now
-        return max(0, Int(end.timeIntervalSince(startedAt)))
+        let end = finishedAt ?? focus?.pausedAt ?? now
+        return max(0, Int(end.timeIntervalSince(startedAt) - (focus?.pausedSeconds ?? 0)))
     }
 
     /// Total working volume across every exercise, in kilograms. Drives
@@ -141,7 +149,7 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     /// excluded. Drives the "X sets" pill on the history row.
     var completedSetCount: Int {
         exercises.reduce(0) { acc, ex in
-            acc + ex.sets.filter { $0.completed && !$0.isWarmup }.count
+            acc + ex.completedWorkingSets.count
         }
     }
 }

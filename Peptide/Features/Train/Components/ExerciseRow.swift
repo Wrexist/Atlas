@@ -11,8 +11,7 @@ struct ExerciseRow: View {
     var body: some View {
         HStack(spacing: Spacing.md) {
             ExerciseImageView(
-                imagePath: exercise.images.first,
-                muscleGroup: exercise.muscleGroup
+                exercise: exercise
             )
             .frame(width: 56, height: 56)
 
@@ -23,11 +22,10 @@ struct ExerciseRow: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
-                HStack(spacing: Spacing.xs) {
-                    musclePill
-                    equipmentPill
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Spacing.xs) { musclePill; equipmentPill }
+                    VStack(alignment: .leading, spacing: Spacing.xs) { musclePill; equipmentPill }
                 }
-                .lineLimit(1)
             }
 
             Spacer(minLength: Spacing.xs)

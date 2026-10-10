@@ -84,13 +84,17 @@ extension ScannedProduct {
     /// field the product doesn't have (e.g. `.servings` on a product
     /// with no per-serving weight).
     func loggable(for portion: Portion) -> LoggableMeal? {
-        guard let grams = grams(for: portion), grams > 0 else { return nil }
+        guard let grams = grams(for: portion), grams.isFinite, grams > 0 else { return nil }
         let multiplier = grams / 100.0
+        guard [per100g.calories, per100g.proteinG, per100g.carbsG, per100g.fatG]
+            .allSatisfy({ $0.isFinite && ($0 * multiplier).isFinite && abs($0 * multiplier) < Double(Int.max) }) else { return nil }
         return LoggableMeal(
             calories: roundedNonNegative(per100g.calories * multiplier),
             proteinG: roundedNonNegative(per100g.proteinG * multiplier),
             carbsG:   roundedNonNegative(per100g.carbsG * multiplier),
-            fatG:     roundedNonNegative(per100g.fatG * multiplier)
+            fatG:     roundedNonNegative(per100g.fatG * multiplier),
+            components: [MealFoodComponent(id: barcode, name: name, grams: grams, servingGrams: servingGrams,
+                                           servingLabel: servingSizeText, per100g: per100g, sourceID: barcode)]
         )
     }
 
@@ -145,4 +149,5 @@ struct LoggableMeal: Hashable, Sendable {
     let proteinG: Int
     let carbsG: Int
     let fatG: Int
+    var components: [MealFoodComponent]? = nil
 }

@@ -49,6 +49,11 @@ struct FoodLibraryFlow: View {
     @State private var portion: ScannedProduct.Portion = .grams(100)
     @State private var category: MealCategory = MealCategory.auto(for: Date())
     @State private var loggedSnapshot: LoggedSnapshot?
+    @State private var lastLoggedEntry: MealEntry?
+    @State private var mealSaveError: String?
+    @State private var editingExactPortion = false
+    @State private var loggedHistoryBarcode: String?
+    @State private var historyWriteTask: Task<Void, Never>?
     @State private var editingCustomFood: CustomFood?
     @State private var pendingDelete: CustomFood?
     @State private var editingRecipe: Recipe?
@@ -56,6 +61,7 @@ struct FoodLibraryFlow: View {
     /// Recipe waiting on a category-pick before logging. Drives a
     /// quick MealCategoryPicker confirm step that defaults to the
     /// time-of-day auto-category but lets the user re-route.
+    @State private var recipeToRepair: Recipe?
     @State private var pendingRecipeLog: Recipe?
     /// Cached `ScannedProduct`s pulled from `BarcodeProductCache` for
     /// every favorited OFF barcode. Populated when the user lands on
@@ -94,7 +100,7 @@ struct FoodLibraryFlow: View {
     enum Phase: Equatable {
         case browse        // search + tabs + result list
         case review        // chose a food → portion picker → log
-        case logged        // success screen with Undo + auto-close
+        case logged        // success screen with persistent Undo
     }
 
     // MARK: - Portion picker tuning
@@ -189,17 +195,11 @@ struct FoodLibraryFlow: View {
         }
         .task(id: query) { await runDebouncedSearch() }
         .task(id: debouncedQuery) { await runSearch() }
-        .task(id: phase) {
-            guard phase == .logged else { return }
-            try? await Task.sleep(for: AppAnimation.logSuccessAutoCloseDelay)
-            // Re-check phase after the sleep — a user tap on Undo or
-            // Done that lands in the final window before the timer
-            // fires would otherwise let both paths call `onClose()`,
-            // which is a no-op today but a foot-gun the moment
-            // `onClose` does anything non-idempotent.
-            guard !Task.isCancelled, phase == .logged else { return }
-            onClose()
-        }
+        .alert("Meal action failed", isPresented: Binding(
+            get: { mealSaveError != nil }, set: { if !$0 { mealSaveError = nil } }
+        )) {
+            Button("OK", role: .cancel) { mealSaveError = nil }
+        } message: { Text(mealSaveError ?? "Please retry.") }
         .task(id: favoritesTaskID) {
             // Single task driving the Favorites tab's data refresh.
             // Re-fires on either tab change or favorite-set change
@@ -299,16 +299,29 @@ struct FoodLibraryFlow: View {
         } message: { _ in
             Text("Past meal logs aren't affected — only the recipe disappears from your library.")
         }
-        .sheet(item: $pendingRecipeLog) { recipe in
+        .sheet(isPresented: $editingExactPortion) {
+            if let product = selectedProduct, let component = product.loggable(for: portion)?.components?.first {
+                FoodPortionEditor(component: component) { portion = .grams($0) }
+            }
+        }
+        .sheet(item: $pendingRecipeLog, onDismiss: {
+            if let recipeToRepair {
+                editingRecipe = recipeToRepair
+                self.recipeToRepair = nil
+            }
+        }) { recipe in
             RecipeLogConfirmSheet(
                 recipe: recipe,
                 customFoods: profile.customFoods,
                 onLog: { category in
-                    dataStore.logRecipe(recipe, category: category, at: logTimestamp())
+                    guard let entry = dataStore.logRecipe(recipe, category: category, at: logTimestamp()) else { return false }
+                    showLogged(entry)
                     pendingRecipeLog = nil
-                    onClose()
+                    return true
                 },
-                onCancel: { pendingRecipeLog = nil }
+                onCancel: { pendingRecipeLog = nil },
+                logDate: logTimestamp(),
+                onEdit: { recipeToRepair = recipe; pendingRecipeLog = nil }
             )
         }
     }
@@ -522,10 +535,12 @@ struct FoodLibraryFlow: View {
     }
 
     private func recipeRow(_ recipe: Recipe) -> some View {
-        let totals = RecipeDataLogic.totals(
+        let review = RecipeDataLogic.review(
             for: recipe,
             customFoods: profile.customFoods
         )
+        let summary = review.totals.map { "\(recipe.components.count) ingredients - \($0.calories) kcal" }
+            ?? "Check ingredients before logging"
         return Button {
             // Tap row → schedule the log (with auto-category).
             // The category picker confirms.
@@ -545,7 +560,7 @@ struct FoodLibraryFlow: View {
                         .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
-                    Text("\(recipe.components.count) item\(recipe.components.count == 1 ? "" : "s") · \(totals.calories) kcal")
+                    Text(summary)
                         .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
@@ -579,10 +594,11 @@ struct FoodLibraryFlow: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(recipe.name), \(recipe.components.count) ingredients, \(totals.calories) calories. Tap to log.")
+        .accessibilityLabel("\(recipe.name), \(recipe.components.count) ingredients, \(summary). Tap to log.")
     }
 
     @ViewBuilder
+
     private var allTabBody: some View {
         if !debouncedQuery.isEmpty {
             // Search-active: show OFF results + matching custom foods
@@ -861,7 +877,7 @@ struct FoodLibraryFlow: View {
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.rowAccessibilityLabel(name: product.name, brand: product.brand, n: product.per100g))
-        .accessibilityHint("Opens the portion picker to log this food. Use the plus button to log instantly with the default portion.")
+        .accessibilityHint("Opens the portion picker to log this food. Use the plus button to log your last valid amount, or the default portion if none is saved.")
     }
 
     private func customFoodRow(_ food: CustomFood) -> some View {
@@ -900,7 +916,7 @@ struct FoodLibraryFlow: View {
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.rowAccessibilityLabel(name: food.name, brand: food.brand ?? "Custom food", n: food.per100g))
-        .accessibilityHint("Opens the portion picker to log this food. Use the plus button to log instantly with the default portion.")
+        .accessibilityHint("Opens the portion picker to log this food. Use the plus button to log your last valid amount, or the default portion if none is saved.")
         .contextMenu {
             Button {
                 editingCustomFood = food
@@ -1035,8 +1051,8 @@ struct FoodLibraryFlow: View {
     }
 
     /// One-tap log shortcut on each row. Skips the portion picker and
-    /// logs the product's default portion (1 serving when available,
-    /// else 100 g) tagged with `MealCategory.auto(for: Date())`. The
+    /// uses the last valid amount, falling back to the default (1 serving when available,
+    /// else a known small package or 100 g), categorized for the logged date. The
     /// 1.5-second "Logged ✓" overlay disables the button + gives
     /// visual feedback so a fat-fingered double-tap can't log twice.
     /// For everything else — multiple servings, a different category,
@@ -1067,9 +1083,9 @@ struct FoodLibraryFlow: View {
                 .minimumHitArea()
         }
         .buttonStyle(.plain)
-        .disabled(inFlight || product.loggable(for: product.defaultPortion) == nil)
+        .disabled(inFlight || product.loggable(for: preferredPortion(for: product)) == nil)
         .accessibilityLabel("Quick log \(product.name)")
-        .accessibilityHint("Logs the default portion immediately without opening the portion picker.")
+        .accessibilityHint("Logs your last valid amount, or the default portion if none is saved. Undo is available after saving.")
     }
 
     /// Semi-transparent "Logged ✓" wash drawn on top of the row's
@@ -1112,7 +1128,7 @@ struct FoodLibraryFlow: View {
         }
     }
 
-    /// Builds a MealEntry from the product's default portion + the
+    /// Builds a MealEntry from the last valid or default portion + the
     /// current time-of-day category and hands it to the DataStore.
     /// Mirrors `confirmLog(for:)`'s persistence and history wiring
     /// without the review-sheet detour — the user gets identical
@@ -1120,8 +1136,9 @@ struct FoodLibraryFlow: View {
     /// timed dismissal of the "Logged ✓" overlay live here so the
     /// row knows when to come back to its idle look.
     private func performQuickLog(_ product: ScannedProduct) {
-        guard recentlyQuickLogged[product.barcode] == nil,
-              let meal = product.loggable(for: product.defaultPortion) else { return }
+        let chosen = preferredPortion(for: product)
+        guard phase == .browse, recentlyQuickLogged[product.barcode] == nil,
+              let meal = product.loggable(for: chosen) else { return }
         let now = Date()
         let loggedAt = logTimestamp()
         // Auto-category captured once at log time and reused for
@@ -1138,16 +1155,11 @@ struct FoodLibraryFlow: View {
             sourceID: product.barcode,
             date: loggedAt
         )
-        dataStore.logMealEntry(entry)
+        guard commitLibraryEntry(entry) else { return }
         BarcodeHaptics.logCommitted()
         let barcode = product.barcode
-        let chosen = product.defaultPortion
         if !barcode.hasPrefix("custom:") {
-            let productSnapshot = product
-            Task {
-                await BarcodeScanHistory.shared.recordLog(barcode: barcode, portion: chosen, at: now)
-                await BarcodeProductCache.shared.write(productSnapshot)
-            }
+            recordHistory(product, portion: chosen, at: now)
         }
         showQuickLogged(foodID: product.barcode, category: loggedCategory)
     }
@@ -1156,8 +1168,8 @@ struct FoodLibraryFlow: View {
     /// the viewed day at the current clock time, keeping its category.
     private func relogMeal(_ meal: MealEntry) {
         let foodID = Self.recentMealFoodID(meal)
-        guard recentlyQuickLogged[foodID] == nil else { return }
-        dataStore.logMealEntry(LifestyleDataLogic.relogged(meal, at: logTimestamp()))
+        guard phase == .browse, recentlyQuickLogged[foodID] == nil else { return }
+        guard commitLibraryEntry(LifestyleDataLogic.relogged(meal, at: logTimestamp())) else { return }
         BarcodeHaptics.logCommitted()
         showQuickLogged(foodID: foodID, category: meal.category)
     }
@@ -1370,6 +1382,13 @@ struct FoodLibraryFlow: View {
                 }
 
                 portionDetail(for: product)
+                Button("Enter exact grams") { editingExactPortion = true }
+                    .minimumHitArea()
+                if let grams = FoodLibraryLogic.previousGrams(for: product, history: profile.mealHistory) {
+                    Text("Last logged amount: \(grams.formatted()) g")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
             }
         }
     }
@@ -1548,9 +1567,7 @@ struct FoodLibraryFlow: View {
     @ViewBuilder
     private var loggedContent: some View {
         VStack(spacing: Spacing.lg) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 56, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
+            MilestoneArtwork(size: 64)
             Text(addedTitle)
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
@@ -1559,7 +1576,8 @@ struct FoodLibraryFlow: View {
                     productName: snapshot.foodName,
                     deltaCalories: snapshot.calories,
                     totalCalories: dataStore.consumption(for: snapshot.date).caloriesKcal,
-                    targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories
+                    targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories,
+                    date: snapshot.date
                 )
             }
             VStack(spacing: Spacing.sm) {
@@ -1567,6 +1585,7 @@ struct FoodLibraryFlow: View {
                     undoLastLog()
                 }
 
+                GlassButton(title: "Log another food", style: .secondary) { backToBrowse() }
                 GlassButton(title: "Done", style: .ghost) { onClose() }
             }
             .padding(.top, Spacing.sm)
@@ -1610,12 +1629,12 @@ struct FoodLibraryFlow: View {
 
     private func select(_ product: ScannedProduct) {
         selectedProduct = product
-        portion = product.defaultPortion
+        portion = preferredPortion(for: product)
         // Re-evaluate the auto-category against the wall clock each
         // time we open a review — fixes the case where a user opens
         // the library at 10:55 (defaults to breakfast), browses for a
         // few minutes, then logs at 11:05 expecting lunch.
-        category = MealCategory.auto(for: Date())
+        category = MealCategory.auto(for: logTimestamp())
         phase = .review
         searchFieldFocused = false
         BarcodeHaptics.lookupSuccess()
@@ -1628,7 +1647,7 @@ struct FoodLibraryFlow: View {
     }
 
     private func confirmLog(for product: ScannedProduct) {
-        guard let meal = product.loggable(for: portion) else { return }
+        guard phase == .review, let meal = product.loggable(for: portion) else { return }
         let now = Date()
         let source: MealSource = product.barcode.hasPrefix("custom:") ? .custom : .openFoodFacts
         let entry = MealEntry(
@@ -1639,7 +1658,7 @@ struct FoodLibraryFlow: View {
             sourceID: product.barcode,
             date: logTimestamp()
         )
-        dataStore.logMealEntry(entry)
+        guard commitLibraryEntry(entry) else { return }
         BarcodeHaptics.logCommitted()
         loggedSnapshot = LoggedSnapshot(
             foodName: product.name,
@@ -1663,31 +1682,65 @@ struct FoodLibraryFlow: View {
             // `BarcodeProductCache` and don't show up in the
             // "Recently logged" row that powers both this view's
             // landing page and BarcodeScanFlow's recents strip.
-            let productSnapshot = product
-            Task {
-                await BarcodeScanHistory.shared.recordLog(barcode: barcode, portion: chosen, at: now)
-                await BarcodeProductCache.shared.write(productSnapshot)
-            }
+            recordHistory(product, portion: chosen, at: now)
         }
         phase = .logged
     }
 
-    private func undoLastLog() {
-        guard let snapshot = loggedSnapshot else {
-            onClose()
-            return
+    private func preferredPortion(for product: ScannedProduct) -> ScannedProduct.Portion {
+        FoodLibraryLogic.previousGrams(for: product, history: profile.mealHistory).map { .grams($0) }
+            ?? product.defaultPortion
+    }
+
+    private func showLogged(_ entry: MealEntry) {
+        lastLoggedEntry = entry
+        loggedHistoryBarcode = nil
+        loggedSnapshot = LoggedSnapshot(foodName: entry.name, entryID: entry.id,
+                                        calories: entry.calories, date: entry.date)
+        phase = .logged
+    }
+
+    private func commitLibraryEntry(_ entry: MealEntry) -> Bool {
+        do {
+            try dataStore.commitScannedMeals([entry])
+            showLogged(entry)
+            return true
+        } catch {
+            mealSaveError = "Couldn't save the meal. Nothing was added. Please retry."
+            return false
         }
-        // Transition out of `.logged` *first* so the auto-close task
-        // (`.task(id: phase)`) is cancelled by SwiftUI before its
-        // sleep resolves — otherwise the timer fires `onClose()`
-        // again after the undo path already called it.
-        phase = .browse
-        // Removing the entry rolls back the aggregate in one step,
-        // so we don't need to keep the macro values around for an
-        // explicit `unlogMeal` call.
-        dataStore.unlogMealEntry(id: snapshot.entryID)
-        BarcodeHaptics.logUndone()
-        onClose()
+    }
+
+    private func recordHistory(_ product: ScannedProduct, portion: ScannedProduct.Portion, at date: Date) {
+        loggedHistoryBarcode = product.barcode
+        let previous = historyWriteTask
+        historyWriteTask = Task {
+            await previous?.value
+            await BarcodeScanHistory.shared.recordLog(barcode: product.barcode, portion: portion, at: date)
+            await BarcodeProductCache.shared.write(product)
+        }
+    }
+
+    private func undoLastLog() {
+        guard phase == .logged, let entry = lastLoggedEntry else { return }
+        do {
+            try dataStore.commitScannedMeals([entry], undo: true)
+            if let barcode = loggedHistoryBarcode {
+                let previous = historyWriteTask
+                historyWriteTask = Task {
+                    await previous?.value
+                    await BarcodeScanHistory.shared.undoLog(barcode: barcode)
+                }
+            }
+            lastLoggedEntry = nil
+            loggedSnapshot = nil
+            loggedHistoryBarcode = nil
+            recentlyQuickLogged.removeAll()
+            backToBrowse()
+            BarcodeHaptics.logUndone()
+        } catch {
+            mealSaveError = "Couldn't undo. The meal is still saved. Please retry."
+        }
     }
 
     // MARK: - Search debouncing
@@ -1705,14 +1758,14 @@ struct FoodLibraryFlow: View {
 
     /// Fires when `debouncedQuery` actually changes — the network call.
     /// Cleared queries short-circuit so empty searches don't hit OFF.
-    /// `defer` reliably clears the spinner even when the task is
-    /// cancelled mid-await — without it, fast typists would see the
-    /// skeleton loader hang until the next non-cancelled search.
+    /// Only the current search may clear its loading indicator.
     private func runSearch() async {
-        defer { isSearching = false }
-
         let trimmed = debouncedQuery
+        defer {
+            if !Task.isCancelled, trimmed == debouncedQuery { isSearching = false }
+        }
         guard trimmed.count >= Self.minimumSearchQueryLength else {
+            isSearching = false
             results = []
             searchError = nil
             return
@@ -1723,7 +1776,7 @@ struct FoodLibraryFlow: View {
         do {
             let hits = try await OpenFoodFactsService.shared.search(query: trimmed)
             guard !Task.isCancelled, trimmed == debouncedQuery else { return }
-            results = hits
+            results = FoodLibraryLogic.ranked(hits, query: trimmed)
             isOffline = false
         } catch let lookupError as OpenFoodFactsService.LookupError {
             guard !Task.isCancelled, trimmed == debouncedQuery else { return }

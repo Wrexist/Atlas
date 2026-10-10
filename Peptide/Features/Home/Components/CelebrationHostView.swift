@@ -43,7 +43,7 @@ struct CelebrationHostView: View {
                 Color.black.opacity(0.35)
                     .ignoresSafeArea()
                     .transition(.opacity)
-                    .onTapGesture { withAnimation(AppAnimation.springSmooth) { self.levelUp = nil } }
+                    .onTapGesture { withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) { self.levelUp = nil } }
 
                 CelebrationOverlayView(
                     level: levelUp.level,
@@ -54,7 +54,7 @@ struct CelebrationHostView: View {
                 .id(levelUp.id)
             }
 
-            if let burst {
+            if let burst, !reduceMotion {
                 ConfettiView(colors: burst.colors, intensity: burst.intensity)
                     .id(burst.id)
             }
@@ -62,7 +62,7 @@ struct CelebrationHostView: View {
         // Only the level-up dim is interactive; confetti must never steal
         // touches from the app behind it.
         .allowsHitTesting(levelUp != nil)
-        .animation(AppAnimation.springSmooth, value: levelUp?.id)
+        .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: levelUp?.id)
         .task(id: center.current?.id) { await present(center.current) }
         .task(id: achievements.latestUnlock?.id) { presentAchievementConfetti() }
     }
@@ -81,7 +81,9 @@ struct CelebrationHostView: View {
             )
             // Brief pace so a flurry of completions doesn't stack overlays;
             // the burst manages its own (longer) lifetime.
-            try? await Task.sleep(for: .seconds(allHabitsDone ? 1.0 : 0.45))
+            do {
+                try await Task.sleep(for: .seconds(allHabitsDone ? 1.0 : 0.45))
+            } catch { return }
             center.acknowledgeCurrent()
 
         case let .levelUp(level, tierName, tierSymbol, tintHex):
@@ -91,7 +93,7 @@ struct CelebrationHostView: View {
                 colors: [tint, AppColor.accentLight, AppColor.accentPrimary],
                 intensity: 110
             )
-            withAnimation(AppAnimation.springSmooth) {
+            withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) {
                 levelUp = LevelUpPresentation(
                     id: event.id,
                     level: level,
@@ -100,14 +102,19 @@ struct CelebrationHostView: View {
                     tint: tint
                 )
             }
-            try? await Task.sleep(for: .seconds(2.6))
-            withAnimation(AppAnimation.springSmooth) { levelUp = nil }
+            do {
+                try await Task.sleep(for: .seconds(2.6))
+            } catch { return }
+            withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) { levelUp = nil }
             center.acknowledgeCurrent()
         }
     }
 
     private func presentAchievementConfetti() {
-        guard achievements.latestUnlock != nil else { return }
+        // The achievement toast carries its own artwork. Avoid replacing an
+        // in-flight habit/level-up burst with a second celebration for one tap.
+        guard achievements.latestUnlock != nil, center.current == nil,
+              levelUp == nil, burst == nil else { return }
         triggerBurst(colors: [AppColor.achievement, AppColor.accentLight], intensity: 60)
     }
 

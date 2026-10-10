@@ -133,7 +133,7 @@ struct RecipeEditorSheet: View {
         )
         return GlassCard(tinted: true, padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Logs as")
+                Text(RecipeDataLogic.review(for: livePreview, customFoods: availableCustomFoods).totals == nil ? "Partial preview · Fix missing foods or portions before logging" : "Logs as")
                     .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(0.6)
                     .textCase(.uppercase)

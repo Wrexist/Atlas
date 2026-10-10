@@ -43,6 +43,8 @@ final class StoredWorkoutSession {
     var finishedAt: Date?
     var note: String?
     var perceivedEffort: Int?
+    /// Optional JSON focus/rest state; nil for pre-focus sessions.
+    var focusData: Data?
     /// JSON-encoded `[WorkoutExerciseEntry]`. See `WorkoutSession.swift`.
     var exercisesData: Data = Data()
     /// Cached totals, recomputed on every write. Lets the history
@@ -63,7 +65,8 @@ final class StoredWorkoutSession {
         perceivedEffort: Int?,
         exercisesData: Data,
         totalVolumeKg: Double,
-        completedSetCount: Int
+        completedSetCount: Int,
+        focusData: Data? = nil
     ) {
         self.id = id
         self.name = name
@@ -76,6 +79,7 @@ final class StoredWorkoutSession {
         self.exercisesData = exercisesData
         self.totalVolumeKg = totalVolumeKg
         self.completedSetCount = completedSetCount
+        self.focusData = focusData
     }
 
     static func make(from session: WorkoutSession) throws -> StoredWorkoutSession {
@@ -91,7 +95,8 @@ final class StoredWorkoutSession {
             perceivedEffort: session.perceivedEffort,
             exercisesData: data,
             totalVolumeKg: session.totalVolumeKg,
-            completedSetCount: session.completedSetCount
+            completedSetCount: session.completedSetCount,
+            focusData: try session.focus.map { try trainingEncoder.encode($0) }
         )
     }
 
@@ -103,6 +108,7 @@ final class StoredWorkoutSession {
         finishedAt = session.finishedAt
         note = session.note
         perceivedEffort = session.perceivedEffort
+        focusData = try session.focus.map { try trainingEncoder.encode($0) }
         exercisesData = try trainingEncoder.encode(session.exercises)
         totalVolumeKg = session.totalVolumeKg
         completedSetCount = session.completedSetCount
@@ -119,7 +125,8 @@ final class StoredWorkoutSession {
             finishedAt: finishedAt,
             exercises: exercises,
             note: note,
-            perceivedEffort: perceivedEffort
+            perceivedEffort: perceivedEffort,
+            focus: try focusData.map { try trainingDecoder.decode(WorkoutFocusState.self, from: $0) }
         )
     }
 }

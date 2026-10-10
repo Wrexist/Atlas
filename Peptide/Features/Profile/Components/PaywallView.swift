@@ -135,24 +135,7 @@ struct PaywallView: View {
 
     private var header: some View {
         HStack(spacing: Spacing.sm) {
-            Image(systemName: "flask.fill")
-                .font(AppFont.scaled(20, weight: .bold))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [AppColor.accentLight, AppColor.accentPrimary],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 32, height: 32)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceElevated)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                        }
-                }
+            MilestoneArtwork(size: 40, style: .emblem)
 
             Text("Atlas Pro")
                 .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .title1))

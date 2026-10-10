@@ -24,6 +24,12 @@ on:
         default: ""
         type: string
 
+      test_filter:
+        description: "XCTest selector (blank captures all surfaces)"
+        required: false
+        default: ""
+        type: string
+
 permissions:
   contents: read
 
@@ -43,6 +49,11 @@ jobs:
 
       - name: Generate Xcode project
         run: xcodegen generate
+
+      - name: Validate exercise artwork catalog
+        run: |
+          python3 scripts/exercise-art-catalog.py --check
+          python3 scripts/anatomy-review.py
 
       - name: Pick a simulator
         # This workflow has never once run, so its hardcoded "iPhone 16"
@@ -77,9 +88,23 @@ jobs:
           echo "Using simulator $DEVICE_ID"
           echo "id=$DEVICE_ID" >> "$GITHUB_OUTPUT"
 
-      - name: Run screenshot UI test
+      - name: Validate training logic
         run: |
           xcodebuild test \
+            -parallel-testing-enabled NO \
+            -project Peptide.xcodeproj \
+            -scheme PeptideTrainingValidation \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.id }}" \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            -resultBundlePath TrainingTests.xcresult
+
+      - name: Run screenshot UI test
+        env:
+          TEST_FILTER: ${{ inputs.test_filter }}
+        run: |
+          xcodebuild test \
+            -parallel-testing-enabled NO \
             -project Peptide.xcodeproj \
             -scheme PeptideUICapture \
             -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.id }}" \
@@ -87,7 +112,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            -only-testing:PeptideUITests/ScreenshotTests \
+            "-only-testing:PeptideUITests/ScreenshotTests${TEST_FILTER:+/$TEST_FILTER}" \
             -resultBundlePath Screenshots.xcresult
 
       - name: Export screenshots from xcresult
@@ -100,6 +125,9 @@ jobs:
           xcrun xcresulttool export attachments \
             --path Screenshots.xcresult \
             --output-path screenshots || true
+          xcrun xcresulttool export attachments \
+            --path TrainingTests.xcresult \
+            --output-path screenshots/training || true
           ls -laR screenshots || true
 
       - name: Upload screenshots
@@ -110,3 +138,34 @@ jobs:
           path: screenshots/**
           if-no-files-found: warn
           retention-days: 14
+
+  unit-tests:
+    name: Full unit tests
+    runs-on: macos-15
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Install tools
+        run: brew install xcodegen swiftlint
+      - name: Generate project
+        run: xcodegen generate
+      - name: SwiftLint
+        run: swiftlint lint --reporter github-actions-logging
+      - name: Run complete unit suite
+        run: |
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin); print(next(x['udid'] for r in d['devices'].values() for x in r if 'iPhone' in x['name']))")
+          xcodebuild test -project Peptide.xcodeproj -scheme Peptide \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -parallel-testing-enabled NO -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO -only-testing:PeptideTests \
+            -resultBundlePath UnitTests.xcresult
+      - name: Upload unit test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-unit-test-results
+          path: UnitTests.xcresult
+          if-no-files-found: warn

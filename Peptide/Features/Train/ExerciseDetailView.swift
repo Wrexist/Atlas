@@ -1,14 +1,10 @@
 import SwiftUI
 
-/// Full-screen drill-in for a single exercise. Header carousel, raw
-/// metadata pills (force, mechanic, level), muscle breakdown, and
-/// step-by-step instructions. The "Add to workout" CTA is disabled
-/// until the active-workout screen lands in a follow-on commit; it
-/// appears in the layout so the surface design is final at this
-/// stage.
+/// Shared exercise artwork, metadata, muscle breakdown and instructions.
 struct ExerciseDetailView: View {
     let exerciseID: String
     @State private var library = ExerciseLibrary.shared
+    @State private var loading = true
 
     private var exercise: Exercise? {
         library.lookup(id: exerciseID)
@@ -20,6 +16,7 @@ struct ExerciseDetailView: View {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     header(for: exercise)
                     metadataRow(for: exercise)
+                    ExerciseHistorySection(exercise: exercise)
                     muscleSection(for: exercise)
                     instructionsSection(for: exercise)
                 }
@@ -27,22 +24,33 @@ struct ExerciseDetailView: View {
                 .padding(.bottom, Spacing.xxxxl)
             } else if library.isLoaded {
                 missingState
-            } else {
+            } else if loading {
                 // Library hasn't finished loading — don't flash a
                 // false "not found" before the async load completes.
                 loadingState
+            } else {
+                VStack(spacing: Spacing.md) {
+                    Text("Couldn't load the exercise library.")
+                    Button("Retry") { Task { await loadLibrary() } }.minimumHitArea()
+                }.padding(Spacing.screenPadding)
             }
         }
         .background(AppColor.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
-        .task { await library.load() }
+        .task { await loadLibrary() }
+    }
+
+    private func loadLibrary() async {
+        loading = true
+        await library.load()
+        loading = false
     }
 
     // MARK: - Header
 
     private func header(for exercise: Exercise) -> some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            imageCarousel(for: exercise)
+            exerciseArtwork(for: exercise)
                 .frame(height: 240)
 
             Text(exercise.name)
@@ -53,43 +61,16 @@ struct ExerciseDetailView: View {
         .padding(.top, Spacing.sm)
     }
 
-    @ViewBuilder
-    private func imageCarousel(for exercise: Exercise) -> some View {
-        if exercise.images.isEmpty {
-            ExerciseImageView(
-                imagePath: nil,
-                muscleGroup: exercise.muscleGroup,
-                cornerRadius: Spacing.cardCornerRadius,
-                contentMode: .fit
-            )
-        } else if exercise.images.count == 1 {
-            ExerciseImageView(
-                imagePath: exercise.images[0],
-                muscleGroup: exercise.muscleGroup,
-                cornerRadius: Spacing.cardCornerRadius
-            )
-        } else {
-            // Two images per bundled exercise — start + end position.
-            // TabView paging gives a swipe affordance that beats
-            // stacking the frames in a vertical strip.
-            TabView {
-                ForEach(Array(exercise.images.enumerated()), id: \.offset) { _, path in
-                    ExerciseImageView(
-                        imagePath: path,
-                        muscleGroup: exercise.muscleGroup,
-                        cornerRadius: Spacing.cardCornerRadius
-                    )
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .always))
-            .indexViewStyle(.page(backgroundDisplayMode: .always))
-        }
+    private func exerciseArtwork(for exercise: Exercise) -> some View {
+        ExerciseHeroView(exercise: exercise)
+            .padding(Spacing.md)
+            .background(AppColor.trainingBackground, in: RoundedRectangle(cornerRadius: Spacing.cardCornerRadius))
     }
 
     // MARK: - Metadata pills
 
     private func metadataRow(for exercise: Exercise) -> some View {
-        HStack(spacing: Spacing.xs) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), alignment: .leading)], alignment: .leading, spacing: Spacing.xs) {
             metadataPill(
                 icon: exercise.equipmentKind.symbolName,
                 label: exercise.equipmentKind.displayName
@@ -149,7 +130,11 @@ struct ExerciseDetailView: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
-                MuscleMapView(highlights: MuscleMapView.highlights(for: exercise))
+                MuscleMapView(
+                    highlights: MuscleMapView.highlights(for: exercise),
+                    primaryColor: AppColor.trainingPrimaryMuscle,
+                    secondaryColor: AppColor.trainingSecondaryMuscle
+                )
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 280)
 
@@ -164,14 +149,14 @@ struct ExerciseDetailView: View {
                 muscleLegendCluster(
                     title: "Primary",
                     muscles: exercise.primaryMuscles,
-                    swatch: AppColor.negative
+                    swatch: AppColor.trainingPrimaryMuscle
                 )
             }
             if !exercise.secondaryMuscles.isEmpty {
                 muscleLegendCluster(
-                    title: "Secondary",
+                    title: "Supporting",
                     muscles: exercise.secondaryMuscles,
-                    swatch: AppColor.belowRange
+                    swatch: AppColor.trainingSecondaryMuscle
                 )
             }
         }
@@ -248,7 +233,8 @@ struct ExerciseDetailView: View {
 
 #Preview {
     NavigationStack {
-        ExerciseDetailView(exerciseID: "Barbell_Bench_Press")
+        ExerciseDetailView(exerciseID: "Barbell_Bench_Press_-_Medium_Grip")
     }
+    .environment(DataStore())
     .preferredColorScheme(.dark)
 }

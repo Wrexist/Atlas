@@ -41,8 +41,7 @@ struct WorkoutExerciseCard: View {
     private var header: some View {
         HStack(spacing: Spacing.sm) {
             ExerciseImageView(
-                imagePath: exercise?.images.first,
-                muscleGroup: exercise?.muscleGroup ?? .fullBody
+                exercise: exercise
             )
             .frame(width: 44, height: 44)
 
