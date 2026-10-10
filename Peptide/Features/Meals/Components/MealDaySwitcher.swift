@@ -1,30 +1,41 @@
 import SwiftUI
 
-/// Compact day stepper for the Meals tab: chevrons walk back and
-/// forward a day, tapping the title jumps back to today. Driven by a
-/// day offset (0 = today, -1 = yesterday) so a screen left open past
-/// midnight keeps meaning "today". Never steps into the future.
+/// Day picker for the Meals tab: a week strip to tap any day, chevrons
+/// to page a week back or forward, and a title that jumps back to today.
+/// Driven by a day offset (0 = today, -1 = yesterday) so a screen left
+/// open past midnight keeps meaning "today". Never selects the future.
 struct MealDaySwitcher: View {
     @Binding var offset: Int
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private var day: Date { LifestyleDataLogic.mealDay(offset: offset) }
     private var isToday: Bool { offset >= 0 }
-    private var isAtOldest: Bool { offset <= -LifestyleDataLogic.maxMealDayLookback }
+    private var week: Range<Int> { WeekDayStrip.weekOffsets(containing: offset) }
+    private var isAtOldestWeek: Bool { week.lowerBound <= -LifestyleDataLogic.maxMealDayLookback }
+    private var isAtCurrentWeek: Bool { week.contains(0) }
 
     var body: some View {
-        HStack(spacing: Spacing.xs) {
-            chevron(
-                "chevron.left",
-                label: "Previous day",
-                isDisabled: isAtOldest
-            ) { step(-1) }
+        VStack(spacing: Spacing.xs) {
+            header
+            WeekDayStrip(offset: $offset)
+        }
+        .padding(Spacing.xs)
+        .glassControl(
+            .rect(cornerRadius: Spacing.controlCornerRadius),
+            tint: AppColor.accentPrimary.opacity(0.08),
+            border: AppColor.glassBorder
+        )
+    }
 
+    private var header: some View {
+        HStack(spacing: Spacing.xs) {
             Button {
                 guard !isToday else { return }
                 Haptics.selection()
-                withAnimation(AppAnimation.springSnappy) { offset = 0 }
+                withAnimation(motion) { offset = 0 }
             } label: {
-                VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 0) {
                     Text(Self.title(for: day))
                         .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
@@ -34,7 +45,7 @@ struct MealDaySwitcher: View {
                             .foregroundStyle(AppColor.accentLight)
                     }
                 }
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .minimumHitArea()
             }
             .buttonStyle(.plain)
@@ -42,17 +53,22 @@ struct MealDaySwitcher: View {
             .accessibilityHint(isToday ? Text("") : Text("Jumps back to today."))
 
             chevron(
+                "chevron.left",
+                label: "Previous week",
+                isDisabled: isAtOldestWeek
+            ) { step(-7) }
+
+            chevron(
                 "chevron.right",
-                label: "Next day",
-                isDisabled: isToday
-            ) { step(1) }
+                label: "Next week",
+                isDisabled: isAtCurrentWeek
+            ) { step(7) }
         }
-        .padding(.horizontal, Spacing.xs)
-        .glassControl(
-            .rect(cornerRadius: Spacing.controlCornerRadius),
-            tint: AppColor.accentPrimary.opacity(0.08),
-            border: AppColor.glassBorder
-        )
+        .padding(.leading, Spacing.sm)
+    }
+
+    private var motion: Animation? {
+        AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)
     }
 
     private func chevron(
@@ -72,9 +88,11 @@ struct MealDaySwitcher: View {
         .accessibilityLabel(label)
     }
 
+    /// Pages by a week but keeps the weekday, clamped to the lookback floor
+    /// and today — the clamped day always lands in the adjacent week.
     private func step(_ delta: Int) {
         Haptics.selection()
-        withAnimation(AppAnimation.springSnappy) {
+        withAnimation(motion) {
             offset = min(0, max(-LifestyleDataLogic.maxMealDayLookback, offset + delta))
         }
     }
