@@ -112,6 +112,9 @@ struct WorkoutShareView: View {
         }
         .aspectRatio(options.format.logicalSize.width / options.format.logicalSize.height, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius))
+        // `.contain` keeps the rendered card's and video player's own
+        // identifiers; without it this one overrides both.
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("workout-share-preview")
     }
 
