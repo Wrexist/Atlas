@@ -38,3 +38,17 @@ posters inside the binary is not the delivery architecture: a versioned media
 host, optimized exports, bounded downloads and offline caching remain necessary
 before publishing the complete poster collection. Do not point the app at local
 generator output paths or mark queue entries complete before files exist.
+
+## Start and finish photos
+
+Until an exercise has its own 3D poster, it shows its start and finish photos
+(alternating, with the muscle map inset) instead of the muscle map alone. The
+1,746 photos come from [free-exercise-db](https://github.com/yuhonas/free-exercise-db)
+(Unlicense, public domain), pinned to one commit, capped at 600 px and bundled
+in `Peptide/Resources/ExercisePhotos/` (about 46 MB) so they work offline.
+
+- `python3 scripts/exercise-photos.py` downloads and resizes any missing pair.
+- `python3 scripts/exercise-photos.py --check` verifies every catalog exercise
+  has both photos; `ExercisePhotosTests` asserts the same inside the app.
+- A 3D poster always wins over the photos. Share cards never show the photos:
+  a stock photo is not the user's own workout.
