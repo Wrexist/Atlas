@@ -418,8 +418,8 @@ final class ScreenshotTests: XCTestCase {
             capture(named: "body-\(appearance)-03b-back")
             bodySide.buttons["Both"].tap()
             let explore = app.buttons["explore-trained-muscles"]
-            reveal(explore)
-            explore.tap()
+            scrollOnScreen(explore)
+            explore.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             app.buttons["Upper chest"].firstMatch.tap()
             let selectedHistory = app.buttons["selected-muscle-history"]
             reveal(selectedHistory)
@@ -453,12 +453,19 @@ final class ScreenshotTests: XCTestCase {
 
     private func replaceField(_ identifier: String, with value: String) {
         let field = app.textFields[identifier]
-        reveal(field)
-        selectAll(in: field)
-        field.typeText(value)
-        app.buttons["Done"].firstMatch.tap()
-        let stored = (field.value as? String ?? "").replacingOccurrences(of: " reps", with: "")
-        XCTAssertTrue(stored == value || stored.hasPrefix(value + " "), "Expected \(value), found \(stored)")
+        var stored = ""
+        // The simulator occasionally drops keystrokes from a fast typeText
+        // ("22.5" lands as "22"); one retry separates that from a real
+        // formatting bug, which fails both attempts.
+        for _ in 0..<2 {
+            reveal(field)
+            selectAll(in: field)
+            field.typeText(value)
+            app.buttons["Done"].firstMatch.tap()
+            stored = (field.value as? String ?? "").replacingOccurrences(of: " reps", with: "")
+            if stored == value || stored.hasPrefix(value + " ") { return }
+        }
+        XCTFail("Expected \(value), found \(stored)")
     }
 
     /// Selects a field's whole value so typing replaces it. A trailing-edge
@@ -517,6 +524,21 @@ final class ScreenshotTests: XCTestCase {
             }
         }
         XCTAssertTrue(element.isHittable)
+    }
+
+    /// SwiftUI `Menu` buttons can report `isHittable == false` while fully on
+    /// screen, so this scrolls by frame instead and the caller taps by
+    /// coordinate. It only swipes up: the menus it serves sit below the
+    /// fold, and a swipe down at the top of a sheet dismisses it.
+    private func scrollOnScreen(_ element: XCUIElement) {
+        XCTAssertTrue(element.waitForExistence(timeout: 10))
+        let window = app.windows.firstMatch.frame
+        for _ in 0..<6 {
+            let frame = element.frame
+            if frame.minY >= window.minY + 100 && frame.maxY <= window.maxY - 120 { return }
+            app.swipeUp()
+        }
+        XCTFail("\(element.identifier) never scrolled on screen")
     }
 
     private func scrollToTop() {
