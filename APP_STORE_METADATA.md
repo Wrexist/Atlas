@@ -81,14 +81,14 @@ New in 1.3: train one exercise at a time with a muscle map, get a recap after ev
 ## Keywords *(100 char limit — comma-separated, NO spaces after commas)*
 
 ```
-calorie counter,gym,nutrition,hrv,sleep,supplement,peptide,strength,protein,food,biohacker
+calorie counter,gym,nutrition,hrv,sleep,strength,protein,food,lifting,meal,barcode,muscle,weight
 ```
-*(90 / 100)*
+*(96 / 100)*
 
 > **ASO rationale — no keyword is wasted:**
 > The Name field already indexes *atlas*, *fitness*, *recovery*.
 > The Subtitle field already indexes *workout*, *log*, *macros*, *habits*.
-> The keyword field adds ten distinct search intents that are NOT
+> The keyword field adds distinct search intents that are NOT
 > covered above:
 >
 > | Term | Why it's here |
@@ -96,14 +96,17 @@ calorie counter,gym,nutrition,hrv,sleep,supplement,peptide,strength,protein,food
 > | `calorie counter` | Top-5 most-searched nutrition term on App Store |
 > | `gym` | Highest-volume single-word fitness intent |
 > | `nutrition` | Broad nutrition discovery (distinct from *macros*) |
-> | `hrv` | High-intent recovery/biohacker audience; low competition |
+> | `hrv` | High-intent recovery audience; low competition |
 > | `sleep` | Cross-sell from Sleep category searches |
-> | `supplement` | Bridges general supplement trackers to the protocol feature |
-> | `peptide` | Exact-match for the advanced audience; near-zero competition |
 > | `strength` | Differentiates from cardio/yoga apps; weight-training intent |
 > | `protein` | High-volume macro-tracking sub-term |
 > | `food` | Catches food-diary and food-log queries |
-> | `biohacker` | Premium niche; converts at high rate for Pro tier |
+> | `lifting` / `strength` / `muscle` | Weight-training intent the 1.3 training screens serve |
+> | `meal` / `barcode` | Food-logging queries ("meal log", "barcode scanner") |
+> | `weight` | Weight-tracking and weight-loss discovery |
+>
+> `peptide`, `supplement` and `biohacker` were dropped in 1.3: they invite
+> App Review scrutiny of unapproved-compound content (Guideline 1.4.3).
 
 ---
 
@@ -128,8 +131,8 @@ Rest timer fires automatically and sends a Lock Screen alert when you're ready.
 ——
 
 NUTRITION
-Snap a photo and Atlas identifies the food. Scan a barcode from 200 million+
-products. Either way, macros are logged in seconds.
+Snap a photo and Atlas identifies the food, or scan a barcode from millions
+of products. Either way, macros are logged in seconds.
 • AI photo meal scanner — 3 free scans a week, never stored by Atlas
 • Barcode database with millions of products (Open Food Facts)
 • Daily calorie and macro rings with TDEE-based targets
@@ -209,7 +212,7 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 941 / 4 000 — 59 chars of headroom. The SUBSCRIPTION TERMS block and
+*(3 943 / 4 000 — 57 chars of headroom. The SUBSCRIPTION TERMS block and
 both links are required by Guideline 3.1.2 — do not trim them to make room
 for copy.)*
 
@@ -749,7 +752,7 @@ Run through every item before hitting Submit in App Store Connect.
 - [ ] Subtitle: `Workout Log, Macros & Habits`
 - [ ] Keywords pasted exactly (90 chars, no spaces after commas)
 - [ ] Promotional Text pasted (155 chars)
-- [ ] Description pasted (3 941 chars)
+- [ ] Description pasted (3 943 chars)
 - [ ] What's New pasted
 - [ ] Age rating set to 17+
 - [ ] App Privacy questionnaire: Yes, the two RevenueCat categories in "App Privacy" above, no tracking
