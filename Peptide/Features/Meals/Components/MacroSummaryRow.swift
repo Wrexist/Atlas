@@ -27,6 +27,8 @@ struct MacroSummaryRow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var waterFeedback = 0
     @State private var selectedWaterAmount: Double?
+    /// Per-view-lifetime, so a tab switch back doesn't replay the fill.
+    @State private var hasAppeared = false
 
     init(
         targets: NutritionTargets,
@@ -60,6 +62,16 @@ struct MacroSummaryRow: View {
         min(1, consumed.waterFluidOunces / Double(Self.waterTargetOz))
     }
 
+    /// Rings and numbers start at zero until the first appear; Reduce
+    /// Motion shows final values from the first frame.
+    private var isRevealed: Bool {
+        hasAppeared || reduceMotion
+    }
+
+    private func revealAnimation(index: Int) -> Animation? {
+        AppAnimation.motionAware(AppAnimation.staggered(index: index), reduceMotion: reduceMotion)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             HStack(alignment: .top, spacing: Spacing.lg) {
@@ -69,21 +81,24 @@ struct MacroSummaryRow: View {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     legend(
                         title: "Calories",
-                        value: "\(consumed.caloriesKcal)",
+                        value: consumed.caloriesKcal,
                         target: "/\(targets.calories) kcal",
-                        color: AppColor.accentPrimary
+                        color: AppColor.accentPrimary,
+                        index: 0
                     )
                     legend(
                         title: "Protein",
-                        value: "\(consumed.proteinG)",
+                        value: consumed.proteinG,
                         target: "/\(targets.proteinG) g",
-                        color: AppColor.macroProtein
+                        color: AppColor.macroProtein,
+                        index: 1
                     )
                     legend(
                         title: "Water",
-                        value: "\(LifestyleDataLogic.displayedWater(consumed, unit: unit))",
+                        value: LifestyleDataLogic.displayedWater(consumed, unit: unit),
                         target: "/\(unit.volumeLabel(Self.waterTargetOz))",
-                        color: AppColor.macroWaterLight
+                        color: AppColor.macroWaterLight,
+                        index: 2
                     )
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -105,6 +120,7 @@ struct MacroSummaryRow: View {
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(cardBackground)
+        .onAppear { hasAppeared = true }
         .onChange(of: consumed.waterFluidOunces) { oldValue, newValue in
             if selectedWaterAmount != nil && newValue > oldValue { waterFeedback &+= 1 }
         }
@@ -131,7 +147,8 @@ struct MacroSummaryRow: View {
                     diameter: 132,
                     lineWidth: 12,
                     progress: caloriesProgress,
-                    colors: [AppColor.accentLight, AppColor.accentPrimary]
+                    colors: [AppColor.accentLight, AppColor.accentPrimary],
+                    index: 0
                 )
             }
 
@@ -140,7 +157,8 @@ struct MacroSummaryRow: View {
                 diameter: 96,
                 lineWidth: 12,
                 progress: proteinProgress,
-                colors: [AppColor.macroProteinLight, AppColor.macroProtein]
+                colors: [AppColor.macroProteinLight, AppColor.macroProtein],
+                index: 1
             )
 
             ringTrack(diameter: 60, lineWidth: 12)
@@ -148,7 +166,8 @@ struct MacroSummaryRow: View {
                 diameter: 60,
                 lineWidth: 12,
                 progress: waterProgress,
-                colors: [AppColor.macroWaterLight, AppColor.macroWater]
+                colors: [AppColor.macroWaterLight, AppColor.macroWater],
+                index: 2
             )
         }
         .accessibilityElement()
@@ -161,9 +180,9 @@ struct MacroSummaryRow: View {
             .frame(width: diameter, height: diameter)
     }
 
-    private func ringFill(diameter: CGFloat, lineWidth: CGFloat, progress: Double, colors: [Color]) -> some View {
+    private func ringFill(diameter: CGFloat, lineWidth: CGFloat, progress: Double, colors: [Color], index: Int) -> some View {
         Circle()
-            .trim(from: 0, to: progress)
+            .trim(from: 0, to: isRevealed ? progress : 0)
             .stroke(
                 AngularGradient(
                     gradient: Gradient(colors: colors + [colors.first ?? .clear]),
@@ -176,9 +195,12 @@ struct MacroSummaryRow: View {
             .rotationEffect(.degrees(-90))
             .frame(width: diameter, height: diameter)
             .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: progress)
+            .animation(revealAnimation(index: index), value: isRevealed)
     }
 
-    private func legend(title: LocalizedStringKey, value: String, target: String, color: Color) -> some View {
+    /// The number rolls up from zero alongside its ring via `numericText`,
+    /// so SwiftUI animates the glyphs; no per-frame timer.
+    private func legend(title: LocalizedStringKey, value: Int, target: String, color: Color, index: Int) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
             Circle()
                 .fill(color)
@@ -192,13 +214,14 @@ struct MacroSummaryRow: View {
                     .textCase(.uppercase)
                     .tracking(0.6)
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text(value)
-                        .contentTransition(.numericText())
-                        .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: value)
+                    let shown = isRevealed ? value : 0
+                    Text(String(shown))
                         .font(AppFont.scaled(20, weight: .semibold, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
-                        .contentTransition(.numericText())
+                        .contentTransition(.numericText(value: Double(shown)))
+                        .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: value)
+                        .animation(revealAnimation(index: index), value: isRevealed)
                     Text(target)
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
