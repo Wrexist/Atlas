@@ -224,7 +224,7 @@ for copy.)*
 Atlas 1.3 — a big update to training and food logging.
 
 TRAINING
-• New focused workout screen: one exercise at a time, with 3D anatomy showing the exact muscles you're working
+• New focused workout screen: one exercise at a time, with a body map of the muscles you're working
 • Rest timer you can skip or adjust by 15 seconds, and pause the whole workout when life interrupts
 • Interactive body map — tap a muscle to see the workouts and sets that trained it
 • A recap after every workout, with full details you can edit later
@@ -246,13 +246,12 @@ ALSO
 • Smoother celebrations for PRs, streaks and milestones — calmer when Reduce Motion is on
 • Badges and stats scale with larger text, plus VoiceOver improvements
 • Delete All Data now also clears reminders, achievements and live workouts
-• Deleting your account also revokes Sign in with Apple
 • Reliability fixes throughout
 
 Feedback → support@peptidesai.com
 ```
 
-*(1 492 / 4 000)*
+*(1 425 / 4 000)*
 
 ---
 
@@ -753,10 +752,10 @@ Run through every item before hitting Submit in App Store Connect.
 - [ ] Subtitle: `Workout Log, Macros & Habits`
 - [ ] Keywords pasted exactly (90 chars, no spaces after commas)
 - [ ] Promotional Text pasted (147 chars)
-- [ ] Description pasted (~3 198 chars)
+- [ ] Description pasted (3 963 chars)
 - [ ] What's New pasted
 - [ ] Age rating set to 17+
-- [ ] App Privacy questionnaire: all No
+- [ ] App Privacy questionnaire: Yes, the two RevenueCat categories in "App Privacy" above, no tracking
 - [ ] Review Notes pasted verbatim from above
 
 **Screenshots**
