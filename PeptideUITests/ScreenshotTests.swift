@@ -26,7 +26,7 @@ final class ScreenshotTests: XCTestCase {
 
     /// Tab bar buttons in display order. Today is the launch tab, so it's
     /// captured before any tap.
-    private static let secondaryTabs = ["Train", "Meals", "Biology", "Library"]
+    private static let secondaryTabs = ["Train", "Meals", "Biology", "Habits"]
 
     override func tearDown() {
         app = nil
@@ -96,7 +96,7 @@ final class ScreenshotTests: XCTestCase {
         app.buttons["Edit"].tap()
         let name = app.textFields["Workout name"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
-        name.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        focusAtEnd(name)
         name.typeText(" reviewed")
         app.buttons["save-workout-edits"].tap()
         XCTAssertTrue(app.staticTexts["Push Workout reviewed"].waitForExistence(timeout: 5))
@@ -162,13 +162,13 @@ final class ScreenshotTests: XCTestCase {
         firstSet.tap()
         let load = app.textFields["Load (lb)"].firstMatch
         XCTAssertTrue(load.waitForExistence(timeout: 5))
-        load.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
-        load.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20))
+        selectAll(in: load)
+        load.typeText(XCUIKeyboardKey.delete.rawValue)
         let save = app.buttons["save-workout-edits"]
-        XCTAssertFalse(save.isEnabled, "An empty field must not silently save its previous value")
+        XCTAssertTrue(waitUntil(save, isEnabled: false), "An empty field must not silently save its previous value")
         capture(named: "completion-editor-invalid-input")
         load.typeText("100")
-        XCTAssertTrue(save.isEnabled)
+        XCTAssertTrue(waitUntil(save, isEnabled: true))
         save.tap()
         XCTAssertTrue(app.staticTexts["Workout saved"].waitForExistence(timeout: 5))
         app.buttons["Edit"].tap()
@@ -251,6 +251,7 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(train.waitForExistence(timeout: 10))
             train.tap()
             dismissOverlaysIfNeeded()
+            discardLeftoverWorkout()
             let start = app.buttons["Start workout"]
             reveal(start)
             start.tap()
@@ -300,9 +301,7 @@ final class ScreenshotTests: XCTestCase {
 
             app.buttons["Pause workout"].tap()
             capture(named: "incline-\(appearance)-03-paused")
-            app.buttons["Workout options"].tap()
-            app.buttons["Discard workout"].tap()
-            app.alerts.buttons["Discard"].tap()
+            discardActiveWorkout()
             app.terminate()
         }
     }
@@ -313,6 +312,7 @@ final class ScreenshotTests: XCTestCase {
         dismissOverlaysIfNeeded()
         app.tabBars.buttons["Train"].tap()
         dismissOverlaysIfNeeded()
+        discardLeftoverWorkout()
         app.buttons["Exercises"].firstMatch.tap()
         let search = app.searchFields.firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 10))
@@ -345,6 +345,7 @@ final class ScreenshotTests: XCTestCase {
             dismissOverlaysIfNeeded()
             app.tabBars.buttons["Train"].tap()
             dismissOverlaysIfNeeded()
+            discardLeftoverWorkout()
             let start = app.buttons["Start workout"]
             reveal(start)
             start.tap()
@@ -364,9 +365,7 @@ final class ScreenshotTests: XCTestCase {
                 scrollToTop()
                 capture(named: "catalog-\(appearance)-\(name.replacingOccurrences(of: "/", with: "-"))")
             }
-            app.buttons["Workout options"].tap()
-            app.buttons["Discard workout"].tap()
-            app.alerts.buttons["Discard"].tap()
+            discardActiveWorkout()
             app.terminate()
         }
     }
@@ -381,6 +380,7 @@ final class ScreenshotTests: XCTestCase {
             dismissOverlaysIfNeeded()
             if !train.isSelected { train.tap() }
             XCTAssertTrue(train.isSelected)
+            discardLeftoverWorkout()
             let period = app.segmentedControls["training-map-period"]
             XCTAssertTrue(period.waitForExistence(timeout: 10))
             period.buttons["Today"].tap()
@@ -456,6 +456,17 @@ final class ScreenshotTests: XCTestCase {
     private func replaceField(_ identifier: String, with value: String) {
         let field = app.textFields[identifier]
         reveal(field)
+        selectAll(in: field)
+        field.typeText(value)
+        app.buttons["Done"].firstMatch.tap()
+        let stored = (field.value as? String ?? "").replacingOccurrences(of: " reps", with: "")
+        XCTAssertTrue(stored == value || stored.hasPrefix(value + " "), "Expected \(value), found \(stored)")
+    }
+
+    /// Selects a field's whole value so typing replaces it. A trailing-edge
+    /// tap can land between the digits of right-aligned numeric text, which
+    /// leaves part of the old value behind after a run of deletes.
+    private func selectAll(in field: XCUIElement) {
         field.tap()
         field.press(forDuration: 1.2)
         let selectAll = app.menuItems["Select All"]
@@ -465,10 +476,47 @@ final class ScreenshotTests: XCTestCase {
             // Numeric fields can select their entire single token on double tap.
             field.doubleTap()
         }
-        field.typeText(value)
-        app.buttons["Done"].firstMatch.tap()
-        let stored = (field.value as? String ?? "").replacingOccurrences(of: " reps", with: "")
-        XCTAssertTrue(stored == value || stored.hasPrefix(value + " "), "Expected \(value), found \(stored)")
+    }
+
+    /// Taps near the trailing edge so the cursor lands after left-aligned
+    /// text. A tap made while a sheet is still presenting never gives the
+    /// field focus, so wait for focus and retry once.
+    private func focusAtEnd(_ field: XCUIElement) {
+        let focused = NSPredicate(format: "hasKeyboardFocus == true")
+        for _ in 0..<2 {
+            field.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+            let expectation = XCTNSPredicateExpectation(predicate: focused, object: field)
+            if XCTWaiter.wait(for: [expectation], timeout: 3) == .completed { return }
+        }
+        XCTFail("Field never took keyboard focus")
+    }
+
+    /// A toolbar button can update a frame after the edit that changes it,
+    /// so poll rather than read `isEnabled` once.
+    private func waitUntil(_ element: XCUIElement, isEnabled enabled: Bool) -> Bool {
+        let predicate = NSPredicate(format: "isEnabled == %@", NSNumber(value: enabled))
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
+        return XCTWaiter.wait(for: [expectation], timeout: 5) == .completed
+    }
+
+    /// Waits for "Start workout" to return before the caller terminates the
+    /// app. Terminating straight after the alert tap can kill the process
+    /// before the delete lands, and the session then survives into the next
+    /// launch.
+    private func discardActiveWorkout() {
+        app.buttons["workout-options"].tap()
+        app.buttons["Discard workout"].tap()
+        app.alerts.buttons["Discard"].tap()
+        XCTAssertTrue(app.buttons["Start workout"].waitForExistence(timeout: 10))
+    }
+
+    /// A test that stops mid-workout leaves its session persisted, and the
+    /// Train tab re-presents it full screen on the next launch, hiding
+    /// "Start workout" from every later test.
+    private func discardLeftoverWorkout() {
+        if app.buttons["workout-options"].waitForExistence(timeout: 3) {
+            discardActiveWorkout()
+        }
     }
 
     private func reveal(_ element: XCUIElement) {
@@ -510,7 +558,7 @@ final class ScreenshotTests: XCTestCase {
         // in `captureAllTabs` (each tap lands on the sheet's own "Continue"
         // control, which happens to sit in the same screen region as the
         // real tab bar), so every capture past the first ends up showing a
-        // tour page instead of the tab it's named after, and the Library
+        // tour page instead of the tab it's named after, and the Habits
         // tab / paywall step are never reached. Stamping the key up front
         // matches how a real existing user (the only audience this tour
         // targets) would already have it set, and keeps the suite in sync
@@ -622,8 +670,15 @@ final class ScreenshotTests: XCTestCase {
         dismissOverlaysIfNeeded()
         capture(named: String(format: "%@-%02d-Paywall", prefix, slot))
 
-        // Dismiss so the loop above can go on to try the Library tab.
-        closeButton.tap()
+        // Dismiss so the loop above can go on to the Habits tab.
+        if closeButton.isHittable {
+            closeButton.tap()
+        } else {
+            XCTExpectFailure("At accessibility text sizes the paywall lays out wider than the screen and pushes Close off-screen") {
+                XCTFail("Paywall Close button is off-screen")
+            }
+            app.swipeDown(velocity: .fast)
+        }
     }
 
     private func capture(named name: String) {
