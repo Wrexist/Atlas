@@ -53,9 +53,9 @@ struct HomeView: View {
     /// effectively free since the scroll geometry callback is already
     /// firing for the sticky-header progress.
     @State private var activeJumpAnchor: TodayJumpBar.SectionAnchor? = .doses
-    /// Routes the chip-bar "+ Log" button. The dialog flag controls
+    /// Routes the chip-bar "+ Log" button. The sheet flag controls
     /// the picker; the action enum drives which sheet actually mounts.
-    @State private var showQuickLogDialog = false
+    @State private var showQuickLogSheet = false
     @State private var quickLogAction: QuickLogAction?
     /// Bevel-style hero metric trio snapshot. Loaded async on first
     /// appear + on each .active scene transition so the rings reflect
@@ -218,7 +218,8 @@ struct HomeView: View {
                         activeAnchor: activeJumpAnchor,
                         showsDoses: !dataStore.protocols.isEmpty,
                         onSelect: { anchor in handleJump(to: anchor, proxy: proxy) },
-                        onQuickLog: { showQuickLogMenu() }
+                        isQuickLogOpen: showQuickLogSheet,
+                        onQuickLog: { showQuickLogSheet = true }
                     )
                     .sectionAppear(index: 0)
 
@@ -734,18 +735,12 @@ struct HomeView: View {
                 .environment(appState)
                 .liquidGlassPresentation()
             }
-            .confirmationDialog(
-                "Quick log",
-                isPresented: $showQuickLogDialog,
-                titleVisibility: .visible
-            ) {
-                Button("Snap a meal photo") { quickLogAction = .meal }
-                if dataStore.nextDose != nil {
-                    Button("Log next dose") { quickLogAction = .dose }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Capture something without scrolling.")
+            .sheet(isPresented: $showQuickLogSheet) {
+                LogMealSheet(
+                    nextDose: dataStore.nextDose,
+                    onSnapMeal: { startQuickLog(.meal) },
+                    onLogNextDose: { startQuickLog(.dose) }
+                )
             }
             }   // closes ScrollViewReader
         }
@@ -766,8 +761,15 @@ struct HomeView: View {
         activeJumpAnchor = anchor
     }
 
-    private func showQuickLogMenu() {
-        showQuickLogDialog = true
+    /// Closes the quick-log menu, then mounts the picked flow once the
+    /// menu has finished dismissing — SwiftUI drops a second sheet that
+    /// races the first on the same tick.
+    private func startQuickLog(_ action: QuickLogAction) {
+        showQuickLogSheet = false
+        Task { @MainActor in
+            try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
+            quickLogAction = action
+        }
     }
 
     /// Today's chronological event feed for `TodayTimelineCard`.
@@ -924,7 +926,7 @@ struct HomeView: View {
                 }
                 .liquidGlassPresentation()
             } else {
-                // `nextDose` can go nil between the dialog tap and the
+                // `nextDose` can go nil between the menu tap and the
                 // sheet mounting (e.g. logged on the Watch). Show a
                 // real "nothing to log" state, not a blank modal.
                 EmptyStateView(

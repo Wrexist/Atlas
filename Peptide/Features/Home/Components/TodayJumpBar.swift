@@ -50,9 +50,14 @@ struct TodayJumpBar: View {
     /// the Doses chip — there's nothing for it to scroll to.
     let showsDoses: Bool
     let onSelect: (SectionAnchor) -> Void
+    /// Whether the parent's quick-log sheet is up. Turns the "+" into a
+    /// "×" so the control reads as the thing that opened the sheet.
+    let isQuickLogOpen: Bool
     /// Triggered by the trailing "+" quick-log button. Parent decides
-    /// what to surface (meal scan, dose entry, check-in).
+    /// what to surface (meal scan, dose entry).
     let onQuickLog: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var chips: [SectionAnchor] {
         SectionAnchor.allCases.filter { $0 != .doses || showsDoses }
@@ -118,8 +123,15 @@ struct TodayJumpBar: View {
             onQuickLog()
         } label: {
             HStack(spacing: Spacing.xs) {
-                Image(systemName: "plus")
+                // Rotating "+" 45° draws the "×"; under Reduce Motion the
+                // glyph swaps instead so nothing spins.
+                Image(systemName: isQuickLogOpen && reduceMotion ? "xmark" : "plus")
                     .font(AppFont.scaled(13, weight: .heavy))
+                    .rotationEffect(.degrees(isQuickLogOpen && !reduceMotion ? 45 : 0))
+                    .animation(
+                        AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion),
+                        value: isQuickLogOpen
+                    )
                 Text("Log")
                     .font(AppFont.scaled(13, weight: .heavy))
             }
@@ -142,7 +154,7 @@ struct TodayJumpBar: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Quick log")
-        .accessibilityHint("Opens a menu to log a meal, a dose, or a daily check-in.")
+        .accessibilityHint("Opens a menu to snap a meal photo or log your next dose.")
     }
 }
 
@@ -154,12 +166,14 @@ struct TodayJumpBar: View {
                 activeAnchor: .wellness,
                 showsDoses: true,
                 onSelect: { _ in },
+                isQuickLogOpen: false,
                 onQuickLog: {}
             )
             TodayJumpBar(
                 activeAnchor: nil,
                 showsDoses: false,
                 onSelect: { _ in },
+                isQuickLogOpen: true,
                 onQuickLog: {}
             )
         }
