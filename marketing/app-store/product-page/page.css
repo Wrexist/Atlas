@@ -1,0 +1,89 @@
+/* Atlas product-page art — light UI.
+   Colours are sampled from the app's real light-mode captures:
+   canvas #EAF3F9, cards #FCFCFD, fields #F3F4F8, primary gradient
+   #4438C4 → #6521C0, training green #28755F. */
+:root {
+  --ink: #111216;
+  --muted: #5B6170;
+  --indigo: #4438C4;
+  --violet: #6521C0;
+  --green: #28755F;
+  --sky: #EAF3F9;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+html, body { overflow: hidden; }
+body {
+  position: relative;
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(55% 70% at 78% 40%, rgba(101, 33, 192, 0.10), transparent 70%),
+    radial-gradient(45% 60% at 12% 85%, rgba(40, 117, 95, 0.10), transparent 70%),
+    linear-gradient(180deg, #F7FAFD 0%, var(--sky) 100%);
+}
+
+/* ---------- brand + copy ---------- */
+.brand { display: flex; align-items: center; gap: 0.36em; font-weight: 700; letter-spacing: -0.02em; }
+.brand img { width: 1.5em; height: 1.5em; border-radius: 22.5%; box-shadow: 0 0.08em 0.3em rgba(17, 18, 22, 0.25); }
+.headline { font-weight: 800; letter-spacing: -0.035em; line-height: 0.98; }
+.headline .grad {
+  background: linear-gradient(90deg, var(--indigo), var(--violet));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.sub { color: var(--muted); font-weight: 500; letter-spacing: -0.01em; line-height: 1.3; }
+
+/* ---------- device ---------- */
+.phone {
+  position: absolute;
+  width: var(--w);
+  background: linear-gradient(145deg, #3A3B40, #17181B 45%, #2C2D31);
+  box-shadow:
+    0 0 0 calc(var(--w) * 0.006) #8E9097 inset,
+    0 calc(var(--w) * 0.06) calc(var(--w) * 0.16) rgba(26, 30, 48, 0.28),
+    0 calc(var(--w) * 0.015) calc(var(--w) * 0.04) rgba(26, 30, 48, 0.18);
+}
+.screen { position: relative; overflow: hidden; background: #fff; }
+.canvas { position: absolute; left: 0; top: 0; width: 1320px; height: 2868px; transform-origin: 0 0; }
+.canvas > img { position: absolute; inset: 0; width: 1320px; height: 2868px; }
+.island { position: absolute; left: 50%; transform: translateX(-50%); background: #000; border-radius: 999px; }
+
+/* Overlays that replace test-typed numbers on the real captures. */
+.patch {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+  background: #F3F4F8; color: #1C1C1E; font-size: 58px; font-weight: 600; letter-spacing: -0.5px;
+}
+.patch.clock { font-size: 54px; font-weight: 600; letter-spacing: -0.5px; color: #000; }
+.patch.big { font-size: 104px; font-weight: 700; letter-spacing: -2px; }
+
+/* ---------- meal review (light recreation) ---------- */
+.meal { position: absolute; inset: 0; background: #F2F4F8; padding: 0 60px; }
+.m-status { display: flex; justify-content: space-between; align-items: center; height: 150px; padding: 30px 40px 0 60px; font-size: 52px; font-weight: 600; }
+.m-sys { display: flex; gap: 14px; align-items: center; }
+.m-nav { display: flex; justify-content: space-between; align-items: center; height: 120px; font-size: 50px; }
+.m-cancel { color: var(--green); width: 220px; }
+.m-title { font-weight: 600; }
+.m-spacer { width: 220px; }
+.m-head { margin: 30px 0 40px; }
+.m-big { font-size: 104px; font-weight: 800; letter-spacing: -2px; }
+.m-sub { font-size: 46px; color: #6B7080; margin-top: 8px; }
+.m-photo { height: 760px; border-radius: 60px; background-size: cover; background-position: center 40%; box-shadow: 0 10px 40px rgba(20, 24, 40, 0.10); }
+.m-label { font-size: 44px; font-weight: 600; color: #6B7080; margin: 52px 8px 24px; }
+.m-card { background: #FCFCFD; border-radius: 52px; padding: 40px 48px; margin-bottom: 22px; box-shadow: 0 0 0 2px rgba(17, 18, 22, 0.04); }
+.m-row { display: flex; justify-content: space-between; align-items: center; }
+.m-name { font-size: 54px; font-weight: 700; letter-spacing: -0.5px; }
+.m-meta { font-size: 40px; color: #6B7080; margin-top: 10px; }
+.m-right { text-align: right; }
+.m-kcal { font-size: 54px; font-weight: 700; }
+.m-kcal small { font-size: 38px; color: #6B7080; font-weight: 500; }
+.m-total { margin-top: 10px; }
+.m-macros { display: flex; gap: 36px; margin-top: 34px; }
+.m-macro { flex: 1; }
+.m-mrow { display: flex; justify-content: space-between; font-size: 40px; color: #6B7080; }
+.m-mrow b { color: var(--ink); font-weight: 700; }
+.m-bar { height: 18px; border-radius: 9px; background: #E7E9EF; margin-top: 16px; overflow: hidden; }
+.m-bar i { display: block; height: 100%; border-radius: 9px; }
+.m-cta {
+  margin-top: 34px; height: 150px; border-radius: 75px; display: flex; align-items: center; justify-content: center;
+  font-size: 54px; font-weight: 700; color: #fff; background: linear-gradient(90deg, var(--indigo), var(--violet));
+}
+.m-home { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); width: 470px; height: 16px; border-radius: 8px; background: #111; }

@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>Atlas header A</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=block" rel="stylesheet">
+<link rel="stylesheet" href="page.css">
+<script src="phones.js"></script>
+<style>
+  /* 21:9 product page header, 3840 × 1646. Everything that matters sits
+     inside x 560–3280, y 170–1480 so device crops and Apple's overlays
+     only ever eat background. */
+  html, body { width: 3840px; height: 1646px; }
+  .copy { position: absolute; left: 600px; top: 50%; transform: translateY(-50%); width: 1300px; }
+  .brand { font-size: 84px; margin-bottom: 70px; }
+  .headline { font-size: 196px; }
+  .sub { font-size: 62px; margin-top: 56px; width: 1100px; }
+</style></head><body>
+  <div class="copy">
+    <div class="brand"><img src="img/icon.png" alt="">Atlas</div>
+    <div class="headline">Train. Eat.<br><span class="grad">Recover.</span></div>
+    <div class="sub">Workouts, food and recovery in one calm, private app.</div>
+  </div>
+
+  <div class="phone" data-screen="muscles" style="--w:520px;left:2000px;top:250px;transform:rotate(-7deg)"></div>
+  <div class="phone" data-screen="meal"    style="--w:520px;left:2760px;top:250px;transform:rotate(7deg)"></div>
+  <div class="phone" data-screen="rest"    style="--w:590px;left:2345px;top:175px;z-index:2"></div>
+</body></html>
