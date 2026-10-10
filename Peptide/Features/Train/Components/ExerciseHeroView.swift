@@ -21,7 +21,7 @@ struct ExerciseHeroView: View {
                     .resizable()
                     .scaledToFit()
                     .accessibilityLabel(Text("\(exercise.name) illustration"))
-            } else if let exercise, compact, showsPhotos, let start = ExercisePhotos.start(for: exercise.id) {
+            } else if let exercise, compact, showsPhotos, let start = ExercisePhotos.thumbnail(for: exercise.id) {
                 Image(uiImage: start)
                     .resizable()
                     .scaledToFill()

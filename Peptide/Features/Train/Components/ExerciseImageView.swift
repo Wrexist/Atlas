@@ -10,7 +10,7 @@ struct ExerciseImageView: View {
 
     private var rendersPhoto: Bool {
         guard let exercise, showsPhotos else { return false }
-        return ExerciseVisualAssets.poster(for: exercise.id) == nil && ExercisePhotos.start(for: exercise.id) != nil
+        return ExerciseVisualAssets.poster(for: exercise.id) == nil && ExercisePhotos.thumbnail(for: exercise.id) != nil
     }
 
     private var showsMuscleMap: Bool {
