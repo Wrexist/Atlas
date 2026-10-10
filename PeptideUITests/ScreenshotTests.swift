@@ -70,10 +70,8 @@ final class ScreenshotTests: XCTestCase {
         app.buttons["Share workout"].tap()
         XCTAssertTrue(app.navigationBars["Share workout"].waitForExistence(timeout: 10))
         for style in [("Exercise highlight", "highlight"), ("Dark summary", "summary")] {
-            scrollToTop()
             app.segmentedControls["workout-share-style"].buttons[style.0].tap()
             for format in [("Story", "story"), ("Post", "post"), ("Reel", "reel")] {
-                scrollToTop()
                 app.segmentedControls["workout-share-format"].buttons[format.0].tap()
                 XCTAssertTrue(app.images["workout-share-rendered-\(style.1)-\(format.1)"].waitForExistence(timeout: 10))
                 capture(named: "social-\(style.1)-\(format.1)")
@@ -96,8 +94,8 @@ final class ScreenshotTests: XCTestCase {
         app.buttons["Edit"].tap()
         let name = app.textFields["Workout name"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
-        focusAtEnd(name)
-        name.typeText(" reviewed")
+        selectAll(in: name)
+        name.typeText("Push Workout reviewed")
         app.buttons["save-workout-edits"].tap()
         XCTAssertTrue(app.staticTexts["Push Workout reviewed"].waitForExistence(timeout: 5))
         let exercises = app.buttons["recap-exercises"]
@@ -478,19 +476,6 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
-    /// Taps near the trailing edge so the cursor lands after left-aligned
-    /// text. A tap made while a sheet is still presenting never gives the
-    /// field focus, so wait for focus and retry once.
-    private func focusAtEnd(_ field: XCUIElement) {
-        let focused = NSPredicate(format: "hasKeyboardFocus == true")
-        for _ in 0..<2 {
-            field.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
-            let expectation = XCTNSPredicateExpectation(predicate: focused, object: field)
-            if XCTWaiter.wait(for: [expectation], timeout: 3) == .completed { return }
-        }
-        XCTFail("Field never took keyboard focus")
-    }
-
     /// A toolbar button can update a frame after the edit that changes it,
     /// so poll rather than read `isEnabled` once.
     private func waitUntil(_ element: XCUIElement, isEnabled enabled: Bool) -> Bool {
@@ -521,13 +506,15 @@ final class ScreenshotTests: XCTestCase {
 
     private func reveal(_ element: XCUIElement) {
         XCTAssertTrue(element.waitForExistence(timeout: 10))
-        // Keyboard dismissal can leave earlier rows above the viewport. Start
-        // from the top before searching downward, rather than swiping those
-        // rows farther offscreen on every attempt.
-        if !element.isHittable { scrollToTop() }
-        for _ in 0..<6 {
-            if element.isHittable { return }
-            app.swipeUp()
+        // Search downward first, then back up for rows that keyboard
+        // dismissal left above the viewport. Checking before every swipe
+        // matters in sheets: a swipe down at the top dismisses the sheet.
+        let swipes: [() -> Void] = [{ self.app.swipeUp() }, { self.app.swipeDown() }]
+        for swipe in swipes {
+            for _ in 0..<6 {
+                if element.isHittable { return }
+                swipe()
+            }
         }
         XCTAssertTrue(element.isHittable)
     }
