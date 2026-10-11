@@ -95,6 +95,7 @@ struct ECGTrace: View {
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: isLuminanceReduced || reduceMotion)) { context in
             Canvas { graphics, size in
+                guard size.width > 0 else { return }
                 let now = Heartbeat.beats(at: context.date, bpm: bpm)
                 var trace = Path()
                 var lastPoint = CGPoint.zero
