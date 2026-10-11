@@ -41,7 +41,10 @@ enum SleepScoreEngine {
         let awake: TimeInterval
 
         var asleep: TimeInterval { deep + core + rem + unspecified }
-        var hasStages: Bool { deep + core + rem > 0 }
+        /// True when most of the night carries stages. A mostly
+        /// unspecified night with a few staged minutes would otherwise be
+        /// scored on a restorative share it never measured.
+        var hasStages: Bool { asleep > 0 && (deep + core + rem) / asleep >= 0.5 }
     }
 
     // MARK: - Tuning
@@ -98,7 +101,10 @@ enum SleepScoreEngine {
         for segment in segments where segment.stage != .awake {
             asleepBySource[segment.source, default: 0] += segment.duration
         }
-        return asleepBySource.max { $0.value < $1.value }?.key
+        // Tie-break on the identifier: Dictionary order changes per launch.
+        return asleepBySource.max {
+            $0.value != $1.value ? $0.value < $1.value : $0.key < $1.key
+        }?.key
     }
 
     private static func split(_ segments: [Segment]) -> [[Segment]] {

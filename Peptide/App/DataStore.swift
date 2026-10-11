@@ -2284,7 +2284,8 @@ final class DataStore {
     /// Last recovery + sleep glance pushed to the Watch. HealthKit is
     /// async-only and `updateWatchData()` is sync, so the snapshot is
     /// cached here and carried on every push until the next refresh.
-    @ObservationIgnored private var watchVitals: WatchVitalsSnapshot?
+    /// Seeded from the last push so a save at launch doesn't blank it.
+    @ObservationIgnored private var watchVitals: WatchVitalsSnapshot? = WatchSyncService.lastWrittenVitals()
 
     /// Re-reads HRV, resting heart rate and last night's sleep, then
     /// pushes them to the Watch. Runs on app activation and when Health

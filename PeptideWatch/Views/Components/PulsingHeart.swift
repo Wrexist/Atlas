@@ -19,15 +19,21 @@ struct PulsingHeart: View {
             if isLuminanceReduced || reduceMotion {
                 heart
             } else {
-                heart
-                    .phaseAnimator([1.0, 1.14, 1.0]) { content, scale in
-                        content.scaleEffect(scale)
-                    } animation: { scale in
-                        scale > 1 ? Animation.easeOut(duration: beat * 0.18) : Animation.easeIn(duration: beat * 0.41)
-                    }
+                TimelineView(.animation) { context in
+                    heart.scaleEffect(scale(at: context.date))
+                }
             }
         }
         .accessibilityHidden(true)
+    }
+
+    /// Swells over the first 18% of each beat, releases over the next
+    /// 41%, then rests. Driven by the clock rather than a phase animator
+    /// so the period is exactly one beat.
+    private func scale(at date: Date) -> CGFloat {
+        let phase = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: beat) / beat
+        let swell = phase < 0.18 ? phase / 0.18 : max(0, 1 - (phase - 0.18) / 0.41)
+        return 1 + 0.14 * sin(swell * .pi / 2)
     }
 
     private var heart: some View {

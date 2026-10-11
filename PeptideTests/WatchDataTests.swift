@@ -92,7 +92,7 @@ final class WatchDataTests: XCTestCase {
     func test_sleepBand_matchesScoreCutPoints() {
         let cases: [(Int, SleepBand)] = [
             (40, .veryLow), (41, .low), (60, .low), (61, .ok),
-            (80, .ok), (81, .high), (90, .high), (91, .excellent),
+            (80, .ok), (81, .high), (95, .high), (96, .veryHigh),
         ]
         for (score, band) in cases {
             XCTAssertEqual(SleepBand(score: score), band, "score \(score)")

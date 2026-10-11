@@ -19,7 +19,7 @@ extension WatchSleepSnapshot {
                 SleepSlice(label: String(localized: "Core"), minutes: coreMinutes + unspecifiedMinutes, color: WatchPalette.stageCore),
                 SleepSlice(label: String(localized: "Deep"), minutes: deepMinutes, color: WatchPalette.stageDeep),
             ]
-            : [SleepSlice(label: String(localized: "Asleep"), minutes: unspecifiedMinutes, color: WatchPalette.stageCore)]
+            : [SleepSlice(label: String(localized: "Asleep"), minutes: asleepMinutes, color: WatchPalette.stageCore)]
         let awake = SleepSlice(label: String(localized: "Awake"), minutes: awakeMinutes, color: WatchPalette.stageAwake)
         return ([awake] + asleep).filter { $0.minutes > 0 }
     }
@@ -58,7 +58,9 @@ struct SleepStageRing: View {
     }
 
     /// Round caps overhang each arc end by half the line width, so the
-    /// gap has to cover that overhang before any space shows.
+    /// gap has to cover that overhang before any space shows. A stage
+    /// shorter than the gap shrinks its own gap rather than disappearing,
+    /// so a few minutes awake still shows as a dot.
     private func arcs(diameter: CGFloat) -> [Arc] {
         let total = Double(slices.reduce(0) { $0 + $1.minutes })
         guard total > 0 else { return [] }
@@ -69,11 +71,9 @@ struct SleepStageRing: View {
         var result: [Arc] = []
         for slice in slices {
             let share = Double(slice.minutes) / total
-            let from = cursor + gap / 2
-            let to = cursor + share - gap / 2
-            if to > from {
-                result.append(Arc(id: slice.id, from: from, to: to, color: slice.color))
-            }
+            let sliceGap = min(gap, share / 2)
+            result.append(Arc(id: slice.id, from: cursor + sliceGap / 2,
+                              to: cursor + share - sliceGap / 2, color: slice.color))
             cursor += share
         }
         return result

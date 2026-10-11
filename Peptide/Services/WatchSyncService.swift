@@ -27,6 +27,20 @@ final class WatchSyncService: NSObject {
             .appendingPathComponent("watch_data.json")
     }
 
+    /// Vitals from the last snapshot this phone wrote. Lets `DataStore`
+    /// carry them across a relaunch: until its first HealthKit refresh
+    /// lands, every push would otherwise send nil and the Watch would
+    /// drop its Recovery and Sleep pages.
+    nonisolated static func lastWrittenVitals() -> WatchVitalsSnapshot? {
+        guard let url = FileManager.default
+                .containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)?
+                .appendingPathComponent("watch_data.json"),
+              let data = try? Data(contentsOf: url) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return (try? decoder.decode(WatchData.self, from: data))?.vitals
+    }
+
     override private init() {
         super.init()
         if WCSession.isSupported() {

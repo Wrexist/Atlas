@@ -117,6 +117,19 @@ final class SleepScoreEngineTests: XCTestCase {
         XCTAssertEqual(SleepScoreEngine.score(night, targetHours: 8), 80)
     }
 
+    /// Seven unspecified hours with ten minutes of REM is an unstaged
+    /// night: scoring its 2% restorative share would cost ~24 points the
+    /// source never measured.
+    func test_score_mostlyUnspecifiedNight_scoresAsUnstaged() throws {
+        let night = try XCTUnwrap(SleepScoreEngine.night(from: [
+            segment(.unspecified, at: 0, for: 7),
+            segment(.rem, at: 7, for: 1.0 / 6),
+        ]))
+        XCTAssertFalse(night.hasStages)
+        // (0.60 × 7.17/8 + 0.15) / 0.75 = 0.917
+        XCTAssertEqual(SleepScoreEngine.score(night, targetHours: 8), 92)
+    }
+
     func test_score_sleepBeyondTarget_doesNotExceed100() throws {
         let night = try XCTUnwrap(SleepScoreEngine.night(from: [
             segment(.core, at: 0, for: 6),

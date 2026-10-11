@@ -14,6 +14,7 @@ struct MetricReadout: View {
                 .font(.system(size: 40, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .contentTransition(.numericText())
+                .animation(.snappy, value: value)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
             Text(unit)

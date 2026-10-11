@@ -21,6 +21,7 @@ struct DoseRowView: View {
                     .font(.title3)
                     .foregroundStyle(entry.completed ? WatchPalette.protocolDose : .secondary)
                     .contentTransition(.symbolEffect(.replace))
+                    .animation(.snappy, value: entry.completed)
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(entry.abbreviation)

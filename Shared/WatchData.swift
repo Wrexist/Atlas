@@ -80,22 +80,28 @@ struct WatchSleepSnapshot: Codable, Hashable, Sendable {
     let awakeMinutes: Int
 
     var asleepMinutes: Int { deepMinutes + coreMinutes + remMinutes + unspecifiedMinutes }
-    var hasStages: Bool { deepMinutes + coreMinutes + remMinutes > 0 }
+    /// Staged only when most of the night carries stages. A mostly
+    /// unspecified night with a few staged minutes is shown and scored as
+    /// one "Asleep" block, matching `SleepScoreEngine.Night.hasStages`.
+    var hasStages: Bool {
+        asleepMinutes > 0 && Double(deepMinutes + coreMinutes + remMinutes) / Double(asleepMinutes) >= 0.5
+    }
     var band: SleepBand { SleepBand(score: score) }
 }
 
-/// Score bands for the sleep glance, on the same cut-points Apple's own
-/// Sleep Score uses so the two never disagree about what "High" means.
+/// Score bands for the sleep glance, on the cut-points and names Apple's
+/// own Sleep Score uses since watchOS 26.2, so the two never disagree
+/// about what "High" means.
 enum SleepBand: Sendable {
-    case veryLow, low, ok, high, excellent
+    case veryLow, low, ok, high, veryHigh
 
     init(score: Int) {
         switch score {
         case ..<41: self = .veryLow
         case 41..<61: self = .low
         case 61..<81: self = .ok
-        case 81..<91: self = .high
-        default: self = .excellent
+        case 81..<96: self = .high
+        default: self = .veryHigh
         }
     }
 
@@ -105,7 +111,7 @@ enum SleepBand: Sendable {
         case .low: return String(localized: "Low")
         case .ok: return String(localized: "OK")
         case .high: return String(localized: "High")
-        case .excellent: return String(localized: "Excellent")
+        case .veryHigh: return String(localized: "Very High")
         }
     }
 }
