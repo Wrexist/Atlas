@@ -10,7 +10,7 @@ marketing/app-store/
   assets/ipad.css         render-time override → iPad caption-left / device-right
   assets/watch.css        Apple Watch design system (OLED, glanceable)
   assets/watch-frame.css  Apple Watch marketing-frame device (case/crown/band)
-  screens/*.html          iPhone/iPad mockup per slot (8)
+  screens/*.html          iPhone/iPad mockup per slot (10)
   screens-watch/*.html    Apple Watch App Store mockup per slot (5)
   screens-watch-frames/*.html  Apple Watch caption frames for web/social (5)
   render.mjs              Playwright → PNG at exact App Store dimensions
@@ -39,12 +39,12 @@ marketing/app-store/
 # one-time (already done in this environment):
 #   npx playwright install chromium
 cd marketing/app-store
-GROOT=$(npm root -g) node render.mjs            # iPhone (all 8)
-GROOT=$(npm root -g) node render.mjs --ipad     # iPad (all 8)
+GROOT=$(npm root -g) node render.mjs            # iPhone (all 10)
+GROOT=$(npm root -g) node render.mjs --ipad     # iPad (all 10)
 GROOT=$(npm root -g) node render.mjs --watch    # Apple Watch upload (all 5, 410×502)
 GROOT=$(npm root -g) node render.mjs --watchframe  # Apple Watch caption frames (all 5, 1320×1650)
 GROOT=$(npm root -g) node render-social.mjs        # web/social: 5 squares + hero + OG
-GROOT=$(npm root -g) node render.mjs 01-recovery.html          # one iPhone screen
+GROOT=$(npm root -g) node render.mjs 05-recovery.html          # one iPhone screen
 GROOT=$(npm root -g) node render.mjs 02-recovery.html --watch  # one watch screen
 ```
 
@@ -193,7 +193,7 @@ shot list for the listing's autoplay video. It must be **real on-device capture*
 (Apple 2.3.10), so it's a recording script rather than a generated asset.
 
 ## Before you ship (Pre-ship checklist)
-- [ ] **Meal photo:** `screens/04-meals.html` composites a real food photo from
+- [ ] **Meal photo:** `screens/02-meals.html` composites a real food photo from
       `assets/meal-photo.jpg` (avocado + scrambled eggs + rye toast) with verified
       macros. The current file is a low-res **demo placeholder** from a public ML
       research repo (`facebookresearch/inversecooking`, demo image) whose image
@@ -227,7 +227,7 @@ threshold is in points, not pixels. Getting that wrong understates small
 text by a factor of three.
 
 The only remaining reported failures are one known false positive: text over
-an SVG gradient (the gold medal on 02-score), which the background walker
+an SVG gradient (the gold medal on 06-score), which the background walker
 cannot resolve. Verified by eye.
 
 It found five real failures the first time it was run, including the medical

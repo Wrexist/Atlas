@@ -1,7 +1,7 @@
 // Render screens/*.html to PNGs at App Store dimensions.
 //   GROOT=$(npm root -g) node render.mjs                 all → iPhone 6.9" (1320×2868)
 //   GROOT=$(npm root -g) node render.mjs --ipad          all → iPad 13"   (2064×2752)
-//   GROOT=$(npm root -g) node render.mjs 01-recovery.html [--ipad]   one screen
+//   GROOT=$(npm root -g) node render.mjs 05-recovery.html [--ipad]   one screen
 import { createRequire } from 'module';
 import { readdirSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
