@@ -68,7 +68,7 @@ jobs:
             # Single grep against one regex — no bash case loops, no
             # backslash continuations. Any iOS-relevant prefix flips
             # ios to true; otherwise we skip the macOS runner.
-            if echo "$FILES" | grep -qE '^(Peptide(Tests|UITests|Widgets|Watch|WatchWidgets)?/|Shared/|fastlane/|project\.yml$|Gemfile(\.lock)?$|\.swiftlint\.yml$|\.github/workflows/(pr-checks|ios-testflight|release|binary-size)\.yml$)'; then
+            if echo "$FILES" | grep -qE '^(Peptide(Tests|UITests|Widgets|Watch|WatchWidgets)?/|Shared/|WatchShared/|fastlane/|project\.yml$|Gemfile(\.lock)?$|\.swiftlint\.yml$|\.github/workflows/(pr-checks|ios-testflight|release|binary-size)\.yml$)'; then
               IOS=true
               echo "→ iOS-relevant changes detected; build-check will run."
             else
