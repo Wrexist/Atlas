@@ -59,9 +59,11 @@ enum SleepScoreEngine {
     static let awakeCeiling = 0.15
     /// Segments further apart than this belong to separate sleeps.
     static let sessionGap: TimeInterval = 2 * 3600
-    /// The latest session at least this long counts as "the night", so a
-    /// nap after waking doesn't replace it.
-    static let minimumNight: TimeInterval = 3 * 3600
+    /// Sessions ending within this span of the most recent one belong to
+    /// the same day. The longest of them is "the night", so a nap after
+    /// waking, however long, never replaces it, while a night a full day
+    /// earlier never competes.
+    static let sameDayWindow: TimeInterval = 16 * 3600
 
     // MARK: - Public
 
@@ -70,7 +72,12 @@ enum SleepScoreEngine {
     static func night(from segments: [Segment]) -> Night? {
         guard let source = dominantSource(in: segments) else { return nil }
         let sessions = split(segments.filter { $0.source == source })
-        let chosen = sessions.last { asleepTime(in: $0) >= minimumNight } ?? sessions.last
+        guard let latestEnd = sessions.compactMap({ $0.map(\.end).max() }).max() else { return nil }
+        let sameDay = sessions.filter { session in
+            guard let end = session.map(\.end).max() else { return false }
+            return latestEnd.timeIntervalSince(end) <= sameDayWindow
+        }
+        let chosen = sameDay.max { asleepTime(in: $0) < asleepTime(in: $1) }
         guard let chosen, asleepTime(in: chosen) > 0 else { return nil }
         return summarize(chosen)
     }

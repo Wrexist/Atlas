@@ -63,6 +63,17 @@ final class SleepScoreEngineTests: XCTestCase {
         XCTAssertEqual(night.start, bedtime)
     }
 
+    /// A nap long enough to pass for a night (3.5 h, mid-afternoon) must
+    /// still lose to the night before it.
+    func test_night_longNapAfterNight_keepsTheNight() throws {
+        let night = try XCTUnwrap(SleepScoreEngine.night(from: [
+            segment(.core, at: 0, for: 7),
+            segment(.core, at: 16, for: 3.5),
+        ]))
+        XCTAssertEqual(night.start, bedtime)
+        XCTAssertEqual(night.asleep, 7 * 3600)
+    }
+
     func test_night_twoNightsInWindow_keepsTheLatest() throws {
         let night = try XCTUnwrap(SleepScoreEngine.night(from: [
             segment(.core, at: -24, for: 7),
