@@ -105,30 +105,13 @@ final class WatchStore: NSObject, ObservableObject {
         // state update so the haptic feels coincident with the tap.
         WKInterfaceDevice.current().play(entry.completed ? .click : .success)
 
-        // Optimistically update local state. Preserve the watch-side
-        // stats fields (streak / weeklyCompliance / totalDosesLogged /
-        // nutrition) that arrived from the phone — the user just
-        // toggled a dose, we shouldn't reset the streak to nil or
-        // drop the nutrition snapshot on every tap (audit Watch).
+        // Optimistic update. `replacingEntries` carries every other field
+        // forward, so a tap never blanks the score, habits, nutrition or
+        // vitals until the phone's next push.
         if let index = watchData.todayEntries.firstIndex(where: { $0.id == entry.id }) {
             var updated = watchData.todayEntries
             updated[index].completed.toggle()
-            let completed = updated.filter(\.completed).count
-            // Preserve the nutrition snapshot — without re-passing it the
-            // initializer's default nil hides the Nutrition page (which
-            // PeptideWatchApp gates on `nutrition != nil`) until the next
-            // phone-side sync arrives. Dose-toggle should never flicker
-            // the unrelated nutrition tab off and on.
-            apply(WatchData(
-                todayEntries: updated,
-                completedToday: completed,
-                totalToday: updated.count,
-                lastUpdated: Date(),
-                currentStreak: watchData.currentStreak,
-                weeklyCompliance: watchData.weeklyCompliance,
-                totalDosesLogged: watchData.totalDosesLogged,
-                nutrition: watchData.nutrition
-            ))
+            apply(watchData.replacingEntries(updated))
         }
 
         sendOrQueue(message)
@@ -168,7 +151,15 @@ final class WatchStore: NSObject, ObservableObject {
 }
 
 extension WatchStore: WCSessionDelegate {
-    nonisolated func session(_ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {}
+    /// Picks up the context the phone pushed while this app wasn't
+    /// running. `didReceiveApplicationContext` only fires for pushes that
+    /// arrive after activation, so without this a cold launch showed the
+    /// disk cache until the phone happened to push again.
+    nonisolated func session(_ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {
+        guard state == .activated,
+              let decoded = Self.decodeWatchData(from: session.receivedApplicationContext) else { return }
+        Task { @MainActor in self.apply(decoded) }
+    }
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         guard let decoded = Self.decodeWatchData(from: message) else { return }

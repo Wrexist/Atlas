@@ -39,7 +39,7 @@ CI/CD to TestFlight via Fastlane.
 | **Notifications** | Complete | Dose reminders, actionable (Mark as Taken / Snooze), 64-limit handling, per-timeslot consolidation |
 | **Widgets** | Complete | iOS small + medium (next dose, compliance ring + schedule), watchOS widgets, real data via App Groups |
 | **Live Activities** | Complete | Dose-window Dynamic Island + lock-screen UI with category-aware tint |
-| **Watch app** | Scaffold | Reads via App Group, sends mark-complete / mark-incomplete back via WCSession; **needs manual Xcode build verification** |
+| **Watch app** | Redesigned | watchOS 10-style vertical pages (Today rings, Recovery, Sleep Score, Nutrition, Protocol) plus Recovery and Sleep complications. Vitals are computed on the phone (no watch HealthKit entitlement). **Needs a manual Xcode build and on-device check** |
 | **Achievements** | Complete | 14 achievements (dose milestones, streaks, protocol, logging), toast notifications |
 | **Export** | CSV + JSON | PDF planned (see v1.1) |
 | **Onboarding** | Complete | 17-page flow: review prompt → creator code → email → paywall → theme → add-medication → ready |

@@ -28,10 +28,15 @@ Peptide/                 iOS app (SwiftUI)
   Intents/                Siri shortcuts (AppIntents)
   Resources/              Info.plist, Localizable.xcstrings, .storekit
 
-PeptideWatch/            watchOS companion (reads via App Group)
+PeptideWatch/            watchOS companion: vertical pages for Today rings,
+                         Recovery, Sleep Score, Nutrition and Protocol
+                         (data pushed from the phone over WatchConnectivity)
 PeptideWidgets/          iOS widgets (next dose, compliance ring,
                          nutrition, training) + Live Activities
-PeptideWatchWidgets/     watchOS widgets
+PeptideWatchWidgets/     watchOS complications (next dose, Atlas Score,
+                         habits, Recovery, Sleep Score)
+WatchShared/             Watch palette + sleep-stage ring, compiled into
+                         both watch targets only
 Shared/                  WatchData, WidgetData, DoseWindowAttributes
 server/                  Vercel proxy (Anthropic key holder)
 scripts/peptide-dataset/ Python pipeline that generates peptide JSON
