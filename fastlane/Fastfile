@@ -63,8 +63,26 @@ platform :ios do
 
         ceiling = (prerelease + [live]).compact
                                        .map { |v| Gem::Version.new(v) }.max
+        requested = Gem::Version.new(marketing_version)
+        newest_train = prerelease.map { |v| Gem::Version.new(v) }.max
 
-        if ceiling && Gem::Version.new(marketing_version) <= ceiling
+        # An approved version waiting for release (PENDING_DEVELOPER_RELEASE
+        # or PENDING_APPLE_RELEASE) has closed its train, but the live
+        # version still reports the previous release.
+        pending = begin
+          app.get_pending_release_app_store_version&.version_string
+        rescue StandardError
+          nil
+        end
+
+        # Another build on the newest train is fine until that version is
+        # approved. That is how a fix lands on a version already waiting in
+        # App Store Connect.
+        reopens_open_train = newest_train && requested == newest_train &&
+                             (live.nil? || requested > Gem::Version.new(live)) &&
+                             pending != marketing_version
+
+        if ceiling && requested <= ceiling && !reopens_open_train
           UI.user_error!(
             "Marketing version #{marketing_version} is not greater than the " \
             "highest version Apple already has (#{ceiling}, across TestFlight " \
@@ -75,7 +93,11 @@ platform :ios do
           )
         end
 
-        UI.success("Version check OK: #{marketing_version} > #{ceiling || 'no prior version at Apple'}")
+        if reopens_open_train
+          UI.success("Version check OK: adding a build to the open #{marketing_version} train (live: #{live || 'none'})")
+        else
+          UI.success("Version check OK: #{marketing_version} > #{ceiling || 'no prior version at Apple'}")
+        end
       rescue FastlaneCore::Interface::FastlaneError
         raise # a real regression — let it fail the build
       rescue => e
