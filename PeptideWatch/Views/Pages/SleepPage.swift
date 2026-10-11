@@ -29,10 +29,13 @@ struct SleepPage: View {
                         .monospacedDigit()
                 }
                 .accessibilityElement(children: .combine)
+                .entrance(0)
                 legend
+                    .entrance(1)
                 Text(nightDates)
                     .font(.caption2)
                     .foregroundStyle(WatchPalette.sleepAccent)
+                    .entrance(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -100,7 +103,7 @@ struct SleepPage: View {
             reveal = 1
             return
         }
-        withAnimation(isActive ? Animation.spring(duration: 1.2, bounce: 0.12) : nil) {
+        withAnimation(isActive ? WatchMotion.entrance : nil) {
             reveal = isActive ? 1 : 0
         }
     }

@@ -30,13 +30,14 @@ enum WatchPalette {
 
     // MARK: Nutrition
 
-    static let caloriesStart = hex(0xFF9E4D)
-    static let caloriesEnd = hex(0xF26690)
-    static let protein = hex(0x5CC78C)
+    /// Lime and teal: fresh against black, and clear of the orange that
+    /// went muddy where it bloomed into the background.
+    static let calories = hex(0xB4E85A)
+    static let protein = hex(0x3DD6C2)
     static let water = hex(0x4FA3FF)
 
     /// Ring and progress-bar track behind a coloured fill.
-    static let track = Color.white.opacity(0.14)
+    static let track = Color.white.opacity(0.12)
 
     /// Mirrors `MomentumEngine.Tier.tintHex` so the Atlas Score reads in
     /// the same prestige colour the phone shows.

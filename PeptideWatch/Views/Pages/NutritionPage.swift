@@ -36,39 +36,49 @@ struct NutritionPage: View {
                .init(label: "+32oz", spoken: String(localized: "Log 32 ounces of water"), oz: 32)]
     }
 
+    /// Ring geometry. The calorie figure sits inside the protein ring's
+    /// hole, sized from these so it can never reach a ring.
+    private let ringSize: CGFloat = 124
+    private let ringWidth: CGFloat = 11
+    private let ringGap: CGFloat = 3
+    private var holeDiameter: CGFloat { ringSize - 2 * (2 * ringWidth + ringGap) }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 10) {
                 rings
                 summary
+                    .entrance(0)
                 water
+                    .entrance(1)
             }
             .padding(.horizontal, 4)
         }
         .navigationTitle("Nutrition")
-        .pageBackground(WatchPalette.caloriesStart)
+        .pageBackground(WatchPalette.calories)
     }
 
     private var rings: some View {
         ZStack {
             ActivityRings(rings: [
                 RingSpec(id: "calories", progress: nutrition.calorieProgress,
-                         color: WatchPalette.caloriesStart, symbol: "flame.fill"),
+                         color: WatchPalette.calories, symbol: "flame.fill"),
                 RingSpec(id: "protein", progress: nutrition.proteinProgress,
                          color: WatchPalette.protein, symbol: "bolt.fill"),
-            ], lineWidth: 14)
-            VStack(spacing: -2) {
+            ], lineWidth: ringWidth, spacing: ringGap)
+            VStack(spacing: -1) {
                 RollingNumber(value: nutrition.caloriesToday)
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
-                    .minimumScaleFactor(0.6)
+                    .font(.system(size: 24, weight: .semibold, design: .rounded))
+                    .minimumScaleFactor(0.5)
                     .lineLimit(1)
                 Text("KCAL")
-                    .font(.system(.caption2, design: .rounded, weight: .semibold))
-                    .foregroundStyle(WatchPalette.caloriesStart)
+                    .font(.system(.caption2, design: .rounded, weight: .bold))
+                    .tracking(0.8)
+                    .foregroundStyle(WatchPalette.calories)
             }
-            .padding(.horizontal, 34)
+            .frame(width: holeDiameter * 0.78)
         }
-        .frame(maxWidth: 124)
+        .frame(width: ringSize, height: ringSize)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(caloriesSpoken)
     }
@@ -80,37 +90,22 @@ struct NutritionPage: View {
     }
 
     private var summary: some View {
-        VStack(spacing: 4) {
-            summaryRow(
-                color: WatchPalette.protein,
-                label: String(localized: "Protein"),
+        HStack(alignment: .top, spacing: 4) {
+            StatColumn(
                 value: nutrition.proteinTarget > 0
                     ? "\(nutrition.proteinToday)/\(nutrition.proteinTarget)g"
-                    : "\(nutrition.proteinToday)g"
+                    : "\(nutrition.proteinToday)g",
+                label: String(localized: "Protein"),
+                color: WatchPalette.protein,
+                spoken: String(localized: "Protein \(nutrition.proteinToday) grams")
             )
-            summaryRow(
-                color: WatchPalette.caloriesEnd,
-                label: String(localized: "Meal streak"),
-                value: String(localized: "\(nutrition.mealLoggingStreak)d")
+            StatColumn(
+                value: String(localized: "\(nutrition.mealLoggingStreak)d"),
+                label: String(localized: "Streak"),
+                color: WatchPalette.calories,
+                spoken: String(localized: "Meal streak \(nutrition.mealLoggingStreak) days")
             )
         }
-    }
-
-    private func summaryRow(color: Color, label: String, value: String) -> some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(color)
-                .frame(width: 7, height: 7)
-            Text(label)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 4)
-            Text(value)
-                .font(.system(.body, design: .rounded, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(color)
-        }
-        .accessibilityElement(children: .combine)
     }
 
     private var water: some View {
@@ -132,10 +127,14 @@ struct NutritionPage: View {
                             .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 7)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(WatchPalette.water.opacity(0.22))
+                            .fill(Color.white.opacity(0.08))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
                     )
                 }
                 .buttonStyle(PressableButtonStyle())
@@ -143,6 +142,6 @@ struct NutritionPage: View {
                 .accessibilityLabel(option.spoken)
             }
         }
-        .padding(.top, 4)
+        .padding(.top, 2)
     }
 }

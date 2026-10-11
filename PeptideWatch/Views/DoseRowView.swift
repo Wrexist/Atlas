@@ -22,7 +22,7 @@ struct DoseRowView: View {
                     .foregroundStyle(entry.completed ? WatchPalette.protocolDose : .secondary)
                     .contentTransition(.symbolEffect(.replace))
                     .symbolEffect(.bounce, value: entry.completed)
-                    .animation(.snappy, value: entry.completed)
+                    .animation(WatchMotion.update, value: entry.completed)
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(entry.abbreviation)
@@ -47,7 +47,7 @@ struct DoseRowView: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(entry.completed ? WatchPalette.protocolDose.opacity(0.14) : Color.white.opacity(0.1))
             )
-            .animation(.snappy, value: entry.completed)
+            .animation(WatchMotion.update, value: entry.completed)
             .opacity(store.isSending ? 0.6 : 1)
         }
         .buttonStyle(PressableButtonStyle())

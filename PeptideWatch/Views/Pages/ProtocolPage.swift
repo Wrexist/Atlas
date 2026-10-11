@@ -18,11 +18,13 @@ struct ProtocolPage: View {
                         .foregroundStyle(.secondary)
                 } else {
                     header(data)
-                    ForEach(data.todayEntries) { entry in
+                    ForEach(Array(data.todayEntries.enumerated()), id: \.element.id) { index, entry in
                         DoseRowView(entry: entry)
+                            .entrance(index)
                     }
                 }
                 stats(data)
+                    .entrance(data.todayEntries.count)
             }
         }
         .navigationTitle("Protocol")
@@ -39,7 +41,7 @@ struct ProtocolPage: View {
                 .font(.system(.footnote, design: .rounded, weight: .bold))
                 .foregroundStyle(WatchPalette.protocolDose)
                 .contentTransition(.numericText())
-                .animation(.snappy, value: data.completedToday)
+                .animation(WatchMotion.update, value: data.completedToday)
             GeometryReader { proxy in
                 Capsule()
                     .fill(WatchPalette.protocolDose.opacity(0.2))
@@ -50,8 +52,8 @@ struct ProtocolPage: View {
                     }
             }
             .frame(height: 5)
-            .animation(reduceMotion ? nil : .spring(duration: 0.9, bounce: 0.15), value: filled)
-            .animation(.spring(duration: 0.5), value: data.compliance)
+            .animation(reduceMotion ? nil : WatchMotion.entrance, value: filled)
+            .animation(WatchMotion.update, value: data.compliance)
         }
         .padding(.bottom, 2)
         .accessibilityElement(children: .ignore)

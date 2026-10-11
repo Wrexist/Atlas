@@ -61,12 +61,15 @@ struct RecoveryPage: View {
                     .padding(.bottom, 2)
 
                 if let hero {
-                    Text(hero.label.uppercased())
-                        .font(.system(.caption2, design: .rounded, weight: .semibold))
-                        .tracking(0.6)
-                        .foregroundStyle(.secondary)
-                    MetricReadout(value: hero.value, unit: hero.unit,
-                                  tint: WatchPalette.heart, accessibilityText: hero.spoken)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(hero.label.uppercased())
+                            .font(.system(.caption2, design: .rounded, weight: .semibold))
+                            .tracking(0.6)
+                            .foregroundStyle(.secondary)
+                        MetricReadout(value: hero.value, unit: hero.unit,
+                                      tint: WatchPalette.heart, accessibilityText: hero.spoken)
+                    }
+                    .entrance(0)
                 }
                 if !chips.isEmpty {
                     HStack(spacing: 4) {
@@ -77,14 +80,16 @@ struct RecoveryPage: View {
                                 .lineLimit(1)
                                 .padding(.horizontal, 7)
                                 .padding(.vertical, 3)
-                                .background(Capsule().fill(WatchPalette.heart.opacity(0.2)))
+                                .background(Capsule().fill(WatchPalette.heart.opacity(0.18)))
                         }
                     }
+                    .entrance(1)
                 }
                 Text("Updated \(vitals.measuredAt, format: .relative(presentation: .named))")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .padding(.top, 2)
+                    .entrance(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

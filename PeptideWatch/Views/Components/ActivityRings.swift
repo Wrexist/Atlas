@@ -32,10 +32,10 @@ struct ActivityRings: View {
                 )
                 .padding(CGFloat(index) * (lineWidth + spacing))
                 .animation(
-                    reduceMotion ? nil : .spring(duration: 1.1, bounce: 0.18).delay(Double(index) * 0.12),
+                    reduceMotion ? nil : WatchMotion.entrance.delay(Double(index) * WatchMotion.stagger),
                     value: revealed
                 )
-                .animation(.spring(duration: 0.6), value: ring.progress)
+                .animation(WatchMotion.update, value: ring.progress)
             }
         }
         .aspectRatio(1, contentMode: .fit)
@@ -55,7 +55,7 @@ private struct ProgressRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(color.opacity(0.2), lineWidth: lineWidth)
+                .stroke(color.opacity(0.16), lineWidth: lineWidth)
             // A sliver of trim at zero still draws the round start cap, so
             // the symbol always sits on its own colour, as in Activity.
             Circle()

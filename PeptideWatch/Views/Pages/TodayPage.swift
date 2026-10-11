@@ -43,14 +43,16 @@ struct TodayPage: View {
                 if rings.isEmpty {
                     emptyState
                 } else {
-                    ActivityRings(rings: rings.map(\.spec), lineWidth: rings.count > 2 ? 15 : 18)
+                    ActivityRings(rings: rings.map(\.spec), lineWidth: rings.count > 2 ? 14 : 17, spacing: 3)
                         .frame(maxWidth: 132)
                         .accessibilityHidden(true)
                     HStack(alignment: .top, spacing: 4) {
                         ForEach(rings) { stat($0) }
                     }
+                    .entrance(0)
                 }
                 atlasScore
+                    .entrance(1)
             }
         }
         .navigationTitle("Today")
@@ -58,21 +60,12 @@ struct TodayPage: View {
     }
 
     private func stat(_ ring: Ring) -> some View {
-        VStack(spacing: 0) {
-            Text("\(ring.done)/\(ring.total)")
-                .font(.system(.title3, design: .rounded, weight: .bold))
-                .monospacedDigit()
-                .foregroundStyle(ring.color)
-                .contentTransition(.numericText())
-                .animation(.snappy, value: ring.done)
-            Text(ring.label.uppercased())
-                .font(.system(.caption2, design: .rounded, weight: .semibold))
-                .tracking(0.6)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(ring.label), \(ring.done) of \(ring.total) done")
+        StatColumn(
+            value: "\(ring.done)/\(ring.total)",
+            label: ring.label,
+            color: ring.color,
+            spoken: String(localized: "\(ring.label), \(ring.done) of \(ring.total) done")
+        )
     }
 
     @ViewBuilder
