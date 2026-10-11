@@ -11,12 +11,12 @@ marketing/app-store/
   assets/watch.css        Apple Watch design system (OLED, glanceable)
   assets/watch-frame.css  Apple Watch marketing-frame device (case/crown/band)
   screens/*.html          iPhone/iPad mockup per slot (10)
-  screens-watch/*.html    Apple Watch App Store mockup per slot (5)
-  screens-watch-frames/*.html  Apple Watch caption frames for web/social (5)
+  screens-watch/*.html    Apple Watch App Store screens (6), one source for every watch size
+  screens-watch-frames/*.html  Apple Watch caption frames for web/social (6)
   render.mjs              Playwright → PNG at exact App Store dimensions
   screenshots/*.png            iPhone 6.9"  (1320 × 2868)
   screenshots-ipad/*.png       iPad 13"     (2064 × 2752)
-  screenshots-watch/*.png      Apple Watch Ultra (410 × 502) — App Store upload
+  screenshots-watch*/          Apple Watch uploads: Ultra 3, Ultra 2, Series 11/10, Series 6 (see slot table)
   screenshots-watch-frames/*.png  Apple Watch caption frames (1320 × 1650) — web/social
   _preview*.png           contact sheets (phone · ipad · watch · watch-frames)
 ```
@@ -41,11 +41,11 @@ marketing/app-store/
 cd marketing/app-store
 GROOT=$(npm root -g) node render.mjs            # iPhone (all 10)
 GROOT=$(npm root -g) node render.mjs --ipad     # iPad (all 10)
-GROOT=$(npm root -g) node render.mjs --watch    # Apple Watch upload (all 5, 410×502)
-GROOT=$(npm root -g) node render.mjs --watchframe  # Apple Watch caption frames (all 5, 1320×1650)
+GROOT=$(npm root -g) node render.mjs --watch    # Apple Watch uploads (all 6, every watch size)
+GROOT=$(npm root -g) node render.mjs --watchframe  # Apple Watch caption frames (all 6, 1320×1650)
 GROOT=$(npm root -g) node render-social.mjs        # web/social: 5 squares + hero + OG
 GROOT=$(npm root -g) node render.mjs 05-recovery.html          # one iPhone screen
-GROOT=$(npm root -g) node render.mjs 02-recovery.html --watch  # one watch screen
+GROOT=$(npm root -g) node render.mjs 02-recovery.html --watch=s10  # one watch screen, one size
 ```
 
 > **Watch caption frames** (`screenshots-watch-frames/`) embed each rendered watch
@@ -92,10 +92,17 @@ App Store Connect slots and the folder each one takes (1.3.0):
 | iPhone with Dynamic Island, large | 1320 × 2868 | `screenshots/` |
 | iPhone with Face ID, large | 1284 × 2778 | `screenshots-6.5/` |
 | iPad 13" | 2064 × 2752 | `screenshots-ipad/` |
-| Apple Watch Series 6 | 368 × 448 | `screenshots-watch-s6/` |
+| Apple Watch Ultra 3 | 422 × 514 | `screenshots-watch-ultra3/` |
+| Apple Watch Ultra 2 / Ultra | 410 × 502 | `screenshots-watch/` |
+| Apple Watch Series 11 / 10 | 416 × 496 | `screenshots-watch-s10/` |
+| Apple Watch Series 6 / SE | 368 × 448 | `screenshots-watch-s6/` |
 
-The 6.3, 6.5 and Series 6 sets are Lanczos resizes of the rendered sets
+The 6.3 and 6.5 iPhone sets are Lanczos resizes of the rendered 6.9" set
 (a few pixels centre-cropped to the slot's aspect), not separate renders.
+Every Apple Watch set is a native render: the watch screens size everything
+in watch points (viewport width / 208), so `node render.mjs --watch` draws
+all four slots from one source, and `--watch=ultra3|ultra|s10|s6` draws one.
+App Store Connect wants one Apple Watch size used across every localization.
 
 Pro-gated frames (only #5 here) carry the `Atlas Pro — subscription required`
 badge per Guideline 2.3.2.
@@ -156,23 +163,31 @@ tabular numbers. Each frame shows a *win in progress*, not an empty state.
 | iPhone 6.9" (16 Pro Max) | **1320 × 2868** | ✅ primary — this deck. Satisfies all iPhone sizes. |
 | iPhone 6.5" | 1242 × 2688 | optional legacy (near-identical aspect) |
 | iPad Pro 13" | 2064 × 2752 | ✅ built (`screenshots-ipad/`) — only needed if iPad-targeted |
-| Apple Watch Ultra 2 | **410 × 502** | ✅ built (`screenshots-watch/`) — required if the Watch app ships. ASC scales it to every smaller watch. |
+| Apple Watch | **422 × 514 · 410 × 502 · 416 × 496 · 368 × 448** | ✅ built — required if the Watch app ships. Upload one size, the same in every localization. |
 
-- Upload **6–8** iPhone shots (first 3 matter most) and **3–5** watch shots.
+- Upload **6–8** iPhone shots (first 3 matter most) and all **6** watch shots.
 - The deck matches the headlines documented in `APP_STORE_METADATA.md` (slots 1–8).
 
-### Apple Watch deck (`screenshots-watch/` · 410 × 502)
-Glanceable, OLED-black, one bold element each — uploaded under the same app's
-**Apple Watch** screenshot section. Atlas ships a Watch app + complications, so this
-set is required.
+### Apple Watch deck (`screens-watch/` → the four watch folders above)
+The watch app's own pages, drawn from `PeptideWatch` (watch app 2.0): true
+black with one bloom of the page colour, watchOS 10 navigation chrome, no
+captions. Colours are `WatchShared/WatchPalette.swift`; ring, stage-ring,
+heart and ECG geometry lives in `assets/watch.js` and mirrors the SwiftUI
+views. Uploaded under the app's **Apple Watch** screenshot section; Atlas
+ships a Watch app and complications, so this set is required.
 
 | # | Screen | Shows |
 |---|--------|-------|
-| 1 | Atlas Score | Level/tier medallion + total + streak |
-| 2 | Recovery | Recovery ring (78) + "Ready to train" |
-| 3 | Habits | Health + Training activity rings + streak |
-| 4 | Next Dose | Upcoming dose, amount, time |
-| 5 | Complications | A watch face with all four Atlas complications |
+| 1 | Today | Health, training and protocol rings, stat columns, Atlas Score |
+| 2 | Recovery | Heart with ripples, ECG strip, 56 BPM resting, Recovery and HRV |
+| 3 | Sleep Score | Stage ring with 84, "High", time asleep, stage key |
+| 4 | Nutrition | Calorie and protein rings, protein and streak, water buttons |
+| 5 | Protocol | Adherence bar and today's doses |
+| 6 | Complications | A watch face with Sleep Score, Recovery, Atlas Score and habits |
+
+`screens-watch-frames/` puts each 410 × 502 render in a drawn watch case
+under a caption for the web and social (`--watchframe`, 1320 × 1650); those
+are not App Store uploads.
 
 ### Web / social (`screenshots-social/` · via `render-social.mjs`)
 Not App Store uploads — for the website, link previews, and social. Self-contained

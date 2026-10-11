@@ -1,0 +1,32 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap">
+<link rel="stylesheet" href="../assets/watch.css">
+<script src="../assets/watch.js"></script>
+</head><body>
+<div class="page" style="background:#000;">
+  <div style="position:absolute;top:calc(var(--pt)*10);left:calc(var(--pt)*14);right:calc(var(--pt)*14);display:flex;justify-content:space-between;align-items:flex-start;">
+    <span style="font-size:calc(var(--pt)*15);font-weight:800;color:var(--heart);letter-spacing:.04em;line-height:1.1">SAT<br><span style="color:#fff">11</span></span>
+    <span style="font-size:calc(var(--pt)*58);font-weight:600;letter-spacing:-.03em;line-height:.9">10:09</span>
+  </div>
+  <div style="position:absolute;left:calc(var(--pt)*10);right:calc(var(--pt)*10);top:calc(var(--pt)*80);border-radius:calc(var(--pt)*18);background:rgba(255,255,255,.08);padding:calc(var(--pt)*9) calc(var(--pt)*12);display:flex;gap:calc(var(--pt)*10);align-items:center;">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:calc(var(--pt)*11);font-weight:800;color:var(--sleep-accent)">SLEEP SCORE</div>
+      <div style="font-size:calc(var(--pt)*28);font-weight:900;line-height:1.05">84 <span style="font-size:calc(var(--pt)*14);font-weight:800">High</span></div>
+      <div style="font-size:calc(var(--pt)*11);font-weight:700;color:var(--muted)">6h 52m asleep</div>
+    </div>
+    <div style="position:relative;display:grid;place-items:center" data-draw="stageRing(52, [{m:18,c:'#FF8A65'},{m:104,c:'#5AC8FA'},{m:236,c:'#3D7BFF'},{m:72,c:'#7B61FF'}], 6)"></div>
+  </div>
+  <div style="position:absolute;left:calc(var(--pt)*10);right:calc(var(--pt)*10);bottom:calc(var(--pt)*14);display:flex;justify-content:space-between;">
+    <div class="comp"><div data-draw="gauge(58, .82, '#FF375F', 5)"></div><span><small style="color:var(--heart)">♥</small>82</span></div>
+    <div class="comp"><div data-draw="ptBox(58, '<circle cx=&quot;29&quot; cy=&quot;29&quot; r=&quot;25.5&quot; fill=&quot;none&quot; stroke=&quot;#D4A844&quot; stroke-opacity=&quot;.2&quot; stroke-width=&quot;5&quot;/><circle cx=&quot;29&quot; cy=&quot;29&quot; r=&quot;25.5&quot; fill=&quot;none&quot; stroke=&quot;#D4A844&quot; stroke-width=&quot;5&quot; stroke-linecap=&quot;round&quot; stroke-dasharray=&quot;96 161&quot; transform=&quot;rotate(-90 29 29)&quot;/>')"></div><span><small style="color:var(--gold)">LV4</small>142</span></div>
+    <div class="comp"><div data-draw="rings(58, [{p:2/3,c:'#5BC489',g:'heart'},{p:1/2,c:'#378ADD',g:'run'}], 7, 2)"></div></div>
+  </div>
+</div>
+<style>
+.comp{position:relative;width:calc(var(--pt)*58);height:calc(var(--pt)*58);border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center;}
+.comp>div{position:absolute;inset:0;}
+.comp>span{position:relative;display:grid;justify-items:center;line-height:1;font-size:calc(var(--pt)*18);font-weight:900;}
+.comp small{font-size:calc(var(--pt)*8);font-weight:900;}
+</style>
+</body></html>

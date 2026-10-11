@@ -1,25 +1,17 @@
 <!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap">
 <link rel="stylesheet" href="../assets/watch.css">
+<script src="../assets/watch.js"></script>
 </head><body>
-<div class="wframe" style="--accent:var(--mint);">
-  <div class="wtitle">Recovery</div>
-  <div class="wtime">9:41</div>
-  <div class="wcenter" style="gap:24px;">
-    <div style="position:relative;width:286px;height:286px;">
-      <svg width="286" height="286" viewBox="0 0 286 286">
-        <defs>
-          <linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6EE7B7"/><stop offset="1" stop-color="#34D399"/></linearGradient>
-          <filter id="g" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        </defs>
-        <circle cx="143" cy="143" r="122" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="24"/>
-        <circle cx="143" cy="143" r="122" fill="none" stroke="url(#rg)" stroke-width="24" stroke-linecap="round" stroke-dasharray="767" stroke-dashoffset="169" transform="rotate(-90 143 143)" filter="url(#g)"/>
-      </svg>
-      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-        <div class="whero" style="font-size:128px;">78</div>
-        <div class="wlabel" style="color:var(--mint);margin-top:2px;">RECOVERY</div>
-      </div>
-    </div>
-    <div class="wchip mint">⚡ Ready to train</div>
+<div class="page" style="--accent:var(--heart);">
+  <div class="chrome"><span class="corner" data-draw="icon.ecg"></span><span class="right"><span class="time">10:09</span><span class="subtitle">Recovery</span></span></div>
+  <div class="body" style="top:calc(var(--pt)*36);">
+    <div style="display:grid;place-items:center;height:calc(var(--pt)*74);" data-draw="heart(48)"></div>
+    <div data-draw="ecg(182, 26)"></div>
+    <span class="cap" style="margin-top:calc(var(--pt)*4)">Resting</span>
+    <div><span class="big">56</span><span class="unit" style="color:var(--heart)">BPM</span></div>
+    <div style="display:flex;gap:calc(var(--pt)*4);margin-top:calc(var(--pt)*5)"><span class="chip">Recovery 82</span><span class="chip">HRV 64 ms</span></div>
   </div>
 </div>
 </body></html>
