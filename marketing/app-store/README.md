@@ -84,6 +84,19 @@ test typed. Every iPhone frame carries a Dynamic Island. Render with an
 installed Chrome and no browser download:
 `GROOT=<dir with node_modules/playwright-core> PW_CHANNEL=chrome node render.mjs`.
 
+App Store Connect slots and the folder each one takes (1.3.0):
+
+| Slot | Size | Folder |
+|---|---|---|
+| iPhone with Dynamic Island, medium (required) | 1206 × 2622 | `screenshots-6.3/` |
+| iPhone with Dynamic Island, large | 1320 × 2868 | `screenshots/` |
+| iPhone with Face ID, large | 1284 × 2778 | `screenshots-6.5/` |
+| iPad 13" | 2064 × 2752 | `screenshots-ipad/` |
+| Apple Watch Series 6 | 368 × 448 | `screenshots-watch-s6/` |
+
+The 6.3, 6.5 and Series 6 sets are Lanczos resizes of the rendered sets
+(a few pixels centre-cropped to the slot's aspect), not separate renders.
+
 Pro-gated frames (only #5 here) carry the `Atlas Pro — subscription required`
 badge per Guideline 2.3.2.
 
