@@ -28,9 +28,19 @@ extension WatchSleepSnapshot {
 /// The Sleep page's hero: the night as a ring split into stage arcs,
 /// each arc as long as the time spent in that stage, with a clear gap
 /// between arcs so short stages still read as their own segment.
-struct SleepStageRing: View {
+///
+/// `reveal` (0…1) grows every arc out from its start while the ring turns
+/// into place, so the page can bloom the night open. Complications leave
+/// it at 1.
+struct SleepStageRing: View, Animatable {
     let slices: [SleepSlice]
     var lineWidth: CGFloat = 10
+    var reveal: Double = 1
+
+    var animatableData: Double {
+        get { reveal }
+        set { reveal = newValue }
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -39,9 +49,10 @@ struct SleepStageRing: View {
                 Circle().stroke(WatchPalette.track, lineWidth: lineWidth)
                 ForEach(arcs(diameter: diameter)) { arc in
                     Circle()
-                        .trim(from: arc.from, to: arc.to)
+                        .trim(from: arc.from, to: arc.from + (arc.to - arc.from) * reveal)
                         .stroke(arc.color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
+                        .rotationEffect(.degrees(-90 - 70 * (1 - reveal)))
+                        .opacity(min(1, reveal * 3))
                 }
             }
             .padding(lineWidth / 2)

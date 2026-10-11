@@ -5,8 +5,9 @@ enum WatchPage: Hashable {
 }
 
 /// Vertical pager in the shape of the watchOS 10 system apps: one
-/// glanceable page per domain, each painting its own full-bleed tint,
-/// paged with the Digital Crown.
+/// glanceable page per domain, each blooming its own colour over black,
+/// paged with the Digital Crown. Each page learns when it is on screen so
+/// its rings and numbers can replay their entrance.
 ///
 /// Pages appear only when the phone sent their data, so a user without
 /// Apple Health or a protocol never scrolls past an empty page. The
@@ -30,7 +31,9 @@ struct WatchRootView: View {
         NavigationStack {
             TabView(selection: $selection) {
                 ForEach(pages, id: \.self) { page in
-                    content(for: page).tag(page)
+                    content(for: page)
+                        .environment(\.watchPageIsActive, selection == page)
+                        .tag(page)
                 }
             }
             .tabViewStyle(.verticalPage)

@@ -1,24 +1,22 @@
 import SwiftUI
 
-/// The large number every page leads with, unit in the page colour
-/// beside it: "58 BPM", "1 840 KCAL". One VoiceOver stop.
+/// The large number a page leads with, unit in the page colour beside
+/// it: "58 BPM". Rolls up when the page comes on screen. One VoiceOver
+/// stop.
 struct MetricReadout: View {
-    let value: String
+    let value: Int
     let unit: String
     let tint: Color
     let accessibilityText: String
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text(value)
-                .font(.system(size: 40, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .animation(.snappy, value: value)
+            RollingNumber(value: value)
+                .font(.system(size: 44, weight: .semibold, design: .rounded))
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
             Text(unit)
-                .font(.system(.headline, design: .rounded, weight: .semibold))
+                .font(.system(.headline, design: .rounded, weight: .bold))
                 .foregroundStyle(tint)
         }
         .accessibilityElement(children: .ignore)

@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// Second page, in the shape of the system Heart Rate app: a heart beating
-/// at the user's resting rate on deep red, the number below it, and HRV
-/// and Recovery on one line underneath.
+/// at the user's resting rate with a ripple on every beat, a live ECG strip
+/// in step with it, the number below, and Recovery and HRV as capsules.
 struct RecoveryPage: View {
     let vitals: WatchVitalsSnapshot
     @State private var showsDetail = false
@@ -37,45 +37,59 @@ struct RecoveryPage: View {
         return nil
     }
 
-    /// Whatever the hero didn't take.
-    private var supporting: String {
-        var parts: [String] = []
+    /// Whatever the hero didn't take, as small capsules under the number.
+    private var chips: [String] {
+        var chips: [String] = []
         if hero?.kind == .restingHeartRate, let score = vitals.recoveryScore {
-            parts.append(String(localized: "Recovery \(score)"))
+            chips.append(String(localized: "Recovery \(score)"))
         }
         if hero?.kind != .hrv, let hrv = vitals.hrv {
-            parts.append(String(localized: "HRV \(hrv) ms"))
+            chips.append(String(localized: "HRV \(hrv) ms"))
         }
-        return parts.joined(separator: " · ")
+        return chips
     }
+
+    private var bpm: Int { vitals.restingHeartRate ?? 60 }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 2) {
-                PulsingHeart(bpm: vitals.restingHeartRate ?? 60, size: 56)
+            VStack(alignment: .leading, spacing: 4) {
+                PulsingHeart(bpm: bpm, size: 50)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 78)
+                ECGTrace(bpm: bpm)
+                    .frame(height: 26)
+                    .padding(.bottom, 2)
 
                 if let hero {
-                    Text(hero.label)
-                        .font(.footnote)
+                    Text(hero.label.uppercased())
+                        .font(.system(.caption2, design: .rounded, weight: .semibold))
+                        .tracking(0.6)
                         .foregroundStyle(.secondary)
-                    MetricReadout(value: "\(hero.value)", unit: hero.unit,
+                    MetricReadout(value: hero.value, unit: hero.unit,
                                   tint: WatchPalette.heart, accessibilityText: hero.spoken)
                 }
-                if !supporting.isEmpty {
-                    Text(supporting)
-                        .font(.system(.footnote, design: .rounded, weight: .medium))
-                        .monospacedDigit()
+                if !chips.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(chips, id: \.self) { chip in
+                            Text(chip)
+                                .font(.system(.caption2, design: .rounded, weight: .bold))
+                                .monospacedDigit()
+                                .lineLimit(1)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(Capsule().fill(WatchPalette.heart.opacity(0.2)))
+                        }
+                    }
                 }
                 Text("Updated \(vitals.measuredAt, format: .relative(presentation: .named))")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                    .padding(.top, 2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .navigationTitle("Recovery")
-        .containerBackground(WatchPalette.heartPage.gradient, for: .tabView)
+        .pageBackground(WatchPalette.heart)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {

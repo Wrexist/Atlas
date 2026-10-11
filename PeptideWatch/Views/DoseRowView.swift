@@ -21,6 +21,7 @@ struct DoseRowView: View {
                     .font(.title3)
                     .foregroundStyle(entry.completed ? WatchPalette.protocolDose : .secondary)
                     .contentTransition(.symbolEffect(.replace))
+                    .symbolEffect(.bounce, value: entry.completed)
                     .animation(.snappy, value: entry.completed)
 
                 VStack(alignment: .leading, spacing: 1) {
@@ -44,11 +45,12 @@ struct DoseRowView: View {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.white.opacity(entry.completed ? 0.06 : 0.12))
+                    .fill(entry.completed ? WatchPalette.protocolDose.opacity(0.14) : Color.white.opacity(0.1))
             )
+            .animation(.snappy, value: entry.completed)
             .opacity(store.isSending ? 0.6 : 1)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableButtonStyle())
         // Disable while a send is in flight: the row already dims, so
         // leaving it tappable gave no sign a second tap was ignored.
         .disabled(store.isSending)

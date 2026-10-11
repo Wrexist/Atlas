@@ -5,9 +5,9 @@ import SwiftUI
 /// matter on the wrist are reproduced here, once, instead of per file.
 ///
 /// The Watch is dark-only, so these are single values rather than
-/// light/dark pairs. Page tints are deliberately deep: they sit behind
-/// white text as a full-bleed `containerBackground`, the way the system
-/// Heart Rate and Sleep apps paint theirs.
+/// light/dark pairs. Each page blooms its accent over true black (see
+/// `pageBackground(_:)` in the Watch app), so the accents double as page
+/// tints and there is no separate set of background colours.
 enum WatchPalette {
 
     // MARK: Habit rings (mirror the iPhone's health = green, training = blue)
@@ -19,11 +19,9 @@ enum WatchPalette {
     // MARK: Recovery
 
     static let heart = hex(0xFF375F)
-    static let heartPage = hex(0x6B0F1F)
 
     // MARK: Sleep
 
-    static let sleepPage = hex(0x0F2F7A)
     static let sleepAccent = hex(0x8DB6FF)
     static let stageAwake = hex(0xFF8A65)
     static let stageREM = hex(0x5AC8FA)
@@ -36,11 +34,6 @@ enum WatchPalette {
     static let caloriesEnd = hex(0xF26690)
     static let protein = hex(0x5CC78C)
     static let water = hex(0x4FA3FF)
-    static let nutritionPage = hex(0x5A2A0C)
-
-    // MARK: Protocol
-
-    static let protocolPage = hex(0x2E1A66)
 
     /// Ring and progress-bar track behind a coloured fill.
     static let track = Color.white.opacity(0.14)

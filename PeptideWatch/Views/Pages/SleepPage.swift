@@ -1,11 +1,15 @@
 import SwiftUI
 
 /// Third page, in the shape of the system Sleep app's score: last night
-/// as a ring of stage arcs on deep blue, the score inside it, the band
-/// ("High") and the night's dates below.
+/// as a ring of stage arcs that blooms open on arrival, the score rolling
+/// up inside it, the band ("High") and a stage legend below.
 struct SleepPage: View {
     let sleep: WatchSleepSnapshot
     @State private var showsDetail = false
+    @State private var reveal = 0.0
+
+    @Environment(\.watchPageIsActive) private var isActive
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var nightDates: String {
         (sleep.start..<max(sleep.end, sleep.start))
@@ -14,24 +18,18 @@ struct SleepPage: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 2) {
-                ZStack {
-                    SleepStageRing(slices: sleep.slices, lineWidth: 11)
-                    Text("\(sleep.score)")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
+            VStack(alignment: .leading, spacing: 4) {
+                ring
+                HStack(alignment: .firstTextBaseline) {
+                    Text(sleep.band.label)
+                        .font(.system(.title3, design: .rounded, weight: .bold))
+                    Spacer(minLength: 4)
+                    Text(WatchFormat.duration(minutes: sleep.asleepMinutes))
+                        .font(.system(.footnote, design: .rounded, weight: .semibold))
                         .monospacedDigit()
                 }
-                .frame(width: 92, height: 92)
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, 4)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Sleep score \(sleep.score), \(sleep.band.label)")
-
-                Text(sleep.band.label)
-                    .font(.system(.title3, design: .rounded, weight: .semibold))
-                    .accessibilityHidden(true)
-                Text("\(WatchFormat.duration(minutes: sleep.asleepMinutes)) asleep")
-                    .font(.system(.footnote, design: .rounded, weight: .medium))
+                .accessibilityElement(children: .combine)
+                legend
                 Text(nightDates)
                     .font(.caption2)
                     .foregroundStyle(WatchPalette.sleepAccent)
@@ -39,7 +37,7 @@ struct SleepPage: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .navigationTitle("Sleep Score")
-        .containerBackground(WatchPalette.sleepPage.gradient, for: .tabView)
+        .pageBackground(WatchPalette.stageCore)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
@@ -52,6 +50,58 @@ struct SleepPage: View {
         }
         .sheet(isPresented: $showsDetail) {
             SleepDetailView(sleep: sleep)
+        }
+        .onAppear(perform: animateReveal)
+        .onChange(of: isActive) { animateReveal() }
+    }
+
+    private var ring: some View {
+        ZStack {
+            SleepStageRing(slices: sleep.slices, lineWidth: 12, reveal: reveal)
+            VStack(spacing: -2) {
+                Image(systemName: "moon.stars.fill")
+                    .font(.caption2)
+                    .foregroundStyle(WatchPalette.sleepAccent)
+                    .symbolEffect(.pulse, options: .repeating.speed(0.3))
+                RollingNumber(value: sleep.score)
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+            }
+        }
+        .frame(width: 104, height: 104)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Sleep score \(sleep.score), \(sleep.band.label)")
+    }
+
+    /// Two columns of stage dots and durations, the ring's key.
+    private var legend: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible())], alignment: .leading, spacing: 2) {
+            ForEach(sleep.slices) { slice in
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(slice.color)
+                        .frame(width: 6, height: 6)
+                    Text(slice.label)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 2)
+                    Text(WatchFormat.duration(minutes: slice.minutes))
+                        .monospacedDigit()
+                }
+                .font(.system(.caption2, design: .rounded, weight: .medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .accessibilityElement(children: .combine)
+            }
+        }
+    }
+
+    private func animateReveal() {
+        guard !reduceMotion else {
+            reveal = 1
+            return
+        }
+        withAnimation(isActive ? Animation.spring(duration: 1.2, bounce: 0.12) : nil) {
+            reveal = isActive ? 1 : 0
         }
     }
 }

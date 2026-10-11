@@ -1,10 +1,14 @@
 import SwiftUI
 
 /// Fourth page: calories and protein as a two-ring stack with today's
-/// calories inside, meals and streak beneath, and one-tap water logging.
+/// calories rolling up inside, protein and streak beneath, and one-tap
+/// water logging whose drop bounces on each pour.
 struct NutritionPage: View {
     @EnvironmentObject private var store: WatchStore
     let nutrition: WatchNutritionSnapshot
+    /// Taps per water button, keyed by ounces, so only the tapped
+    /// button's drop bounces.
+    @State private var pours: [Int: Int] = [:]
 
     /// Water is stored in fluid ounces, so the labels follow the phone's
     /// unit setting or the two surfaces disagree about the same number.
@@ -42,28 +46,29 @@ struct NutritionPage: View {
             .padding(.horizontal, 4)
         }
         .navigationTitle("Nutrition")
-        .containerBackground(WatchPalette.nutritionPage.gradient, for: .tabView)
+        .pageBackground(WatchPalette.caloriesStart)
     }
 
     private var rings: some View {
         ZStack {
             ActivityRings(rings: [
-                RingSpec(id: "calories", progress: nutrition.calorieProgress, color: WatchPalette.caloriesStart),
-                RingSpec(id: "protein", progress: nutrition.proteinProgress, color: WatchPalette.protein),
-            ], lineWidth: 11)
+                RingSpec(id: "calories", progress: nutrition.calorieProgress,
+                         color: WatchPalette.caloriesStart, symbol: "flame.fill"),
+                RingSpec(id: "protein", progress: nutrition.proteinProgress,
+                         color: WatchPalette.protein, symbol: "bolt.fill"),
+            ], lineWidth: 14)
             VStack(spacing: -2) {
-                Text("\(nutrition.caloriesToday)")
+                RollingNumber(value: nutrition.caloriesToday)
                     .font(.system(size: 26, weight: .bold, design: .rounded))
-                    .monospacedDigit()
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
                 Text("KCAL")
                     .font(.system(.caption2, design: .rounded, weight: .semibold))
                     .foregroundStyle(WatchPalette.caloriesStart)
             }
-            .padding(.horizontal, 30)
+            .padding(.horizontal, 34)
         }
-        .frame(maxWidth: 112)
+        .frame(maxWidth: 124)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(caloriesSpoken)
     }
@@ -113,17 +118,27 @@ struct NutritionPage: View {
             ForEach(waterOptions) { option in
                 Button {
                     store.logWater(oz: option.oz)
+                    pours[option.oz, default: 0] += 1
                 } label: {
-                    Text(option.label)
-                        .font(.system(.footnote, design: .rounded, weight: .semibold))
-                        .monospacedDigit()
-                        .minimumScaleFactor(0.7)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                        .background(Capsule().fill(WatchPalette.water.opacity(0.35)))
+                    VStack(spacing: 1) {
+                        Image(systemName: "drop.fill")
+                            .font(.caption2)
+                            .foregroundStyle(WatchPalette.water)
+                            .symbolEffect(.bounce, value: pours[option.oz, default: 0])
+                        Text(option.label)
+                            .font(.system(.caption2, design: .rounded, weight: .bold))
+                            .monospacedDigit()
+                            .minimumScaleFactor(0.7)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(WatchPalette.water.opacity(0.22))
+                    )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressableButtonStyle())
                 .disabled(store.isSending)
                 .accessibilityLabel(option.spoken)
             }

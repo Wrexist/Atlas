@@ -1,9 +1,12 @@
 import SwiftUI
 
-/// Last page: today's doses, tap to log, with the dose streak and 7-day
-/// adherence underneath.
+/// Last page: today's adherence as a filling bar, the doses to tap, and
+/// the dose streak and 7-day adherence underneath.
 struct ProtocolPage: View {
     @EnvironmentObject private var store: WatchStore
+    @Environment(\.watchPageIsActive) private var isActive
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var filled = false
 
     var body: some View {
         let data = store.watchData
@@ -14,9 +17,7 @@ struct ProtocolPage: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("\(data.completedToday) of \(data.totalToday) taken")
-                        .font(.system(.footnote, design: .rounded, weight: .semibold))
-                        .foregroundStyle(WatchPalette.protocolDose)
+                    header(data)
                     ForEach(data.todayEntries) { entry in
                         DoseRowView(entry: entry)
                     }
@@ -25,7 +26,36 @@ struct ProtocolPage: View {
             }
         }
         .navigationTitle("Protocol")
-        .containerBackground(WatchPalette.protocolPage.gradient, for: .tabView)
+        .pageBackground(WatchPalette.protocolDose)
+        .onAppear { filled = isActive }
+        .onChange(of: isActive) { filled = isActive }
+    }
+
+    /// "2 of 3 taken" over a bar that fills to today's adherence each time
+    /// the page comes on screen.
+    private func header(_ data: WatchData) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("\(data.completedToday) of \(data.totalToday) taken")
+                .font(.system(.footnote, design: .rounded, weight: .bold))
+                .foregroundStyle(WatchPalette.protocolDose)
+                .contentTransition(.numericText())
+                .animation(.snappy, value: data.completedToday)
+            GeometryReader { proxy in
+                Capsule()
+                    .fill(WatchPalette.protocolDose.opacity(0.2))
+                    .overlay(alignment: .leading) {
+                        Capsule()
+                            .fill(WatchPalette.protocolDose)
+                            .frame(width: proxy.size.width * (filled ? data.compliance : 0))
+                    }
+            }
+            .frame(height: 5)
+            .animation(reduceMotion ? nil : .spring(duration: 0.9, bounce: 0.15), value: filled)
+            .animation(.spring(duration: 0.5), value: data.compliance)
+        }
+        .padding(.bottom, 2)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(data.completedToday) of \(data.totalToday) doses taken")
     }
 
     @ViewBuilder
