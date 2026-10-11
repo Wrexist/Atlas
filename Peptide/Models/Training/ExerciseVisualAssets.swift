@@ -1,7 +1,7 @@
 import Foundation
 
 /// Exhaustive catalog manifest, generated and checked by exercise-art-catalog.py.
-/// Pending art deliberately resolves to the exercise's muscle map. No aliases.
+/// Pending art falls through to the exercise's bundled photos, then its muscle map. No aliases.
 enum ExerciseVisualAssets {
     struct Record: Codable, Sendable {
         let id: String

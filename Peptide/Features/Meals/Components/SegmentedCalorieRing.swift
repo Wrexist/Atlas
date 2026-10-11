@@ -17,6 +17,10 @@ struct SegmentedCalorieRing: View {
     let target: Int
     let lineWidth: CGFloat
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Per-view-lifetime, so a tab switch back doesn't replay the sweep.
+    @State private var hasAppeared = false
+
     init(
         breakdown: LifestyleDataLogic.CategoryBreakdown,
         target: Int,
@@ -78,17 +82,29 @@ struct SegmentedCalorieRing: View {
         target > 0 && breakdown.totalCalories > target
     }
 
+    /// 0 → 1 multiplier on every segment's trim, so the first appear
+    /// sweeps the ring from empty. Reduce Motion skips straight to full.
+    private var reveal: Double {
+        hasAppeared || reduceMotion ? 1 : 0
+    }
+
     var body: some View {
         ZStack {
             track
             ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
                 arc(for: segment)
             }
-            if isOverTarget {
+            if isOverTarget && reveal == 1 {
                 overTargetGlow
             }
         }
         .animation(.spring(response: 0.55, dampingFraction: 0.85), value: totalProgress)
+        .onAppear {
+            guard !hasAppeared else { return }
+            withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) {
+                hasAppeared = true
+            }
+        }
         .accessibilityElement()
         .accessibilityLabel(accessibilityDescription)
     }
@@ -98,9 +114,11 @@ struct SegmentedCalorieRing: View {
             .stroke(AppColor.surfaceElevated.opacity(0.65), lineWidth: lineWidth)
     }
 
+    /// The gradient keeps the segment's final angles so the sweep
+    /// uncovers it rather than stretching it.
     private func arc(for segment: Segment) -> some View {
         Circle()
-            .trim(from: segment.start, to: segment.end)
+            .trim(from: segment.start * reveal, to: segment.end * reveal)
             .stroke(
                 AngularGradient(
                     gradient: Gradient(colors: [segment.tint.opacity(0.85), segment.tint]),
@@ -110,6 +128,9 @@ struct SegmentedCalorieRing: View {
                 ),
                 style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt)
             )
+            // Soft glow hugging the stroke — kept tight so it stays clear
+            // of the protein ring inside and the over-target halo outside.
+            .shadow(color: segment.tint.opacity(0.35), radius: lineWidth / 3)
             .rotationEffect(.degrees(-90))
     }
 
