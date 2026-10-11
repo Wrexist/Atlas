@@ -1,31 +1,58 @@
 /* ============================================================
-   Atlas — Apple Watch screenshot design system
-   Canvas: 410 × 502 px (Apple Watch Ultra 2 / 49mm — the largest
-   watch size; App Store Connect scales it to smaller watches).
-   Pure-black OLED background, one bold glanceable element per screen.
+   Atlas — Apple Watch screenshot design system (watch app 2.0)
+   Mirrors PeptideWatch: true-black pages with one bloom of the
+   page's colour from the top, watchOS 10 navigation chrome, rounded
+   type. Every size is in watch points: 1pt = viewport width / 208,
+   so one source renders natively at every App Store Connect size
+   (Ultra 3 422×514, Ultra 410×502, Series 11/10 416×496, Series 6
+   368×448) without resampling.
+   Colours are WatchShared/WatchPalette.swift.
    ============================================================ */
 :root{
-  --mint:#34D399; --violet:#7B5CFF; --amber:#F59E0B; --coral:#F87171; --blue:#60A5FA;
-  --ink:#FFFFFF; --muted:#A6ABBE; --faint:#727892; --accent:var(--mint);
+  --pt: calc(100vw / 208);
+  --health:#5BC489; --training:#378ADD; --protocol:#A78BFA; --heart:#FF375F;
+  --sleep-accent:#8DB6FF; --awake:#FF8A65; --rem:#5AC8FA; --core:#3D7BFF; --deep:#7B61FF;
+  --cal:#B4E85A; --protein:#3DD6C2; --water:#4FA3FF; --gold:#D4A844;
+  --muted:rgba(255,255,255,.6);
+  --accent:var(--health);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
-html,body{width:410px;height:502px;}
-body{font-family:"Inter",system-ui,-apple-system,sans-serif;background:#000;color:#fff;overflow:hidden;font-feature-settings:"tnum";}
+html,body{width:100vw;height:100vh;}
+body{font-family:"SF Pro Rounded",ui-rounded,"Nunito",system-ui,sans-serif;background:#000;color:#fff;overflow:hidden;font-variant-numeric:tabular-nums;}
 
-.wframe{position:relative;width:410px;height:502px;overflow:hidden;
-  background:radial-gradient(120% 56% at 50% -12%, color-mix(in srgb,var(--accent) 34%,transparent), transparent 60%), #000;}
+/* pageBackground(_:) — the accent blooms from the top edge over black */
+.page{position:relative;width:100vw;height:100vh;overflow:hidden;
+  background:radial-gradient(calc(var(--pt)*260) circle at 50% 0%,
+    color-mix(in srgb,var(--accent) 34%,transparent) 0%,
+    color-mix(in srgb,var(--accent) 10%,transparent) 50%,
+    transparent 100%), #000;}
 
-.wtitle{position:absolute;top:18px;left:30px;font-size:25px;font-weight:800;letter-spacing:-0.3px;color:var(--accent);}
-.wtime{position:absolute;top:18px;right:30px;font-size:25px;font-weight:700;letter-spacing:-0.5px;color:#fff;}
+/* watchOS 10 chrome: title top-leading, or under the clock when a
+   corner button takes the leading slot */
+.chrome{position:absolute;top:calc(var(--pt)*9);left:calc(var(--pt)*13);right:calc(var(--pt)*13);
+  display:flex;justify-content:space-between;align-items:flex-start;z-index:2;}
+.title{font-size:calc(var(--pt)*16);font-weight:800;line-height:1.15;}
+.time{font-size:calc(var(--pt)*16);font-weight:700;line-height:1.15;}
+.right{display:grid;justify-items:end;}
+.subtitle{font-size:calc(var(--pt)*14);font-weight:700;line-height:1.15;}
+.corner{width:calc(var(--pt)*28);height:calc(var(--pt)*28);border-radius:50%;background:rgba(255,255,255,.16);display:grid;place-items:center;}
+.corner svg{width:55%;height:55%;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
 
-.wcenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.whero{font-weight:800;letter-spacing:-3px;line-height:.88;}
-.wlabel{font-size:23px;font-weight:700;letter-spacing:3px;color:var(--muted);}
-.wsub{font-size:25px;font-weight:600;color:var(--muted);}
-.wchip{display:inline-flex;align-items:center;gap:8px;padding:9px 20px;border-radius:100px;font-size:23px;font-weight:700;}
-.wchip.mint{background:rgba(52,211,153,0.16);color:#9DF3CF;}
-.wchip.amber{background:rgba(245,158,11,0.18);color:#FBCE7A;}
-.wchip.violet{background:rgba(123,92,255,0.2);color:#C9BCFF;}
-.row{display:flex;align-items:center;}
-.col{display:flex;flex-direction:column;}
-.card{background:rgba(255,255,255,0.08);border-radius:30px;}
+.body{position:absolute;left:calc(var(--pt)*13);right:calc(var(--pt)*13);top:calc(var(--pt)*42);bottom:calc(var(--pt)*8);
+  display:flex;flex-direction:column;}
+.center{align-items:center;}
+.cap{font-size:calc(var(--pt)*10);font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);}
+.big{font-size:calc(var(--pt)*44);font-weight:700;line-height:1;letter-spacing:-.02em;}
+.unit{font-size:calc(var(--pt)*15);font-weight:800;margin-left:calc(var(--pt)*3);}
+
+/* StatColumn */
+.stats{display:flex;width:100%;}
+.stats>div{flex:1;display:grid;justify-items:center;line-height:1.1;}
+.stats .cap{font-size:calc(var(--pt)*9);letter-spacing:.04em;}
+.stats b{font-size:calc(var(--pt)*19);font-weight:800;}
+
+.pill{display:inline-flex;gap:calc(var(--pt)*5);align-items:center;font-size:calc(var(--pt)*12);font-weight:800;
+  padding:calc(var(--pt)*4) calc(var(--pt)*10);border-radius:99px;}
+.chip{font-size:calc(var(--pt)*11);font-weight:800;padding:calc(var(--pt)*3) calc(var(--pt)*8);border-radius:99px;
+  background:color-mix(in srgb,var(--heart) 18%,transparent);}
+.svg-pt{display:block;}

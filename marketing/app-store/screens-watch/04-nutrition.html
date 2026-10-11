@@ -1,0 +1,33 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap">
+<link rel="stylesheet" href="../assets/watch.css">
+<script src="../assets/watch.js"></script>
+</head><body>
+<div class="page" style="--accent:var(--cal);">
+  <div class="chrome"><span class="title">Nutrition</span><span class="time">10:09</span></div>
+  <div class="body center" style="top:calc(var(--pt)*38);gap:calc(var(--pt)*7);">
+    <div style="position:relative;display:grid;place-items:center;">
+      <div data-draw="rings(124, [{p:1840/2400,c:'#B4E85A',g:'flame'},{p:120/160,c:'#3DD6C2',g:'bolt'}], 11, 3)"></div>
+      <span style="position:absolute;display:grid;justify-items:center;line-height:1;width:calc(var(--pt)*58)">
+        <b style="font-size:calc(var(--pt)*24);font-weight:800">1840</b>
+        <small style="font-size:calc(var(--pt)*9);font-weight:900;letter-spacing:.08em;color:var(--cal)">KCAL</small>
+      </span>
+    </div>
+    <div class="stats">
+      <div><b style="color:var(--protein)">120/160g</b><span class="cap">Protein</span></div>
+      <div><b style="color:var(--cal)">5d</b><span class="cap">Streak</span></div>
+    </div>
+    <div style="display:flex;gap:calc(var(--pt)*5);width:100%">
+      <span class="wbtn"><i data-draw="ptBox(24, '<path d=&quot;'+glyphs.drop+'&quot; fill=&quot;#4FA3FF&quot;/>')" style="--s:10"></i>+250mL</span>
+      <span class="wbtn"><i data-draw="ptBox(24, '<path d=&quot;'+glyphs.drop+'&quot; fill=&quot;#4FA3FF&quot;/>')"></i>+500mL</span>
+      <span class="wbtn"><i data-draw="ptBox(24, '<path d=&quot;'+glyphs.drop+'&quot; fill=&quot;#4FA3FF&quot;/>')"></i>+1L</span>
+    </div>
+  </div>
+</div>
+<style>
+.wbtn{flex:1;display:grid;justify-items:center;gap:calc(var(--pt)*1);font-size:calc(var(--pt)*11);font-weight:800;padding:calc(var(--pt)*6) 0;
+  border-radius:calc(var(--pt)*12);background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.14);}
+.wbtn i svg{width:calc(var(--pt)*10)!important;height:calc(var(--pt)*10)!important;}
+</style>
+</body></html>

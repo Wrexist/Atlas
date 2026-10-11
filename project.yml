@@ -188,6 +188,7 @@ targets:
         excludes:
           - "**/.DS_Store"
       - path: Shared
+      - path: WatchShared
     dependencies:
       - target: PeptideWatchWidgets
         embed: true
@@ -222,6 +223,7 @@ targets:
           - "**/.DS_Store"
           - Info.plist
       - path: Shared
+      - path: WatchShared
     info:
       path: PeptideWatchWidgets/Info.plist
       properties:

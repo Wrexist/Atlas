@@ -188,36 +188,6 @@ struct WatchNextDoseWidget: Widget {
 
 // MARK: - Atlas Score / Health / Training
 
-/// 24-bit hex → Color. The widget target can't see the app's design
-/// system, so the brand green/blue and the tier tints are reproduced here.
-private func rgb(_ hex: UInt32) -> Color {
-    Color(
-        .sRGB,
-        red: Double((hex >> 16) & 0xFF) / 255,
-        green: Double((hex >> 8) & 0xFF) / 255,
-        blue: Double(hex & 0xFF) / 255,
-        opacity: 1
-    )
-}
-
-private enum WatchScoreColor {
-    /// Health = green, Training = blue (per product spec).
-    static let health = rgb(0x5BC489)
-    static let training = rgb(0x378ADD)
-
-    /// Mirrors `MomentumEngine.Tier.tintHex` so the score ring reads the
-    /// same prestige color the phone app shows.
-    static func tier(_ raw: String?) -> Color {
-        switch raw {
-        case "silver":   return rgb(0xB8C0C8)
-        case "gold":     return rgb(0xD4A844)
-        case "platinum": return rgb(0x8FD0C4)
-        case "diamond":  return rgb(0x7CC5FF)
-        default:         return rgb(0xCD7F4F) // bronze / unknown
-        }
-    }
-}
-
 struct WatchMomentumEntry: TimelineEntry {
     let date: Date
     let score: Int
@@ -299,7 +269,7 @@ struct WatchAtlasCircularView: View {
             AccessoryWidgetBackground()
             Circle()
                 .trim(from: 0, to: max(0.001, min(1, entry.progress)))
-                .stroke(WatchScoreColor.tier(entry.tier),
+                .stroke(WatchPalette.tier(entry.tier),
                         style: StrokeStyle(lineWidth: 5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .padding(3)
@@ -322,7 +292,7 @@ struct WatchAtlasRectangularView: View {
         VStack(alignment: .leading, spacing: 3) {
             Label("Atlas · \(entry.tier.capitalized)", systemImage: "bolt.fill")
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(WatchScoreColor.tier(entry.tier))
+                .foregroundStyle(WatchPalette.tier(entry.tier))
                 .labelStyle(.titleAndIcon)
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("Lv \(entry.level)")
@@ -336,7 +306,7 @@ struct WatchAtlasRectangularView: View {
                     .foregroundStyle(.secondary)
             }
             ProgressView(value: max(0, min(1, entry.progress)))
-                .tint(WatchScoreColor.tier(entry.tier))
+                .tint(WatchPalette.tier(entry.tier))
         }
         .containerBackground(for: .widget) { Color.clear }
     }
@@ -441,13 +411,13 @@ struct WatchHealthEntryView: View {
     var body: some View {
         switch family {
         case .accessoryCircular:
-            WatchHabitCircularView(icon: "heart.fill", tint: WatchScoreColor.health,
+            WatchHabitCircularView(icon: "heart.fill", tint: WatchPalette.health,
                                    done: entry.healthDone, total: entry.healthTotal)
         case .accessoryInline:
             Text("Health \(entry.healthDone)/\(entry.healthTotal)")
         default:
             WatchHabitRectangularView(title: "Health", icon: "heart.fill",
-                                      tint: WatchScoreColor.health,
+                                      tint: WatchPalette.health,
                                       done: entry.healthDone, total: entry.healthTotal)
         }
     }
@@ -459,13 +429,13 @@ struct WatchTrainingEntryView: View {
     var body: some View {
         switch family {
         case .accessoryCircular:
-            WatchHabitCircularView(icon: "figure.run", tint: WatchScoreColor.training,
+            WatchHabitCircularView(icon: "figure.run", tint: WatchPalette.training,
                                    done: entry.trainingDone, total: entry.trainingTotal)
         case .accessoryInline:
             Text("Training \(entry.trainingDone)/\(entry.trainingTotal)")
         default:
             WatchHabitRectangularView(title: "Training", icon: "figure.run",
-                                      tint: WatchScoreColor.training,
+                                      tint: WatchPalette.training,
                                       done: entry.trainingDone, total: entry.trainingTotal)
         }
     }
@@ -502,5 +472,7 @@ struct PeptideWatchWidgetsBundle: WidgetBundle {
         WatchAtlasScoreWidget()
         WatchHealthHabitsWidget()
         WatchTrainingHabitsWidget()
+        WatchRecoveryWidget()
+        WatchSleepWidget()
     }
 }

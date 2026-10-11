@@ -413,6 +413,49 @@ final class HealthKitService {
         }
     }
 
+    /// Every staged sleep segment from the last 30 hours, for
+    /// `SleepScoreEngine.night(from:)` to pick last night out of. The
+    /// window is wide on purpose: at 1 a.m. last night's sleep ended
+    /// about 18 hours ago. `.inBed` is dropped because it overlaps the
+    /// asleep stages and would double the night.
+    func recentSleepSegments() async -> [SleepScoreEngine.Segment] {
+        guard isAvailable else { return [] }
+        let endDate = Date()
+        let startDate = endDate.addingTimeInterval(-30 * 3600)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.categorySample(type: HKCategoryType(.sleepAnalysis), predicate: predicate)],
+            sortDescriptors: [SortDescriptor(\.startDate)]
+        )
+
+        do {
+            let samples = try await descriptor.result(for: store)
+            return samples.compactMap { sample in
+                guard let stage = Self.sleepStage(sample) else { return nil }
+                return SleepScoreEngine.Segment(
+                    stage: stage,
+                    start: sample.startDate,
+                    end: sample.endDate,
+                    source: sample.sourceRevision.source.bundleIdentifier
+                )
+            }
+        } catch {
+            AppLog.healthKit.error("recentSleepSegments query failed: \(error.localizedDescription, privacy: .private)")
+            return []
+        }
+    }
+
+    private static func sleepStage(_ sample: HKCategorySample) -> SleepScoreEngine.Stage? {
+        switch HKCategoryValueSleepAnalysis(rawValue: sample.value) {
+        case .asleepDeep: return .deep
+        case .asleepCore: return .core
+        case .asleepREM: return .rem
+        case .asleepUnspecified: return .unspecified
+        case .awake: return .awake
+        default: return nil
+        }
+    }
+
     // MARK: - Private Helpers
 
     private func averageQuantity(type: HKQuantityTypeIdentifier, unit: HKUnit, days: Int) async -> Double? {

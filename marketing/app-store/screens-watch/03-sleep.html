@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap">
+<link rel="stylesheet" href="../assets/watch.css">
+<script src="../assets/watch.js"></script>
+</head><body>
+<div class="page" style="--accent:var(--core);">
+  <div class="chrome"><span class="corner" data-draw="icon.bed"></span><span class="right"><span class="time">10:09</span><span class="subtitle" style="color:var(--sleep-accent)">Sleep Score</span></span></div>
+  <div class="body" style="top:calc(var(--pt)*46);">
+    <div style="position:relative;align-self:center;display:grid;place-items:center;">
+      <div data-draw="stageRing(108, [{m:18,c:'#FF8A65'},{m:104,c:'#5AC8FA'},{m:236,c:'#3D7BFF'},{m:72,c:'#7B61FF'}], 12)"></div>
+      <span style="position:absolute;display:grid;justify-items:center;line-height:1;">
+        <span style="color:var(--sleep-accent);font-size:calc(var(--pt)*11)">☾</span>
+        <b style="font-size:calc(var(--pt)*36);font-weight:900">84</b>
+      </span>
+    </div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:calc(var(--pt)*7)">
+      <b style="font-size:calc(var(--pt)*20);font-weight:900">High</b>
+      <span style="font-size:calc(var(--pt)*13);font-weight:800">6h 52m</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--pt)*2) calc(var(--pt)*10);font-size:calc(var(--pt)*10.5);font-weight:800;margin-top:calc(var(--pt)*2)">
+      <span style="display:flex;align-items:center;gap:4px"><i style="width:calc(var(--pt)*6);height:calc(var(--pt)*6);border-radius:50%;background:var(--awake)"></i><span style="color:var(--muted)">Awake</span><em style="font-style:normal;margin-left:auto">18m</em></span>
+      <span style="display:flex;align-items:center;gap:4px"><i style="width:calc(var(--pt)*6);height:calc(var(--pt)*6);border-radius:50%;background:var(--rem)"></i><span style="color:var(--muted)">REM</span><em style="font-style:normal;margin-left:auto">1h 44m</em></span>
+      <span style="display:flex;align-items:center;gap:4px"><i style="width:calc(var(--pt)*6);height:calc(var(--pt)*6);border-radius:50%;background:var(--core)"></i><span style="color:var(--muted)">Core</span><em style="font-style:normal;margin-left:auto">3h 56m</em></span>
+      <span style="display:flex;align-items:center;gap:4px"><i style="width:calc(var(--pt)*6);height:calc(var(--pt)*6);border-radius:50%;background:var(--deep)"></i><span style="color:var(--muted)">Deep</span><em style="font-style:normal;margin-left:auto">1h 12m</em></span>
+    </div>
+  </div>
+</div>
+</body></html>

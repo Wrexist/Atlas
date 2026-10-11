@@ -19,35 +19,44 @@ struct DoseRowView: View {
             HStack(spacing: 10) {
                 Image(systemName: entry.completed ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundStyle(entry.completed ? .green : .secondary)
+                    .foregroundStyle(entry.completed ? WatchPalette.protocolDose : .secondary)
+                    .contentTransition(.symbolEffect(.replace))
+                    .symbolEffect(.bounce, value: entry.completed)
+                    .animation(WatchMotion.update, value: entry.completed)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text(entry.abbreviation)
-                        .font(.headline)
+                        .font(.system(.headline, design: .rounded))
                         .foregroundStyle(entry.completed ? .secondary : .primary)
+                        .strikethrough(entry.completed, color: .secondary)
                     Text(entry.dose)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
 
-                Spacer()
+                Spacer(minLength: 4)
 
                 Text(entry.scheduledTime, format: .dateTime.hour().minute())
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
             }
-            .padding(.vertical, 4)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(entry.completed ? WatchPalette.protocolDose.opacity(0.14) : Color.white.opacity(0.1))
+            )
+            .animation(WatchMotion.update, value: entry.completed)
             .opacity(store.isSending ? 0.6 : 1)
         }
-        .buttonStyle(.plain)
-        // Disable while a send is in flight — the row already dims to
-        // 0.6 opacity, so leaving it tappable gave no feedback that a
-        // second tap was being ignored (matches the water buttons).
+        .buttonStyle(PressableButtonStyle())
+        // Disable while a send is in flight: the row already dims, so
+        // leaving it tappable gave no sign a second tap was ignored.
         .disabled(store.isSending)
-        .strikethrough(entry.completed, color: .secondary)
-        // Without this VoiceOver reads the row as four separate stops,
-        // and "completed" is carried only by the checkmark glyph and the
-        // strikethrough — neither of which it announces.
+        // Without this VoiceOver reads the row as four stops, and "taken"
+        // is carried only by the checkmark and strikethrough, neither of
+        // which it announces.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(entry.completed ? [.isButton, .isSelected] : .isButton)

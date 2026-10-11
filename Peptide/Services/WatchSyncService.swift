@@ -27,6 +27,20 @@ final class WatchSyncService: NSObject {
             .appendingPathComponent("watch_data.json")
     }
 
+    /// Vitals from the last snapshot this phone wrote. Lets `DataStore`
+    /// carry them across a relaunch: until its first HealthKit refresh
+    /// lands, every push would otherwise send nil and the Watch would
+    /// drop its Recovery and Sleep pages.
+    nonisolated static func lastWrittenVitals() -> WatchVitalsSnapshot? {
+        guard let url = FileManager.default
+                .containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)?
+                .appendingPathComponent("watch_data.json"),
+              let data = try? Data(contentsOf: url) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return (try? decoder.decode(WatchData.self, from: data))?.vitals
+    }
+
     override private init() {
         super.init()
         if WCSession.isSupported() {
@@ -51,7 +65,8 @@ final class WatchSyncService: NSObject {
         healthHabitsTotal: Int? = nil,
         trainingHabitsDone: Int? = nil,
         trainingHabitsTotal: Int? = nil,
-        measurementUnit: String? = nil
+        measurementUnit: String? = nil,
+        vitals: WatchVitalsSnapshot? = nil
     ) {
         guard let url = watchDataURL else { return }
 
@@ -101,7 +116,8 @@ final class WatchSyncService: NSObject {
             healthHabitsTotal: healthHabitsTotal,
             trainingHabitsDone: trainingHabitsDone,
             trainingHabitsTotal: trainingHabitsTotal,
-            measurementUnit: measurementUnit
+            measurementUnit: measurementUnit,
+            vitals: vitals
         )
 
         do {
@@ -159,6 +175,20 @@ extension WatchSyncService: WCSessionDelegate {
         // `self.` is required — the `session` parameter shadows the
         // method name in local lookup.
         self.session(session, didReceiveMessage: userInfo)
+    }
+
+    /// The Watch sends with a reply handler so it can clear its in-flight
+    /// state on delivery. Without this variant WCSession reports every
+    /// live send as failed and the Watch drops to the slower
+    /// `transferUserInfo` path. The reply is an ack only; the new state
+    /// arrives through the next application-context push.
+    nonisolated func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
+        self.session(session, didReceiveMessage: message)
+        replyHandler([:])
     }
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
