@@ -67,14 +67,22 @@ build breadth and end on the paywall (required by App Review).
 
 | # | Screen | Hook (headline) | Job it does |
 |---|--------|-----------------|-------------|
-| 1 | Recovery / Today | "Know if you're ready to train." | Scroll-stopper. One glowing hero number = daily intelligence. |
-| 2 | Atlas Score | "A streak you won't break." | Retention proof — gamified streaks/levels (what fitness installers screen for). |
-| 3 | Train | "Log a set in two taps." | Core utility + a PR-celebration dopamine moment. |
-| 4 | Meals | "Snap a photo. Every item logged." | The "magic" effortless-logging differentiator. |
-| 5 | Biology / Bio Age | "See your biological age." | Aspirational **Atlas Pro** hero — the biggest upsell frame. |
-| 6 | Habits | "Build streaks that stick." | The satisfying 6-month green heatmap; consistency. |
-| 7 | Protocols | "Track every protocol. To the dose." | Differentiator for the advanced audience. |
-| 8 | Paywall | "Try free. Upgrade when ready." | Required by Guideline 3.1; shows trial + disclosure + links. |
+| 1 | Train (real 1.3 capture) | "Train one exercise at a time." | The 1.3 focused workout screen: rest timer, target muscles, every set. |
+| 2 | Meals | "Snap a photo. Every item logged." | Effortless food logging. |
+| 3 | Muscle map (real capture) | "See every muscle you train." | 30-day muscle coverage; tap a muscle for its sets. |
+| 4 | Recap (real capture) | "A recap after every workout." | Duration, sets, volume and muscles after each session. |
+| 5 | Recovery / Today | "Know if you're ready to train." | Daily recovery score. |
+| 6 | Atlas Score | "A streak you won't break." | Retention: streaks and levels. |
+| 7 | Biology · Atlas Pro | "Track your Performance Age." | Pro upsell; labelled an estimate, never "biological age". |
+| 8 | Habits | "Build streaks that stick." | Six-month heatmap. |
+| 9 | Protocols | "Track every protocol. To the dose." | Advanced audience. |
+| 10 | Paywall | "Try free. Upgrade when ready." | Required by Guideline 3.1; 7-day trial on Monthly and Annual, matching Products.storekit. |
+
+Slides 1, 3 and 4 embed real simulator captures from `captures/` through
+`assets/capture.css`; its `.patch` boxes replace placeholder values the UI
+test typed. Every iPhone frame carries a Dynamic Island. Render with an
+installed Chrome and no browser download:
+`GROOT=<dir with node_modules/playwright-core> PW_CHANNEL=chrome node render.mjs`.
 
 Pro-gated frames (only #5 here) carry the `Atlas Pro — subscription required`
 badge per Guideline 2.3.2.

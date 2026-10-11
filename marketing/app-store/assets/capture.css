@@ -1,0 +1,11 @@
+/* Real simulator captures inside the deck's device frame. The capture is
+   scaled to cover the 1050 x 2336 screen (2336 / 2868 = 0.8145, centred);
+   .patch boxes sit in the capture's own 1320 x 2868 pixel space and replace
+   placeholder values an automated test typed (22 lb x 108 reps, 0m). */
+.screen.capture{background:#000;}
+.capture .canvas{position:absolute;top:0;left:-12.6px;width:1320px;height:2868px;transform:scale(0.8145);transform-origin:0 0;}
+.capture .canvas>img{position:absolute;inset:0;width:1320px;height:2868px;}
+.patch{position:absolute;display:flex;align-items:center;justify-content:center;color:#fff;
+  font-family:-apple-system,"SF Pro Text","Inter",system-ui,sans-serif;font-weight:600;font-size:58px;letter-spacing:-0.5px;}
+.patch.clock{font-size:54px;}
+.patch.big{font-size:96px;font-weight:700;letter-spacing:-2px;}

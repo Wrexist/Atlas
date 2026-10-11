@@ -9,7 +9,11 @@ import { dirname, join, basename } from 'path';
 
 const require = createRequire(import.meta.url);
 const groot = process.env.GROOT || '/opt/node22/lib/node_modules';
-const { chromium } = require(join(groot, 'playwright'));
+// Full `playwright` ships its own Chromium; `playwright-core` drives an
+// installed Chrome instead (PW_CHANNEL=chrome), with no browser download.
+const { chromium } = (() => {
+  try { return require(join(groot, 'playwright')); } catch { return require(join(groot, 'playwright-core')); }
+})();
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -30,7 +34,7 @@ const files = (only ? [basename(only)] : readdirSync(screensDir))
   .filter((f) => f.endsWith('.html'))
   .sort();
 
-const browser = await chromium.launch({ args: ['--force-color-profile=srgb', '--font-render-hinting=none'] });
+const browser = await chromium.launch({ channel: process.env.PW_CHANNEL, args: ['--force-color-profile=srgb', '--font-render-hinting=none'] });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 
 for (const f of files) {
