@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=block');
 /* ============================================================
    Atlas — App Store screenshot design system  (v2: clean/realistic)
    Canvas 1320 × 2868 (iPhone 6.9"). Full device + native iOS
@@ -48,6 +49,11 @@ body{font-family:"Inter",system-ui,-apple-system,sans-serif;background:var(--bg-
     radial-gradient(80% 42% at 50% 6%, rgba(123,92,255,0.32), transparent 60%),
     radial-gradient(60% 34% at 78% 26%, rgba(52,211,153,0.14), transparent 60%),
     linear-gradient(180deg,#0D0024 0%,#11002E 40%,#08010F 100%);}
+
+/* Dynamic Island: every current 6.9" iPhone has one, and a frame without
+   it reads as an older device. Sits between the clock and system icons. */
+.screen::before{content:"";position:absolute;z-index:50;top:26px;left:50%;transform:translateX(-50%);
+  width:312px;height:92px;border-radius:46px;background:#000;}
 
 /* status bar */
 .statusbar{display:flex;align-items:center;justify-content:space-between;height:92px;padding:0 60px 0 60px;}

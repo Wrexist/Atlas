@@ -7,7 +7,11 @@ import { dirname, join, basename } from 'path';
 
 const require = createRequire(import.meta.url);
 const groot = process.env.GROOT || '/opt/node22/lib/node_modules';
-const { chromium } = require(join(groot, 'playwright'));
+// Same fallback as render.mjs: playwright-core plus PW_CHANNEL=chrome
+// drives an installed Chrome with no browser download.
+const { chromium } = (() => {
+  try { return require(join(groot, 'playwright')); } catch { return require(join(groot, 'playwright-core')); }
+})();
 
 const here = dirname(fileURLToPath(import.meta.url));
 const srcDir = join(here, 'social');
@@ -27,7 +31,7 @@ const jobs = [
 const only = process.argv[2] ? basename(process.argv[2]) : null;
 const run = only ? jobs.filter((j) => j[0] === only) : jobs;
 
-const browser = await chromium.launch({ args: ['--force-color-profile=srgb', '--font-render-hinting=none'] });
+const browser = await chromium.launch({ channel: process.env.PW_CHANNEL, args: ['--force-color-profile=srgb', '--font-render-hinting=none'] });
 for (const [file, w, h] of run) {
   const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
   await page.goto('file://' + join(srcDir, file), { waitUntil: 'networkidle' });

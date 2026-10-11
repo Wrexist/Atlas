@@ -1,7 +1,7 @@
 // Render screens/*.html to PNGs at App Store dimensions.
 //   GROOT=$(npm root -g) node render.mjs                 all → iPhone 6.9" (1320×2868)
 //   GROOT=$(npm root -g) node render.mjs --ipad          all → iPad 13"   (2064×2752)
-//   GROOT=$(npm root -g) node render.mjs 01-recovery.html [--ipad]   one screen
+//   GROOT=$(npm root -g) node render.mjs 05-recovery.html [--ipad]   one screen
 import { createRequire } from 'module';
 import { readdirSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -9,7 +9,11 @@ import { dirname, join, basename } from 'path';
 
 const require = createRequire(import.meta.url);
 const groot = process.env.GROOT || '/opt/node22/lib/node_modules';
-const { chromium } = require(join(groot, 'playwright'));
+// Full `playwright` ships its own Chromium; `playwright-core` drives an
+// installed Chrome instead (PW_CHANNEL=chrome), with no browser download.
+const { chromium } = (() => {
+  try { return require(join(groot, 'playwright')); } catch { return require(join(groot, 'playwright-core')); }
+})();
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -30,7 +34,7 @@ const files = (only ? [basename(only)] : readdirSync(screensDir))
   .filter((f) => f.endsWith('.html'))
   .sort();
 
-const browser = await chromium.launch({ args: ['--force-color-profile=srgb', '--font-render-hinting=none'] });
+const browser = await chromium.launch({ channel: process.env.PW_CHANNEL, args: ['--force-color-profile=srgb', '--font-render-hinting=none'] });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 
 for (const f of files) {

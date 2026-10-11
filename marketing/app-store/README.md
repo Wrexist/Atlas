@@ -10,7 +10,7 @@ marketing/app-store/
   assets/ipad.css         render-time override → iPad caption-left / device-right
   assets/watch.css        Apple Watch design system (OLED, glanceable)
   assets/watch-frame.css  Apple Watch marketing-frame device (case/crown/band)
-  screens/*.html          iPhone/iPad mockup per slot (8)
+  screens/*.html          iPhone/iPad mockup per slot (10)
   screens-watch/*.html    Apple Watch App Store mockup per slot (5)
   screens-watch-frames/*.html  Apple Watch caption frames for web/social (5)
   render.mjs              Playwright → PNG at exact App Store dimensions
@@ -39,12 +39,12 @@ marketing/app-store/
 # one-time (already done in this environment):
 #   npx playwright install chromium
 cd marketing/app-store
-GROOT=$(npm root -g) node render.mjs            # iPhone (all 8)
-GROOT=$(npm root -g) node render.mjs --ipad     # iPad (all 8)
+GROOT=$(npm root -g) node render.mjs            # iPhone (all 10)
+GROOT=$(npm root -g) node render.mjs --ipad     # iPad (all 10)
 GROOT=$(npm root -g) node render.mjs --watch    # Apple Watch upload (all 5, 410×502)
 GROOT=$(npm root -g) node render.mjs --watchframe  # Apple Watch caption frames (all 5, 1320×1650)
 GROOT=$(npm root -g) node render-social.mjs        # web/social: 5 squares + hero + OG
-GROOT=$(npm root -g) node render.mjs 01-recovery.html          # one iPhone screen
+GROOT=$(npm root -g) node render.mjs 05-recovery.html          # one iPhone screen
 GROOT=$(npm root -g) node render.mjs 02-recovery.html --watch  # one watch screen
 ```
 
@@ -67,14 +67,35 @@ build breadth and end on the paywall (required by App Review).
 
 | # | Screen | Hook (headline) | Job it does |
 |---|--------|-----------------|-------------|
-| 1 | Recovery / Today | "Know if you're ready to train." | Scroll-stopper. One glowing hero number = daily intelligence. |
-| 2 | Atlas Score | "A streak you won't break." | Retention proof — gamified streaks/levels (what fitness installers screen for). |
-| 3 | Train | "Log a set in two taps." | Core utility + a PR-celebration dopamine moment. |
-| 4 | Meals | "Snap a photo. Every item logged." | The "magic" effortless-logging differentiator. |
-| 5 | Biology / Bio Age | "See your biological age." | Aspirational **Atlas Pro** hero — the biggest upsell frame. |
-| 6 | Habits | "Build streaks that stick." | The satisfying 6-month green heatmap; consistency. |
-| 7 | Protocols | "Track every protocol. To the dose." | Differentiator for the advanced audience. |
-| 8 | Paywall | "Try free. Upgrade when ready." | Required by Guideline 3.1; shows trial + disclosure + links. |
+| 1 | Train (real 1.3 capture) | "Train one exercise at a time." | The 1.3 focused workout screen: rest timer, target muscles, every set. |
+| 2 | Meals | "Snap a photo. Every item logged." | Effortless food logging. |
+| 3 | Muscle map (real capture) | "See every muscle you train." | 30-day muscle coverage; tap a muscle for its sets. |
+| 4 | Recap (real capture) | "A recap after every workout." | Duration, sets, volume and muscles after each session. |
+| 5 | Recovery / Today | "Know if you're ready to train." | Daily recovery score. |
+| 6 | Atlas Score | "A streak you won't break." | Retention: streaks and levels. |
+| 7 | Biology · Atlas Pro | "Track your Performance Age." | Pro upsell; labelled an estimate, never "biological age". |
+| 8 | Habits | "Build streaks that stick." | Six-month heatmap. |
+| 9 | Protocols | "Track every protocol. To the dose." | Advanced audience. |
+| 10 | Paywall | "Try free. Upgrade when ready." | Required by Guideline 3.1; 7-day trial on Monthly and Annual, matching Products.storekit. |
+
+Slides 1, 3 and 4 embed real simulator captures from `captures/` through
+`assets/capture.css`; its `.patch` boxes replace placeholder values the UI
+test typed. Every iPhone frame carries a Dynamic Island. Render with an
+installed Chrome and no browser download:
+`GROOT=<dir with node_modules/playwright-core> PW_CHANNEL=chrome node render.mjs`.
+
+App Store Connect slots and the folder each one takes (1.3.0):
+
+| Slot | Size | Folder |
+|---|---|---|
+| iPhone with Dynamic Island, medium (required) | 1206 × 2622 | `screenshots-6.3/` |
+| iPhone with Dynamic Island, large | 1320 × 2868 | `screenshots/` |
+| iPhone with Face ID, large | 1284 × 2778 | `screenshots-6.5/` |
+| iPad 13" | 2064 × 2752 | `screenshots-ipad/` |
+| Apple Watch Series 6 | 368 × 448 | `screenshots-watch-s6/` |
+
+The 6.3, 6.5 and Series 6 sets are Lanczos resizes of the rendered sets
+(a few pixels centre-cropped to the slot's aspect), not separate renders.
 
 Pro-gated frames (only #5 here) carry the `Atlas Pro — subscription required`
 badge per Guideline 2.3.2.
@@ -172,7 +193,7 @@ shot list for the listing's autoplay video. It must be **real on-device capture*
 (Apple 2.3.10), so it's a recording script rather than a generated asset.
 
 ## Before you ship (Pre-ship checklist)
-- [ ] **Meal photo:** `screens/04-meals.html` composites a real food photo from
+- [ ] **Meal photo:** `screens/02-meals.html` composites a real food photo from
       `assets/meal-photo.jpg` (avocado + scrambled eggs + rye toast) with verified
       macros. The current file is a low-res **demo placeholder** from a public ML
       research repo (`facebookresearch/inversecooking`, demo image) whose image
@@ -206,7 +227,7 @@ threshold is in points, not pixels. Getting that wrong understates small
 text by a factor of three.
 
 The only remaining reported failures are one known false positive: text over
-an SVG gradient (the gold medal on 02-score), which the background walker
+an SVG gradient (the gold medal on 06-score), which the background walker
 cannot resolve. Verified by eye.
 
 It found five real failures the first time it was run, including the medical
