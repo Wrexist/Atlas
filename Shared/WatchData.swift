@@ -44,6 +44,72 @@ struct WatchNutritionSnapshot: Codable, Hashable, Sendable {
     }
 }
 
+/// Recovery and sleep glance for the Watch. Computed on the phone — the
+/// Watch app holds no HealthKit entitlement, and computing here keeps the
+/// wrist reading the same Recovery number the iPhone Today screen shows.
+/// Every metric is optional: a user with HRV but no resting heart rate
+/// still gets the fields they have.
+struct WatchVitalsSnapshot: Codable, Hashable, Sendable {
+    /// 0…100, from `RecoveryScoreEngine`.
+    let recoveryScore: Int?
+    /// 3-day average resting heart rate, bpm.
+    let restingHeartRate: Int?
+    /// 30-day average resting heart rate, bpm.
+    let restingHeartRateBaseline: Int?
+    /// 3-day average HRV (SDNN), ms.
+    let hrv: Int?
+    /// 30-day average HRV (SDNN), ms.
+    let hrvBaseline: Int?
+    let sleep: WatchSleepSnapshot?
+    /// When the phone ran the HealthKit queries this snapshot came from.
+    let measuredAt: Date
+}
+
+/// Last night, split by stage. Sources that only record "asleep" (most
+/// third-party trackers, iPhone-only sleep) land in `unspecifiedMinutes`
+/// and `hasStages` is false.
+struct WatchSleepSnapshot: Codable, Hashable, Sendable {
+    /// 0…100, from `SleepScoreEngine`.
+    let score: Int
+    let start: Date
+    let end: Date
+    let deepMinutes: Int
+    let coreMinutes: Int
+    let remMinutes: Int
+    let unspecifiedMinutes: Int
+    let awakeMinutes: Int
+
+    var asleepMinutes: Int { deepMinutes + coreMinutes + remMinutes + unspecifiedMinutes }
+    var hasStages: Bool { deepMinutes + coreMinutes + remMinutes > 0 }
+    var band: SleepBand { SleepBand(score: score) }
+}
+
+/// Score bands for the sleep glance, on the same cut-points Apple's own
+/// Sleep Score uses so the two never disagree about what "High" means.
+enum SleepBand: Sendable {
+    case veryLow, low, ok, high, excellent
+
+    init(score: Int) {
+        switch score {
+        case ..<41: self = .veryLow
+        case 41..<61: self = .low
+        case 61..<81: self = .ok
+        case 81..<91: self = .high
+        default: self = .excellent
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .veryLow: return String(localized: "Very Low")
+        case .low: return String(localized: "Low")
+        case .ok: return String(localized: "OK")
+        case .high: return String(localized: "High")
+        case .excellent: return String(localized: "Excellent")
+        }
+    }
+}
+
 struct WatchData: Codable, Sendable {
     let todayEntries: [WatchEntry]
     let completedToday: Int
@@ -85,6 +151,9 @@ struct WatchData: Codable, Sendable {
     /// Water is stored in fluid ounces, so without this the watch showed
     /// ounces to a user whose phone was set to millilitres.
     let measurementUnit: String?
+    /// Recovery + sleep. Nil when Apple Health isn't connected on the
+    /// phone; the Watch hides the Recovery and Sleep pages in that case.
+    let vitals: WatchVitalsSnapshot?
 
     var compliance: Double {
         totalToday > 0 ? Double(completedToday) / Double(totalToday) : 0
@@ -108,7 +177,8 @@ struct WatchData: Codable, Sendable {
         healthHabitsTotal: Int? = nil,
         trainingHabitsDone: Int? = nil,
         trainingHabitsTotal: Int? = nil,
-        measurementUnit: String? = nil
+        measurementUnit: String? = nil,
+        vitals: WatchVitalsSnapshot? = nil
     ) {
         self.todayEntries = todayEntries
         self.completedToday = completedToday
@@ -128,6 +198,7 @@ struct WatchData: Codable, Sendable {
         self.trainingHabitsDone = trainingHabitsDone
         self.trainingHabitsTotal = trainingHabitsTotal
         self.measurementUnit = measurementUnit
+        self.vitals = vitals
     }
 
     init(from decoder: Decoder) throws {
@@ -150,6 +221,34 @@ struct WatchData: Codable, Sendable {
         trainingHabitsDone = try c.decodeIfPresent(Int.self, forKey: .trainingHabitsDone)
         trainingHabitsTotal = try c.decodeIfPresent(Int.self, forKey: .trainingHabitsTotal)
         measurementUnit = try c.decodeIfPresent(String.self, forKey: .measurementUnit)
+        vitals = try c.decodeIfPresent(WatchVitalsSnapshot.self, forKey: .vitals)
+    }
+
+    /// The same snapshot with a new dose list — what an optimistic Watch
+    /// tap needs. Rebuilding through the memberwise init instead silently
+    /// dropped every field the caller forgot to re-pass.
+    func replacingEntries(_ entries: [WatchEntry]) -> WatchData {
+        WatchData(
+            todayEntries: entries,
+            completedToday: entries.filter(\.completed).count,
+            totalToday: entries.count,
+            lastUpdated: lastUpdated,
+            currentStreak: currentStreak,
+            weeklyCompliance: weeklyCompliance,
+            totalDosesLogged: totalDosesLogged,
+            nutrition: nutrition,
+            atlasScore: atlasScore,
+            atlasLevel: atlasLevel,
+            atlasTier: atlasTier,
+            atlasProgress: atlasProgress,
+            atlasTodayEarned: atlasTodayEarned,
+            healthHabitsDone: healthHabitsDone,
+            healthHabitsTotal: healthHabitsTotal,
+            trainingHabitsDone: trainingHabitsDone,
+            trainingHabitsTotal: trainingHabitsTotal,
+            measurementUnit: measurementUnit,
+            vitals: vitals
+        )
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -160,6 +259,7 @@ struct WatchData: Codable, Sendable {
         case healthHabitsDone, healthHabitsTotal
         case trainingHabitsDone, trainingHabitsTotal
         case measurementUnit
+        case vitals
     }
 
     static let empty = WatchData(

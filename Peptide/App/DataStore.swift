@@ -1714,6 +1714,7 @@ final class DataStore {
         if profile.healthConnected {
             profile.healthConnected = false
             save()
+            await refreshWatchVitals()
             return true
         }
         let granted = await HealthKitService.shared.requestAuthorization()
@@ -1723,6 +1724,7 @@ final class DataStore {
         }
         profile.healthConnected = true
         save()
+        await refreshWatchVitals()
         return true
     }
 
@@ -2279,6 +2281,84 @@ final class DataStore {
     @ObservationIgnored private(set) var watchUpdateCountForTesting = 0
     #endif
 
+    /// Last recovery + sleep glance pushed to the Watch. HealthKit is
+    /// async-only and `updateWatchData()` is sync, so the snapshot is
+    /// cached here and carried on every push until the next refresh.
+    @ObservationIgnored private var watchVitals: WatchVitalsSnapshot?
+
+    /// Re-reads HRV, resting heart rate and last night's sleep, then
+    /// pushes them to the Watch. Runs on app activation and when Health
+    /// is connected or disconnected.
+    func refreshWatchVitals() async {
+        guard profile.healthConnected else {
+            guard watchVitals != nil else { return }
+            watchVitals = nil
+            updateWatchData()
+            return
+        }
+        let vitals = await Self.buildWatchVitals(sleepTargetHours: Self.watchSleepTargetHours)
+        guard profile.healthConnected else { return }
+        watchVitals = vitals
+        updateWatchData()
+    }
+
+    /// Same target the Today hero's Recovery score assumes.
+    private static let watchSleepTargetHours = 8.0
+
+    private static func buildWatchVitals(sleepTargetHours: Double) async -> WatchVitalsSnapshot? {
+        let kit = HealthKitService.shared
+        async let recentHRV = kit.averageHRV(days: 3)
+        async let baseHRV = kit.averageHRV(days: 30)
+        async let recentRHR = kit.averageRestingHeartRate(days: 3)
+        async let baseRHR = kit.averageRestingHeartRate(days: 30)
+        async let lastSleepHours = kit.averageSleepHours(days: 1)
+        async let segments = kit.recentSleepSegments()
+
+        let hrv = await recentHRV
+        let hrvBaseline = await baseHRV
+        let rhr = await recentRHR
+        let rhrBaseline = await baseRHR
+        let sleepHours = await lastSleepHours
+        let night = SleepScoreEngine.night(from: await segments)
+
+        // Same inputs `HeroMetricSnapshot.build` uses, so the wrist and
+        // the iPhone's Today screen show the same Recovery number.
+        let recovery = RecoveryScoreEngine.score(inputs: .init(
+            recentHRV: hrv,
+            baselineHRV: hrvBaseline,
+            recentRHR: rhr,
+            baselineRHR: rhrBaseline,
+            lastSleepHours: sleepHours,
+            sleepTargetHours: sleepTargetHours
+        ))
+        let sleep = night.map { night in
+            WatchSleepSnapshot(
+                score: SleepScoreEngine.score(night, targetHours: sleepTargetHours),
+                start: night.start,
+                end: night.end,
+                deepMinutes: Int((night.deep / 60).rounded()),
+                coreMinutes: Int((night.core / 60).rounded()),
+                remMinutes: Int((night.rem / 60).rounded()),
+                unspecifiedMinutes: Int((night.unspecified / 60).rounded()),
+                awakeMinutes: Int((night.awake / 60).rounded())
+            )
+        }
+        let snapshot = WatchVitalsSnapshot(
+            recoveryScore: recovery?.value,
+            restingHeartRate: rhr.map { Int($0.rounded()) },
+            restingHeartRateBaseline: rhrBaseline.map { Int($0.rounded()) },
+            hrv: hrv.map { Int($0.rounded()) },
+            hrvBaseline: hrvBaseline.map { Int($0.rounded()) },
+            sleep: sleep,
+            measuredAt: Date()
+        )
+        let hasAnything = snapshot.recoveryScore != nil
+            || snapshot.restingHeartRate != nil
+            || snapshot.hrv != nil
+            || sleep != nil
+        return hasAnything ? snapshot : nil
+    }
+
     private func updateWidgetData() {
         #if DEBUG
         widgetUpdateCountForTesting += 1
@@ -2338,7 +2418,8 @@ final class DataStore {
             healthHabitsTotal: healthDue.count,
             trainingHabitsDone: trainingDue.filter(isDone).count,
             trainingHabitsTotal: trainingDue.count,
-            measurementUnit: profile.bodyMetrics.unit.rawValue
+            measurementUnit: profile.bodyMetrics.unit.rawValue,
+            vitals: watchVitals
         )
     }
 
@@ -2445,6 +2526,7 @@ final class DataStore {
         // scheduled entries before the status change lands.
         performCycleAutoCompletion()
         regenerateTodayEntries()
+        Task { await refreshWatchVitals() }
     }
 
     /// Re-pulls protocols / entries / profile from the repository — used by
