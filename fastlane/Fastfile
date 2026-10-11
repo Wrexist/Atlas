@@ -66,11 +66,21 @@ platform :ios do
         requested = Gem::Version.new(marketing_version)
         newest_train = prerelease.map { |v| Gem::Version.new(v) }.max
 
-        # Another build on the newest train is fine until that version
-        # ships: Apple only closes a train once it is approved. That is how
-        # a fix lands on a version already waiting in App Store Connect.
+        # An approved version waiting for release (PENDING_DEVELOPER_RELEASE
+        # or PENDING_APPLE_RELEASE) has closed its train, but the live
+        # version still reports the previous release.
+        pending = begin
+          app.get_pending_release_app_store_version&.version_string
+        rescue StandardError
+          nil
+        end
+
+        # Another build on the newest train is fine until that version is
+        # approved. That is how a fix lands on a version already waiting in
+        # App Store Connect.
         reopens_open_train = newest_train && requested == newest_train &&
-                             (live.nil? || requested > Gem::Version.new(live))
+                             (live.nil? || requested > Gem::Version.new(live)) &&
+                             pending != marketing_version
 
         if ceiling && requested <= ceiling && !reopens_open_train
           UI.user_error!(
