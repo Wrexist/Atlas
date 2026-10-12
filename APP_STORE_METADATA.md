@@ -121,7 +121,6 @@ Your logs stay on your device and in your iCloud. No account, no ads, no trackin
 
 WORKOUTS
 Atlas pre-fills your last weight and reps — confirm or adjust and move on.
-Rest timer fires automatically and sends a Lock Screen alert when you're ready.
 • 870+ exercises plus unlimited custom lifts
 • Automatic PR detection — weight, rep, and bodyweight records
 • Rest timer with Lock Screen notification
@@ -131,8 +130,7 @@ Rest timer fires automatically and sends a Lock Screen alert when you're ready.
 ——
 
 NUTRITION
-Snap a photo and Atlas identifies the food, or scan a barcode from millions
-of products. Either way, macros are logged in seconds.
+Snap a photo or scan a barcode — macros are logged in seconds.
 • AI photo meal scanner — 3 free scans a week, never stored by Atlas
 • Barcode database with millions of products (Open Food Facts)
 • Daily calorie and macro rings with TDEE-based targets
@@ -149,13 +147,19 @@ before you leave the house.
 • Performance Age metric
 • Biomarker trending: weight, body fat, waist, blood pressure
 • Lab value tracking: testosterone, vitamin D, lipids, custom panels
-• Full Apple Health integration
 
 ——
 
 HABITS
 Track any daily routine with a 6-month momentum heatmap. Set daily, weekday,
 or X-per-week schedules — optional reminders fire on the days they're due.
+
+——
+
+APPLE WATCH
+Recovery with your resting heart rate and HRV, a Sleep Score with every
+stage, today's habit and calorie rings, and one-tap dose and water logging.
+Recovery and Sleep Score complications for your watch face.
 
 ——
 
@@ -212,7 +216,7 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 943 / 4 000 — 57 chars of headroom. The SUBSCRIPTION TERMS block and
+*(3 988 / 4 000 — 12 chars of headroom. The SUBSCRIPTION TERMS block and
 both links are required by Guideline 3.1.2 — do not trim them to make room
 for copy.)*
 
@@ -370,17 +374,21 @@ The same two links must also stay tappable on the paywall
 
 ### Localization copy
 
+App Store Connect caps an in-app purchase description at 45 characters.
+List only what Atlas Pro actually unlocks: the Watch, widgets, Live
+Activities and iCloud sync are free, as the App Description says.
+
 **Atlas Pro Monthly**
 - Display Name: `Atlas Pro Monthly`
-- Description: `Unlimited protocols, full Biology tab (body composition + lab panels), AI Research assistant, Apple Watch, all widgets, and full data export. Renews monthly — cancel anytime in your Apple ID settings.`
+- Description: `AI meal scans, Biology, Research and export`
 
 **Atlas Pro Annual**
 - Display Name: `Atlas Pro Annual`
-- Description: `Everything in Atlas Pro for a full year. Unlimited protocols, full Biology, AI Research assistant, Apple Watch, all widgets, full data export. Best value — save 58% vs. monthly.`
+- Description: `A full year of Atlas Pro. Save 58%.`
 
 **Atlas Pro Lifetime** *(Non-Consumable IAP, not a subscription)*
 - Display Name: `Atlas Pro Lifetime`
-- Description: `One-time purchase. Unlock Atlas Pro forever — unlimited protocols, full Biology, AI Research assistant, Apple Watch, all widgets, and full data export. No subscription, no renewals.`
+- Description: `Atlas Pro forever. One payment, no renewals.`
 
 ---
 
@@ -397,6 +405,11 @@ The same two links must also stay tappable on the paywall
 | **iPhone 6.9"** (16 Pro Max) | **1320 × 2868 px** | Required — primary set |
 | iPhone 6.5" (11 Pro Max) | 1242 × 2688 px | Optional legacy fallback |
 | **iPad Pro 13"** (M4) | **2064 × 2752 px** | Required if iPad-targeted |
+| **Apple Watch Ultra 3** | **422 × 514 px** | Required while the Watch app ships — or Series 11/10 at 416 × 496 |
+
+The Apple Watch sets are rendered, not captured: `node render.mjs --watch`
+in `marketing/app-store/` draws every watch slot from `screens-watch/`.
+`marketing/app-store/README.md` maps each App Store Connect slot to its folder.
 
 Capture with: `xcrun simctl io booted screenshot ~/Desktop/ss-01.png`
 or Xcode Device toolbar → Screenshot button on a physical device.
@@ -633,14 +646,15 @@ Do not crop them out.
 | 8 — Paywall | n/a — is the paywall | No |
 
 Free features: workout logging (rest timer, PR detection), barcode + photo
-meal scanning, four base biomarkers (weight, HRV, RHR, sleep), habit
-tracking, up to 3 active protocols, dose logging, local reminders,
-peptide library.
+meal scanning (3 AI scans a week), four base biomarkers (weight, HRV, RHR,
+sleep), Recovery, habit tracking, up to 3 active protocols, dose logging,
+local reminders, peptide library, iCloud sync, Apple Watch app and
+complications, Home Screen widgets, Live Activities.
 
-Pro features (badge required on screenshots): full Biology tab, body
-composition + lab panels, AI Research assistant, cloud sync, Apple Watch,
-all Home Screen widgets, Live Activities, CSV/JSON export, unlimited
-protocols.
+Pro features (badge required on screenshots): unlimited AI meal scans,
+Performance Age and the full Biology tab (body composition + lab panels),
+AI Research assistant and the weekly AI recap, unlimited protocols, full
+data export (CSV, JSON, PDF).
 
 ---
 
@@ -752,7 +766,7 @@ Run through every item before hitting Submit in App Store Connect.
 - [ ] Subtitle: `Workout Log, Macros & Habits`
 - [ ] Keywords pasted exactly (90 chars, no spaces after commas)
 - [ ] Promotional Text pasted (155 chars)
-- [ ] Description pasted (3 943 chars)
+- [ ] Description pasted (3 988 chars)
 - [ ] What's New pasted
 - [ ] Age rating set to 17+
 - [ ] App Privacy questionnaire: Yes, the two RevenueCat categories in "App Privacy" above, no tracking
@@ -761,6 +775,7 @@ Run through every item before hitting Submit in App Store Connect.
 **Screenshots**
 - [ ] 6–8 screenshots uploaded for 6.9" iPhone (1320 × 2868)
 - [ ] 6–8 screenshots uploaded for 13" iPad (2064 × 2752)
+- [ ] 6 Apple Watch screenshots uploaded, one size used in every localization: Ultra 3 (422 × 514, `marketing/app-store/screenshots-watch-ultra3/`) or Series 11/10 (416 × 496, `screenshots-watch-s10/`)
 - [ ] Every Pro-feature screenshot carries `Atlas Pro — subscription required` badge
 - [ ] Paywall screenshot (slot 8) present and shows auto-renew disclosure + Terms + Privacy links
 - [ ] No screenshots show a splash, login, or empty state
