@@ -1,0 +1,49 @@
+name: App Store Connect Sync
+
+# Copies the store listing in this repo (APP_STORE_METADATA.md and the
+# watch screenshots in marketing/app-store/) into App Store Connect for one
+# version. Dry run unless `apply` is ticked; it never submits for review.
+on:
+  workflow_dispatch:
+    inputs:
+      app_version:
+        description: 'App Store version to update, e.g. 1.4.0. Created if it does not exist yet.'
+        required: true
+        type: string
+      apply:
+        description: 'Write the changes. Leave unticked for a dry run that only reports what would change.'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: store-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install API client dependencies
+        run: pip install 'pyjwt[crypto]==2.10.1' 'requests==2.32.3'
+      - name: Sync listing
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          APP_VERSION: ${{ inputs.app_version }}
+          APPLY: ${{ inputs.apply }}
+        run: |
+          if [ "$APPLY" = "true" ]; then
+            python3 scripts/asc_store_sync.py --version "$APP_VERSION" --apply
+          else
+            python3 scripts/asc_store_sync.py --version "$APP_VERSION"
+          fi

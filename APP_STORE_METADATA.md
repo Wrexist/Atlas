@@ -225,38 +225,24 @@ for copy.)*
 ## "What's New" *(4000 char limit)*
 
 ```
-Atlas 1.3 — a big update to training and food logging.
+Atlas 1.4: a redesigned Apple Watch app.
 
-TRAINING
-• New focused workout screen: one exercise at a time, with a body map of the muscles you're working
-• Rest timer you can skip or adjust by 15 seconds, and pause the whole workout when life interrupts
-• Interactive body map — tap a muscle to see the workouts and sets that trained it
-• A recap after every workout, with full details you can edit later
-• Share a workout as a story image, a reel video or a highlight card
-• Plate calculator, right from an exercise's menu
-• Recent exercises first, and pick several at once
-• Repeat a past workout, save it as a routine, or delete it
-
-FOOD
-• Log meals on any day, including photo scans
-• Meal scans are saved as you go — if the app closes, pick up where you left off
-• Exact gram portions, and Atlas remembers the portion you used last
-• Undo after logging, plus a history of the foods you've scanned
-• Smarter food library search with better matching
-• Recipes check every ingredient before logging, so totals are never quietly wrong
-• Free users get three AI meal scans a week; unlimited with Atlas Pro
+APPLE WATCH
+• All-new watch app: turn the Digital Crown through Today, Recovery, Sleep Score, Nutrition and Protocol
+• Recovery: a heart that beats at your resting rate, with HRV and your Recovery score
+• Sleep Score: last night by stage (awake, REM, core and deep), ready the moment you wake
+• Habit and protocol rings, calorie and protein rings, and one-tap water and dose logging
+• New Recovery and Sleep Score complications for your watch face
 
 ALSO
-• Smoother celebrations for PRs, streaks and milestones — calmer when Reduce Motion is on
-• Badges and stats scale with larger text, plus VoiceOver improvements
-• Delete All Data now also clears reminders, achievements and live workouts
+• Doses you log on the watch reach your iPhone faster
+• Your Atlas Score and habits stay on the watch while a dose syncs
 • Reliability fixes throughout
 
 Feedback → support@peptidesai.com
 ```
 
-*(1 425 / 4 000)*
-
+*(682 / 4 000)*
 ---
 
 ## Age Rating
