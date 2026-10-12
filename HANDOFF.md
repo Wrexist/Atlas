@@ -2,6 +2,37 @@
 
 ## Current in-flight state
 
+### Watch app 2.0 (PR #184, merged)
+
+The watch app is now a vertical pager in the shape of the watchOS 10
+system apps: Today rings, Recovery, Sleep Score, Nutrition and Protocol,
+plus Recovery and Sleep Score complications. The phone computes the
+vitals (`DataStore.refreshWatchVitals()`, `SleepScoreEngine`) and pushes
+them in `WatchData.vitals`, so the watch still has no HealthKit
+entitlement. `build-check` compiled all three targets and ran the suite:
+1517 tests, 0 failures, including `SleepScoreEngineTests` and
+`WatchDataTests`.
+
+Still owed, none of it possible without hardware:
+- **Device QA** on a 41 mm and a 45/46 mm watch: every page fits without
+  clipping, the heart and ECG beat at the resting rate, entrances replay
+  on each Crown page, Always On and Reduce Motion hold everything still.
+- **Numbers match:** with Health connected, the watch's Recovery equals
+  the iPhone Today hero's, and the Sleep page shows last night, not a nap.
+- **Dose round trip** with the phone reachable and unreachable (the phone
+  now acks live messages, so taps should no longer fall back to
+  `transferUserInfo`).
+- **Sleep Score weights** (duration 60, deep + REM 25, continuity 15) are
+  a product call nobody has signed off on yet.
+- **Store screenshots** in `marketing/app-store/screenshots-watch-*` are
+  renders of `screens-watch/`. Check them against the device before
+  uploading; update the HTML if the build differs.
+- **Vercel `peptide-ai`** (the docs site) refuses deployments whose commit
+  author has no linked Vercel account, so Claude-authored commits show it
+  red. Allow unlinked authors in that project's Git settings, or ignore it.
+
+### Earlier: September 2026 audit
+
 Branch: `claude/sleepy-babbage-fjf6gh`, on top of `main` at PR #178.
 
 This branch is the September 2026 audit and the fixes that came out of it:
@@ -35,8 +66,8 @@ calculator on an iPhone SE and a Pro Max, plus Dynamic Type and VoiceOver.
 ## Before merging branch work
 
 1. `xcodegen generate`, then a clean build for an iOS 18+ simulator.
-2. Fix the remaining `PeptideTests` compile errors and re-enable the CI
-   step; run the suite.
+2. Run `PeptideTests`. CI runs it as a gating step inside `build-check`,
+   so a green `build-check` means the suite passed.
 3. Verify Liquid Glass surfaces on an iOS 26 simulator/device — the design
    work cannot be validated on older OSes.
 4. Check the app in **all three** display modes. Light mode has never been

@@ -249,28 +249,23 @@ Total for all 8 × 2 device sizes: ~80 minutes.
 
 ## 9 — Apple Watch screenshots
 
-The Watch app's screenshot mode is automatically wired through
-the iPhone's `ScreenshotMode.activate` — when the iPhone is in
-demo mode, the Watch sync pipeline pushes demo data to the paired
-Watch simulator. No separate toggle needed.
+Watch screenshots are not made in Figma or captured from a simulator.
+The watch app has no screenshot mode, so a simulator would show an
+empty sync. They are HTML renders of the watch app's own pages in
+`marketing/app-store/screens-watch/`. The geometry is drawn by
+`assets/watch.js`, which mirrors the SwiftUI views, and the colours
+come from `WatchShared/WatchPalette.swift`.
 
-**Capture workflow for Watch screenshots:**
-
-1. Pair Apple Watch simulator with the iPhone simulator (Xcode →
-   Window → Devices and Simulators → set Companion Device)
-2. Activate iPhone screenshot mode as above
-3. Wait ~2 seconds for the Watch to receive the
-   WatchConnectivity payload
-4. In Watch simulator: File → Save Screen
-5. Watch screenshot dimensions: 410 × 502 px (Ultra 49 mm) or
-   396 × 484 px (Series 10 46 mm)
-
-Watch screenshots have **their own Figma canvas**:
-- 410 × 502 master
-- Tighter typography: 56 pt headline, 24 pt subhead
-- Same accent palette
-- No subhead on tighter Watch surfaces — the screen tells the
-  story alone
+- `node render.mjs --watch` in `marketing/app-store/` renders all six
+  screens natively at every App Store Connect watch slot: Ultra 3
+  422 × 514, Ultra 2 410 × 502, Series 11/10 416 × 496 and Series 6
+  368 × 448.
+- The screens carry no captions. Like Apple's own, they are the
+  screen and nothing else. Captioned versions for the web live in
+  `screens-watch-frames/` and are not App Store uploads.
+- After a watch UI change, edit the matching screen to match the
+  build, re-render, and check the result against a device before
+  uploading. App Store screenshots must show the app as it ships.
 
 ---
 
