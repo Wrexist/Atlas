@@ -374,17 +374,17 @@ The same two links must also stay tappable on the paywall
 
 ### Localization copy
 
-App Store Connect caps an in-app purchase description at 55 characters.
+App Store Connect caps an in-app purchase description at 45 characters.
 List only what Atlas Pro actually unlocks: the Watch, widgets, Live
 Activities and iCloud sync are free, as the App Description says.
 
 **Atlas Pro Monthly**
 - Display Name: `Atlas Pro Monthly`
-- Description: `AI meal scans, Biology, Research and full export`
+- Description: `AI meal scans, Biology, Research and export`
 
 **Atlas Pro Annual**
 - Display Name: `Atlas Pro Annual`
-- Description: `A full year of Atlas Pro. Save 58% vs monthly.`
+- Description: `A full year of Atlas Pro. Save 58%.`
 
 **Atlas Pro Lifetime** *(Non-Consumable IAP, not a subscription)*
 - Display Name: `Atlas Pro Lifetime`

@@ -249,9 +249,13 @@ Total for all 8 × 2 device sizes: ~80 minutes.
 
 ## 9 — Apple Watch screenshots
 
-Watch screenshots are not made in Figma or captured from a simulator.
-The watch app has no screenshot mode, so a simulator would show an
-empty sync. They are HTML renders of the watch app's own pages in
+Watch screenshots are not made in Figma. The iPhone's screenshot mode
+(`ScreenshotMode.activate`) does push its demo snapshot to a paired
+watch simulator through `DataStore.enterEphemeralMode`, so Today,
+Nutrition and Protocol can be captured that way. Recovery and Sleep
+Score cannot: their data comes from HealthKit, which screenshot mode
+does not seed, so those pages never appear. The store set is therefore
+HTML renders of the watch app's own pages in
 `marketing/app-store/screens-watch/`. The geometry is drawn by
 `assets/watch.js`, which mirrors the SwiftUI views, and the colours
 come from `WatchShared/WatchPalette.swift`.
