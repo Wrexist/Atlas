@@ -36,6 +36,8 @@ SHOTS = REPO / "marketing" / "app-store"
 API = "https://api.appstoreconnect.apple.com"
 BUNDLE_ID = "com.peptidesai.app"
 LOCALE = "en-US"
+SCREENSHOTS_PER_SET = 10
+PROCESSING_TIMEOUT = 300  # seconds to wait for Apple to process new screenshots
 
 # Versions in these states accept metadata edits.
 EDITABLE = {"PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED",
@@ -186,7 +188,8 @@ def sync_text(asc: ASC, version: dict, description: str, whats_new: str) -> str 
     return loc["id"]
 
 
-def upload_screenshot(asc: ASC, set_id: str, path: Path) -> None:
+def upload_screenshot(asc: ASC, set_id: str, path: Path) -> str:
+    import requests
     data = path.read_bytes()
     reserved = asc.call("POST", "/v1/appScreenshots", json={"data": {
         "type": "appScreenshots",
@@ -196,13 +199,54 @@ def upload_screenshot(asc: ASC, set_id: str, path: Path) -> None:
     for op in reserved["attributes"]["uploadOperations"]:
         headers = {h["name"]: h["value"] for h in op.get("requestHeaders", [])}
         chunk = data[op["offset"]:op["offset"] + op["length"]]
-        r = asc.http.request(op["method"], op["url"], data=chunk, headers=headers, timeout=120)
+        # The upload URLs are pre-signed: Apple rejects a request that also carries the JWT,
+        # so this goes through a bare request rather than the authenticated session.
+        r = requests.request(op["method"], op["url"], data=chunk, headers=headers, timeout=120)
         if r.status_code >= 400:
             sys.exit(f"upload of {path.name} failed: {r.status_code} {r.text[:500]}")
     asc.call("PATCH", f"/v1/appScreenshots/{reserved['id']}", json={"data": {
         "type": "appScreenshots", "id": reserved["id"],
         "attributes": {"uploaded": True, "sourceFileChecksum": hashlib.md5(data).hexdigest()},
     }})
+    return reserved["id"]
+
+
+def await_processing(asc: ASC, shot_ids: list[str]) -> list[str]:
+    """Wait for Apple to process the uploads; returns the ids that failed."""
+    pending, failed = set(shot_ids), []
+    deadline = time.time() + PROCESSING_TIMEOUT
+    while pending and time.time() < deadline:
+        time.sleep(5)
+        for shot_id in sorted(pending):
+            attrs = asc.get(f"/v1/appScreenshots/{shot_id}")["data"]["attributes"]
+            state = (attrs.get("assetDeliveryState") or {}).get("state")
+            if state == "COMPLETE":
+                pending.discard(shot_id)
+            elif state == "FAILED":
+                errors = (attrs.get("assetDeliveryState") or {}).get("errors") or []
+                print(f"  ! {attrs.get('fileName', shot_id)} failed processing: "
+                      f"{'; '.join(e.get('description', '') for e in errors) or 'no reason given'}")
+                pending.discard(shot_id)
+                failed.append(shot_id)
+    return failed + sorted(pending)
+
+
+def replace_screenshots(asc: ASC, slot: str, set_id: str, old: list[dict], files: list[Path]) -> None:
+    """Upload the new set before deleting the old one, so a failed upload never empties the listing."""
+    # A set holds at most SCREENSHOTS_PER_SET, so make just enough room for the new uploads first.
+    room = max(0, len(old) + len(files) - SCREENSHOTS_PER_SET)
+    for shot in old[:room]:
+        asc.call("DELETE", f"/v1/appScreenshots/{shot['id']}")
+    new_ids = [upload_screenshot(asc, set_id, f) for f in files]
+    failed = await_processing(asc, new_ids)
+    if failed:
+        for shot_id in new_ids:
+            asc.call("DELETE", f"/v1/appScreenshots/{shot_id}")
+        sys.exit(f"{slot}: {len(failed)} of {len(new_ids)} new screenshots did not process; "
+                 f"removed the new uploads and kept the {len(old) - room} existing ones")
+    for shot in old[room:]:
+        asc.call("DELETE", f"/v1/appScreenshots/{shot['id']}")
+    print(f"  {slot}: {len(new_ids)} new screenshots processed, old ones removed")
 
 
 def sync_watch_screenshots(asc: ASC, loc_id: str | None) -> None:
@@ -222,23 +266,23 @@ def sync_watch_screenshots(asc: ASC, loc_id: str | None) -> None:
         if slot in watch_sets:
             old = asc.all(f"/v1/appScreenshotSets/{watch_sets[slot]['id']}/appScreenshots")
             print(f"  {slot}: {len(old)} on the listing, replacing with {len(files)} from {WATCH_SLOTS[slot]}/")
-            for shot in old:
-                asc.write("DELETE", f"/v1/appScreenshots/{shot['id']}", None,
-                          f"delete {shot['attributes'].get('fileName', shot['id'])}")
-            set_id = watch_sets[slot]["id"]
-        else:
-            print(f"  {slot}: none on the listing, adding {len(files)} from {WATCH_SLOTS[slot]}/")
-            created = asc.write("POST", "/v1/appScreenshotSets", {"data": {
-                "type": "appScreenshotSets",
-                "attributes": {"screenshotDisplayType": slot},
-                "relationships": {"appStoreVersionLocalization": {
-                    "data": {"type": "appStoreVersionLocalizations", "id": loc_id}}},
-            }}, f"create the {slot} screenshot set")
-            set_id = created["data"]["id"] if created else None
-        for f in files:
-            print(f"  {'→' if asc.apply else '·'} upload {f.name}")
+            print(f"  {'→' if asc.apply else '·'} upload {', '.join(f.name for f in files)}, "
+                  f"then delete the old {len(old)} once Apple has processed them")
             if asc.apply:
-                upload_screenshot(asc, set_id, f)
+                replace_screenshots(asc, slot, watch_sets[slot]["id"], old, files)
+            continue
+        print(f"  {slot}: none on the listing, adding {len(files)} from {WATCH_SLOTS[slot]}/")
+        created = asc.write("POST", "/v1/appScreenshotSets", {"data": {
+            "type": "appScreenshotSets",
+            "attributes": {"screenshotDisplayType": slot},
+            "relationships": {"appStoreVersionLocalization": {
+                "data": {"type": "appStoreVersionLocalizations", "id": loc_id}}},
+        }}, f"create the {slot} screenshot set")
+        print(f"  {'→' if asc.apply else '·'} upload {', '.join(f.name for f in files)}")
+        if created:
+            new_ids = [upload_screenshot(asc, created["data"]["id"], f) for f in files]
+            if await_processing(asc, new_ids):
+                sys.exit(f"{slot}: some new screenshots did not process; check App Store Connect")
 
 
 def set_localized_description(asc: ASC, locs: list[dict], resource: str, name: str, text: str) -> None:
