@@ -3,7 +3,7 @@
 //   GROOT=$(npm root -g) node render.mjs --ipad          all → iPad 13"   (2064×2752)
 //   GROOT=$(npm root -g) node render.mjs 05-recovery.html [--ipad]   one screen
 //   GROOT=$(npm root -g) node render.mjs --watch         screens-watch → every Apple Watch slot
-//   GROOT=$(npm root -g) node render.mjs --watch=s10     one slot: ultra3 | ultra | s10 | s6
+//   GROOT=$(npm root -g) node render.mjs --watch=s10     one slot: ultra3 | ultra | s10 | s9 | s6
 // Watch screens size everything in watch points (viewport width / 208), so
 // each slot is a native render, never a resample of another.
 import { createRequire } from 'module';
@@ -30,6 +30,7 @@ const WATCH_SLOTS = {
   ultra3: { w: 422, h: 514, dir: 'screenshots-watch-ultra3' }, // Ultra 3
   ultra: { w: 410, h: 502, dir: 'screenshots-watch' },         // Ultra 2 / Ultra
   s10: { w: 416, h: 496, dir: 'screenshots-watch-s10' },       // Series 11 / 10
+  s9: { w: 396, h: 484, dir: 'screenshots-watch-s9' },         // Series 9–7
   s6: { w: 368, h: 448, dir: 'screenshots-watch-s6' },         // Series 6–4 / SE
 };
 const watchSlots = !watch ? [] : watchArg.includes('=')

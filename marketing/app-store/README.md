@@ -95,13 +95,14 @@ App Store Connect slots and the folder each one takes (1.3.0):
 | Apple Watch Ultra 3 | 422 × 514 | `screenshots-watch-ultra3/` |
 | Apple Watch Ultra 2 / Ultra | 410 × 502 | `screenshots-watch/` |
 | Apple Watch Series 11 / 10 | 416 × 496 | `screenshots-watch-s10/` |
+| Apple Watch Series 9 / 8 / 7 | 396 × 484 | `screenshots-watch-s9/` |
 | Apple Watch Series 6 / SE | 368 × 448 | `screenshots-watch-s6/` |
 
 The 6.3 and 6.5 iPhone sets are Lanczos resizes of the rendered 6.9" set
 (a few pixels centre-cropped to the slot's aspect), not separate renders.
 Every Apple Watch set is a native render: the watch screens size everything
 in watch points (viewport width / 208), so `node render.mjs --watch` draws
-all four slots from one source, and `--watch=ultra3|ultra|s10|s6` draws one.
+all four slots from one source, and `--watch=ultra3|ultra|s10|s9|s6` draws one.
 App Store Connect wants one Apple Watch size used across every localization.
 
 Pro-gated frames (only #5 here) carry the `Atlas Pro — subscription required`
