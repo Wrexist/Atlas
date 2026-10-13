@@ -260,7 +260,8 @@ def sync_watch_screenshots(asc: ASC, loc_id: str | None) -> None:
     current = next((s for s in watch_sets if s["attributes"]["screenshotDisplayType"] == WATCH_SLOT), None)
     if current:
         old = asc.all(f"/v1/appScreenshotSets/{current['id']}/appScreenshots")
-        if sorted(o["attributes"].get("sourceFileChecksum") or "" for o in old) == \
+        processed = all((o["attributes"].get("assetDeliveryState") or {}).get("state") == "COMPLETE" for o in old)
+        if processed and sorted(o["attributes"].get("sourceFileChecksum") or "" for o in old) == \
                 sorted(hashlib.md5(f.read_bytes()).hexdigest() for f in files):
             print(f"  {WATCH_SLOT}: already matches {WATCH_FOLDER}/")
             return
