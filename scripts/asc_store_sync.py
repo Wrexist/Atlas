@@ -6,9 +6,10 @@ the listing; this copies them into App Store Connect for one version:
 
 - creates the App Store version if it doesn't exist yet,
 - sets the en-US description and What's New,
-- replaces the Apple Watch screenshots in every watch slot the listing has
-  (or creates the Ultra slot when it has none),
-- sets the en-US description of each subscription and in-app purchase,
+- fills every Apple Watch screenshot slot there's a render for, replacing
+  what's there unless it already matches,
+- sets the en-US description of each subscription and in-app purchase that
+  isn't live (a live one is reported, since only the web UI can change it),
 - attaches the newest processed build of that version, if there is one.
 
 It never submits for review. Without --apply it only reads App Store
@@ -50,7 +51,9 @@ WATCH_SLOTS = {
     "APP_WATCH_SERIES_7": "screenshots-watch-s9",    # 396 × 484
     "APP_WATCH_SERIES_4": "screenshots-watch-s6",    # 368 × 448
 }
-NEW_WATCH_SLOT = "APP_WATCH_ULTRA"
+
+# Localizations of a product that is on sale can't be edited through the API.
+LIVE_LOCALIZATION_STATES = {"ACTIVE", "APPROVED", "WAITING_FOR_REVIEW", "IN_REVIEW"}
 
 PRODUCTS = {  # product ID → display name in the "Localization copy" section
     "com.peptidesai.app.pro.monthly": "Atlas Pro Monthly",
@@ -252,7 +255,8 @@ def replace_screenshots(asc: ASC, slot: str, set_id: str, old: list[dict], files
 def sync_watch_screenshots(asc: ASC, loc_id: str | None) -> None:
     print("\nApple Watch screenshots:")
     if not loc_id:
-        print(f"  · upload {len(watch_shots(NEW_WATCH_SLOT))} to {NEW_WATCH_SLOT} once the version exists")
+        for slot, folder in WATCH_SLOTS.items():
+            print(f"  · upload {len(watch_shots(slot))} to {slot} from {folder}/ once the version exists")
         return
     sets = asc.all(f"/v1/appStoreVersionLocalizations/{loc_id}/appScreenshotSets")
     watch_sets = {s["attributes"]["screenshotDisplayType"]: s for s in sets
@@ -260,11 +264,14 @@ def sync_watch_screenshots(asc: ASC, loc_id: str | None) -> None:
     unknown = set(watch_sets) - set(WATCH_SLOTS)
     if unknown:
         print(f"  ! leaving {', '.join(sorted(unknown))} alone: no render at that size")
-    targets = [t for t in watch_sets if t in WATCH_SLOTS] or [NEW_WATCH_SLOT]
-    for slot in targets:
+    for slot in WATCH_SLOTS:
         files = watch_shots(slot)
         if slot in watch_sets:
             old = asc.all(f"/v1/appScreenshotSets/{watch_sets[slot]['id']}/appScreenshots")
+            if sorted(o["attributes"].get("sourceFileChecksum") or "" for o in old) == \
+                    sorted(hashlib.md5(f.read_bytes()).hexdigest() for f in files):
+                print(f"  {slot}: already matches {WATCH_SLOTS[slot]}/")
+                continue
             print(f"  {slot}: {len(old)} on the listing, replacing with {len(files)} from {WATCH_SLOTS[slot]}/")
             print(f"  {'→' if asc.apply else '·'} upload {', '.join(f.name for f in files)}, "
                   f"then delete the old {len(old)} once Apple has processed them")
@@ -293,6 +300,11 @@ def set_localized_description(asc: ASC, locs: list[dict], resource: str, name: s
     current = loc["attributes"].get("description") or ""
     if current == text:
         print(f"  {name}: already “{text}”")
+        return
+    state = loc["attributes"].get("state")
+    if state in LIVE_LOCALIZATION_STATES:
+        print(f"  ! {name} is {state}, so the API can't change it: edit “{current}” → “{text}” "
+              f"in App Store Connect (it goes to review with the next version)")
         return
     asc.write("PATCH", f"/v1/{resource}/{loc['id']}", {"data": {
         "type": resource, "id": loc["id"], "attributes": {"description": text},
