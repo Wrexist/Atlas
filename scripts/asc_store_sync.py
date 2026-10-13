@@ -6,8 +6,8 @@ the listing; this copies them into App Store Connect for one version:
 
 - creates the App Store version if it doesn't exist yet,
 - sets the en-US description and What's New,
-- fills every Apple Watch screenshot slot there's a render for, replacing
-  what's there unless it already matches,
+- sets the Apple Watch screenshots to the Ultra render (a version holds one
+  watch size, scaled for every watch), unless they already match,
 - sets the en-US description of each subscription and in-app purchase that
   isn't live (a live one is reported, since only the web UI can change it),
 - attaches the newest processed build of that version, if there is one.
@@ -44,13 +44,10 @@ PROCESSING_TIMEOUT = 300  # seconds to wait for Apple to process new screenshots
 EDITABLE = {"PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED",
             "METADATA_REJECTED", "INVALID_BINARY"}
 
-# Watch screenshot slot → folder rendered at that slot's size.
-WATCH_SLOTS = {
-    "APP_WATCH_ULTRA": "screenshots-watch",          # 410 × 502
-    "APP_WATCH_SERIES_10": "screenshots-watch-s10",  # 416 × 496
-    "APP_WATCH_SERIES_7": "screenshots-watch-s9",    # 396 × 484
-    "APP_WATCH_SERIES_4": "screenshots-watch-s6",    # 368 × 448
-}
+# A version carries one Apple Watch screenshot size, which the App Store
+# scales for every watch, so it gets the largest render: Ultra 3, 422 × 514.
+WATCH_SLOT = "APP_WATCH_ULTRA"
+WATCH_FOLDER = "screenshots-watch-ultra3"
 
 # Localizations of a product that is on sale can't be edited through the API.
 LIVE_LOCALIZATION_STATES = {"ACTIVE", "APPROVED", "WAITING_FOR_REVIEW", "IN_REVIEW"}
@@ -93,10 +90,10 @@ def product_descriptions(md: str) -> dict[str, str]:
     return found
 
 
-def watch_shots(slot: str) -> list[Path]:
-    files = sorted((SHOTS / WATCH_SLOTS[slot]).glob("*.png"))
+def watch_shots() -> list[Path]:
+    files = sorted((SHOTS / WATCH_FOLDER).glob("*.png"))
     if not files:
-        sys.exit(f"no screenshots in {WATCH_SLOTS[slot]}/ (run `node render.mjs --watch`)")
+        sys.exit(f"no screenshots in {WATCH_FOLDER}/ (run `node render.mjs --watch`)")
     return files
 
 
@@ -254,42 +251,40 @@ def replace_screenshots(asc: ASC, slot: str, set_id: str, old: list[dict], files
 
 def sync_watch_screenshots(asc: ASC, loc_id: str | None) -> None:
     print("\nApple Watch screenshots:")
+    files = watch_shots()
     if not loc_id:
-        for slot, folder in WATCH_SLOTS.items():
-            print(f"  · upload {len(watch_shots(slot))} to {slot} from {folder}/ once the version exists")
+        print(f"  · upload {len(files)} to {WATCH_SLOT} from {WATCH_FOLDER}/ once the version exists")
         return
     sets = asc.all(f"/v1/appStoreVersionLocalizations/{loc_id}/appScreenshotSets")
-    watch_sets = {s["attributes"]["screenshotDisplayType"]: s for s in sets
-                  if s["attributes"]["screenshotDisplayType"].startswith("APP_WATCH")}
-    unknown = set(watch_sets) - set(WATCH_SLOTS)
-    if unknown:
-        print(f"  ! leaving {', '.join(sorted(unknown))} alone: no render at that size")
-    for slot in WATCH_SLOTS:
-        files = watch_shots(slot)
-        if slot in watch_sets:
-            old = asc.all(f"/v1/appScreenshotSets/{watch_sets[slot]['id']}/appScreenshots")
-            if sorted(o["attributes"].get("sourceFileChecksum") or "" for o in old) == \
-                    sorted(hashlib.md5(f.read_bytes()).hexdigest() for f in files):
-                print(f"  {slot}: already matches {WATCH_SLOTS[slot]}/")
-                continue
-            print(f"  {slot}: {len(old)} on the listing, replacing with {len(files)} from {WATCH_SLOTS[slot]}/")
-            print(f"  {'→' if asc.apply else '·'} upload {', '.join(f.name for f in files)}, "
-                  f"then delete the old {len(old)} once Apple has processed them")
-            if asc.apply:
-                replace_screenshots(asc, slot, watch_sets[slot]["id"], old, files)
-            continue
-        print(f"  {slot}: none on the listing, adding {len(files)} from {WATCH_SLOTS[slot]}/")
-        created = asc.write("POST", "/v1/appScreenshotSets", {"data": {
-            "type": "appScreenshotSets",
-            "attributes": {"screenshotDisplayType": slot},
-            "relationships": {"appStoreVersionLocalization": {
-                "data": {"type": "appStoreVersionLocalizations", "id": loc_id}}},
-        }}, f"create the {slot} screenshot set")
-        print(f"  {'→' if asc.apply else '·'} upload {', '.join(f.name for f in files)}")
-        if created:
-            new_ids = [upload_screenshot(asc, created["data"]["id"], f) for f in files]
-            if await_processing(asc, new_ids):
-                sys.exit(f"{slot}: some new screenshots did not process; check App Store Connect")
+    watch_sets = [s for s in sets if s["attributes"]["screenshotDisplayType"].startswith("APP_WATCH")]
+    current = next((s for s in watch_sets if s["attributes"]["screenshotDisplayType"] == WATCH_SLOT), None)
+    if current:
+        old = asc.all(f"/v1/appScreenshotSets/{current['id']}/appScreenshots")
+        if sorted(o["attributes"].get("sourceFileChecksum") or "" for o in old) == \
+                sorted(hashlib.md5(f.read_bytes()).hexdigest() for f in files):
+            print(f"  {WATCH_SLOT}: already matches {WATCH_FOLDER}/")
+            return
+        print(f"  {WATCH_SLOT}: {len(old)} on the listing, replacing with {len(files)} from {WATCH_FOLDER}/")
+        print(f"  {'→' if asc.apply else '·'} upload {', '.join(f.name for f in files)}, "
+              f"then delete the old {len(old)} once Apple has processed them")
+        if asc.apply:
+            replace_screenshots(asc, WATCH_SLOT, current["id"], old, files)
+        return
+    # Apple refuses a second watch size in the same version, so the old size goes first.
+    for other in watch_sets:
+        asc.write("DELETE", f"/v1/appScreenshotSets/{other['id']}", None,
+                  f"remove the {other['attributes']['screenshotDisplayType']} set (one watch size per version)")
+    created = asc.write("POST", "/v1/appScreenshotSets", {"data": {
+        "type": "appScreenshotSets",
+        "attributes": {"screenshotDisplayType": WATCH_SLOT},
+        "relationships": {"appStoreVersionLocalization": {
+            "data": {"type": "appStoreVersionLocalizations", "id": loc_id}}},
+    }}, f"create the {WATCH_SLOT} screenshot set")
+    print(f"  {'→' if asc.apply else '·'} upload {', '.join(f.name for f in files)} from {WATCH_FOLDER}/")
+    if created:
+        new_ids = [upload_screenshot(asc, created["data"]["id"], f) for f in files]
+        if await_processing(asc, new_ids):
+            sys.exit(f"{WATCH_SLOT}: some new screenshots did not process; check App Store Connect")
 
 
 def set_localized_description(asc: ASC, locs: list[dict], resource: str, name: str, text: str) -> None:
@@ -369,8 +364,7 @@ def main() -> int:
     print(f"  description {len(description)} chars, What's New {len(whats_new)} chars")
     for pid, text in products.items():
         print(f"  {PRODUCTS[pid]}: “{text}” ({len(text)})")
-    for slot, folder in WATCH_SLOTS.items():
-        print(f"  {slot}: {len(watch_shots(slot))} screenshots in {folder}/")
+    print(f"  {WATCH_SLOT}: {len(watch_shots())} screenshots in {WATCH_FOLDER}/")
     if args.offline:
         return 0
 
