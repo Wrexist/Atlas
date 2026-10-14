@@ -21,6 +21,11 @@ on:
         required: false
         type: boolean
         default: false
+      withdraw:
+        description: 'Only cancel a submission waiting for review so the version can be edited (needs apply).'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: store-sync
@@ -48,8 +53,10 @@ jobs:
           APP_VERSION: ${{ inputs.app_version }}
           APPLY: ${{ inputs.apply }}
           SUBMIT: ${{ inputs.submit }}
+          WITHDRAW: ${{ inputs.withdraw }}
         run: |
           args=(--version "$APP_VERSION")
           if [ "$APPLY" = "true" ]; then args+=(--apply); fi
           if [ "$SUBMIT" = "true" ]; then args+=(--submit); fi
+          if [ "$WITHDRAW" = "true" ]; then args+=(--withdraw); fi
           python3 scripts/asc_store_sync.py "${args[@]}"

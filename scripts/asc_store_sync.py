@@ -5,7 +5,8 @@ APP_STORE_METADATA.md and marketing/app-store/ are the source of truth for
 the listing; this copies them into App Store Connect for one version:
 
 - creates the App Store version if it doesn't exist yet,
-- sets the en-US description and What's New,
+- sets the en-US description, What's New, support and marketing URLs,
+  and the app's Privacy Policy URL,
 - sets the Apple Watch screenshots to the Ultra render (a version holds one
   watch size, scaled for every watch), unless they already match,
 - sets the en-US description of each subscription and in-app purchase that
@@ -74,6 +75,13 @@ def fenced(body: str) -> str:
     if not m:
         sys.exit("section has no fenced block")
     return m.group(1).rstrip("\n")
+
+
+def site_url(md: str, field: str) -> str:
+    m = re.search(rf"^\| {re.escape(field)} \| `([^`]+)` \|", md, re.M)
+    if not m:
+        sys.exit(f"no '{field}' row in {METADATA.name}")
+    return m.group(1)
 
 
 def product_descriptions(md: str) -> dict[str, str]:
@@ -168,23 +176,20 @@ def ensure_version(asc: ASC, app_id: str, version: str) -> dict | None:
     return created["data"] if created else None
 
 
-def sync_text(asc: ASC, version: dict, description: str, whats_new: str) -> str | None:
+def sync_text(asc: ASC, version: dict, wanted: dict[str, str]) -> str | None:
     locs = asc.all(f"/v1/appStoreVersions/{version['id']}/appStoreVersionLocalizations")
     loc = next((l for l in locs if l["attributes"]["locale"] == LOCALE), None)
     if not loc:
         sys.exit(f"{version['attributes']['versionString']} has no {LOCALE} localization")
-    attrs, changes = loc["attributes"], {}
-    if (attrs.get("description") or "").strip() != description.strip():
-        changes["description"] = description
-    if (attrs.get("whatsNew") or "").strip() != whats_new.strip():
-        changes["whatsNew"] = whats_new
+    attrs = loc["attributes"]
+    changes = {k: v for k, v in wanted.items() if (attrs.get(k) or "").strip() != v.strip()}
     print("\nListing text:")
     if changes:
         asc.write("PATCH", f"/v1/appStoreVersionLocalizations/{loc['id']}", {"data": {
             "type": "appStoreVersionLocalizations", "id": loc["id"], "attributes": changes,
-        }}, f"set {', '.join(changes)} ({', '.join(f'{len(v)} chars' for v in changes.values())})")
+        }}, f"set {', '.join(changes)}")
     else:
-        print("  description and What's New already match")
+        print(f"  {', '.join(wanted)} already match")
     return loc["id"]
 
 
@@ -247,6 +252,42 @@ def replace_screenshots(asc: ASC, slot: str, set_id: str, old: list[dict], files
     for shot in old[room:]:
         asc.call("DELETE", f"/v1/appScreenshots/{shot['id']}")
     print(f"  {slot}: {len(new_ids)} new screenshots processed, old ones removed")
+
+
+def sync_privacy_url(asc: ASC, app_id: str, url: str) -> None:
+    print("\nPrivacy Policy URL:")
+    # The app info being prepared for the next version is the only one that accepts edits.
+    infos = [i for i in asc.all(f"/v1/apps/{app_id}/appInfos")
+             if (i["attributes"].get("state") or i["attributes"].get("appStoreState"))
+             not in {"READY_FOR_DISTRIBUTION", "READY_FOR_SALE"}]
+    if not infos:
+        print("  no editable app info; it opens with the next version")
+        return
+    locs = asc.all(f"/v1/appInfos/{infos[0]['id']}/appInfoLocalizations")
+    loc = next((l for l in locs if l["attributes"]["locale"] == LOCALE), None)
+    if not loc:
+        sys.exit(f"app info has no {LOCALE} localization")
+    current = loc["attributes"].get("privacyPolicyUrl") or ""
+    if current == url:
+        print(f"  already {url}")
+        return
+    asc.write("PATCH", f"/v1/appInfoLocalizations/{loc['id']}", {"data": {
+        "type": "appInfoLocalizations", "id": loc["id"], "attributes": {"privacyPolicyUrl": url},
+    }}, f"“{current}” → “{url}”")
+
+
+def withdraw_from_review(asc: ASC, app_id: str) -> None:
+    print("\nWithdraw from review:")
+    pending = asc.get("/v1/reviewSubmissions", **{
+        "filter[app]": app_id, "filter[platform]": "IOS",
+        "filter[state]": "WAITING_FOR_REVIEW,IN_REVIEW"})["data"]
+    if not pending:
+        print("  nothing is waiting for review")
+        return
+    for sub in pending:
+        asc.write("PATCH", f"/v1/reviewSubmissions/{sub['id']}", {"data": {
+            "type": "reviewSubmissions", "id": sub["id"], "attributes": {"canceled": True},
+        }}, f"cancel the {sub['attributes']['state']} submission")
 
 
 def sync_watch_screenshots(asc: ASC, loc_id: str | None) -> None:
@@ -389,15 +430,20 @@ def main() -> int:
     ap.add_argument("--apply", action="store_true", help="write to App Store Connect (default: dry run)")
     ap.add_argument("--offline", action="store_true", help="only parse the repo inputs")
     ap.add_argument("--submit", action="store_true", help="also submit the version for App Review")
+    ap.add_argument("--withdraw", action="store_true",
+                    help="only cancel a submission that is waiting for review, so the version can be edited")
     args = ap.parse_args()
 
     md = METADATA.read_text()
     description = fenced(section(md, "Description"))
     whats_new = fenced(section(md, '"What\'s New"'))
+    support_url, marketing_url = site_url(md, "Support URL"), site_url(md, "Marketing URL")
+    privacy_url = site_url(md, "Privacy Policy URL")
     products = product_descriptions(md)
 
     print(f"Repo inputs for {args.version}:")
     print(f"  description {len(description)} chars, What's New {len(whats_new)} chars")
+    print(f"  support {support_url}, marketing {marketing_url}, privacy {privacy_url}")
     for pid, text in products.items():
         print(f"  {PRODUCTS[pid]}: “{text}” ({len(text)})")
     print(f"  {WATCH_SLOT}: {len(watch_shots())} screenshots in {WATCH_FOLDER}/")
@@ -410,11 +456,16 @@ def main() -> int:
     if not apps:
         sys.exit(f"no app with bundle ID {BUNDLE_ID}")
     app_id = apps[0]["id"]
+    if args.withdraw:
+        withdraw_from_review(asc, app_id)
+        return 0
 
     version = ensure_version(asc, app_id, args.version)
-    loc_id = sync_text(asc, version, description, whats_new) if version else None
+    loc_id = sync_text(asc, version, {"description": description, "whatsNew": whats_new,
+                                      "supportUrl": support_url, "marketingUrl": marketing_url}) if version else None
     if not version:
         print("\nListing text:\n  · set description and What's New once the version exists")
+    sync_privacy_url(asc, app_id, privacy_url)
     sync_watch_screenshots(asc, loc_id)
     sync_products(asc, app_id, products)
     attach_build(asc, app_id, version, args.version)
