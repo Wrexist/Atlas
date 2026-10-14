@@ -39,18 +39,18 @@
 
 | Field | Value |
 |---|---|
-| Marketing URL | `https://wrexist.github.io/Peptide-ai/` |
-| Privacy Policy URL | `https://wrexist.github.io/Peptide-ai/privacy.html` |
-| Support URL | `https://wrexist.github.io/Peptide-ai/support.html` |
+| Marketing URL | `https://wrexist.github.io/Atlas/` |
+| Privacy Policy URL | `https://wrexist.github.io/Atlas/privacy.html` |
+| Support URL | `https://wrexist.github.io/Atlas/support.html` |
 | Terms of Use (EULA) | `https://www.apple.com/legal/internet-services/itunes/dev/stdeula/` |
 
 ```bash
 # Verify before submitting — each must return HTTP/2 200
-curl -sI https://wrexist.github.io/Peptide-ai/             | head -1
-curl -sI https://wrexist.github.io/Peptide-ai/privacy.html | head -1
-curl -sI https://wrexist.github.io/Peptide-ai/support.html | head -1
+curl -sI https://wrexist.github.io/Atlas/             | head -1
+curl -sI https://wrexist.github.io/Atlas/privacy.html | head -1
+curl -sI https://wrexist.github.io/Atlas/support.html | head -1
 curl -sI https://www.apple.com/legal/internet-services/itunes/dev/stdeula/ | head -1
-curl -sI https://wrexist.github.io/Peptide-ai/terms.html   | head -1
+curl -sI https://wrexist.github.io/Atlas/terms.html   | head -1
 ```
 
 > **Terms of Use is not an App Store Connect field.** App Store Connect
@@ -196,7 +196,7 @@ period ends. Manage or cancel in Settings > Apple Account > Subscriptions.
 Unused free-trial time is forfeited on purchase.
 
 Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-Privacy Policy: https://wrexist.github.io/Peptide-ai/privacy.html
+Privacy Policy: https://wrexist.github.io/Atlas/privacy.html
 
 ——
 
@@ -216,7 +216,7 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 988 / 4 000 — 12 chars of headroom. The SUBSCRIPTION TERMS block and
+*(3 983 / 4 000 — 17 chars of headroom. The SUBSCRIPTION TERMS block and
 both links are required by Guideline 3.1.2 — do not trim them to make room
 for copy.)*
 
@@ -352,7 +352,7 @@ rejected:
 | Length of subscription | "renews monthly" / "renews yearly" |
 | Price per period | `$9.99` / `$49.99` |
 | Functional Terms of Use (EULA) link | `https://www.apple.com/legal/internet-services/itunes/dev/stdeula/` |
-| Functional Privacy Policy link | `https://wrexist.github.io/Peptide-ai/privacy.html` |
+| Functional Privacy Policy link | `https://wrexist.github.io/Atlas/privacy.html` |
 
 The same two links must also stay tappable on the paywall
 (`PaywallView.swift`) and the onboarding trial offer
@@ -728,10 +728,10 @@ Support: support@peptidesai.com
 Run through every item before hitting Submit in App Store Connect.
 
 **URLs**
-- [ ] `https://wrexist.github.io/Peptide-ai/` returns HTTP/2 200
-- [ ] `https://wrexist.github.io/Peptide-ai/privacy.html` returns HTTP/2 200 and renders readable text without JavaScript
-- [ ] `https://wrexist.github.io/Peptide-ai/support.html` returns HTTP/2 200
-- [ ] `https://wrexist.github.io/Peptide-ai/terms.html` returns HTTP/2 200
+- [ ] `https://wrexist.github.io/Atlas/` returns HTTP/2 200
+- [ ] `https://wrexist.github.io/Atlas/privacy.html` returns HTTP/2 200 and renders readable text without JavaScript
+- [ ] `https://wrexist.github.io/Atlas/support.html` returns HTTP/2 200
+- [ ] `https://wrexist.github.io/Atlas/terms.html` returns HTTP/2 200
 - [ ] `https://www.apple.com/legal/internet-services/itunes/dev/stdeula/` returns HTTP/2 200
 
 **Guideline 3.1.2 — subscription metadata** *(cause of the 1.2.0 (135) rejection)*
@@ -752,7 +752,7 @@ Run through every item before hitting Submit in App Store Connect.
 - [ ] Subtitle: `Workout Log, Macros & Habits`
 - [ ] Keywords pasted exactly (90 chars, no spaces after commas)
 - [ ] Promotional Text pasted (155 chars)
-- [ ] Description pasted (3 988 chars)
+- [ ] Description pasted (3 983 chars)
 - [ ] What's New pasted
 - [ ] Age rating set to 17+
 - [ ] App Privacy questionnaire: Yes, the two RevenueCat categories in "App Privacy" above, no tracking

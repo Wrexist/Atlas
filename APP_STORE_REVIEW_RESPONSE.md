@@ -264,9 +264,9 @@ and does not contact any server.
 
 External marketing / support sites (NOT used by the app at runtime,
 listed for completeness because the App Store listing links to them):
-• Marketing: https://wrexist.github.io/Peptide-ai/
-• Privacy:   https://wrexist.github.io/Peptide-ai/privacy.html
-• Support:   https://wrexist.github.io/Peptide-ai/support.html
+• Marketing: https://wrexist.github.io/Atlas/
+• Privacy:   https://wrexist.github.io/Atlas/privacy.html
+• Support:   https://wrexist.github.io/Atlas/support.html
 ```
 
 ### 4.1 Verify the claim before sending
@@ -390,7 +390,7 @@ The paywall must clearly display, on the same screen as the buy buttons:
 - [ ] Subscription **price** (auto-localized via StoreKit)
 - [ ] Auto-renew disclosure (Apple's standard wording)
 - [ ] Link to Terms of Use (Apple's standard EULA URL is acceptable: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/)
-- [ ] Link to Privacy Policy (https://wrexist.github.io/Peptide-ai/privacy.html)
+- [ ] Link to Privacy Policy (https://wrexist.github.io/Atlas/privacy.html)
 
 Reviewer-friendly addition: also surface the same disclosure on the
 **onboarding trial offer** screen if there is one (`TrialOfferView.swift`
@@ -507,7 +507,7 @@ the trial lengths but no links.
    Unused free-trial time is forfeited on purchase.
 
    Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-   Privacy Policy: https://wrexist.github.io/Peptide-ai/privacy.html
+   Privacy Policy: https://wrexist.github.io/Atlas/privacy.html
    ```
 
    Paste the URLs as **plain text** — App Store Connect linkifies them.
@@ -519,7 +519,7 @@ the trial lengths but no links.
    must then be the thing you link to, which is more surface to get wrong.
 
 3. **Confirm the Privacy Policy URL** is still
-   `https://wrexist.github.io/Peptide-ai/privacy.html` and returns 200.
+   `https://wrexist.github.io/Atlas/privacy.html` and returns 200.
 
 4. **Save**, then reply in the Resolution Center with §10.1 and click
    **Submit for Review** on the same build. No new binary, no new build
@@ -538,7 +538,7 @@ subscription title, length, and price for each auto-renewable product,
 followed by:
 
 Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-Privacy Policy: https://wrexist.github.io/Peptide-ai/privacy.html
+Privacy Policy: https://wrexist.github.io/Atlas/privacy.html
 
 Atlas uses Apple's standard EULA, so the link points to Apple's standard
 Terms of Use as described in Schedule 1. Both links are also present and
@@ -555,7 +555,7 @@ support@peptidesai.com
 ### 10.2 Verify before resubmitting
 
 - [ ] `curl -sI https://www.apple.com/legal/internet-services/itunes/dev/stdeula/ | head -1` → 200
-- [ ] `curl -sI https://wrexist.github.io/Peptide-ai/privacy.html | head -1` → 200
+- [ ] `curl -sI https://wrexist.github.io/Atlas/privacy.html | head -1` → 200
 - [ ] Description saved and under 4 000 characters (it is 3 888)
 - [ ] Both URLs render as tappable links in the App Store Connect preview
 - [ ] Every localization of the description carries the same two links —
