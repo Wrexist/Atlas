@@ -12,11 +12,11 @@ the listing; this copies them into App Store Connect for one version:
   isn't live (a live one is reported, since only the web UI can change it),
 - attaches the newest processed build of that version, if there is one.
 
-It never submits for review. Without --apply it only reads App Store
-Connect and prints what it would change.
+It submits for App Review only with --submit. Without --apply it only reads
+App Store Connect and prints what it would change.
 
     ASC_KEY_ID=… ASC_ISSUER_ID=… ASC_KEY_P8="$(cat key.p8)" \\
-        python3 scripts/asc_store_sync.py --version 1.4.0 [--apply]
+        python3 scripts/asc_store_sync.py --version 1.4.0 [--apply] [--submit]
 
     python3 scripts/asc_store_sync.py --version 1.4.0 --offline
         parses the repo and prints the inputs without touching the network.
@@ -349,11 +349,46 @@ def attach_build(asc: ASC, app_id: str, version: dict | None, version_string: st
               f"attach build {build['attributes']['version']} ({version_string})")
 
 
+def submit_for_review(asc: ASC, app_id: str, version: dict) -> None:
+    print("\nReview submission:")
+    if not asc.get(f"/v1/appStoreVersions/{version['id']}/relationships/build").get("data"):
+        sys.exit("no build is attached to the version; it can't be submitted")
+    if not asc.apply:
+        print(f"  · submit {version['attributes']['versionString']} for App Review")
+        return
+    # An app has at most one open review submission per platform; reuse it if one exists.
+    open_subs = asc.get("/v1/reviewSubmissions", **{
+        "filter[app]": app_id, "filter[platform]": "IOS",
+        "filter[state]": "READY_FOR_REVIEW,UNRESOLVED_ISSUES"})["data"]
+    if open_subs:
+        sub_id = open_subs[0]["id"]
+    else:
+        sub_id = asc.call("POST", "/v1/reviewSubmissions", json={"data": {
+            "type": "reviewSubmissions", "attributes": {"platform": "IOS"},
+            "relationships": {"app": {"data": {"type": "apps", "id": app_id}}},
+        }})["data"]["id"]
+    items = asc.all(f"/v1/reviewSubmissions/{sub_id}/items", include="appStoreVersion")
+    if not any((i.get("relationships", {}).get("appStoreVersion", {}).get("data") or {}).get("id") == version["id"]
+               for i in items):
+        asc.call("POST", "/v1/reviewSubmissionItems", json={"data": {
+            "type": "reviewSubmissionItems",
+            "relationships": {
+                "reviewSubmission": {"data": {"type": "reviewSubmissions", "id": sub_id}},
+                "appStoreVersion": {"data": {"type": "appStoreVersions", "id": version["id"]}},
+            },
+        }})
+    asc.call("PATCH", f"/v1/reviewSubmissions/{sub_id}", json={"data": {
+        "type": "reviewSubmissions", "id": sub_id, "attributes": {"submitted": True},
+    }})
+    print(f"  → submitted {version['attributes']['versionString']} for App Review")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--version", required=True, help="App Store version, e.g. 1.4.0")
     ap.add_argument("--apply", action="store_true", help="write to App Store Connect (default: dry run)")
     ap.add_argument("--offline", action="store_true", help="only parse the repo inputs")
+    ap.add_argument("--submit", action="store_true", help="also submit the version for App Review")
     args = ap.parse_args()
 
     md = METADATA.read_text()
@@ -383,7 +418,12 @@ def main() -> int:
     sync_watch_screenshots(asc, loc_id)
     sync_products(asc, app_id, products)
     attach_build(asc, app_id, version, args.version)
-    print("\nNot submitted for review." + ("" if args.apply else " Re-run with --apply to write these changes."))
+    if args.submit and version:
+        submit_for_review(asc, app_id, version)
+    else:
+        print("\nNot submitted for review.")
+    if not args.apply:
+        print("Dry run: re-run with --apply to write these changes.")
     return 0
 
 

@@ -2,7 +2,8 @@ name: App Store Connect Sync
 
 # Copies the store listing in this repo (APP_STORE_METADATA.md and the
 # watch screenshots in marketing/app-store/) into App Store Connect for one
-# version. Dry run unless `apply` is ticked; it never submits for review.
+# version. Dry run unless `apply` is ticked; submits for App Review only
+# when `submit` is ticked too.
 on:
   workflow_dispatch:
     inputs:
@@ -12,6 +13,11 @@ on:
         type: string
       apply:
         description: 'Write the changes. Leave unticked for a dry run that only reports what would change.'
+        required: false
+        type: boolean
+        default: false
+      submit:
+        description: 'Also submit the version for App Review (needs apply).'
         required: false
         type: boolean
         default: false
@@ -41,9 +47,9 @@ jobs:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           APP_VERSION: ${{ inputs.app_version }}
           APPLY: ${{ inputs.apply }}
+          SUBMIT: ${{ inputs.submit }}
         run: |
-          if [ "$APPLY" = "true" ]; then
-            python3 scripts/asc_store_sync.py --version "$APP_VERSION" --apply
-          else
-            python3 scripts/asc_store_sync.py --version "$APP_VERSION"
-          fi
+          args=(--version "$APP_VERSION")
+          if [ "$APPLY" = "true" ]; then args+=(--apply); fi
+          if [ "$SUBMIT" = "true" ]; then args+=(--submit); fi
+          python3 scripts/asc_store_sync.py "${args[@]}"
