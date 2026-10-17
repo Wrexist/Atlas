@@ -156,7 +156,12 @@ def ensure_version(asc: ASC, app_id: str, version: str) -> dict | None:
     if existing:
         state = existing["attributes"]["appStoreState"]
         if state not in EDITABLE:
-            sys.exit(f"{version} is {state}; its metadata can't be edited now")
+            message = f"{version} is {state}; its metadata can't be edited now"
+            # A dry run only reports, so a locked version is an answer, not a failure.
+            if not asc.apply:
+                print(f"\n{message}. Nothing to plan.")
+                sys.exit(0)
+            sys.exit(message)
         print(f"\n{version} exists ({state}).")
         return existing
     print(f"\n{version} does not exist yet.")
