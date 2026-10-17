@@ -37,7 +37,7 @@ struct AIConsentSheet: View {
                         )
                     }
 
-                    Link(destination: URL.staticHTTPS("https://wrexist.github.io/Peptide-ai/privacy.html")) {
+                    Link(destination: URL.staticHTTPS("https://wrexist.github.io/Atlas/privacy.html")) {
                         Text("Privacy Policy").minimumHitArea()
                     }
                     .font(AppFont.subheadline)
