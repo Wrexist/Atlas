@@ -63,10 +63,33 @@ const PORTION = {
   },
 };
 
+const QUESTION = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['item_index', 'question', 'options'],
+  properties: {
+    item_index: { type: 'integer', description: 'Zero-based index into items.' },
+    question: { type: 'string' },
+    options: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['label', 'grams', 'per_100g'],
+        properties: {
+          label: { type: 'string' },
+          grams: { type: 'number' },
+          per_100g: NUTRIENTS,
+        },
+      },
+    },
+  },
+};
+
 export const FOOD_SCAN_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['kind', 'title', 'summary', 'items', 'package', 'tips'],
+  required: ['kind', 'title', 'summary', 'items', 'package', 'tips', 'questions'],
   properties: {
     kind: { type: 'string', enum: ['meal', 'packaged_product', 'drink', 'ingredient', 'not_food'] },
     title: { type: 'string' },
@@ -103,6 +126,7 @@ export const FOOD_SCAN_SCHEMA = {
       },
     }),
     tips: { type: 'array', items: { type: 'string' } },
+    questions: { type: 'array', items: QUESTION },
   },
 };
 
@@ -123,6 +147,8 @@ price is what this amount typically costs where the user lives, in the given cur
 package describes the whole retail package when the item is packaged (net weight, one serving and its label); null otherwise.
 
 tips are at most two short, specific, useful notes — a hidden calorie source ("cooking oil isn't visible; frying usually adds ~10 g"), or what to check ("confirm whether the latte used whole or oat milk"). No generic advice. Empty when there is nothing worth saying.
+
+questions are at most three one-tap questions about a detail the photo cannot show that changes an item's calories by roughly 15 % or more: cooking fat ("Fried in oil?"), sauce or dressing, milk type in a coffee, sugar in a drink, skin on or off. Each targets one item by item_index, at most one question per item. Give 2–3 short answer labels. The first option must repeat exactly the grams and per_100g you gave that item; every other option carries the complete grams and per_100g the item would have with that answer. Don't repeat a question as a tip. Empty for product lookups and when no detail would move the numbers much.
 
 summary is one short sentence in the user's language describing what you found. title is the dish name for a meal, the product name for a package. Write title, summary, names, labels and tips in the user's language.
 

@@ -45,6 +45,7 @@ const RESULT = {
   }],
   package: null,
   tips: [],
+  questions: [],
 };
 
 function stubUpstream(t, message) {
@@ -144,6 +145,12 @@ test('test_corrections_reachPrompt_cappedAndShapeChecked', () => {
   assert.match(text, /"x" → logged as "y"$/m, 'an absurd weight is dropped, not sent');
   assert.equal(text.match(/Fullkornspasta/g).length, 13, 'at most 15 rows are read');
   assert.ok(text.indexOf('corrections') < text.indexOf('Product facts'));
+});
+
+test('test_schema_requiresQuestionsWithCompleteAnswerValues', () => {
+  assert.ok(FOOD_SCAN_SCHEMA.required.includes('questions'));
+  const option = FOOD_SCAN_SCHEMA.properties.questions.items.properties.options.items;
+  assert.deepEqual(option.required, ['label', 'grams', 'per_100g']);
 });
 
 test('test_noCorrections_leavesPromptUnchanged', () => {
