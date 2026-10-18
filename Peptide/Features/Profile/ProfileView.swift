@@ -8,7 +8,7 @@ struct ProfileView: View {
     @State private var achievementService = AchievementService.shared
     @State private var authService = AuthService.shared
     @State private var showReconstitutionCalculator = false
-    @State private var showRestoreBackup = false
+    @State private var showProfileCustomization = false
     @State private var showProgress = false
     /// Read once on appear rather than in `body`: the count is a
     /// SwiftData fetch, and the header only shows it to users with no
@@ -41,7 +41,8 @@ struct ProfileView: View {
                         daysLogged: dataStore.totalDaysLogged,
                         workoutCount: workoutCount,
                         avatarImageData: dataStore.profile.avatarImageData,
-                        bio: dataStore.profile.bio
+                        bio: dataStore.profile.bio,
+                        onEdit: { showProfileCustomization = true }
                     )
                     .sectionAppear(index: 0)
 
@@ -52,12 +53,6 @@ struct ProfileView: View {
                         UpgradePromptCard()
                             .sectionAppear(index: 1)
                     }
-
-                    // Units + rest timer, up top: the settings a
-                    // training-first user changes most were buried at
-                    // the bottom of the general Settings card.
-                    TrainingSettingsSection()
-                        .sectionAppear(index: 1)
 
                     // Earned Atlas Score — the rewards identity, sitting
                     // above the achievement badges it sums up. Taps open
@@ -108,29 +103,7 @@ struct ProfileView: View {
                     ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
                         .sectionAppear(index: 7)
 
-                    WeeklySummaryToggleRow()
-                        .sectionAppear(index: 8)
-
-                    ScreenshotModeRow()
-                        .sectionAppear(index: 9)
-
-                    ExportSection()
-                        .sectionAppear(index: 10)
-
-                    RestoreBackupEntryRow(onTap: { showRestoreBackup = true })
-                        .sectionAppear(index: 11)
-
-                    AccountSection()
-                        .sectionAppear(index: 12)
-
-                    AppearanceSettings()
-                        .sectionAppear(index: 13)
-
-                    DiagnosticsSection()
-                        .sectionAppear(index: 14)
-
-                    AboutSection()
-                        .sectionAppear(index: 15)
+                    SettingsEntryRow()
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
@@ -143,6 +116,15 @@ struct ProfileView: View {
             .background(AppColor.background)
             .navigationTitle("Profile")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .foregroundStyle(AppColor.accentPrimary)
+                    }
+                    .accessibilityLabel("Settings")
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                         .fontWeight(.semibold)
@@ -154,9 +136,11 @@ struct ProfileView: View {
             .sheet(isPresented: $showReconstitutionCalculator) {
                 ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
             }
-            .sheet(isPresented: $showRestoreBackup) {
-                RestoreBackupSheet()
+            .sheet(isPresented: $showProfileCustomization) {
+                ProfileCustomizationSheet()
                     .environment(dataStore)
+                    .environment(appState)
+                    .liquidGlassPresentation()
             }
             .sheet(isPresented: $showProgress) {
                 AtlasProgressView()
@@ -191,6 +175,49 @@ struct ProfileView: View {
             current.insert(goal)
         }
         dataStore.updateGoals(current)
+    }
+}
+
+/// The way into `SettingsView`, at the foot of Profile. The gear in the
+/// toolbar goes to the same place.
+private struct SettingsEntryRow: View {
+    var body: some View {
+        NavigationLink {
+            SettingsView()
+        } label: {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: "gearshape.fill")
+                    .font(AppFont.scaled(16, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
+                    .frame(width: 36, height: 36)
+                    .background {
+                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                            .fill(AppColor.accentPrimary.opacity(0.18))
+                    }
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Settings")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text("Training, reminders, appearance, data, account and about.")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(11, weight: .bold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .padding(Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+        }
+        .buttonStyle(.plain)
     }
 }
 

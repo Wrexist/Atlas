@@ -14,7 +14,6 @@ struct HomeView: View {
     /// but a computed read from a non-observed singleton wouldn't re-render
     /// the View on its own.
     @State private var notificationService = NotificationService.shared
-    @State private var showProfileCustomization = false
     /// Drives the calorie/macro targets editor presented from the
     /// Today overview card's "Set a calorie target" nudge — previously
     /// the nudge was tappable but wired to nothing.
@@ -540,12 +539,6 @@ struct HomeView: View {
             // their host cards live on the Protocols tab now, so
             // chaining the sheets there avoids a cross-tab modal
             // dance.
-            .sheet(isPresented: $showProfileCustomization) {
-                ProfileCustomizationSheet()
-                    .environment(dataStore)
-                    .environment(appState)
-                    .liquidGlassPresentation()
-            }
             .sheet(isPresented: $showTargetsEditor) {
                 NutritionTargetsEditor(
                     initial: dataStore.profile.nutritionTargets ?? .zero,
@@ -1072,8 +1065,7 @@ struct HomeView: View {
         guard appState.selectedTab == .today,
               milestonePrompt == nil,
               milestoneShareProtocol == nil,
-              completionPrompt == nil,
-              !showProfileCustomization
+              completionPrompt == nil
         else { return }
 
         // Run the auto-completion sweep BEFORE deciding which prompt

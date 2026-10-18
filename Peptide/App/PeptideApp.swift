@@ -422,15 +422,16 @@ struct PeptideApp: App {
                 .animation(.spring(response: 0.4, dampingFraction: 0.85),
                            value: dataStore.lastError)
         }
+        #if DEBUG
         .safeAreaInset(edge: .bottom, spacing: 0) {
             // Floating "you're in screenshot mode" reminder sits
-            // above the tab bar while ScreenshotMode is on. Self-
-            // hides via internal `if` when the toggle is off, so
-            // this inset costs nothing in production.
+            // above the tab bar while ScreenshotMode is on. Debug-only,
+            // like the Settings row that turns the mode on.
             ScreenshotModeBanner()
                 .animation(.spring(response: 0.4, dampingFraction: 0.85),
                            value: ScreenshotMode.shared.isEnabled)
         }
+        #endif
         .environment(appState)
         .environment(dataStore)
         .preferredColorScheme(themeManager.displayMode.preferredScheme)

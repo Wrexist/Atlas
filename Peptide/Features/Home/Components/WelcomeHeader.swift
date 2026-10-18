@@ -54,8 +54,8 @@ struct WelcomeHeader: View {
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.9, pressedOpacity: 0.85))
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Customize profile")
-            .accessibilityHint("Edit your name, photo, goals, and stacks.")
+            .accessibilityLabel("Profile")
+            .accessibilityHint("Opens your profile and settings.")
             .accessibilityAddTraits(.isButton)
         } else {
             avatarBadge
@@ -94,10 +94,6 @@ struct WelcomeHeader: View {
                         .foregroundStyle(AppColor.accentLight)
                 }
             }
-
-            if onAvatarTap != nil {
-                editIndicator
-            }
         }
         .liquidGlass(.circle)
         .scaleEffect(avatarScale)
@@ -116,28 +112,6 @@ struct WelcomeHeader: View {
                 }
             }
         }
-    }
-
-    /// Small pencil badge in the bottom-right of the avatar so users discover
-    /// the tap-to-customize affordance. Hidden when the avatar isn't tappable
-    /// (e.g. legacy callers that don't pass `onAvatarTap`). Marked hidden
-    /// from VoiceOver because the parent avatar already provides the
-    /// "Edit profile" action label — without this, VoiceOver would
-    /// announce "pencil" as a separate (non-actionable) element.
-    private var editIndicator: some View {
-        Image(systemName: "pencil")
-            .font(AppFont.scaled(8, weight: .bold))
-            .foregroundStyle(AppColor.background)
-            .frame(width: 18, height: 18)
-            .accessibilityHidden(true)
-            .background {
-                Circle()
-                    .fill(AppColor.accentPrimary)
-                    .overlay {
-                        Circle().strokeBorder(AppColor.background, lineWidth: 1.5)
-                    }
-            }
-            .offset(x: 18, y: 18)
     }
 }
 
