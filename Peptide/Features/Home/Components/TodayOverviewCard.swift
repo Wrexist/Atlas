@@ -32,16 +32,21 @@ struct TodayOverviewCard: View {
             let timeString = Self.timeFormatter.string(from: dose.date)
             return "Next dose: \(dose.peptide.name), \(dose.dose) at \(timeString)"
         }
-        if snapshot.dosesTotalToday > 0 {
-            return "All \(snapshot.dosesTotalToday) doses logged today"
-        }
-        return "No doses scheduled today"
+        return "All \(snapshot.dosesTotalToday) doses logged today"
+    }
+
+    /// Users with nothing scheduled today (most fitness-only users)
+    /// get no strip rather than a dead, protocol-led button.
+    private var showsDoseStrip: Bool {
+        snapshot.nextDose != nil || snapshot.dosesTotalToday > 0
     }
 
     var body: some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                nextDoseStrip
+                if showsDoseStrip {
+                    nextDoseStrip
+                }
                 statsGrid
                 if let insight = snapshot.bottomInsight {
                     bottomInsight(insight)
@@ -114,25 +119,15 @@ struct TodayOverviewCard: View {
     }
 
     private var stripIcon: String {
-        if snapshot.nextDose != nil { return "syringe.fill" }
-        if snapshot.dosesTotalToday > 0 { return "checkmark.circle.fill" }
-        return "plus.circle.fill"
+        snapshot.nextDose != nil ? "syringe.fill" : "checkmark.circle.fill"
     }
 
     private var stripEyebrow: String {
-        if snapshot.nextDose != nil { return String(localized: "NEXT DOSE") }
-        if snapshot.dosesTotalToday > 0 { return String(localized: "ALL DONE") }
-        return String(localized: "PROTOCOL")
+        snapshot.nextDose != nil ? String(localized: "NEXT DOSE") : String(localized: "ALL DONE")
     }
 
     private var stripTitle: String {
-        if let dose = snapshot.nextDose {
-            return dose.peptide.name
-        }
-        if snapshot.dosesTotalToday > 0 {
-            return String(localized: "You're set for today")
-        }
-        return String(localized: "Add a protocol to get started")
+        snapshot.nextDose?.peptide.name ?? String(localized: "You're set for today")
     }
 
     private var stripSubtitle: String? {

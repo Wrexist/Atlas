@@ -93,7 +93,7 @@ struct HomeStickyHeader: View {
             .frame(width: 30, height: 30)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Open profile customisation")
+        .accessibilityLabel("Open profile")
     }
 }
 

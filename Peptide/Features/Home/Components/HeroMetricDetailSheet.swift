@@ -266,7 +266,7 @@ struct HeroMetricDetailSheet: View {
         case .recovery:
             return String(localized: "Recovery is a 0–100 read on whether your body is ready to push or rest. Higher HRV + adequate sleep + a steady resting heart rate all push the number up; a short night or a stress spike pull it down.")
         case .sleep:
-            return String(localized: "Sleep is the single biggest lever for recovery, hormone regulation, and protocol response. The target defaults to 8 hours — open Profile to adjust if your baseline differs.")
+            return String(localized: "Sleep is the single biggest lever for recovery, hormone regulation, and protocol response. The ring tracks last night against an 8-hour target.")
         }
     }
 

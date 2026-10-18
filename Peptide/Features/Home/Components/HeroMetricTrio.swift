@@ -27,6 +27,13 @@ struct HeroMetricTrio: View {
     var leading: HeroLeadingMetric = .adherence
     var onTapWorkouts: (() -> Void)?
 
+    private static let maxRingDiameter: CGFloat = 96
+    private static let strokeRatio: CGFloat = 10 / 96
+
+    /// Shrinks below `maxRingDiameter` when three rings plus their
+    /// spacing don't fit (iPhone SE / mini widths).
+    @State private var ringDiameter = Self.maxRingDiameter
+
     var body: some View {
         VStack(spacing: Spacing.sm) {
             HStack(alignment: .top, spacing: Spacing.sm) {
@@ -39,7 +46,11 @@ struct HeroMetricTrio: View {
                 ringTile(.recovery,  value: snapshot.recovery)
                 ringTile(.sleep,     value: snapshot.sleep)
             }
-            .frame(maxWidth: .infinity)
+            .frame(minWidth: 0, maxWidth: .infinity)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
+                guard width > 0 else { return }
+                ringDiameter = min(Self.maxRingDiameter, (width - 2 * Spacing.sm) / 3)
+            }
 
             if snapshot.needsHealthConnection {
                 healthConnectionFooter
@@ -68,8 +79,8 @@ struct HeroMetricTrio: View {
             VStack(spacing: Spacing.xs) {
                 MetricRing(
                     progress: value.progress,
-                    diameter: 96,
-                    strokeWidth: 10,
+                    diameter: ringDiameter,
+                    strokeWidth: ringDiameter * Self.strokeRatio,
                     gradient: kind.gradient(active: value.isAvailable),
                     // Only Adherence celebrates at 100% — it's the
                     // ring the user actively drives by logging
@@ -112,8 +123,8 @@ struct HeroMetricTrio: View {
             VStack(spacing: Spacing.xs) {
                 MetricRing(
                     progress: progress,
-                    diameter: 96,
-                    strokeWidth: 10,
+                    diameter: ringDiameter,
+                    strokeWidth: ringDiameter * Self.strokeRatio,
                     gradient: [AppColor.accentLight, AppColor.accentPrimary],
                     celebrateAtCompletion: true
                 ) {
