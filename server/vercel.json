@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "api/meal-scan.js":      { "maxDuration": 30 },
+    "api/food-scan.js":      { "maxDuration": 60 },
     "api/ai-research.js":    { "maxDuration": 30 },
     "api/weekly-summary.js": { "maxDuration": 30 }
   }
