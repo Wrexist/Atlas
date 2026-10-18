@@ -857,6 +857,8 @@ struct MealScanFlow: View {
                 image: image, corrections: ScanCorrectionMemory.shared.recent)
             try Task.checkCancellation()
             guard !result.items.isEmpty else { throw MealScannerService.ScanError.noFoodDetected }
+            let grounded = await FoodGrounding.ground(result.items, myFoods: dataStore.profile.customFoods)
+            try Task.checkCancellation()
             // A single item is already its own name; only a multi-item
             // meal gets the "log as one meal" reading.
             let dishName = result.insight.kind == .meal && result.items.count > 1
@@ -867,7 +869,7 @@ struct MealScanFlow: View {
                     refreshScansRemaining()
                 }
                 draftPhoto = (image.resizedTo(maxEdge: 1200) ?? image).jpegData(compressionQuality: 0.75)
-                items = result.items.map(EditableFoodItem.init(from:))
+                items = grounded.map(EditableFoodItem.init(from:))
                 insight = result.insight
                 suggestedMealName = dishName
                 mealName = dishName ?? ""
@@ -1096,6 +1098,7 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
     /// (nil: the first, which the scan's values already assume).
     var question: ScanQuestion?
     var answerIndex: Int?
+    var verifiedBy: VerifiedFoodSource?
 
     /// Below this the row asks the user to confirm the name.
     ///
@@ -1143,6 +1146,7 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         aiPrice = item.price
         aiName = item.name
         question = item.question
+        verifiedBy = item.verifiedBy
         per100g = SmartFoodLogic.per100g(of: item)
         originalPer100g = per100g
     }
@@ -1176,6 +1180,12 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
     }
 
     var selectedAnswer: Int { answerIndex ?? 0 }
+
+    /// The database check still describes the values shown.
+    var activeVerification: VerifiedFoodSource? {
+        guard !nutritionEdited, replacementSourceID == nil else { return nil }
+        return verifiedBy
+    }
 
     /// Swaps in the answer's values. The portion keeps any change the
     /// user already made, scaled by how the answer changes the weight
@@ -1358,7 +1368,12 @@ private struct FoodItemEditCard: View {
                         .foregroundStyle(AppColor.textTertiary)
                         .lineLimit(1)
                 }
-                if item.isUncertain {
+                if let verified = item.activeVerification {
+                    Label(verified.displayName, systemImage: "checkmark.seal.fill")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.positive)
+                        .lineLimit(1)
+                } else if item.isUncertain {
                     uncertaintyHint
                 }
             }

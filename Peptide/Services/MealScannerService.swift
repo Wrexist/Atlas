@@ -157,6 +157,9 @@ final class MealScannerService: Sendable {
         /// Typical price of the depicted amount (`grams`).
         var price: FoodPriceEstimate? = nil
         var question: ScanQuestion? = nil
+        /// Set when the values came from a food database rather than the
+        /// model's estimate.
+        var verifiedBy: VerifiedFoodSource? = nil
 
         enum CodingKeys: String, CodingKey {
             case name, grams, calories, confidence

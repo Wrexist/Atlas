@@ -109,3 +109,16 @@ struct ScanQuestion: Codable, Hashable, Sendable {
     let question: String
     let answers: [Answer]
 }
+
+/// Where a scanned item's values were checked against real data.
+enum VerifiedFoodSource: String, Codable, Hashable, Sendable {
+    case myFoods
+    case openFoodFacts
+
+    var displayName: String {
+        switch self {
+        case .myFoods:       String(localized: "From My Foods", comment: "Scanned item values come from the user's saved foods")
+        case .openFoodFacts: String(localized: "Verified on Open Food Facts", comment: "Scanned item values come from Open Food Facts")
+        }
+    }
+}
