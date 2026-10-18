@@ -50,7 +50,7 @@ extension WhatsNewPage {
 
     /// Tour content for the current shell. Walks returning users through
     /// the five tabs (Today / Train / Meals / Biology / Habits), the muscle
-    /// map, meal photo scan, Performance Age, Habits, and the Atlas Score.
+    /// map, meal photo scan, Biological Age, Habits, and the Atlas Score.
     /// Mounted automatically on first launch after
     /// `WhatsNewService.currentTourVersion` bumps.
     static let v30Training: [WhatsNewPage] = [
@@ -108,8 +108,8 @@ extension WhatsNewPage {
         WhatsNewPage(
             id: "v31_biology",
             eyebrow: "Biology",
-            title: "Meet your Performance Age",
-            body: "Atlas estimates a Performance Age from your HRV, resting heart rate, sleep, and weight trend. It's a direction to watch, not a medical test.",
+            title: "Meet your Biological Age",
+            body: "Atlas estimates a Biological Age from your HRV, resting heart rate, sleep, and weight trend. It's a direction to watch, not a medical test.",
             icon: "waveform.path.ecg.rectangle",
             gradient: [
                 Color(red: 0.45, green: 0.85, blue: 0.78),
@@ -117,7 +117,7 @@ extension WhatsNewPage {
             ],
             accent: Color(red: 0.45, green: 0.85, blue: 0.78),
             bullets: [
-                "Performance Age dial with the signals behind it (Pro)",
+                "Biological Age dial with the signals behind it (Pro)",
                 "Pick the biomarkers you care about",
                 "Latest lab card with normal-range banding",
             ]

@@ -144,7 +144,7 @@ HRV, resting heart rate, and sleep — pulled from Apple Health every morning
 and blended into a single Recovery Score. Know whether to push or pull back
 before you leave the house.
 • Daily Recovery Score (HRV + resting HR + sleep)
-• Performance Age metric
+• Biological Age metric
 • Biomarker trending: weight, body fat, waist, blood pressure
 • Lab value tracking: testosterone, vitamin D, lipids, custom panels
 
@@ -177,7 +177,7 @@ Research and self-tracking only. Medical disclaimer required at first launch.
 
 ATLAS PRO
 • Unlimited AI meal photo scans (3 free every week)
-• Performance Age + full Biology tab — body composition + lab panels
+• Biological Age + full Biology tab — body composition + lab panels
 • AI Research assistant and the Sunday AI weekly recap
 • Unlimited active protocols
 • Full data export (CSV, JSON and PDF)
@@ -216,7 +216,7 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 983 / 4 000 — 17 chars of headroom. The SUBSCRIPTION TERMS block and
+*(3 981 / 4 000 — 19 chars of headroom. The SUBSCRIPTION TERMS block and
 both links are required by Guideline 3.1.2 — do not trim them to make room
 for copy.)*
 
@@ -517,7 +517,7 @@ displayed value from real data.
 
 **Overlay copy**
 - Headline: `See your biological age.`
-- Sub-caption: `HRV · Sleep · Resting HR · Performance Age`
+- Sub-caption: `HRV · Sleep · Resting HR · Biological Age`
 - Pro badge: `Atlas Pro — subscription required`
 
 **Composition note**
@@ -638,7 +638,7 @@ local reminders, peptide library, iCloud sync, Apple Watch app and
 complications, Home Screen widgets, Live Activities.
 
 Pro features (badge required on screenshots): unlimited AI meal scans,
-Performance Age and the full Biology tab (body composition + lab panels),
+Biological Age and the full Biology tab (body composition + lab panels),
 AI Research assistant and the weekly AI recap, unlimited protocols, full
 data export (CSV, JSON, PDF).
 

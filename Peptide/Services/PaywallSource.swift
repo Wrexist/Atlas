@@ -28,7 +28,7 @@ enum PaywallSource: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .protocolLimit:  return "Track unlimited protocols"
         case .biology:        return "Unlock your recovery insights"
-        case .performanceAge: return "See your Performance Age"
+        case .performanceAge: return "See your Biological Age"
         case .weeklyRecap:    return "Get your weekly AI recap"
         case .export:         return "Export your full history"
         case .aiResearch:     return "Ask the AI research assistant"

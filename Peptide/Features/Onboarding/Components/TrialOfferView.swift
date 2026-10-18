@@ -274,11 +274,11 @@ struct TrialOfferView: View {
     ///
     /// Nothing here promises an outcome the app does not measure: every
     /// claim maps to a surface that exists (auto-progression, the scanner,
-    /// Performance Age, the cited-research chat, CloudKit sync).
+    /// Biological Age, the cited-research chat, CloudKit sync).
     private let benefits: [(String, LocalizedStringKey)] = [
         ("figure.strengthtraining.traditional", "Lift more every week — plans that progress you automatically"),
         ("camera.viewfinder", "Log a meal in one photo — no weighing, no searching"),
-        ("heart.text.square.fill", "Know before you train — recovery, HRV and Performance Age"),
+        ("heart.text.square.fill", "Know before you train — recovery, HRV and Biological Age"),
         ("brain.head.profile.fill", "Ask anything, get cited research — not guesswork"),
         ("icloud.fill", "Never lose a session — synced across every device"),
     ]

@@ -20,7 +20,7 @@ final class HealthKitService {
         guard isAvailable else { return false }
 
         // Exactly the four types the app reads back: HRV and resting
-        // heart rate (Recovery, Performance Age, correlations), steps
+        // heart rate (Recovery, Biological Age, correlations), steps
         // (the home health summary) and sleep. Asking for a type we
         // never query is an App Review liability and costs the user a
         // permission row they get nothing for.

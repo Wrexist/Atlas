@@ -352,7 +352,7 @@ struct PaywallView: View {
         [
             ("figure.strengthtraining.traditional", "Lift more every week — plans that progress you automatically"),
             ("camera.viewfinder", "Log a meal in one photo — no weighing, no searching"),
-            ("heart.text.square.fill", "Know before you train — recovery, HRV and Performance Age"),
+            ("heart.text.square.fill", "Know before you train — recovery, HRV and Biological Age"),
             ("brain.head.profile.fill", "Ask anything, get cited research — not guesswork"),
             ("chart.line.uptrend.xyaxis", "Unlimited protocols — half-life, dosing and reconstitution"),
             ("icloud.fill", "Never lose a session — synced across iPhone, Watch and widgets"),
