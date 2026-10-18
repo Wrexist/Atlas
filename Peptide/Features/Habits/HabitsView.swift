@@ -72,6 +72,7 @@ struct HabitsView: View {
                     } else {
                         if dataStore.habitStreakAtRisk {
                             streakFreezeBanner
+                                .transition(.move(edge: .top).combined(with: .opacity))
                         }
                         habitsSummaryHeader(rows: visibleRows)
                         progressLink
@@ -100,6 +101,7 @@ struct HabitsView: View {
                                     Label("Delete", systemImage: "trash")
                                 }
                             }
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                         }
                     }
                 }
