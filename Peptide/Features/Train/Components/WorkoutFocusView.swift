@@ -246,9 +246,11 @@ private struct WorkoutFocusRestHeader: View {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text(target).font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
                 HStack {
-                    Text(WorkoutClock.label(Int(ceil(rest.remaining(at: context.date)))))
+                    let remaining = WorkoutClock.label(Int(ceil(rest.remaining(at: context.date))))
+                    Text(remaining)
                         .font(AppFont.statValueSmall).monospacedDigit()
                         .accessibilityLabel("Rest remaining")
+                        .accessibilityValue(remaining)
                     Spacer()
                     Button(action: onSkip) {
                         Label("Skip", systemImage: "forward.end.fill")

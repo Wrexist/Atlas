@@ -101,17 +101,13 @@ struct TrainOverviewView: View {
         }
         .scrollPosition($scrollPosition)
         .refreshable { refresh() }
-        .task { @MainActor in
-            await library.load()
-            refresh()
-        }
         // `recordWorkoutFinished` bumps `dataStore.revision` precisely
-        // so mounted views can recompute — before this listener existed
-        // the overview kept serving pre-workout data after the finish
-        // cover dismissed, until a pull-to-refresh or tab switch
-        // (audit Train P2; the refresh() doc used to promise a
-        // notification "next commit" that never landed).
+        // so mounted views can recompute after the finish cover
+        // dismisses. One task covers first appear too — a separate
+        // plain `.task` ran `refresh()` twice on every open.
+        // `library.load()` is a no-op once loaded.
         .task(id: dataStore.revision) { @MainActor in
+            await library.load()
             refresh()
         }
         .onChange(of: selectedPeriod) { _, _ in

@@ -62,6 +62,60 @@ enum RecapFormat {
     }
 }
 
+struct RecapNewPRs: View {
+    let prs: [PRDetectionEngine.DetectedPR]
+    let entries: [WorkoutRecapEngine.Entry]
+    let unit: MeasurementUnit
+    @State private var celebrated = false
+
+    var body: some View {
+        if !prs.isEmpty {
+            RecapCard {
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    Label {
+                        Text(prs.count == 1 ? "New PR" : "\(prs.count) new PRs").font(AppFont.headline)
+                    } icon: {
+                        Image(systemName: "trophy.fill").foregroundStyle(AppColor.recapSuccess)
+                            .symbolEffect(.bounce, value: celebrated)
+                    }
+                    ForEach(prs, id: \.self) { pr in
+                        HStack(alignment: .firstTextBaseline, spacing: Spacing.md) {
+                            VStack(alignment: .leading, spacing: Spacing.xs) {
+                                Text(name(for: pr)).font(AppFont.subheadline)
+                                Text(title(for: pr.kind)).font(AppFont.caption)
+                                    .foregroundStyle(AppColor.recapSecondary)
+                            }
+                            Spacer()
+                            Text(value(for: pr)).font(AppFont.headline).monospacedDigit()
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+            }
+            .onAppear { celebrated = true }
+        }
+    }
+
+    private func name(for pr: PRDetectionEngine.DetectedPR) -> String {
+        entries.first { $0.exerciseID == pr.exerciseID }?.name ?? pr.exerciseID
+    }
+
+    private func title(for kind: PRDetectionEngine.DetectedPR.Kind) -> String {
+        switch kind {
+        case .estimatedOneRepMax: String(localized: "Estimated 1RM")
+        case .absoluteWeight: String(localized: "Heaviest set")
+        case .sessionVolume: String(localized: "Exercise volume")
+        case .bodyweightReps: String(localized: "Most reps")
+        }
+    }
+
+    private func value(for pr: PRDetectionEngine.DetectedPR) -> String {
+        guard pr.kind != .bodyweightReps else { return Int(pr.value).formatted() + " reps" }
+        return unit.weightForDisplay(pr.value).formatted(.number.precision(.fractionLength(0...1)))
+            + " " + unit.weightSuffix
+    }
+}
+
 struct RecapMetrics: View {
     let summary: WorkoutRecapEngine.Summary
     let unit: MeasurementUnit
@@ -98,7 +152,8 @@ struct RecapMetrics: View {
 
     private func valueText(_ value: String) -> Text {
         let parts = value.split(separator: " ", maxSplits: 1)
-        if parts.count == 2, parts[0].contains(where: { $0.isNumber }) {
+        // Split only "1,240 kg" — a duration like "1h 12m" is one value.
+        if parts.count == 2, parts[1] == unit.weightSuffix {
             return Text(String(parts[0])).font(AppFont.title)
                 + Text(" " + String(parts[1])).font(AppFont.subheadline)
         }

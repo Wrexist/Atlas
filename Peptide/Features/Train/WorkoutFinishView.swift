@@ -5,14 +5,16 @@ struct WorkoutFinishView: View {
     let unit: MeasurementUnit
     let onClose: () -> Void
     let celebratesSave: Bool
+    let detectedPRs: [PRDetectionEngine.DetectedPR]
     @State private var store: WorkoutRecapStore
     @State private var editing = false
     @State private var sharing = false
     @State private var announced = false
 
     init(session: WorkoutSession, detectedPRs: [PRDetectionEngine.DetectedPR],
-         unit: MeasurementUnit, weeklySessionCount: Int? = nil, celebratesSave: Bool = true,
+         unit: MeasurementUnit, celebratesSave: Bool = true,
          onClose: @escaping () -> Void) {
+        self.detectedPRs = detectedPRs
         self.unit = unit
         self.onClose = onClose
         self.celebratesSave = celebratesSave
@@ -46,6 +48,7 @@ struct WorkoutFinishView: View {
                             }.padding(Spacing.cardPadding).frame(minHeight: 52)
                                 .background(AppColor.recapSuccess.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
                         }.buttonStyle(.plain).accessibilityIdentifier("recap-weekly")
+                    RecapNewPRs(prs: detectedPRs, entries: summary.entries, unit: unit)
                     RecapMetrics(summary: summary, unit: unit)
                     RecapCalculationNotes(summary: summary)
                     NavigationLink {
