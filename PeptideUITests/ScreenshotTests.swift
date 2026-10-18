@@ -466,8 +466,11 @@ final class ScreenshotTests: XCTestCase {
             let search = app.searchFields.firstMatch
             XCTAssertTrue(search.waitForExistence(timeout: 10))
             search.tap()
-            search.typeText("Barbell Bench Press - Medium Grip")
-            let exercise = app.staticTexts["Barbell Bench Press - Medium Grip"].firstMatch
+            search.typeText("Barbell Bench Press - Medium Grip\n")
+            // Rows combine their children, so match the row button by label prefix.
+            let exercise = app.buttons.matching(
+                NSPredicate(format: "label BEGINSWITH %@", "Barbell Bench Press - Medium Grip")
+            ).firstMatch
             XCTAssertTrue(exercise.waitForExistence(timeout: 10))
             exercise.tap()
             let heading = app.staticTexts["Muscles worked"]
