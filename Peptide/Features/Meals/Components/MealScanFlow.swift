@@ -30,6 +30,8 @@ struct MealScanFlow: View {
     /// one. Nil for a tray of unrelated things, which is what keeps the
     /// combine control from appearing where it would make no sense.
     @State private var suggestedMealName: String?
+    /// The scan-level reading — what it is, a summary, the model's tips.
+    @State private var insight: ScanInsight?
     /// Editable because the model's name is a guess. Seeded from
     /// `suggestedMealName` and only ever shown when combining.
     @State private var mealName: String = ""
@@ -484,6 +486,7 @@ struct MealScanFlow: View {
     private var totalProtein: Int { includedItems.reduce(0) { $0 + $1.proteinG } }
     private var totalCarbs: Int { includedItems.reduce(0) { $0 + $1.carbsG } }
     private var totalFat: Int { includedItems.reduce(0) { $0 + $1.fatG } }
+    private var totalPrice: FoodPriceEstimate? { FoodPriceEstimate.total(includedItems.compactMap(\.price)) }
 
     /// True when the model was unsure about most of what it saw.
     ///
@@ -521,6 +524,10 @@ struct MealScanFlow: View {
                         retakeButton
                     }
                     .padding(Spacing.md)
+                }
+
+                if let insight {
+                    ScanInsightCard(insight: insight, totalPrice: totalPrice)
                 }
 
                 HStack(alignment: .firstTextBaseline) {
@@ -721,7 +728,7 @@ struct MealScanFlow: View {
     private var draftSnapshot: MealScanDraft {
         MealScanDraft(items: items, photo: draftPhoto, date: logDate, category: category,
                       suggestedName: suggestedMealName, name: mealName, combine: logAsOneMeal,
-                      pendingEntries: pendingEntries, undoRequested: undoRequested)
+                      pendingEntries: pendingEntries, undoRequested: undoRequested, insight: insight)
     }
 
     private func loadDraft() {
@@ -764,6 +771,7 @@ struct MealScanFlow: View {
         chosenLogDate = draft.date
         category = draft.category
         suggestedMealName = draft.suggestedName
+        insight = draft.insight
         mealName = draft.name
         logAsOneMeal = draft.combine
         pendingEntries = draft.pendingEntries
@@ -787,6 +795,7 @@ struct MealScanFlow: View {
             recovery = nil
             draftError = nil
             items = []
+            insight = nil
             image = nil
             draftPhoto = nil
             selectedItem = nil
@@ -844,9 +853,13 @@ struct MealScanFlow: View {
 
     private func runAnalysis(on image: UIImage) async {
         do {
-            let result = try await MealScannerService.shared.analyzeItems(image: image)
+            let result = try await MealScannerService.shared.smartScan(image: image)
             try Task.checkCancellation()
             guard !result.items.isEmpty else { throw MealScannerService.ScanError.noFoodDetected }
+            // A single item is already its own name; only a multi-item
+            // meal gets the "log as one meal" reading.
+            let dishName = result.insight.kind == .meal && result.items.count > 1
+                ? result.insight.title.nilIfEmpty : nil
             await MainActor.run {
                 if !result.items.isEmpty, !storeService.isProUser {
                     MealScanQuota.recordSuccessfulScan()
@@ -854,12 +867,13 @@ struct MealScanFlow: View {
                 }
                 draftPhoto = (image.resizedTo(maxEdge: 1200) ?? image).jpegData(compressionQuality: 0.75)
                 items = result.items.map(EditableFoodItem.init(from:))
-                suggestedMealName = result.mealName
-                mealName = result.mealName ?? ""
+                insight = result.insight
+                suggestedMealName = dishName
+                mealName = dishName ?? ""
                 // Default to one line in the diary when the plate is clearly
                 // one dish. "Spaghetti Bolognese" is what the user ate; three
                 // rows is bookkeeping they did not ask for.
-                logAsOneMeal = result.mealName != nil
+                logAsOneMeal = dishName != nil
                 // Auto-categorise from the PHOTO's capture time, not
                 // the analyze-finished time. Otherwise a yesterday-
                 // dinner photo picked at 10am gets bucketed as snack
@@ -999,7 +1013,7 @@ struct MealScanFlow: View {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
         let existingID = dataStore.profile.customFoods.first { existing in
-            existing.brand == nil
+            existing.brand == item.brand
                 && existing.name.trimmingCharacters(in: .whitespacesAndNewlines)
                     .lowercased() == normalizedName
         }?.id
@@ -1007,12 +1021,14 @@ struct MealScanFlow: View {
         let food = CustomFood(
             id: existingID ?? UUID(),
             name: item.name,
+            brand: item.brand,
             per100g: item.per100g,
             // One serving = the model's depicted-portion estimate, not
             // whatever the user dialed the portion to before saving, so
             // the library's "Serving" mode stays accurate on re-log.
             servingGrams: item.aiGrams > 0 ? item.aiGrams : nil,
-            servingLabel: item.quantityLabel.nilIfEmpty
+            servingLabel: item.quantityLabel.nilIfEmpty,
+            pricePer100g: item.pricePer100g
         )
         dataStore.saveCustomFood(food)
         Haptics.success()
@@ -1056,6 +1072,12 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
     /// Whether the portion controls step in whole servings or raw grams.
     /// Defaults to servings — most people think "1 sandwich", not "180 g".
     var portionMode: PortionMode = .serving
+    var brand: String?
+    /// Amounts the scanner suggested for this particular food, shown as
+    /// the first quick-pick chips.
+    var portionOptions: [FoodPortionOption]?
+    /// Typical price of the scanner's depicted amount (`aiGrams`).
+    var aiPrice: FoodPriceEstimate?
 
     /// Below this the row asks the user to confirm the name.
     ///
@@ -1098,16 +1120,16 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         include = true
         savedToLibrary = false
         confidence = item.confidence
-        per100g = ScannedProduct.Nutriments(
-            calories: Double(item.calories) / basis * 100,
-            proteinG: Double(item.proteinG) / basis * 100,
-            carbsG: Double(item.carbsG) / basis * 100,
-            fatG: Double(item.fatG) / basis * 100,
-            fiberG: nil,
-            sugarsG: nil
-        )
+        brand = item.brand
+        portionOptions = item.portionOptions
+        aiPrice = item.price
+        per100g = SmartFoodLogic.per100g(of: item)
         originalPer100g = per100g
     }
+
+    /// The estimate rescaled to the amount currently dialled in.
+    var price: FoodPriceEstimate? { aiPrice?.scaled(by: grams / aiGrams) }
+    var pricePer100g: FoodPriceEstimate? { aiPrice?.scaled(by: 100 / aiGrams) }
 
     func withFreshIdentity() -> EditableFoodItem {
         var copy = self
@@ -1204,7 +1226,16 @@ private struct FoodItemEditCard: View {
                 // Macros on the left, save affordance on the right —
                 // one balanced row instead of two stacked ones.
                 HStack(spacing: Spacing.sm) {
-                    macroSummary
+                    VStack(alignment: .leading, spacing: 2) {
+                        macroSummary
+                        if let price = item.price {
+                            Text(price.formatted)
+                                .font(AppFont.caption)
+                                .foregroundStyle(AppColor.textTertiary)
+                                .monospacedDigit()
+                                .accessibilityLabel("Estimated cost \(price.formatted)")
+                        }
+                    }
                     Spacer(minLength: Spacing.sm)
                     saveButton
                 }
@@ -1425,6 +1456,9 @@ private struct FoodItemEditCard: View {
     private var presetChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.xs) {
+                ForEach(item.portionOptions ?? []) { option in
+                    chip(label: option.label, grams: option.grams)
+                }
                 switch item.portionMode {
                 case .serving:
                     ForEach(Self.servingPresets, id: \.self) { count in

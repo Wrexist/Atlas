@@ -70,6 +70,10 @@ final class MealScannerService: Sendable {
         case parseFailure
         case implausibleResult
         case noFoodDetected
+        case declined
+        /// The deployment has no `food-scan` route yet. Never shown —
+        /// `smartScan` catches it and falls back to the legacy route.
+        case routeMissing
 
         var errorDescription: String? {
             switch self {
@@ -83,6 +87,8 @@ final class MealScannerService: Sendable {
             case .parseFailure:         "Couldn't read the meal estimate from the scanner."
             case .implausibleResult:    "The scanner returned values outside a realistic range — try a clearer photo."
             case .noFoodDetected:       "No food found in that photo — point the camera at your meal and try again."
+            case .declined:             "The scanner couldn't analyse this one. Try a different photo or angle."
+            case .routeMissing:         "Meal scanner returned HTTP 404."
             }
         }
     }
@@ -141,6 +147,15 @@ final class MealScannerService: Sendable {
         let carbsG: Int
         let fatG: Int
         let confidence: Double
+        /// Smart-scan extras. Absent on the legacy route, so every one is
+        /// optional and none is part of the legacy wire format.
+        var brand: String? = nil
+        /// Exact per-100g values from the smart scan, fibre and sugar
+        /// included. Preferred over re-deriving them from rounded totals.
+        var per100g: ScannedProduct.Nutriments? = nil
+        var portionOptions: [FoodPortionOption]? = nil
+        /// Typical price of the depicted amount (`grams`).
+        var price: FoodPriceEstimate? = nil
 
         enum CodingKeys: String, CodingKey {
             case name, grams, calories, confidence
@@ -175,6 +190,97 @@ final class MealScannerService: Sendable {
         let mealName: String?
     }
 
+    /// Package facts the smart scan read off a label or knows about a
+    /// product: net weight and one serving.
+    struct PackageInfo: Hashable, Sendable {
+        let totalGrams: Double?
+        let servingGrams: Double?
+        let servingLabel: String?
+    }
+
+    /// Everything the smart scan returns: the scan-level reading, the
+    /// items, and package facts for a packaged product.
+    struct SmartScan: Sendable {
+        let insight: ScanInsight
+        let items: [ScannedFoodItem]
+        let package: PackageInfo?
+    }
+
+    /// What the app knows about a product it wants described: a barcode
+    /// hit's database facts, or just the words the user typed.
+    struct ProductQuery: Hashable, Sendable {
+        var query: String?
+        var barcode: String?
+        var name: String?
+        var brand: String?
+        var quantity: String?
+        var serving: String?
+        var nutrition: String?
+
+        /// Facts from an Open Food Facts hit, so the model can work out
+        /// servings, the whole-pack amount and a price for exactly it.
+        init(product: ScannedProduct) {
+            let n = product.per100g
+            barcode = product.barcode.allSatisfy(\.isNumber) ? product.barcode : nil
+            name = product.name
+            brand = product.brand
+            quantity = product.packageGrams.map { "\(Int($0.rounded())) g" }
+            serving = product.servingSizeText ?? product.servingGrams.map { "\(Int($0.rounded())) g" }
+            let g = { (value: Double) in value.formatted(.number.precision(.fractionLength(0...1))) }
+            nutrition = "per 100 g: \(Int(n.calories.rounded())) kcal, protein \(g(n.proteinG)) g, carbs \(g(n.carbsG)) g, fat \(g(n.fatG)) g"
+        }
+
+        init(query: String) {
+            self.query = query
+        }
+
+        var payload: [String: String] {
+            [
+                "query": query, "barcode": barcode, "name": name, "brand": brand,
+                "quantity": quantity, "serving": serving, "nutrition": nutrition,
+            ].compactMapValues { $0?.nilIfEmpty }
+        }
+    }
+
+    /// Photo → structured scan on the server-owned `food-scan` route:
+    /// per-item nutrition including fibre and sugar, portion options that
+    /// suit each food, price estimates and package facts. `hint` tells the
+    /// model what the app already knows ("packaged product, barcode …").
+    ///
+    /// Falls back to the legacy route when the deployment predates
+    /// `food-scan`, so a new build against an old proxy still scans.
+    func smartScan(image: UIImage, hint: String? = nil) async throws -> SmartScan {
+        let bytes = try compress(image)
+        var payload = Self.localeFields
+        payload["mode"] = "photo"
+        payload["image"] = bytes.base64EncodedString()
+        if let hint = hint?.nilIfEmpty { payload["hint"] = hint }
+        do {
+            let scan = try parseSmartScan(from: try await post(payload, to: foodScanEndpoint))
+            guard scan.insight.kind != .notFood, !scan.items.isEmpty else { throw ScanError.noFoodDetected }
+            return scan
+        } catch ScanError.routeMissing {
+            let legacy = try await analyzeItems(image: image)
+            return SmartScan(
+                insight: ScanInsight(kind: .meal, title: legacy.mealName ?? "", summary: "", tips: []),
+                items: legacy.items,
+                package: nil
+            )
+        }
+    }
+
+    /// Product facts or typed words → one fully described food: complete
+    /// nutrition, a sensible serving, the whole-pack amount and a price.
+    /// Text only, so it costs a fraction of a photo scan.
+    func describeProduct(_ query: ProductQuery) async throws -> SmartScan {
+        var payload = Self.localeFields
+        payload["mode"] = "product"
+        payload["product"] = query.payload
+        let scan = try parseSmartScan(from: try await post(payload, to: foodScanEndpoint))
+        guard !scan.items.isEmpty else { throw ScanError.parseFailure }
+        return scan
+    }
+
     /// Single-aggregate estimate for the whole plate. Retained for the
     /// existing callers + test suite; the photo review UI now prefers
     /// `analyzeItems(image:)` for per-item editing.
@@ -191,16 +297,38 @@ final class MealScannerService: Sendable {
         return try parseItems(from: data)
     }
 
-    /// Compresses + base64-encodes the image, posts it to the proxy with
-    /// the given prompt, validates the HTTP status, and hands back the
-    /// raw response body for a caller-specific parse.
+    /// Compresses + base64-encodes the image, posts it to the legacy
+    /// meal-scan route with the given prompt, and hands back the raw
+    /// response body for a caller-specific parse.
     private func performVision(image: UIImage, prompt: String) async throws -> Data {
-        guard let endpoint, let proxySecret, !proxySecret.isEmpty else {
+        let base64 = try compress(image).base64EncodedString()
+        return try await post(requestPayload(base64: base64, prompt: prompt), to: endpoint)
+    }
+
+    /// The smart-scan route lives next to meal-scan on the same proxy, so
+    /// it's derived from `MEAL_SCANNER_ENDPOINT` rather than needing its
+    /// own Info.plist key. `FOOD_SCAN_ENDPOINT` overrides it if a
+    /// deployment ever splits them.
+    private var foodScanEndpoint: URL? {
+        if endpointOverride == nil, let url = Self.urlSetting(forKey: "FOOD_SCAN_ENDPOINT") { return url }
+        return endpoint?.deletingLastPathComponent().appendingPathComponent("food-scan")
+    }
+
+    /// Language and currency, so names come back in the user's language
+    /// and prices in their money.
+    private static var localeFields: [String: Any] {
+        ["locale": Locale.current.identifier, "currency": Locale.current.currency?.identifier ?? "USD"]
+    }
+
+    /// Posts a JSON payload to the proxy with the shared secret, validates
+    /// the HTTP status, and returns the body.
+    private func post(_ payload: [String: Any], to url: URL?) async throws -> Data {
+        guard let url, let proxySecret, !proxySecret.isEmpty else {
             // The user-facing error stays generic so the public surface
             // doesn't leak which side is misconfigured, but the log call
             // names the missing key so a build-time misconfiguration is
             // diagnosable from Console.app without recompiling.
-            if endpoint == nil {
+            if url == nil {
                 AppLog.persistence.error(
                     "Meal scanner not configured: MEAL_SCANNER_ENDPOINT is empty in Info.plist + env."
                 )
@@ -213,10 +341,7 @@ final class MealScannerService: Sendable {
             throw ScanError.proxyNotConfigured
         }
 
-        let bytes = try compress(image)
-        let base64 = bytes.base64EncodedString()
-
-        var request = URLRequest(url: endpoint)
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         // 60s, not 30. This covers the upload as well as the model's
         // thinking time, and the photo we send is now several times
@@ -226,10 +351,7 @@ final class MealScannerService: Sendable {
         request.timeoutInterval = 60
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
-        request.httpBody = try JSONSerialization.data(
-            withJSONObject: requestPayload(base64: base64, prompt: prompt),
-            options: []
-        )
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
 
         let (data, http) = try await sendWithRetry(request)
 
@@ -240,16 +362,17 @@ final class MealScannerService: Sendable {
             // it's actionable for the user (build's shared secret no
             // longer matches the proxy's) rather than a transient
             // network error.
-            if http.statusCode == 401 {
-                throw ScanError.unauthorised
+            switch http.statusCode {
+            case 401: throw ScanError.unauthorised
+            // The proxy throttles per device and caps a daily quota, so
+            // 429 is a state the user can act on.
+            case 429: throw ScanError.rateLimited
+            // Vercel answers 404 for a route this deployment doesn't have.
+            case 404: throw ScanError.routeMissing
+            // food-scan's answer when Claude declined the image.
+            case 422: throw ScanError.declined
+            default: throw ScanError.requestFailed("Meal scanner returned HTTP \(http.statusCode).")
             }
-            // The proxy throttles per device and caps a daily quota, so 429
-            // is a state the user can act on — not the raw status code they
-            // used to be shown.
-            if http.statusCode == 429 {
-                throw ScanError.rateLimited
-            }
-            throw ScanError.requestFailed("Meal scanner returned HTTP \(http.statusCode).")
         }
 
         return data
@@ -557,6 +680,128 @@ final class MealScannerService: Sendable {
             // A single-item plate is already its own name; offering to
             // "combine" one row into a meal would be a no-op control.
             mealName: (dish?.isEmpty == false && valid.count > 1) ? dish : nil
+        )
+    }
+
+    /// `food-scan`'s `{ "result": … }` body. The schema is enforced
+    /// server-side, so this decodes strictly and then applies the same
+    /// plausibility discipline as the legacy parser: bad rows are
+    /// dropped, never trusted.
+    private struct SmartScanEnvelope: Decodable {
+        let result: Wire
+
+        struct Wire: Decodable {
+            let kind: FoodKind
+            let title: String
+            let summary: String
+            let items: [Item]
+            let package: Package?
+            let tips: [String]
+        }
+
+        struct Item: Decodable {
+            let name: String
+            let brand: String?
+            let portionLabel: String
+            let grams: Double
+            let portionOptions: [FoodPortionOption]
+            let per100g: Nutrients
+            let confidence: Double
+            let price: FoodPriceEstimate?
+
+            enum CodingKeys: String, CodingKey {
+                case name, brand, grams, confidence, price
+                case portionLabel = "portion_label"
+                case portionOptions = "portion_options"
+                case per100g = "per_100g"
+            }
+        }
+
+        struct Nutrients: Decodable {
+            let calories, proteinG, carbsG, fatG, fiberG, sugarsG: Double
+
+            enum CodingKeys: String, CodingKey {
+                case calories
+                case proteinG = "protein_g"
+                case carbsG = "carbs_g"
+                case fatG = "fat_g"
+                case fiberG = "fiber_g"
+                case sugarsG = "sugars_g"
+            }
+        }
+
+        struct Package: Decodable {
+            let totalGrams: Double?
+            let servingGrams: Double?
+            let servingLabel: String?
+
+            enum CodingKeys: String, CodingKey {
+                case totalGrams = "total_grams"
+                case servingGrams = "serving_grams"
+                case servingLabel = "serving_label"
+            }
+        }
+    }
+
+    func parseSmartScan(from data: Data) throws -> SmartScan {
+        let wire: SmartScanEnvelope.Wire
+        do {
+            wire = try JSONDecoder().decode(SmartScanEnvelope.self, from: data).result
+        } catch {
+            AppLog.persistence.error("Smart scan decode failed: \(error.localizedDescription, privacy: .private)")
+            throw ScanError.parseFailure
+        }
+        let items = wire.items.compactMap(Self.scannedItem(from:))
+        if !wire.items.isEmpty && items.isEmpty { throw ScanError.implausibleResult }
+        let package = wire.package.map {
+            PackageInfo(totalGrams: Self.plausibleGrams($0.totalGrams),
+                        servingGrams: Self.plausibleGrams($0.servingGrams),
+                        servingLabel: $0.servingLabel?.nilIfEmpty)
+        }
+        return SmartScan(
+            insight: ScanInsight(kind: wire.kind, title: wire.title, summary: wire.summary,
+                                 tips: Array(wire.tips.compactMap(\.nilIfEmpty).prefix(2))),
+            items: items,
+            package: package
+        )
+    }
+
+    private static func plausibleGrams(_ grams: Double?) -> Double? {
+        guard let grams, grams.isFinite, (1...20_000).contains(grams) else { return nil }
+        return grams
+    }
+
+    /// Per-100g values can't exceed what 100 g of anything holds: 900 kcal
+    /// (pure fat) and 100 g of any one macro.
+    private static func scannedItem(from wire: SmartScanEnvelope.Item) -> ScannedFoodItem? {
+        let name = wire.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let n = wire.per100g
+        let macros = [n.proteinG, n.carbsG, n.fatG, n.fiberG, n.sugarsG]
+        guard !name.isEmpty, name.lowercased() != "unknown",
+              wire.grams.isFinite, (1...5_000).contains(wire.grams),
+              (0.0...1.0).contains(wire.confidence),
+              n.calories.isFinite, (0...900).contains(n.calories),
+              macros.allSatisfy({ $0.isFinite && (0...100).contains($0) })
+        else { return nil }
+        let per100g = ScannedProduct.Nutriments(calories: n.calories, proteinG: n.proteinG, carbsG: n.carbsG,
+                                                fatG: n.fatG, fiberG: n.fiberG, sugarsG: n.sugarsG)
+        let scale = wire.grams / 100
+        let options = wire.portionOptions
+            .filter { $0.grams.isFinite && (1...5_000).contains($0.grams) && !$0.label.isEmpty }
+            .prefix(4)
+        return ScannedFoodItem(
+            name: name,
+            quantityLabel: wire.portionLabel,
+            grams: wire.grams,
+            calories: Int((n.calories * scale).rounded()),
+            proteinG: Int((n.proteinG * scale).rounded()),
+            carbsG: Int((n.carbsG * scale).rounded()),
+            fatG: Int((n.fatG * scale).rounded()),
+            confidence: wire.confidence,
+            brand: wire.brand?.nilIfEmpty,
+            per100g: per100g,
+            portionOptions: Array(options),
+            price: wire.price.flatMap { $0.isPlausible ? $0 : nil }
         )
     }
 
