@@ -21,6 +21,21 @@ the user's renames and portion fixes (>15 %) on device, and every
 food-scan request carries the 15 newest as `corrections`, which the
 proxy shape-checks and puts in the prompt. Erased with local data.
 
+Then four upgrades on top, from comparing Cal AI, MacroFactor,
+MyFitnessPal and PlateLens:
+- **Follow-up questions**: food-scan returns up to three `questions`
+  whose answers carry complete values; answer chips on each item swap
+  them in without a second request (`EditableFoodItem.answer`).
+- **Verified values**: `FoodGrounding` replaces the estimate with a
+  matching My Foods entry, or a same-brand Open Food Facts hit with
+  calories within 2× of the estimate. Badge on the row says which.
+- **Type or dictate**: `MealDescriptionSheet` → food-scan `mode: meal`.
+  Needs the new proxy deployed (an old one rejects the mode).
+- **LiDAR scale**: on LiDAR iPhones `DepthMealCamera` replaces the
+  system camera and sends the measured distance and photo span as the
+  scan hint (`PhotoScale`). Untested on hardware: needs a Pro device
+  check that capture, rotation and the distance look right.
+
 Not compiled here (no Swift toolchain in the container). Still owed:
 build-check on the PR, device QA of the review screens, deploying the
 proxy, and watching real cost per scan before deciding the model.

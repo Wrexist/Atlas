@@ -66,6 +66,8 @@ struct MealScanFlow: View {
     @State private var draftError: String?
     @State private var draftPhoto: Data?
     @State private var isDescribing = false
+    /// Set only for a photo just taken with the LiDAR camera.
+    @State private var photoScale: PhotoScale?
     @State private var mealText = ""
     @State private var draftGeneration = MealScanDraftStore.shared.generation
     @State private var checkedDraft = false
@@ -179,6 +181,7 @@ struct MealScanFlow: View {
             MealDescriptionSheet(text: $mealText) { text in
                 isDescribing = false
                 image = nil
+                photoScale = nil
                 capturedAtDate = Date()
                 chosenLogDate = nil
                 phase = .analyzing
@@ -188,20 +191,18 @@ struct MealScanFlow: View {
             .liquidGlassPresentation()
         }
         .fullScreenCover(isPresented: $isShowingCamera) {
-            CameraPicker(
-                onPicked: { captured in
-                    isShowingCamera = false
-                    image = captured
-                    capturedAtDate = Date()
-                    chosenLogDate = nil
-                    phase = .analyzing
-                    inFlightTask?.cancel()
-                    inFlightTask = Task { await runAnalysis(on: captured) }
-                },
-                onCancel: { isShowingCamera = false },
-                cameraDevice: .rear,
-                allowsEditing: false
-            )
+            Group {
+                if DepthMealCamera.isAvailable {
+                    DepthMealCamera(onPicked: { photographed($0, scale: $1) }, onCancel: { isShowingCamera = false })
+                } else {
+                    CameraPicker(
+                        onPicked: { photographed($0, scale: nil) },
+                        onCancel: { isShowingCamera = false },
+                        cameraDevice: .rear,
+                        allowsEditing: false
+                    )
+                }
+            }
             .ignoresSafeArea()
         }
         .alert(item: $cameraDeniedAlert) { reason in
@@ -744,6 +745,7 @@ struct MealScanFlow: View {
         items = draft.items
         draftPhoto = draft.photo
         image = draft.photo.flatMap(UIImage.init(data:))
+        photoScale = nil
         chosenLogDate = draft.date
         category = draft.category
         suggestedMealName = draft.suggestedName
@@ -773,6 +775,7 @@ struct MealScanFlow: View {
             items = []
             insight = nil
             image = nil
+            photoScale = nil
             draftPhoto = nil
             selectedItem = nil
             pendingEntries = []
@@ -806,6 +809,7 @@ struct MealScanFlow: View {
             try Task.checkCancellation()
             await MainActor.run {
                 image = ui
+                photoScale = nil
                 capturedAtDate = capturedAt
                 chosenLogDate = nil
                 phase = .analyzing
@@ -827,9 +831,22 @@ struct MealScanFlow: View {
         }
     }
 
+    /// A camera photo, with the LiDAR scale when the phone measured one.
+    private func photographed(_ captured: UIImage, scale: PhotoScale?) {
+        isShowingCamera = false
+        image = captured
+        photoScale = scale
+        capturedAtDate = Date()
+        chosenLogDate = nil
+        phase = .analyzing
+        inFlightTask?.cancel()
+        inFlightTask = Task { await runAnalysis(on: captured) }
+    }
+
     private func runAnalysis(on image: UIImage) async {
         await analyse(photo: image) {
-            try await MealScannerService.shared.smartScan(image: image, corrections: ScanCorrectionMemory.shared.recent)
+            try await MealScannerService.shared.smartScan(
+                image: image, hint: photoScale?.hint, corrections: ScanCorrectionMemory.shared.recent)
         }
     }
 
