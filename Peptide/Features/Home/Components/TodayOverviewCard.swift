@@ -334,7 +334,9 @@ private struct OverviewTile: View {
                 Spacer()
             }
             Text(value)
-                .font(.system(.title2, design: .rounded, weight: .heavy))
+                .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                .monospacedDigit()
+                .contentTransition(.numericText())
                 .foregroundStyle(AppColor.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)

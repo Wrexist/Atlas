@@ -42,10 +42,22 @@ struct WeeklySummaryHeroCard: View {
     }
 
     var body: some View {
+        Group {
+            switch state {
+            case .loading:    loadingCard
+            case .ready(let summary): readyCard(summary)
+            case .empty:      emptyCard
+            }
+        }
+        .transition(.opacity)
+        .appAnimation(AppAnimation.settle, value: stateKey)
+    }
+
+    private var stateKey: Int {
         switch state {
-        case .loading:    loadingCard
-        case .ready(let summary): readyCard(summary)
-        case .empty:      emptyCard
+        case .loading: 0
+        case .ready:   1
+        case .empty:   2
         }
     }
 
@@ -58,9 +70,11 @@ struct WeeklySummaryHeroCard: View {
                 heroRow(title: "Reading your week…", aiBadge: false)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    SkeletonBlock(width: 260)
-                    SkeletonBlock(width: 220)
-                    SkeletonBlock(width: 180)
+                    // Widths trail off like a paragraph without
+                    // overflowing a narrow card.
+                    SkeletonBlock()
+                    SkeletonBlock().padding(.trailing, Spacing.xxxxl)
+                    SkeletonBlock().padding(.trailing, 64)
                 }
                 .padding(.top, Spacing.xs)
             }

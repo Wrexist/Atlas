@@ -108,7 +108,8 @@ struct ReconstitutionCalculator: View {
             }
             Slider(value: bind, in: range, step: step)
                 .tint(AppColor.accentPrimary)
-                .sensoryFeedback(.selection, trigger: value)
+                // Through Haptics so the in-app haptics switch applies.
+                .onChange(of: value) { _, _ in Haptics.selection() }
             HStack(spacing: Spacing.xs) {
                 ForEach(quickPicks, id: \.self) { pick in
                     Button("\(formatted(pick))") {
