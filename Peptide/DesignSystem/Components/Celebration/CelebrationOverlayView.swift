@@ -52,7 +52,7 @@ struct CelebrationOverlayView: View {
             if reduceMotion {
                 appeared = true
             } else {
-                withAnimation(AppAnimation.springSmooth) { appeared = true }
+                AppAnimation.with(AppAnimation.springSmooth) { appeared = true }
             }
             // SwiftUI-native announcement so the moment isn't silent for
             // VoiceOver users (avoids importing UIKit just for this).

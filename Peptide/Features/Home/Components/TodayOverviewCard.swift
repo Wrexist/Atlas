@@ -321,7 +321,7 @@ private struct OverviewTile: View {
                                 style: StrokeStyle(lineWidth: 3, lineCap: .round)
                             )
                             .rotationEffect(.degrees(-90))
-                            .animation(.spring(response: 0.5, dampingFraction: 0.85), value: progress)
+                            .appAnimation(AppAnimation.springSmooth, value: progress)
                     } else {
                         Circle()
                             .fill(iconTint.opacity(0.18))

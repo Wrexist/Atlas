@@ -51,7 +51,7 @@ struct DailyPlanCard: View {
 
     private var expandToggle: some View {
         Button {
-            withAnimation(.smooth(duration: 0.28)) {
+            AppAnimation.with(AppAnimation.settle) {
                 isExpanded.toggle()
             }
         } label: {

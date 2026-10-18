@@ -69,7 +69,7 @@ struct ScreenshotModeBanner: View {
                 // the next launch (as long as demo mode is still
                 // on) so the safety net is never permanently lost.
                 Button {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                    AppAnimation.with(AppAnimation.toast) {
                         screenshotMode.isBannerVisible = false
                     }
                 } label: {

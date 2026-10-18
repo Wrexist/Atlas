@@ -12,7 +12,6 @@ struct TrainingBodyExplorer: View {
     @State private var side: Side = .both
     @State private var selected: AnatomicalMuscle?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private enum Side: String, CaseIterable {
         case both = "Both", front = "Front", back = "Back"
@@ -60,7 +59,7 @@ struct TrainingBodyExplorer: View {
             )
             .frame(maxWidth: side == .both ? .infinity : 340)
             .frame(maxWidth: .infinity)
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: selected)
+            .appAnimation(AppAnimation.quick, value: selected)
 
             HStack {
                 if side != .back { Text("Front").frame(maxWidth: .infinity) }

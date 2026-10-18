@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 enum AppAnimation {
     static let springSnappy = Animation.spring(response: 0.35, dampingFraction: 0.75)
@@ -8,6 +9,24 @@ enum AppAnimation {
 
     static let fadeIn = Animation.easeOut(duration: 0.25)
     static let fadeInSlow = Animation.easeOut(duration: 0.4)
+
+    /// Small state flips: a tab tint, a toggle's dim, a focused field.
+    static let quick = Animation.easeOut(duration: 0.18)
+    /// Button press-down. Shorter than `quick` so release never lags the finger.
+    static let press = Animation.easeOut(duration: 0.16)
+    /// Toasts and banners sliding in and out.
+    static let toast = Animation.spring(response: 0.4, dampingFraction: 0.85)
+    /// Moving between steps of a multi-step flow, and paging a calendar.
+    static let step = Animation.spring(response: 0.45, dampingFraction: 0.82)
+    /// Layout that should land without overshoot: expand/collapse, scroll-to.
+    static let settle = Animation.smooth(duration: 0.35)
+    /// One leg of an error shake, then the return to rest.
+    static let shake = Animation.spring(response: 0.12, dampingFraction: 0.45)
+    static let shakeSettle = Animation.spring(response: 0.18, dampingFraction: 0.6)
+    /// A chart line or path drawing itself in.
+    static let draw = Animation.easeOut(duration: 1.2)
+    /// Slow backdrop cross-fades behind content (onboarding, tours).
+    static let ambient = Animation.easeInOut(duration: 1.2)
 
     static let staggerDelay: Double = 0.05
     static let sectionDelay: Double = 0.15
@@ -66,5 +85,31 @@ enum AppAnimation {
     /// Read `accessibilityReduceMotion` from the View's environment and pass it in.
     static func motionAware(_ animation: Animation, reduceMotion: Bool) -> Animation? {
         reduceMotion ? nil : animation
+    }
+
+    /// `withAnimation` that reads Reduce Motion itself, for actions and
+    /// callbacks with no view environment to hand. Under Reduce Motion the
+    /// state still changes, it just doesn't move.
+    @MainActor
+    @discardableResult
+    static func with<Result>(_ animation: Animation, _ body: () throws -> Result) rethrows -> Result {
+        try withAnimation(UIAccessibility.isReduceMotionEnabled ? nil : animation, body)
+    }
+}
+
+private struct ReduceMotionAwareAnimation<Value: Equatable>: ViewModifier {
+    let animation: Animation
+    let value: Value
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.animation(reduceMotion ? nil : animation, value: value)
+    }
+}
+
+extension View {
+    /// `.animation(_:value:)` that is skipped under Reduce Motion.
+    func appAnimation<Value: Equatable>(_ animation: Animation, value: Value) -> some View {
+        modifier(ReduceMotionAwareAnimation(animation: animation, value: value))
     }
 }

@@ -60,7 +60,7 @@ struct RoutinesView: View {
         ) { routine in
             Button("Cancel", role: .cancel) { pendingDeletion = nil }
             Button("Delete", role: .destructive) {
-                withAnimation(AppAnimation.springSnappy) { store.delete(id: routine.id) }
+                AppAnimation.with(AppAnimation.springSnappy) { store.delete(id: routine.id) }
                 pendingDeletion = nil
             }
         } message: { routine in

@@ -419,8 +419,8 @@ struct PeptideApp: App {
             // Profile account section, so a user who landed on Today
             // never saw a "changes won't be saved" warning.
             PersistenceErrorBanner(message: dataStore.lastError)
-                .animation(.spring(response: 0.4, dampingFraction: 0.85),
-                           value: dataStore.lastError)
+                .appAnimation(AppAnimation.toast,
+                               value: dataStore.lastError)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             // Floating "you're in screenshot mode" reminder sits
@@ -428,8 +428,8 @@ struct PeptideApp: App {
             // hides via internal `if` when the toggle is off, so
             // this inset costs nothing in production.
             ScreenshotModeBanner()
-                .animation(.spring(response: 0.4, dampingFraction: 0.85),
-                           value: ScreenshotMode.shared.isEnabled)
+                .appAnimation(AppAnimation.toast,
+                               value: ScreenshotMode.shared.isEnabled)
         }
         .environment(appState)
         .environment(dataStore)
@@ -554,7 +554,7 @@ struct WorkoutAccessoryView: View {
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.xs)
-        .animation(AppAnimation.springSnappy, value: loggedToday)
+        .appAnimation(AppAnimation.springSnappy, value: loggedToday)
         .accessibilityElement(children: .combine)
         .task(id: dataStore.revision) {
             loggedToday = dataStore.workoutSummary().count
@@ -604,7 +604,7 @@ struct NextDoseAccessoryView: View {
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.xs)
-        .animation(AppAnimation.springSnappy, value: allDone)
+        .appAnimation(AppAnimation.springSnappy, value: allDone)
     }
 }
 

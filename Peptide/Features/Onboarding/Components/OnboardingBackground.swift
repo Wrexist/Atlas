@@ -34,8 +34,8 @@ struct OnboardingBackground: View {
             }
             .blur(radius: 90)
             .opacity(appeared ? 0.32 : 0.0)
-            .animation(.easeOut(duration: 1.4), value: appeared)
-            .animation(.easeInOut(duration: 1.2), value: step)
+            .appAnimation(AppAnimation.ambient, value: appeared)
+            .appAnimation(AppAnimation.ambient, value: step)
 
             // Subtle top→bottom scrim keeps copy readable regardless of where
             // the orbs drift on a given step. It's tinted with the backdrop

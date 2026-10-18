@@ -207,7 +207,7 @@ struct PaywallView: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
         }
-        .animation(AppAnimation.springSnappy, value: selectedProductID)
+        .appAnimation(AppAnimation.springSnappy, value: selectedProductID)
     }
 
     private var headlineEyebrow: String {
@@ -639,7 +639,7 @@ struct PaywallView: View {
         let isSelected = selectedProductID == product.id
         return Button {
             Haptics.selection()
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
+            AppAnimation.with(AppAnimation.step) {
                 selectedProductID = product.id
             }
         } label: {

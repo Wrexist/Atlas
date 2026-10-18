@@ -112,7 +112,7 @@ struct LanguagePickerSheet: View {
     private func select(_ code: String?) {
         guard localization.selectedCode != code else { return }
         Haptics.selection()
-        withAnimation(.snappy(duration: 0.2)) {
+        AppAnimation.with(AppAnimation.quick) {
             localization.selectedCode = code
         }
     }

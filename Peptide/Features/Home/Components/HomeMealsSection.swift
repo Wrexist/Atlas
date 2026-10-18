@@ -198,7 +198,7 @@ struct HomeMealsSection: View {
             guard lastWaterLog != nil else { return }
             try? await Task.sleep(for: AppAnimation.logSuccessAutoCloseDelay)
             guard !Task.isCancelled else { return }
-            withAnimation(AppAnimation.fadeIn) { lastWaterLog = nil }
+            AppAnimation.with(AppAnimation.fadeIn) { lastWaterLog = nil }
         }
         .onChange(of: dayOffset) { _, _ in
             lastWaterLog = nil
@@ -244,7 +244,7 @@ struct HomeMealsSection: View {
     private func logWater(fluidOunces: Double) {
         let date = LifestyleDataLogic.logTimestamp(on: selectedDay)
         dataStore.logWater(fluidOunces: fluidOunces, date: date)
-        withAnimation(AppAnimation.fadeIn) {
+        AppAnimation.with(AppAnimation.fadeIn) {
             lastWaterLog = WaterLog(fluidOunces: fluidOunces, date: date)
         }
     }
@@ -253,7 +253,7 @@ struct HomeMealsSection: View {
         guard let log = lastWaterLog else { return }
         dataStore.logWater(fluidOunces: -log.fluidOunces, date: log.date)
         Haptics.impact(.light)
-        withAnimation(AppAnimation.fadeIn) { lastWaterLog = nil }
+        AppAnimation.with(AppAnimation.fadeIn) { lastWaterLog = nil }
     }
 
     /// Duplicates a logged meal onto the viewed day at the current

@@ -267,7 +267,7 @@ struct HabitsView: View {
             Spacer(minLength: 0)
             Button {
                 Haptics.success()
-                withAnimation(AppAnimation.springSmooth) {
+                AppAnimation.with(AppAnimation.springSmooth) {
                     dataStore.applyStreakFreeze()
                 }
             } label: {

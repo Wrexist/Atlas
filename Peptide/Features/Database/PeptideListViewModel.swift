@@ -58,7 +58,7 @@ final class PeptideListViewModel {
         // drops any in-flight search debounce so a late keystroke pass can't
         // land on top of the animation with a stale category.
         refilterTask?.cancel()
-        withAnimation(AppAnimation.springSnappy) {
+        AppAnimation.with(AppAnimation.springSnappy) {
             selectedCategory = (selectedCategory == category) ? nil : category
             refilter()
         }

@@ -9,7 +9,6 @@ struct WorkoutFocusView: View {
     let onFinish: () -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var service = WorkoutSessionService.shared
     @State private var library = ExerciseLibrary.shared
     @State private var detailExercise: Exercise?
@@ -26,7 +25,7 @@ struct WorkoutFocusView: View {
                             .id(exercise?.id)
                             .transition(.opacity)
                             .frame(height: heroHeight(available: geometry.size.height))
-                            .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: exercise?.id)
+                            .appAnimation(AppAnimation.quick, value: exercise?.id)
                             .padding(.top, Spacing.sm)
                         exerciseStrip
                         setPanel(entry)
@@ -216,8 +215,8 @@ struct WorkoutFocusView: View {
           .transition(.opacity)
         }
         .frame(maxWidth: .infinity, minHeight: dynamicTypeSize.isAccessibilitySize ? nil : 148, alignment: .topLeading)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: session.focus?.rest == nil)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: session.isPaused)
+        .appAnimation(AppAnimation.quick, value: session.focus?.rest == nil)
+        .appAnimation(AppAnimation.quick, value: session.isPaused)
     }
 
     private func progressTitle(_ entry: WorkoutExerciseEntry) -> String {

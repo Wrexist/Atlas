@@ -645,7 +645,7 @@ struct HomeView: View {
             .onChange(of: achievementService.latestUnlock?.id) { _, newId in
                 if let newId, let achievement = achievementService.achievements.first(where: { $0.id == newId }) {
                     toastAchievement = achievement
-                    withAnimation(AppAnimation.springBouncy) { showAchievementToast = true }
+                    AppAnimation.with(AppAnimation.springBouncy) { showAchievementToast = true }
                     if Self.reviewWorthyAchievements.contains(newId) {
                         Task { @MainActor in
                             try? await Task.sleep(for: .seconds(2))
@@ -755,7 +755,7 @@ struct HomeView: View {
         // Every chip scrolls within Today now — the Meals and Biology
         // chips that duplicated the tab bar were dropped (Product
         // Architecture 07: no duplicate destinations).
-        withAnimation(.smooth(duration: 0.35)) {
+        AppAnimation.with(AppAnimation.settle) {
             proxy.scrollTo(anchor, anchor: .top)
         }
         activeJumpAnchor = anchor

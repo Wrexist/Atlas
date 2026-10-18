@@ -310,7 +310,7 @@ struct SyringeDiagram: View {
                     )
                     .frame(width: bodyWidth * fillFraction, height: plungerHeight - 4)
                     .position(x: bodyWidth * fillFraction / 2, y: centerY)
-                    .animation(.spring(response: 0.45, dampingFraction: 0.85), value: fillFraction)
+                    .appAnimation(AppAnimation.springSmooth, value: fillFraction)
 
                 // Tick marks (major)
                 ForEach(0...10, id: \.self) { tick in

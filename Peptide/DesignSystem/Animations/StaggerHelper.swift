@@ -12,12 +12,8 @@ struct StaggeredAppear: ViewModifier {
             .scaleEffect(appeared || reduceMotion ? 1 : 0.95)
             .onAppear {
                 guard !appeared else { return }
-                if reduceMotion {
+                AppAnimation.with(AppAnimation.staggered(index: index)) {
                     appeared = true
-                } else {
-                    withAnimation(AppAnimation.staggered(index: index)) {
-                        appeared = true
-                    }
                 }
             }
     }
@@ -34,12 +30,8 @@ struct SectionAppear: ViewModifier {
             .offset(y: appeared || reduceMotion ? 0 : 30)
             .onAppear {
                 guard !appeared else { return }
-                if reduceMotion {
+                AppAnimation.with(AppAnimation.sectionStaggered(index: index)) {
                     appeared = true
-                } else {
-                    withAnimation(AppAnimation.sectionStaggered(index: index)) {
-                        appeared = true
-                    }
                 }
             }
     }
@@ -67,6 +59,6 @@ struct ScalePressStyle: ButtonStyle {
         configuration.label
             .scaleEffect(reduceMotion ? 1.0 : (configuration.isPressed ? pressedScale : 1.0))
             .opacity(configuration.isPressed ? pressedOpacity : 1.0)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: configuration.isPressed)
+            .appAnimation(AppAnimation.press, value: configuration.isPressed)
     }
 }
