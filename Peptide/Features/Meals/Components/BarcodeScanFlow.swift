@@ -54,6 +54,23 @@ struct BarcodeScanFlow: View {
     /// Held so "Try another barcode" can cancel an in-flight
     /// identification instead of letting it land on the next scan's card.
     @State private var identifyTask: Task<Void, Never>?
+    /// The barcode behind the current not-found card, so a package photo
+    /// can be filed under it.
+    @State private var lastBarcode: String?
+    /// Atlas AI's price, portion and package reading of `product`.
+    @State private var insight: MealScannerService.SmartScan?
+    @State private var isLoadingInsight = false
+    @State private var insightTask: Task<Void, Never>?
+    /// True when `product` came from a package photo rather than the
+    /// food database — changes the source badge and the logged source.
+    @State private var productReadByAI = false
+    @State private var savedToMyFoods = false
+    @State private var isShowingPackageCamera = false
+    @State private var packagePickerItem: PhotosPickerItem?
+    /// A package photo held on the device until the user allows sending
+    /// it to the AI (Guideline 5.1.2(i)).
+    @State private var pendingPackageImage: UIImage?
+    @State private var showPackageConsent = false
 
     private enum Phase: Equatable {
         case preflight       // checking camera permission + device support
@@ -357,8 +374,17 @@ struct BarcodeScanFlow: View {
                     } else {
                         overrideNotice
                     }
+                    if insight != nil || isLoadingInsight {
+                        ProductInsightCard(
+                            scan: insight,
+                            isLoading: isLoadingInsight,
+                            portionGrams: manualOverride == nil ? product.grams(for: portion) : nil,
+                            onPickPortion: { grams in portion = .grams(grams) }
+                        )
+                    }
                     MealCategoryPicker(selection: $category)
                     macroPanel(for: product)
+                    saveToMyFoodsButton(product)
                 }
             }
             .scrollIndicators(.hidden)
@@ -377,10 +403,10 @@ struct BarcodeScanFlow: View {
 
     private func sourceBadge(for product: ScannedProduct) -> some View {
         HStack(spacing: Spacing.xs) {
-            Image(systemName: "globe")
+            Image(systemName: productReadByAI ? "sparkles" : "globe")
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
-            Text("Open Food Facts · \(Self.relativeAge(product.fetchedAt))")
+            Text(sourceLabel(for: product))
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer(minLength: 0)
@@ -397,6 +423,10 @@ struct BarcodeScanFlow: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Spacing.xs)
+    }
+
+    private func sourceLabel(for product: ScannedProduct) -> LocalizedStringKey {
+        productReadByAI ? "Read from the package by Atlas AI" : "Open Food Facts · \(Self.relativeAge(product.fetchedAt))"
     }
 
     private var overrideNotice: some View {
@@ -684,7 +714,12 @@ struct BarcodeScanFlow: View {
                 // something that has none is the detail that tells a user
                 // the app didn't understand what they scanned.
                 if showsFoodFallbacks {
-                    // Primary fallback: on-device OCR of the nutrition
+                    // Best fallback: Atlas AI reads the whole package —
+                    // name, brand, net weight and nutrition panel — in
+                    // one photo, and files it under this barcode.
+                    packagePhotoButton
+
+                    // On-device OCR of the nutrition
                     // panel. Free, fast, accurate when the photo is
                     // clean — no AI cost, no cloud round-trip.
                     PhotosPicker(
@@ -731,6 +766,46 @@ struct BarcodeScanFlow: View {
             .padding(.top, Spacing.sm)
         }
         .animation(AppAnimation.springSnappy, value: identity)
+        .onChange(of: packagePickerItem) { _, newValue in
+            guard let newValue else { return }
+            Task {
+                guard let data = try? await newValue.loadTransferable(type: Data.self),
+                      let image = UIImage(data: data) else {
+                    packagePickerItem = nil
+                    errorText = "Couldn't load that photo. Try a different one."
+                    phase = .error
+                    return
+                }
+                packagePickerItem = nil
+                await requestReadPackage(image)
+            }
+        }
+        .sheet(isPresented: $showPackageConsent, onDismiss: {
+            guard AIDataConsent.isGranted else {
+                pendingPackageImage = nil
+                return
+            }
+            if let image = pendingPackageImage {
+                pendingPackageImage = nil
+                Task { await readPackage(image) }
+            } else {
+                Task { await openPackageCamera() }
+            }
+        }) {
+            AIConsentSheet(whatIsSent: "The photo of the package you take or pick.")
+        }
+        .fullScreenCover(isPresented: $isShowingPackageCamera) {
+            CameraPicker(
+                onPicked: { image in
+                    isShowingPackageCamera = false
+                    Task { await requestReadPackage(image) }
+                },
+                onCancel: { isShowingPackageCamera = false },
+                cameraDevice: .rear,
+                allowsEditing: false
+            )
+            .ignoresSafeArea()
+        }
         .onChange(of: ocrPickerItem) { _, newValue in
             guard let newValue else { return }
             phase = .ocrProcessing
@@ -859,6 +934,52 @@ struct BarcodeScanFlow: View {
         case .gtin:
             return unreadable
         }
+    }
+
+    /// Camera when there is one (scanning already got permission),
+    /// else the photo library — simulators and manual-entry devices.
+    @ViewBuilder
+    private var packagePhotoButton: some View {
+        if UIImagePickerController.SourceType.cameraIsAvailable {
+            GlassButton(title: "Photograph the package", icon: "sparkles", style: .primary) {
+                // Ask before the camera opens, so the consent sheet never
+                // has to present over a dismissing camera.
+                guard AIDataConsent.isGranted else {
+                    showPackageConsent = true
+                    return
+                }
+                Task { await openPackageCamera() }
+            }
+        } else {
+            PhotosPicker(selection: $packagePickerItem, matching: .images, photoLibrary: .shared()) {
+                Label("Pick a photo of the package", systemImage: "sparkles")
+                    .font(AppFont.headline)
+                    .frame(minHeight: Spacing.minimumHitTarget)
+            }
+        }
+    }
+
+    /// Keeps a product the user logs often one search away in My Foods,
+    /// with Atlas AI's price attached when it has one.
+    private func saveToMyFoodsButton(_ product: ScannedProduct) -> some View {
+        Button {
+            let item = insight?.items.first
+            let pricePer100g = item.flatMap { $0.price?.scaled(by: 100 / $0.grams) }
+            dataStore.saveCustomFood(SmartFoodLogic.customFood(from: product, pricePer100g: pricePer100g))
+            savedToMyFoods = true
+            Haptics.success()
+        } label: {
+            Label(saveToMyFoodsTitle, systemImage: savedToMyFoods ? "checkmark" : "bookmark")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(savedToMyFoods ? AppColor.accentPrimary : AppColor.accentLight)
+        }
+        .buttonStyle(.plain)
+        .minimumHitArea()
+        .disabled(savedToMyFoods)
+    }
+
+    private var saveToMyFoodsTitle: LocalizedStringKey {
+        savedToMyFoods ? "Saved to My Foods" : "Save to My Foods"
     }
 
     private var errorCard: some View {
@@ -1087,6 +1208,7 @@ struct BarcodeScanFlow: View {
             return
         }
 
+        await MainActor.run { lastBarcode = primary }
         for (index, candidate) in candidates.enumerated() {
             do {
                 try await lookupOne(barcode: candidate)
@@ -1137,6 +1259,82 @@ struct BarcodeScanFlow: View {
             category = MealCategory.auto(for: Date())
             phase = .review
             BarcodeHaptics.lookupSuccess()
+            startInsight(for: result)
+        }
+    }
+
+    /// Asks Atlas AI for price, portions and any missing package facts
+    /// while the user is already looking at the review. Failure is
+    /// silent: the card disappears and the review is exactly what it was.
+    private func startInsight(for result: ScannedProduct) {
+        insightTask?.cancel()
+        insight = nil
+        // Product facts only, but still nothing goes to the AI before the
+        // user has said yes to it once.
+        guard AIDataConsent.isGranted else { return }
+        isLoadingInsight = true
+        insightTask = Task {
+            let scan = try? await MealScannerService.shared.describeProduct(.init(product: result))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                isLoadingInsight = false
+                guard let scan, product?.barcode == result.barcode else { return }
+                insight = scan
+                product = SmartFoodLogic.product(result, fillingFrom: scan)
+            }
+        }
+    }
+
+    private func openPackageCamera() async {
+        if await CameraAuthorization.resolve() == .granted {
+            isShowingPackageCamera = true
+        } else {
+            errorText = "Allow camera access in Settings to photograph the package."
+            phase = .error
+        }
+    }
+
+    private func requestReadPackage(_ image: UIImage) async {
+        guard AIDataConsent.isGranted else {
+            pendingPackageImage = image
+            showPackageConsent = true
+            return
+        }
+        await readPackage(image)
+    }
+
+    /// Package photo → product, for a barcode the database doesn't know.
+    /// Lands on the same review as a database hit, filed under the
+    /// scanned barcode so history and re-scans line up.
+    private func readPackage(_ image: UIImage) async {
+        let barcode = lastBarcode ?? "ai:\(UUID().uuidString)"
+        await MainActor.run {
+            identifyTask?.cancel()
+            phase = .ocrProcessing
+        }
+        do {
+            let scan = try await MealScannerService.shared.smartScan(
+                image: image,
+                hint: "A packaged product whose barcode \(barcode) isn't in Open Food Facts. Read the brand, product name, net weight and nutrition panel from the package."
+            )
+            guard let read = SmartFoodLogic.product(from: scan, barcode: barcode) else {
+                throw MealScannerService.ScanError.noFoodDetected
+            }
+            await MainActor.run {
+                product = read
+                insight = scan
+                productReadByAI = true
+                portion = read.defaultPortion
+                category = MealCategory.auto(for: Date())
+                phase = .review
+                BarcodeHaptics.lookupSuccess()
+            }
+        } catch {
+            await MainActor.run {
+                errorText = error.localizedDescription
+                phase = .error
+                BarcodeHaptics.lookupFailure()
+            }
         }
     }
 
@@ -1164,6 +1362,12 @@ struct BarcodeScanFlow: View {
     private func resetScanResults() {
         identifyTask?.cancel()
         identifyTask = nil
+        insightTask?.cancel()
+        insightTask = nil
+        insight = nil
+        isLoadingInsight = false
+        productReadByAI = false
+        savedToMyFoods = false
         identity = nil
         isIdentifying = false
         unsupportedPayload = nil
@@ -1213,8 +1417,9 @@ struct BarcodeScanFlow: View {
         // synthetic barcode to scan history corrupts the actor (recordLog
         // expects an 8-14 digit code). Manual-override edits are likewise
         // not OFF data. Tag both `.manual` and skip history.
-        let isOCR = product.barcode.hasPrefix("ocr:")
-        let source: MealSource = (manualOverride != nil || isOCR) ? .manual : .openFoodFacts
+        let isOCR = product.barcode.hasPrefix("ocr:") || product.barcode.hasPrefix("ai:")
+        let source: MealSource = (manualOverride != nil || isOCR) ? .manual
+            : productReadByAI ? .photo : .openFoodFacts
         let entry = MealEntry(
             loggable: meal,
             name: product.name,
@@ -1275,6 +1480,7 @@ struct BarcodeScanFlow: View {
     }
 
     private func resetForRescan() {
+        resetScanResults()
         product = nil
         manualBarcode = ""
         manualOverride = nil
