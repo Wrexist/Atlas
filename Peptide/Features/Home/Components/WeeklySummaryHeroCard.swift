@@ -58,9 +58,9 @@ struct WeeklySummaryHeroCard: View {
                 heroRow(title: "Reading your week…", aiBadge: false)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    skeletonLine(width: 260)
-                    skeletonLine(width: 220)
-                    skeletonLine(width: 180)
+                    SkeletonBlock(width: 260)
+                    SkeletonBlock(width: 220)
+                    SkeletonBlock(width: 180)
                 }
                 .padding(.top, Spacing.xs)
             }
@@ -304,13 +304,6 @@ struct WeeklySummaryHeroCard: View {
     }
 
     // MARK: - Helpers
-
-    private func skeletonLine(width: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: 4)
-            .fill(AppColor.surfaceSecondary.opacity(0.6))
-            .frame(width: width, height: 12)
-            .shimmer()
-    }
 
     /// Hoisted out of `weekTitle` — it allocated both formatters on every
     /// ready-card render. Plain statics are MainActor-safe inside a View.

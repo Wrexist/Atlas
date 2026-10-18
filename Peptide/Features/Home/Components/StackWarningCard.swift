@@ -14,11 +14,12 @@ struct StackWarningCard: View {
                 VStack(spacing: Spacing.md) {
                     ForEach(warnings) { warning in
                         Button {
+                            Haptics.impact(.light)
                             onSelect(warning)
                         } label: {
                             warningRow(warning)
                         }
-                        .buttonStyle(WarningRowPressStyle())
+                        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
 
                         if warning.id != warnings.last?.id {
                             Divider().foregroundStyle(AppColor.glassBorder)
@@ -107,20 +108,6 @@ struct StackWarningCard: View {
             }
         }
         .contentShape(Rectangle())
-    }
-}
-
-private struct WarningRowPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .opacity(configuration.isPressed ? 0.85 : 1.0)
-            .animation(AppAnimation.springSnappy, value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { _, pressed in
-                if pressed {
-                    Haptics.impact(.light)
-                }
-            }
     }
 }
 

@@ -203,7 +203,7 @@ struct StackAlertDetailSheet: View {
             NavigationLink(value: peptide) {
                 peptideChipLabel(abbreviation, navigable: true)
             }
-            .buttonStyle(ChipPressStyle())
+            .buttonStyle(ScalePressStyle(pressedScale: 0.94))
         } else {
             peptideChipLabel(abbreviation, navigable: false)
         }
@@ -307,20 +307,6 @@ struct StackAlertDetailSheet: View {
             )
         }
         .ignoresSafeArea()
-    }
-}
-
-private struct ChipPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
-            .opacity(configuration.isPressed ? 0.85 : 1.0)
-            .animation(AppAnimation.springSnappy, value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { _, pressed in
-                if pressed {
-                    Haptics.impact(.light)
-                }
-            }
     }
 }
 
