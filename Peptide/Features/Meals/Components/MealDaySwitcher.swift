@@ -39,6 +39,7 @@ struct MealDaySwitcher: View {
                     Text(Self.title(for: day))
                         .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
+                        .contentTransition(.interpolate)
                     if !isToday {
                         Text("Tap for today")
                             .font(AppFont.scaled(11, weight: .semibold))

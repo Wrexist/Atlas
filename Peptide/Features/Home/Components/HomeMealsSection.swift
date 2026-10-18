@@ -68,15 +68,19 @@ struct HomeMealsSection: View {
                 eyebrow: "Meals",
                 title: "Capture what you ate"
             )
+            .sectionAppear(index: 0)
 
             MealDaySwitcher(offset: $dayOffset)
+                .sectionAppear(index: 1)
 
             FoodLibraryEntryCard(onTap: { showFoodLibrary = true })
+                .sectionAppear(index: 2)
 
             LogMealEntryPicker(
                 onScanBarcode: { showBarcodeScan = true },
                 onSnapPhoto: { showMealScan = true }
             )
+            .sectionAppear(index: 3)
 
             if dataStore.profile.nutritionTargets == nil {
                 targetsPrompt
@@ -116,16 +120,22 @@ struct HomeMealsSection: View {
                     showTargetsEditor = true
                 }
             }
+            .sectionAppear(index: 4)
 
             MealStreakBadge(
                 currentStreak: dataStore.mealLoggingStreak,
                 bestStreak: dataStore.bestMealLoggingStreak
             )
+            .scrollReveal()
 
             let dayEntries = dataStore.mealEntries(for: selectedDay)
-            if !dayEntries.isEmpty { DailyMealNutrientsCard(entries: dayEntries) }
+            if !dayEntries.isEmpty {
+                DailyMealNutrientsCard(entries: dayEntries)
+                    .scrollReveal()
+            }
             if dailyConsumption.caloriesKcal > 0 || !dayEntries.isEmpty {
                 MealCategoriesCard(breakdown: dailyBreakdown)
+                    .scrollReveal()
 
                 TodaysMealsCard(
                     entries: dayEntries,
@@ -134,6 +144,7 @@ struct HomeMealsSection: View {
                     onLogAgain: logAgain,
                     onDelete: { id in dataStore.unlogMealEntry(id: id) }
                 )
+                .scrollReveal()
             }
         }
         .sheet(isPresented: $showMealScan) {
