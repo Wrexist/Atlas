@@ -2,6 +2,24 @@
 
 ## Current in-flight state
 
+### Smart scan, barcode and library rebuild (branch `claude/smart-scan-library-s0p35l`)
+
+New server route `server/api/food-scan.js` owns the prompt and a JSON
+schema (structured outputs, `claude-opus-5-5`, `fallbacks: "default"`).
+The app derives its URL from `MEAL_SCANNER_ENDPOINT` and falls back to
+`/api/meal-scan` on 404, so it is safe to ship the app before the proxy.
+What it adds: per-item fibre/sugar, portion chips that suit each food,
+price ranges in the user's currency, scan tips; barcode review gets price
+and missing serving / net weight from Atlas AI; an unknown barcode can be
+read from a package photo; "Save to My Foods" from a barcode; the custom
+food editor fills itself from typed words or a package photo; library
+search with no hits offers "Add … with AI". Every new AI path is behind
+`AIDataConsent`.
+
+Not compiled here (no Swift toolchain in the container). Still owed:
+build-check on the PR, device QA of the review screens, deploying the
+proxy, and watching real cost per scan before deciding the model.
+
 ### Watch app 2.0 (PR #184, merged)
 
 The watch app is now a vertical pager in the shape of the watchOS 10
