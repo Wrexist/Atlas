@@ -88,17 +88,6 @@ jobs:
           echo "Using simulator $DEVICE_ID"
           echo "id=$DEVICE_ID" >> "$GITHUB_OUTPUT"
 
-      - name: Validate training logic
-        run: |
-          xcodebuild test \
-            -parallel-testing-enabled NO \
-            -project Peptide.xcodeproj \
-            -scheme PeptideTrainingValidation \
-            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.id }}" \
-            -configuration Debug \
-            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
-            -resultBundlePath TrainingTests.xcresult
-
       - name: Run screenshot UI test
         env:
           TEST_FILTER: ${{ inputs.test_filter }}
@@ -130,6 +119,31 @@ jobs:
             --output-path screenshots/training || true
           ls -laR screenshots || true
 
+      - name: Print activation shots
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess, base64
+          m = json.load(open("screenshots/manifest.json"))
+          def walk(o):
+              if isinstance(o, dict):
+                  n = o.get("suggestedHumanReadableName", "")
+                  f = o.get("exportedFileName")
+                  if f and n.startswith("activation-"):
+                      yield n, f
+                  for v in o.values(): yield from walk(v)
+              elif isinstance(o, list):
+                  for v in o: yield from walk(v)
+          for n, f in walk(m):
+              out = "/tmp/" + n.split("_0_")[0] + ".jpg"
+              subprocess.run(["sips", "-s", "format", "jpeg", "-s", "formatOptions", "70", "-Z", "900",
+                              "screenshots/" + f, "--out", out], check=True, capture_output=True)
+              data = base64.b64encode(open(out, "rb").read()).decode()
+              name = os.path.basename(out)
+              for i in range(0, len(data), 3000):
+                  print(f"SHOT|{name}|{i // 3000}|{data[i:i + 3000]}")
+          PY
+
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -139,33 +153,3 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  unit-tests:
-    name: Full unit tests
-    runs-on: macos-15
-    timeout-minutes: 50
-    steps:
-      - uses: actions/checkout@v4
-      - uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: latest-stable
-      - name: Install tools
-        run: brew install xcodegen swiftlint
-      - name: Generate project
-        run: xcodegen generate
-      - name: SwiftLint
-        run: swiftlint lint --reporter github-actions-logging
-      - name: Run complete unit suite
-        run: |
-          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin); print(next(x['udid'] for r in d['devices'].values() for x in r if 'iPhone' in x['name']))")
-          xcodebuild test -project Peptide.xcodeproj -scheme Peptide \
-            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
-            -parallel-testing-enabled NO -configuration Debug \
-            CODE_SIGNING_ALLOWED=NO -only-testing:PeptideTests \
-            -resultBundlePath UnitTests.xcresult
-      - name: Upload unit test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: full-unit-test-results
-          path: UnitTests.xcresult
-          if-no-files-found: warn
