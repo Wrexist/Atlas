@@ -109,7 +109,7 @@ extension WhatsNewPage {
             id: "v31_biology",
             eyebrow: "Biology",
             title: "Meet your Biological Age",
-            body: "Atlas estimates a Biological Age from your HRV, resting heart rate, sleep, and weight trend. It's a direction to watch, not a medical test.",
+            body: "Atlas estimates a Biological Age from your cardio fitness, HRV, resting heart rate, sleep, steps, and body composition. It's a direction to watch, not a medical test.",
             icon: "waveform.path.ecg.rectangle",
             gradient: [
                 Color(red: 0.45, green: 0.85, blue: 0.78),

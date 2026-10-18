@@ -2,16 +2,14 @@ import SwiftUI
 
 /// Top of the Biology tab. Three states:
 ///
-///   • `.locked` — free tier: shows the dial outline + scale +
-///     particle cluster where the marker would go, plus an
-///     "Unlock with Pro" capsule. Aspirational, not punitive —
-///     the user sees what they could have.
-///   • `.building(progress:)` — Pro tier but < 7 days of HealthKit
-///     data: shows "Building your baseline" with a progress bar.
-///     Encouragement, not failure.
-///   • `.unlocked(estimate:)` — Pro tier + sufficient data: the real
-///     bio-age render, marker at position, big number in the middle,
-///     delta badge and the three contributing signals underneath.
+///   • `.locked` — free tier: shows the dial outline + scale + particle
+///     cluster where the marker would go, plus an "Unlock with Pro"
+///     capsule. Aspirational, not punitive.
+///   • `.building(progress:)` — Pro tier without enough data: shows
+///     "Building" with a progress bar and the day count.
+///   • `.unlocked(estimate:)` — Pro tier + sufficient data: the arc sweeps
+///     up to the estimate as the number rolls to it, then the delta against
+///     chronological age and how sure the estimate is.
 ///
 /// `nil` state means the resolver hasn't answered yet: the dial shows a
 /// neutral placeholder and no affordance, so a Pro user never sees the
@@ -21,7 +19,7 @@ struct BioAgeHeroSection: View {
     let chronologicalAge: Int
     let asOfDate: Date
     var onUnlockTapped: () -> Void = {}
-    /// Metrics offered in the header pill's menu alongside Bio Age.
+    /// Metrics offered in the header pill's menu alongside Biological Age.
     /// Selecting one opens its history; the host owns that routing.
     var metricShortcuts: [Biomarker] = []
     var onSelectMetric: (Biomarker) -> Void = { _ in }
@@ -33,6 +31,13 @@ struct BioAgeHeroSection: View {
         case unlocked(estimate: PerformanceAgeEngine.Estimate)
     }
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// What the dial and the number show. Starts at the dial's younger
+    /// bound and is animated to the estimate, so the arc sweeps in and the
+    /// digits roll rather than the result just appearing.
+    @State private var displayedAge: Double?
+    @State private var hasPlayedReveal = false
+
     var body: some View {
         VStack(spacing: Spacing.md) {
             header
@@ -41,13 +46,13 @@ struct BioAgeHeroSection: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, Spacing.sm)
+        .task(id: estimatedAge) { await reveal(to: estimatedAge) }
     }
 
     // MARK: - Header
 
     /// The screen's subject, as a control rather than a caption. Tapping
-    /// it lists the other metrics the user tracks, so Bio Age is one of
-    /// the things Biology can be about rather than the only one.
+    /// it lists the other metrics the user tracks.
     private var header: some View {
         VStack(spacing: Spacing.xs) {
             metricPill
@@ -104,7 +109,7 @@ struct BioAgeHeroSection: View {
         ZStack {
             BioAgeDial(
                 chronologicalAge: chronologicalAge,
-                bioAge: dialMarkerValue,
+                bioAge: displayedAge,
                 size: 280
             )
             centreContent
@@ -112,7 +117,7 @@ struct BioAgeHeroSection: View {
         .frame(height: 280)
     }
 
-    private var dialMarkerValue: Double? {
+    private var estimatedAge: Double? {
         guard case .unlocked(let estimate)? = state else { return nil }
         return estimate.biologicalAge
     }
@@ -144,43 +149,41 @@ struct BioAgeHeroSection: View {
             Image(systemName: "hourglass")
                 .font(AppFont.scaled(28, weight: .light, relativeTo: .title1))
                 .foregroundStyle(AppColor.textSecondary)
+                .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)
             Text("Building")
                 .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
                 .tracking(1.0)
                 .foregroundStyle(AppColor.textSecondary)
-            ProgressView(value: progress)
-                .progressViewStyle(.linear)
-                .tint(AppColor.accentLight)
+            GlassProgressBar(progress: progress)
                 .frame(width: 140)
         }
     }
 
-    /// The number, its unit, and the way in. Sign-tinted so "younger than
-    /// chronological" / "older than chronological" reads in the first
-    /// 200ms of glance time.
+    /// The number, its unit, and the way in. Sign-tinted so "younger" /
+    /// "older" reads in the first glance.
     private func unlockedCentre(estimate: PerformanceAgeEngine.Estimate) -> some View {
-        let isYounger = estimate.biologicalAge < Double(chronologicalAge)
-        return VStack(spacing: 2) {
-            Text(Self.bigNumberFormatter.string(from: NSNumber(value: estimate.biologicalAge)) ?? "—")
+        let shown = displayedAge ?? estimate.biologicalAge
+        return VStack(spacing: Spacing.xxs) {
+            Text(BioAgeFormat.age(shown))
                 .font(AppFont.scaled(56, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
-                .foregroundStyle(unlockedTint(isYounger: isYounger))
+                .foregroundStyle(tint(for: estimate))
                 .monospacedDigit()
-                .contentTransition(.numericText())
-                // A neutral drop, not a tinted halo. The number already
-                // carries its own colour; legibility over the starfield
-                // only needs the backdrop pushed away from it.
+                .contentTransition(.numericText(value: shown))
+                .animation(reduceMotion ? nil : AppAnimation.springSmooth, value: shown)
+                // A neutral drop, not a tinted halo. Legibility over the
+                // starfield only needs the backdrop pushed away.
                 .shadow(color: .black.opacity(0.35), radius: 8, y: 2)
+                .accessibilityLabel(Text("Biological age \(BioAgeFormat.age(estimate.biologicalAge)) years"))
             Text("years")
                 .font(AppFont.scaled(16, weight: .medium))
                 .foregroundStyle(AppColor.textSecondary)
+                .accessibilityHidden(true)
             explainButton
                 .padding(.top, Spacing.xs)
         }
     }
 
-    /// How the number was arrived at, one tap away. A bio-age estimate
-    /// that can't explain itself is a number the user has no reason to
-    /// trust.
+    /// How the number was arrived at, one tap away.
     private var explainButton: some View {
         Button(action: onExplainTapped) {
             Image(systemName: "info.circle")
@@ -189,10 +192,10 @@ struct BioAgeHeroSection: View {
                 .minimumHitArea()
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("How Bio Age is calculated")
+        .accessibilityLabel("How Biological Age is calculated")
     }
 
-    // MARK: - State affordance (Pro pill / progress label / delta + drivers)
+    // MARK: - State affordance
 
     @ViewBuilder
     private var stateAffordance: some View {
@@ -227,99 +230,114 @@ struct BioAgeHeroSection: View {
     }
 
     private func buildingLabel(progress: Double) -> some View {
-        // `progress` from BioAgeStateResolver is `dataDays / minBaselineDays`
-        // — a fraction of the 7-day baseline *window*, NOT a fraction of the
-        // three HRV/RHR/Sleep signals. Render the day count it represents,
-        // keyed off `minBaselineDays` so the two never drift apart.
+        // `progress` is `dataDays / minBaselineDays` — a fraction of the
+        // 7-day baseline window. Render the day count it represents.
         let total = BioAgeStateResolver.minBaselineDays
         let days = max(0, min(total, Int((progress * Double(total)).rounded())))
-        return Text("\(days) of \(total) days of data collected")
-            .font(AppFont.scaled(13, weight: .semibold))
-            .foregroundStyle(AppColor.textSecondary)
-    }
-
-    /// Below the dial: the delta-from-chronological badge, then the
-    /// signals moving it. "1.5 years younger" is the headline; the driver
-    /// chips are the small print explaining why.
-    private func unlockedSummary(estimate: PerformanceAgeEngine.Estimate) -> some View {
-        VStack(spacing: Spacing.md) {
-            deltaBadge(for: estimate)
-            if !estimate.drivers.isEmpty {
-                driversRow(estimate: estimate)
+        return VStack(spacing: Spacing.xs) {
+            Text("\(days) of \(total) days of data collected")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+            if days >= total {
+                Text("Enough days — a few more signals will unlock your estimate.")
+                    .font(AppFont.scaled(13))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
             }
         }
+        .padding(.horizontal, Spacing.xl)
+    }
+
+    /// Below the dial: the delta against chronological age, then what it
+    /// was read against and how sure it is.
+    private func unlockedSummary(estimate: PerformanceAgeEngine.Estimate) -> some View {
+        VStack(spacing: Spacing.sm) {
+            deltaBadge(for: estimate)
+            Text(contextLine(for: estimate))
+                .font(AppFont.scaled(13, weight: .medium))
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+    }
+
+    private func contextLine(for estimate: PerformanceAgeEngine.Estimate) -> String {
+        let confidence = Self.confidenceLabel(estimate.confidence)
+        return String(localized: "Chronological age \(chronologicalAge) · \(confidence)")
+    }
+
+    /// Three words for a 0…1 score. Deliberately coarse — a percentage
+    /// would claim a precision the estimate doesn't have.
+    static func confidenceLabel(_ confidence: Double) -> String {
+        if confidence >= 0.9 { return String(localized: "High confidence") }
+        if confidence >= 0.75 { return String(localized: "Good confidence") }
+        return String(localized: "Early estimate")
     }
 
     private func deltaBadge(for estimate: PerformanceAgeEngine.Estimate) -> some View {
         let delta = estimate.biologicalAge - Double(chronologicalAge)
-        let absDelta = abs(delta)
-        let absRounded = absDelta < 0.05 ? 0 : absDelta
-        let isYounger = delta < 0
-        let tint = unlockedTint(isYounger: isYounger)
+        let absDelta = abs(delta) < 0.05 ? 0 : abs(delta)
+        let badgeTint = tint(for: estimate)
         let label: String = {
-            if absRounded == 0 {
+            if absDelta == 0 {
                 return String(localized: "Matching your age")
             }
-            let formatted = String(format: "%.1f", absRounded)
-            return isYounger
+            let formatted = String(format: "%.1f", absDelta)
+            return delta < 0
                 ? String(format: String(localized: "%@ years younger"), formatted)
                 : String(format: String(localized: "%@ years older"), formatted)
         }()
         return HStack(spacing: Spacing.xs) {
-            Image(systemName: absRounded == 0 ? "equal" : "sparkles")
+            Image(systemName: absDelta == 0 ? "equal" : "sparkles")
                 .font(AppFont.scaled(11, weight: .heavy))
+                .symbolEffect(.bounce, value: hasPlayedReveal && !reduceMotion)
+                .accessibilityHidden(true)
             Text(label)
                 .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
         }
-        .foregroundStyle(tint)
+        .foregroundStyle(badgeTint)
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.sm)
         .background {
-            Capsule().strokeBorder(tint.opacity(0.45), lineWidth: 1)
+            Capsule().strokeBorder(badgeTint.opacity(0.45), lineWidth: 1)
         }
         .accessibilityElement(children: .combine)
     }
 
-    /// Top three contributors by absolute impact. Drivers arrive sorted
-    /// from the engine; we just trim. Equal-width chips so the row reads
-    /// as one comparison rather than three unrelated pills.
-    private func driversRow(estimate: PerformanceAgeEngine.Estimate) -> some View {
-        HStack(spacing: Spacing.sm) {
-            ForEach(estimate.drivers.prefix(3)) { driver in
-                DriverChip(
-                    icon: driverIcon(for: driver.kind),
-                    label: driverLabel(for: driver.kind),
-                    deltaYears: driver.deltaYears,
-                    tint: unlockedTint(isYounger: driver.deltaYears < 0)
-                )
-            }
-        }
+    /// Green when younger / matching; warm orange when older.
+    private func tint(for estimate: PerformanceAgeEngine.Estimate) -> Color {
+        estimate.biologicalAge <= Double(chronologicalAge) ? AppColor.positive : AppColor.negative
     }
 
-    private func driverIcon(for kind: PerformanceAgeEngine.Driver.Kind) -> String {
-        switch kind {
-        case .hrv:    return "heart"
-        case .rhr:    return "waveform.path.ecg"
-        case .sleep:  return "moon.fill"
-        case .weight: return "scalemass.fill"
+    // MARK: - Reveal
+
+    /// Sweeps the dial and rolls the number from the younger bound to the
+    /// estimate the first time it lands, then animates later changes
+    /// directly. Under Reduce Motion the value is simply set.
+    private func reveal(to target: Double?) async {
+        guard let target else {
+            displayedAge = nil
+            return
         }
+        if reduceMotion {
+            displayedAge = target
+            playRevealHaptic()
+            return
+        }
+        if displayedAge == nil {
+            displayedAge = Double(chronologicalAge - 5)
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { return }
+        }
+        withAnimation(AppAnimation.springGentle) {
+            displayedAge = target
+        }
+        playRevealHaptic()
     }
 
-    private func driverLabel(for kind: PerformanceAgeEngine.Driver.Kind) -> LocalizedStringKey {
-        switch kind {
-        case .hrv:    return "HRV"
-        case .rhr:    return "RHR"
-        case .sleep:  return "Sleep"
-        case .weight: return "Weight"
-        }
-    }
-
-    /// Tint applied to the big bio-age number, the delta badge, and the
-    /// driver chips. Green when younger / matching; warm orange when
-    /// older. Saturated enough that the cosmic backdrop doesn't wash
-    /// them out.
-    private func unlockedTint(isYounger: Bool) -> Color {
-        isYounger ? AppColor.positive : AppColor.negative
+    private func playRevealHaptic() {
+        guard !hasPlayedReveal else { return }
+        hasPlayedReveal = true
+        Haptics.impact(.soft)
     }
 
     // MARK: - Formatters
@@ -329,57 +347,6 @@ struct BioAgeHeroSection: View {
         f.setLocalizedDateFormatFromTemplate("d MMM")
         return f
     }()
-
-    private static let bigNumberFormatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        f.minimumFractionDigits = 1
-        f.maximumFractionDigits = 1
-        return f
-    }()
-}
-
-/// One contributing signal — HRV, RHR, Sleep — and the years it is
-/// pulling the estimate. Fixed-height card so the three sit as a row of
-/// peers; the tint is the only thing that differs between "helping" and
-/// "hurting".
-private struct DriverChip: View {
-    let icon: String
-    let label: LocalizedStringKey
-    let deltaYears: Double
-    let tint: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: icon)
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(tint)
-                Text(label)
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.textSecondary)
-                Spacer(minLength: 0)
-            }
-            Text(signed)
-                .font(AppFont.scaled(16, weight: .bold, design: .rounded))
-                .foregroundStyle(tint)
-                .monospacedDigit()
-        }
-        .padding(.horizontal, Spacing.md)
-        .padding(.vertical, Spacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .strokeBorder(AppColor.glassBorder, lineWidth: 1)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(label)
-        .accessibilityValue(signed)
-    }
-
-    private var signed: String {
-        String(format: "%@%.1fy", deltaYears > 0 ? "+" : "", deltaYears)
-    }
 }
 
 #Preview("Locked") {
@@ -412,9 +379,9 @@ private struct DriverChip: View {
                 biologicalAge: 24.5,
                 confidence: 0.8,
                 drivers: [
-                    .init(kind: .hrv, deltaYears: -1.1),
-                    .init(kind: .rhr, deltaYears: -0.5),
-                    .init(kind: .sleep, deltaYears: 0.1),
+                    .init(kind: .hrv, deltaYears: -1.1, value: 58, reference: 42.5),
+                    .init(kind: .rhr, deltaYears: -0.5, value: 60, reference: 65),
+                    .init(kind: .sleep, deltaYears: 0.1, value: 7.4, reference: 7.5),
                 ]
             )),
             chronologicalAge: 26,

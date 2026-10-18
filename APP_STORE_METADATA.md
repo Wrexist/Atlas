@@ -505,10 +505,10 @@ on at least one item.
 **What to show**
 Biology tab. Bio Age dial front-and-centre showing "28.4" in large
 mint-green text (user is chronologically 32 — 3.6 years younger). Delta
-badge reads "3.6 years younger". Three driver pills below: "HRV −2.5y /
-RHR −1.8y / SLEEP +0.7y". Below the dial, two biomarker rows with
-sparklines: HRV trending up (Trending up · 62 ms), RHR steady (Steady ·
-54 bpm). Deep cosmic/purple gradient background.
+badge reads "3.6 years younger", over "Chronological age 32 · High
+confidence". Below the hero, the "What's driving it" card: diverging
+bars for HRV −2.5 y, resting heart rate −1.8 y, sleep +0.7 y. Deep
+cosmic/purple gradient background.
 
 **App state to set up**
 Enable Pro in debug settings. Have at least 7 days of HealthKit data
@@ -670,8 +670,8 @@ propagates the delete through the user's private CloudKit zone.
 HEALTHKIT
 HealthKit access is requested from the optional "Connect Health" step in
 onboarding, or later from the Profile tab — the user always initiates
-it. Atlas reads four metrics from Apple Health: HRV, resting heart
-rate, sleep, and step count. It
+it. Atlas reads five metrics from Apple Health: HRV, resting heart
+rate, VO2 max, sleep, and step count. It
 optionally writes meal macros (calories, protein, carbs, fat) if the
 user enables "Sync to Apple Health" from Profile. Both
 NSHealthShareUsageDescription and NSHealthUpdateUsageDescription are

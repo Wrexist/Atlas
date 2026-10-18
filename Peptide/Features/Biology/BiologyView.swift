@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Root of the Biology tab. Resolves the Bio Age state — locked /
+/// Root of the Biology tab. Resolves the Biological Age state — locked /
 /// building baseline / unlocked — against the user's Pro
 /// entitlement + HealthKit history. Hosts the cosmic backdrop,
 /// the hero, the upsell card (only when locked), the biomarker
@@ -17,6 +17,9 @@ struct BiologyView: View {
     @State private var showEditSheet = false
     @State private var showLabs = false
     @State private var showBioAgeExplainer = false
+    /// True when Health is connected but a read type added since (VO2 max)
+    /// has never been put to the user.
+    @State private var needsHealthUpgrade = false
     /// Bumped by pull-to-refresh and a fresh Health grant so the
     /// biomarker list re-reads HealthKit without re-keying on config.
     @State private var reloadID = 0
@@ -49,7 +52,7 @@ struct BiologyView: View {
                         PremiumPromoCard(
                             eyebrow: "ATLAS PRO",
                             title: "View Your Biological Age",
-                            subtitle: "Track how you're aging and discover which habits move your Bio Age.",
+                            subtitle: "Track how you're aging and discover which habits move your Biological Age.",
                             ctaLabel: "View",
                             qualifier: "Available for users 18+",
                             onTap: { presentPaywall() }
@@ -60,11 +63,21 @@ struct BiologyView: View {
                         GlassEntryRow(
                             icon: "heart.text.square.fill",
                             title: "Connect Apple Health",
-                            subtitle: Text("Fills in HRV, resting heart rate and sleep"),
+                            subtitle: Text("Fills in cardio fitness, HRV, resting heart rate, sleep and steps"),
                             action: connectHealth
                         )
                         .accessibilityHint("Asks for read access to Apple Health")
+                    } else if needsHealthUpgrade {
+                        GlassEntryRow(
+                            icon: "lungs.fill",
+                            title: "Add cardio fitness",
+                            subtitle: Text("Let Atlas read VO2 max from Apple Health for a sharper estimate"),
+                            action: requestNewHealthTypes
+                        )
+                        .accessibilityHint("Asks Apple Health for access to VO2 max")
                     }
+
+                    bioAgeDetail
 
                     BiomarkerListSection(
                         visibleBiomarkers: visibleBiomarkers,
@@ -82,6 +95,7 @@ struct BiologyView: View {
                         action: openLabs
                     )
                     .accessibilityHint("Opens your blood-work results")
+                    .biologyCardReveal()
 
                     disclaimerFootnote
                 }
@@ -144,8 +158,29 @@ struct BiologyView: View {
         // two near-simultaneous changes can't land out of order and
         // leave `resolved` reflecting stale inputs.
         .task(id: RefreshKey(isPro: storeService.isProUser,
-                             age: dataStore.profile.bodyMetrics.age)) {
+                             metrics: dataStore.profile.bodyMetrics,
+                             weighIns: dataStore.profile.weightHistory.count,
+                             healthConnected: dataStore.profile.healthConnected)) {
             await refreshState()
+        }
+    }
+
+    /// The estimate's explanation, below the hero: what moved it, how it
+    /// has moved, and what it was built from. Only once there is
+    /// something to explain — locked and loading show none of it.
+    @ViewBuilder
+    private var bioAgeDetail: some View {
+        if let resolved {
+            if case .unlocked(let estimate) = resolved.state {
+                BioAgeDriversCard(estimate: estimate, unit: dataStore.profile.bodyMetrics.unit)
+                    .biologyCardReveal()
+                BioAgeTrendCard(points: resolved.trend, chronologicalAge: resolved.chronologicalAge)
+                    .biologyCardReveal()
+            }
+            if let inputs = resolved.inputs {
+                BioAgeCoverageCard(inputs: inputs, healthConnected: dataStore.profile.healthConnected)
+                    .biologyCardReveal()
+            }
         }
     }
 
@@ -160,10 +195,13 @@ struct BiologyView: View {
             .filter { storeService.isProUser || !$0.requiresPro }
     }
 
-    /// Equatable key for the Bio Age refresh `.task(id:)`.
+    /// Equatable key for the Biological Age refresh `.task(id:)`: every
+    /// profile fact the estimate reads.
     private struct RefreshKey: Equatable {
         let isPro: Bool
-        let age: Int?
+        let metrics: BodyMetrics
+        let weighIns: Int
+        let healthConnected: Bool
     }
 
     /// Consumes the cross-tab "open Labs" deep-link flag set by the
@@ -204,41 +242,40 @@ struct BiologyView: View {
         }
     }
 
+    private func requestNewHealthTypes() {
+        Haptics.impact(.light)
+        Task { @MainActor in
+            guard await HealthKitService.shared.requestAuthorization() else { return }
+            await reload()
+        }
+    }
+
     private func reload() async {
         reloadID &+= 1
         await refreshState()
     }
 
-    // MARK: - Bio Age resolution
+    // MARK: - Biological Age resolution
 
     private func refreshState() async {
-        let weightDelta = computeWeightDelta30d()
+        let profile = dataStore.profile
+        let latestWeight = profile.weightHistory.max(by: { $0.date < $1.date })?.kg
+            ?? profile.bodyMetrics.weightKg
         resolved = await BioAgeStateResolver.resolve(
-            chronologicalAge: dataStore.profile.bodyMetrics.age,
-            weightDeltaKg30d: weightDelta,
+            chronologicalAge: profile.bodyMetrics.age,
+            sex: profile.bodyMetrics.sex,
+            bodyMassIndex: PerformanceAgeEngine.bodyMassIndex(
+                weightKg: latestWeight,
+                heightCm: profile.bodyMetrics.heightCm
+            ),
+            weightHistory: profile.weightHistory,
             isPro: storeService.isProUser
         )
-    }
-
-    private func computeWeightDelta30d() -> Double? {
-        let history = dataStore.profile.weightHistory.sorted { $0.date < $1.date }
-        guard history.count >= 2, let latest = history.last else { return nil }
-        // Calendar-day cutoff so DST flips don't shift the boundary an
-        // hour and so the window is "30 days ago" rather than "30 ×
-        // 86,400 seconds ago" (audit Biology L17).
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        let cutoff = calendar.date(byAdding: .day, value: -30, to: today) ?? today
-        // Return nil when no entry falls within the 30-day window
-        // (user weighed in once two years ago and twice yesterday):
-        // comparing today's weight against the year-old baseline and
-        // labelling it a "30-day delta" mis-tells the story. The
-        // card hides itself in that case (audit Biology follow-up).
-        // Optional binding also dodges the force-unwrap the main-side
-        // fallback used to carry.
-        guard let baseline = history.first(where: { $0.date >= cutoff }) else { return nil }
-        guard baseline.id != latest.id else { return nil }
-        return latest.kg - baseline.kg
+        if profile.healthConnected && storeService.isProUser {
+            needsHealthUpgrade = await HealthKitService.shared.hasUnrequestedReadTypes()
+        } else {
+            needsHealthUpgrade = false
+        }
     }
 
     // MARK: - BiologyConfig persistence

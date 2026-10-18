@@ -16,20 +16,24 @@ final class HealthKitService {
         HKHealthStore.isHealthDataAvailable()
     }
 
-    func requestAuthorization() async -> Bool {
-        guard isAvailable else { return false }
-
-        // Exactly the four types the app reads back: HRV and resting
-        // heart rate (Recovery, Biological Age, correlations), steps
-        // (the home health summary) and sleep. Asking for a type we
-        // never query is an App Review liability and costs the user a
-        // permission row they get nothing for.
-        let readTypes: Set<HKObjectType> = [
+    /// Exactly the types the app reads back: HRV and resting heart rate
+    /// (Recovery, Biological Age, correlations), VO2 max (Biological Age),
+    /// steps (the home health summary and Biological Age) and sleep.
+    /// Asking for a type we never query is an App Review liability and
+    /// costs the user a permission row they get nothing for. Computed, not
+    /// a `static let`, because `HKObjectType` is non-Sendable.
+    private var readTypes: Set<HKObjectType> {
+        [
             HKQuantityType(.heartRateVariabilitySDNN),
             HKQuantityType(.restingHeartRate),
+            HKQuantityType(.vo2Max),
             HKQuantityType(.stepCount),
             HKCategoryType(.sleepAnalysis),
         ]
+    }
+
+    func requestAuthorization() async -> Bool {
+        guard isAvailable else { return false }
 
         do {
             try await store.requestAuthorization(toShare: [], read: readTypes)
@@ -38,6 +42,24 @@ final class HealthKitService {
             AppLog.healthKit.error("Authorization request failed: \(error.localizedDescription, privacy: .private)")
             return false
         }
+    }
+
+    /// True when at least one read type has never been put to the user —
+    /// the case for someone who connected Health before VO2 max joined
+    /// `readTypes`. HealthKit only shows its sheet for undetermined types,
+    /// so this is the honest test for whether asking again does anything.
+    func hasUnrequestedReadTypes() async -> Bool {
+        guard isAvailable else { return false }
+        let types = readTypes
+        let status: HKAuthorizationRequestStatus = await withCheckedContinuation { continuation in
+            // `@Sendable` keeps the closure nonisolated: HealthKit calls it
+            // on its own queue, and an inferred main-actor closure would
+            // trap there under Swift 6.
+            store.getRequestStatusForAuthorization(toShare: [], read: types) { @Sendable status, error in
+                continuation.resume(returning: error == nil ? status : .unknown)
+            }
+        }
+        return status == .shouldRequest
     }
 
     // MARK: - Nutrition write authorization
@@ -325,7 +347,34 @@ final class HealthKitService {
         }
     }
 
+    // MARK: - Cardio fitness
+
+    /// One VO2 max value per day that has one (ml/kg/min). Apple Watch
+    /// writes these only after outdoor walks, runs and hikes, so expect
+    /// gaps of days or weeks.
+    func dailyVO2Max(days: Int) async -> [(date: Date, value: Double)] {
+        await dailyQuantity(
+            type: .vo2Max,
+            unit: HKUnit.literUnit(with: .milli)
+                .unitDivided(by: HKUnit.gramUnit(with: .kilo).unitMultiplied(by: .minute())),
+            days: days,
+            options: .discreteAverage,
+            extract: { $0.averageQuantity() }
+        )
+    }
+
     // MARK: - Activity
+
+    /// Total steps per day that has any, over the past `days`.
+    func dailySteps(days: Int) async -> [(date: Date, value: Double)] {
+        await dailyQuantity(
+            type: .stepCount,
+            unit: .count(),
+            days: days,
+            options: .cumulativeSum,
+            extract: { $0.sumQuantity() }
+        )
+    }
 
     func averageSteps(days: Int) async -> Double? {
         guard isAvailable, days > 0 else { return nil }
@@ -334,13 +383,7 @@ final class HealthKitService {
         // window — a user who synced steps on 3 of 7 days shouldn't see
         // their daily average halved by dividing the total by 7.
         // `dailyQuantity` buckets per day and skips empty days.
-        let daily = await dailyQuantity(
-            type: .stepCount,
-            unit: .count(),
-            days: days,
-            options: .cumulativeSum,
-            extract: { $0.sumQuantity() }
-        )
+        let daily = await dailySteps(days: days)
         guard !daily.isEmpty else { return nil }
         let total = daily.reduce(0.0) { $0 + $1.value }
         return total / Double(daily.count)
