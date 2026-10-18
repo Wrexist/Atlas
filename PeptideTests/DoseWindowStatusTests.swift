@@ -53,33 +53,19 @@ final class DoseWindowStatusTests: XCTestCase {
         XCTAssertEqual(state.status(at: now), .late(minutes: 7))
     }
 
-    // MARK: - Window progress
+    // MARK: - Window interval
 
-    func test_windowProgress_zeroAtWindowStart() {
+    func test_windowInterval_spansWindowStartToDoseTime() {
         let doseTime = Date()
         let windowStart = doseTime.addingTimeInterval(-30 * 60)
         let state = makeState(doseTime: doseTime, windowStart: windowStart)
-        XCTAssertEqual(state.windowProgress(at: windowStart), 0.0, accuracy: 0.0001)
+        XCTAssertEqual(state.windowInterval, windowStart...doseTime)
     }
 
-    func test_windowProgress_halfwayThroughWindow() {
+    func test_windowInterval_windowStartAfterDoseTime_collapsesInsteadOfInverting() {
         let doseTime = Date()
-        let windowStart = doseTime.addingTimeInterval(-30 * 60)
-        let halfway = doseTime.addingTimeInterval(-15 * 60)
-        let state = makeState(doseTime: doseTime, windowStart: windowStart)
-        XCTAssertEqual(state.windowProgress(at: halfway), 0.5, accuracy: 0.01)
-    }
-
-    func test_windowProgress_clamped_pastDoseTime() {
-        let doseTime = Date()
-        let later = doseTime.addingTimeInterval(60 * 60)
-        let state = makeState(doseTime: doseTime)
-        XCTAssertEqual(state.windowProgress(at: later), 1.0, accuracy: 0.0001)
-    }
-
-    func test_windowProgress_completed_always1() {
-        let state = makeState(doseTime: Date(), completed: true)
-        XCTAssertEqual(state.windowProgress(at: Date.distantPast), 1.0)
+        let state = makeState(doseTime: doseTime, windowStart: doseTime.addingTimeInterval(60))
+        XCTAssertEqual(state.windowInterval, doseTime...doseTime)
     }
 }
 #endif
