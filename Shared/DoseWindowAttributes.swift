@@ -139,16 +139,19 @@ extension DoseWindowAttributes.ContentState {
         return .dueNow
     }
 
-    /// 0…1 fraction of progress through the active window. Drives
-    /// the ring fill on the lock screen and the expanded Dynamic
-    /// Island. Clamped to [0,1] so the visual never overshoots once
-    /// the user is past the scheduled time.
-    func windowProgress(at now: Date = Date()) -> Double {
-        if completed { return 1.0 }
-        let total = doseTime.timeIntervalSince(windowStart)
-        guard total > 0 else { return 1.0 }
-        let elapsed = now.timeIntervalSince(windowStart)
-        return min(max(elapsed / total, 0), 1)
+    /// The active window as a range, for `ProgressView(timerInterval:)`
+    /// rings that fill on their own between pushes. Lower bound clamped
+    /// to `doseTime` because a `ClosedRange` with `lower > upper` traps.
+    var windowInterval: ClosedRange<Date> {
+        min(windowStart, doseTime)...doseTime
+    }
+
+    /// Countdown range for `Text(timerInterval:countsDown:)`, which stops
+    /// at 0:00 at `doseTime` instead of counting back up. Starts at `now`
+    /// (clamped) so the text shows the true time remaining even before
+    /// `windowStart`.
+    func countdownInterval(from now: Date = Date()) -> ClosedRange<Date> {
+        min(now, doseTime)...doseTime
     }
 }
 #endif

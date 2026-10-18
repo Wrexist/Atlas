@@ -279,7 +279,7 @@ struct AffiliateApplySheet: View {
 
     private var perks: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            perkRow(icon: "percent",            text: "Personal discount code you can share")
+            perkRow(icon: "ticket.fill",        text: "Personal referral code")
             perkRow(icon: "creditcard.fill",    text: "Revenue share on every Pro signup you drive")
             perkRow(icon: "chart.line.uptrend.xyaxis", text: "Creator dashboard with installs + conversions")
             perkRow(icon: "envelope.fill",      text: "Direct line to the Atlas team")
