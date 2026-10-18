@@ -112,7 +112,7 @@ struct MealScanFlow: View {
                 case .analyzing:  analyzing
                 case .review:     reviewCard
                 case .error:      errorCard
-                case .saving: ProgressView(undoRequested ? "Undoing meal?" : "Saving meal?")
+                case .saving: ProgressView(undoRequested ? "Undoing meal…" : "Saving meal…")
                 case .logged: loggedCard
                 case .saveError: saveErrorCard
                 }
@@ -269,7 +269,7 @@ struct MealScanFlow: View {
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.sm) {
                         Text("Unfinished meal scan").font(AppFont.headline)
-                        Text("\(recovery.items.count) foods ? \(recovery.date.formatted(date: .abbreviated, time: .shortened))")
+                        Text("\(recovery.items.count) foods · \(recovery.date.formatted(date: .abbreviated, time: .shortened))")
                             .font(AppFont.callout)
                         Button("Resume review") { resumeDraft(recovery) }.minimumHitArea()
                         Button("Discard draft", role: .destructive) { discardConfirmation = true }.minimumHitArea()
@@ -290,33 +290,20 @@ struct MealScanFlow: View {
 
             VStack(spacing: Spacing.sm) {
                 if UIImagePickerController.SourceType.cameraIsAvailable {
-                    Button {
+                    GlassButton(title: "Take photo", icon: "camera.fill", style: .primary, isFullWidth: true) {
                         openImageSource(.camera)
-                    } label: {
-                        pickerButtonLabel(
-                            icon: "camera.fill",
-                            title: "Take photo",
-                            style: .primary
-                        )
                     }
-                    .buttonStyle(.plain)
                     .accessibilityHint("Opens the camera to capture a meal photo.")
                     .disabled(recovery != nil || draftError != nil)
                 }
 
-                Button {
+                GlassButton(title: "Choose from library", icon: "photo.on.rectangle", style: .secondary, isFullWidth: true) {
                     openImageSource(.library)
-                } label: {
-                    pickerButtonLabel(
-                        icon: "photo.on.rectangle",
-                        title: "Choose from library",
-                        style: .secondary
-                    )
                 }
-                .buttonStyle(.plain)
                 .accessibilityHint("Picks an existing photo from your library.")
                 .disabled(recovery != nil || draftError != nil)
             }
+            .padding(.horizontal, Spacing.lg)
 
             if let scansRemaining {
                 scanAllowanceCaption(remaining: scansRemaining)
@@ -337,38 +324,6 @@ struct MealScanFlow: View {
         .multilineTextAlignment(.center)
         .padding(.horizontal, Spacing.lg)
         .accessibilityElement(children: .combine)
-    }
-
-    private enum PickerButtonStyle { case primary, secondary }
-
-    @ViewBuilder
-    nonisolated private func pickerButtonLabel(icon: String, title: LocalizedStringKey, style: PickerButtonStyle) -> some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(13, weight: .bold))
-            Text(title)
-                .font(AppFont.scaled(16, weight: .bold))
-        }
-        .foregroundStyle(AppColor.onAccent)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.md)
-        .background {
-            Capsule()
-                .fill(
-                    style == .primary
-                        ? AnyShapeStyle(AppColor.accentFill)
-                        : AnyShapeStyle(AppColor.surfaceSecondary.opacity(0.85))
-                )
-                .overlay {
-                    Capsule().strokeBorder(
-                        style == .primary
-                            ? Color.clear
-                            : AppColor.glassBorder,
-                        lineWidth: 0.5
-                    )
-                }
-        }
-        .padding(.horizontal, Spacing.lg)
     }
 
     /// The photo, sized once and clipped at that size.

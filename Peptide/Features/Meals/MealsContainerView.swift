@@ -14,15 +14,15 @@ import SwiftUI
 /// here (the router switches to `.meals` first) and the Today
 /// instance stays silent for deep-links.
 ///
-/// Weight tracking and progress photos stay on the Today scroll
-/// for now (they're body-tracking, not nutrition) — a future
-/// refinement could split them into a "Body" sub-tab here.
+/// Progress photos sit below the meals section — the card, its
+/// viewer and its compare sheet have no other entry point.
 struct MealsContainerView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     HomeMealsSection(consumesDeepLink: true)
+                    ProgressPhotosCard()
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.top, Spacing.lg)

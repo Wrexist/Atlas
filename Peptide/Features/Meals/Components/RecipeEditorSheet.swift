@@ -140,9 +140,9 @@ struct RecipeEditorSheet: View {
                     .foregroundStyle(AppColor.accentLight.opacity(0.85))
                 HStack(spacing: Spacing.lg) {
                     macroPill(value: "\(totals.calories)", label: "kcal", tint: AppColor.accentLight)
-                    macroPill(value: "\(totals.proteinG)g", label: "protein", tint: .green)
-                    macroPill(value: "\(totals.carbsG)g", label: "carbs", tint: .blue)
-                    macroPill(value: "\(totals.fatG)g", label: "fat", tint: .orange)
+                    macroPill(value: "\(totals.proteinG)g", label: "protein", tint: AppColor.macroProtein)
+                    macroPill(value: "\(totals.carbsG)g", label: "carbs", tint: AppColor.macroCarbs)
+                    macroPill(value: "\(totals.fatG)g", label: "fat", tint: AppColor.macroFat)
                 }
             }
         }

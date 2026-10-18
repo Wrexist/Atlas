@@ -877,7 +877,11 @@ struct FoodLibraryFlow: View {
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.rowAccessibilityLabel(name: product.name, brand: product.brand, n: product.per100g))
-        .accessibilityHint("Opens the portion picker to log this food. Use the plus button to log your last valid amount, or the default portion if none is saved.")
+        .accessibilityHint("Opens the portion picker to log this food. The Quick log action logs your last valid amount, or the default portion if none is saved.")
+        .accessibilityAction(named: Text("Quick log")) { performQuickLog(product) }
+        .accessibilityAction(named: isFavorite ? Text("Remove from favorites") : Text("Add to favorites")) {
+            dataStore.toggleFavoriteFood(id: product.barcode)
+        }
     }
 
     private func customFoodRow(_ food: CustomFood) -> some View {
@@ -916,7 +920,11 @@ struct FoodLibraryFlow: View {
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.rowAccessibilityLabel(name: food.name, brand: food.brand ?? "Custom food", n: food.per100g))
-        .accessibilityHint("Opens the portion picker to log this food. Use the plus button to log your last valid amount, or the default portion if none is saved.")
+        .accessibilityHint("Opens the portion picker to log this food. The Quick log action logs your last valid amount, or the default portion if none is saved.")
+        .accessibilityAction(named: Text("Quick log")) { performQuickLog(food.toScannedProduct()) }
+        .accessibilityAction(named: isFavorite ? Text("Remove from favorites") : Text("Add to favorites")) {
+            dataStore.toggleFavoriteFood(id: food.foodID)
+        }
         .contextMenu {
             Button {
                 editingCustomFood = food
@@ -964,9 +972,9 @@ struct FoodLibraryFlow: View {
                         .lineLimit(1)
                     HStack(spacing: Spacing.xs) {
                         macroChip(label: "kcal", value: meal.calories, tint: AppColor.accentLight)
-                        macroChip(label: "P", value: meal.proteinG, tint: .green)
-                        macroChip(label: "C", value: meal.carbsG, tint: .blue)
-                        macroChip(label: "F", value: meal.fatG, tint: .orange)
+                        macroChip(label: "P", value: meal.proteinG, tint: AppColor.macroProtein)
+                        macroChip(label: "C", value: meal.carbsG, tint: AppColor.macroCarbs)
+                        macroChip(label: "F", value: meal.fatG, tint: AppColor.macroFat)
                     }
                     .padding(.top, 2)
                 }
@@ -1026,9 +1034,9 @@ struct FoodLibraryFlow: View {
     private func macroPreview(_ n: ScannedProduct.Nutriments) -> some View {
         HStack(spacing: Spacing.xs) {
             macroChip(label: "kcal", value: Int(n.calories.rounded()), tint: AppColor.accentLight)
-            macroChip(label: "P", value: Int(n.proteinG.rounded()), tint: .green)
-            macroChip(label: "C", value: Int(n.carbsG.rounded()), tint: .blue)
-            macroChip(label: "F", value: Int(n.fatG.rounded()), tint: .orange)
+            macroChip(label: "P", value: Int(n.proteinG.rounded()), tint: AppColor.macroProtein)
+            macroChip(label: "C", value: Int(n.carbsG.rounded()), tint: AppColor.macroCarbs)
+            macroChip(label: "F", value: Int(n.fatG.rounded()), tint: AppColor.macroFat)
         }
         .padding(.top, 2)
     }
