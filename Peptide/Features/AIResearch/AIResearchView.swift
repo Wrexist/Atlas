@@ -121,10 +121,6 @@ struct AIResearchView: View {
                                 .id(turn.id)
                         }
                     }
-
-                    if isStreaming {
-                        loadingBubble
-                    }
                 }
                 .padding(Spacing.lg)
                 // iPad cap so chat bubbles don't stretch into an
@@ -188,24 +184,6 @@ struct AIResearchView: View {
                 }
             }
             .padding(.top, Spacing.md)
-        }
-    }
-
-    private var loadingBubble: some View {
-        HStack(spacing: Spacing.sm) {
-            ProgressView().scaleEffect(0.7).tint(AppColor.accentLight)
-            Text("Thinking…")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textSecondary)
-        }
-        .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
         }
     }
 
@@ -358,9 +336,7 @@ private struct TurnBubble: View {
                 Spacer(minLength: Spacing.xl)
             }
 
-            Text(turn.content)
-                .font(AppFont.body)
-                .foregroundStyle(AppColor.textPrimary)
+            content
                 .padding(Spacing.md)
                 .background {
                     RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
@@ -391,6 +367,24 @@ private struct TurnBubble: View {
             } else {
                 Spacer(minLength: Spacing.xl)
             }
+        }
+    }
+
+    /// An assistant turn is empty only until its first streamed token
+    /// lands, so the typing indicator lives inside that same bubble.
+    @ViewBuilder
+    private var content: some View {
+        if turn.content.isEmpty {
+            HStack(spacing: Spacing.sm) {
+                ProgressView().scaleEffect(0.7).tint(AppColor.accentLight)
+                Text("Thinking…")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+        } else {
+            Text(turn.content)
+                .font(AppFont.body)
+                .foregroundStyle(AppColor.textPrimary)
         }
     }
 }

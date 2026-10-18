@@ -62,7 +62,7 @@ struct ResearchLinksSection: View {
                     Text("\u{2022}")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
-                    Text("\(link.year)")
+                    Text(verbatim: String(link.year))
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
                 }
