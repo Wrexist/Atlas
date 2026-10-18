@@ -122,8 +122,13 @@ enum RecapMuscles {
 
 struct RecapAnatomy: View {
     let muscles: [WorkoutRecapEngine.Muscle]
+    /// Ignite the figure on appear. Off for snapshot renders (share card).
+    var animatesReveal = false
     var body: some View {
-        if TrainingAnatomy.isAvailable, !muscles.isEmpty {
+        if TrainingAnatomy.isAvailable, !muscles.isEmpty, animatesReveal {
+            StagedMuscleMap(highlights: RecapMuscles.highlights(muscles), identifiesOnTap: false)
+                .accessibilityHidden(true)
+        } else if TrainingAnatomy.isAvailable, !muscles.isEmpty {
             MuscleMapView(highlights: RecapMuscles.highlights(muscles),
                           primaryColor: AppColor.trainingPrimaryMuscle,
                           secondaryColor: AppColor.trainingSecondaryMuscle,

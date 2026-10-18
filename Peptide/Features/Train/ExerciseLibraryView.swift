@@ -16,6 +16,7 @@ struct ExerciseLibraryView: View {
     var transitionNamespace: Namespace.ID?
     @State private var library = ExerciseLibrary.shared
     @State private var isLoading = true
+    @State private var showsBodyPicker = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,6 +34,17 @@ struct ExerciseLibraryView: View {
             prompt: Text("Search exercises, muscles, equipment")
         )
         .task { await loadLibrary() }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showsBodyPicker = true } label: {
+                    Image(systemName: "figure.stand")
+                }
+                .accessibilityLabel("Pick muscles on body")
+            }
+        }
+        .sheet(isPresented: $showsBodyPicker) {
+            BodyMusclePicker(selection: $browsing.muscleFilter)
+        }
     }
 
     private func loadLibrary() async {
