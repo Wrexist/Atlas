@@ -85,11 +85,12 @@ struct TodayHabitsHero: View {
     }
 
     private func rebuild() {
-        snapshot = HabitsHeroSnapshot.build(
+        let next = HabitsHeroSnapshot.build(
             activeHabits: dataStore.activeHabits,
             entries: dataStore.profile.habitEntries,
             frozenDayKeys: dataStore.profile.streakFreezeDays
         )
+        AppAnimation.with(AppAnimation.springSnappy) { snapshot = next }
     }
 
     // MARK: - Populated

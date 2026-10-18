@@ -130,13 +130,15 @@ struct HomeView: View {
     /// plus one day-scoped SwiftData fetch — but it must not run from `body`.
     private func refreshDerived() {
         let plan = DailyScheduleEngine.plan(for: dataStore.todayEntries)
-        derived = DerivedToday(
+        let next = DerivedToday(
             overview: TodayOverviewSnapshot.build(from: dataStore),
             plan: plan,
             timeline: buildTimelineEvents(),
             primaryReason: buildPrimaryReason(plan: plan),
             workoutsThisWeek: countWorkoutsThisWeek()
         )
+        // Inside an animation so the cards' numericText digits roll.
+        AppAnimation.with(AppAnimation.springSmooth) { derived = next }
     }
 
     private func countWorkoutsThisWeek() -> Int {
@@ -883,7 +885,7 @@ struct HomeView: View {
             adherenceRatio: todayStats.score,
             healthConnected: dataStore.profile.healthConnected
         )
-        heroSnapshot = snapshot
+        AppAnimation.with(AppAnimation.springSmooth) { heroSnapshot = snapshot }
     }
 
     /// Builds the Health Monitor grid's personal-range snapshot.

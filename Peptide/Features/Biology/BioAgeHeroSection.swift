@@ -154,6 +154,7 @@ struct BioAgeHeroSection: View {
                 .foregroundStyle(unlockedTint(isYounger: isYounger))
                 .monospacedDigit()
                 .contentTransition(.numericText())
+                .appAnimation(AppAnimation.springSmooth, value: estimate.biologicalAge)
                 // A neutral drop, not a tinted halo. The number already
                 // carries its own colour; legibility over the starfield
                 // only needs the backdrop pushed away from it.

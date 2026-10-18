@@ -108,11 +108,12 @@ struct ReconstitutionCalculator: View {
             }
             Slider(value: bind, in: range, step: step)
                 .tint(AppColor.accentPrimary)
+                .sensoryFeedback(.selection, trigger: value)
             HStack(spacing: Spacing.xs) {
                 ForEach(quickPicks, id: \.self) { pick in
                     Button("\(formatted(pick))") {
                         Haptics.impact(.light)
-                        bind.wrappedValue = pick
+                        AppAnimation.with(AppAnimation.springSnappy) { bind.wrappedValue = pick }
                     }
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
