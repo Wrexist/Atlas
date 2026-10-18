@@ -94,3 +94,18 @@ struct ScanInsight: Codable, Hashable, Sendable {
     let summary: String
     let tips: [String]
 }
+
+/// A one-tap question about a detail a photo can't show ("Fried in
+/// oil?"). Every answer carries the item's complete values, so answering
+/// recalculates on the spot without a second scan. The first answer is
+/// the one the item's values already assume.
+struct ScanQuestion: Codable, Hashable, Sendable {
+    struct Answer: Codable, Hashable, Sendable {
+        let label: String
+        let grams: Double
+        let per100g: ScannedProduct.Nutriments
+    }
+
+    let question: String
+    let answers: [Answer]
+}

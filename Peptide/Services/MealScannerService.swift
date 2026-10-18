@@ -156,6 +156,7 @@ final class MealScannerService: Sendable {
         var portionOptions: [FoodPortionOption]? = nil
         /// Typical price of the depicted amount (`grams`).
         var price: FoodPriceEstimate? = nil
+        var question: ScanQuestion? = nil
 
         enum CodingKeys: String, CodingKey {
             case name, grams, calories, confidence
@@ -701,6 +702,30 @@ final class MealScannerService: Sendable {
             let items: [Item]
             let package: Package?
             let tips: [String]
+            /// Absent from proxies that predate follow-up questions.
+            let questions: [Question]?
+        }
+
+        struct Question: Decodable {
+            let itemIndex: Int
+            let question: String
+            let options: [Answer]
+
+            enum CodingKeys: String, CodingKey {
+                case question, options
+                case itemIndex = "item_index"
+            }
+        }
+
+        struct Answer: Decodable {
+            let label: String
+            let grams: Double
+            let per100g: Nutrients
+
+            enum CodingKeys: String, CodingKey {
+                case label, grams
+                case per100g = "per_100g"
+            }
         }
 
         struct Item: Decodable {
@@ -755,7 +780,10 @@ final class MealScannerService: Sendable {
             AppLog.persistence.error("Smart scan decode failed: \(error.localizedDescription, privacy: .private)")
             throw ScanError.parseFailure
         }
-        let items = wire.items.compactMap(Self.scannedItem(from:))
+        let questions = wire.questions ?? []
+        let items = wire.items.enumerated().compactMap { index, item in
+            Self.scannedItem(from: item, question: questions.first { $0.itemIndex == index })
+        }
         if !wire.items.isEmpty && items.isEmpty { throw ScanError.implausibleResult }
         let package = wire.package.map {
             PackageInfo(totalGrams: Self.plausibleGrams($0.totalGrams),
@@ -775,38 +803,64 @@ final class MealScannerService: Sendable {
         return grams
     }
 
-    /// Per-100g values can't exceed what 100 g of anything holds: 900 kcal
-    /// (pure fat) and 100 g of any one macro.
-    private static func scannedItem(from wire: SmartScanEnvelope.Item) -> ScannedFoodItem? {
+    private static func scannedItem(from wire: SmartScanEnvelope.Item,
+                                    question: SmartScanEnvelope.Question?) -> ScannedFoodItem? {
         let name = wire.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let n = wire.per100g
-        let macros = [n.proteinG, n.carbsG, n.fatG, n.fiberG, n.sugarsG]
         guard !name.isEmpty, name.lowercased() != "unknown",
-              wire.grams.isFinite, (1...5_000).contains(wire.grams),
+              plausibleItemGrams(wire.grams),
               (0.0...1.0).contains(wire.confidence),
-              n.calories.isFinite, (0...900).contains(n.calories),
-              macros.allSatisfy({ $0.isFinite && (0...100).contains($0) })
+              let per100g = plausible(wire.per100g)
         else { return nil }
-        let per100g = ScannedProduct.Nutriments(calories: n.calories, proteinG: n.proteinG, carbsG: n.carbsG,
-                                                fatG: n.fatG, fiberG: n.fiberG, sugarsG: n.sugarsG)
         let scale = wire.grams / 100
         let options = wire.portionOptions
-            .filter { $0.grams.isFinite && (1...5_000).contains($0.grams) && !$0.label.isEmpty }
+            .filter { plausibleItemGrams($0.grams) && !$0.label.isEmpty }
             .prefix(4)
         return ScannedFoodItem(
             name: name,
             quantityLabel: wire.portionLabel,
             grams: wire.grams,
-            calories: Int((n.calories * scale).rounded()),
-            proteinG: Int((n.proteinG * scale).rounded()),
-            carbsG: Int((n.carbsG * scale).rounded()),
-            fatG: Int((n.fatG * scale).rounded()),
+            calories: Int((per100g.calories * scale).rounded()),
+            proteinG: Int((per100g.proteinG * scale).rounded()),
+            carbsG: Int((per100g.carbsG * scale).rounded()),
+            fatG: Int((per100g.fatG * scale).rounded()),
             confidence: wire.confidence,
             brand: wire.brand?.nilIfEmpty,
             per100g: per100g,
             portionOptions: Array(options),
-            price: wire.price.flatMap { $0.isPlausible ? $0 : nil }
+            price: wire.price.flatMap { $0.isPlausible ? $0 : nil },
+            question: question.flatMap(scanQuestion(from:))
         )
+    }
+
+    /// A question survives only with two or more plausible, distinctly
+    /// labelled answers; the rest of the scan never depends on it.
+    private static func scanQuestion(from wire: SmartScanEnvelope.Question) -> ScanQuestion? {
+        let text = wire.question.trimmingCharacters(in: .whitespacesAndNewlines)
+        var seen = Set<String>()
+        let answers = wire.options.compactMap { option -> ScanQuestion.Answer? in
+            let label = option.label.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !label.isEmpty, seen.insert(label.lowercased()).inserted,
+                  plausibleItemGrams(option.grams), let per100g = plausible(option.per100g)
+            else { return nil }
+            return ScanQuestion.Answer(label: label, grams: option.grams, per100g: per100g)
+        }.prefix(3)
+        guard !text.isEmpty, answers.count >= 2 else { return nil }
+        return ScanQuestion(question: text, answers: Array(answers))
+    }
+
+    private static func plausibleItemGrams(_ grams: Double) -> Bool {
+        grams.isFinite && (1...5_000).contains(grams)
+    }
+
+    /// Per-100g values can't exceed what 100 g of anything holds: 900 kcal
+    /// (pure fat) and 100 g of any one macro.
+    private static func plausible(_ n: SmartScanEnvelope.Nutrients) -> ScannedProduct.Nutriments? {
+        let macros = [n.proteinG, n.carbsG, n.fatG, n.fiberG, n.sugarsG]
+        guard n.calories.isFinite, (0...900).contains(n.calories),
+              macros.allSatisfy({ $0.isFinite && (0...100).contains($0) })
+        else { return nil }
+        return ScannedProduct.Nutriments(calories: n.calories, proteinG: n.proteinG, carbsG: n.carbsG,
+                                         fatG: n.fatG, fiberG: n.fiberG, sugarsG: n.sugarsG)
     }
 
     private func parseEstimate(from data: Data) throws -> MealEstimate {

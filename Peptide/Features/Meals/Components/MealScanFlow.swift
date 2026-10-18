@@ -1092,6 +1092,10 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
     var aiPrice: FoodPriceEstimate?
     /// What the scanner called it, before any rename or replacement.
     var aiName: String?
+    /// A detail the photo couldn't show, and which answer the user picked
+    /// (nil: the first, which the scan's values already assume).
+    var question: ScanQuestion?
+    var answerIndex: Int?
 
     /// Below this the row asks the user to confirm the name.
     ///
@@ -1138,6 +1142,7 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         portionOptions = item.portionOptions
         aiPrice = item.price
         aiName = item.name
+        question = item.question
         per100g = SmartFoodLogic.per100g(of: item)
         originalPer100g = per100g
     }
@@ -1163,8 +1168,31 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         savedToLibrary = false
     }
 
+    /// Offered only while the values are still the scan's own; a manual
+    /// edit or a replacement food makes the question moot.
+    var openQuestion: ScanQuestion? {
+        guard !nutritionEdited, replacementSourceID == nil else { return nil }
+        return question
+    }
+
+    var selectedAnswer: Int { answerIndex ?? 0 }
+
+    /// Swaps in the answer's values. The portion keeps any change the
+    /// user already made, scaled by how the answer changes the weight
+    /// (frying adds the oil's grams).
+    mutating func answer(_ index: Int) {
+        guard let question = openQuestion, question.answers.indices.contains(index) else { return }
+        let from = question.answers[selectedAnswer]
+        let to = question.answers[index]
+        per100g = to.per100g
+        grams = min(2000, max(5, (grams * to.grams / from.grams).rounded()))
+        answerIndex = index
+        savedToLibrary = false
+    }
+
     mutating func resetNutrition() {
         per100g = originalPer100g
+        answerIndex = nil
         replacementSourceID = nil
         replacementServingGrams = nil
         replacementServingLabel = nil
@@ -1223,6 +1251,9 @@ private struct FoodItemEditCard: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             header
             if item.include {
+                if let question = item.openQuestion {
+                    questionRow(question)
+                }
                 Divider().overlay(AppColor.glassBorder)
                 modePicker
                 portionStepper
@@ -1370,6 +1401,37 @@ private struct FoodItemEditCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Check this food. Tap to edit its name. Use Edit calories and macros to correct its nutrition.")
+    }
+
+    /// The scanner's follow-up about something the photo can't show.
+    /// Tapping an answer swaps in its values; the calories roll.
+    private func questionRow(_ question: ScanQuestion) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Label(question.question, systemImage: "sparkles")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+            HStack(spacing: Spacing.xs) {
+                ForEach(Array(question.answers.enumerated()), id: \.offset) { index, answer in
+                    let isActive = index == item.selectedAnswer
+                    Button {
+                        Haptics.selection()
+                        withAnimation(AppAnimation.springSnappy) { item.answer(index) }
+                    } label: {
+                        Text(answer.label)
+                            .font(AppFont.scaled(11, weight: .semibold))
+                            .foregroundStyle(isActive ? .white : AppColor.textSecondary)
+                            .padding(.horizontal, Spacing.sm)
+                            .padding(.vertical, 5)
+                            .background {
+                                Capsule().fill(isActive ? AppColor.accentPrimary : AppColor.surfaceElevated)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .minimumHitArea()
+                    .accessibilityAddTraits(isActive ? .isSelected : [])
+                }
+            }
+        }
     }
 
     private var modePicker: some View {

@@ -113,6 +113,30 @@ final class SmartScanTests: XCTestCase {
         _ = try await service.smartScan(image: tinyImage(), corrections: [fix])
     }
 
+    func test_followUpQuestion_attachesToItsItem_andDropsBadAnswers() throws {
+        let scan = try service.parseSmartScan(from: Data(SmartFixtures.meal.utf8))
+        let question = try XCTUnwrap(scan.items.first?.question)
+        XCTAssertEqual(question.question, "Tossed in oil?")
+        XCTAssertEqual(question.answers.map(\.label), ["No", "Yes"], "duplicate and implausible answers dropped")
+    }
+
+    func test_answeringQuestion_swapsValues_keepsUserPortion() throws {
+        let scan = try service.parseSmartScan(from: Data(SmartFixtures.meal.utf8))
+        var item = EditableFoodItem(from: try XCTUnwrap(scan.items.first))
+        item.grams = 125
+        item.answer(1)
+        XCTAssertEqual(item.grams, 130, "half the plate, plus the oil's share")
+        XCTAssertEqual(item.calories, 247)
+        item.answer(0)
+        XCTAssertEqual(item.grams, 125)
+
+        item.answer(1)
+        item.correctNutrition(LoggableMeal(calories: 100, proteinG: 1, carbsG: 1, fatG: 1))
+        XCTAssertNil(item.openQuestion, "a manual edit retires the question")
+        item.resetNutrition()
+        XCTAssertEqual(item.selectedAnswer, 0)
+    }
+
     // MARK: - Correction memory
 
     @MainActor
@@ -252,6 +276,15 @@ private enum SmartFixtures {
         {"name":"Mystery","brand":null,"portion_label":"1","grams":100,"portion_options":[],
          "per_100g":{"calories":4000,"protein_g":1,"carbs_g":1,"fat_g":1,"fiber_g":0,"sugars_g":0},
          "confidence":0.5,"price":null}
+      ],
+      "questions":[
+        {"item_index":1,"question":"Mystery?","options":[]},
+        {"item_index":0,"question":"Tossed in oil?","options":[
+          {"label":"No","grams":250,"per_100g":{"calories":158,"protein_g":5.8,"carbs_g":31,"fat_g":0.9,"fiber_g":1.8,"sugars_g":0.6}},
+          {"label":"Yes","grams":260,"per_100g":{"calories":190,"protein_g":5.6,"carbs_g":29.8,"fat_g":4.7,"fiber_g":1.7,"sugars_g":0.6}},
+          {"label":"yes","grams":260,"per_100g":{"calories":190,"protein_g":5.6,"carbs_g":29.8,"fat_g":4.7,"fiber_g":1.7,"sugars_g":0.6}},
+          {"label":"Lard","grams":260,"per_100g":{"calories":1900,"protein_g":0,"carbs_g":0,"fat_g":100,"fiber_g":0,"sugars_g":0}}
+        ]}
       ]}}
     """
 
