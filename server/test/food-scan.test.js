@@ -131,6 +131,27 @@ test('test_productMode_sendsOnlyKnownFields', () => {
   assert.match(text, /locale: en_US\. Currency: USD/);
 });
 
+test('test_corrections_reachPrompt_cappedAndShapeChecked', () => {
+  const fix = { seen: 'spaghetti', seen_grams: 250, logged_as: 'Fullkornspasta', grams: 180, brand: 'Barilla' };
+  const request = buildFoodScanRequest({
+    mode: 'product',
+    product: { query: 'pasta' },
+    corrections: [fix, { seen: 'no target' }, { seen: 'x', logged_as: 'y', grams: 99999 }, ...Array(20).fill(fix)],
+  });
+  const text = request.messages[0].content[0].text;
+  assert.match(text, /"spaghetti" \(estimated 250 g\) → logged as "Fullkornspasta" by Barilla, 180 g/);
+  assert.ok(!text.includes('no target'));
+  assert.match(text, /"x" → logged as "y"$/m, 'an absurd weight is dropped, not sent');
+  assert.equal(text.match(/Fullkornspasta/g).length, 13, 'at most 15 rows are read');
+  assert.ok(text.indexOf('corrections') < text.indexOf('Product facts'));
+});
+
+test('test_noCorrections_leavesPromptUnchanged', () => {
+  const text = buildFoodScanRequest({ mode: 'product', product: { query: 'pasta' }, corrections: 'junk' })
+    .messages[0].content[0].text;
+  assert.ok(!text.includes('corrections'));
+});
+
 test('test_modelAndEffort_followEnv', (t) => {
   setEnv(t, { FOOD_SCAN_MODEL: 'claude-sonnet-5-5', FOOD_SCAN_EFFORT: 'medium' });
   const request = buildFoodScanRequest(photoBody);
