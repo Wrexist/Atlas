@@ -18,7 +18,9 @@ struct BioAgeParticleCluster: View {
     var size: CGFloat = 200
     var particleCount: Int = 80
     var seed: UInt64 = 0x1E89_3B6C_F740_AA5C
-    var tint: Color = .white
+    /// Adaptive so the cluster stays visible in light mode, where
+    /// `CosmicBackdrop` draws no starfield behind it.
+    var tint: Color = AppColor.textPrimary
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 

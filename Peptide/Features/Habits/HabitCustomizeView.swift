@@ -102,7 +102,7 @@ struct HabitCustomizeView: View {
                         .minimumHitArea()
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(symbol)
+                .accessibilityLabel(HabitIconCatalog.name(for: symbol))
                 .accessibilityAddTraits(iconSymbol == symbol ? [.isSelected, .isButton] : .isButton)
             }
         }

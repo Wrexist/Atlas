@@ -381,7 +381,7 @@ struct HabitEditSheet: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Your streak and history are kept and can be restored from settings.")
+            Text("This removes the habit from your list. Past check-ins aren't deleted.")
         }
     }
 

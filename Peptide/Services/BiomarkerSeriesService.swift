@@ -101,8 +101,8 @@ enum BiomarkerSeriesService {
             return .empty(.stepsBaseline)
         case .bodyTemperature, .bodyFat, .waist, .bloodPressure:
             // Manual-entry biomarkers — Pro-gated, persistence
-            // surface lands in a follow-up commit. Tile renders
-            // an "Add" CTA when empty.
+            // surface lands in a follow-up commit. Hidden from the
+            // tab until then (`Biomarker.hasDataSource`).
             return .empty(biomarker)
         case .latestLabPanel:
             return labSnapshot(latestLab: latestLab)

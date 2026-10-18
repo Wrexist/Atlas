@@ -63,12 +63,12 @@ struct BiologyConfig: Codable, Hashable, Sendable {
         visibleBiomarkers = newOrder.filter { Biomarker.allCases.contains($0) }
     }
 
-    /// "Available but not yet added" — catalog cases not present
-    /// in visible or hidden. Drives the Edit sheet's third
-    /// section so the user can find biomarkers they haven't
-    /// surfaced before.
+    /// "Available but not yet added" — catalog cases with a data
+    /// source that are not present in visible or hidden. Drives the
+    /// Edit sheet's third section so the user can find biomarkers
+    /// they haven't surfaced before.
     var availableBiomarkers: [Biomarker] {
         let claimed = Set(visibleBiomarkers).union(hiddenBiomarkers)
-        return Biomarker.allCases.filter { !claimed.contains($0) }
+        return Biomarker.allCases.filter { $0.hasDataSource && !claimed.contains($0) }
     }
 }

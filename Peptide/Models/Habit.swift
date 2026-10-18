@@ -220,21 +220,52 @@ struct HabitEntry: Codable, Identifiable, Hashable, Sendable {
 /// Keeps the set small so the user picks quickly instead of paging
 /// through 4000 SF Symbols.
 enum HabitIconCatalog {
-    static let all: [String] = [
+    static let all: [String] = entries.map { $0.symbol }
+
+    /// Spoken name for an icon, so VoiceOver doesn't read the raw
+    /// SF Symbol identifier.
+    static func name(for symbol: String) -> String {
+        entries.first { $0.symbol == symbol }?.name ?? symbol
+    }
+
+    private static let entries: [(symbol: String, name: String)] = [
         // fitness
-        "figure.strengthtraining.traditional", "figure.run", "figure.yoga", "figure.cooldown",
-        "dumbbell.fill", "sportscourt.fill", "figure.pool.swim", "bicycle",
+        ("figure.strengthtraining.traditional", String(localized: "Strength training")),
+        ("figure.run", String(localized: "Running")),
+        ("figure.yoga", String(localized: "Yoga")),
+        ("figure.cooldown", String(localized: "Stretching")),
+        ("dumbbell.fill", String(localized: "Dumbbell")),
+        ("sportscourt.fill", String(localized: "Sports court")),
+        ("figure.pool.swim", String(localized: "Swimming")),
+        ("bicycle", String(localized: "Cycling")),
         // wellness
-        "drop.fill", "leaf.fill", "moon.zzz.fill", "bed.double.fill",
-        "heart.fill", "lungs.fill", "brain.head.profile.fill", "pills.fill",
+        ("drop.fill", String(localized: "Water")),
+        ("leaf.fill", String(localized: "Leaf")),
+        ("moon.zzz.fill", String(localized: "Sleep")),
+        ("bed.double.fill", String(localized: "Bed")),
+        ("heart.fill", String(localized: "Heart")),
+        ("lungs.fill", String(localized: "Breathing")),
+        ("brain.head.profile.fill", String(localized: "Mind")),
+        ("pills.fill", String(localized: "Supplements")),
         // learning / mind
-        "book.fill", "graduationcap.fill", "lightbulb.fill", "headphones",
-        "mic.fill", "pencil.and.outline",
+        ("book.fill", String(localized: "Reading")),
+        ("graduationcap.fill", String(localized: "Study")),
+        ("lightbulb.fill", String(localized: "Idea")),
+        ("headphones", String(localized: "Listening")),
+        ("mic.fill", String(localized: "Speaking")),
+        ("pencil.and.outline", String(localized: "Writing")),
         // productivity
-        "checkmark.circle.fill", "list.bullet.rectangle.fill", "calendar", "clock.fill",
+        ("checkmark.circle.fill", String(localized: "Checkmark")),
+        ("list.bullet.rectangle.fill", String(localized: "Checklist")),
+        ("calendar", String(localized: "Calendar")),
+        ("clock.fill", String(localized: "Clock")),
         // misc
-        "sparkles", "sun.max.fill", "flame.fill", "bolt.fill",
-        "shoeprints.fill", "fork.knife",
+        ("sparkles", String(localized: "Sparkles")),
+        ("sun.max.fill", String(localized: "Sun")),
+        ("flame.fill", String(localized: "Flame")),
+        ("bolt.fill", String(localized: "Energy")),
+        ("shoeprints.fill", String(localized: "Steps")),
+        ("fork.knife", String(localized: "Meal")),
     ]
 }
 

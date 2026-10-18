@@ -26,16 +26,16 @@ struct EditBiomarkersSheet: View {
         NavigationStack {
             List {
                 Section {
-                    if config.visibleBiomarkers.isEmpty {
+                    if showing.isEmpty {
                         emptyVisibleHint
                     } else {
-                        ForEach(config.visibleBiomarkers, id: \.self) { biomarker in
+                        ForEach(showing, id: \.self) { biomarker in
                             row(biomarker, action: .hide)
                         }
                         .onMove { from, to in
-                            var next = config.visibleBiomarkers
+                            var next = showing
                             next.move(fromOffsets: from, toOffset: to)
-                            config.reorder(next)
+                            config.reorder(next + config.visibleBiomarkers.filter { !$0.hasDataSource })
                         }
                     }
                 } header: {
@@ -66,9 +66,9 @@ struct EditBiomarkersSheet: View {
                     }
                 }
 
-                if !config.hiddenBiomarkers.isEmpty {
+                if !hidden.isEmpty {
                     Section {
-                        ForEach(config.hiddenBiomarkers, id: \.self) { biomarker in
+                        ForEach(hidden, id: \.self) { biomarker in
                             row(biomarker, action: .show)
                         }
                     } header: {
@@ -94,6 +94,16 @@ struct EditBiomarkersSheet: View {
                 }
             }
         }
+    }
+
+    /// Slots without a data source stay in the stored config (so they
+    /// come back once they can show data) but aren't offered here.
+    private var showing: [Biomarker] {
+        config.visibleBiomarkers.filter(\.hasDataSource)
+    }
+
+    private var hidden: [Biomarker] {
+        config.hiddenBiomarkers.filter(\.hasDataSource)
     }
 
     private enum RowAction {
@@ -134,7 +144,7 @@ struct EditBiomarkersSheet: View {
             // Edit-mode drag-handle still appears on the leading
             // side of the Showing section automatically.
             Toggle(
-                "",
+                biomarker.displayName,
                 isOn: Binding(
                     get: { action == .hide },
                     set: { newOn in
@@ -150,6 +160,7 @@ struct EditBiomarkersSheet: View {
         }
         .padding(.vertical, 4)
         .opacity(biomarker.requiresPro && !isPro ? 0.55 : 1.0)
+        .accessibilityElement(children: .combine)
     }
 
     private var proBadge: some View {

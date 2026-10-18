@@ -18,12 +18,14 @@ struct BiomarkerListSection: View {
     /// caller passes `Biomarker.defaultVisible` so the list shows
     /// up without persistence wiring.
     let visibleBiomarkers: [Biomarker]
+    /// Owned by the host so the detail sheet can open on the same
+    /// values the row shows.
+    @Binding var snapshots: [BiomarkerSnapshot]
     /// Bumped by the parent's pull-to-refresh to force a re-read.
     var reloadID = 0
     var onEditTapped: (() -> Void)?
     var onSelectBiomarker: ((Biomarker) -> Void)?
 
-    @State private var snapshots: [BiomarkerSnapshot] = []
     /// True until the first HealthKit read lands, so rows render as a
     /// redacted placeholder instead of a column of em-dashes that reads
     /// as "no data". Later refreshes keep the previous values on screen.

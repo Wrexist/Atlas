@@ -121,6 +121,20 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
+    /// False for catalog slots with no reader and no manual-entry
+    /// surface yet: they would only ever render "No data", so the
+    /// Edit sheet doesn't offer them and the tab doesn't list them.
+    var hasDataSource: Bool {
+        switch self {
+        case .weight, .hrvBaseline, .rhrBaseline,
+             .sleepBaseline, .latestLabPanel:
+            return true
+        case .stepsBaseline, .bodyTemperature, .bodyFat,
+             .waist, .bloodPressure:
+            return false
+        }
+    }
+
     /// Default display order on the Biology tab. The user can
     /// override this in EditBiomarkersSheet (commit 8); the
     /// stored config falls back to this when no override is set.

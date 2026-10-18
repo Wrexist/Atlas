@@ -38,11 +38,23 @@ struct HabitRowCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(habit.name). \(summary.currentStreak) day streak, \(summary.totalCompletedDays) days total.")
+        .accessibilityLabel(voiceOverLabel)
         .accessibilityAddTraits(.isButton)
+        // The combined element swallows `todayButton`, so expose it as
+        // an action or VoiceOver users can't check the habit off here.
+        .accessibilityAction(named: summary.isCompletedToday ? "Mark incomplete" : "Mark complete") {
+            onToggleToday()
+        }
         .onChange(of: summary.isCompletedToday) { _, completed in
             if completed { completionTrigger &+= 1 }
         }
+    }
+
+    private var voiceOverLabel: String {
+        let today = summary.isCompletedToday
+            ? String(localized: "Done today")
+            : String(localized: "Not done today")
+        return String(localized: "\(habit.name). \(today). \(summary.currentStreak) day streak, \(summary.totalCompletedDays) days total.")
     }
 
     private var header: some View {
