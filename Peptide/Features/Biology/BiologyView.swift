@@ -10,10 +10,9 @@ struct BiologyView: View {
     @Environment(AppState.self) private var appState
     @State private var storeService = StoreService.shared
 
-    @State private var resolved: BioAgeStateResolver.Resolved = .init(
-        state: .locked,
-        chronologicalAge: BioAgeStateResolver.chronologicalAgeFallback
-    )
+    /// `nil` until the first `refreshState()` lands. Defaulting to
+    /// `.locked` flashed the upsell at Pro users on every launch.
+    @State private var resolved: BioAgeStateResolver.Resolved?
     @State private var showPaywall = false
     @State private var showEditSheet = false
     @State private var showLabs = false
@@ -36,8 +35,9 @@ struct BiologyView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
                     BioAgeHeroSection(
-                        state: resolved.state,
-                        chronologicalAge: resolved.chronologicalAge,
+                        state: resolved?.state,
+                        chronologicalAge: resolved?.chronologicalAge
+                            ?? BioAgeStateResolver.chronologicalAgeFallback,
                         asOfDate: Date(),
                         onUnlockTapped: { presentPaywall() },
                         metricShortcuts: visibleBiomarkers,
@@ -45,7 +45,7 @@ struct BiologyView: View {
                         onExplainTapped: { showBioAgeExplainer = true }
                     )
 
-                    if case .locked = resolved.state {
+                    if case .locked? = resolved?.state {
                         PremiumPromoCard(
                             eyebrow: "ATLAS PRO",
                             title: "View Your Biological Age",
@@ -70,7 +70,9 @@ struct BiologyView: View {
                         visibleBiomarkers: visibleBiomarkers,
                         reloadID: reloadID,
                         onEditTapped: { showEditSheet = true },
-                        onSelectBiomarker: { biomarker in openDetail(for: biomarker) }
+                        onSelectBiomarker: { snapshot in
+                            openDetail(for: snapshot.biomarker, seed: snapshot)
+                        }
                     )
 
                     GlassEntryRow(
@@ -258,17 +260,18 @@ struct BiologyView: View {
 
     // MARK: - Detail sheet routing
 
-    private func openDetail(for biomarker: Biomarker) {
+    private func openDetail(for biomarker: Biomarker, seed: BiomarkerSnapshot? = nil) {
         Haptics.impact(.light)
-        // Present the sheet immediately with an empty snapshot, then
-        // let it fill in via `historicalFetcher`. Fetching before
+        // Present the sheet immediately with the row's 14-day snapshot
+        // (empty when opened from the hero menu), then let it fill in
+        // via `historicalFetcher`. Fetching before
         // setting `detailItem` raced on rapid taps: the second tap
         // would overwrite the first `detailItem`, and SwiftUI's
         // `.sheet(item:)` dismisses the first sheet mid-flight on
         // an Identifiable change.
         detailItem = BiomarkerDetailItem(
             biomarker: biomarker,
-            snapshot: .empty(biomarker)
+            snapshot: seed ?? .empty(biomarker)
         )
     }
 

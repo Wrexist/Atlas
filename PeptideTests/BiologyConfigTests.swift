@@ -89,11 +89,18 @@ final class BiologyConfigTests: XCTestCase {
         XCTAssertFalse(available.contains(.weight))
         XCTAssertFalse(available.contains(.hrvBaseline))
         XCTAssertFalse(available.contains(.rhrBaseline))
-        // Everything else in the catalog is available.
+        // Everything else in the catalog that has a data source is available.
         let expected = Biomarker.allCases.filter {
-            $0 != .weight && $0 != .hrvBaseline && $0 != .rhrBaseline
+            $0.hasDataSource && $0 != .weight && $0 != .hrvBaseline && $0 != .rhrBaseline
         }
         XCTAssertEqual(Set(available), Set(expected))
+    }
+
+    func test_availableBiomarkers_excludesBiomarkersWithoutDataSource() {
+        let available = BiologyConfig(visibleBiomarkers: [], hiddenBiomarkers: []).availableBiomarkers
+        XCTAssertFalse(available.isEmpty)
+        XCTAssertTrue(available.allSatisfy(\.hasDataSource))
+        XCTAssertFalse(available.contains(.bodyFat))
     }
 
     // MARK: - Codable round-trip

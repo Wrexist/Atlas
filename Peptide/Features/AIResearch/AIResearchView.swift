@@ -117,13 +117,9 @@ struct AIResearchView: View {
                             .padding(.top, Spacing.xl)
                     } else {
                         ForEach(transcript) { turn in
-                            TurnBubble(turn: turn)
+                            TurnBubble(turn: turn, isStreaming: isStreaming && turn.id == transcript.last?.id)
                                 .id(turn.id)
                         }
-                    }
-
-                    if isStreaming {
-                        loadingBubble
                     }
                 }
                 .padding(Spacing.lg)
@@ -188,24 +184,6 @@ struct AIResearchView: View {
                 }
             }
             .padding(.top, Spacing.md)
-        }
-    }
-
-    private var loadingBubble: some View {
-        HStack(spacing: Spacing.sm) {
-            ProgressView().scaleEffect(0.7).tint(AppColor.accentLight)
-            Text("Thinking…")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textSecondary)
-        }
-        .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
         }
     }
 
@@ -343,6 +321,10 @@ struct AIResearchView: View {
 
 private struct TurnBubble: View {
     let turn: AIResearchService.Turn
+    /// True while this turn's reply is still streaming. Until the first
+    /// token lands the bubble carries the typing indicator instead of
+    /// rendering as an empty rounded rect.
+    var isStreaming = false
 
     var body: some View {
         HStack(alignment: .top) {
@@ -358,9 +340,7 @@ private struct TurnBubble: View {
                 Spacer(minLength: Spacing.xl)
             }
 
-            Text(turn.content)
-                .font(AppFont.body)
-                .foregroundStyle(AppColor.textPrimary)
+            bubbleContent
                 .padding(Spacing.md)
                 .background {
                     RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
@@ -378,7 +358,6 @@ private struct TurnBubble: View {
                         }
                 }
                 .frame(maxWidth: .infinity, alignment: turn.role == .user ? .trailing : .leading)
-                .textSelection(.enabled)
 
             if turn.role == .user {
                 Image(systemName: "person.fill")
@@ -391,6 +370,23 @@ private struct TurnBubble: View {
             } else {
                 Spacer(minLength: Spacing.xl)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var bubbleContent: some View {
+        if isStreaming && turn.content.isEmpty {
+            HStack(spacing: Spacing.sm) {
+                ProgressView().scaleEffect(0.7).tint(AppColor.accentLight)
+                Text("Thinking…")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+        } else {
+            Text(turn.content)
+                .font(AppFont.body)
+                .foregroundStyle(AppColor.textPrimary)
+                .textSelection(.enabled)
         }
     }
 }

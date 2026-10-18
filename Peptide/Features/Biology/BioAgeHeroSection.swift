@@ -12,8 +12,12 @@ import SwiftUI
 ///   • `.unlocked(estimate:)` — Pro tier + sufficient data: the real
 ///     bio-age render, marker at position, big number in the middle,
 ///     delta badge and the three contributing signals underneath.
+///
+/// `nil` state means the resolver hasn't answered yet: the dial shows a
+/// neutral placeholder and no affordance, so a Pro user never sees the
+/// locked upsell flash while HealthKit is read.
 struct BioAgeHeroSection: View {
-    let state: BioAgeState
+    let state: BioAgeState?
     let chronologicalAge: Int
     let asOfDate: Date
     var onUnlockTapped: () -> Void = {}
@@ -109,22 +113,30 @@ struct BioAgeHeroSection: View {
     }
 
     private var dialMarkerValue: Double? {
-        switch state {
-        case .locked, .building:                       return nil
-        case .unlocked(let estimate):                  return estimate.biologicalAge
-        }
+        guard case .unlocked(let estimate)? = state else { return nil }
+        return estimate.biologicalAge
     }
 
     @ViewBuilder
     private var centreContent: some View {
         switch state {
-        case .locked:
+        case nil:
+            resolvingCentre
+        case .locked?:
             BioAgeParticleCluster(size: 200)
-        case .building(let progress):
+        case .building(let progress)?:
             buildingCentre(progress: progress)
-        case .unlocked(let estimate):
+        case .unlocked(let estimate)?:
             unlockedCentre(estimate: estimate)
         }
+    }
+
+    private var resolvingCentre: some View {
+        Circle()
+            .fill(AppColor.surfaceSecondary.opacity(0.6))
+            .frame(width: 120, height: 120)
+            .shimmer()
+            .accessibilityHidden(true)
     }
 
     private func buildingCentre(progress: Double) -> some View {
@@ -185,11 +197,13 @@ struct BioAgeHeroSection: View {
     @ViewBuilder
     private var stateAffordance: some View {
         switch state {
-        case .locked:
+        case nil:
+            EmptyView()
+        case .locked?:
             unlockPill
-        case .building(let progress):
+        case .building(let progress)?:
             buildingLabel(progress: progress)
-        case .unlocked(let estimate):
+        case .unlocked(let estimate)?:
             unlockedSummary(estimate: estimate)
         }
     }

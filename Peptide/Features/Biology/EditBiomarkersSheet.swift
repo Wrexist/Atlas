@@ -66,9 +66,9 @@ struct EditBiomarkersSheet: View {
                     }
                 }
 
-                if !config.hiddenBiomarkers.isEmpty {
+                if !restorableBiomarkers.isEmpty {
                     Section {
-                        ForEach(config.hiddenBiomarkers, id: \.self) { biomarker in
+                        ForEach(restorableBiomarkers, id: \.self) { biomarker in
                             row(biomarker, action: .show)
                         }
                     } header: {
@@ -94,6 +94,12 @@ struct EditBiomarkersSheet: View {
                 }
             }
         }
+    }
+
+    /// Hidden biomarkers that can still show data. One without a data
+    /// source stays off once hidden, matching `availableBiomarkers`.
+    private var restorableBiomarkers: [Biomarker] {
+        config.hiddenBiomarkers.filter(\.hasDataSource)
     }
 
     private enum RowAction {
@@ -134,7 +140,7 @@ struct EditBiomarkersSheet: View {
             // Edit-mode drag-handle still appears on the leading
             // side of the Showing section automatically.
             Toggle(
-                "",
+                biomarker.displayName,
                 isOn: Binding(
                     get: { action == .hide },
                     set: { newOn in
@@ -150,6 +156,7 @@ struct EditBiomarkersSheet: View {
         }
         .padding(.vertical, 4)
         .opacity(biomarker.requiresPro && !isPro ? 0.55 : 1.0)
+        .accessibilityElement(children: .combine)
     }
 
     private var proBadge: some View {

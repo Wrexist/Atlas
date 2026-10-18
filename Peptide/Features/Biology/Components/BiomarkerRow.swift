@@ -42,8 +42,8 @@ struct BiomarkerRow: View {
                     .frame(width: 64)
                 } else {
                     // Nothing to plot yet, so the right edge carries the
-                    // affordance instead: this row opens a screen where
-                    // the user can add the reading.
+                    // affordance instead: this row opens the detail sheet,
+                    // which explains where the reading comes from.
                     Image(systemName: "chevron.right")
                         .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
