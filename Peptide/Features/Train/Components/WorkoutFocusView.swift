@@ -243,12 +243,15 @@ private struct WorkoutFocusRestHeader: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
+            let remaining = Int(ceil(rest.remaining(at: context.date)))
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text(target).font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
                 HStack {
-                    Text(WorkoutClock.label(Int(ceil(rest.remaining(at: context.date)))))
+                    Text(WorkoutClock.label(remaining))
                         .font(AppFont.statValueSmall).monospacedDigit()
                         .accessibilityLabel("Rest remaining")
+                        .accessibilityValue(Duration.seconds(max(0, remaining))
+                            .formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide)))
                     Spacer()
                     Button(action: onSkip) {
                         Label("Skip", systemImage: "forward.end.fill")
