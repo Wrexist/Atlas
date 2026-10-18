@@ -16,6 +16,11 @@ food editor fills itself from typed words or a package photo; library
 search with no hits offers "Add … with AI". Every new AI path is behind
 `AIDataConsent`.
 
+The scanner also learns from corrections: `ScanCorrectionMemory` keeps
+the user's renames and portion fixes (>15 %) on device, and every
+food-scan request carries the 15 newest as `corrections`, which the
+proxy shape-checks and puts in the prompt. Erased with local data.
+
 Not compiled here (no Swift toolchain in the container). Still owed:
 build-check on the PR, device QA of the review screens, deploying the
 proxy, and watching real cost per scan before deciding the model.

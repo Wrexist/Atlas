@@ -273,7 +273,8 @@ struct CustomFoodEditorSheet: View {
         }
         startFill()
         do {
-            applyFill(try await MealScannerService.shared.describeProduct(.init(query: query)))
+            applyFill(try await MealScannerService.shared.describeProduct(.init(query: query),
+                                                                      corrections: ScanCorrectionMemory.shared.recent))
         } catch {
             failFill(error)
         }
@@ -297,7 +298,8 @@ struct CustomFoodEditorSheet: View {
         startFill()
         do {
             applyFill(try await MealScannerService.shared.smartScan(
-                image: image, hint: "A packaged food or its nutrition label, being added to the user's food library."))
+                image: image, hint: "A packaged food or its nutrition label, being added to the user's food library.",
+                corrections: ScanCorrectionMemory.shared.recent))
         } catch {
             failFill(error)
         }

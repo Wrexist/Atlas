@@ -853,7 +853,8 @@ struct MealScanFlow: View {
 
     private func runAnalysis(on image: UIImage) async {
         do {
-            let result = try await MealScannerService.shared.smartScan(image: image)
+            let result = try await MealScannerService.shared.smartScan(
+                image: image, corrections: ScanCorrectionMemory.shared.recent)
             try Task.checkCancellation()
             guard !result.items.isEmpty else { throw MealScannerService.ScanError.noFoodDetected }
             // A single item is already its own name; only a multi-item
@@ -943,11 +944,22 @@ struct MealScanFlow: View {
                 } else {
                     hasLogged = true
                     phase = .logged
+                    rememberCorrections()
                     Haptics.success()
                 }
             } catch {
                 phase = .saveError
             }
+        }
+    }
+
+    /// Teaches the scanner the renames and portion fixes in what was just
+    /// logged, so the next scan of the same food starts from them.
+    private func rememberCorrections() {
+        for item in includedItems {
+            guard let seen = item.aiName else { continue }
+            ScanCorrectionMemory.shared.record(seen: seen, seenGrams: item.aiGrams, loggedAs: item.name,
+                                               grams: item.grams, brand: item.brand)
         }
     }
 
@@ -1078,6 +1090,8 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
     var portionOptions: [FoodPortionOption]?
     /// Typical price of the scanner's depicted amount (`aiGrams`).
     var aiPrice: FoodPriceEstimate?
+    /// What the scanner called it, before any rename or replacement.
+    var aiName: String?
 
     /// Below this the row asks the user to confirm the name.
     ///
@@ -1123,6 +1137,7 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         brand = item.brand
         portionOptions = item.portionOptions
         aiPrice = item.price
+        aiName = item.name
         per100g = SmartFoodLogic.per100g(of: item)
         originalPer100g = per100g
     }

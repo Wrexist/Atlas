@@ -1273,8 +1273,9 @@ struct BarcodeScanFlow: View {
         // user has said yes to it once.
         guard AIDataConsent.isGranted else { return }
         isLoadingInsight = true
+        let corrections = ScanCorrectionMemory.shared.recent
         insightTask = Task {
-            let scan = try? await MealScannerService.shared.describeProduct(.init(product: result))
+            let scan = try? await MealScannerService.shared.describeProduct(.init(product: result), corrections: corrections)
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 isLoadingInsight = false
@@ -1308,6 +1309,7 @@ struct BarcodeScanFlow: View {
     /// scanned barcode so history and re-scans line up.
     private func readPackage(_ image: UIImage) async {
         let barcode = lastBarcode ?? "ai:\(UUID().uuidString)"
+        let corrections = ScanCorrectionMemory.shared.recent
         await MainActor.run {
             identifyTask?.cancel()
             phase = .ocrProcessing
@@ -1315,7 +1317,8 @@ struct BarcodeScanFlow: View {
         do {
             let scan = try await MealScannerService.shared.smartScan(
                 image: image,
-                hint: "A packaged product whose barcode \(barcode) isn't in Open Food Facts. Read the brand, product name, net weight and nutrition panel from the package."
+                hint: "A packaged product whose barcode \(barcode) isn't in Open Food Facts. Read the brand, product name, net weight and nutrition panel from the package.",
+                corrections: corrections
             )
             guard let read = SmartFoodLogic.product(from: scan, barcode: barcode) else {
                 throw MealScannerService.ScanError.noFoodDetected

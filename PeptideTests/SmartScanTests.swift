@@ -100,6 +100,57 @@ final class SmartScanTests: XCTestCase {
         XCTAssertEqual(scan.items.first?.brand, "Oatly")
     }
 
+    func test_smartScan_sendsUserCorrections() async throws {
+        let fix = ScanCorrection(seen: "Spaghetti", seenGrams: 250, loggedAs: "Fullkornspasta",
+                                 grams: 180, brand: nil, date: Date())
+        MockURLProtocol.handler = { request in
+            let sent = try XCTUnwrap(try Self.body(of: request)["corrections"] as? [[String: Any]])
+            XCTAssertEqual(sent.first?["logged_as"] as? String, "Fullkornspasta")
+            XCTAssertEqual(sent.first?["seen_grams"] as? Double, 250)
+            XCTAssertNil(sent.first?["brand"])
+            return (Self.response(request, 200), Data(SmartFixtures.meal.utf8))
+        }
+        _ = try await service.smartScan(image: tinyImage(), corrections: [fix])
+    }
+
+    // MARK: - Correction memory
+
+    @MainActor
+    func test_correctionMemory_keepsRenamesAndBigPortionChanges_only() {
+        let memory = ScanCorrectionMemory(defaults: freshDefaults())
+        memory.record(seen: "spaghetti", seenGrams: 250, loggedAs: "Spaghetti", grams: 240, brand: nil)
+        XCTAssertTrue(memory.corrections.isEmpty, "same name, 4% off is not a correction")
+
+        memory.record(seen: "spaghetti", seenGrams: 250, loggedAs: "Spaghetti", grams: 180, brand: nil)
+        memory.record(seen: "oat drink", seenGrams: 200, loggedAs: "Oatly Barista", grams: 200, brand: "Oatly")
+        XCTAssertEqual(memory.corrections.map(\.loggedAs), ["Oatly Barista", "Spaghetti"], "newest first")
+    }
+
+    @MainActor
+    func test_correctionMemory_replacesSameFood_persists_andErases() {
+        let defaults = freshDefaults()
+        let memory = ScanCorrectionMemory(defaults: defaults)
+        memory.record(seen: "Spaghetti", seenGrams: 250, loggedAs: "Pasta", grams: 250, brand: nil)
+        memory.record(seen: "spaghetti ", seenGrams: 250, loggedAs: "Fullkornspasta", grams: 180, brand: nil)
+
+        let reloaded = ScanCorrectionMemory(defaults: defaults)
+        XCTAssertEqual(reloaded.corrections.map(\.loggedAs), ["Fullkornspasta"])
+
+        reloaded.eraseAll()
+        XCTAssertTrue(ScanCorrectionMemory(defaults: defaults).corrections.isEmpty)
+    }
+
+    @MainActor
+    func test_correctionMemory_capsStoredAndSent() {
+        let memory = ScanCorrectionMemory(defaults: freshDefaults())
+        for index in 0..<(ScanCorrectionMemory.maxStored + 5) {
+            memory.record(seen: "food \(index)", seenGrams: 100, loggedAs: "mine \(index)", grams: 100, brand: nil)
+        }
+        XCTAssertEqual(memory.corrections.count, ScanCorrectionMemory.maxStored)
+        XCTAssertEqual(memory.recent.count, ScanCorrectionMemory.maxSent)
+        XCTAssertEqual(memory.recent.first?.loggedAs, "mine \(ScanCorrectionMemory.maxStored + 4)")
+    }
+
     // MARK: - Mapping
 
     func test_customFoodFromScan_usesPackageServing_andPricePer100g() throws {
@@ -152,6 +203,12 @@ final class SmartScanTests: XCTestCase {
     }
 
     // MARK: - Helpers
+
+    private func freshDefaults() -> UserDefaults {
+        let suite = "SmartScanTests.\(UUID().uuidString)"
+        addTeardownBlock { UserDefaults().removePersistentDomain(forName: suite) }
+        return UserDefaults(suiteName: suite)!
+    }
 
     private func tinyImage() -> UIImage {
         UIGraphicsImageRenderer(size: CGSize(width: 4, height: 4)).image { ctx in

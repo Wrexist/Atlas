@@ -245,13 +245,14 @@ final class MealScannerService: Sendable {
     /// Photo → structured scan on the server-owned `food-scan` route:
     /// per-item nutrition including fibre and sugar, portion options that
     /// suit each food, price estimates and package facts. `hint` tells the
-    /// model what the app already knows ("packaged product, barcode …").
+    /// model what the app already knows ("packaged product, barcode …");
+    /// `corrections` are the user's recent fixes to earlier scans.
     ///
     /// Falls back to the legacy route when the deployment predates
     /// `food-scan`, so a new build against an old proxy still scans.
-    func smartScan(image: UIImage, hint: String? = nil) async throws -> SmartScan {
+    func smartScan(image: UIImage, hint: String? = nil, corrections: [ScanCorrection] = []) async throws -> SmartScan {
         let bytes = try compress(image)
-        var payload = Self.localeFields
+        var payload = Self.fields(corrections)
         payload["mode"] = "photo"
         payload["image"] = bytes.base64EncodedString()
         if let hint = hint?.nilIfEmpty { payload["hint"] = hint }
@@ -272,8 +273,8 @@ final class MealScannerService: Sendable {
     /// Product facts or typed words → one fully described food: complete
     /// nutrition, a sensible serving, the whole-pack amount and a price.
     /// Text only, so it costs a fraction of a photo scan.
-    func describeProduct(_ query: ProductQuery) async throws -> SmartScan {
-        var payload = Self.localeFields
+    func describeProduct(_ query: ProductQuery, corrections: [ScanCorrection] = []) async throws -> SmartScan {
+        var payload = Self.fields(corrections)
         payload["mode"] = "product"
         payload["product"] = query.payload
         let scan = try parseSmartScan(from: try await post(payload, to: foodScanEndpoint))
@@ -315,9 +316,12 @@ final class MealScannerService: Sendable {
     }
 
     /// Language and currency, so names come back in the user's language
-    /// and prices in their money.
-    private static var localeFields: [String: Any] {
-        ["locale": Locale.current.identifier, "currency": Locale.current.currency?.identifier ?? "USD"]
+    /// and prices in their money, plus the user's past corrections.
+    private static func fields(_ corrections: [ScanCorrection]) -> [String: Any] {
+        var fields: [String: Any] = ["locale": Locale.current.identifier,
+                                     "currency": Locale.current.currency?.identifier ?? "USD"]
+        if !corrections.isEmpty { fields["corrections"] = corrections.map(\.payload) }
+        return fields
     }
 
     /// Posts a JSON payload to the proxy with the shared secret, validates
