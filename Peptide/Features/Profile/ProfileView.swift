@@ -8,7 +8,7 @@ struct ProfileView: View {
     @State private var achievementService = AchievementService.shared
     @State private var authService = AuthService.shared
     @State private var showReconstitutionCalculator = false
-    @State private var showRestoreBackup = false
+    @State private var showSettings = false
     @State private var showProgress = false
     /// Read once on appear rather than in `body`: the count is a
     /// SwiftData fetch, and the header only shows it to users with no
@@ -52,12 +52,6 @@ struct ProfileView: View {
                         UpgradePromptCard()
                             .sectionAppear(index: 1)
                     }
-
-                    // Units + rest timer, up top: the settings a
-                    // training-first user changes most were buried at
-                    // the bottom of the general Settings card.
-                    TrainingSettingsSection()
-                        .sectionAppear(index: 1)
 
                     // Earned Atlas Score — the rewards identity, sitting
                     // above the achievement badges it sums up. Taps open
@@ -108,29 +102,13 @@ struct ProfileView: View {
                     ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
                         .sectionAppear(index: 7)
 
-                    WeeklySummaryToggleRow()
-                        .sectionAppear(index: 8)
-
-                    ScreenshotModeRow()
-                        .sectionAppear(index: 9)
-
-                    ExportSection()
-                        .sectionAppear(index: 10)
-
-                    RestoreBackupEntryRow(onTap: { showRestoreBackup = true })
-                        .sectionAppear(index: 11)
-
-                    AccountSection()
-                        .sectionAppear(index: 12)
-
-                    AppearanceSettings()
-                        .sectionAppear(index: 13)
-
-                    DiagnosticsSection()
-                        .sectionAppear(index: 14)
-
-                    AboutSection()
-                        .sectionAppear(index: 15)
+                    GlassEntryRow(
+                        icon: "gearshape.fill",
+                        title: "Settings",
+                        subtitle: Text("Training, appearance, data and account"),
+                        action: { showSettings = true }
+                    )
+                    .sectionAppear(index: 8)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
@@ -154,9 +132,8 @@ struct ProfileView: View {
             .sheet(isPresented: $showReconstitutionCalculator) {
                 ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
             }
-            .sheet(isPresented: $showRestoreBackup) {
-                RestoreBackupSheet()
-                    .environment(dataStore)
+            .navigationDestination(isPresented: $showSettings) {
+                SettingsView()
             }
             .sheet(isPresented: $showProgress) {
                 AtlasProgressView()

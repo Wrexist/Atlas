@@ -3,23 +3,23 @@ import SwiftUI
 /// Trio of stylised iPhone frames sitting under the paywall hero. Centre
 /// frame stands upright, outer two tilt 8° outward to give a fanned
 /// silhouette. Each frame renders a representative slice of the app
-/// (Home dose log, half-life chart, cycle card) using SwiftUI primitives
+/// (workout log, meal scan, recovery ring) using SwiftUI primitives
 /// — dropping in actual screenshots is a follow-up that needs a snapshot
 /// pipeline and the asset slots wired into the catalog.
 struct PaywallPhoneMockupRow: View {
     var body: some View {
         HStack(spacing: -28) {
-            phoneFrame(.home)
+            phoneFrame(.workout)
                 .scaleEffect(0.86)
                 .rotationEffect(.degrees(-8))
                 .offset(y: 12)
                 .zIndex(1)
 
-            phoneFrame(.halfLife)
+            phoneFrame(.mealScan)
                 .scaleEffect(0.96)
                 .zIndex(3)
 
-            phoneFrame(.cycleCard)
+            phoneFrame(.recovery)
                 .scaleEffect(0.86)
                 .rotationEffect(.degrees(8))
                 .offset(y: 12)
@@ -62,7 +62,7 @@ struct PaywallPhoneMockupRow: View {
     }
 
     /// Tries the corresponding asset-catalog screenshot first
-    /// (`paywall-home`, `paywall-halflife`, `paywall-cyclecard`).
+    /// (`paywall-workout`, `paywall-meal`, `paywall-recovery`).
     /// Falls back to the hand-built SwiftUI mock when the asset is
     /// missing so the paywall always renders, even before the
     /// snapshot pipeline runs. Drop a 1170×2532 PNG (3x of
@@ -76,24 +76,24 @@ struct PaywallPhoneMockupRow: View {
                 .scaledToFill()
         } else {
             switch kind {
-            case .home:      HomeMock()
-            case .halfLife:  HalfLifeMock()
-            case .cycleCard: CycleCardMock()
+            case .workout:  WorkoutMock()
+            case .mealScan: MealScanMock()
+            case .recovery: RecoveryMock()
             }
         }
     }
 
     private enum MockupKind {
-        case home, halfLife, cycleCard
+        case workout, mealScan, recovery
 
         /// Asset-catalog name the mockup row tries to load before
         /// falling back to the SwiftUI mock. Keep these stable —
         /// the snapshot pipeline writes PNGs under these exact names.
         var assetName: String {
             switch self {
-            case .home:      "paywall-home"
-            case .halfLife:  "paywall-halflife"
-            case .cycleCard: "paywall-cyclecard"
+            case .workout:  "paywall-workout"
+            case .mealScan: "paywall-meal"
+            case .recovery: "paywall-recovery"
             }
         }
     }
@@ -101,17 +101,17 @@ struct PaywallPhoneMockupRow: View {
 
 // MARK: - Stylised in-frame content
 
-private struct HomeMock: View {
+private struct WorkoutMock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Today")
+            Text("Push Day")
                 .font(AppFont.scaled(8, weight: .heavy))
                 .tracking(0.8)
                 .foregroundStyle(AppColor.textSecondary)
 
-            mockDoseRow(label: "BPC-157", time: "8:00 AM", done: true)
-            mockDoseRow(label: "TB-500",  time: "1:00 PM", done: true)
-            mockDoseRow(label: "Sema",    time: "9:00 PM", done: false)
+            mockSetRow(label: "Bench Press", detail: "3 × 8 · 80 kg", done: true)
+            mockSetRow(label: "Overhead Press", detail: "3 × 10 · 45 kg", done: true)
+            mockSetRow(label: "Dips", detail: "3 × 12", done: false)
 
             Spacer(minLength: 0)
 
@@ -127,7 +127,7 @@ private struct HomeMock: View {
         .background(AppColor.surfaceSecondary.opacity(0.6))
     }
 
-    private func mockDoseRow(label: String, time: String, done: Bool) -> some View {
+    private func mockSetRow(label: LocalizedStringKey, detail: String, done: Bool) -> some View {
         HStack(spacing: 6) {
             Image(systemName: done ? "checkmark.circle.fill" : "circle")
                 .font(AppFont.scaled(11, weight: .semibold))
@@ -136,7 +136,7 @@ private struct HomeMock: View {
                 Text(label)
                     .font(AppFont.scaled(8, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
-                Text(time)
+                Text(detail)
                     .font(AppFont.scaled(8))
                     .foregroundStyle(AppColor.textTertiary)
             }
@@ -151,79 +151,26 @@ private struct HomeMock: View {
     }
 }
 
-private struct HalfLifeMock: View {
+private struct MealScanMock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Half-life")
-                .font(AppFont.scaled(8, weight: .heavy))
-                .tracking(0.8)
-                .foregroundStyle(AppColor.textSecondary)
-
-            ZStack {
-                GeometryReader { proxy in
-                    halfLifePath(in: proxy.size, peakAt: 0.25)
-                        .stroke(AppColor.accentPrimary, lineWidth: 1.5)
-                    halfLifePath(in: proxy.size, peakAt: 0.55)
-                        .stroke(AppColor.accentLight.opacity(0.7), lineWidth: 1.5)
-                }
-            }
-            .frame(maxHeight: .infinity)
-
-            HStack {
-                Text("0h")
-                Spacer()
-                Text("24h")
-            }
-            .font(AppFont.scaled(8))
-            .foregroundStyle(AppColor.textTertiary)
-        }
-        .padding(Spacing.sm)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(AppColor.surfaceSecondary.opacity(0.6))
-    }
-
-    private func halfLifePath(in size: CGSize, peakAt t: CGFloat) -> Path {
-        let baseline = size.height * 0.85
-        let peakY = size.height * 0.20
-        return Path { path in
-            path.move(to: CGPoint(x: 0, y: baseline))
-            path.addCurve(
-                to: CGPoint(x: size.width, y: baseline),
-                control1: CGPoint(x: size.width * t, y: peakY),
-                control2: CGPoint(x: size.width * (t + 0.4), y: baseline * 0.95)
-            )
-        }
-    }
-}
-
-private struct CycleCardMock: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Cycle 02")
+            Text("Meal scan")
                 .font(AppFont.scaled(8, weight: .heavy))
                 .tracking(0.8)
                 .foregroundStyle(AppColor.textSecondary)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Recovery Stack")
+                Text("Chicken rice bowl")
                     .font(AppFont.scaled(11, weight: .bold))
                     .foregroundStyle(AppColor.textPrimary)
 
-                HStack(spacing: 4) {
-                    pill("BPC-157")
-                    pill("TB-500")
-                }
+                Text("640 kcal")
+                    .font(AppFont.scaled(8, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
 
-                progressBar
-                    .padding(.top, 4)
-
-                HStack {
-                    Text("Day 14")
-                    Spacer()
-                    Text("of 84")
-                }
-                .font(AppFont.scaled(8))
-                .foregroundStyle(AppColor.textTertiary)
+                macroBar("Protein", fraction: 0.7, color: AppColor.macroProtein)
+                macroBar("Carbs", fraction: 0.55, color: AppColor.macroCarbs)
+                macroBar("Fat", fraction: 0.3, color: AppColor.macroFat)
             }
 
             Spacer(minLength: 0)
@@ -233,33 +180,70 @@ private struct CycleCardMock: View {
         .background(AppColor.surfaceSecondary.opacity(0.6))
     }
 
-    private func pill(_ label: String) -> some View {
-        Text(label)
-            .font(AppFont.scaled(8, weight: .semibold))
-            .foregroundStyle(AppColor.accentLight)
-            .padding(.horizontal, 5)
-            .padding(.vertical, 2)
-            .background {
-                Capsule().fill(AppColor.accentPrimary.opacity(0.18))
+    private func macroBar(_ label: LocalizedStringKey, fraction: CGFloat, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(AppFont.scaled(8))
+                .foregroundStyle(AppColor.textTertiary)
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(AppColor.surfaceElevated)
+                    Capsule()
+                        .fill(color)
+                        .frame(width: proxy.size.width * fraction)
+                }
             }
+            .frame(height: 4)
+        }
+    }
+}
+
+private struct RecoveryMock: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Recovery")
+                .font(AppFont.scaled(8, weight: .heavy))
+                .tracking(0.8)
+                .foregroundStyle(AppColor.textSecondary)
+
+            ZStack {
+                Circle()
+                    .stroke(AppColor.surfaceElevated, lineWidth: 6)
+                Circle()
+                    .trim(from: 0, to: 0.82)
+                    .stroke(
+                        AppColor.accentPrimary,
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                Text("82")
+                    .font(AppFont.scaled(16, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+            }
+            .frame(width: 64, height: 64)
+            .frame(maxWidth: .infinity)
+
+            VStack(alignment: .leading, spacing: 2) {
+                statRow("HRV", value: "64 ms")
+                statRow("Sleep", value: "7h 42m")
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(Spacing.sm)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(AppColor.surfaceSecondary.opacity(0.6))
     }
 
-    private var progressBar: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule().fill(AppColor.surfaceElevated)
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [AppColor.accentPrimary, AppColor.accentLight],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: proxy.size.width * 0.16)
-            }
+    private func statRow(_ label: LocalizedStringKey, value: String) -> some View {
+        HStack {
+            Text(label)
+                .foregroundStyle(AppColor.textTertiary)
+            Spacer()
+            Text(value)
+                .foregroundStyle(AppColor.textPrimary)
         }
-        .frame(height: 4)
+        .font(AppFont.scaled(8, weight: .semibold))
     }
 }
 

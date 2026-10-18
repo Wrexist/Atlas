@@ -73,10 +73,9 @@ struct AchievementsSection: View {
             )
 
             Text(achievement.title)
-                .font(AppFont.scaled(8, weight: .semibold))
+                .font(AppFont.badgeSmall)
                 .foregroundStyle(unlocked ? AppColor.textPrimary : AppColor.textTertiary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                .lineLimit(2)
                 .multilineTextAlignment(.center)
         }
         .frame(width: 80)

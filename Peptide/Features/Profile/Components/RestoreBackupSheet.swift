@@ -126,7 +126,7 @@ struct RestoreBackupSheet: View {
                 icon: strategy == .replace ? "exclamationmark.triangle.fill" : "checkmark.circle.fill",
                 title: strategy == .replace ? "Confirm replace" : "Confirm merge",
                 subtitle: strategy == .replace
-                    ? "Your current data will be replaced. A snapshot of your current state is saved first — you can roll back from Settings if this turns out to be a mistake."
+                    ? "Your current data will be replaced. A safety copy of your current data is saved on this device first."
                     : "Your current data is kept; only items missing from your library are added."
             )
             VStack(spacing: Spacing.sm) {
@@ -166,7 +166,7 @@ struct RestoreBackupSheet: View {
             HeroCard(
                 icon: "checkmark.seal.fill",
                 title: "Restore complete",
-                subtitle: "Your data is back. A snapshot of the pre-restore state is kept under Settings for the next 5 days in case you need to roll back."
+                subtitle: "Your data is back. A safety copy of your previous data was saved on this device."
             )
             if let resultPreview {
                 BackupSummaryCard(preview: resultPreview)

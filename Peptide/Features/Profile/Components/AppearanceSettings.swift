@@ -49,7 +49,7 @@ struct AppearanceSettings: View {
                     dataStore.persistProfile()
                 }
 
-                if biometricService.isAvailable {
+                if biometricService.isAvailable || dataStore.profile.biometricLockEnabled {
                     Divider().foregroundStyle(AppColor.glassBorder)
 
                     SettingsToggleRow(

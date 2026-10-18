@@ -45,6 +45,28 @@ struct AboutSection: View {
                     }
                     .buttonStyle(.plain)
                     Divider().foregroundStyle(AppColor.glassBorder)
+                    AboutLinkRow(
+                        title: "Terms of Use",
+                        destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
+                    )
+                    Divider().foregroundStyle(AppColor.glassBorder)
+                    AboutLinkRow(
+                        title: "Privacy Policy",
+                        destination: URL.staticHTTPS("https://wrexist.github.io/Atlas/privacy.html")
+                    )
+                    Divider().foregroundStyle(AppColor.glassBorder)
+                    AboutLinkRow(
+                        title: "Contact Support",
+                        destination: URL.staticHTTPS("https://wrexist.github.io/Atlas/support.html")
+                    )
+                    Divider().foregroundStyle(AppColor.glassBorder)
+                    AboutLinkRow(
+                        title: "Rate Atlas",
+                        destination: AppConstants.appStoreURL.appending(queryItems: [
+                            URLQueryItem(name: "action", value: "write-review")
+                        ])
+                    )
+                    Divider().foregroundStyle(AppColor.glassBorder)
                     Button { showDisclaimer = true } label: {
                         HStack {
                             Text("Medical Disclaimer")
@@ -147,6 +169,27 @@ struct MedicalDisclaimerSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
+        }
+    }
+}
+
+private struct AboutLinkRow: View {
+    let title: LocalizedStringKey
+    let destination: URL
+
+    var body: some View {
+        Link(destination: destination) {
+            HStack {
+                Text(title)
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .minimumHitArea()
         }
     }
 }

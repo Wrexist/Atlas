@@ -22,7 +22,7 @@ struct RestoreBackupEntryRow: View {
                     Text("Restore from backup")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
-                    Text("Re-import a previously-exported JSON backup. A snapshot of your current data is taken first so you can roll back.")
+                    Text("Re-import a previously-exported JSON backup. A safety copy of your current data is saved on this device first.")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
