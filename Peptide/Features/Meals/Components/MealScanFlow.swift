@@ -65,6 +65,8 @@ struct MealScanFlow: View {
     @State private var recovery: MealScanDraft?
     @State private var draftError: String?
     @State private var draftPhoto: Data?
+    @State private var isDescribing = false
+    @State private var mealText = ""
     @State private var draftGeneration = MealScanDraftStore.shared.generation
     @State private var checkedDraft = false
     @State private var discardConfirmation = false
@@ -86,7 +88,7 @@ struct MealScanFlow: View {
         return LifestyleDataLogic.logTimestamp(on: logDay)
     }
 
-    private enum ImageSource { case camera, library }
+    private enum ImageSource { case camera, library, words }
 
     private enum Phase: Equatable {
         case pickImage
@@ -170,8 +172,20 @@ struct MealScanFlow: View {
                 .liquidGlassPresentation()
         }
         .sheet(isPresented: $showConsent, onDismiss: resumeAfterConsent) {
-            AIConsentSheet(whatIsSent: "The meal photo you take or pick.")
+            AIConsentSheet(whatIsSent: "The meal photo you take or pick, or the meal you describe.")
                 .liquidGlassPresentation()
+        }
+        .sheet(isPresented: $isDescribing) {
+            MealDescriptionSheet(text: $mealText) { text in
+                isDescribing = false
+                image = nil
+                capturedAtDate = Date()
+                chosenLogDate = nil
+                phase = .analyzing
+                inFlightTask?.cancel()
+                inFlightTask = Task { await runAnalysis(describing: text) }
+            }
+            .liquidGlassPresentation()
         }
         .fullScreenCover(isPresented: $isShowingCamera) {
             CameraPicker(
@@ -233,6 +247,7 @@ struct MealScanFlow: View {
         switch source {
         case .camera:  Task { await tapTakePhoto() }
         case .library: isShowingLibrary = true
+        case .words:   isDescribing = true
         }
     }
 
@@ -284,7 +299,7 @@ struct MealScanFlow: View {
                 Button("Discard unreadable draft", role: .destructive) { discardConfirmation = true }.minimumHitArea()
             }
             previewBox
-            Text("Snap or pick a photo of your meal — Claude separates each food so you can fine-tune the portions before logging.")
+            Text("Snap a photo of your meal or describe it — Claude separates each food so you can fine-tune the portions before logging.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -303,6 +318,12 @@ struct MealScanFlow: View {
                     openImageSource(.library)
                 }
                 .accessibilityHint("Picks an existing photo from your library.")
+                .disabled(recovery != nil || draftError != nil)
+
+                GlassButton(title: "Type or dictate", icon: "text.bubble", style: .secondary, isFullWidth: true) {
+                    openImageSource(.words)
+                }
+                .accessibilityHint("Describe what you ate in your own words.")
                 .disabled(recovery != nil || draftError != nil)
             }
             .padding(.horizontal, Spacing.lg)
@@ -807,9 +828,22 @@ struct MealScanFlow: View {
     }
 
     private func runAnalysis(on image: UIImage) async {
+        await analyse(photo: image) {
+            try await MealScannerService.shared.smartScan(image: image, corrections: ScanCorrectionMemory.shared.recent)
+        }
+    }
+
+    private func runAnalysis(describing text: String) async {
+        await analyse(photo: nil) {
+            try await MealScannerService.shared.describeMeal(text, corrections: ScanCorrectionMemory.shared.recent)
+        }
+    }
+
+    /// Shared tail of a photo or a described meal: ground the items,
+    /// fill the review and save the draft.
+    private func analyse(photo image: UIImage?, scan: () async throws -> MealScannerService.SmartScan) async {
         do {
-            let result = try await MealScannerService.shared.smartScan(
-                image: image, corrections: ScanCorrectionMemory.shared.recent)
+            let result = try await scan()
             try Task.checkCancellation()
             guard !result.items.isEmpty else { throw MealScannerService.ScanError.noFoodDetected }
             let grounded = await FoodGrounding.ground(result.items, myFoods: dataStore.profile.customFoods)
@@ -823,7 +857,7 @@ struct MealScanFlow: View {
                     MealScanQuota.recordSuccessfulScan()
                     refreshScansRemaining()
                 }
-                draftPhoto = (image.resizedTo(maxEdge: 1200) ?? image).jpegData(compressionQuality: 0.75)
+                draftPhoto = image.flatMap { ($0.resizedTo(maxEdge: 1200) ?? $0).jpegData(compressionQuality: 0.75) }
                 items = grounded.map(EditableFoodItem.init(from:))
                 insight = result.insight
                 suggestedMealName = dishName

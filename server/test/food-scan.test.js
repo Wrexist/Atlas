@@ -159,6 +159,13 @@ test('test_noCorrections_leavesPromptUnchanged', () => {
   assert.ok(!text.includes('corrections'));
 });
 
+test('test_mealMode_sendsTheUsersWords_withMealTask', () => {
+  const request = buildFoodScanRequest({ mode: 'meal', text: '  två ägg och en macka med ost  ' });
+  assert.match(request.messages[0].content[0].text, /in their words:\ntvå ägg och en macka med ost$/);
+  assert.match(request.system, /described in words what they ate/);
+  assert.equal(buildFoodScanRequest({ mode: 'meal', text: '   ' }), null);
+});
+
 test('test_modelAndEffort_followEnv', (t) => {
   setEnv(t, { FOOD_SCAN_MODEL: 'claude-sonnet-5-5', FOOD_SCAN_EFFORT: 'medium' });
   const request = buildFoodScanRequest(photoBody);

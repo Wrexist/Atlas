@@ -85,6 +85,17 @@ final class SmartScanTests: XCTestCase {
         }
     }
 
+    func test_describeMeal_sendsWords_andReturnsItems() async throws {
+        MockURLProtocol.handler = { request in
+            let body = try Self.body(of: request)
+            XCTAssertEqual(body["mode"] as? String, "meal")
+            XCTAssertEqual(body["text"] as? String, "spaghetti, a big plate")
+            return (Self.response(request, 200), Data(SmartFixtures.meal.utf8))
+        }
+        let scan = try await service.describeMeal("spaghetti, a big plate")
+        XCTAssertEqual(scan.items.map(\.name), ["Spaghetti"])
+    }
+
     func test_describeProduct_sendsProductFacts() async throws {
         MockURLProtocol.handler = { request in
             let body = try Self.body(of: request)

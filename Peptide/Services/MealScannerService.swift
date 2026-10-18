@@ -274,6 +274,17 @@ final class MealScannerService: Sendable {
         }
     }
 
+    /// A meal in the user's own words, typed or dictated ("two eggs and
+    /// a cheese sandwich") → the same itemised scan a photo gives.
+    func describeMeal(_ text: String, corrections: [ScanCorrection] = []) async throws -> SmartScan {
+        var payload = Self.fields(corrections)
+        payload["mode"] = "meal"
+        payload["text"] = text
+        let scan = try parseSmartScan(from: try await post(payload, to: foodScanEndpoint))
+        guard scan.insight.kind != .notFood, !scan.items.isEmpty else { throw ScanError.noFoodDetected }
+        return scan
+    }
+
     /// Product facts or typed words → one fully described food: complete
     /// nutrition, a sensible serving, the whole-pack amount and a price.
     /// Text only, so it costs a fraction of a photo scan.
