@@ -87,7 +87,8 @@ struct RecapMetrics: View {
     private func metric(_ title: String, value: String, icon: String) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Image(systemName: icon).foregroundStyle(AppColor.recapAction).accessibilityHidden(true)
-            valueText(value).monospacedDigit().fixedSize(horizontal: false, vertical: true)
+            valueText(value).monospacedDigit().contentTransition(.numericText())
+                .fixedSize(horizontal: false, vertical: true)
             Text(title).font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }

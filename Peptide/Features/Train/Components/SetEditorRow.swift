@@ -53,6 +53,13 @@ struct SetEditorRow: View {
             }
         }
         .padding(.vertical, Spacing.xs)
+        // A logged set reads as done at a glance, not only through its glyph.
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.trainingComplete.opacity(set.completed ? 0.10 : 0))
+                .padding(.horizontal, -Spacing.xs)
+        }
+        .appAnimation(AppAnimation.springSnappy, value: set.completed)
         .contentShape(Rectangle())
         .onChange(of: set.completed) { _, completed in
             if completed { completionTrigger &+= 1 }
@@ -199,7 +206,7 @@ struct SetEditorRow: View {
         Button {
             weightFocused = false
             repsFocused = false
-            if !set.completed { Haptics.impact(.light) }
+            if !set.completed { Haptics.impact(.medium) }
             else { Haptics.selection() }
             set.completed.toggle()
         } label: {

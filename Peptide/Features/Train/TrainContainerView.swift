@@ -43,7 +43,11 @@ struct TrainContainerView: View {
         NavigationStack(path: $path) {
             VStack(spacing: 0) {
                 sectionPicker
+                // Keyed on the section so the body moves with the pill
+                // instead of swapping under it.
                 content
+                    .id(section)
+                    .transition(.opacity.combined(with: .offset(y: 8)))
             }
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle("Train")
@@ -73,9 +77,13 @@ struct TrainContainerView: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                if sessionService.activeSession != nil && !showActiveWorkout {
-                    activeWorkoutBanner
+                ZStack {
+                    if showsWorkoutBanner {
+                        activeWorkoutBanner
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
+                .appAnimation(AppAnimation.springSnappy, value: showsWorkoutBanner)
             }
         }
         .environment(\.resumeActiveWorkout, { showActiveWorkout = true })
@@ -105,6 +113,10 @@ struct TrainContainerView: View {
         }
     }
 
+    private var showsWorkoutBanner: Bool {
+        sessionService.activeSession != nil && !showActiveWorkout
+    }
+
     /// Sticky "Resume workout" pill shown when a session is in
     /// progress and the cover has been dismissed (the user minimized
     /// the workout from its toolbar).
@@ -113,16 +125,22 @@ struct TrainContainerView: View {
             showActiveWorkout = true
         } label: {
             HStack(spacing: Spacing.sm) {
-                Image(systemName: "figure.run.circle.fill")
+                Image(systemName: "dumbbell.fill")
                     .font(AppFont.scaled(20, weight: .semibold))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Workout in progress")
                         .font(AppFont.callout.weight(.semibold))
                     if let active = sessionService.activeSession {
-                        Text("\(active.completedSetCount) sets logged")
-                            .font(AppFont.caption)
-                            .opacity(0.85)
+                        HStack(spacing: Spacing.xs) {
+                            Text(active.startedAt, style: .timer)
+                            Text("·")
+                            Text("\(active.completedSetCount) sets logged")
+                                .contentTransition(.numericText())
+                        }
+                        .font(AppFont.caption)
+                        .monospacedDigit()
+                        .opacity(0.85)
                     }
                 }
                 Spacer()
@@ -140,7 +158,7 @@ struct TrainContainerView: View {
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xs)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
     }
 
     private var sectionPicker: some View {
@@ -161,6 +179,8 @@ struct TrainContainerView: View {
                         isSelected: section == item,
                         namespace: sectionIndicator
                     ) {
+                        guard section != item else { return }
+                        Haptics.selection()
                         withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) {
                             section = item
                         }
@@ -237,7 +257,7 @@ struct TrainContainerView: View {
                     .frame(minHeight: Spacing.minimumHitTarget)
                     .contentShape(Capsule())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ScalePressStyle())
             .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
     }
