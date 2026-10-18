@@ -81,6 +81,7 @@ struct MuscleActivationMap: View {
         .animation(reduceMotion ? nil : AppAnimation.springSnappy, value: focused)
         .accessibilityLabel("\(row.name), \(row.role.rawValue), \(Int(row.share * 100)) percent involvement")
         .accessibilityAddTraits(focused == row ? .isSelected : [])
+        .accessibilityIdentifier("muscle-row-\(row.name)")
     }
 
     private func involvementBar(share: Double, tint: Color, index: Int) -> some View {

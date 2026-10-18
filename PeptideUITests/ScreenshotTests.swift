@@ -452,6 +452,47 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    func test_captureMuscleActivation() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance)
+            dismissOverlaysIfNeeded()
+            let train = app.tabBars.buttons["Train"]
+            XCTAssertTrue(train.waitForExistence(timeout: 10))
+            train.tap()
+            dismissOverlaysIfNeeded()
+            discardLeftoverWorkout()
+            app.buttons["Exercises"].firstMatch.tap()
+
+            let search = app.searchFields.firstMatch
+            XCTAssertTrue(search.waitForExistence(timeout: 10))
+            search.tap()
+            search.typeText("Barbell Bench Press - Medium Grip")
+            let exercise = app.staticTexts["Barbell Bench Press - Medium Grip"].firstMatch
+            XCTAssertTrue(exercise.waitForExistence(timeout: 10))
+            exercise.tap()
+            let heading = app.staticTexts["Muscles worked"]
+            reveal(heading)
+            scrollOnScreen(app.buttons["muscle-row-Chest"])
+            capture(named: "activation-\(appearance)-01-detail")
+            let triceps = app.buttons["muscle-row-Triceps"]
+            reveal(triceps)
+            triceps.tap()
+            capture(named: "activation-\(appearance)-02-focused")
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+
+            if app.buttons["Cancel"].exists { app.buttons["Cancel"].tap() }
+            let picker = app.buttons["exercise-body-picker"].firstMatch
+            XCTAssertTrue(picker.waitForExistence(timeout: 10))
+            picker.tap()
+            capture(named: "activation-\(appearance)-03-picker")
+            app.buttons["Back"].firstMatch.tap()
+            capture(named: "activation-\(appearance)-04-picker-back")
+            app.buttons["body-picker-confirm"].tap()
+            capture(named: "activation-\(appearance)-05-filtered")
+            app.terminate()
+        }
+    }
+
     private func replaceField(_ identifier: String, with value: String) {
         let field = app.textFields[identifier]
         var stored = ""

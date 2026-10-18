@@ -40,6 +40,7 @@ struct ExerciseLibraryView: View {
                     Image(systemName: "figure.stand")
                 }
                 .accessibilityLabel("Pick muscles on body")
+                .accessibilityIdentifier("exercise-body-picker")
             }
         }
         .sheet(isPresented: $showsBodyPicker) {
