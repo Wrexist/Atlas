@@ -340,6 +340,9 @@ final class WorkoutSessionService {
         if session.isPaused { session.focus?.resume(at: now) }
         else { session.focus?.pause(at: now) }
         persist(session)
+        // The widget's timer ticks on its own, so it only learns about a
+        // pause from a fresh payload.
+        DataStore.current?.refreshTrainingGlanceables()
     }
 
     func skipRest() {
