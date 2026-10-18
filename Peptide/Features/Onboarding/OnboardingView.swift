@@ -1749,8 +1749,8 @@ struct OnboardingView: View {
         case .getStronger: return "+10–15% on your top lifts"
         case .stayConsistent, .athletic: return "\(daysPerWeek * goalWeeks) sessions logged"
         case .recomp:      return "Body recomp tracked weekly"
-        case .betterSleep: return "+45 min average sleep"
-        case .recovery:    return "+10 HRV points (avg)"
+        case .betterSleep: return "Sleep tracked nightly"
+        case .recovery:    return "HRV trend tracked daily"
         case .antiAging:   return "Biomarker improvement"
         case .skinHair:    return "Tracked weekly with photos"
         case .energy:      return "Steadier energy curve"
@@ -1834,7 +1834,7 @@ struct OnboardingView: View {
                     )
                     disclaimerBullet(
                         icon: "lock.fill",
-                        text: "Your data stays on-device by default and is lockable with Face ID."
+                        text: "Your data lives in your private iCloud, and you can lock the app with Face ID."
                     )
                 }
                 .padding(Spacing.lg)
@@ -1887,11 +1887,7 @@ struct OnboardingView: View {
                         .padding(.horizontal, Spacing.lg)
                 }
 
-                NotificationPreviewCard(
-                    title: "Leg day in 30 minutes",
-                    subtitle: "Hit your second session of the week",
-                    timestamp: "now"
-                )
+                NotificationPreviewCard()
                 .padding(.horizontal, Spacing.lg)
                 .padding(.top, Spacing.sm)
 
@@ -2147,9 +2143,9 @@ struct OnboardingView: View {
                 }
 
                 widgetTipCard
-                .padding(.horizontal, Spacing.lg)
                 Spacer(minLength: 100)
             }
+            .padding(.horizontal, Spacing.lg)
         }
     }
 
@@ -2184,7 +2180,6 @@ struct OnboardingView: View {
             RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                 .stroke(AppColor.accentPrimary.opacity(0.25), lineWidth: 0.5)
         )
-        .padding(.horizontal, Spacing.lg)
         .padding(.top, Spacing.sm)
     }
 

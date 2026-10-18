@@ -6,8 +6,8 @@ import SwiftUI
 /// `UNUserNotificationCenter`.
 struct NotificationPreviewCard: View {
     var appName: LocalizedStringKey = "Atlas"
-    var title: LocalizedStringKey = "Time for your BPC-157 dose"
-    var subtitle: LocalizedStringKey = "Day 14 of 84 — stay consistent"
+    var title: LocalizedStringKey = "Leg day in 30 minutes"
+    var subtitle: LocalizedStringKey = "Hit your second session of the week"
     var timestamp: LocalizedStringKey = "now"
 
     var body: some View {
@@ -43,14 +43,12 @@ struct NotificationPreviewCard: View {
     }
 
     private var iconBadge: some View {
-        Image(systemName: "flask.fill")
-            .font(AppFont.scaled(13, weight: .bold))
-            .foregroundStyle(AppColor.onAccent)
+        Image("AtlasLogo")
+            .resizable()
+            .scaledToFill()
             .frame(width: 28, height: 28)
-            .background {
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(AppColor.accentFill)
-            }
+            .clipShape(RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous))
+            .accessibilityHidden(true)
     }
 }
 

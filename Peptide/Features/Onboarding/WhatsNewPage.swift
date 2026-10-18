@@ -49,17 +49,17 @@ struct WhatsNewPage: Identifiable, Equatable, @unchecked Sendable {
 extension WhatsNewPage {
 
     /// Tour content for the v3.0 / v3.1 training + biology releases.
-    /// Walks returning users through the new tab structure (Today /
-    /// Train / Meals / Biology / Library), the muscle map, the
-    /// Bio Age surface, and the demoted-but-still-reachable peptide
-    /// surfaces. Mounted automatically on first launch after the
-    /// `WhatsNewService.currentTourVersion` bumps to "v3.1-biology".
+    /// Walks returning users through the current tab bar (Today /
+    /// Train / Meals / Biology / Habits), meal photo scan,
+    /// Performance Age, and the Atlas Score. Mounted automatically on
+    /// first launch after the `WhatsNewService.currentTourVersion`
+    /// bumps to "v3.1-biology".
     static let v30Training: [WhatsNewPage] = [
         WhatsNewPage(
             id: "v3_welcome",
             eyebrow: "What's new",
-            title: "Atlas is now a training app",
-            body: "Train, eat, and recover live at the top of the bottom bar. Your peptide protocols are still here — they're just one tab over.",
+            title: "Atlas is built around your day",
+            body: "Five tabs — Today, Train, Meals, Biology, and Habits — cover your training, food, recovery, and the routines that tie them together.",
             icon: "figure.strengthtraining.traditional",
             gradient: [
                 Color(red: 0.55, green: 0.50, blue: 0.92),
@@ -68,9 +68,9 @@ extension WhatsNewPage {
             accent: Color(red: 0.55, green: 0.50, blue: 0.92),
             bullets: [
                 "New Train tab with 870+ exercises",
-                "New Meals tab — promoted from Today",
-                "New Biology tab with your Bio Age + biomarkers",
-                "Library now hosts peptides + protocols + research",
+                "Meals tab with photo meal scan",
+                "Biology tab with your Performance Age",
+                "Habits tab with streaks and your Atlas Score",
             ]
         ),
         WhatsNewPage(
@@ -86,15 +86,15 @@ extension WhatsNewPage {
             accent: Color(red: 0.92, green: 0.45, blue: 0.62),
             bullets: [
                 "Two-tap set logging with auto-prefilled prev values",
-                "PR detection celebrates new e1RM / volume bests",
+                "PR detection for new e1RM and volume bests",
                 "Exercise detail shows primary + secondary muscles",
             ]
         ),
         WhatsNewPage(
             id: "v3_meals",
             eyebrow: "Meals",
-            title: "Food gets its own tab",
-            body: "Macros, meal scan, food library, recipes, and barcode scan are all one tap away now instead of scrolling through Today.",
+            title: "Snap a photo, get the macros",
+            body: "Photograph your plate and Atlas estimates the meal for you to review before it's logged. Barcode scan, the food library, and recipes are one tap away.",
             icon: "fork.knife",
             gradient: [
                 Color(red: 1.00, green: 0.62, blue: 0.30),
@@ -102,16 +102,16 @@ extension WhatsNewPage {
             ],
             accent: Color(red: 1.00, green: 0.62, blue: 0.30),
             bullets: [
+                "Photo meal scan — you confirm before logging",
+                "Barcode scan + food library",
                 "Macro rings stay front-and-center",
-                "Streak badge tracks consecutive logged days",
-                "Recipes + custom foods carry over from before",
             ]
         ),
         WhatsNewPage(
             id: "v31_biology",
             eyebrow: "Biology",
-            title: "How you're actually aging",
-            body: "Atlas estimates your Bio Age from HRV, resting heart rate, sleep, and weight trend. Track which habits move the needle — and which biomarkers matter most for you.",
+            title: "Your Performance Age",
+            body: "Atlas estimates your Performance Age from HRV, resting heart rate, sleep, and weight trend. Track which habits move the needle — and which biomarkers matter most for you.",
             icon: "waveform.path.ecg.rectangle",
             gradient: [
                 Color(red: 0.45, green: 0.85, blue: 0.78),
@@ -119,33 +119,33 @@ extension WhatsNewPage {
             ],
             accent: Color(red: 0.45, green: 0.85, blue: 0.78),
             bullets: [
-                "Bio Age dial + driver pills (Pro)",
+                "Performance Age dial + driver pills (Pro)",
                 "Curated biomarker list — pick what you care about",
                 "Latest lab card with normal-range banding",
             ]
         ),
         WhatsNewPage(
-            id: "v3_library",
-            eyebrow: "Library",
-            title: "Peptides + protocols, one tab",
-            body: "Your peptide reference, your protocols, and the AI research assistant all live in Library now. Profile moves to a top-right avatar on Today.",
-            icon: "books.vertical.fill",
+            id: "v3_habits",
+            eyebrow: "Habits",
+            title: "Small wins, every day",
+            body: "The Habits tab tracks your daily routines and streaks. Every habit you complete earns points toward your Atlas Score.",
+            icon: "star.fill",
             gradient: [
                 Color(red: 0.40, green: 0.74, blue: 0.92),
                 Color(red: 0.48, green: 0.50, blue: 0.92),
             ],
             accent: Color(red: 0.40, green: 0.74, blue: 0.92),
             bullets: [
-                "Tap the stack icon to open your protocols",
-                "AI research assistant unchanged",
-                "Profile + settings via the Today avatar",
+                "Tap to complete, right from Today",
+                "A monthly streak freeze for missed days",
+                "Atlas Score levels and tiers",
             ]
         ),
         WhatsNewPage(
             id: "v3_outro",
             eyebrow: "And more",
             title: "Everything you had still works",
-            body: "Live Activities, Siri, Action Button, Spotlight, Watch, dose logging, weekly summaries, lab tracking — all here, just better organised.",
+            body: "Profile and settings sit behind the avatar at the top right. Your Apple Watch, widgets, and Live Activities are all still here.",
             icon: "checkmark.seal.fill",
             gradient: [
                 Color(red: 0.48, green: 0.50, blue: 0.92),
@@ -153,9 +153,9 @@ extension WhatsNewPage {
             ],
             accent: Color(red: 0.36, green: 0.78, blue: 0.55),
             bullets: [
-                "Live Activities for every dose",
+                "Profile + settings via the top-right avatar",
                 "Apple Watch + widgets",
-                "Reconstitution calculator + travel mode",
+                "Live Activities for your workouts",
             ]
         ),
     ]
