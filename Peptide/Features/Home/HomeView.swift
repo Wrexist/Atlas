@@ -697,7 +697,8 @@ struct HomeView: View {
             // the first `refreshDerived()`).
             .onChange(of: heroSnapshot) { _, _ in
                 let plan = derived.plan ?? DailyScheduleEngine.plan(for: dataStore.todayEntries)
-                derived.primaryReason = buildPrimaryReason(plan: plan)
+                let reason = buildPrimaryReason(plan: plan)
+                AppAnimation.with(AppAnimation.springSmooth) { derived.primaryReason = reason }
             }
             .onAppear {
                 checkMilestonePrompt()
@@ -906,12 +907,13 @@ struct HomeView: View {
             healthRange = .init(hrv: nil, rhr: nil, sleep: nil)
             return
         }
+        let previous = healthRange
         healthRange = await HealthRangeService.build()
-        // Surface the Bevel-style "Sync Complete" toast only when the
-        // refresh actually produced at least one card — avoids the
-        // false-positive of "synced!" on a brand-new install that
-        // has no HealthKit data yet.
-        if healthRange.hrv != nil || healthRange.rhr != nil || healthRange.sleep != nil {
+        // "Sync Complete" only when the refresh brought something new.
+        // Firing on any non-empty result announced a sync on every tab
+        // return, and stacked on top of an achievement toast.
+        let hasData = healthRange.hrv != nil || healthRange.rhr != nil || healthRange.sleep != nil
+        if hasData && healthRange != previous && !showAchievementToast {
             showSyncToast = true
         }
     }
