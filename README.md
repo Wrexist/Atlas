@@ -89,6 +89,14 @@ there being exactly one primitive to reach for:
   `Spacing.concentric(in:inset:)` for a shape nested inside another rather
   than guessing a second literal, and `.minimumHitArea()` on any control
   whose artwork is smaller than 44pt.
+- **Motion** — curves come from `AppAnimation` (`springSnappy`, `step`,
+  `quick`, `toast`, `settle`, …); add a named token to
+  `AnimationConstants.swift` rather than tuning a spring inline. Animate
+  with `AppAnimation.with(_:)` and `.appAnimation(_:value:)`, which skip the
+  movement under Reduce Motion so no call site has to remember. A number
+  with `.contentTransition(.numericText())` only rolls if the state that
+  feeds it changes inside one of those. Loading placeholders are
+  `SkeletonBlock`; button press feedback is `ScalePressStyle`.
 
 `.claude/skills/` carries two design skills that load automatically:
 `dna-transplant` (pick the donor idiom before laying out a screen) and
@@ -99,6 +107,7 @@ via `/plugin marketplace add anthropics/claude-code`.
 Run `python3 scripts/design-lint.py --all` to check all of it. It covers
 eleven rules SwiftLint can't see — raw colour, fixed font sizes, stacked
 glass materials, coloured halos behind glyphs, untargeted `.animation`,
+hand-tuned animation curves,
 placeholder copy, sub-44pt targets, off-grid spacing, faded ink,
 unlabelled icon buttons, and rows VoiceOver reads as several stops. CI
 fails on any error; warnings are printed for review. It's currently clean

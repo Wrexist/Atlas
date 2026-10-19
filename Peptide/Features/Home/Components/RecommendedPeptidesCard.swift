@@ -27,7 +27,7 @@ struct RecommendedPeptidesCard: View {
                             NavigationLink(value: rec.peptide) {
                                 recommendationRow(rec, stacks: stacks(for: rec.peptide))
                             }
-                            .buttonStyle(RecommendationPressStyle())
+                            .buttonStyle(ScalePressStyle(pressedOpacity: 0.8))
 
                             if rec.id != recommendations.last?.id {
                                 Divider().foregroundStyle(AppColor.glassBorder)
@@ -175,20 +175,6 @@ struct RecommendedPeptidesCard: View {
         }
         .liquidGlass(.circle)
         .padding(.top, 4)
-    }
-}
-
-private struct RecommendationPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .opacity(configuration.isPressed ? 0.8 : 1.0)
-            .animation(AppAnimation.springSnappy, value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { _, pressed in
-                if pressed {
-                    Haptics.impact(.light)
-                }
-            }
     }
 }
 

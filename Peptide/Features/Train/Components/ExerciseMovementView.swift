@@ -79,7 +79,7 @@ struct ExerciseMovementView: View {
         while !Task.isCancelled {
             try? await Task.sleep(for: Self.holdDuration)
             guard !Task.isCancelled else { return }
-            withAnimation(.easeInOut(duration: 0.35)) { showsFinish.toggle() }
+            AppAnimation.with(AppAnimation.settle) { showsFinish.toggle() }
         }
     }
 }

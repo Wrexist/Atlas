@@ -9,7 +9,6 @@ struct WorkoutFocusView: View {
     let onFinish: () -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var service = WorkoutSessionService.shared
     @State private var library = ExerciseLibrary.shared
     @State private var detailExercise: Exercise?
@@ -26,7 +25,7 @@ struct WorkoutFocusView: View {
                             .id(exercise?.id)
                             .transition(.opacity)
                             .frame(height: heroHeight(available: geometry.size.height))
-                            .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: exercise?.id)
+                            .appAnimation(AppAnimation.quick, value: exercise?.id)
                             .padding(.top, Spacing.sm)
                         exerciseStrip
                         setPanel(entry)
@@ -76,7 +75,8 @@ struct WorkoutFocusView: View {
                 .padding(Spacing.xs)
             }
             .onChange(of: entry?.id, initial: true) { _, id in
-                if let id { proxy.scrollTo(id, anchor: .center) }
+                guard let id else { return }
+                AppAnimation.with(AppAnimation.springSnappy) { proxy.scrollTo(id, anchor: .center) }
             }
         }
     }
@@ -103,9 +103,11 @@ struct WorkoutFocusView: View {
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(AppColor.onAccent, AppColor.trainingComplete)
                         .background(Circle().fill(AppColor.trainingPanel))
+                        .transition(.scale.combined(with: .opacity))
                         .accessibilityHidden(true)
                 }
             }
+            .appAnimation(AppAnimation.springBouncy, value: complete)
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel(Text(exercise?.name ?? item.exerciseID))
@@ -146,10 +148,13 @@ struct WorkoutFocusView: View {
                         focusStyle: true, isCurrent: entry.sets.first(where: { !$0.completed })?.id == set.id,
                         isPaused: session.isPaused
                     )
+                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
+            .appAnimation(AppAnimation.springSnappy, value: entry.sets.count)
             HStack {
                 Button {
+                    Haptics.impact(.light)
                     service.addSet(toExerciseID: entry.id)
                 } label: {
                     Label("Add set", systemImage: "plus").minimumHitArea()
@@ -166,14 +171,21 @@ struct WorkoutFocusView: View {
                 }
             }
             .font(AppFont.callout)
-            if !entry.sets.isEmpty && entry.sets.allSatisfy(\.completed) && session.focus?.rest == nil {
-                if let next = session.nextPendingSet(after: entry.id) {
-                    GlassButton(title: "Next exercise", icon: "arrow.right", isFullWidth: true) {
-                        service.selectExercise(next.entry)
+            Group {
+                if exerciseDone(entry) && session.focus?.rest == nil {
+                    if let next = session.nextPendingSet(after: entry.id) {
+                        GlassButton(title: "Next exercise", icon: "arrow.right", isFullWidth: true) {
+                            service.selectExercise(next.entry)
+                        }
+                    } else {
+                        GlassButton(title: "Finish workout", icon: "checkmark", isFullWidth: true, action: onFinish)
                     }
-                } else {
-                    GlassButton(title: "Finish workout", icon: "checkmark", isFullWidth: true, action: onFinish)
                 }
+            }
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .appAnimation(AppAnimation.springSnappy, value: exerciseDone(entry))
+            .onChange(of: exerciseDone(entry)) { _, done in
+                if done { Haptics.success() }
             }
             Divider()
             WorkoutFocusMetrics(session: session, unit: unit)
@@ -216,8 +228,12 @@ struct WorkoutFocusView: View {
           .transition(.opacity)
         }
         .frame(maxWidth: .infinity, minHeight: dynamicTypeSize.isAccessibilitySize ? nil : 148, alignment: .topLeading)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: session.focus?.rest == nil)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: session.isPaused)
+        .appAnimation(AppAnimation.quick, value: session.focus?.rest == nil)
+        .appAnimation(AppAnimation.quick, value: session.isPaused)
+    }
+
+    private func exerciseDone(_ entry: WorkoutExerciseEntry) -> Bool {
+        !entry.sets.isEmpty && entry.sets.allSatisfy(\.completed)
     }
 
     private func progressTitle(_ entry: WorkoutExerciseEntry) -> String {
@@ -243,24 +259,31 @@ private struct WorkoutFocusRestHeader: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
+            let remaining = WorkoutClock.label(Int(ceil(rest.remaining(at: context.date))))
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text(target).font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
-                HStack {
-                    let remaining = WorkoutClock.label(Int(ceil(rest.remaining(at: context.date))))
-                    Text(remaining)
-                        .font(AppFont.statValueSmall).monospacedDigit()
-                        .accessibilityLabel("Rest remaining")
-                        .accessibilityValue(remaining)
-                    Spacer()
+                HStack(spacing: Spacing.lg) {
+                    RestCountdownRing(rest: rest)
+                        .frame(width: 64, height: 64)
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        Text(target)
+                            .font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
+                            .lineLimit(2)
+                        Text(remaining)
+                            .font(AppFont.statValueSmall).monospacedDigit()
+                            .contentTransition(.numericText(countsDown: true))
+                            .appAnimation(AppAnimation.quick, value: remaining)
+                            .accessibilityLabel("Rest remaining")
+                            .accessibilityValue(remaining)
+                    }
+                    Spacer(minLength: Spacing.xs)
                     Button(action: onSkip) {
                         Label("Skip", systemImage: "forward.end.fill")
                             .font(AppFont.callout).padding(.horizontal, Spacing.md).minimumHitArea()
                             .background(AppColor.trainingInput, in: Capsule())
                     }
+                    .buttonStyle(ScalePressStyle())
                 }
-                ProgressView(value: rest.remainingFraction(at: context.date))
-                    .tint(AppColor.trainingSelection).accessibilityHidden(true)
-                HStack {
+                HStack(spacing: Spacing.sm) {
                     Button(action: onUndo) {
                         Label("Undo set", systemImage: "arrow.uturn.backward")
                             .minimumHitArea()
@@ -268,16 +291,44 @@ private struct WorkoutFocusRestHeader: View {
                     .accessibilityLabel("Undo last completed set")
                     .accessibilityIdentifier("workout-undo-rest-set")
                     Spacer()
-                    Menu {
-                        Button("−15 sec") { onAdjust(-15) }
-                        Button("+15 sec") { onAdjust(15) }
-                    } label: {
-                        Label("Adjust", systemImage: "timer").minimumHitArea()
-                    }
+                    adjustButton("−15s", seconds: -15, label: "Remove 15 seconds")
+                    adjustButton("+15s", seconds: 15, label: "Add 15 seconds")
                 }
                 .font(AppFont.subheadline)
             }
         }
+    }
+
+    private func adjustButton(_ title: String, seconds: TimeInterval, label: LocalizedStringKey) -> some View {
+        Button { onAdjust(seconds) } label: {
+            Text(title)
+                .monospacedDigit()
+                .padding(.horizontal, Spacing.md)
+                .minimumHitArea()
+                .background(AppColor.trainingInput, in: Capsule())
+        }
+        .buttonStyle(ScalePressStyle())
+        .accessibilityLabel(label)
+    }
+}
+
+/// Drains continuously rather than stepping once a second, so the rest
+/// reads as time running out instead of a number changing.
+private struct RestCountdownRing: View {
+    let rest: WorkoutRestContext
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: rest.frozenSeconds != nil)) { context in
+            ZStack {
+                Circle()
+                    .stroke(AppColor.trainingInput, lineWidth: 6)
+                Circle()
+                    .trim(from: 0, to: rest.remainingFraction(at: context.date))
+                    .stroke(AppColor.trainingSelection, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 

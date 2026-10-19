@@ -100,7 +100,7 @@ struct DoseLoggingSheet: View {
                                     ForEach(InjectionSite.allCases, id: \.rawValue) { site in
                                         let isSelected = selectedSite == site.rawValue
                                         Button {
-                                            withAnimation(AppAnimation.springBouncy) {
+                                            AppAnimation.with(AppAnimation.springBouncy) {
                                                 selectedSite = isSelected ? nil : site.rawValue
                                             }
                                             Haptics.selection()

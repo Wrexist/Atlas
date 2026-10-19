@@ -166,7 +166,7 @@ struct ThemeChoicePage: View {
 
     private func select(_ mode: DisplayMode) {
         guard theme.displayMode != mode else { return }
-        withAnimation(AppAnimation.springSnappy) {
+        AppAnimation.with(AppAnimation.springSnappy) {
             theme.displayMode = mode
         }
         Haptics.impact(.soft)
@@ -174,7 +174,7 @@ struct ThemeChoicePage: View {
 
     private func select(_ color: AppThemeColor) {
         guard theme.theme != color else { return }
-        withAnimation(AppAnimation.springSnappy) {
+        AppAnimation.with(AppAnimation.springSnappy) {
             theme.theme = color
         }
         Haptics.impact(.soft)

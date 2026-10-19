@@ -244,7 +244,7 @@ struct ProgressPhotosCard: View {
                 if isRevealed {
                     viewerSelection = PhotoSelection(filename: filename)
                 } else {
-                    withAnimation(AppAnimation.springSnappy) {
+                    AppAnimation.with(AppAnimation.springSnappy) {
                         revealedFilename = filename
                     }
                 }

@@ -452,6 +452,54 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    func test_captureMuscleActivation() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance)
+            dismissOverlaysIfNeeded()
+            let train = app.tabBars.buttons["Train"]
+            XCTAssertTrue(train.waitForExistence(timeout: 10))
+            train.tap()
+            dismissOverlaysIfNeeded()
+            discardLeftoverWorkout()
+            app.buttons["Exercises"].firstMatch.tap()
+
+            let search = app.searchFields.firstMatch
+            XCTAssertTrue(search.waitForExistence(timeout: 10))
+            search.tap()
+            search.typeText("Barbell Bench Press - Medium Grip\n")
+            // Rows combine their children, so match the row button by label prefix.
+            let exercise = app.buttons.matching(
+                NSPredicate(format: "label BEGINSWITH %@", "Barbell Bench Press - Medium Grip")
+            ).firstMatch
+            XCTAssertTrue(exercise.waitForExistence(timeout: 10))
+            exercise.tap()
+            // Section headings can report isHittable == false under the
+            // glass card, so position by frame instead of reveal().
+            let heading = app.staticTexts["Muscles worked"]
+            scrollOnScreen(heading)
+            // Lift the card to the top so the whole figure clears the tab bar.
+            drag(by: -min(heading.frame.minY - 110, 280))
+            capture(named: "activation-\(appearance)-01-detail")
+            let triceps = app.buttons["muscle-row-Triceps"]
+            reveal(triceps)
+            triceps.tap()
+            capture(named: "activation-\(appearance)-02-focused")
+            app.swipeDown()
+            app.navigationBars.buttons.firstMatch.tap()
+
+            if app.buttons["Cancel"].exists { app.buttons["Cancel"].tap() }
+            let picker = app.buttons["exercise-body-picker"].firstMatch
+            XCTAssertTrue(picker.waitForExistence(timeout: 10))
+            picker.tap()
+            capture(named: "activation-\(appearance)-03-picker")
+            app.buttons["Back"].firstMatch.tap()
+            capture(named: "activation-\(appearance)-04-picker-back")
+            app.buttons["body-picker-confirm"].tap()
+            capture(named: "activation-\(appearance)-05-filtered")
+            app.terminate()
+        }
+    }
+
     private func replaceField(_ identifier: String, with value: String) {
         let field = app.textFields[identifier]
         var stored = ""
@@ -529,17 +577,30 @@ final class ScreenshotTests: XCTestCase {
 
     /// SwiftUI `Menu` buttons can report `isHittable == false` while fully on
     /// screen, so this scrolls by frame instead and the caller taps by
-    /// coordinate. It only swipes up: the menus it serves sit below the
-    /// fold, and a swipe down at the top of a sheet dismisses it.
+    /// coordinate. It swipes down only when the element sits above the
+    /// viewport, so a sheet already at its top is never swiped away.
     private func scrollOnScreen(_ element: XCUIElement) {
         XCTAssertTrue(element.waitForExistence(timeout: 10))
         let window = app.windows.firstMatch.frame
-        for _ in 0..<6 {
+        for _ in 0..<10 {
             let frame = element.frame
-            if frame.minY >= window.minY + 100 && frame.maxY <= window.maxY - 120 { return }
-            app.swipeUp()
+            if frame.minY < window.minY + 100 {
+                drag(by: 250)
+            } else if frame.maxY > window.maxY - 120 {
+                drag(by: -250)
+            } else {
+                return
+            }
         }
-        XCTFail("\(element.identifier) never scrolled on screen")
+        XCTFail("\(element.label) never scrolled on screen: \(element.frame) in \(window)")
+    }
+
+    /// A slow press-and-drag scrolls by roughly its own length, where a
+    /// swipe flings far enough to jump right past a mid-sized target.
+    private func drag(by points: CGFloat) {
+        let center = app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        center.press(forDuration: 0.1, thenDragTo: center.withOffset(CGVector(dx: 0, dy: points)),
+                     withVelocity: .slow, thenHoldForDuration: 0.3)
     }
 
     private func scrollToTop() {

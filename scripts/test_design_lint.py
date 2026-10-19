@@ -88,6 +88,10 @@ CASES = [
      'Button { withAnimation { page += 1 } } label: { Text("Next") }',
      'Button { withAnimation(AppAnimation.springSnappy) { page += 1 } } label: { Text("Next") }'),
 
+    ("rule_curve_literal", "Foo.swift",
+     'Text("a").animation(.spring(response: 0.42, dampingFraction: 0.78), value: step)',
+     'Circle().onAppear { withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) { on = true } }'),
+
     ("rule_placeholder_as_label", "Foo.swift",
      'HStack {\n  Text("Sets")\n  TextField("0", text: $sets)\n    .keyboardType(.numberPad)\n}',
      'HStack {\n  Text("Sets")\n  TextField("0", text: $sets)\n    .accessibilityLabel("Sets")\n}'),

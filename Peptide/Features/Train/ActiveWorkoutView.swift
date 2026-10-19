@@ -74,7 +74,8 @@ struct ActiveWorkoutView: View {
             catch { return }
             if scenePhase == .active, sessionService.activeSession?.isPaused == false,
                sessionService.activeSession?.focus?.rest?.endsAt == end {
-                Haptics.selection()
+                // Strong enough to feel with the phone face-down on a bench.
+                Haptics.success()
                 AccessibilityNotification.Announcement("Rest finished. Your next set is ready.").post()
             }
             sessionService.reconcileRest()

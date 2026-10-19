@@ -22,21 +22,21 @@ struct SettingsView: View {
                     .sectionAppear(index: 3)
 
                 RestoreBackupEntryRow(onTap: { showRestoreBackup = true })
-                    .sectionAppear(index: 4)
+                    .scrollReveal()
 
                 #if DEBUG
                 ScreenshotModeRow()
-                    .sectionAppear(index: 5)
+                    .scrollReveal()
                 #endif
 
                 AccountSection()
-                    .sectionAppear(index: 6)
+                    .scrollReveal()
 
                 DiagnosticsSection()
-                    .sectionAppear(index: 7)
+                    .scrollReveal()
 
                 AboutSection()
-                    .sectionAppear(index: 8)
+                    .scrollReveal()
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)

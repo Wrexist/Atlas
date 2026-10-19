@@ -28,6 +28,7 @@ struct PaywallView: View {
     @State private var storeService = StoreService.shared
 
     @State private var selectedProductID: String?
+    @Namespace private var planSelection
     @State private var isPurchasing = false
     @State private var isRestoring = false
     @State private var notice: PurchaseNotice?
@@ -207,7 +208,7 @@ struct PaywallView: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
         }
-        .animation(AppAnimation.springSnappy, value: selectedProductID)
+        .appAnimation(AppAnimation.springSnappy, value: selectedProductID)
     }
 
     private var headlineEyebrow: String {
@@ -667,7 +668,7 @@ struct PaywallView: View {
         let isSelected = selectedProductID == product.id
         return Button {
             Haptics.selection()
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
+            AppAnimation.with(AppAnimation.step) {
                 selectedProductID = product.id
             }
         } label: {
@@ -721,10 +722,16 @@ struct PaywallView: View {
                     )
                     .overlay {
                         RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .strokeBorder(
-                                isSelected ? AppColor.accentPrimary : AppColor.glassBorder,
-                                lineWidth: isSelected ? 2 : 0.5
-                            )
+                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                    }
+                    .overlay {
+                        // One selection ring that slides between plans,
+                        // so switching reads as moving a choice.
+                        if isSelected {
+                            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                                .strokeBorder(AppColor.accentPrimary, lineWidth: 2)
+                                .matchedGeometryEffect(id: "planSelection", in: planSelection)
+                        }
                     }
             }
         }
@@ -740,9 +747,9 @@ struct PaywallView: View {
                 Image(systemName: "checkmark")
                     .font(AppFont.scaled(11, weight: .bold))
                     .foregroundStyle(AppColor.accentPrimary)
+                    .transition(.scale.combined(with: .opacity))
             }
         }
-        .contentTransition(.symbolEffect(.replace))
     }
 
     private func savingsPill(_ text: String) -> some View {
@@ -842,6 +849,7 @@ struct PaywallView: View {
             switch notice {
             case .failed(let message):
                 purchaseErrorBanner(message: message)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             case .pending:
                 pendingApprovalBanner
             case .nothingToRestore:
@@ -859,6 +867,7 @@ struct PaywallView: View {
 
             footerLinks
         }
+        .appAnimation(AppAnimation.springSnappy, value: notice)
     }
 
     /// Two-line CTA: the action on top, the money underneath.
@@ -1110,6 +1119,7 @@ struct PaywallView: View {
                 // (C8: gating on isProUser could strand them on the paywall).
                 didConvert = true
                 OnboardingFunnelTracker.recordEvent(source.purchasedEvent)
+                Haptics.success()
                 dismiss()
             case .pending:
                 notice = .pending
@@ -1153,7 +1163,7 @@ struct PaywallView: View {
         dismiss()
     }
 
-    private enum PurchaseNotice {
+    private enum PurchaseNotice: Equatable {
         case failed(LocalizedStringKey)
         case pending
         case nothingToRestore

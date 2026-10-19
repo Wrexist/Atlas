@@ -44,7 +44,7 @@ struct SyncToast: View {
                 .accessibilityAddTraits(.isStaticText)
             }
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isShowing)
+        .appAnimation(AppAnimation.toast, value: isShowing)
     }
 
     private func scheduleDismiss() {

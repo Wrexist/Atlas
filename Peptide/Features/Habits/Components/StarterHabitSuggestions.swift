@@ -63,7 +63,7 @@ struct StarterHabitSuggestions: View {
 
     private func chip(_ template: HabitTemplate) -> some View {
         Button {
-            withAnimation(AppAnimation.springSnappy) { onPick(template) }
+            AppAnimation.with(AppAnimation.springSnappy) { onPick(template) }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: template.iconSymbol)

@@ -55,6 +55,9 @@ struct FoodLibraryFlow: View {
     @State private var loggedHistoryBarcode: String?
     @State private var historyWriteTask: Task<Void, Never>?
     @State private var editingCustomFood: CustomFood?
+    /// Typed search the user asked Atlas AI to turn into a food. The
+    /// editor opens already filling itself from it.
+    @State private var aiFillQuery: String?
     @State private var pendingDelete: CustomFood?
     @State private var editingRecipe: Recipe?
     @State private var pendingRecipeDelete: Recipe?
@@ -248,8 +251,10 @@ struct FoodLibraryFlow: View {
                 onDelete: profile.customFoods.contains(where: { $0.id == food.id }) ? { id in
                     dataStore.deleteCustomFood(id: id)
                     editingCustomFood = nil
-                } : nil
+                } : nil,
+                autoFillQuery: aiFillQuery
             )
+            .onDisappear { aiFillQuery = nil }
         }
         .confirmationDialog(
             "Delete this food?",
@@ -630,8 +635,12 @@ struct FoodLibraryFlow: View {
                     emptyState(
                         icon: "questionmark.app.dashed",
                         title: "No results",
-                        body: "We couldn't find a match for \"\(debouncedQuery)\". Create a custom food, scan a barcode, or snap a photo."
+                        body: "We couldn't find a match for \"\(debouncedQuery)\". Let Atlas AI add it, scan a barcode, or snap a photo."
                     )
+                    GlassButton(title: "Add \"\(debouncedQuery)\" with AI", icon: "sparkles", style: .primary) {
+                        aiFillQuery = debouncedQuery
+                        editingCustomFood = .blank
+                    }
                 }
             } else {
                 if !results.isEmpty {
@@ -896,7 +905,7 @@ struct FoodLibraryFlow: View {
                         .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
-                    Text(food.brand ?? "Custom food")
+                    Text([food.brand ?? "Custom food", food.typicalPrice?.formatted].compactMap { $0 }.joined(separator: " · "))
                         .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)

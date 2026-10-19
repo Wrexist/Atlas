@@ -56,6 +56,11 @@ struct WidgetData: Codable, Sendable {
     let proteinToday: Int
     let carbsToday: Int
     let fatToday: Int
+    /// Macro targets in grams. Zero when the user hasn't set one — the
+    /// widget then shows the gram count without a progress bar.
+    let proteinTarget: Int
+    let carbsTarget: Int
+    let fatTarget: Int
     /// Per-category breakdown for the Medium nutrition widget. Empty
     /// on legacy payloads written before this branch — the small
     /// widget renders fine without it.
@@ -74,6 +79,17 @@ struct WidgetData: Codable, Sendable {
     /// Start time of the workout in progress, or nil when none is.
     /// One field rather than a Bool plus a Date, which can disagree.
     let activeWorkoutStartedAt: Date?
+    /// Seconds the running workout has spent paused, before any pause
+    /// still open. The widget's live timer counts from
+    /// `activeWorkoutStartedAt` shifted by this, so it agrees with the
+    /// in-app clock after a pause and resume.
+    let activeWorkoutPausedSeconds: Double
+    /// When the open pause began, or nil while the clock runs. The
+    /// widget freezes its time here instead of ticking on.
+    let activeWorkoutPausedAt: Date?
+    /// Start of each day this week with at least one finished session.
+    /// Feeds the training widget's Monday-to-Sunday strip.
+    let trainingDaysThisWeek: [Date]
     /// `MeasurementUnit` rawValue — "metric" or "imperial". A String
     /// for the reason `WatchData.measurementUnit` is one: this file
     /// compiles into the widget targets, which can't see the app's
@@ -94,12 +110,18 @@ struct WidgetData: Codable, Sendable {
         proteinToday: Int = 0,
         carbsToday: Int = 0,
         fatToday: Int = 0,
+        proteinTarget: Int = 0,
+        carbsTarget: Int = 0,
+        fatTarget: Int = 0,
         mealsByCategory: [WidgetMealSlot] = [],
         lastWorkout: WidgetWorkoutSummary? = nil,
         workoutsThisWeek: Int = 0,
         weeklySetCount: Int = 0,
         weeklyVolumeKg: Double = 0,
         activeWorkoutStartedAt: Date? = nil,
+        activeWorkoutPausedSeconds: Double = 0,
+        activeWorkoutPausedAt: Date? = nil,
+        trainingDaysThisWeek: [Date] = [],
         measurementUnit: String = "metric"
     ) {
         self.nextPeptideName = nextPeptideName
@@ -114,12 +136,18 @@ struct WidgetData: Codable, Sendable {
         self.proteinToday = proteinToday
         self.carbsToday = carbsToday
         self.fatToday = fatToday
+        self.proteinTarget = proteinTarget
+        self.carbsTarget = carbsTarget
+        self.fatTarget = fatTarget
         self.mealsByCategory = mealsByCategory
         self.lastWorkout = lastWorkout
         self.workoutsThisWeek = workoutsThisWeek
         self.weeklySetCount = weeklySetCount
         self.weeklyVolumeKg = weeklyVolumeKg
         self.activeWorkoutStartedAt = activeWorkoutStartedAt
+        self.activeWorkoutPausedSeconds = activeWorkoutPausedSeconds
+        self.activeWorkoutPausedAt = activeWorkoutPausedAt
+        self.trainingDaysThisWeek = trainingDaysThisWeek
         self.measurementUnit = measurementUnit
     }
 
@@ -167,9 +195,11 @@ struct WidgetData: Codable, Sendable {
         case completedToday, totalToday, lastUpdated, upcoming
         case caloriesToday, calorieTarget
         case proteinToday, carbsToday, fatToday
+        case proteinTarget, carbsTarget, fatTarget
         case mealsByCategory
         case lastWorkout, workoutsThisWeek, weeklySetCount, weeklyVolumeKg
-        case activeWorkoutStartedAt, measurementUnit
+        case activeWorkoutStartedAt, activeWorkoutPausedSeconds, activeWorkoutPausedAt
+        case trainingDaysThisWeek, measurementUnit
     }
 
     init(from decoder: Decoder) throws {
@@ -186,12 +216,18 @@ struct WidgetData: Codable, Sendable {
         proteinToday = try c.decodeIfPresent(Int.self, forKey: .proteinToday) ?? 0
         carbsToday = try c.decodeIfPresent(Int.self, forKey: .carbsToday) ?? 0
         fatToday = try c.decodeIfPresent(Int.self, forKey: .fatToday) ?? 0
+        proteinTarget = try c.decodeIfPresent(Int.self, forKey: .proteinTarget) ?? 0
+        carbsTarget = try c.decodeIfPresent(Int.self, forKey: .carbsTarget) ?? 0
+        fatTarget = try c.decodeIfPresent(Int.self, forKey: .fatTarget) ?? 0
         mealsByCategory = try c.decodeIfPresent([WidgetMealSlot].self, forKey: .mealsByCategory) ?? []
         lastWorkout = try c.decodeIfPresent(WidgetWorkoutSummary.self, forKey: .lastWorkout)
         workoutsThisWeek = try c.decodeIfPresent(Int.self, forKey: .workoutsThisWeek) ?? 0
         weeklySetCount = try c.decodeIfPresent(Int.self, forKey: .weeklySetCount) ?? 0
         weeklyVolumeKg = try c.decodeIfPresent(Double.self, forKey: .weeklyVolumeKg) ?? 0
         activeWorkoutStartedAt = try c.decodeIfPresent(Date.self, forKey: .activeWorkoutStartedAt)
+        activeWorkoutPausedSeconds = try c.decodeIfPresent(Double.self, forKey: .activeWorkoutPausedSeconds) ?? 0
+        activeWorkoutPausedAt = try c.decodeIfPresent(Date.self, forKey: .activeWorkoutPausedAt)
+        trainingDaysThisWeek = try c.decodeIfPresent([Date].self, forKey: .trainingDaysThisWeek) ?? []
         measurementUnit = try c.decodeIfPresent(String.self, forKey: .measurementUnit) ?? "metric"
     }
 }

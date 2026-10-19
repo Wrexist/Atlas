@@ -223,6 +223,10 @@ export async function forwardToAnthropic(req, res, {
   allowClientSystem,
   maxBodyBytes,
   shape,
+  buildBody,
+  readResponse,
+  betas,
+  timeoutMs = 25_000,
 }) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: { message: 'Use POST' } });
@@ -317,7 +321,12 @@ export async function forwardToAnthropic(req, res, {
   // past them. The parsed body is measured above, so charge on that
   // instead, and bill the difference to the device quota, which was
   // already charged the header's smaller figure before parsing.
-  const clean = sanitiseBody(req.body, { systemPrefix, allowClientSystem, shape });
+  // Routes that own their prompt (food-scan) build the whole upstream
+  // request server-side from a small app payload; everything else is a
+  // sanitised pass-through of the Messages shape the app sends.
+  const clean = buildBody
+    ? buildBody(req.body)
+    : sanitiseBody(req.body, { systemPrefix, allowClientSystem, shape });
   if (!clean) {
     res.status(400).json({ error: { message: 'Malformed request body' } });
     return;
@@ -345,7 +354,7 @@ export async function forwardToAnthropic(req, res, {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25_000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -353,6 +362,7 @@ export async function forwardToAnthropic(req, res, {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
+        ...(betas?.length ? { 'anthropic-beta': betas.join(',') } : {}),
       },
       body: JSON.stringify(clean),
       signal: controller.signal,
@@ -366,6 +376,12 @@ export async function forwardToAnthropic(req, res, {
       // status is logged server-side only.
       console.error(`[${logLabel}] upstream non-2xx`, upstream.status);
       res.status(502).json({ error: { message: 'Upstream error' } });
+      return;
+    }
+
+    if (readResponse) {
+      const { status, body } = readResponse(await upstream.json());
+      res.status(status).json(body);
       return;
     }
 

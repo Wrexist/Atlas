@@ -194,7 +194,7 @@ private struct ThemePickerRow: View {
         let isSelected = selection == theme
         return Button {
             guard selection != theme else { return }
-            withAnimation(.snappy(duration: 0.2)) {
+            AppAnimation.with(AppAnimation.quick) {
                 selection = theme
             }
             Haptics.impact(.light)

@@ -77,11 +77,11 @@ struct LockScreenView: View {
     /// Reduce Motion — the haptic + icon bounce already convey the failure.
     private func shakeIcon() async {
         guard !reduceMotion else { return }
-        withAnimation(.spring(response: 0.12, dampingFraction: 0.45)) { shakeOffset = 8 }
+        AppAnimation.with(AppAnimation.shake) { shakeOffset = 8 }
         try? await Task.sleep(for: .milliseconds(80))
-        withAnimation(.spring(response: 0.12, dampingFraction: 0.45)) { shakeOffset = -8 }
+        AppAnimation.with(AppAnimation.shake) { shakeOffset = -8 }
         try? await Task.sleep(for: .milliseconds(80))
-        withAnimation(.spring(response: 0.18, dampingFraction: 0.6)) { shakeOffset = 0 }
+        AppAnimation.with(AppAnimation.shakeSettle) { shakeOffset = 0 }
     }
 }
 

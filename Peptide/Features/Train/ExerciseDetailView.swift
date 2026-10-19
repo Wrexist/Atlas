@@ -130,52 +130,8 @@ struct ExerciseDetailView: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
-                MuscleMapView(
-                    highlights: MuscleMapView.highlights(for: exercise),
-                    primaryColor: AppColor.trainingPrimaryMuscle,
-                    secondaryColor: AppColor.trainingSecondaryMuscle
-                )
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 280)
-
-                muscleLegend(for: exercise)
+                MuscleActivationMap(exercise: exercise)
             }
-        }
-    }
-
-    private func muscleLegend(for exercise: Exercise) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            if !exercise.primaryMuscles.isEmpty {
-                muscleLegendCluster(
-                    title: "Primary",
-                    muscles: exercise.primaryMuscles,
-                    swatch: AppColor.trainingPrimaryMuscle
-                )
-            }
-            if !exercise.secondaryMuscles.isEmpty {
-                muscleLegendCluster(
-                    title: "Supporting",
-                    muscles: exercise.secondaryMuscles,
-                    swatch: AppColor.trainingSecondaryMuscle
-                )
-            }
-        }
-    }
-
-    private func muscleLegendCluster(title: String, muscles: [String], swatch: Color) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(swatch)
-                    .frame(width: 8, height: 8)
-                Text(title)
-                    .font(AppFont.footnote.weight(.semibold))
-                    .foregroundStyle(AppColor.textPrimary)
-            }
-            Text(muscles.map { $0.capitalized }.joined(separator: ", "))
-                .font(AppFont.callout)
-                .foregroundStyle(AppColor.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

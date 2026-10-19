@@ -98,7 +98,7 @@ struct SegmentedCalorieRing: View {
                 overTargetGlow
             }
         }
-        .animation(.spring(response: 0.55, dampingFraction: 0.85), value: totalProgress)
+        .appAnimation(AppAnimation.springSmooth, value: totalProgress)
         .onAppear {
             guard !hasAppeared else { return }
             withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) {

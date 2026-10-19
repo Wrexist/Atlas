@@ -79,13 +79,13 @@ struct ConsistencyChart: View {
         // animation each time it scrolls back into view rather than
         // staying frozen at its fully-drawn end state.
         guard drawA == 0 else { return }
-        withAnimation(.easeOut(duration: 1.2)) {
+        AppAnimation.with(AppAnimation.draw) {
             drawA = 1
         }
-        withAnimation(.easeOut(duration: 1.2).delay(0.25)) {
+        AppAnimation.with(AppAnimation.draw.delay(0.25)) {
             drawB = 1
         }
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.65).delay(1.1)) {
+        AppAnimation.with(AppAnimation.springBouncy.delay(1.1)) {
             endpointsVisible = true
         }
     }

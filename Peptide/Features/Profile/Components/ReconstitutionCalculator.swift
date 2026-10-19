@@ -108,11 +108,13 @@ struct ReconstitutionCalculator: View {
             }
             Slider(value: bind, in: range, step: step)
                 .tint(AppColor.accentPrimary)
+                // Through Haptics so the in-app haptics switch applies.
+                .onChange(of: value) { _, _ in Haptics.selection() }
             HStack(spacing: Spacing.xs) {
                 ForEach(quickPicks, id: \.self) { pick in
                     Button("\(formatted(pick))") {
                         Haptics.impact(.light)
-                        bind.wrappedValue = pick
+                        AppAnimation.with(AppAnimation.springSnappy) { bind.wrappedValue = pick }
                     }
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
@@ -310,7 +312,7 @@ struct SyringeDiagram: View {
                     )
                     .frame(width: bodyWidth * fillFraction, height: plungerHeight - 4)
                     .position(x: bodyWidth * fillFraction / 2, y: centerY)
-                    .animation(.spring(response: 0.45, dampingFraction: 0.85), value: fillFraction)
+                    .appAnimation(AppAnimation.springSmooth, value: fillFraction)
 
                 // Tick marks (major)
                 ForEach(0...10, id: \.self) { tick in

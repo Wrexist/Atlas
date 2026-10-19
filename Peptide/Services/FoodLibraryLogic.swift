@@ -33,7 +33,7 @@ enum FoodLibraryLogic {
         return nil
     }
 
-    private static func normalized(_ value: String) -> String {
+    static func normalized(_ value: String) -> String {
         value.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "en_US_POSIX"))
             .split(whereSeparator: { !$0.isLetter && !$0.isNumber }).joined(separator: " ")
     }

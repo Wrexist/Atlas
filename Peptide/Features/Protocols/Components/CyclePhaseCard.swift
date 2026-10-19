@@ -117,7 +117,7 @@ struct CyclePhaseCard: View {
                 }
             }
             .frame(height: 6)
-            .animation(.spring(response: 0.45, dampingFraction: 0.85), value: status.phaseProgress)
+            .appAnimation(AppAnimation.springSmooth, value: status.phaseProgress)
         }
     }
 

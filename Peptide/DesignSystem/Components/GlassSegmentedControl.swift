@@ -16,7 +16,7 @@ struct GlassSegmentedControl<T: Hashable & CustomStringConvertible>: View {
                 Button {
                     guard selected != option else { return }
                     Haptics.selection()
-                    withAnimation(AppAnimation.springSnappy) {
+                    AppAnimation.with(AppAnimation.springSnappy) {
                         selected = option
                     }
                 } label: {
