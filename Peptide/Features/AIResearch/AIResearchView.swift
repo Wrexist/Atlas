@@ -191,20 +191,14 @@ struct AIResearchView: View {
 
     private var composer: some View {
         HStack(spacing: Spacing.sm) {
-            TextField("Ask about a compound, stack, or study…", text: $input, axis: .vertical)
-                .textFieldStyle(.plain)
-                .lineLimit(1...5)
-                .focused($inputFocused)
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.sm)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                        }
-                }
+            GlassTextField(
+                placeholder: "Ask about a compound, stack, or study…",
+                text: $input,
+                icon: nil,
+                axis: .vertical,
+                focus: $inputFocused
+            )
+            .lineLimit(1...5)
 
             Button(action: send) {
                 Image(systemName: "arrow.up.circle.fill")

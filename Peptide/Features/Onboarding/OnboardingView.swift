@@ -977,23 +977,11 @@ struct OnboardingView: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
             }
-            TextField("First name", text: $name)
-                .focused($nameFocused)
+            GlassTextField(placeholder: "First name", text: $name, icon: nil, focus: $nameFocused)
                 .textInputAutocapitalization(.words)
                 .submitLabel(.continue)
                 .font(AppFont.title2)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.xl)
-                .padding(.vertical, Spacing.md)
-                .background(
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .stroke(nameFocused ? AppColor.accentPrimary : AppColor.glassBorder,
-                                lineWidth: nameFocused ? 1 : 0.5)
-                )
                 .padding(.horizontal, Spacing.xl)
                 .onSubmit { if primaryEnabled { primaryAction() } }
             Spacer()

@@ -172,21 +172,8 @@ struct HabitEditSheet: View {
     }
 
     private var nameField: some View {
-        TextField("Habit name", text: $name)
-            .font(AppFont.body)
-            .focused($nameFocused)
+        GlassTextField(placeholder: "Habit name", text: $name, icon: nil, focus: $nameFocused)
             .submitLabel(.done)
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
-            .frame(minHeight: Spacing.minimumHitTarget)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 1)
-                    }
-            }
     }
 
     // MARK: - Schedule

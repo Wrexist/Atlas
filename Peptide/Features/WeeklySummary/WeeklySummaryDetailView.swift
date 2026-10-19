@@ -95,79 +95,50 @@ struct WeeklySummaryDetailView: View {
             ],
             spacing: Spacing.sm
         ) {
-            statTile(
+            StatTile(
                 label: "Compliance",
                 value: "\(Int((summary.keyStats.compliancePct * 100).rounded()))%",
-                sublabel: "\(summary.keyStats.dosesCompleted) of \(summary.keyStats.dosesTotal) doses",
-                tint: accent
+                tint: accent,
+                footnote: "\(summary.keyStats.dosesCompleted) of \(summary.keyStats.dosesTotal) doses",
+                size: .large
             )
-            statTile(
+            StatTile(
                 label: "Streak",
                 value: "\(summary.keyStats.currentStreak)",
-                sublabel: summary.keyStats.currentStreak == 1 ? "day" : "days",
-                tint: AppColor.streak
+                tint: AppColor.streak,
+                footnote: summary.keyStats.currentStreak == 1 ? "day" : "days",
+                size: .large
             )
             if let composite = summary.keyStats.avgCheckInScore {
-                statTile(
+                StatTile(
                     label: "Check-in",
                     value: String(format: "%.1f", composite),
-                    sublabel: "of 5.0",
-                    tint: AppColor.metricHRV
+                    tint: AppColor.metricHRV,
+                    footnote: "of 5.0",
+                    size: .large
                 )
             }
             if let calories = summary.keyStats.avgCalories {
-                statTile(
+                StatTile(
                     label: "Avg kcal",
                     value: "\(calories)",
-                    sublabel: "per day",
-                    tint: AppColor.macroProtein
+                    tint: AppColor.macroProtein,
+                    footnote: "per day",
+                    size: .large
                 )
             }
             if let delta = summary.keyStats.hrvDelta {
                 let prefix = delta > 0 ? "+" : ""
-                statTile(
+                StatTile(
                     label: "HRV Δ",
                     value: "\(prefix)\(delta)",
-                    sublabel: "ms vs prior week",
                     tint: delta >= 0
                         ? AppColor.positive
-                        : AppColor.negative
+                        : AppColor.negative,
+                    footnote: "ms vs prior week",
+                    size: .large
                 )
             }
-        }
-    }
-
-    private func statTile(
-        label: LocalizedStringKey,
-        value: String,
-        sublabel: String,
-        tint: Color
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(AppFont.scaled(11, weight: .heavy))
-                .tracking(0.5)
-                .textCase(.uppercase)
-                .foregroundStyle(AppColor.textSecondary)
-            Text(value)
-                .font(.system(.title, design: .rounded, weight: .heavy))
-                .foregroundStyle(tint)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            Text(sublabel)
-                .font(AppFont.scaled(11))
-                .foregroundStyle(AppColor.textTertiary)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.cardOverlay)
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
         }
     }
 

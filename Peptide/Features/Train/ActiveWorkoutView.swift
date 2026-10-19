@@ -275,36 +275,28 @@ struct ActiveWorkoutView: View {
                     // autoconnected Timer.publish re-rendered the whole
                     // body at 1Hz for as long as the view value existed.
                     TimelineView(.periodic(from: session.startedAt, by: 1)) { context in
-                        statTile(
+                        StatTile(
+                            label: "Elapsed",
                             value: elapsedFormatted(session, now: context.date),
-                            label: "Elapsed"
+                            size: .large,
+                            surface: .plain
                         )
                     }
-                    statTile(
+                    StatTile(
+                        label: "Sets done",
                         value: "\(session.completedSetCount)",
-                        label: "Sets done"
+                        size: .large,
+                        surface: .plain
                     )
-                    statTile(
+                    StatTile(
+                        label: "Volume (\(unit.weightSuffix))",
                         value: "\(Int(unit.weightForDisplay(session.totalVolumeKg).rounded()))",
-                        label: "Volume (\(unit.weightSuffix))"
+                        size: .large,
+                        surface: .plain
                     )
                 }
             }
         }
-    }
-
-    private func statTile(value: String, label: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value)
-                .font(AppFont.statValueSmall)
-                .foregroundStyle(AppColor.textPrimary)
-                .monospacedDigit()
-                .contentTransition(.numericText())
-            Text(label)
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textSecondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func elapsedFormatted(_ session: WorkoutSession, now: Date) -> String {
@@ -446,7 +438,7 @@ private struct FinishWorkoutSheet: View {
 
     private var trimmedNote: String? {
         let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : String(trimmed.prefix(Self.noteLimit))
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private var effortSection: some View {
@@ -490,22 +482,15 @@ private struct FinishWorkoutSheet: View {
     private var noteSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             sectionTitle("Note")
-            TextField("How did it go?", text: $note, axis: .vertical)
-                .lineLimit(3...6)
-                .font(AppFont.body)
-                .foregroundStyle(AppColor.textPrimary)
-                .focused($noteFocused)
-                .padding(Spacing.md)
-                .background(
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .stroke(noteFocused ? AppColor.accentPrimary : AppColor.glassBorder,
-                                lineWidth: noteFocused ? 1 : 0.5)
-                )
-                .accessibilityLabel("Workout note")
+            GlassTextField(
+                placeholder: "How did it go?",
+                text: $note,
+                icon: nil,
+                axis: .vertical,
+                characterLimit: Self.noteLimit,
+                focus: $noteFocused
+            )
+            .lineLimit(3...6)
         }
     }
 

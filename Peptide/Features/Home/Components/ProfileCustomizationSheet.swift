@@ -377,67 +377,40 @@ struct ProfileCustomizationSheet: View {
 
     private var statsRow: some View {
         HStack(spacing: Spacing.sm) {
-            statTile(
-                value: "\(dataStore.currentStreak)",
+            StatTile(
                 label: "Streak",
-                accessibilityLabel: "Current streak: \(dataStore.currentStreak) days",
+                value: "\(dataStore.currentStreak)",
                 icon: "flame.fill",
-                accent: AppColor.warning
+                tint: AppColor.warning,
+                surface: .glass,
+                accessibilityLabel: "Current streak: \(dataStore.currentStreak) days"
             )
-            statTile(
-                value: "\(dataStore.totalDaysLogged)",
+            StatTile(
                 label: "Days",
-                accessibilityLabel: "Days logged: \(dataStore.totalDaysLogged)",
+                value: "\(dataStore.totalDaysLogged)",
                 icon: "calendar",
-                accent: AppColor.accentPrimary
+                tint: AppColor.accentPrimary,
+                surface: .glass,
+                accessibilityLabel: "Days logged: \(dataStore.totalDaysLogged)"
             )
-            statTile(
-                value: "\(dataStore.protocols.count)",
+            StatTile(
                 label: "Stacks",
-                accessibilityLabel: "Stacks created: \(dataStore.protocols.count)",
+                value: "\(dataStore.protocols.count)",
                 icon: "square.stack.3d.up.fill",
-                accent: AppColor.accentLight
+                tint: AppColor.accentLight,
+                surface: .glass,
+                accessibilityLabel: "Stacks created: \(dataStore.protocols.count)"
             )
-            statTile(
-                value: memberShortDuration,
+            StatTile(
                 label: "Member",
-                accessibilityLabel: "Member duration: \(memberShortDuration)",
+                value: memberShortDuration,
                 icon: "calendar.badge.clock",
-                accent: AppColor.textSecondary
+                tint: AppColor.textSecondary,
+                surface: .glass,
+                accessibilityLabel: "Member duration: \(memberShortDuration)"
             )
-        }
-    }
-
-    private func statTile(
-        value: String,
-        label: LocalizedStringKey,
-        accessibilityLabel: String,
-        icon: String,
-        accent: Color
-    ) -> some View {
-        GlassCardCompact {
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Image(systemName: icon)
-                    .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(accent)
-                Text(value)
-                    .font(AppFont.title3)
-                    .fontWeight(.bold)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .allowsTightening(true)
-                Text(label)
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textTertiary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .dynamicTypeSize(...DynamicTypeSize.accessibility2)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabel)
     }
 
     private var memberShortDuration: String {
