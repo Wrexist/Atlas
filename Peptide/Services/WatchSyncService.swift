@@ -32,13 +32,17 @@ final class WatchSyncService: NSObject {
     /// lands, every push would otherwise send nil and the Watch would
     /// drop its Recovery and Sleep pages.
     nonisolated static func lastWrittenVitals() -> WatchVitalsSnapshot? {
+        readLastWritten()?.vitals
+    }
+
+    nonisolated private static func readLastWritten() -> WatchData? {
         guard let url = FileManager.default
                 .containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)?
                 .appendingPathComponent("watch_data.json"),
               let data = try? Data(contentsOf: url) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return (try? decoder.decode(WatchData.self, from: data))?.vitals
+        return try? decoder.decode(WatchData.self, from: data)
     }
 
     override private init() {
@@ -66,10 +70,10 @@ final class WatchSyncService: NSObject {
         trainingHabitsDone: Int? = nil,
         trainingHabitsTotal: Int? = nil,
         measurementUnit: String? = nil,
-        vitals: WatchVitalsSnapshot? = nil
+        vitals: WatchVitalsSnapshot? = nil,
+        workout: WatchWorkoutSnapshot? = nil,
+        training: WatchTrainingSnapshot? = nil
     ) {
-        guard let url = watchDataURL else { return }
-
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
 
@@ -117,9 +121,29 @@ final class WatchSyncService: NSObject {
             trainingHabitsDone: trainingHabitsDone,
             trainingHabitsTotal: trainingHabitsTotal,
             measurementUnit: measurementUnit,
-            vitals: vitals
+            vitals: vitals,
+            workout: workout,
+            training: training
         )
+        publish(data)
+    }
 
+    /// Re-sends the last snapshot with a new workout state. Set edits
+    /// arrive many times a minute mid-workout; rebuilding the whole
+    /// snapshot for each would redo the dose, habit and score math.
+    func updateWorkout(_ workout: WatchWorkoutSnapshot?) {
+        guard let last = lastPublished ?? Self.readLastWritten(),
+              last.workout != workout else { return }
+        publish(last.replacingWorkout(workout))
+    }
+
+    /// The snapshot most recently written, so `updateWorkout` can carry
+    /// the other fields forward.
+    private var lastPublished: WatchData?
+
+    private func publish(_ data: WatchData) {
+        lastPublished = data
+        guard let url = watchDataURL else { return }
         do {
             let encoded = try encoder.encode(data)
             try encoded.write(to: url, options: .atomic)
@@ -194,9 +218,18 @@ extension WatchSyncService: WCSessionDelegate {
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         guard let action = message["action"] as? String else { return }
 
-        // Water-log path is its own shape — no entry/protocol IDs,
-        // just the ounces. Branch early so the dose-related guard
-        // below doesn't reject it.
+        // Workout and water commands are their own shapes, with no
+        // entry/protocol IDs. Branch early so the dose-related guard
+        // below doesn't reject them.
+        if action == WatchMessage.workout {
+            guard let payload = message[WatchMessage.workoutRequestKey] as? Data,
+                  let request = WatchWorkoutRequest.decode(payload) else { return }
+            Task { @MainActor in
+                WorkoutSessionService.shared.apply(request)
+            }
+            return
+        }
+
         if action == WatchMessage.logWater {
             guard let oz = message[WatchMessage.ozKey] as? Int else { return }
             Task { [weak self] in

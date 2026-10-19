@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum WatchPage: Hashable {
-    case today, recovery, sleep, nutrition, protocols
+    case workout, today, recovery, sleep, nutrition, protocols
 }
 
 /// Vertical pager in the shape of the watchOS 10 system apps: one
@@ -12,14 +12,16 @@ enum WatchPage: Hashable {
 /// Pages appear only when the phone sent their data, so a user without
 /// Apple Health or a protocol never scrolls past an empty page. The
 /// selection is bound to a stable tag so a page arriving mid-session
-/// doesn't throw the pager back to the top.
+/// doesn't throw the pager back to the top. The one exception is the
+/// Workout page: a workout starting on the phone brings it to the front,
+/// since that is why the user raised their wrist.
 struct WatchRootView: View {
     @EnvironmentObject private var store: WatchStore
     @State private var selection: WatchPage = .today
 
     private var pages: [WatchPage] {
         let data = store.watchData
-        var pages: [WatchPage] = [.today]
+        var pages: [WatchPage] = data.workout == nil ? [.today] : [.workout, .today]
         if data.vitals != nil { pages.append(.recovery) }
         if data.vitals?.sleep != nil { pages.append(.sleep) }
         if data.nutrition != nil { pages.append(.nutrition) }
@@ -38,6 +40,12 @@ struct WatchRootView: View {
             }
             .tabViewStyle(.verticalPage)
         }
+        .onAppear {
+            if store.watchData.workout != nil { selection = .workout }
+        }
+        .onChange(of: store.watchData.workout?.sessionId) { _, session in
+            if session != nil { selection = .workout }
+        }
         .onChange(of: pages) { _, pages in
             if !pages.contains(selection) { selection = .today }
         }
@@ -47,6 +55,8 @@ struct WatchRootView: View {
     private func content(for page: WatchPage) -> some View {
         let data = store.watchData
         switch page {
+        case .workout:
+            if let workout = data.workout { WorkoutPage(workout: workout) }
         case .today:
             TodayPage()
         case .recovery:

@@ -474,5 +474,7 @@ struct PeptideWatchWidgetsBundle: WidgetBundle {
         WatchTrainingHabitsWidget()
         WatchRecoveryWidget()
         WatchSleepWidget()
+        WatchWorkoutWidget()
+        WatchNutritionWidget()
     }
 }

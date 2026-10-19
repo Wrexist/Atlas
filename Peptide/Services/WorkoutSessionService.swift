@@ -189,14 +189,18 @@ final class WorkoutSessionService {
         persist(session)
     }
 
-    func addSet(toExerciseID exerciseEntryID: UUID) {
+    /// `id` is supplied by the Watch, which names the set it added so it
+    /// can log it before this side answers.
+    func addSet(toExerciseID exerciseEntryID: UUID, id: UUID = UUID()) {
         guard var session = activeSession,
-              let idx = session.exercises.firstIndex(where: { $0.id == exerciseEntryID })
+              let idx = session.exercises.firstIndex(where: { $0.id == exerciseEntryID }),
+              !session.exercises[idx].sets.contains(where: { $0.id == id })
         else { return }
         let prev = session.exercises[idx].sets.last
         let nextIndex = (session.exercises[idx].sets.last?.index ?? 0) + 1
         // Pre-fill from previous set so two-tap logging works.
         let next = SetEntry(
+            id: id,
             index: nextIndex,
             weightKg: prev?.weightKg ?? 0,
             reps: prev?.reps ?? 8,
@@ -371,6 +375,43 @@ final class WorkoutSessionService {
         skipRest()
     }
 
+    // MARK: - Watch
+
+    /// Applies a tap from the Watch through the same mutations the phone's
+    /// own controls use. A request for a workout that has since finished
+    /// or been replaced is dropped.
+    func apply(_ request: WatchWorkoutRequest, now: Date = Date()) {
+        guard let session = activeSession, session.id == request.sessionId else { return }
+        // A tap queued while the phone was away still starts its rest from
+        // the tap; a watch clock running ahead can't start one in the future.
+        let tappedAt = min(request.issuedAt, now)
+        switch request.command {
+        case let .completeSet(entryID, setID, weightKg, reps):
+            guard var set = session.exercises.first(where: { $0.id == entryID })?
+                    .sets.first(where: { $0.id == setID }),
+                  !set.completed
+            else { return }
+            selectExercise(entryID)
+            if set.supportsRepLogging {
+                set.weightKg = weightKg
+                set.reps = reps
+            }
+            set.completed = true
+            updateSet(set, inExerciseEntryID: entryID, now: tappedAt)
+        case .skipRest:
+            skipRest()
+        case let .extendRest(seconds):
+            adjustRest(by: TimeInterval(seconds), now: now)
+        case let .selectExercise(entryID):
+            selectExercise(entryID)
+        case let .addSet(entryID, setID):
+            addSet(toExerciseID: entryID, id: setID)
+            selectExercise(entryID)
+        case let .setPaused(paused):
+            if session.isPaused != paused { togglePause(now: now) }
+        }
+    }
+
     private func restNotificationID(for sessionID: UUID) -> String {
         "atlas.workout.rest.\(sessionID.uuidString)"
     }
@@ -408,6 +449,7 @@ final class WorkoutSessionService {
         }
         SwiftDataRepository.shared.upsertWorkoutSession(session)
         WorkoutLiveActivityService.shared.update(session)
+        DataStore.current?.pushWorkoutToWatch()
     }
 }
 

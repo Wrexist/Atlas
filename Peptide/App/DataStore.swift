@@ -1683,6 +1683,20 @@ final class DataStore {
     /// `recordWorkoutFinished`, applied to the out-of-process snapshot.
     func refreshTrainingGlanceables() {
         updateWidgetData()
+        updateWatchData()
+    }
+
+    /// Sends the active workout alone to the Watch. Runs on every set
+    /// edit, so it skips the full snapshot's habit and score math.
+    func pushWorkoutToWatch() {
+        WatchSyncService.shared.updateWorkout(watchWorkout)
+    }
+
+    private var watchWorkout: WatchWorkoutSnapshot? {
+        WatchWorkoutSnapshotBuilder.snapshot(
+            of: WorkoutSessionService.shared.activeSession,
+            defaultRestSeconds: profile.trainingPreferences?.restTimerDefault ?? 90
+        )
     }
 
 
@@ -2447,7 +2461,9 @@ final class DataStore {
             trainingHabitsDone: trainingDue.filter(isDone).count,
             trainingHabitsTotal: trainingDue.count,
             measurementUnit: profile.bodyMetrics.unit.rawValue,
-            vitals: watchVitals
+            vitals: watchVitals,
+            workout: watchWorkout,
+            training: WatchWorkoutSnapshotBuilder.training(from: repo.loadWorkoutSessions(limit: 30))
         )
     }
 

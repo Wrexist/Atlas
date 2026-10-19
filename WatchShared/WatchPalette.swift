@@ -30,10 +30,12 @@ enum WatchPalette {
 
     // MARK: Nutrition
 
-    /// Lime and teal: fresh against black, and clear of the orange that
-    /// went muddy where it bloomed into the background.
-    static let calories = hex(0xB4E85A)
-    static let protein = hex(0x3DD6C2)
+    /// The iPhone's own nutrition colours (dark variants), so a calorie
+    /// ring reads the same on the wrist as on the Meals tab: the default
+    /// brand emerald (`AppTheme.teal`, which the calorie ring takes) and
+    /// `AppColor.macroProtein`'s amber.
+    static let calories = hex(0x10B981)
+    static let protein = hex(0xEF9F27)
     static let water = hex(0x4FA3FF)
 
     /// Ring and progress-bar track behind a coloured fill.
