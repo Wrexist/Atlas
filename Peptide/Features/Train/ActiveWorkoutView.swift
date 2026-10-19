@@ -509,7 +509,8 @@ private struct FinishWorkoutSheet: View {
                 icon: nil,
                 axis: .vertical,
                 characterLimit: Self.noteLimit,
-                focus: $noteFocused
+                focus: $noteFocused,
+                label: "Workout note"
             )
             .lineLimit(3...6)
         }

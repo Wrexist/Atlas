@@ -16,6 +16,9 @@ struct GlassTextField: View {
     var axis: Axis = .horizontal
     var characterLimit: Int?
     var focus: FocusState<Bool>.Binding?
+    /// VoiceOver name when the placeholder is a prompt rather than a name
+    /// ("How did it go?" reads as "Workout note").
+    var label: LocalizedStringKey?
 
     @FocusState private var ownFocus: Bool
 
@@ -41,6 +44,7 @@ struct GlassTextField: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .tint(AppColor.accentPrimary)
                     .focused(isFocused)
+                    .accessibilityLabel(Text(label ?? placeholder))
 
                 if let characterLimit {
                     Text("\(text.count)/\(characterLimit)")
