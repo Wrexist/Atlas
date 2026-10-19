@@ -120,6 +120,7 @@ final class WatchWorkoutSnapshotTests: XCTestCase {
     }
 }
 
+@MainActor
 final class WatchWorkoutSnapshotBuilderTests: XCTestCase {
     private let start = Date(timeIntervalSince1970: 1_000)
 

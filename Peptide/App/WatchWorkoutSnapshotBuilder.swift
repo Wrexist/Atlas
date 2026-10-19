@@ -2,7 +2,9 @@ import Foundation
 
 /// Flattens the active `WorkoutSession` into what the Watch renders. Pure,
 /// like `WidgetSnapshotBuilder`, so the tests pin the mapping without a
-/// paired watch.
+/// paired watch. Main-actor because exercise names come from
+/// `ExerciseLibrary`.
+@MainActor
 enum WatchWorkoutSnapshotBuilder {
     static func snapshot(of session: WorkoutSession?, defaultRestSeconds: Int) -> WatchWorkoutSnapshot? {
         guard let session, session.isActive else { return nil }
