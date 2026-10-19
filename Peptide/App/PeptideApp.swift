@@ -6,6 +6,7 @@ import RevenueCat
 
 @main
 struct PeptideApp: App {
+    @UIApplicationDelegateAdaptor(AtlasAppDelegate.self) private var appDelegate
     @State private var appState = AppState()
     @State private var dataStore: DataStore
     @State private var localization = LocalizationManager.shared
@@ -16,6 +17,9 @@ struct PeptideApp: App {
     /// widget-extension "Log dose" intent taps. Lifetime tied to
     /// the app's WindowGroup — released only on app termination.
     @State private var pendingDoseLogToken: PendingDoseLogProcessor.ObservationToken?
+    /// Same, for water glasses tapped in Control Center or on a widget.
+    @State private var pendingWaterToken: PendingDoseLogProcessor.ObservationToken?
+    @State private var quickActionInbox = QuickActionInbox.shared
     @State private var isUnlocked = false
     @Environment(\.scenePhase) private var scenePhase
     @State private var travelChange: TimezoneChangeDetector.Change?
@@ -258,6 +262,7 @@ struct PeptideApp: App {
                 // reconcile pass dismisses their live activities in
                 // the same scene-phase tick.
                 PendingDoseLogProcessor.drain(into: dataStore)
+                QuickActionRouter.drainPendingWater(into: dataStore)
                 // Re-evaluate which scheduled doses are in their
                 // active window so the lock-screen Live Activities
                 // start / end without needing the user to open the
@@ -463,6 +468,30 @@ struct PeptideApp: App {
                 .environment(dataStore)
                 .environment(appState)
         }
+        // Home-screen shortcuts, Control Center controls and widget
+        // buttons all land here, whichever tab is showing.
+        .onChange(of: quickActionInbox.pending, initial: true) { _, action in
+            guard let action else { return }
+            quickActionInbox.pending = nil
+            QuickActionRouter.perform(action, appState: appState, dataStore: dataStore)
+        }
+        .onChange(of: appState.pendingQuickAction, initial: true) { _, action in
+            guard let action else { return }
+            appState.pendingQuickAction = nil
+            QuickActionRouter.perform(action, appState: appState, dataStore: dataStore)
+        }
+        .sheet(item: Bindable(appState).presentedQuickSheet) { sheet in
+            switch sheet {
+            case .scanMeal:
+                MealScanFlow(onClose: { appState.presentedQuickSheet = nil })
+                    .environment(dataStore)
+                    .liquidGlassPresentation()
+            case .logWeight:
+                LogWeightSheet()
+                    .environment(dataStore)
+                    .liquidGlassPresentation()
+            }
+        }
         // App-wide paywall: `atlas://pro`, the one-time trial win-back,
         // and Today's research-assistant row for free users.
         .sheet(item: Bindable(appState).presentedPaywall) { source in
@@ -483,6 +512,10 @@ struct PeptideApp: App {
             if pendingDoseLogToken == nil {
                 pendingDoseLogToken = PendingDoseLogProcessor.startObserving(dataStore)
             }
+            if pendingWaterToken == nil {
+                pendingWaterToken = QuickActionRouter.observePendingWater()
+            }
+            QuickActionRouter.installHomeScreenShortcuts()
 
             // Repopulate the in-memory ID tracker from iOS's actual pending
             // requests. Without this, force-quit leaves orphan reminders that

@@ -15,4 +15,6 @@ enum CrossProcessNotification {
     /// switch-back lands in the app with the dose already
     /// flipped.
     static let pendingDoseLogQueued = "com.peptidesai.app.pendingDoseLogQueued"
+    /// Posted when a Control Center or widget tap queues a glass of water.
+    static let pendingWaterLogQueued = "com.peptidesai.app.pendingWaterLogQueued"
 }
