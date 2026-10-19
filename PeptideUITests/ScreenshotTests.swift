@@ -474,6 +474,9 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(exercise.waitForExistence(timeout: 10))
             exercise.tap()
             let heading = app.staticTexts["Muscles worked"]
+            if !heading.waitForExistence(timeout: 5) {
+                print("HIERARCHY-BEGIN\n\(app.debugDescription)\nHIERARCHY-END")
+            }
             reveal(heading)
             scrollOnScreen(app.buttons["muscle-row-Chest"])
             capture(named: "activation-\(appearance)-01-detail")
