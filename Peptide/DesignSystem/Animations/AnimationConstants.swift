@@ -27,6 +27,8 @@ enum AppAnimation {
     static let draw = Animation.easeOut(duration: 1.2)
     /// Slow backdrop cross-fades behind content (onboarding, tours).
     static let ambient = Animation.easeInOut(duration: 1.2)
+    /// One top-to-bottom sweep of the muscle map's scan beam.
+    static let muscleScan = Animation.easeInOut(duration: 0.9)
 
     static let staggerDelay: Double = 0.05
     static let sectionDelay: Double = 0.15
