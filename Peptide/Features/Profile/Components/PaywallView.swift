@@ -878,7 +878,7 @@ struct PaywallView: View {
 
             footerLinks
         }
-        .appAnimation(AppAnimation.springSnappy, value: errorMessage)
+        .appAnimation(AppAnimation.springSnappy, value: notice)
     }
 
     /// Two-line CTA: the action on top, the money underneath.
@@ -1182,7 +1182,7 @@ struct PaywallView: View {
 }
 
 /// What the paywall footer reports after a purchase or restore attempt.
-private enum PurchaseNotice {
+private enum PurchaseNotice: Equatable {
     case failed(String)
     case pending
     case nothingToRestore
