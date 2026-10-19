@@ -848,7 +848,7 @@ struct OnboardingView: View {
     /// scrolls instead of pushing controls off screen when it doesn't —
     /// the 56pt Welcome title and the Sign-in button stack both overflow
     /// at accessibility type sizes.
-    private func centeredScroll<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+    private func centeredScroll<Content: View>(@ViewBuilder _ content: @escaping () -> Content) -> some View {
         GeometryReader { proxy in
             ScrollView {
                 content()

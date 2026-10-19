@@ -245,6 +245,166 @@ final class HealthKitService {
         )
     }
 
+    // MARK: - Training & body sync
+
+    /// What the "Sync workouts, weight and water" setting writes. Asked
+    /// for on its own, like nutrition, so the prompt only appears when
+    /// the user turns that setting on.
+    private var activityWriteTypes: Set<HKSampleType> {
+        [
+            HKWorkoutType.workoutType(),
+            HKQuantityType(.bodyMass),
+            HKQuantityType(.dietaryWater),
+        ]
+    }
+
+    /// Write access for workouts, weight and water, plus read access to
+    /// weight so weigh-ins from a smart scale reach Atlas.
+    func requestActivitySyncAuthorization() async -> Bool {
+        guard isAvailable else { return false }
+        do {
+            try await store.requestAuthorization(
+                toShare: activityWriteTypes,
+                read: [HKQuantityType(.bodyMass)]
+            )
+            return true
+        } catch {
+            AppLog.healthKit.error(
+                "Activity sync authorization failed: \(error.localizedDescription, privacy: .private)"
+            )
+            return false
+        }
+    }
+
+    /// Saves a finished Atlas workout as strength training, tagged with
+    /// the session id so deleting it in Atlas removes it from Health.
+    func writeWorkout(_ session: WorkoutSession) async {
+        guard isAvailable, let end = session.finishedAt else { return }
+        do {
+            try await Self.saveStrengthWorkout(store: store, id: session.id, start: session.startedAt, end: end)
+        } catch {
+            AppLog.healthKit.error("writeWorkout failed: \(error.localizedDescription, privacy: .private)")
+        }
+    }
+
+    func deleteWorkout(id: UUID) async {
+        let predicate = HKQuery.predicateForObjects(
+            withMetadataKey: HKMetadataKeyExternalUUID,
+            operatorType: .equalTo,
+            value: id.uuidString
+        )
+        await deleteOwnObjects(of: HKWorkoutType.workoutType(), predicate: predicate)
+    }
+
+    /// `HKWorkoutBuilder` isn't Sendable, so it is created, driven and
+    /// dropped inside one nonisolated call.
+    nonisolated private static func saveStrengthWorkout(
+        store: HKHealthStore,
+        id: UUID,
+        start: Date,
+        end: Date
+    ) async throws {
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = .traditionalStrengthTraining
+        configuration.locationType = .indoor
+        let builder = HKWorkoutBuilder(healthStore: store, configuration: configuration, device: .local())
+        try await builder.beginCollection(at: start)
+        try await builder.addMetadata([HKMetadataKeyExternalUUID: id.uuidString])
+        try await builder.endCollection(at: end)
+        _ = try await builder.finishWorkout()
+    }
+
+    /// Mirrors the day's Atlas weigh-in. Atlas keeps one weight per day,
+    /// so its earlier sample for that day is replaced, not stacked.
+    func writeBodyMass(kg: Double, date: Date) async {
+        guard isAvailable else { return }
+        await deleteBodyMass(onDayOf: date)
+        let sample = makeSample(type: .bodyMass, unit: .gramUnit(with: .kilo), value: kg, date: date, metadata: [:])
+        do {
+            try await store.save(sample)
+        } catch {
+            AppLog.healthKit.error("writeBodyMass failed: \(error.localizedDescription, privacy: .private)")
+        }
+    }
+
+    func deleteBodyMass(onDayOf date: Date) async {
+        await deleteOwnObjects(of: HKQuantityType(.bodyMass), predicate: ownSamples(onDayOf: date))
+    }
+
+    func writeWater(fluidOunces: Double, date: Date) async {
+        guard isAvailable, fluidOunces > 0 else { return }
+        let sample = makeSample(type: .dietaryWater, unit: .fluidOunceUS(), value: fluidOunces, date: date, metadata: [:])
+        do {
+            try await store.save(sample)
+        } catch {
+            AppLog.healthKit.error("writeWater failed: \(error.localizedDescription, privacy: .private)")
+        }
+    }
+
+    /// The Undo of a water quick-add: removes Atlas's newest water sample
+    /// of that amount on that day.
+    func deleteLatestWater(fluidOunces: Double, onDayOf date: Date) async {
+        guard isAvailable else { return }
+        let unit = HKUnit.fluidOunceUS()
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.quantitySample(type: HKQuantityType(.dietaryWater), predicate: ownSamples(onDayOf: date))],
+            sortDescriptors: [SortDescriptor(\.startDate, order: .reverse)]
+        )
+        do {
+            let samples = try await descriptor.result(for: store)
+            guard let match = samples.first(where: {
+                abs($0.quantity.doubleValue(for: unit) - fluidOunces) < 0.01
+            }) else { return }
+            try await store.delete(match)
+        } catch {
+            AppLog.healthKit.error("deleteLatestWater failed: \(error.localizedDescription, privacy: .private)")
+        }
+    }
+
+    /// Weigh-ins other apps and scales saved in the last `days` days.
+    /// Atlas's own samples are skipped so a sync never reads back what
+    /// it wrote.
+    func externalWeights(days: Int) async -> [WeightEntry] {
+        guard isAvailable else { return [] }
+        let end = Date()
+        let start = Calendar.current.date(byAdding: .day, value: -days, to: end) ?? end
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.quantitySample(
+                type: HKQuantityType(.bodyMass),
+                predicate: HKQuery.predicateForSamples(withStart: start, end: end)
+            )],
+            sortDescriptors: [SortDescriptor(\.startDate)]
+        )
+        do {
+            let ownBundleID = Bundle.main.bundleIdentifier
+            return try await descriptor.result(for: store)
+                .filter { $0.sourceRevision.source.bundleIdentifier != ownBundleID }
+                .map { WeightEntry(date: $0.startDate, kg: $0.quantity.doubleValue(for: .gramUnit(with: .kilo))) }
+        } catch {
+            AppLog.healthKit.error("externalWeights failed: \(error.localizedDescription, privacy: .private)")
+            return []
+        }
+    }
+
+    private func ownSamples(onDayOf date: Date) -> NSPredicate {
+        let start = Calendar.current.startOfDay(for: date)
+        let end = Calendar.current.date(byAdding: .day, value: 1, to: start) ?? date
+        return NSCompoundPredicate(andPredicateWithSubpredicates: [
+            HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate),
+            HKQuery.predicateForObjects(from: HKSource.default()),
+        ])
+    }
+
+    private func deleteOwnObjects(of type: HKObjectType, predicate: NSPredicate) async {
+        guard isAvailable else { return }
+        do {
+            _ = try await store.deleteObjects(of: type, predicate: predicate)
+        } catch {
+            AppLog.healthKit.debug(
+                "deleteObjects \(type.identifier, privacy: .public) failed: \(error.localizedDescription, privacy: .private)"
+            )
+        }
+    }
 
     // MARK: - Heart Rate
 
