@@ -102,7 +102,7 @@ struct StackAdjustmentSheet: View {
             }
             .background(AppColor.background)
             .safeAreaInset(edge: .bottom) { applyFooter }
-            .navigationTitle("Adjust Stack")
+            .navigationTitle("Adjust Protocol")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -153,7 +153,7 @@ struct StackAdjustmentSheet: View {
     }
 
     private var stackPickerCard: some View {
-        sectionCard(icon: "rectangle.stack.fill", title: "Stack to adjust", tint: AppColor.accentPrimary) {
+        sectionCard(icon: "rectangle.stack.fill", title: "Protocol to adjust", tint: AppColor.accentPrimary) {
             VStack(spacing: Spacing.xs) {
                 ForEach(candidateProtocols, id: \.id) { proto in
                     Button {
@@ -202,7 +202,7 @@ struct StackAdjustmentSheet: View {
     }
 
     private var diffCard: some View {
-        sectionCard(icon: "arrow.triangle.swap", title: "Stack changes", tint: AppColor.accentPrimary) {
+        sectionCard(icon: "arrow.triangle.swap", title: "Protocol changes", tint: AppColor.accentPrimary) {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 Text(diff.summary)
                     .font(AppFont.footnote)
@@ -465,7 +465,7 @@ struct StackAdjustmentSheet: View {
             .opacity((!diff.hasChanges || proposedPeptides.isEmpty) ? 0.5 : 1)
 
             if proposedPeptides.isEmpty {
-                Text("Keep at least one peptide in the stack.")
+                Text("Keep at least one peptide in the protocol.")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.destructive)
             }

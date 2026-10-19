@@ -84,7 +84,7 @@ struct PeptideDetailView: View {
                         .accessibilityElement(children: .combine)
 
                         GlassButton(
-                            title: memberProtocols.isEmpty ? "Add to Stack" : "Add to Another Stack",
+                            title: memberProtocols.isEmpty ? "Add to Protocol" : "Add to Another Protocol",
                             icon: "plus",
                             style: .primary
                         ) {
@@ -344,7 +344,7 @@ struct PeptideDetailView: View {
                     Image(systemName: "square.stack.3d.up.fill")
                         .foregroundStyle(AppColor.accentLight)
                         .accessibilityHidden(true)
-                    Text("In Your Stacks")
+                    Text("In Your Protocols")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()

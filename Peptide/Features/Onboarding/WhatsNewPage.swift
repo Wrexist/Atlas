@@ -217,8 +217,8 @@ extension WhatsNewPage {
         WhatsNewPage(
             id: "v2_1_protocols",
             eyebrow: "Protocols",
-            title: "Your stack in one place",
-            body: "Stack health, interactions, cycle transitions, and discovery moved out of Today and into the Protocols tab — the configuration surface they actually belong to.",
+            title: "Your protocol in one place",
+            body: "Protocol health, interactions, cycle transitions, and discovery moved out of Today and into the Protocols tab — the configuration surface they actually belong to.",
             icon: "square.stack.3d.up.fill",
             gradient: [
                 Color(red: 1.00, green: 0.62, blue: 0.30),
@@ -226,8 +226,8 @@ extension WhatsNewPage {
             ],
             accent: Color(red: 1.00, green: 0.62, blue: 0.30),
             bullets: [
-                "Vial shelf at the top — glance at your stack",
-                "Stack-health cards + warnings consolidated",
+                "Vial shelf at the top — glance at your protocol",
+                "Protocol-health cards + warnings consolidated",
                 "Discover section for cycle planner suggestions",
             ]
         ),

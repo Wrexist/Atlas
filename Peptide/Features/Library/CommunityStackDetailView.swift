@@ -139,7 +139,7 @@ struct CommunityStackDetailView: View {
     private var description: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                Label("About this stack", systemImage: "text.alignleft")
+                Label("About this protocol", systemImage: "text.alignleft")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(stack.description)
@@ -166,7 +166,7 @@ struct CommunityStackDetailView: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 if resolvedPeptides.isEmpty {
-                    Text("Some peptides in this stack aren't in your local database.")
+                    Text("Some peptides in this protocol aren't in your local database.")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.warning)
                 } else {
@@ -213,7 +213,7 @@ struct CommunityStackDetailView: View {
 
     private var useStackButton: some View {
         GlassButton(
-            title: didFork ? "Added to your protocols" : "Use this stack",
+            title: didFork ? "Added to your protocols" : "Use this protocol",
             icon: didFork ? "checkmark" : "plus.circle.fill",
             style: .primary,
             isFullWidth: true

@@ -44,7 +44,7 @@ extension StackRecommendationEngine {
             warnings.append(Warning(
                 severity: .caution,
                 title: "Compounding \"\(effect)\" risk",
-                detail: "\(names.count) peptides in your stack share this side effect, which may intensify.",
+                detail: "\(names.count) peptides in your protocol share this side effect, which may intensify.",
                 suggestion: "Discuss this overlap with a qualified clinician before continuing the protocol.",
                 peptides: names.sorted(),
                 icon: "waveform.path.ecg"
@@ -160,7 +160,7 @@ extension StackRecommendationEngine {
                 warnings.append(Warning(
                     severity: .caution,
                     title: "High injection burden",
-                    detail: "Your stack requires ~\(dailyCount) injections daily across \(injectables.count) peptides.",
+                    detail: "Your protocol requires ~\(dailyCount) injections daily across \(injectables.count) peptides.",
                     suggestion: "Group compatible peptides at the same injection time to reduce needle count and improve adherence.",
                     peptides: injectables.map(\.abbreviation),
                     icon: "syringe.fill"
@@ -233,7 +233,7 @@ extension StackRecommendationEngine {
             warnings.append(Warning(
                 severity: .caution,
                 title: "High angiogenic activity",
-                detail: "\(angiogenic.count) peptides in your stack promote blood vessel growth. Use caution if you have a history of malignancy, as angiogenesis can theoretically fuel tumor vascularization.",
+                detail: "\(angiogenic.count) peptides in your protocol promote blood vessel growth. Use caution if you have a history of malignancy, as angiogenesis can theoretically fuel tumor vascularization.",
                 suggestion: "If you have any cancer history, consult an oncologist before using multiple angiogenic peptides together.",
                 peptides: angiogenic.map(\.abbreviation),
                 icon: "staroflife.fill"
@@ -308,7 +308,7 @@ extension StackRecommendationEngine {
             warnings.append(Warning(
                 severity: .caution,
                 title: "Multiple liver-stressing peptides",
-                detail: "\(hepatotoxic.count) peptides in your stack have hepatic metabolism burden: \(hepatotoxic.map(\.abbreviation).joined(separator: ", ")).",
+                detail: "\(hepatotoxic.count) peptides in your protocol have hepatic metabolism burden: \(hepatotoxic.map(\.abbreviation).joined(separator: ", ")).",
                 suggestion: "Monitor liver enzymes (ALT, AST) and avoid combining with alcohol or hepatotoxic supplements.",
                 peptides: hepatotoxic.map(\.abbreviation),
                 icon: "exclamationmark.triangle.fill"

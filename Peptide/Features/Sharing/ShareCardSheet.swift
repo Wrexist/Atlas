@@ -241,7 +241,7 @@ struct ShareCardSheet: View {
                         Text("Hide compound names")
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
-                        Text("Renders the stack as Compound A · B · C.")
+                        Text("Renders the protocol as Compound A · B · C.")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                     }

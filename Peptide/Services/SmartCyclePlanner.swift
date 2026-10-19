@@ -118,7 +118,7 @@ enum SmartCyclePlanner {
             protocolID: proto.id,
             kind: .cycleWrappingUp(daysRemaining: remaining),
             title: "\(proto.name) wraps up in \(remaining) day\(remaining == 1 ? "" : "s")",
-            rationale: "Plan whether to extend, take an off-cycle break, or transition to your next stack while it's still fresh.",
+            rationale: "Plan whether to extend, take an off-cycle break, or transition to your next protocol while it's still fresh.",
             confidence: remaining <= 2 ? .high : .medium
         )
     }
@@ -256,7 +256,7 @@ enum SmartCyclePlanner {
             protocolID: proto.id,
             kind: .offCycleReady(daysSinceLast: elapsed),
             title: "Ready to start a new \(proto.name) cycle?",
-            rationale: "It's been \(elapsed) days off-cycle — past the typical \(offWindowDays)-day rest window for this stack length.",
+            rationale: "It's been \(elapsed) days off-cycle — past the typical \(offWindowDays)-day rest window for this protocol length.",
             confidence: .medium
         )
     }

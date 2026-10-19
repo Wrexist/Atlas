@@ -2034,7 +2034,7 @@ final class DataStore {
     @discardableResult
     func adoptStarterProtocol(
         peptides: [Peptide],
-        name: String = "Starter Stack"
+        name: String = "Starter Protocol"
     ) -> PeptideProtocol? {
         guard !peptides.isEmpty else { return nil }
         let schedule = ProtocolSchedule(

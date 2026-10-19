@@ -44,7 +44,7 @@ extension StackRecommendationEngine {
             case .categorySynergy(let desc):
                 return desc
             case .sharedBenefits(let count):
-                return "Shares \(count) benefits with your stack"
+                return "Shares \(count) benefits with your protocol"
             case .validatedStack(let name, _):
                 return "Part of \(name) — research-backed combination"
             case .timingComplement(let desc):

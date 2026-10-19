@@ -7,7 +7,7 @@ struct StackWarningCard: View {
     var body: some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                Label("Stack Alerts", systemImage: "exclamationmark.triangle.fill")
+                Label("Protocol Alerts", systemImage: "exclamationmark.triangle.fill")
                     .font(AppFont.headline)
                     .foregroundStyle(highestSeverityColor)
 
@@ -135,7 +135,7 @@ struct StackWarningCard: View {
                 .init(
                     severity: .caution,
                     title: "High injection burden",
-                    detail: "Your stack requires ~6 injections daily across 5 peptides.",
+                    detail: "Your protocol requires ~6 injections daily across 5 peptides.",
                     suggestion: "Group compatible peptides at the same injection time to reduce needle count.",
                     peptides: ["BPC-157", "TB-500", "CJC-1295", "Ipamorelin", "IGF-1"],
                     icon: "syringe.fill"

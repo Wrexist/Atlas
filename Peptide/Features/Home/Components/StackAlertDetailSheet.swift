@@ -35,8 +35,8 @@ struct StackAlertDetailSheet: View {
             return "Group Injections"
         }
         switch warning.severity {
-        case .danger: return "Review Stack Now"
-        case .caution: return "Adjust Stack"
+        case .danger: return "Review Protocol Now"
+        case .caution: return "Adjust Protocol"
         case .info: return "Open Protocols"
         }
     }

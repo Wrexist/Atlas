@@ -47,7 +47,7 @@ struct ProtocolListView: View {
                             NavigationLink(value: StackLibraryRoute()) {
                                 GlassEntryRowLabel(
                                     icon: "books.vertical.fill",
-                                    title: "Browse the stack library",
+                                    title: "Browse the protocol library",
                                     subtitle: Text("Ready-made templates you can start from")
                                 )
                             }

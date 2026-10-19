@@ -39,7 +39,7 @@ final class CommunityStackService {
             cycleLengthWeeks: stack.cycleLengthWeeks,
             startDate: Date(),
             status: .active,
-            notes: "Forked from \(stack.authorName)'s community stack.\n\n\(stack.description)",
+            notes: "Forked from \(stack.authorName)'s community protocol.\n\n\(stack.description)",
             authorName: stack.authorName,
             authorHandle: stack.authorHandle,
             forkedFromStackId: stack.id,

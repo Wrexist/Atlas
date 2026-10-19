@@ -135,7 +135,7 @@ struct PeptideListView: View {
                     EmptyStateView(
                         icon: "flask",
                         title: "Pick a Peptide",
-                        message: "Select a peptide from the list to see its research, dosing, and stack ideas."
+                        message: "Select a peptide from the list to see its research, dosing, and protocol ideas."
                     )
                     .padding(Spacing.screenPadding)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
