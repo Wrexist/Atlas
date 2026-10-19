@@ -57,7 +57,10 @@ struct WorkoutLiveActivity: Widget {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             DynamicIslandExpandedRegion(.bottom) {
-                SetProgressBar(state: context.state, accent: accent)
+                VStack(spacing: 8) {
+                    SetProgressBar(state: context.state, accent: accent)
+                    WorkoutActionButton(sessionId: context.attributes.sessionId, state: context.state, accent: accent)
+                }
             }
         } compactLeading: {
             Image(systemName: WorkoutActivityStyle.glyph(for: context.state))
@@ -160,6 +163,7 @@ private struct WorkoutLockView: View {
             VStack(spacing: 12) {
                 topRow
                 SetProgressBar(state: state, accent: accent)
+                WorkoutActionButton(sessionId: attributes.sessionId, state: state, accent: accent)
             }
             .padding(14)
         }
@@ -266,6 +270,42 @@ private struct LockRing: View {
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(accent)
         }
+    }
+}
+
+/// One button for what the user is waiting to do next: end the rest
+/// early, or tick off the set they just finished. Hidden while paused,
+/// finished, or once every planned set is done.
+private struct WorkoutActionButton: View {
+    let sessionId: UUID
+    let state: WorkoutActivityAttributes.ContentState
+    let accent: Color
+
+    var body: some View {
+        switch state.status() {
+        case .resting:
+            button(.skipRest, title: "Skip rest", systemImage: "forward.fill")
+        case .lifting where state.completedSets < state.totalSets:
+            button(.completeSet, title: "Complete set", systemImage: "checkmark")
+        default:
+            EmptyView()
+        }
+    }
+
+    private func button(_ action: WorkoutActivityAction, title: LocalizedStringKey, systemImage: String) -> some View {
+        Button(intent: WorkoutActivityActionIntent(sessionId: sessionId, action: action)) {
+            HStack(spacing: 6) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 12, weight: .heavy))
+                Text(title)
+                    .font(.system(size: 14, weight: .heavy, design: .rounded))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(accent.opacity(0.85)))
+        }
+        .buttonStyle(.plain)
     }
 }
 
