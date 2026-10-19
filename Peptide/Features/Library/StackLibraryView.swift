@@ -80,39 +80,16 @@ struct StackLibraryView: View {
     private var tagChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.xs) {
-                tagChip(label: "All", isSelected: selectedTag == nil) {
+                GlassChip("All", isSelected: selectedTag == nil) {
                     selectedTag = nil
                 }
                 ForEach(goalTags, id: \.self) { tag in
-                    tagChip(label: tag, isSelected: selectedTag == tag) {
+                    GlassChip(LocalizedStringKey(tag), isSelected: selectedTag == tag) {
                         selectedTag = (selectedTag == tag) ? nil : tag
                     }
                 }
             }
         }
-    }
-
-    private func tagChip(label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(label)
-                .font(AppFont.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.xs)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? AppColor.glassTint : AppColor.cardOverlay)
-                        .overlay(
-                            Capsule()
-                                .strokeBorder(
-                                    isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                    lineWidth: 0.5
-                                )
-                        )
-                )
-        }
-        .buttonStyle(.plain)
     }
 
     private var featuredCarousel: some View {

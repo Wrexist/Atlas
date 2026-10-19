@@ -129,7 +129,7 @@ struct AddToStackSheet: View {
         } label: {
             stackRowBody(proto, alreadyIn: alreadyIn, justAdded: justAdded)
         }
-        .buttonStyle(StackPickerPressStyle())
+        .buttonStyle(ScalePressStyle())
         .disabled(alreadyIn)
     }
 
@@ -200,15 +200,6 @@ struct AddToStackSheet: View {
             .padding(.horizontal, Spacing.sm)
             .padding(.vertical, 4)
             .background { Capsule().fill(bg) }
-    }
-}
-
-private struct StackPickerPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .opacity(configuration.isPressed ? 0.85 : 1.0)
-            .appAnimation(AppAnimation.springSnappy, value: configuration.isPressed)
     }
 }
 

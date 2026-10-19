@@ -11,12 +11,18 @@ struct MuscleGroupChipRow: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.xs) {
-                AllChip(isSelected: selection == nil) {
+                GlassChip(
+                    "All",
+                    style: .prominent,
+                    isSelected: selection == nil
+                ) {
                     selection = nil
                 }
                 ForEach(MuscleGroup.allCases) { group in
-                    GroupChip(
-                        group: group,
+                    GlassChip(
+                        LocalizedStringKey(group.displayName),
+                        icon: group.symbolName,
+                        style: .prominent,
                         isSelected: selection == group
                     ) {
                         selection = (selection == group) ? nil : group
@@ -25,67 +31,6 @@ struct MuscleGroupChipRow: View {
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.vertical, Spacing.xs)
-        }
-    }
-
-    private struct AllChip: View {
-        let isSelected: Bool
-        let action: () -> Void
-
-        var body: some View {
-            Button(action: action) {
-                Text("All")
-                    .font(AppFont.chipText)
-                    .foregroundStyle(isSelected ? AppColor.background : AppColor.textPrimary)
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.xs + 2)
-                    .background(
-                        Capsule().fill(
-                            isSelected ? AppColor.accentPrimary : AppColor.surfaceSecondary.opacity(0.6)
-                        )
-                    )
-                    .overlay(
-                        Capsule().stroke(
-                            isSelected ? Color.clear : AppColor.glassBorder,
-                            lineWidth: 0.5
-                        )
-                    )
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private struct GroupChip: View {
-        let group: MuscleGroup
-        let isSelected: Bool
-        let action: () -> Void
-
-        var body: some View {
-            Button(action: action) {
-                HStack(spacing: 4) {
-                    Image(systemName: group.symbolName)
-                        .font(AppFont.scaled(11, weight: .semibold))
-                    Text(group.displayName)
-                        .font(AppFont.chipText)
-                }
-                .foregroundStyle(isSelected ? AppColor.background : AppColor.textPrimary)
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.xs + 2)
-                .background(
-                    Capsule().fill(
-                        isSelected ? AppColor.accentPrimary : AppColor.surfaceSecondary.opacity(0.6)
-                    )
-                )
-                .overlay(
-                    Capsule().stroke(
-                        isSelected ? Color.clear : AppColor.glassBorder,
-                        lineWidth: 0.5
-                    )
-                )
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text(group.displayName))
-            .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
     }
 }
