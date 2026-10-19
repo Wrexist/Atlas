@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// Full-screen habits list — one HabitRowCard per active habit, with
-/// an "Add habit" toolbar action and per-row swipe to edit/delete.
+/// an "Add habit" toolbar action and a per-row context menu to
+/// edit/delete.
 /// Opens from the Today habits hero's "View all" button as a sheet, or
 /// can be navigated to as a destination.
 struct HabitsView: View {
@@ -17,6 +18,7 @@ struct HabitsView: View {
     /// summary + heatmap + columns for every habit (audit Habits P2).
     @State private var rows: [Row] = []
     @State private var showProgress = false
+    @State private var pendingDelete: Habit?
 
     /// One state for both the "add" sheet and the "edit existing" sheet.
     /// Single source of truth so the same sheet binding works for both.
@@ -76,7 +78,7 @@ struct HabitsView: View {
                         }
                         habitsSummaryHeader(rows: visibleRows)
                         progressLink
-                        ForEach(visibleRows) { row in
+                        ForEach(Array(visibleRows.enumerated()), id: \.element.id) { index, row in
                             HabitRowCard(
                                 habit: row.habit,
                                 summary: row.summary,
@@ -96,15 +98,17 @@ struct HabitsView: View {
                                     Label("Edit", systemImage: "pencil")
                                 }
                                 Button(role: .destructive) {
-                                    dataStore.archiveHabit(id: row.habit.id)
+                                    pendingDelete = row.habit
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
                             }
                             .transition(.opacity.combined(with: .move(edge: .top)))
+                            .staggeredAppear(index: index)
                         }
                     }
                 }
+                .appAnimation(AppAnimation.springSnappy, value: visibleRows.map(\.id))
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxl)
                 // iPad cap so the heatmap rows don't stretch into an
@@ -138,6 +142,25 @@ struct HabitsView: View {
             .sheet(isPresented: $showProgress) {
                 AtlasProgressView()
                     .environment(dataStore)
+            }
+            .confirmationDialog(
+                "Delete this habit?",
+                isPresented: Binding(
+                    get: { pendingDelete != nil },
+                    set: { if !$0 { pendingDelete = nil } }
+                ),
+                titleVisibility: .visible,
+                presenting: pendingDelete
+            ) { habit in
+                Button("Delete", role: .destructive) {
+                    Haptics.warning()
+                    AppAnimation.with(AppAnimation.springSnappy) {
+                        dataStore.archiveHabit(id: habit.id)
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { _ in
+                Text("Removes the habit and its streak from your list. This can't be undone.")
             }
             .sheet(item: $editing) { target in
                 Group {
@@ -197,8 +220,10 @@ struct HabitsView: View {
                         Text("\(done)/\(due)")
                             .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                             .foregroundStyle(AppColor.textPrimary)
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
                         Text("today")
-                            .font(AppFont.scaled(8, weight: .semibold))
+                            .font(AppFont.badgeSmall)
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 } else {
@@ -245,11 +270,16 @@ struct HabitsView: View {
                 .stroke(AppColor.glassBorder, lineWidth: 0.5)
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "\(due > 0 ? "\(done) of \(due) habits done today" : "No habits due today")"
-            + (best > 0 ? ", \(best) day streak" : "")
-            + ", Atlas level \(momentum.level)"
-        )
+        .accessibilityLabel(summaryAccessibilityLabel(done: done, due: due, best: best, momentum: momentum))
+    }
+
+    private func summaryAccessibilityLabel(done: Int, due: Int, best: Int, momentum: MomentumEngine.Snapshot) -> Text {
+        let today = due > 0
+            ? Text("\(done) of ^[\(due) habit](inflect: true) done today")
+            : Text("No habits due today")
+        let streak = best > 0 ? Text(", ^[\(best) day](inflect: true) streak") : Text(verbatim: "")
+        return today + streak
+            + Text(", Atlas Score level \(momentum.level), ^[\(momentum.score) point](inflect: true)")
     }
 
     /// Shown when a streak is at risk and a monthly freeze is available —
@@ -278,12 +308,13 @@ struct HabitsView: View {
             } label: {
                 Text("Freeze")
                     .font(AppFont.subheadline.weight(.bold))
-                    .foregroundStyle(AppColor.background)
+                    .foregroundStyle(AppColor.onAccent)
                     .padding(.horizontal, Spacing.md)
                     .padding(.vertical, Spacing.sm)
                     .background(Capsule().fill(AppColor.macroWater))
+                    .minimumHitArea()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ScalePressStyle(pressedScale: 0.95))
         }
         .padding(Spacing.md)
         .background(
@@ -299,27 +330,12 @@ struct HabitsView: View {
     }
 
     private var progressLink: some View {
-        Button { showProgress = true } label: {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .accessibilityHidden(true)
-                Text("See your progress")
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .accessibilityHidden(true)
-            }
-            .font(AppFont.subheadline.weight(.semibold))
-            .foregroundStyle(AppColor.accentLight)
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-            .background(
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.4))
-            )
-        }
-        .buttonStyle(.plain)
+        GlassEntryRow(
+            icon: "chart.line.uptrend.xyaxis",
+            title: "Progress",
+            subtitle: Text("Streaks, consistency and your Atlas Score"),
+            action: { showProgress = true }
+        )
         .accessibilityHint("Opens your progress")
     }
 

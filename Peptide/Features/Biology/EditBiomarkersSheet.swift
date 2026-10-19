@@ -9,18 +9,18 @@ import SwiftUI
 ///
 /// Writes through the binding the host wires to
 /// `dataStore.profile.biologyConfig`; the host calls
-/// `persistProfile()` on sheet dismissal so a session of
+/// `persistProfile()` from the sheet's `onDismiss` so a session of
 /// reordering lands as one save, not one per drag.
 struct EditBiomarkersSheet: View {
     @Binding var config: BiologyConfig
     let isPro: Bool
-    var onDismiss: () -> Void
     /// User's preferred unit so the per-row unit caption matches the rest
     /// of the Biology tab (lb / in / °F for imperial users).
     var unit: MeasurementUnit = .metric
 
     @Environment(\.dismiss) private var dismiss
     @State private var editMode: EditMode = .active
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -82,16 +82,17 @@ struct EditBiomarkersSheet: View {
             .listStyle(.insetGrouped)
             .glassFormStyle()
             .environment(\.editMode, $editMode)
-            .navigationTitle("Edit Biomarkers")
+            .navigationTitle("Edit biomarkers")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        onDismiss()
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
                 }
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView(source: .performanceAge)
+                    .liquidGlassPresentation()
             }
         }
     }
@@ -107,7 +108,8 @@ struct EditBiomarkersSheet: View {
     }
 
     private func row(_ biomarker: Biomarker, action: RowAction) -> some View {
-        HStack(spacing: Spacing.md) {
+        let locked = biomarker.requiresPro && !isPro
+        return HStack(spacing: Spacing.md) {
             ZStack {
                 Circle()
                     .fill(AppColor.surfaceElevated)
@@ -138,45 +140,65 @@ struct EditBiomarkersSheet: View {
             // Toggle replaces the inline image because the user
             // expects a tap target on the right edge of each row.
             // Edit-mode drag-handle still appears on the leading
-            // side of the Showing section automatically.
-            Toggle(
-                biomarker.displayName,
-                isOn: Binding(
-                    get: { action == .hide },
-                    set: { newOn in
-                        guard newOn != (action == .hide) else { return }
-                        toggle(biomarker)
-                    }
-                )
-            )
-            .labelsHidden()
-            .toggleStyle(.switch)
-            .tint(AppColor.accentPrimary)
-            .disabled(biomarker.requiresPro && !isPro)
+            // side of the Showing section automatically. A Pro-only
+            // row the user can't turn on routes to the paywall instead.
+            if locked {
+                Button {
+                    Haptics.selection()
+                    showPaywall = true
+                } label: {
+                    Image(systemName: "lock.fill")
+                        .font(AppFont.scaled(16, weight: .semibold))
+                        .foregroundStyle(AppColor.textSecondary)
+                        .minimumHitArea()
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Unlock \(biomarker.displayName) with Pro"))
+            } else {
+                visibilityToggle(for: biomarker, action: action)
+            }
         }
-        .padding(.vertical, 4)
-        .opacity(biomarker.requiresPro && !isPro ? 0.55 : 1.0)
+        .padding(.vertical, Spacing.xs)
         .accessibilityElement(children: .combine)
     }
 
+    private func visibilityToggle(for biomarker: Biomarker, action: RowAction) -> some View {
+        Toggle(
+            biomarker.displayName,
+            isOn: Binding(
+                get: { action == .hide },
+                set: { newOn in
+                    guard newOn != (action == .hide) else { return }
+                    toggle(biomarker)
+                }
+            )
+        )
+        .labelsHidden()
+        .toggleStyle(.switch)
+        .tint(AppColor.accentPrimary)
+    }
+
     private var emptyVisibleHint: some View {
-        Text("You've hidden every biomarker. Tap any in the sections below to bring them back.")
+        Text("You've hidden every biomarker. Turn one on below to bring it back.")
             .font(AppFont.caption)
             .foregroundStyle(AppColor.textSecondary)
-            .padding(.vertical, 4)
+            .padding(.vertical, Spacing.xs)
     }
 
     private func toggle(_ biomarker: Biomarker) {
-        // Defense in depth — the row's `Toggle` is `.disabled(...)` for
-        // Pro-only biomarkers when the user isn't on Pro, but
+        // Defense in depth — a locked Pro-only row shows a lock in
+        // place of its `Toggle` when the user isn't on Pro, but
         // VoiceOver's `accessibilityActivate`, keyboard control, or any
         // future programmatic caller can still reach this method.
         // Re-check the entitlement at the mutation site.
         guard !biomarker.requiresPro || isPro else { return }
-        if config.visibleBiomarkers.contains(biomarker) {
-            config.hide(biomarker)
-        } else {
-            config.show(biomarker)
+        Haptics.selection()
+        AppAnimation.with(AppAnimation.springSnappy) {
+            if config.visibleBiomarkers.contains(biomarker) {
+                config.hide(biomarker)
+            } else {
+                config.show(biomarker)
+            }
         }
     }
 }
@@ -190,8 +212,7 @@ struct EditBiomarkersSheet: View {
         var body: some View {
             EditBiomarkersSheet(
                 config: $config,
-                isPro: false,
-                onDismiss: {}
+                isPro: false
             )
         }
     }

@@ -36,7 +36,7 @@ struct HabitRowCard: View {
                     .stroke(AppColor.glassBorder, lineWidth: 0.5)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(habit.name). \(todayStatus). \(summary.currentStreak) day streak, \(summary.totalCompletedDays) days total.")
         .accessibilityAddTraits(.isButton)
@@ -109,7 +109,7 @@ struct HabitRowCard: View {
                         .transition(.scale.combined(with: .opacity))
                     Image(systemName: "checkmark")
                         .font(AppFont.scaled(11, weight: .bold))
-                        .foregroundStyle(AppColor.background)
+                        .foregroundStyle(AppColor.onAccent)
                         .symbolEffect(.bounce, value: summary.isCompletedToday)
                         .transition(.scale.combined(with: .opacity))
                 } else if summary.todayProgress > 0 {
@@ -129,15 +129,15 @@ struct HabitRowCard: View {
 
     private var statRow: some View {
         HStack(spacing: Spacing.md) {
-            statChip(icon: "flame.fill",       value: "\(summary.currentStreak)", label: "streak", tint: AppColor.perceivedEffort)
+            statChip(icon: "flame.fill",       value: "\(summary.currentStreak)", label: "streak", tint: AppColor.streak)
             statChip(icon: "trophy.fill",      value: "\(summary.bestStreak)",    label: "best",   tint: AppColor.achievement)
             statChip(icon: "checkmark.circle", value: "\(summary.totalCompletedDays)", label: "days", tint: AppColor.positive)
             Spacer(minLength: 0)
         }
     }
 
-    private func statChip(icon: String, value: String, label: String, tint: Color) -> some View {
-        HStack(spacing: 4) {
+    private func statChip(icon: String, value: String, label: LocalizedStringKey, tint: Color) -> some View {
+        HStack(spacing: Spacing.xs) {
             Image(systemName: icon)
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(tint)

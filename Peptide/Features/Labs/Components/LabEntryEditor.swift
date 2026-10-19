@@ -21,11 +21,19 @@ struct LabEntryEditor: View {
     @State private var source: String
     @State private var note: String
     @State private var showDeleteConfirm: Bool = false
+    /// Out-of-range warning, shown only once typing pauses so "1" on the
+    /// way to "1000" doesn't flash an error.
+    @State private var showRangeWarning = false
+    @State private var showSaveAnywayConfirm = false
+    @FocusState private var valueFocused: Bool
 
     private var isEditing: Bool { initial != nil }
 
+    /// `defaultPanel` pre-selects the panel for a new entry — the panel
+    /// being viewed, or the one the user logged most recently.
     init(
         initial: LabValue?,
+        defaultPanel: LabPanel? = nil,
         sex: BiologicalSex,
         onSave: @escaping (LabValue) -> Void,
         onDelete: ((UUID) -> Void)?,
@@ -36,18 +44,11 @@ struct LabEntryEditor: View {
         self.onSave = onSave
         self.onDelete = onDelete
         self.onCancel = onCancel
-        _panel = State(initialValue: initial?.panel ?? .totalTestosterone)
-        _valueText = State(initialValue: initial.map { Self.formatNumber($0.value) } ?? "")
+        _panel = State(initialValue: initial?.panel ?? defaultPanel ?? .vitaminD)
+        _valueText = State(initialValue: initial.map { LabValueFormat.string($0.value) } ?? "")
         _drawDate = State(initialValue: initial?.date ?? Date())
         _source = State(initialValue: initial?.source ?? "")
         _note = State(initialValue: initial?.note ?? "")
-    }
-
-    private static func formatNumber(_ value: Double) -> String {
-        if value.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(Int(value))
-        }
-        return String(value)
     }
 
     private var parsedValue: Double? { Self.parseDecimal(valueText) }
@@ -67,32 +68,28 @@ struct LabEntryEditor: View {
     }
 
     private var canSave: Bool {
-        guard let value = parsedValue, value > 0 else { return false }
-        return rangeError == nil
+        guard let value = parsedValue else { return false }
+        return value >= 0
     }
 
     /// Sanity bound — a value 10× beyond the typical-range floor /
-    /// ceiling is almost certainly a unit confusion or typo. We
-    /// reject save when the value falls outside [floor × 0.1,
-    /// ceiling × 10]. Anything narrower would also reject the
-    /// 0-ferritin / 999-cholesterol legitimate outliers that
-    /// motivate users to track in the first place (audit Biology
+    /// ceiling is almost certainly a unit confusion or typo. It warns
+    /// and asks before saving rather than blocking: the
+    /// 0-ferritin / 999-cholesterol outliers are exactly what
+    /// motivates users to track in the first place (audit Biology
     /// MED 12).
-    private var rangeError: String? {
+    private var rangeWarning: String? {
         guard let value = parsedValue, let range = panel.typicalRange(for: sex) else { return nil }
-        let floor = range.lowerBound * 0.1
-        let ceiling = range.upperBound * 10
-        if value < floor {
-            return "That's way below the typical \(format(range.lowerBound))–\(format(range.upperBound)) \(panel.canonicalUnit). Double-check the unit."
+        let low = LabValueFormat.string(range.lowerBound)
+        let high = LabValueFormat.string(range.upperBound)
+        let unit = panel.canonicalUnit
+        if value < range.lowerBound * 0.1 {
+            return String(localized: "Below the usual \(low)–\(high) \(unit). Check the unit your lab used.")
         }
-        if value > ceiling {
-            return "That's way above the typical \(format(range.lowerBound))–\(format(range.upperBound)) \(panel.canonicalUnit). Double-check the unit."
+        if value > range.upperBound * 10 {
+            return String(localized: "Above the usual \(low)–\(high) \(unit). Check the unit your lab used.")
         }
         return nil
-    }
-
-    private func format(_ d: Double) -> String {
-        d.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(d)) : String(format: "%.1f", d)
     }
 
     var body: some View {
@@ -116,18 +113,21 @@ struct LabEntryEditor: View {
                         TextField("Value", text: $valueText)
                             .keyboardType(.decimalPad)
                             .monospacedDigit()
+                            .focused($valueFocused)
                         Text(panel.canonicalUnit)
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                     }
-                    if let rangeError {
-                        HStack(spacing: 4) {
+                    if showRangeWarning, let rangeWarning {
+                        HStack(spacing: Spacing.xs) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(AppFont.scaled(11))
-                            Text(rangeError)
+                                .accessibilityHidden(true)
+                            Text(rangeWarning)
                                 .font(AppFont.caption)
                         }
-                        .foregroundStyle(AppColor.destructive)
+                        .foregroundStyle(AppColor.warning)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                     // Future draw-dates would break the chart's
                     // time-based axis (audit Biology MED 12). The
@@ -152,7 +152,7 @@ struct LabEntryEditor: View {
                 } header: {
                     Text("Context")
                 } footer: {
-                    Text("Add the lab name (Quest, Marek Health, your clinic) so multiple draws stay sortable.")
+                    Text("Add the lab name (e.g. Quest, Labcorp, your clinic) so multiple draws stay sortable.")
                 }
 
                 if isEditing {
@@ -160,15 +160,26 @@ struct LabEntryEditor: View {
                         Button(role: .destructive) {
                             showDeleteConfirm = true
                         } label: {
-                            HStack(spacing: Spacing.sm) {
-                                Image(systemName: "trash")
-                                Text("Delete entry")
-                            }
+                            Label("Delete entry", systemImage: "trash")
                         }
                     }
                 }
             }
             .scrollDismissesKeyboard(.interactively)
+            .appAnimation(AppAnimation.springSnappy, value: showRangeWarning)
+            .task(id: valueText) {
+                // Debounce: judge the value once typing pauses.
+                showRangeWarning = false
+                try? await Task.sleep(for: .milliseconds(500))
+                guard !Task.isCancelled else { return }
+                showRangeWarning = rangeWarning != nil
+            }
+            .onChange(of: panel) { _, _ in
+                showRangeWarning = rangeWarning != nil && !valueText.isEmpty
+            }
+            .onAppear {
+                if !isEditing { valueFocused = true }
+            }
             .navigationTitle(isEditing ? "Edit lab" : "New lab")
             .navigationBarTitleDisplayMode(.inline)
             .glassFormStyle()
@@ -177,9 +188,23 @@ struct LabEntryEditor: View {
                     Button("Cancel", action: onCancel)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save", action: commit)
+                    Button("Save", action: attemptSave)
                         .disabled(!canSave)
                 }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { valueFocused = false }
+                }
+            }
+            .confirmationDialog(
+                "Save this value?",
+                isPresented: $showSaveAnywayConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Save anyway", action: commit)
+                Button("Edit value", role: .cancel) { valueFocused = true }
+            } message: {
+                Text(rangeWarning ?? "")
             }
             .confirmationDialog(
                 "Delete this entry?",
@@ -187,6 +212,7 @@ struct LabEntryEditor: View {
                 titleVisibility: .visible
             ) {
                 Button("Delete", role: .destructive) {
+                    Haptics.warning()
                     if let initial { onDelete?(initial.id) }
                 }
                 Button("Cancel", role: .cancel) {}
@@ -197,12 +223,24 @@ struct LabEntryEditor: View {
     }
 
     private func rangeFooter(range: ClosedRange<Double>) -> String {
-        let low = Self.formatNumber(range.lowerBound)
-        let high = Self.formatNumber(range.upperBound)
+        let low = LabValueFormat.string(range.lowerBound)
+        let high = LabValueFormat.string(range.upperBound)
         return String(
             localized: "Typical adult range: \(low)–\(high) \(panel.canonicalUnit). Your lab may use different reference values.",
             comment: "Lab editor footer — informational reference range."
         )
+    }
+
+    /// Saves straight through unless the value looks like a unit slip,
+    /// in which case it asks first.
+    private func attemptSave() {
+        if rangeWarning != nil {
+            showRangeWarning = true
+            Haptics.warning()
+            showSaveAnywayConfirm = true
+        } else {
+            commit()
+        }
     }
 
     private func commit() {

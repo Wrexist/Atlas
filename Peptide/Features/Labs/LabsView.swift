@@ -6,9 +6,9 @@ import SwiftUI
 /// health / other). Tap a row → per-panel chart + history. "+" in
 /// the toolbar → log a new value.
 ///
-/// Empty state surfaces the value prop ("track testosterone, IGF-1,
-/// thyroid…") rather than a blank screen — first impression
-/// matters when the feature has zero data on a fresh install.
+/// Empty state surfaces the value prop ("lipids, glucose, vitamin
+/// D…") rather than a blank screen — first impression matters when
+/// the feature has zero data on a fresh install.
 struct LabsView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
@@ -19,6 +19,7 @@ struct LabsView: View {
     @State private var editingEntry: LabValue?
     @State private var creatingEntry: Bool = false
     @State private var detailPanel: LabPanel?
+    @State private var pendingDelete: LabValue?
 
     private var summaries: [LabDataLogic.LatestSummary] {
         dataStore.latestLabSummaries
@@ -40,8 +41,9 @@ struct LabsView: View {
                         emptyState
                     } else {
                         introHeader
-                        ForEach(groupedSummaries, id: \.0) { category, rows in
-                            section(for: category, rows: rows)
+                        ForEach(Array(groupedSummaries.enumerated()), id: \.element.0) { index, group in
+                            section(for: group.0, rows: group.1)
+                                .sectionAppear(index: index)
                         }
                     }
                 }
@@ -60,10 +62,12 @@ struct LabsView: View {
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
+                        Haptics.impact(.light)
                         creatingEntry = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(AppColor.accentLight)
+                            .font(AppFont.scaled(20))
+                            .foregroundStyle(AppColor.accentPrimary)
                     }
                     .accessibilityLabel("Log a new lab value")
                 }
@@ -74,48 +78,66 @@ struct LabsView: View {
             .sheet(isPresented: $creatingEntry) {
                 LabEntryEditor(
                     initial: nil,
+                    defaultPanel: mostRecentPanel,
                     sex: dataStore.profile.bodyMetrics.sex,
                     onSave: { value in
-                        dataStore.saveLabValue(value)
+                        AppAnimation.with(AppAnimation.springSnappy) { dataStore.saveLabValue(value) }
                         creatingEntry = false
                     },
                     onDelete: nil,
                     onCancel: { creatingEntry = false }
                 )
+                .liquidGlassPresentation()
             }
             .sheet(item: $editingEntry) { entry in
                 LabEntryEditor(
                     initial: entry,
                     sex: dataStore.profile.bodyMetrics.sex,
                     onSave: { value in
-                        dataStore.saveLabValue(value)
+                        AppAnimation.with(AppAnimation.springSnappy) { dataStore.saveLabValue(value) }
                         editingEntry = nil
                     },
                     onDelete: { id in
-                        dataStore.deleteLabValue(id: id)
+                        AppAnimation.with(AppAnimation.springSnappy) { dataStore.deleteLabValue(id: id) }
                         editingEntry = nil
                     },
                     onCancel: { editingEntry = nil }
                 )
+                .liquidGlassPresentation()
+            }
+            .confirmationDialog(
+                "Delete the latest entry?",
+                isPresented: Binding(
+                    get: { pendingDelete != nil },
+                    set: { if !$0 { pendingDelete = nil } }
+                ),
+                titleVisibility: .visible,
+                presenting: pendingDelete
+            ) { entry in
+                Button("Delete", role: .destructive) {
+                    Haptics.warning()
+                    AppAnimation.with(AppAnimation.springSnappy) { dataStore.deleteLabValue(id: entry.id) }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { _ in
+                Text("This can't be undone. The trend chart will skip the deleted point.")
             }
         }
+    }
+
+    /// The panel the user logged most recently, so a new entry starts there.
+    private var mostRecentPanel: LabPanel? {
+        summaries.max(by: { $0.latest.date < $1.latest.date })?.latest.panel
     }
 
     // MARK: - Sections
 
     private var introHeader: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Lab work")
-                .font(AppFont.scaled(13, weight: .semibold))
-                .tracking(0.6)
-                .textCase(.uppercase)
-                .foregroundStyle(AppColor.accentLight.opacity(0.85))
-            Text("\(summaries.count) panels tracked")
-                .font(AppFont.title2)
-                .foregroundStyle(AppColor.textPrimary)
-                .contentTransition(.numericText())
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        Text("^[\(summaries.count) panel](inflect: true) tracked")
+            .font(AppFont.subheadline)
+            .foregroundStyle(AppColor.textSecondary)
+            .contentTransition(.numericText())
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func section(
@@ -133,6 +155,10 @@ struct LabsView: View {
             VStack(spacing: Spacing.xs) {
                 ForEach(rows) { summary in
                     row(for: summary)
+                        .transition(.asymmetric(
+                            insertion: .scale(scale: 0.95).combined(with: .opacity),
+                            removal: .opacity
+                        ))
                 }
             }
         }
@@ -142,9 +168,9 @@ struct LabsView: View {
         Button {
             detailPanel = summary.latest.panel
         } label: {
-            LabSummaryRow(summary: summary)
+            LabSummaryRow(summary: summary, sex: dataStore.profile.bodyMetrics.sex)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .contextMenu {
             Button {
                 editingEntry = summary.latest
@@ -152,7 +178,7 @@ struct LabsView: View {
                 Label("Edit latest", systemImage: "pencil")
             }
             Button(role: .destructive) {
-                dataStore.deleteLabValue(id: summary.latest.id)
+                pendingDelete = summary.latest
             } label: {
                 Label("Delete latest", systemImage: "trash")
             }
@@ -164,8 +190,8 @@ struct LabsView: View {
     private var emptyState: some View {
         EmptyStateView(
             icon: "testtube.2",
-            title: "Track your biomarkers",
-            message: "Testosterone, IGF-1, lipids, thyroid panels. Log a value to chart how your protocols are moving real numbers.",
+            title: "Track your blood work",
+            message: "Lipids, glucose, vitamin D, iron and hormones. See how training and nutrition move your numbers.",
             action: .init(title: "Log first lab", icon: "plus.circle.fill") {
                 creatingEntry = true
             }
@@ -180,6 +206,11 @@ struct LabsView: View {
 /// so it can compose freely with the empty-state).
 struct LabSummaryRow: View {
     let summary: LabDataLogic.LatestSummary
+    /// Picks the sex-specific reference range for the status chip.
+    let sex: BiologicalSex
+    /// Grows the panel tile with Dynamic Type so its short name never
+    /// has to shrink to fit.
+    @ScaledMetric(relativeTo: .footnote) private var tileSize: CGFloat = 40
 
     private var panel: LabPanel { summary.latest.panel }
 
@@ -192,20 +223,23 @@ struct LabSummaryRow: View {
     }()
 
     var body: some View {
-        HStack(spacing: Spacing.sm) {
+        HStack(spacing: Spacing.md) {
             ZStack {
-                Circle()
-                    .fill(panel.tint.opacity(0.20))
-                    .frame(width: 38, height: 38)
+                RoundedRectangle(
+                    cornerRadius: Spacing.concentric(in: Spacing.cardCornerRadius, inset: Spacing.md),
+                    style: .continuous
+                )
+                .fill(panel.tint.opacity(0.20))
                 Text(panel.shortName)
                     .font(AppFont.scaled(11, weight: .heavy))
                     .foregroundStyle(panel.tint)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .padding(.horizontal, 4)
+                    .minimumScaleFactor(0.85)
+                    .padding(.horizontal, Spacing.xxs)
             }
+            .frame(width: tileSize, height: tileSize)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(panel.displayName)
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
@@ -219,78 +253,76 @@ struct LabSummaryRow: View {
             Spacer(minLength: 0)
 
             valueAndTrend
+
+            Image(systemName: "chevron.right")
+                .font(AppFont.scaled(11, weight: .semibold))
+                .foregroundStyle(AppColor.textTertiary)
         }
-        .padding(.vertical, Spacing.sm)
-        .padding(.horizontal, Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        .padding(Spacing.md)
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
     }
 
-    private var valueAndTrend: some View {
-        HStack(spacing: 4) {
-            VStack(alignment: .trailing, spacing: 1) {
-                Text(formatted(summary.latest.value))
-                    .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(AppColor.textPrimary)
-                Text(panel.canonicalUnit)
-                    .font(AppFont.scaled(8, weight: .semibold))
-                    .foregroundStyle(AppColor.textTertiary)
-            }
-            trendBadge
-        }
+    private var rangeStatus: LabRangeStatus? {
+        LabRangeStatus(value: summary.latest.value, panel: panel, sex: sex)
     }
 
-    @ViewBuilder
-    private var trendBadge: some View {
-        switch summary.trend {
-        case .rising:
-            Image(systemName: "arrow.up.right")
-                .font(AppFont.scaled(11, weight: .heavy))
-                .foregroundStyle(AppColor.positive)
-                .padding(6)
-                .background { Circle().fill(AppColor.positive.opacity(0.15)) }
-        case .falling:
-            Image(systemName: "arrow.down.right")
-                .font(AppFont.scaled(11, weight: .heavy))
-                .foregroundStyle(AppColor.negative)
-                .padding(6)
-                .background { Circle().fill(AppColor.negative.opacity(0.15)) }
-        case .stable:
-            Image(systemName: "minus")
+    /// Value and unit, then direction in neutral ink. Only the range
+    /// status is coloured — whether "up" is good depends on the marker.
+    private var valueAndTrend: some View {
+        HStack(spacing: Spacing.xs) {
+            VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                    Text(LabValueFormat.string(summary.latest.value))
+                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(rangeStatus?.tint ?? AppColor.textPrimary)
+                    Text(panel.canonicalUnit)
+                        .font(AppFont.badgeSmall)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+                if let rangeStatus {
+                    Text(rangeStatus.label)
+                        .font(AppFont.badgeSmall)
+                        .foregroundStyle(rangeStatus.tint)
+                }
+            }
+            Image(systemName: trendSymbol)
                 .font(AppFont.scaled(11, weight: .heavy))
                 .foregroundStyle(AppColor.textSecondary)
-                .padding(6)
+                .padding(Spacing.xs)
                 .background { Circle().fill(AppColor.textSecondary.opacity(0.12)) }
         }
     }
 
-    private func formatted(_ value: Double) -> String {
-        if value.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(format: "%.0f", value)
+    private var trendSymbol: String {
+        switch summary.trend {
+        case .rising:  "arrow.up.right"
+        case .falling: "arrow.down.right"
+        case .stable:  "minus"
         }
-        if value < 10 {
-            return String(format: "%.2f", value)
-        }
-        return String(format: "%.1f", value)
     }
 
     private var accessibilityLabel: String {
-        let v = formatted(summary.latest.value)
+        let v = LabValueFormat.string(summary.latest.value)
         let trendDesc: String
         switch summary.trend {
         case .rising:  trendDesc = String(localized: "trending up")
         case .falling: trendDesc = String(localized: "trending down")
         case .stable:  trendDesc = String(localized: "stable")
         }
-        return "\(panel.displayName): \(v) \(panel.canonicalUnit), \(trendDesc)"
+        let status: String
+        switch rangeStatus {
+        case .within?: status = String(localized: "in range")
+        case .below?:  status = String(localized: "below range")
+        case .above?:  status = String(localized: "above range")
+        case nil:      status = ""
+        }
+        return [
+            "\(panel.displayName): \(v) \(panel.canonicalUnit)",
+            status,
+            trendDesc,
+        ].filter { !$0.isEmpty }.joined(separator: ", ")
     }
 }

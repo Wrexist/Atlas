@@ -52,8 +52,10 @@ struct HabitCompletionChip: View {
             .overlay(
                 Capsule().strokeBorder(isCompleted ? habit.tint.opacity(0.4) : AppColor.glassBorder, lineWidth: 0.5)
             )
+            .minimumHitArea()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.95))
+        .sensoryFeedback(.success, trigger: completionTrigger)
         .accessibilityLabel(habit.name)
         .accessibilityValue(accessibilityValue)
         .onChange(of: isCompleted) { _, completed in
@@ -72,7 +74,8 @@ struct HabitCompletionChip: View {
                     .frame(width: 14, height: 14)
                 Image(systemName: "checkmark")
                     .font(AppFont.scaled(8, weight: .bold))
-                    .foregroundStyle(AppColor.background)
+                    .foregroundStyle(AppColor.onAccent)
+                    .symbolEffect(.bounce, value: completionTrigger)
             } else {
                 Image(systemName: habit.iconSymbol)
                     .font(AppFont.scaled(8, weight: .semibold))
@@ -82,8 +85,11 @@ struct HabitCompletionChip: View {
     }
 
     private var accessibilityValue: String {
-        var parts: [String] = [isCompleted ? "completed today" : "not yet completed"]
-        if currentStreak >= 3 { parts.append("\(currentStreak) day streak") }
+        var parts = [isCompleted ? String(localized: "completed today") : String(localized: "not yet completed")]
+        if let weeklyCount, let weeklyTarget {
+            parts.append(String(localized: "\(weeklyCount) of \(weeklyTarget) this week"))
+        }
+        if currentStreak >= 3 { parts.append(String(localized: "\(currentStreak) day streak")) }
         return parts.joined(separator: ", ")
     }
 }

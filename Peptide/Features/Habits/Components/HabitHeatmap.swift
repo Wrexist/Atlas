@@ -36,7 +36,7 @@ struct HabitHeatmap: View {
                 if showsMonthLabels {
                     monthRow(perColumnWidth: perColumnWidth)
                         .foregroundStyle(AppColor.textTertiary)
-                        .font(AppFont.scaled(8, weight: .semibold))
+                        .font(AppFont.badgeSmall)
                 }
 
                 HStack(spacing: cellSpacing) {
@@ -63,7 +63,10 @@ struct HabitHeatmap: View {
     private func monthRow(perColumnWidth: CGFloat) -> some View {
         HStack(spacing: 0) {
             ForEach(monthLabels(perColumnWidth: perColumnWidth), id: \.offset) { label in
-                Text(label.text)
+                // A month that spans under two columns (the partial
+                // first or last) has no room for its name.
+                Text(label.width >= perColumnWidth * 2 ? label.text : "")
+                    .lineLimit(1)
                     .frame(width: label.width, alignment: .leading)
             }
         }
@@ -84,7 +87,7 @@ struct HabitHeatmap: View {
     /// heatmap, and a per-render DateFormatter allocation is the costly part.
     private static let monthAbbrevFormatter: DateFormatter = {
         let f = DateFormatter()
-        f.dateFormat = "MMM"
+        f.setLocalizedDateFormatFromTemplate("MMM")
         return f
     }()
 

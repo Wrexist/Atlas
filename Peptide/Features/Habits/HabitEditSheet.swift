@@ -122,13 +122,10 @@ struct HabitEditSheet: View {
                 )
             }
             .toolbar {
+                // Saving lives on the pinned CTA alone, so there's one
+                // obvious place to commit.
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { commit() }
-                        .disabled(!canSave)
-                        .fontWeight(.semibold)
                 }
             }
             .onAppear {
@@ -161,10 +158,15 @@ struct HabitEditSheet: View {
             Image(systemName: iconSymbol)
                 .font(AppFont.scaled(32, weight: .semibold, relativeTo: .title1))
                 .foregroundStyle(tint)
+                .contentTransition(.symbolEffect(.replace))
                 .frame(width: 88, height: 88)
                 .background {
-                    Circle().strokeBorder(tint.opacity(0.5), lineWidth: 1.5)
+                    Circle()
+                        .fill(tint.opacity(0.12))
+                        .overlay { Circle().strokeBorder(tint.opacity(0.5), lineWidth: 1.5) }
                 }
+                .appAnimation(AppAnimation.springSnappy, value: tintHex)
+                .appAnimation(AppAnimation.springSnappy, value: iconSymbol)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Icon and colour")
@@ -213,16 +215,19 @@ struct HabitEditSheet: View {
                 EmptyView()
             case .weekdays:
                 settingCard { weekdayPicker }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             case .timesPerWeek:
                 settingCard {
                     Stepper(value: $timesPerWeek, in: 1...7) {
-                        Text("\(timesPerWeek) times per week")
+                        Text("^[\(timesPerWeek) time](inflect: true) per week")
                             .font(AppFont.body)
                             .foregroundStyle(AppColor.textPrimary)
                     }
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+        .appAnimation(AppAnimation.springSnappy, value: scheduleKind)
     }
 
     private var weekdayPicker: some View {
@@ -235,7 +240,7 @@ struct HabitEditSheet: View {
                 // picked nothing and got daily (audit Habits H6).
                 let isLastSelected = isSelected && weekdays.count == 1
                 Button {
-                    Haptics.impact(.soft)
+                    Haptics.selection()
                     if isSelected { weekdays.remove(day) } else { weekdays.insert(day) }
                 } label: {
                     Text(day.shortName)
@@ -313,12 +318,14 @@ struct HabitEditSheet: View {
     private func reminderChip(_ slot: HabitReminderSlot) -> some View {
         let isSelected = enableReminder && HabitReminderSlot(matching: reminderTime) == slot
         return Button {
-            Haptics.impact(.soft)
-            if isSelected {
-                enableReminder = false
-            } else {
-                enableReminder = true
-                reminderTime = slot.time()
+            Haptics.selection()
+            AppAnimation.with(AppAnimation.springSnappy) {
+                if isSelected {
+                    enableReminder = false
+                } else {
+                    enableReminder = true
+                    reminderTime = slot.time()
+                }
             }
         } label: {
             HStack(spacing: Spacing.xs) {
@@ -335,12 +342,12 @@ struct HabitEditSheet: View {
             .padding(.vertical, Spacing.md)
             .frame(minHeight: Spacing.minimumHitTarget)
             .background {
-                RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
-                    .strokeBorder(
-                        isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
-                        lineWidth: 1
-                    )
+                if !isSelected {
+                    RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.glassBorder, lineWidth: 1)
+                }
             }
+            .modifier(SelectedChipGlass(isSelected: isSelected))
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
@@ -442,8 +449,27 @@ struct HabitEditSheet: View {
             sortIndex: editing?.sortIndex ?? 0,
             archived: editing?.archived ?? false
         )
+        Haptics.success()
         onSave(habit)
         dismiss()
+    }
+}
+
+/// A selected reminder slot reads as a tinted glass control, not just a
+/// brighter outline.
+private struct SelectedChipGlass: ViewModifier {
+    let isSelected: Bool
+
+    func body(content: Content) -> some View {
+        if isSelected {
+            content.glassControl(
+                .rect(cornerRadius: Spacing.controlCornerRadius),
+                tint: AppColor.accentPrimary.opacity(0.18),
+                border: AppColor.glassBorderActive
+            )
+        } else {
+            content
+        }
     }
 }
 

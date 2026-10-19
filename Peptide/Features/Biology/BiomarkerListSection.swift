@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// "Other biomarkers" list on the Biology tab. Section header
-/// with an Edit affordance (wires up in commit 8); below it, one
+/// "Biomarkers" list on the Biology tab. Section header with an
+/// Edit affordance; below it, one
 /// `BiomarkerRow` per visible biomarker in the user's curated
 /// order.
 ///
@@ -13,10 +13,8 @@ import SwiftUI
 struct BiomarkerListSection: View {
     @Environment(DataStore.self) private var dataStore
 
-    /// Which biomarkers to render, in order. Sourced from the
-    /// user's BiologyConfig in commit 7; for this commit, the
-    /// caller passes `Biomarker.defaultVisible` so the list shows
-    /// up without persistence wiring.
+    /// Which biomarkers to render, in order, from the user's
+    /// `BiologyConfig`.
     let visibleBiomarkers: [Biomarker]
     /// Bumped by the parent's pull-to-refresh to force a re-read.
     var reloadID = 0
@@ -25,17 +23,14 @@ struct BiomarkerListSection: View {
 
     @State private var snapshots: [BiomarkerSnapshot] = []
     /// True until the first HealthKit read lands, so rows render as a
-    /// redacted placeholder instead of a column of em-dashes that reads
+    /// shimmering placeholder instead of a column of em-dashes that reads
     /// as "no data". Later refreshes keep the previous values on screen.
     @State private var isLoading = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Other biomarkers")
-                    .font(.system(.title2, design: .rounded, weight: .bold))
-                    .foregroundStyle(AppColor.textPrimary)
-                Spacer(minLength: 0)
+                BiologySectionHeader(title: "Biomarkers")
                 if onEditTapped != nil {
                     Button {
                         onEditTapped?()
@@ -52,18 +47,15 @@ struct BiomarkerListSection: View {
 
             if visibleBiomarkers.isEmpty {
                 emptyState
+            } else if isLoading {
+                rows
+                    .redacted(reason: .placeholder)
+                    .shimmer()
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
             } else {
-                VStack(spacing: Spacing.sm) {
-                    ForEach(visibleBiomarkers, id: \.self) { biomarker in
-                        let rowSnapshot = snapshot(for: biomarker)
-                        BiomarkerRow(
-                            snapshot: rowSnapshot,
-                            onTap: { onSelectBiomarker?(rowSnapshot) }
-                        )
-                    }
-                }
-                .redacted(reason: isLoading ? .placeholder : [])
-                .allowsHitTesting(!isLoading)
+                rows
+                    .transition(.opacity)
             }
         }
         // Re-key on a hashed identity rather than the full array. Without
@@ -76,24 +68,32 @@ struct BiomarkerListSection: View {
         }
     }
 
-    private var emptyState: some View {
+    private var rows: some View {
         VStack(spacing: Spacing.sm) {
-            Image(systemName: "list.bullet.rectangle.fill")
-                .font(.system(size: 28, weight: .light))
-                .foregroundStyle(AppColor.textTertiary)
-            Text("You've hidden every biomarker.")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            Button("Open Edit") { onEditTapped?() }
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textSecondary)
+            ForEach(Array(visibleBiomarkers.enumerated()), id: \.element) { index, biomarker in
+                let rowSnapshot = snapshot(for: biomarker)
+                BiomarkerRow(
+                    snapshot: rowSnapshot,
+                    onTap: { onSelectBiomarker?(rowSnapshot) }
+                )
+                .transition(.opacity.combined(with: .move(edge: .trailing)))
+                .staggeredAppear(index: index)
+            }
         }
+        .appAnimation(AppAnimation.springSnappy, value: visibleBiomarkers)
+    }
+
+    private var emptyState: some View {
+        EmptyStateView(
+            icon: "list.bullet.rectangle",
+            title: "No biomarkers showing",
+            message: "You've hidden every biomarker.",
+            action: .init(title: "Choose biomarkers") { onEditTapped?() },
+            style: .compact
+        )
         .frame(maxWidth: .infinity)
-        .padding(Spacing.xl)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.45))
-        }
+        .padding(.vertical, Spacing.lg)
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
     private struct LoadKey: Equatable {
@@ -119,7 +119,9 @@ struct BiomarkerListSection: View {
             latestLab: latestLab,
             unit: dataStore.profile.bodyMetrics.unit
         )
-        snapshots = fresh
-        isLoading = false
+        AppAnimation.with(AppAnimation.fadeIn) {
+            snapshots = fresh
+            isLoading = false
+        }
     }
 }

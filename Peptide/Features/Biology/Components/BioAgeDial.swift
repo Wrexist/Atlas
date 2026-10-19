@@ -51,6 +51,7 @@ struct BioAgeDial: View {
     var body: some View {
         ZStack {
             track
+            chronologicalTick
             if bioAge != nil {
                 progressArc
                 if !reduceMotion { markerPulse }
@@ -138,13 +139,33 @@ struct BioAgeDial: View {
             }
             .offset(y: -(size / 2))
             .rotationEffect(.degrees(angle(for: markerValue)))
-            .animation(reduceMotion ? nil : AppAnimation.springSmooth, value: markerValue)
+            .appAnimation(AppAnimation.springSmooth, value: markerValue)
             .accessibilityHidden(true)
         }
     }
 
     /// Seconds per pulse — slow enough to read as breathing, not alerting.
     private static let pulsePeriod: Double = 2.8
+
+    // MARK: - Chronological age
+
+    /// A tick at the user's actual age — the dial's centre — so the marker
+    /// reads as younger or older against something on the scale itself.
+    private var chronologicalTick: some View {
+        ZStack {
+            Capsule()
+                .fill(AppColor.textSecondary)
+                .frame(width: 1.5, height: 12)
+                .offset(y: -(size / 2))
+            Text("Your age")
+                .font(AppFont.scaled(11, weight: .semibold))
+                .foregroundStyle(AppColor.textTertiary)
+                .fixedSize()
+                .offset(y: -(size / 2) + 18)
+        }
+        .rotationEffect(.degrees(angle(for: Double(chronologicalAge))))
+        .accessibilityHidden(true)
+    }
 
     // MARK: - Bound labels
 
@@ -167,8 +188,7 @@ struct BioAgeDial: View {
         // our angle system points up (-90° in screen coords).
         let x = sin(radians) * radius
         let y = -cos(radians) * radius
-        return Text(Self.boundFormatter.string(from: NSNumber(value: value))
-                    ?? String(format: "%.1f", value))
+        return Text(BioAgeFormat.age(value))
             .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
             .foregroundStyle(AppColor.textSecondary)
             .offset(x: x, y: y)
@@ -186,22 +206,14 @@ struct BioAgeDial: View {
         return startAngle + 90 + fraction * sweep
     }
 
-    private static let boundFormatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        f.minimumFractionDigits = 1
-        f.maximumFractionDigits = 1
-        return f
-    }()
-
     private var accessibilityDescription: String {
-        let low = String(format: "%.1f", lowerBound)
-        let high = String(format: "%.1f", upperBound)
+        let low = BioAgeFormat.age(lowerBound)
+        let high = BioAgeFormat.age(upperBound)
         guard let bioAge else {
             return String(format: String(localized: "Biological age scale, %@ to %@ years"), low, high)
         }
         return String(format: String(localized: "Biological age %@, on a scale from %@ to %@ years"),
-                      String(format: "%.1f", bioAge), low, high)
+                      BioAgeFormat.age(bioAge), low, high)
     }
 }
 

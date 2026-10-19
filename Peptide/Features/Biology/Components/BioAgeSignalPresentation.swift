@@ -137,17 +137,17 @@ extension PerformanceAgeEngine.Driver.Kind {
 }
 
 enum BioAgeFormat {
-    /// "−1.2 y" / "+0.4 y" for a signed contribution in years.
+    /// "−1.2 yr" / "+0.4 yr" for a signed contribution in years, with the
+    /// locale's decimal separator.
     static func years(_ delta: Double) -> String {
         let rounded = (delta * 10).rounded() / 10
-        if rounded == 0 { return "0.0 y" }
-        let sign = rounded > 0 ? "+" : "−"
-        return "\(sign)\(String(format: "%.1f", abs(rounded))) y"
+        let sign = rounded > 0 ? "+" : (rounded < 0 ? "−" : "")
+        return String(localized: "\(sign)\(age(abs(rounded))) yr")
     }
 
     /// Spoken form for VoiceOver: "1.2 years younger".
     static func spokenYears(_ delta: Double) -> String {
-        let magnitude = String(format: "%.1f", abs(delta))
+        let magnitude = age(abs(delta))
         if abs(delta) < 0.05 { return String(localized: "No effect") }
         return delta < 0
             ? String(localized: "\(magnitude) years younger")

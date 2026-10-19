@@ -45,8 +45,9 @@ struct StarterHabitSuggestions: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("QUICK START")
-                .font(AppFont.scaled(11, weight: .heavy))
+            Text("Quick start")
+                .font(AppFont.eyebrow)
+                .textCase(.uppercase)
                 .tracking(1.2)
                 .foregroundStyle(AppColor.textTertiary)
 
@@ -82,8 +83,9 @@ struct StarterHabitSuggestions: View {
             .padding(.vertical, 8)
             .background(Capsule().fill(AppColor.surfaceSecondary.opacity(0.7)))
             .overlay(Capsule().strokeBorder(AppColor.glassBorder, lineWidth: 0.5))
+            .minimumHitArea()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.95))
         .accessibilityLabel("Add habit: \(template.name)")
     }
 }

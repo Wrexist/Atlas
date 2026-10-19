@@ -24,7 +24,7 @@ extension View {
     }
 }
 
-/// Section title shared by Biology's cards, matching "Other biomarkers".
+/// Section title shared by Biology's cards and the biomarker list.
 struct BiologySectionHeader: View {
     let title: LocalizedStringKey
     var subtitle: LocalizedStringKey?
@@ -32,7 +32,9 @@ struct BiologySectionHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(title)
-                .font(.system(.title2, design: .rounded, weight: .bold))
+                .font(AppFont.title2)
+                .fontWeight(.bold)
+                .fontDesign(.rounded)
                 .foregroundStyle(AppColor.textPrimary)
             if let subtitle {
                 Text(subtitle)
