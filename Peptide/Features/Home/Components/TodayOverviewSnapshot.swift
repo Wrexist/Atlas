@@ -7,26 +7,10 @@ import Foundation
 ///
 /// Every field is optional or has a "not yet tracked" sentinel so
 /// the card can render gracefully for a brand-new user with no
-/// protocols, no nutrition target, and no labs. Once the user
+/// nutrition target and no labs. Once the user
 /// fills in any one domain, that tile lights up; the rest stay
 /// in their soft empty state.
 struct TodayOverviewSnapshot: Equatable, Sendable {
-
-    // MARK: - Hero: protocol compliance
-
-    /// Compliance fraction for today's scheduled doses — drives the
-    /// hero ring. `nil` when the user has zero protocols (the card
-    /// suppresses the ring entirely and shows the empty hero copy).
-    let complianceFraction: Double?
-    let dosesCompletedToday: Int
-    let dosesTotalToday: Int
-    /// Next pending dose this calendar day, if any. When `nil` and
-    /// `dosesTotalToday > 0`, the hero flips to the "all logged"
-    /// celebratory state.
-    let nextDose: ProtocolEntry?
-    /// All-time dose-completion streak in calendar days. Surfaced as
-    /// a small subtitle under the hero copy.
-    let doseStreak: Int
 
     // MARK: - Nutrition
 
@@ -123,12 +107,12 @@ struct TodayOverviewSnapshot: Equatable, Sendable {
     // MARK: - Derived
 
     /// Has the user supplied enough data anywhere to justify the
-    /// card? When false the host can suppress it (zero protocols +
-    /// no nutrition target + no meals + no labs is a brand-new
-    /// install — the existing getting-started card already covers
-    /// them better than a sea of empty tiles).
+    /// card? When false the host can suppress it (no nutrition
+    /// target, no meals, no labs and no protocol insight is a
+    /// brand-new install — a sea of empty tiles helps nobody).
+    /// Doses don't count: they live in the Today's doses section.
     var hasAnySignal: Bool {
-        if (dosesTotalToday > 0) { return true }
+        if case .protocolInsight = bottomInsight { return true }
         if mealStreak > 0 || caloriesToday > 0 || waterToday > 0 { return true }
         if calorieTarget != nil { return true }
         if checkInScore != nil { return true }
@@ -145,11 +129,6 @@ extension TodayOverviewSnapshot {
     /// render is just a flat layout pass.
     @MainActor
     static func build(from dataStore: DataStore, now: Date = Date()) -> TodayOverviewSnapshot {
-        let entries = dataStore.todayEntries
-        let total = entries.count
-        let completed = entries.filter(\.completed).count
-        let fraction: Double? = total > 0 ? Double(completed) / Double(total) : nil
-
         let consumption = dataStore.consumption()
         let targets = dataStore.profile.nutritionTargets
 
@@ -162,11 +141,6 @@ extension TodayOverviewSnapshot {
         )
 
         return TodayOverviewSnapshot(
-            complianceFraction: fraction,
-            dosesCompletedToday: completed,
-            dosesTotalToday: total,
-            nextDose: dataStore.nextDose,
-            doseStreak: dataStore.currentStreak,
             caloriesToday: consumption.caloriesKcal,
             calorieTarget: targets?.calories,
             waterToday: consumption.waterOz,

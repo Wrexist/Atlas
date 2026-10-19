@@ -20,7 +20,7 @@ starting a second one.
 | 3–5 peer metrics, glanceable | Activity ring trio | `HeroMetricTrio` |
 | A value over time with a target | Stocks row + sparkline | `BiomarkerRow` + `BiomarkerSparkline` |
 | Mixed events in time order | Wallet transaction list | `TodayTimelineCard` |
-| Things with state, one tap to advance | Reminders checklist | `TodayScheduleCard` |
+| Things with state, one tap to advance | Reminders checklist | `DailyPlanCard` |
 | A streak or habit | Duolingo flame | `HabitRowCard` |
 | Something aspirational behind a paywall | Apple One card | `PremiumPromoCard` |
 

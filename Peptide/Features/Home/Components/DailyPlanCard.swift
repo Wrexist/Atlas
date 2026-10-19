@@ -1,27 +1,35 @@
 import SwiftUI
 
-/// Renders the smart daily plan produced by `DailyScheduleEngine`. Lists each
-/// time-of-day window with its ordered doses, validated co-injection partners,
-/// and timing conflicts the user should know about.
+/// The one home for today's doses on Today. Renders the plan produced by
+/// `DailyScheduleEngine`: each time-of-day window with its doses, validated
+/// co-injection partners and timing conflicts. Every row carries its
+/// taken/pending state — the leading check marks it taken in one tap, the
+/// rest of the row opens the full logging sheet.
 struct DailyPlanCard: View {
     let plan: DailyScheduleEngine.DailyPlan
     var onTapDose: ((ProtocolEntry) -> Void)?
+    /// Marks a dose taken (or not). Nil hides the check, e.g. in previews.
+    var onToggleDose: ((ProtocolEntry) -> Void)?
     /// Route to the protocol list. Optional so the CTA only renders where
     /// the host can actually service it — the empty-state copy asks the
     /// user to add a protocol, and it should not ask without offering.
     var onAddProtocol: (() -> Void)?
 
     /// Collapsed by default so the card stays scannable even when the
-    /// user has 4+ time-of-day slots. The first slot shows in full
+    /// user has 4+ time-of-day slots. The current slot shows in full
     /// (the next thing they need to do) and the rest reveal via the
-    /// "Show all" button.
+    /// "Show more" button.
     @State private var isExpanded = false
 
-    /// Slots rendered now. When collapsed we keep just the first
-    /// time-of-day window so the user sees the most-imminent doses
-    /// without scrolling past everything below.
+    /// Slots rendered now. When collapsed we keep the first window that
+    /// still has a dose to take — or the last one once everything is
+    /// logged — so the open doses are never hidden behind the toggle.
     private var visibleSlots: [DailyScheduleEngine.ScheduledSlot] {
-        isExpanded ? plan.slots : Array(plan.slots.prefix(1))
+        guard !isExpanded else { return plan.slots }
+        let current = plan.slots.first { slot in
+            slot.doses.contains { !$0.entry.completed }
+        } ?? plan.slots.last
+        return current.map { [$0] } ?? []
     }
 
     private var hiddenSlotCount: Int {
@@ -31,11 +39,11 @@ struct DailyPlanCard: View {
     var body: some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                header
-
                 if !plan.hasAny {
                     emptyState
                 } else {
+                    header
+
                     ForEach(visibleSlots) { scheduledSlot in
                         slotSection(scheduledSlot)
                             .transition(.move(edge: .top).combined(with: .opacity))
@@ -75,16 +83,15 @@ struct DailyPlanCard: View {
 
     // MARK: - Header
 
+    /// The section header above already says "Today's doses", so the
+    /// card opens on the plan's own headline rather than a second title.
     private var header: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack(spacing: Spacing.sm) {
-                Image(systemName: "wand.and.stars")
-                    .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(AppColor.accentPrimary)
-                Text("Smart Daily Plan")
+                Text(plan.headline)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
-                Spacer()
+                Spacer(minLength: 0)
                 if plan.combinationCount > 0 {
                     countBadge(
                         icon: "link",
@@ -100,11 +107,6 @@ struct DailyPlanCard: View {
                     )
                 }
             }
-
-            Text(plan.headline)
-                .font(AppFont.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.textPrimary)
 
             Text(plan.summary)
                 .font(AppFont.caption)
@@ -151,7 +153,7 @@ struct DailyPlanCard: View {
             slotHeader(scheduled.slot, count: scheduled.doses.count)
             VStack(spacing: Spacing.sm) {
                 ForEach(scheduled.doses) { dose in
-                    DailyPlanDoseRow(dose: dose, onTap: onTapDose)
+                    DailyPlanDoseRow(dose: dose, onTap: onTapDose, onToggle: onToggleDose)
                 }
             }
             .padding(.leading, Spacing.xs)
@@ -190,8 +192,41 @@ struct DailyPlanCard: View {
 private struct DailyPlanDoseRow: View {
     let dose: DailyScheduleEngine.PlannedDose
     var onTap: ((ProtocolEntry) -> Void)?
+    var onToggle: ((ProtocolEntry) -> Void)?
 
     var body: some View {
+        HStack(alignment: .top, spacing: Spacing.sm) {
+            if let onToggle {
+                toggleButton { onToggle(dose.entry) }
+            }
+            detailsButton
+        }
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceElevated.opacity(0.6))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                }
+        }
+    }
+
+    /// One tap to mark the dose taken without opening the sheet.
+    private func toggleButton(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: dose.entry.completed ? "checkmark.circle.fill" : "circle")
+                .font(AppFont.scaled(20))
+                .foregroundStyle(dose.entry.completed ? AppColor.accentPrimary : AppColor.textTertiary)
+                .contentTransition(.symbolEffect(.replace))
+                .minimumHitArea()
+        }
+        .buttonStyle(ScalePressStyle())
+        .accessibilityLabel(dose.entry.completed ? "Mark dose incomplete" : "Mark dose complete")
+    }
+
+    private var detailsButton: some View {
         Button {
             onTap?(dose.entry)
         } label: {
@@ -211,20 +246,12 @@ private struct DailyPlanDoseRow: View {
                     conflictChip(conflict)
                 }
             }
-            .padding(Spacing.md)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceElevated.opacity(0.6))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
-            }
+            .contentShape(Rectangle())
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-        // One VoiceOver stop per dose instead of order, icon, name,
-        // flag, dose and time read separately.
+        // One VoiceOver stop per dose instead of icon, name, flag,
+        // dose and time read separately.
         .accessibilityElement(children: .combine)
         .accessibilityValue(dose.entry.completed ? "Taken" : "Pending")
         .accessibilityHint("Opens dose logging")
@@ -232,9 +259,6 @@ private struct DailyPlanDoseRow: View {
 
     private var topRow: some View {
         HStack(spacing: Spacing.sm) {
-            orderBadge
-                .accessibilityHidden(true)
-
             Image(systemName: dose.entry.peptide.imageSystemName)
                 .font(AppFont.scaled(13))
                 .foregroundStyle(dose.entry.peptide.category.color)
@@ -274,19 +298,6 @@ private struct DailyPlanDoseRow: View {
                     dose.entry.completed ? AppColor.textTertiary : AppColor.accentLight
                 )
         }
-    }
-
-    private var orderBadge: some View {
-        Text("\(dose.order)")
-            .font(AppFont.scaled(11, weight: .bold))
-            .foregroundStyle(AppColor.accentLight)
-            .frame(width: 20, height: 20)
-            .background {
-                Circle().fill(AppColor.accentPrimary.opacity(0.2))
-            }
-            .overlay {
-                Circle().strokeBorder(AppColor.accentPrimary.opacity(0.4), lineWidth: 0.5)
-            }
     }
 
     private var fastedFlag: some View {

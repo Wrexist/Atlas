@@ -339,9 +339,10 @@ struct HomeView: View {
                     .sectionAppear(index: 5)
 
                     if !dataStore.protocols.isEmpty, let plan = derived.plan {
-                        // The ONE dose section. The header's Manage
-                        // button is the labeled Library entry that
-                        // replaced the removed cycle pill.
+                        // The ONE place doses appear on Today — the
+                        // overview card and the timeline leave them out.
+                        // The header's Manage button is the labeled
+                        // Library entry that replaced the removed cycle pill.
                         VStack(spacing: Spacing.sm) {
                             HomeSectionHeader(eyebrow: "Protocols", title: "Today's doses") {
                                 Button {
@@ -360,18 +361,11 @@ struct HomeView: View {
                             DailyPlanCard(
                                 plan: plan,
                                 onTapDose: { entry in selectedEntry = entry },
+                                onToggleDose: toggleDose,
                                 onAddProtocol: {
                                     appState.pendingProtocolList = true
                                     appState.showLibrary = true
                                 }
-                            )
-
-                            TodayScheduleCard(
-                                entries: stats.entries,
-                                onToggle: { entry in
-                                    AppAnimation.with(AppAnimation.springSnappy) { dataStore.toggleEntry(entry.id) }
-                                },
-                                onTap: { entry in selectedEntry = entry }
                             )
                         }
                         .id(TodayJumpBar.SectionAnchor.doses)
@@ -393,16 +387,12 @@ struct HomeView: View {
                     // user pulls up on demand, after every actionable
                     // section above (Product Architecture 07).
 
-                    // Lifestyle overview: next-dose hero, calorie /
-                    // streak / check-in / water grid, rotating insight.
+                    // Lifestyle overview: calorie / streak / check-in /
+                    // water grid and the rotating insight.
                     if let overview = derived.overview, overview.hasAnySignal {
                         TodayOverviewCard(
                             snapshot: overview,
                             unit: dataStore.profile.bodyMetrics.unit,
-                            onTapHero: { dose in
-                                guard let dose else { return }
-                                selectedEntry = dose
-                            },
                             onTapInsight: { insight in
                                 switch insight {
                                 case .latestLab:
@@ -466,10 +456,11 @@ struct HomeView: View {
                         .scrollReveal()
                     }
 
-                    // Bevel-style chronological feed — doses + meals
-                    // + check-in + workouts merged into one sorted
-                    // list. Hides itself when the day has no events
-                    // (a brand-new install before the first log).
+                    // Bevel-style chronological feed — meals, check-in
+                    // and workouts merged into one sorted list (doses
+                    // stay in their own section above). Hides itself
+                    // when the day has no events (a brand-new install
+                    // before the first log).
                     TodayTimelineCard(
                         events: derived.timeline,
                         onTap: { event in handleTimelineTap(event, proxy: proxy) }
@@ -828,8 +819,6 @@ struct HomeView: View {
     private func handleTimelineTap(_ event: TodayTimelineEvent, proxy: ScrollViewProxy) {
         Haptics.impact(.light)
         switch event.tint {
-        case .dose:
-            selectedEntry = dataStore.todayEntries.first { "dose-\($0.id)" == event.id }
         case .meal:
             appState.selectedTab = .meals
         case .workout:
@@ -837,6 +826,13 @@ struct HomeView: View {
         case .checkIn:
             handleJump(to: .wellness, proxy: proxy)
         }
+    }
+
+    /// The dose row's one-tap check. A success haptic marks the dose
+    /// taken; un-checking keeps the store's own soft tap.
+    private func toggleDose(_ entry: ProtocolEntry) {
+        if !entry.completed { Haptics.success() }
+        AppAnimation.with(AppAnimation.springSnappy) { dataStore.toggleEntry(entry.id) }
     }
 
     private func handleChecklistAction(_ item: TodayChecklistEngine.Item) {
@@ -865,7 +861,7 @@ struct HomeView: View {
     }
 
     /// Today's chronological event feed for `TodayTimelineCard`.
-    /// Pulls doses + meals + check-in + workouts and hands them
+    /// Pulls meals + check-in + workouts and hands them
     /// to the pure `TodayTimelineEvent.build` for sorting + row
     /// construction. Recomputes cheaply on every body re-eval
     /// (small lists, all in-memory).
@@ -899,11 +895,9 @@ struct HomeView: View {
                 )
             }
         return TodayTimelineEvent.build(
-            doses: dataStore.todayEntries,
             meals: dataStore.mealEntries(),
             checkIn: dataStore.outcome(),
-            workouts: workoutsToday,
-            now: now
+            workouts: workoutsToday
         )
     }
 

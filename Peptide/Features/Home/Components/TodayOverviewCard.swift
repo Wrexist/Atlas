@@ -1,27 +1,18 @@
 import SwiftUI
 
-/// "Today at a glance" supporting card. Originally hosted the
-/// compliance ring + next-dose strip + stat tiles + insight, but
-/// the ring + eyebrow + compliance pill moved up into
-/// `HeroMetricTrio` in the Bevel-style redesign.
-/// This card now focuses on what's still uniquely its: the
-/// tappable next-dose strip plus the 2×2 lifestyle stat grid
-/// (Calories / Meal streak / Check-in / Water) and the rotating
-/// daily insight.
+/// Today's lifestyle overview: the 2×2 stat grid (Calories / Meal
+/// streak / Check-in / Water) and the rotating daily insight. Doses
+/// are deliberately absent — they have one home on Today, the
+/// "Today's doses" section.
 ///
-/// The hero strip taps the next-pending dose so the user is one
-/// tap away from logging from the top of the scroll. Each stat tile
-/// opens the action its footnote names via `onTapTile`; the insight
-/// row routes to labs or the nudge's destination via `onTapInsight`.
+/// Each stat tile opens the action its footnote names via
+/// `onTapTile`; the insight row routes to labs or the nudge's
+/// destination via `onTapInsight`.
 struct TodayOverviewCard: View {
     let snapshot: TodayOverviewSnapshot
     /// Water is stored in fluid ounces. Defaulted so previews stay
     /// two-line; the one live call site passes the profile's setting.
     var unit: MeasurementUnit = .metric
-    /// Called when the user taps the hero. Receives the next
-    /// pending dose if there is one, else nil — the host decides
-    /// whether to open the logging sheet or no-op.
-    let onTapHero: (ProtocolEntry?) -> Void
     /// Called when the user taps the bottom insight row. Lets the
     /// host route a "latest lab" insight to the labs view or just
     /// dismiss the nudge.
@@ -34,27 +25,9 @@ struct TodayOverviewCard: View {
         case calories, mealStreak, checkIn, water
     }
 
-    private var heroAccessibilityLabel: String {
-        if let dose = snapshot.nextDose {
-            let timeString = Self.timeFormatter.string(from: dose.date)
-            return "Next dose: \(dose.peptide.name), \(dose.dose) at \(timeString)"
-        }
-        return "All \(snapshot.dosesTotalToday) doses logged today"
-    }
-
-    /// Users with no doses scheduled today (most fitness-only users)
-    /// have nothing to log here, so the strip is hidden rather than
-    /// shown as a dead, protocol-led button.
-    private var showsNextDoseStrip: Bool {
-        snapshot.nextDose != nil || snapshot.dosesTotalToday > 0
-    }
-
     var body: some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                if showsNextDoseStrip {
-                    nextDoseStrip
-                }
                 statsGrid
                 if let insight = snapshot.bottomInsight {
                     bottomInsight(insight)
@@ -66,90 +39,6 @@ struct TodayOverviewCard: View {
             }
         }
         .accessibilityElement(children: .contain)
-    }
-
-    // MARK: - Next-dose strip
-    //
-    // Slim replacement for the old hero section. The compliance
-    // ring + eyebrow + title that lived here previously moved up
-    // into HeroMetricTrio; what's still
-    // genuinely useful is a one-tap entry into the next pending
-    // dose's logging sheet from anywhere on the scroll.
-
-    private var nextDoseStrip: some View {
-        Button {
-            Haptics.impact(.light)
-            onTapHero(snapshot.nextDose)
-        } label: {
-            HStack(spacing: Spacing.md) {
-                iconBadge
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(stripEyebrow)
-                        .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
-                        .tracking(1.0)
-                        .foregroundStyle(AppColor.accentLight)
-                    Text(stripTitle)
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                    if let subtitle = stripSubtitle {
-                        Text(subtitle)
-                            .font(AppFont.caption)
-                            .foregroundStyle(AppColor.textSecondary)
-                            .lineLimit(1)
-                    }
-                }
-                Spacer(minLength: 0)
-                if snapshot.nextDose != nil {
-                    Image(systemName: "chevron.right")
-                        .font(AppFont.scaled(13, weight: .bold))
-                        .foregroundStyle(AppColor.textTertiary)
-                }
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.985))
-        .disabled(snapshot.nextDose == nil)
-        .accessibilityLabel(heroAccessibilityLabel)
-    }
-
-    private var iconBadge: some View {
-        ZStack {
-            Circle()
-                .fill(AppColor.accentPrimary.opacity(0.18))
-            Image(systemName: stripIcon)
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.accentPrimary)
-        }
-        .frame(width: 40, height: 40)
-    }
-
-    private var stripIcon: String {
-        snapshot.nextDose != nil ? "syringe.fill" : "checkmark.circle.fill"
-    }
-
-    private var stripEyebrow: String {
-        snapshot.nextDose != nil ? String(localized: "NEXT DOSE") : String(localized: "ALL DONE")
-    }
-
-    private var stripTitle: String {
-        if let dose = snapshot.nextDose {
-            return dose.peptide.name
-        }
-        return String(localized: "You're set for today")
-    }
-
-    private var stripSubtitle: String? {
-        if let dose = snapshot.nextDose {
-            let time = Self.timeFormatter.string(from: dose.date)
-            return "\(dose.dose) · \(time)"
-        }
-        if snapshot.dosesTotalToday > 0, snapshot.doseStreak > 1 {
-            return String(format: String(localized: "%d-day streak"), snapshot.doseStreak)
-        }
-        return nil
     }
 
     // MARK: - Stats grid (2×2)
@@ -308,35 +197,12 @@ struct TodayOverviewCard: View {
         }
         .contentShape(Rectangle())
     }
-
-    // MARK: - Helpers
-
-    private static let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .none
-        f.timeStyle = .short
-        return f
-    }()
 }
 
-// `HeroRing` (the compliance ring that lived in this card's hero
-// slot) was deleted in the Phase 1.5 polish — its role moved up
-// into `HeroMetricTrio.adherence`, so the duplicate ring was both
-// redundant data and ~80pt of wasted vertical space. Stat tiles +
-// next-dose strip + insight are the remaining responsibilities.
-
-// `CompactCompliancePill` lived in the card's deleted header and
-// went away with it — same role now covered by HeroMetricTrio.
-
-#Preview("Mid-day, partial compliance") {
+#Preview("Mid-day") {
     ScrollView {
         TodayOverviewCard(
             snapshot: TodayOverviewSnapshot(
-                complianceFraction: 0.5,
-                dosesCompletedToday: 1,
-                dosesTotalToday: 2,
-                nextDose: nil,
-                doseStreak: 12,
                 caloriesToday: 1280,
                 calorieTarget: 2400,
                 waterToday: 48,
@@ -350,7 +216,6 @@ struct TodayOverviewCard: View {
                     action: .setCalorieTarget
                 )
             ),
-            onTapHero: { _ in },
             onTapInsight: { _ in }
         )
         .padding(Spacing.screenPadding)
@@ -363,11 +228,6 @@ struct TodayOverviewCard: View {
     ScrollView {
         TodayOverviewCard(
             snapshot: TodayOverviewSnapshot(
-                complianceFraction: nil,
-                dosesCompletedToday: 0,
-                dosesTotalToday: 0,
-                nextDose: nil,
-                doseStreak: 0,
                 caloriesToday: 0,
                 calorieTarget: nil,
                 waterToday: 0,
@@ -376,7 +236,6 @@ struct TodayOverviewCard: View {
                 latestLab: nil,
                 bottomInsight: nil
             ),
-            onTapHero: { _ in },
             onTapInsight: { _ in }
         )
         .padding(Spacing.screenPadding)
