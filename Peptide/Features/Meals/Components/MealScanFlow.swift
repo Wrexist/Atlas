@@ -72,6 +72,8 @@ struct MealScanFlow: View {
     @State private var draftGeneration = MealScanDraftStore.shared.generation
     @State private var checkedDraft = false
     @State private var discardConfirmation = false
+    /// Retake reuses the discard dialog but names what the user tapped.
+    @State private var discardIsRetake = false
     @State private var pendingEntries: [MealEntry] = []
     @State private var undoRequested = false
     /// Day the Meals screen was showing when the scan started.
@@ -113,16 +115,23 @@ struct MealScanFlow: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: Spacing.lg) {
-                switch phase {
-                case .pickImage:  picker
-                case .analyzing:  analyzing
-                case .review:     reviewCard
-                case .error:      errorCard
-                case .saving: ProgressView(undoRequested ? "Undoing meal…" : "Saving meal…")
-                case .logged: loggedCard
-                case .saveError: saveErrorCard
+                Group {
+                    switch phase {
+                    case .pickImage:  picker
+                    case .analyzing:  analyzing
+                    case .review:     reviewCard
+                    case .error:      errorCard
+                    case .saving: ProgressView(undoRequested ? "Undoing meal…" : "Saving meal…")
+                    case .logged: loggedCard
+                    case .saveError: saveErrorCard
+                    }
                 }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .opacity
+                ))
             }
+            .appAnimation(AppAnimation.springSmooth, value: phase)
             .padding(Spacing.xl)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(AppColor.background)
@@ -148,10 +157,18 @@ struct MealScanFlow: View {
         .onChange(of: scenePhase) { _, value in
             if value != .active && phase == .review { _ = persistDraft() }
         }
-        .confirmationDialog("Discard this scan?", isPresented: $discardConfirmation, titleVisibility: .visible) {
-            Button("Discard scan", role: .destructive) { discardDraft() }
+        .confirmationDialog(
+            discardIsRetake ? "Retake photo?" : "Discard this scan?",
+            isPresented: $discardConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(discardIsRetake ? "Retake photo" : "Discard scan", role: .destructive) { discardDraft() }
             Button("Cancel", role: .cancel) {}
-        } message: { Text("Removes this device's unfinished scan and its edits. Logged meals are kept.") }
+        } message: {
+            Text(discardIsRetake
+                 ? "Your edits will be lost."
+                 : "Removes this device's unfinished scan and its edits. Logged meals are kept.")
+        }
         .onDisappear {
             if phase == .review { _ = persistDraft() }
             inFlightTask?.cancel()
@@ -290,17 +307,17 @@ struct MealScanFlow: View {
                         Text("\(recovery.items.count) foods · \(recovery.date.formatted(date: .abbreviated, time: .shortened))")
                             .font(AppFont.callout)
                         Button("Resume review") { resumeDraft(recovery) }.minimumHitArea()
-                        Button("Discard draft", role: .destructive) { discardConfirmation = true }.minimumHitArea()
+                        Button("Discard draft", role: .destructive) { discardIsRetake = false; discardConfirmation = true }.minimumHitArea()
                     }
                 }
             }
             if let draftError {
                 Text(draftError).font(AppFont.callout)
                 Button("Retry draft recovery") { checkedDraft = false; loadDraft() }.minimumHitArea()
-                Button("Discard unreadable draft", role: .destructive) { discardConfirmation = true }.minimumHitArea()
+                Button("Discard unreadable draft", role: .destructive) { discardIsRetake = false; discardConfirmation = true }.minimumHitArea()
             }
             previewBox
-            Text("Snap a photo of your meal or describe it — Claude separates each food so you can fine-tune the portions before logging.")
+            Text("Snap a photo of your meal or describe it — Atlas separates each food so you can fine-tune the portions before logging.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -395,7 +412,7 @@ struct MealScanFlow: View {
         photoCard(height: 220) { EmptyView() }
     }
 
-    // MARK: - Analysing
+    // MARK: - Analyzing
 
     /// A bare `ProgressView` over the photo, with its caption in grey on top
     /// of the picture, is what this was. Neither could be read and neither
@@ -410,7 +427,7 @@ struct MealScanFlow: View {
                 HStack(spacing: Spacing.sm) {
                     Image(systemName: "sparkles")
                         .font(AppFont.scaled(13, weight: .bold))
-                    Text("Analysing your meal")
+                    Text("Analyzing your meal")
                         .font(AppFont.scaled(13, weight: .semibold))
                 }
                 .foregroundStyle(AppColor.textPrimary)
@@ -427,7 +444,7 @@ struct MealScanFlow: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Analysing your meal")
+        .accessibilityLabel("Analyzing your meal")
     }
 
     private var skeletonRow: some View {
@@ -640,6 +657,7 @@ struct MealScanFlow: View {
     private var retakeButton: some View {
         Button {
             Haptics.impact(.soft)
+            discardIsRetake = true
             discardConfirmation = true
         } label: {
             HStack(spacing: Spacing.xs) {
@@ -673,32 +691,25 @@ struct MealScanFlow: View {
     }
 
     private var errorCard: some View {
-        VStack(spacing: Spacing.md) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(AppColor.destructive)
-            Text("Couldn't read this meal")
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.textPrimary)
-            Text(errorText ?? "Unknown error")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.lg)
-            GlassButton(title: image == nil ? "Try again" : "Retry", style: .primary) {
-                errorText = nil
-                if let image {
-                    // Re-run analysis on the photo already loaded —
-                    // no need to make the user re-pick and re-upload
-                    // from scratch after a transient failure.
-                    phase = .analyzing
-                    inFlightTask = Task { await runAnalysis(on: image) }
-                } else {
-                    selectedItem = nil
-                    phase = .pickImage
-                }
-            }
-            .padding(.top, Spacing.md)
+        EmptyStateView(
+            icon: "exclamationmark.triangle.fill",
+            title: "Couldn't read this meal",
+            message: LocalizedStringKey(errorText ?? String(localized: "Something went wrong. Check your connection and retry.")),
+            accent: AppColor.warning,
+            action: .init(title: image == nil ? "Try again" : "Retry", icon: "arrow.clockwise") { retryAnalysis() }
+        )
+    }
+
+    private func retryAnalysis() {
+        errorText = nil
+        if let image {
+            // Re-run analysis on the photo already loaded — no need to
+            // make the user re-pick and re-upload after a transient failure.
+            phase = .analyzing
+            inFlightTask = Task { await runAnalysis(on: image) }
+        } else {
+            selectedItem = nil
+            phase = .pickImage
         }
     }
 
@@ -971,28 +982,45 @@ struct MealScanFlow: View {
         }
     }
 
+    private var loggedCalories: Int { pendingEntries.reduce(0) { $0 + $1.calories } }
+
     private var loggedCard: some View {
         VStack(spacing: Spacing.lg) {
-            Image(systemName: "checkmark.circle").font(.largeTitle).foregroundStyle(AppColor.positive)
-            Text("Meal logged").font(AppFont.title2)
-            Text("\(pendingEntries.reduce(0) { $0 + $1.calories }) kcal - \(logDate.formatted(date: .abbreviated, time: .shortened))")
-                .font(AppFont.callout).multilineTextAlignment(.center)
+            MilestoneArtwork(size: 64)
+            Text("Meal logged")
+                .font(AppFont.title2)
+                .foregroundStyle(AppColor.textPrimary)
+            LoggedCaloriePanel(
+                productName: mealName.isEmpty ? String(localized: "Meal") : mealName,
+                deltaCalories: loggedCalories,
+                totalCalories: dataStore.consumption(for: logDate).caloriesKcal,
+                targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories,
+                date: logDate
+            )
             Text(dataStore.isEphemeral ? "Preview mode · No meal saved to storage." : "Saved on this device.")
-                .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
-            if let draftError { Text(draftError).font(AppFont.caption) }
-            GlassButton(title: "Done", isFullWidth: true) { finishLogged() }
-            Button("Undo meal log") {
-                undoRequested = true
-                savePending()
-            }.minimumHitArea()
-        }.accessibilityIdentifier("meal-scan-logged")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+            if let draftError {
+                Text(draftError)
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.warning)
+            }
+            VStack(spacing: Spacing.sm) {
+                GlassButton(title: "Done", style: .primary, isFullWidth: true) { finishLogged() }
+                GlassButton(title: "Undo meal log", icon: "arrow.uturn.backward", style: .ghost) {
+                    undoRequested = true
+                    savePending()
+                }
+            }
+        }
+        .accessibilityIdentifier("meal-scan-logged")
     }
 
     private var saveErrorCard: some View {
         VStack(spacing: Spacing.lg) {
             Image(systemName: "exclamationmark.triangle").font(.largeTitle)
             Text(undoRequested ? "Couldn't undo the meal" : "Meal save needs attention").font(AppFont.title2)
-            Text("Retry to finish the interrupted action. Your saved draft keeps the same meal identities to prevent duplicates.")
+            Text("Nothing was logged twice. Retry to finish.")
                 .font(AppFont.callout).multilineTextAlignment(.center)
             if let draftError { Text(draftError).font(AppFont.caption) }
             GlassButton(title: "Retry", isFullWidth: true) { savePending() }
@@ -1135,7 +1163,7 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
 
     init(from item: MealScannerService.ScannedFoodItem) {
         id = item.id
-        name = item.name.capitalized
+        name = item.name.prefix(1).uppercased() + item.name.dropFirst()
         // A zero/missing weight estimate falls back to a 100 g basis so
         // the per-100g math stays finite; the user can correct the
         // portion in the review card.
@@ -1271,18 +1299,7 @@ private struct FoodItemEditCard: View {
                 Divider().overlay(AppColor.glassBorder)
                 modePicker
                 portionStepper
-                Button("Enter exact grams") { editingPortion = true }
-                    .font(AppFont.callout).minimumHitArea()
-                Button("Replace with another food") { replacingFood = true }
-                    .font(AppFont.callout).minimumHitArea()
                 presetChips
-                HStack {
-                    Button("Edit calories & macros") { editingNutrition = true }
-                        .minimumHitArea()
-                    if item.nutritionEdited {
-                        Button("Reset estimate") { item.resetNutrition() }.minimumHitArea()
-                    }
-                }.font(AppFont.caption)
                 // Macros on the left, save affordance on the right —
                 // one balanced row instead of two stacked ones.
                 HStack(spacing: Spacing.sm) {
@@ -1298,22 +1315,20 @@ private struct FoodItemEditCard: View {
                     }
                     Spacer(minLength: Spacing.sm)
                     saveButton
+                    moreMenu
                 }
             }
         }
         .padding(Spacing.md)
-        .background {
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+        .overlay {
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(borderColor, lineWidth: item.include ? 1 : 0.5)
-                }
+                .strokeBorder(borderColor, lineWidth: item.include ? 1 : 0.5)
         }
         .opacity(item.include ? 1 : 0.55)
         // Only the include state animates. Binding this to the whole card
         // would re-animate every portion tap and every macro recount.
-        .animation(AppAnimation.springSnappy, value: item.include)
+        .appAnimation(AppAnimation.springSnappy, value: item.include)
         .sheet(isPresented: $editingNutrition) {
             EditNutritionSheet(productName: item.name,
                                initial: LoggableMeal(calories: item.calories, proteinG: item.proteinG,
@@ -1347,14 +1362,12 @@ private struct FoodItemEditCard: View {
         HStack(spacing: Spacing.sm) {
             Button {
                 Haptics.selection()
-                withAnimation(AppAnimation.springSnappy) { item.include.toggle() }
+                AppAnimation.with(AppAnimation.springSnappy) { item.include.toggle() }
             } label: {
                 Image(systemName: item.include ? "checkmark.circle.fill" : "circle")
                     .font(AppFont.scaled(20))
                     .foregroundStyle(item.include ? AppColor.accentPrimary : AppColor.textTertiary)
-                    // The glyph swap alone was invisible at a glance on a
-                    // dense list; the scale gives the tap a moment.
-                    .scaleEffect(item.include ? 1 : 0.88)
+                    .contentTransition(.symbolEffect(.replace))
             }
             .buttonStyle(.plain)
             .minimumHitArea()
@@ -1434,7 +1447,7 @@ private struct FoodItemEditCard: View {
                     let isActive = index == item.selectedAnswer
                     Button {
                         Haptics.selection()
-                        withAnimation(AppAnimation.springSnappy) { item.answer(index) }
+                        AppAnimation.with(AppAnimation.springSnappy) { item.answer(index) }
                     } label: {
                         Text(answer.label)
                             .font(AppFont.scaled(11, weight: .semibold))
@@ -1461,12 +1474,15 @@ private struct FoodItemEditCard: View {
         )
     }
 
-    @ViewBuilder
     private var portionStepper: some View {
-        switch item.portionMode {
-        case .serving: servingStepper
-        case .grams:   gramStepper
+        Group {
+            switch item.portionMode {
+            case .serving: servingStepper
+            case .grams:   gramStepper
+            }
         }
+        .appAnimation(AppAnimation.quick, value: item.grams)
+        .sensoryFeedback(.selection, trigger: item.grams)
     }
 
     private var servingStepper: some View {
@@ -1484,6 +1500,7 @@ private struct FoodItemEditCard: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
+                        .contentTransition(.numericText(value: item.servings))
                     Text("≈ \(Int(item.grams.rounded())) g")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
@@ -1518,6 +1535,7 @@ private struct FoodItemEditCard: View {
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
+                .contentTransition(.numericText(value: item.grams))
                 .frame(minWidth: 64)
             stepperButton(icon: "plus.circle.fill", label: "Increase grams") {
                 item.grams = min(2000, item.grams + 10)
@@ -1532,6 +1550,7 @@ private struct FoodItemEditCard: View {
                 .foregroundStyle(AppColor.accentLight)
         }
         .buttonStyle(.plain)
+        .buttonRepeatBehavior(.enabled)
         .accessibilityLabel(label)
         .minimumHitArea()
     }
@@ -1573,25 +1592,55 @@ private struct FoodItemEditCard: View {
     private func chip(label: String, grams: Double) -> some View {
         let isActive = abs(item.grams - grams.rounded()) < 0.0001
         return Button {
-            item.grams = min(2000, max(5, grams.rounded()))
+            AppAnimation.with(AppAnimation.quick) {
+                item.grams = min(2000, max(5, grams.rounded()))
+            }
         } label: {
             Text(label)
                 .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(isActive ? .white : AppColor.textSecondary)
+                .foregroundStyle(isActive ? AppColor.onAccent : AppColor.textSecondary)
                 .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, 5)
                 .background {
                     Capsule().fill(isActive ? AppColor.accentPrimary : AppColor.surfaceElevated)
                 }
+                .minimumHitArea()
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
     }
 
     private var macroSummary: some View {
-        Text("P \(item.proteinG)g · C \(item.carbsG)g · F \(item.fatG)g")
-            .font(AppFont.caption)
-            .foregroundStyle(AppColor.textSecondary)
-            .monospacedDigit()
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.xs) { macroChips }
+            VStack(alignment: .leading, spacing: Spacing.xs) { macroChips }
+        }
+    }
+
+    @ViewBuilder
+    private var macroChips: some View {
+        MacroChip.protein(item.proteinG)
+        MacroChip.carbs(item.carbsG)
+        MacroChip.fat(item.fatG)
+    }
+
+    /// The less common corrections live behind one menu so the card keeps
+    /// the stepper and presets as its only inline controls.
+    private var moreMenu: some View {
+        Menu {
+            Button("Enter exact grams", systemImage: "scalemass") { editingPortion = true }
+            Button("Replace with another food", systemImage: "arrow.left.arrow.right") { replacingFood = true }
+            Button("Edit calories & macros", systemImage: "pencil") { editingNutrition = true }
+            if item.nutritionEdited {
+                Button("Reset estimate", systemImage: "arrow.uturn.backward") { item.resetNutrition() }
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(AppFont.scaled(20))
+                .foregroundStyle(AppColor.accentLight)
+                .minimumHitArea()
+        }
+        .accessibilityLabel("More options for \(item.name)")
     }
 
     private var saveButton: some View {
@@ -1599,10 +1648,13 @@ private struct FoodItemEditCard: View {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: item.savedToLibrary ? "checkmark" : "bookmark")
                     .font(AppFont.scaled(11, weight: .bold))
+                    .contentTransition(.symbolEffect(.replace))
+                    .symbolEffect(.bounce, value: item.savedToLibrary)
                 Text(item.savedToLibrary ? "Saved to library" : "Save to library")
                     .font(AppFont.scaled(13, weight: .semibold))
             }
             .foregroundStyle(item.savedToLibrary ? AppColor.accentPrimary : AppColor.accentLight)
+            .minimumHitArea()
         }
         .buttonStyle(.plain)
         .disabled(item.savedToLibrary)

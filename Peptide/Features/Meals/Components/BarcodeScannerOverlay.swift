@@ -50,7 +50,7 @@ struct BarcodeScannerOverlay: View {
         Button {
             torchOn.toggle()
             BarcodeTorch.set(torchOn)
-            BarcodeHaptics.detected()
+            Haptics.selection()
         } label: {
             Image(systemName: torchOn ? "flashlight.on.fill" : "flashlight.off.fill")
                 .font(AppFont.scaled(16, weight: .semibold))

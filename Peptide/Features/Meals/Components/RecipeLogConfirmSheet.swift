@@ -36,23 +36,22 @@ struct RecipeLogConfirmSheet: View {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     headerCard
-                    if review.totals != nil { macrosCard }
-                    else {
-                        GlassCard {
-                            VStack(alignment: .leading, spacing: Spacing.sm) {
-                                Text("Check ingredients before logging").font(AppFont.headline)
-                                Text("Some foods or portions are unavailable. Fix them so the full recipe is counted.")
-                                    .font(AppFont.callout)
-                                ForEach(review.unresolved) { component in
-                                    Text(component.cachedName.isEmpty ? "Unknown ingredient" : component.cachedName)
-                                }
-                                if let onEdit { Button("Edit ingredients", action: onEdit).minimumHitArea() }
-                            }
-                        }
+                    if review.totals != nil {
+                        MealScanTotalsCard(
+                            calories: totals.calories,
+                            proteinG: totals.proteinG,
+                            carbsG: totals.carbsG,
+                            fatG: totals.fatG
+                        )
+                    } else {
+                        unresolvedCard
                     }
                     Text("Logging on \(logDate.formatted(date: .abbreviated, time: .shortened))")
                         .font(AppFont.caption)
-                    if saveFailed { Text("Couldn't save the recipe. Retry; nothing was added.").font(AppFont.callout) }
+                        .foregroundStyle(AppColor.textSecondary)
+                    if saveFailed {
+                        warningMessage("Couldn't save the recipe. Retry; nothing was added.")
+                    }
                     MealCategoryPicker(selection: $category)
                     confirmButton
                 }
@@ -75,26 +74,21 @@ struct RecipeLogConfirmSheet: View {
 
     private var headerCard: some View {
         HStack(spacing: Spacing.md) {
-            ZStack {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [AppColor.accentPrimary.opacity(0.55), AppColor.accentLight.opacity(0.30)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 56, height: 56)
-                Image(systemName: "list.bullet.rectangle.fill")
-                    .font(AppFont.scaled(20, weight: .semibold))
-                    .foregroundStyle(AppColor.textPrimary)
-            }
-            VStack(alignment: .leading, spacing: 4) {
+            Image(systemName: "list.bullet.rectangle.fill")
+                .font(AppFont.scaled(20, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+                .frame(width: 56, height: 56)
+                .background {
+                    RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
+                        .fill(AppColor.accentPrimary.opacity(0.18))
+                }
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(recipe.name)
                     .font(AppFont.title2)
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(2)
-                Text("\(recipe.components.count) ingredient\(recipe.components.count == 1 ? "" : "s")")
+                Text("^[\(recipe.components.count) ingredient](inflect: true)")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
             }
@@ -102,35 +96,59 @@ struct RecipeLogConfirmSheet: View {
         }
     }
 
-    private var macrosCard: some View {
-        GlassCard(tinted: true, padding: Spacing.md) {
+    private var unresolvedCard: some View {
+        GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Logs as")
-                    .font(AppFont.scaled(11, weight: .heavy))
-                    .tracking(0.6)
-                    .textCase(.uppercase)
-                    .foregroundStyle(AppColor.accentLight.opacity(0.85))
-                Divider().background(AppColor.glassBorder)
-                macroRow(label: "Calories", value: "\(totals.calories) kcal")
-                macroRow(label: "Protein",  value: "\(totals.proteinG) g")
-                macroRow(label: "Carbs",    value: "\(totals.carbsG) g")
-                macroRow(label: "Fat",      value: "\(totals.fatG) g")
+                Label {
+                    Text("Check ingredients before logging")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(AppColor.warning)
+                }
+                Text("Some foods or portions are unavailable. Fix them so the full recipe is counted.")
+                    .font(AppFont.callout)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                ForEach(review.unresolved) { component in
+                    HStack(spacing: Spacing.sm) {
+                        Image(systemName: "exclamationmark.circle")
+                            .foregroundStyle(AppColor.warning)
+                            .accessibilityHidden(true)
+                        Text(component.cachedName.isEmpty ? String(localized: "Unknown ingredient") : component.cachedName)
+                            .font(AppFont.subheadline)
+                            .foregroundStyle(AppColor.textPrimary)
+                            .lineLimit(1)
+                        Spacer(minLength: 0)
+                    }
+                    .frame(minHeight: Spacing.minimumHitTarget)
+                    .accessibilityElement(children: .combine)
+                }
+                if let onEdit {
+                    GlassButton(title: "Edit ingredients", icon: "pencil", style: .secondary, isFullWidth: true, action: onEdit)
+                }
             }
         }
     }
 
-    private func macroRow(label: LocalizedStringKey, value: String) -> some View {
-        HStack {
-            Text(label)
+    private func warningMessage(_ text: LocalizedStringKey) -> some View {
+        HStack(alignment: .top, spacing: Spacing.sm) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(AppColor.warning)
+                .accessibilityHidden(true)
+            Text(text)
                 .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            Spacer()
-            Text(value)
-                .font(AppFont.subheadline)
-                .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
-                .monospacedDigit()
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
         }
+        .padding(Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.warning.opacity(0.12))
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private var confirmButton: some View {
@@ -145,5 +163,6 @@ struct RecipeLogConfirmSheet: View {
             saveFailed = !didLog
         }
         .disabled(review.totals == nil || totals.calories == 0 || didLog)
+        .sensoryFeedback(.success, trigger: didLog)
     }
 }

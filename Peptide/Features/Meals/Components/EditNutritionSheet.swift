@@ -14,12 +14,13 @@ struct EditNutritionSheet: View {
     let initial: LoggableMeal?
     let onSave: (LoggableMeal) -> Void
     let onCancel: () -> Void
-    var explanation: String = "Numbers replace whatever the portion picker would compute. Reset on the review card to go back to Open Food Facts data."
+    var explanation: LocalizedStringKey = "Enter what you actually ate. Reset on the review screen to restore the original values."
 
     @State private var calories: String = ""
     @State private var protein: String = ""
     @State private var carbs: String = ""
     @State private var fat: String = ""
+    @FocusState private var isEditing: Bool
 
     var body: some View {
         NavigationStack {
@@ -43,6 +44,9 @@ struct EditNutritionSheet: View {
                     Text(explanation)
                     if !isValid {
                         Text("Enter whole numbers from 0 to 100,000 in every field.")
+                    } else if macrosDisagree {
+                        Text("Protein, carbs and fat add up to \(macroCalories) kcal. Check the numbers before saving.")
+                            .foregroundStyle(AppColor.warning)
                     }
                 }
             }
@@ -57,6 +61,10 @@ struct EditNutritionSheet: View {
                     Button("Save") { save() }
                         .disabled(!isValid)
                 }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { isEditing = false }
+                }
             }
         }
         .onAppear(perform: hydrate)
@@ -67,6 +75,7 @@ struct EditNutritionSheet: View {
             Text(title)
             Spacer()
             TextField("0", text: text)
+                .focused($isEditing)
                 .accessibilityLabel(Text(title))
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
@@ -91,6 +100,18 @@ struct EditNutritionSheet: View {
             guard let value = Int($0) else { return false }
             return (0...100_000).contains(value)
         }
+    }
+
+    /// Calories implied by the macros (4 / 4 / 9 kcal per gram).
+    private var macroCalories: Int {
+        4 * (Int(protein) ?? 0) + 4 * (Int(carbs) ?? 0) + 9 * (Int(fat) ?? 0)
+    }
+
+    /// A soft check, not a gate: labels round and fibre/alcohol skew the
+    /// sum, so only a gap over 15% is worth pointing out.
+    private var macrosDisagree: Bool {
+        guard let kcal = Int(calories), kcal > 0 else { return false }
+        return Double(abs(kcal - macroCalories)) > Double(kcal) * 0.15
     }
 
     private func save() {

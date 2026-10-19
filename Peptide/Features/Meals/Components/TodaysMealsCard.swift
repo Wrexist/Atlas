@@ -1,9 +1,8 @@
 import SwiftUI
 
 /// Per-meal log shown under the macro rings on the Lifestyle tab.
-/// Renders every `MealEntry` logged today, ordered newest-first,
-/// grouped by category. Tap a row to edit category + delete; swipe
-/// from the trailing edge for a one-tap delete shortcut.
+/// Renders every `MealEntry` logged that day, newest first. Tap a row
+/// to edit it; long-press for Edit, Log again and Delete.
 ///
 /// Fills the visibility gap the auto-close success screens leave —
 /// once those dismiss, users had no way to see (or fix) what got
@@ -52,11 +51,11 @@ struct TodaysMealsCard: View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(dayTitle.map { String(localized: "Meals · \($0)") } ?? String(localized: "Today's meals"))
-                    .font(AppFont.scaled(11, weight: .semibold))
+                    .font(AppFont.eyebrow)
                     .tracking(0.8)
                     .textCase(.uppercase)
-                    .foregroundStyle(AppColor.accentLight.opacity(0.85))
-                Text(entries.isEmpty ? "Nothing logged yet" : "\(entries.count) \(entries.count == 1 ? "entry" : "entries")")
+                    .foregroundStyle(AppColor.accentLight)
+                Text(entries.isEmpty ? LocalizedStringKey("Nothing logged yet") : "^[\(entries.count) entry](inflect: true)")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
@@ -101,9 +100,7 @@ struct TodaysMealsCard: View {
 
 /// Single-row read-out for a `MealEntry`. Compact enough for the
 /// stack on the Lifestyle tab without becoming a separate detail
-/// screen. Swipe-from-trailing surfaces a destructive delete shortcut
-/// (matches the standard iOS list behavior the user already knows
-/// from Mail/Reminders/etc.).
+/// screen. Long-press surfaces Edit, Log again and Delete.
 struct MealEntryRow: View {
     let entry: MealEntry
     let onTap: () -> Void
@@ -135,9 +132,9 @@ struct MealEntryRow: View {
                             .foregroundStyle(AppColor.textPrimary)
                             .fixedSize()
                     }
-                    HStack(spacing: 6) {
+                    HStack(spacing: Spacing.xs) {
                         Image(systemName: entry.source.icon)
-                            .font(AppFont.scaled(8))
+                            .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                         Text(Self.timeFormatter.string(from: entry.date))
                             .font(AppFont.scaled(11))
@@ -188,7 +185,7 @@ struct MealEntryRow: View {
     /// product image are both dropped at log time), so every row leads with
     /// the category glyph in a thumbnail-sized tile.
     private var categoryTile: some View {
-        RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
+        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
             .fill(entry.category.tint.opacity(0.18))
             .frame(width: tileSize, height: tileSize)
             .overlay {

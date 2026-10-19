@@ -16,7 +16,7 @@ import PhotosUI
 struct BarcodeScanFlow: View {
     @Environment(DataStore.self) private var dataStore
     let onClose: () -> Void
-    /// Fired when the user taps "Snap a photo instead" on the
+    /// Fired when the user taps "Scan meal photo" on the
     /// not-found screen. The parent is responsible for dismissing this
     /// sheet and presenting `MealScanFlow` — iOS won't show two sheets
     /// concurrently, so the parent has to sequence them.
@@ -104,19 +104,26 @@ struct BarcodeScanFlow: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: Spacing.lg) {
-                switch phase {
-                case .preflight:        preflight
-                case .scanning:         scanner
-                case .manualEntry:      manualEntry
-                case .lookingUp:        lookingUp
-                case .ocrProcessing:    ocrProcessing
-                case .review:           reviewCard
-                case .logged:           loggedCard
-                case .notFound:         notFoundCard
-                case .unsupportedCode:  unsupportedCodeCard
-                case .error:            errorCard
+                Group {
+                    switch phase {
+                    case .preflight:        preflight
+                    case .scanning:         scanner
+                    case .manualEntry:      manualEntry
+                    case .lookingUp:        lookingUp
+                    case .ocrProcessing:    ocrProcessing
+                    case .review:           reviewCard
+                    case .logged:           loggedCard
+                    case .notFound:         notFoundCard
+                    case .unsupportedCode:  unsupportedCodeCard
+                    case .error:            errorCard
+                    }
                 }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .opacity
+                ))
             }
+            .appAnimation(AppAnimation.springSmooth, value: phase)
             .padding(Spacing.xl)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(AppColor.background)
@@ -131,19 +138,6 @@ struct BarcodeScanFlow: View {
         }
         .task { await preflightCheck() }
         .task { await loadRecentlyScanned() }
-        // SwiftUI-owned auto-close. Re-running on phase changes
-        // cancels the previous task automatically, so leaving the
-        // .logged screen (via Undo, Done, or swipe-dismiss) cleanly
-        // stops the timer without any manual cancel bookkeeping.
-        .task(id: phase) {
-            guard phase == .logged else { return }
-            try? await Task.sleep(for: AppAnimation.logSuccessAutoCloseDelay)
-            // Re-check phase after the sleep — a user tap on Undo or
-            // Done that lands in the final window before the timer
-            // fires would otherwise double-call `onClose()`.
-            guard !Task.isCancelled, phase == .logged else { return }
-            onClose()
-        }
         .confirmationDialog(
             "Already logged this recently",
             isPresented: Binding(
@@ -503,138 +497,38 @@ struct BarcodeScanFlow: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
 
-                HStack(spacing: Spacing.sm) {
-                    if product.servingGrams != nil {
-                        modeChip(title: "Serving", isActive: portion.isServings) {
-                            portion = .servings(1)
-                        }
-                    }
-                    if product.packageGrams != nil {
-                        modeChip(title: "Whole pack", isActive: portion == .wholePackage) {
-                            portion = .wholePackage
-                        }
-                    }
-                    modeChip(title: "Grams", isActive: portion.isGrams) {
-                        portion = .grams(100)
-                    }
-                }
-
-                portionControl(for: product)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func portionControl(for product: ScannedProduct) -> some View {
-        switch portion {
-        case .servings(let count):
-            HStack {
-                Stepper(
-                    value: Binding(
-                        get: { count },
-                        set: { portion = .servings($0) }
-                    ),
-                    in: 0.5...10,
-                    step: 0.5
-                ) {
-                    HStack(spacing: 4) {
-                        Text(formatServings(count))
-                            .font(AppFont.title2)
-                            .monospacedDigit()
-                            .foregroundStyle(AppColor.textPrimary)
-                        Text(count == 1 ? "serving" : "servings")
-                            .font(AppFont.subheadline)
-                            .foregroundStyle(AppColor.textSecondary)
-                    }
-                }
-                .tint(AppColor.accentPrimary)
-            }
-            if let label = product.servingSizeText {
-                Text("1 serving = \(label)")
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-            }
-
-        case .wholePackage:
-            HStack {
-                Text("Entire package")
-                    .font(AppFont.title2)
-                    .foregroundStyle(AppColor.textPrimary)
-                Spacer()
-                if let g = product.packageGrams {
-                    Text("\(Int(g.rounded())) g")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .monospacedDigit()
-                }
-            }
-
-        case .grams(let g):
-            VStack(spacing: Spacing.sm) {
-                HStack(spacing: 4) {
-                    Text("\(Int(g.rounded()))")
-                        .font(AppFont.title2)
-                        .monospacedDigit()
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text("g")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                    Spacer()
-                }
-                Slider(value: Binding(
-                    get: { g },
-                    set: { portion = .grams($0) }
-                ), in: 10...2000, step: 5)
-                .tint(AppColor.accentPrimary)
-                HStack(spacing: Spacing.xs) {
-                    ForEach([50.0, 100.0, 200.0, 500.0], id: \.self) { quick in
-                        Button("\(Int(quick))g") { portion = .grams(quick) }
-                            .font(AppFont.caption)
-                            .foregroundStyle(AppColor.textSecondary)
-                            .padding(.horizontal, Spacing.sm)
-                            .padding(.vertical, 4)
-                            .background {
-                                Capsule().fill(AppColor.accentPrimary.opacity(0.15))
-                            }
-                    }
-                }
+                PortionPicker(product: product, portion: $portion)
             }
         }
     }
 
     private func macroPanel(for product: ScannedProduct) -> some View {
         let meal = currentMacros(for: product)
-        return GlassCard(tinted: true, padding: Spacing.md) {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack {
-                Text("Nutrition")
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-                Spacer()
-                // Disable when no macros are available — otherwise the
-                // edit sheet would open prefilled with all zeros and a
-                // hurried Save would silently log a zero-calorie meal.
-                let canEdit = meal != nil
-                Button {
-                    showEditSheet = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "pencil")
-                        Text("Edit")
-                    }
-                    .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(canEdit ? AppColor.accentLight : AppColor.textSecondary.opacity(0.5))
+        // Disable when no macros are available — otherwise the edit sheet
+        // would open prefilled with all zeros and a hurried Save would
+        // silently log a zero-calorie meal.
+        let canEdit = meal != nil
+        return VStack(alignment: .trailing, spacing: Spacing.xs) {
+            MealScanTotalsCard(
+                calories: meal?.calories ?? 0,
+                proteinG: meal?.proteinG ?? 0,
+                carbsG: meal?.carbsG ?? 0,
+                fatG: meal?.fatG ?? 0
+            )
+            Button {
+                showEditSheet = true
+            } label: {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "pencil")
+                    Text("Edit nutrition")
                 }
-                .buttonStyle(.plain)
-                .disabled(!canEdit)
-                .accessibilityLabel("Edit nutrition manually")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(canEdit ? AppColor.accentLight : AppColor.textTertiary)
+                .minimumHitArea()
             }
-            Divider().background(AppColor.glassBorder)
-            macroRow(label: "Calories", value: "\(meal?.calories ?? 0) kcal")
-            macroRow(label: "Protein",  value: "\(meal?.proteinG ?? 0) g")
-            macroRow(label: "Carbs",    value: "\(meal?.carbsG ?? 0) g")
-            macroRow(label: "Fat",      value: "\(meal?.fatG ?? 0) g")
-            }
+            .buttonStyle(.plain)
+            .disabled(!canEdit)
+            .accessibilityLabel("Edit nutrition manually")
         }
     }
 
@@ -676,11 +570,11 @@ struct BarcodeScanFlow: View {
             }
 
             VStack(spacing: Spacing.sm) {
-                GlassButton(title: "Undo", icon: "arrow.uturn.backward", style: .destructive) {
+                GlassButton(title: "Done", style: .primary, isFullWidth: true) { onClose() }
+
+                GlassButton(title: "Undo", icon: "arrow.uturn.backward", style: .ghost) {
                     undoLastLog()
                 }
-
-                GlassButton(title: "Done", style: .ghost) { onClose() }
             }
             .padding(.top, Spacing.sm)
         }
@@ -733,7 +627,7 @@ struct BarcodeScanFlow: View {
                         HStack(spacing: Spacing.xs) {
                             Image(systemName: "doc.text.viewfinder")
                                 .font(AppFont.scaled(13, weight: .semibold))
-                            Text("Scan the nutrition label")
+                            Text("Choose a label photo")
                                 .font(AppFont.headline)
                         }
                         .padding(.horizontal, Spacing.md)
@@ -750,7 +644,7 @@ struct BarcodeScanFlow: View {
                     // Secondary fallback: AI vision on a meal photo.
                     // Costs an API call; better for "what did I eat"
                     // (a plate of food) than "what's in this jar".
-                    GlassButton(title: "Use the AI meal scanner", icon: "camera.fill", style: .secondary) {
+                    GlassButton(title: "Scan meal photo", icon: "camera.fill", style: .secondary) {
                         onRequestPhotoFallback()
                     }
                 }
@@ -910,7 +804,7 @@ struct BarcodeScanFlow: View {
                     resetScanResults()
                     phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
                 }
-                GlassButton(title: "Use the AI meal scanner", icon: "camera.fill", style: .secondary) {
+                GlassButton(title: "Scan meal photo", icon: "camera.fill", style: .secondary) {
                     onRequestPhotoFallback()
                 }
             }
@@ -1007,7 +901,7 @@ struct BarcodeScanFlow: View {
                 // Network / rate-limit / decode failures shouldn't trap
                 // the user — give them the same photo escape hatch the
                 // notFound card offers.
-                GlassButton(title: "Snap a photo instead", style: .secondary) {
+                GlassButton(title: "Scan meal photo", icon: "camera.fill", style: .secondary) {
                     onRequestPhotoFallback()
                 }
             }
@@ -1016,29 +910,6 @@ struct BarcodeScanFlow: View {
     }
 
     // MARK: - Small components
-
-    private func modeChip(title: String, isActive: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(AppFont.subheadline)
-                .fontWeight(isActive ? .semibold : .regular)
-                .foregroundStyle(isActive ? AppColor.textPrimary : AppColor.textSecondary)
-                .padding(.horizontal, Spacing.md)
-                .frame(minHeight: 44)        // HIG minimum tap target
-                .background {
-                    Capsule()
-                        .fill(isActive ? AppColor.accentPrimary.opacity(0.25) : Color.clear)
-                        .overlay {
-                            Capsule().strokeBorder(
-                                isActive ? AppColor.accentPrimary.opacity(0.55) : AppColor.glassBorder,
-                                lineWidth: 1
-                            )
-                        }
-                }
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
-    }
 
     private func nutriScorePill(_ score: String) -> some View {
         Text(score.uppercased())
@@ -1053,21 +924,6 @@ struct BarcodeScanFlow: View {
             .accessibilityHint("A through E rating of overall nutritional quality, where A is best.")
     }
 
-    private func macroRow(label: LocalizedStringKey, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            Spacer()
-            Text(value)
-                .font(AppFont.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.textPrimary)
-                .monospacedDigit()
-                .contentTransition(.numericText())
-        }
-    }
-
     // MARK: - Helpers
 
     private static func nutriScoreColor(_ score: String) -> Color {
@@ -1079,12 +935,6 @@ struct BarcodeScanFlow: View {
         case "e":  Color(red: 0.86, green: 0.20, blue: 0.18)
         default:   AppColor.textSecondary
         }
-    }
-
-    private func formatServings(_ count: Double) -> String {
-        count.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", count)
-            : String(format: "%.1f", count)
     }
 
     private var isLoggingToday: Bool { Calendar.current.isDateInToday(logDay) }
@@ -1165,7 +1015,7 @@ struct BarcodeScanFlow: View {
             await MainActor.run {
                 product = recognised
                 portion = recognised.defaultPortion
-                category = MealCategory.auto(for: Date())
+                category = MealCategory.auto(for: LifestyleDataLogic.logTimestamp(on: logDay))
                 phase = .review
                 ocrPickerItem = nil
                 BarcodeHaptics.lookupSuccess()
@@ -1256,7 +1106,7 @@ struct BarcodeScanFlow: View {
         await MainActor.run {
             product = result
             portion = remembered ?? result.defaultPortion
-            category = MealCategory.auto(for: Date())
+            category = MealCategory.auto(for: LifestyleDataLogic.logTimestamp(on: logDay))
             phase = .review
             BarcodeHaptics.lookupSuccess()
             startInsight(for: result)
@@ -1328,7 +1178,7 @@ struct BarcodeScanFlow: View {
                 insight = scan
                 productReadByAI = true
                 portion = read.defaultPortion
-                category = MealCategory.auto(for: Date())
+                category = MealCategory.auto(for: LifestyleDataLogic.logTimestamp(on: logDay))
                 phase = .review
                 BarcodeHaptics.lookupSuccess()
             }
