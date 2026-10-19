@@ -94,11 +94,8 @@ enum BiomarkerSeriesService {
             let series = await HealthKitService.shared.dailySleepHours(days: days)
             return seriesSnapshot(.sleepBaseline, series: series.map(\.value), unit: unit)
         case .stepsBaseline:
-            // No daily-steps helper today — surfaces as "no data"
-            // until a future commit adds `dailySteps(days:)` to
-            // HealthKitService. Better to ship the catalog slot
-            // than to fake the values.
-            return .empty(.stepsBaseline)
+            let series = await HealthKitService.shared.dailySteps(days: days)
+            return seriesSnapshot(.stepsBaseline, series: series.map(\.value), unit: unit)
         case .bodyTemperature, .bodyFat, .waist, .bloodPressure:
             // Manual-entry biomarkers — Pro-gated, persistence
             // surface lands in a follow-up commit. Tile renders
@@ -232,6 +229,9 @@ enum BiomarkerSeriesService {
         case (.sleepBaseline, .up):    verb = String(localized: "More sleep")
         case (.sleepBaseline, .down):  verb = String(localized: "Less sleep")
         case (.sleepBaseline, .flat):  verb = String(localized: "Consistent")
+        case (.stepsBaseline, .up):    verb = String(localized: "More active")
+        case (.stepsBaseline, .down):  verb = String(localized: "Less active")
+        case (.stepsBaseline, .flat):  verb = String(localized: "Steady")
         default:                        verb = String(localized: "Latest")
         }
         if let unitString = biomarker.displayUnit(for: unit) {

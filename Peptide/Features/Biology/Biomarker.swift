@@ -121,6 +121,22 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
+    /// False for catalog slots `BiomarkerSeriesService` can't fill yet
+    /// (no HealthKit helper, no manual-entry surface). The Edit sheet
+    /// stops offering them so nobody switches on a row that can never
+    /// show a reading; users who added one earlier keep it until they
+    /// turn it off.
+    var hasDataSource: Bool {
+        switch self {
+        case .weight, .hrvBaseline, .rhrBaseline,
+             .sleepBaseline, .latestLabPanel:
+            return true
+        case .stepsBaseline, .bodyTemperature, .bodyFat,
+             .waist, .bloodPressure:
+            return false
+        }
+    }
+
     /// Default display order on the Biology tab. The user can
     /// override this in EditBiomarkersSheet (commit 8); the
     /// stored config falls back to this when no override is set.

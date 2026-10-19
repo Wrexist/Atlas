@@ -48,7 +48,14 @@ final class ScreenshotMode {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        #if DEBUG
         self.isEnabled = defaults.bool(forKey: Self.defaultsKey)
+        #else
+        // The toggle only exists in debug builds, so a flag left on by
+        // an older release must not strand a customer in demo data.
+        defaults.removeObject(forKey: Self.defaultsKey)
+        self.isEnabled = false
+        #endif
     }
 
     // MARK: - Public surface

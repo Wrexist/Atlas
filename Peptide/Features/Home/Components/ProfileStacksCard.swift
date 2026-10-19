@@ -74,6 +74,9 @@ struct ProfileStacksCard: View {
     /// valid view context) rather than read inside the detached Task.
     private func openLibraryAfterDismiss(deepLink: UUID? = nil) {
         let app = appState
+        // The editor is presented from the Profile sheet, so close that
+        // too or the Library cover has nothing to present over.
+        app.showProfile = false
         Task { @MainActor in
             try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
             if let deepLink { app.pendingProtocolDeepLink = deepLink }

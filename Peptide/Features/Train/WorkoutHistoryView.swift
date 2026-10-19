@@ -42,30 +42,29 @@ struct WorkoutHistoryView: View {
         .onAppear(perform: reload)
     }
 
+    /// Always hosted inside TrainContainerView's `NavigationStack`, so it
+    /// pushes through that stack's `TrainNavigation` destinations rather
+    /// than nesting a stack of its own.
     private var content: some View {
-        NavigationStack {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: Spacing.lg, pinnedViews: [.sectionHeaders]) {
-                    ForEach(groupedSessions, id: \.month) { group in
-                        Section {
-                            VStack(spacing: Spacing.sm) {
-                                ForEach(group.sessions) { session in
-                                    NavigationLink {
-                                        WorkoutSessionDetailView(session: session)
-                                    } label: {
-                                        row(for: session)
-                                    }
-                                    .buttonStyle(.plain)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: Spacing.lg, pinnedViews: [.sectionHeaders]) {
+                ForEach(groupedSessions, id: \.month) { group in
+                    Section {
+                        VStack(spacing: Spacing.sm) {
+                            ForEach(group.sessions) { session in
+                                NavigationLink(value: TrainNavigation.workoutDetail(session.id)) {
+                                    row(for: session)
                                 }
+                                .buttonStyle(.plain)
                             }
-                        } header: {
-                            sectionHeader(group.month)
                         }
+                    } header: {
+                        sectionHeader(group.month)
                     }
                 }
-                .padding(.horizontal, Spacing.screenPadding)
-                .padding(.bottom, Spacing.xxxl)
             }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.bottom, Spacing.xxxl)
         }
     }
 

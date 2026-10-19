@@ -9,6 +9,9 @@ struct ProfileHeader: View {
     var workoutCount: Int = 0
     var avatarImageData: Data? = nil
     var bio: String = ""
+    /// Opens the photo / name / bio editor. Both the avatar and the
+    /// pencil button route here.
+    var onEdit: (() -> Void)? = nil
 
     private var displayName: String {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -22,7 +25,7 @@ struct ProfileHeader: View {
     var body: some View {
         GlassCard(tinted: true) {
             VStack(spacing: Spacing.lg) {
-                avatar
+                editableAvatar
 
                 VStack(spacing: Spacing.xs) {
                     Text(displayName.isEmpty ? "Atlas User" : displayName)
@@ -57,6 +60,24 @@ struct ProfileHeader: View {
                 }
             }
             .frame(maxWidth: .infinity)
+            .overlay(alignment: .topTrailing) {
+                if let onEdit {
+                    GlassIconButton(icon: "pencil", accessibilityLabel: "Edit profile", size: 32, action: onEdit)
+                }
+            }
+        }
+    }
+
+    /// The avatar is a second, larger target for the same edit action;
+    /// hidden from VoiceOver because the pencil button already offers it.
+    @ViewBuilder
+    private var editableAvatar: some View {
+        if let onEdit {
+            Button(action: onEdit) { avatar }
+                .buttonStyle(.plain)
+                .accessibilityHidden(true)
+        } else {
+            avatar
         }
     }
 

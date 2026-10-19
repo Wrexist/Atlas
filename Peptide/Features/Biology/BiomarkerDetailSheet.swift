@@ -153,7 +153,7 @@ struct BiomarkerDetailSheet: View {
         case .bloodPressure:
             return String(localized: "Resting blood pressure. Manual log; helpful baseline before a new protocol.")
         case .latestLabPanel:
-            return String(localized: "Most recent lab marker. Add panels in the Labs section of Insights to track over time.")
+            return String(localized: "Most recent lab marker. Add results in Labs on the Biology tab to track over time.")
         }
     }
 

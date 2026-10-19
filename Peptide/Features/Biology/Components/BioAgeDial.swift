@@ -24,6 +24,8 @@ struct BioAgeDial: View {
     /// `chronologicalAge`. The dial's bound labels reflect this.
     var rangeHalfSpan: Int = 5
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private var lowerBound: Double { Double(chronologicalAge - rangeHalfSpan) }
     private var upperBound: Double { Double(chronologicalAge + rangeHalfSpan) }
     /// Arc sweep in degrees. 240° gives the open-mouth-up look (180° =
@@ -51,6 +53,7 @@ struct BioAgeDial: View {
             track
             if bioAge != nil {
                 progressArc
+                if !reduceMotion { markerPulse }
                 marker
             }
             boundLabels
@@ -117,6 +120,32 @@ struct BioAgeDial: View {
         }
     }
 
+    /// A hairline ring that leaves the marker and fades every few seconds,
+    /// so the reading reads as live rather than printed. Driven by the
+    /// timeline clock rather than a looping animation, and not drawn at
+    /// all under Reduce Motion.
+    @ViewBuilder
+    private var markerPulse: some View {
+        if let markerValue {
+            TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+                let phase = context.date.timeIntervalSinceReferenceDate
+                    .truncatingRemainder(dividingBy: Self.pulsePeriod) / Self.pulsePeriod
+                Circle()
+                    .strokeBorder(AppColor.accentLight, lineWidth: 1.5)
+                    .frame(width: 14, height: 14)
+                    .scaleEffect(1 + phase * 1.6)
+                    .opacity(0.6 * (1 - phase))
+            }
+            .offset(y: -(size / 2))
+            .rotationEffect(.degrees(angle(for: markerValue)))
+            .animation(reduceMotion ? nil : AppAnimation.springSmooth, value: markerValue)
+            .accessibilityHidden(true)
+        }
+    }
+
+    /// Seconds per pulse — slow enough to read as breathing, not alerting.
+    private static let pulsePeriod: Double = 2.8
+
     // MARK: - Bound labels
 
     /// The two ends of the scale, so the number in the middle has something
@@ -169,9 +198,9 @@ struct BioAgeDial: View {
         let low = String(format: "%.1f", lowerBound)
         let high = String(format: "%.1f", upperBound)
         guard let bioAge else {
-            return String(format: String(localized: "Bio age scale, %@ to %@ years"), low, high)
+            return String(format: String(localized: "Biological age scale, %@ to %@ years"), low, high)
         }
-        return String(format: String(localized: "Bio age %@, on a scale from %@ to %@ years"),
+        return String(format: String(localized: "Biological age %@, on a scale from %@ to %@ years"),
                       String(format: "%.1f", bioAge), low, high)
     }
 }

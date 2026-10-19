@@ -144,7 +144,7 @@ HRV, resting heart rate, and sleep — pulled from Apple Health every morning
 and blended into a single Recovery Score. Know whether to push or pull back
 before you leave the house.
 • Daily Recovery Score (HRV + resting HR + sleep)
-• Performance Age metric
+• Biological Age metric
 • Biomarker trending: weight, body fat, waist, blood pressure
 • Lab value tracking: testosterone, vitamin D, lipids, custom panels
 
@@ -177,7 +177,7 @@ Research and self-tracking only. Medical disclaimer required at first launch.
 
 ATLAS PRO
 • Unlimited AI meal photo scans (3 free every week)
-• Performance Age + full Biology tab — body composition + lab panels
+• Biological Age + full Biology tab — body composition + lab panels
 • AI Research assistant and the Sunday AI weekly recap
 • Unlimited active protocols
 • Full data export (CSV, JSON and PDF)
@@ -216,7 +216,7 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 983 / 4 000 — 17 chars of headroom. The SUBSCRIPTION TERMS block and
+*(3 981 / 4 000 — 19 chars of headroom. The SUBSCRIPTION TERMS block and
 both links are required by Guideline 3.1.2 — do not trim them to make room
 for copy.)*
 
@@ -505,10 +505,10 @@ on at least one item.
 **What to show**
 Biology tab. Bio Age dial front-and-centre showing "28.4" in large
 mint-green text (user is chronologically 32 — 3.6 years younger). Delta
-badge reads "3.6 years younger". Three driver pills below: "HRV −2.5y /
-RHR −1.8y / SLEEP +0.7y". Below the dial, two biomarker rows with
-sparklines: HRV trending up (Trending up · 62 ms), RHR steady (Steady ·
-54 bpm). Deep cosmic/purple gradient background.
+badge reads "3.6 years younger", over "Chronological age 32 · High
+confidence". Below the hero, the "What's driving it" card: diverging
+bars for HRV −2.5 y, resting heart rate −1.8 y, sleep +0.7 y. Deep
+cosmic/purple gradient background.
 
 **App state to set up**
 Enable Pro in debug settings. Have at least 7 days of HealthKit data
@@ -517,7 +517,7 @@ displayed value from real data.
 
 **Overlay copy**
 - Headline: `See your biological age.`
-- Sub-caption: `HRV · Sleep · Resting HR · Performance Age`
+- Sub-caption: `HRV · Sleep · Resting HR · Biological Age`
 - Pro badge: `Atlas Pro — subscription required`
 
 **Composition note**
@@ -638,7 +638,7 @@ local reminders, peptide library, iCloud sync, Apple Watch app and
 complications, Home Screen widgets, Live Activities.
 
 Pro features (badge required on screenshots): unlimited AI meal scans,
-Performance Age and the full Biology tab (body composition + lab panels),
+Biological Age and the full Biology tab (body composition + lab panels),
 AI Research assistant and the weekly AI recap, unlimited protocols, full
 data export (CSV, JSON, PDF).
 
@@ -670,8 +670,8 @@ propagates the delete through the user's private CloudKit zone.
 HEALTHKIT
 HealthKit access is requested from the optional "Connect Health" step in
 onboarding, or later from the Profile tab — the user always initiates
-it. Atlas reads four metrics from Apple Health: HRV, resting heart
-rate, sleep, and step count. It
+it. Atlas reads five metrics from Apple Health: HRV, resting heart
+rate, VO2 max, sleep, and step count. It
 optionally writes meal macros (calories, protein, carbs, fat) if the
 user enables "Sync to Apple Health" from Profile. Both
 NSHealthShareUsageDescription and NSHealthUpdateUsageDescription are

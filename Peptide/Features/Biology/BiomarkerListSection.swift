@@ -21,7 +21,7 @@ struct BiomarkerListSection: View {
     /// Bumped by the parent's pull-to-refresh to force a re-read.
     var reloadID = 0
     var onEditTapped: (() -> Void)?
-    var onSelectBiomarker: ((Biomarker) -> Void)?
+    var onSelectBiomarker: ((BiomarkerSnapshot) -> Void)?
 
     @State private var snapshots: [BiomarkerSnapshot] = []
     /// True until the first HealthKit read lands, so rows render as a
@@ -55,9 +55,10 @@ struct BiomarkerListSection: View {
             } else {
                 VStack(spacing: Spacing.sm) {
                     ForEach(visibleBiomarkers, id: \.self) { biomarker in
+                        let rowSnapshot = snapshot(for: biomarker)
                         BiomarkerRow(
-                            snapshot: snapshot(for: biomarker),
-                            onTap: { onSelectBiomarker?(biomarker) }
+                            snapshot: rowSnapshot,
+                            onTap: { onSelectBiomarker?(rowSnapshot) }
                         )
                     }
                 }

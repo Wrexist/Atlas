@@ -236,6 +236,46 @@ enum HabitIconCatalog {
         "sparkles", "sun.max.fill", "flame.fill", "bolt.fill",
         "shoeprints.fill", "fork.knife",
     ]
+
+    /// Spoken name for an icon in the picker. VoiceOver would otherwise
+    /// read the raw SF Symbol name ("figure dot run").
+    static func accessibilityName(for symbol: String) -> String {
+        switch symbol {
+        case "figure.strengthtraining.traditional": String(localized: "Strength training")
+        case "figure.run":                          String(localized: "Running")
+        case "figure.yoga":                         String(localized: "Yoga")
+        case "figure.cooldown":                     String(localized: "Stretching")
+        case "dumbbell.fill":                       String(localized: "Dumbbell")
+        case "sportscourt.fill":                    String(localized: "Sports court")
+        case "figure.pool.swim":                    String(localized: "Swimming")
+        case "bicycle":                             String(localized: "Cycling")
+        case "drop.fill":                           String(localized: "Water")
+        case "leaf.fill":                           String(localized: "Leaf")
+        case "moon.zzz.fill":                       String(localized: "Sleep")
+        case "bed.double.fill":                     String(localized: "Bed")
+        case "heart.fill":                          String(localized: "Heart")
+        case "lungs.fill":                          String(localized: "Breathing")
+        case "brain.head.profile.fill":             String(localized: "Mind")
+        case "pills.fill":                          String(localized: "Pills")
+        case "book.fill":                           String(localized: "Reading")
+        case "graduationcap.fill":                  String(localized: "Study")
+        case "lightbulb.fill":                      String(localized: "Idea")
+        case "headphones":                          String(localized: "Listening")
+        case "mic.fill":                            String(localized: "Speaking")
+        case "pencil.and.outline":                  String(localized: "Writing")
+        case "checkmark.circle.fill":               String(localized: "Checkmark")
+        case "list.bullet.rectangle.fill":          String(localized: "Checklist")
+        case "calendar":                            String(localized: "Calendar")
+        case "clock.fill":                          String(localized: "Clock")
+        case "sparkles":                            String(localized: "Sparkles")
+        case "sun.max.fill":                        String(localized: "Sun")
+        case "flame.fill":                          String(localized: "Flame")
+        case "bolt.fill":                           String(localized: "Energy")
+        case "shoeprints.fill":                     String(localized: "Walking")
+        case "fork.knife":                          String(localized: "Meals")
+        default:                                    String(localized: "Icon")
+        }
+    }
 }
 
 /// Hand-curated tint set surfaced in the editor's color picker. Hex

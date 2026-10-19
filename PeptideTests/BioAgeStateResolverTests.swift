@@ -13,11 +13,30 @@ final class BioAgeStateResolverTests: XCTestCase {
     func test_resolve_freeTier_shortCircuitsToLocked() async {
         let resolved = await BioAgeStateResolver.resolve(
             chronologicalAge: 30,
-            weightDeltaKg30d: 0.5,
+            weightHistory: [WeightEntry(date: Date(), kg: 80)],
             isPro: false
         )
         XCTAssertEqual(resolved.state, .locked)
         XCTAssertEqual(resolved.chronologicalAge, 30)
+    }
+
+    /// Locked never reads HealthKit, so it must carry no inputs or trend
+    /// for the page to render signal coverage from.
+    func test_resolve_freeTier_carriesNoInputsOrTrend() async {
+        let resolved = await BioAgeStateResolver.resolve(
+            chronologicalAge: 40,
+            sex: .female,
+            bodyMassIndex: 23,
+            isPro: false
+        )
+        XCTAssertNil(resolved.inputs)
+        XCTAssertTrue(resolved.trend.isEmpty)
+    }
+
+    /// The HealthKit read has to reach back far enough for the oldest
+    /// trend point's own 30-day window.
+    func test_historyDays_coversTrendPlusWindow() {
+        XCTAssertGreaterThanOrEqual(BioAgeStateResolver.historyDays, 90 + PerformanceAgeEngine.windowDays)
     }
 
     /// The fallback constant exists so locked-state screenshots
@@ -26,7 +45,6 @@ final class BioAgeStateResolverTests: XCTestCase {
     func test_resolve_freeTierNilAge_usesFallback() async {
         let resolved = await BioAgeStateResolver.resolve(
             chronologicalAge: nil,
-            weightDeltaKg30d: nil,
             isPro: false
         )
         XCTAssertEqual(resolved.state, .locked)

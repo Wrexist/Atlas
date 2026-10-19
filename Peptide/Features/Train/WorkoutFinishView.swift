@@ -5,6 +5,7 @@ struct WorkoutFinishView: View {
     let unit: MeasurementUnit
     let onClose: () -> Void
     let celebratesSave: Bool
+    let detectedPRs: [PRDetectionEngine.DetectedPR]
     @State private var store: WorkoutRecapStore
     @State private var editing = false
     @State private var sharing = false
@@ -17,6 +18,7 @@ struct WorkoutFinishView: View {
         self.unit = unit
         self.onClose = onClose
         self.celebratesSave = celebratesSave
+        self.detectedPRs = detectedPRs
         _store = State(initialValue: WorkoutRecapStore(session: session))
     }
 
@@ -50,6 +52,9 @@ struct WorkoutFinishView: View {
                                 .background(AppColor.recapSuccess.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
                         }.buttonStyle(ScalePressStyle()).accessibilityIdentifier("recap-weekly")
                         .sectionAppear(index: 1)
+                    if !detectedPRs.isEmpty {
+                        RecapNewPRs(prs: detectedPRs, entries: summary.entries, unit: unit)
+                    }
                     RecapMetrics(summary: summary, unit: unit)
                         .sectionAppear(index: 2)
                     RecapCalculationNotes(summary: summary)
@@ -123,6 +128,60 @@ struct WorkoutFinishView: View {
             }
         }
         .refreshWorkoutRecap(store)
+    }
+}
+
+struct RecapNewPRs: View {
+    let prs: [PRDetectionEngine.DetectedPR]
+    let entries: [WorkoutRecapEngine.Entry]
+    let unit: MeasurementUnit
+
+    var body: some View {
+        RecapCard {
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "trophy.fill")
+                        .foregroundStyle(AppColor.achievement)
+                        .accessibilityHidden(true)
+                    Text("New PRs").font(AppFont.headline)
+                }
+                .accessibilityAddTraits(.isHeader)
+                ForEach(prs, id: \.self) { pr in
+                    HStack(alignment: .firstTextBaseline, spacing: Spacing.md) {
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
+                            Text(exerciseName(pr.exerciseID)).font(AppFont.subheadline)
+                            Text(kindLabel(pr.kind))
+                                .font(AppFont.caption).foregroundStyle(AppColor.recapSecondary)
+                        }
+                        Spacer(minLength: Spacing.sm)
+                        Text(valueLabel(pr)).font(AppFont.headline).monospacedDigit()
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            }
+        }
+    }
+
+    private func exerciseName(_ id: String) -> String {
+        entries.first { $0.exerciseID == id }?.name ?? String(localized: "Exercise")
+    }
+
+    private func kindLabel(_ kind: PRDetectionEngine.DetectedPR.Kind) -> String {
+        switch kind {
+        case .estimatedOneRepMax: String(localized: "Estimated 1RM")
+        case .absoluteWeight: String(localized: "Heaviest set")
+        case .sessionVolume: String(localized: "Exercise volume")
+        case .bodyweightReps: String(localized: "Most reps")
+        }
+    }
+
+    private func valueLabel(_ pr: PRDetectionEngine.DetectedPR) -> String {
+        if pr.kind == .bodyweightReps {
+            let reps = Int(pr.value)
+            return reps.formatted() + (reps == 1 ? " rep" : " reps")
+        }
+        let load = unit.weightForDisplay(pr.value).formatted(.number.precision(.fractionLength(0...1)))
+        return load + " " + unit.weightSuffix
     }
 }
 

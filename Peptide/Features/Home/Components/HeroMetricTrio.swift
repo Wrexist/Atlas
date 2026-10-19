@@ -27,6 +27,22 @@ struct HeroMetricTrio: View {
     var leading: HeroLeadingMetric = .adherence
     var onTapWorkouts: (() -> Void)?
 
+    /// Width of the ring row, measured so the rings shrink to fit on
+    /// small phones instead of clipping. Zero until first layout.
+    @State private var rowWidth: CGFloat = 0
+
+    private static let maxRingDiameter: CGFloat = 96
+    private static let strokeRatio: CGFloat = 10 / 96
+
+    private var ringDiameter: CGFloat {
+        guard rowWidth > 0 else { return Self.maxRingDiameter }
+        return min(Self.maxRingDiameter, (rowWidth - 2 * Spacing.sm) / 3)
+    }
+
+    private var ringStrokeWidth: CGFloat {
+        ringDiameter * Self.strokeRatio
+    }
+
     var body: some View {
         VStack(spacing: Spacing.sm) {
             HStack(alignment: .top, spacing: Spacing.sm) {
@@ -39,7 +55,11 @@ struct HeroMetricTrio: View {
                 ringTile(.recovery,  value: snapshot.recovery)
                 ringTile(.sleep,     value: snapshot.sleep)
             }
-            .frame(maxWidth: .infinity)
+            // minWidth 0 makes the frame report the proposed width even
+            // while the rings are still at full size, so the measurement
+            // below is the space available rather than the rings' width.
+            .frame(minWidth: 0, maxWidth: .infinity)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
 
             if snapshot.needsHealthConnection {
                 healthConnectionFooter
@@ -68,8 +88,8 @@ struct HeroMetricTrio: View {
             VStack(spacing: Spacing.xs) {
                 MetricRing(
                     progress: value.progress,
-                    diameter: 96,
-                    strokeWidth: 10,
+                    diameter: ringDiameter,
+                    strokeWidth: ringStrokeWidth,
                     gradient: kind.gradient(active: value.isAvailable),
                     // Only Adherence celebrates at 100% — it's the
                     // ring the user actively drives by logging
@@ -112,8 +132,8 @@ struct HeroMetricTrio: View {
             VStack(spacing: Spacing.xs) {
                 MetricRing(
                     progress: progress,
-                    diameter: 96,
-                    strokeWidth: 10,
+                    diameter: ringDiameter,
+                    strokeWidth: ringStrokeWidth,
                     gradient: [AppColor.accentLight, AppColor.accentPrimary],
                     celebrateAtCompletion: true
                 ) {

@@ -259,7 +259,8 @@ private struct WorkoutFocusRestHeader: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
-            let remaining = WorkoutClock.label(Int(ceil(rest.remaining(at: context.date))))
+            let seconds = Int(ceil(rest.remaining(at: context.date)))
+            let remaining = WorkoutClock.label(seconds)
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack(spacing: Spacing.lg) {
                     RestCountdownRing(rest: rest)
@@ -273,7 +274,8 @@ private struct WorkoutFocusRestHeader: View {
                             .contentTransition(.numericText(countsDown: true))
                             .appAnimation(AppAnimation.quick, value: remaining)
                             .accessibilityLabel("Rest remaining")
-                            .accessibilityValue(remaining)
+                            .accessibilityValue(Duration.seconds(max(0, seconds))
+                                .formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide)))
                     }
                     Spacer(minLength: Spacing.xs)
                     Button(action: onSkip) {

@@ -60,13 +60,13 @@ struct HealthConnectionCard: View {
 
                 if !isConnected {
                     HStack(spacing: Spacing.md) {
-                        ForEach(["Heart Rate", "HRV", "Sleep", "Activity"], id: \.self) { metric in
+                        ForEach(HealthPreviewMetric.allCases, id: \.self) { metric in
                             VStack(spacing: Spacing.xs) {
-                                Image(systemName: iconFor(metric))
+                                Image(systemName: metric.icon)
                                     .font(AppFont.scaled(16))
-                                    .foregroundStyle(colorFor(metric))
+                                    .foregroundStyle(metric.color)
                                     .accessibilityHidden(true)
-                                Text(metric)
+                                Text(metric.title)
                                     .font(AppFont.caption)
                                     .foregroundStyle(AppColor.textTertiary)
                             }
@@ -106,24 +106,36 @@ struct HealthConnectionCard: View {
         }
         .tint(AppColor.accentPrimary)
     }
+}
 
-    private func iconFor(_ metric: String) -> String {
-        switch metric {
-        case "Heart Rate": "heart.fill"
-        case "HRV": "waveform.path.ecg"
-        case "Sleep": "moon.fill"
-        case "Activity": "figure.walk"
-        default: "circle"
+/// The Apple Health metrics previewed before the user connects.
+private enum HealthPreviewMetric: CaseIterable {
+    case heartRate, hrv, sleep, activity
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .heartRate: "Heart Rate"
+        case .hrv: "HRV"
+        case .sleep: "Sleep"
+        case .activity: "Activity"
         }
     }
 
-    private func colorFor(_ metric: String) -> Color {
-        switch metric {
-        case "Heart Rate": AppColor.metricHeartRate
-        case "HRV": AppColor.metricHRV
-        case "Sleep": AppColor.metricSleep
-        case "Activity": AppColor.metricActivity
-        default: AppColor.textTertiary
+    var icon: String {
+        switch self {
+        case .heartRate: "heart.fill"
+        case .hrv: "waveform.path.ecg"
+        case .sleep: "moon.fill"
+        case .activity: "figure.walk"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .heartRate: AppColor.metricHeartRate
+        case .hrv: AppColor.metricHRV
+        case .sleep: AppColor.metricSleep
+        case .activity: AppColor.metricActivity
         }
     }
 }

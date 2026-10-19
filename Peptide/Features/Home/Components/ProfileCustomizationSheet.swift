@@ -8,12 +8,11 @@ import SwiftUI
 private let avatarMaxDimension: CGFloat = 1024
 private let avatarJPEGQuality: CGFloat = 0.82
 
-/// Detailed profile customization surface presented from the Home tab when the
-/// user taps the avatar in the WelcomeHeader. Lets the user upload a profile
+/// Detailed profile customization surface presented from `ProfileView` when the
+/// user taps the avatar or the pencil in `ProfileHeader`. Lets the user upload a profile
 /// image, edit identity (name, bio), pick an accent color, review goals, see
 /// the stacks they've created (with one-tap navigation back to the Protocols
-/// tab), preview unlocked achievements, and tweak app-wide preferences —
-/// without leaving Home.
+/// tab), preview unlocked achievements, and tweak app-wide preferences.
 struct ProfileCustomizationSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(DataStore.self) private var dataStore

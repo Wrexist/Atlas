@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// "Your Progress" — the show-my-improvement surface. Visualizes the
-/// earned Atlas Score trend, active streaks, and habit consistency with
-/// positive framing ("+N this week", "↑ vs previous 30 days"). Reached
+/// earned Atlas Score trend, active streaks, habit consistency and the
+/// on-device progress photos, with positive framing ("+N this week", "↑ vs previous 30 days"). Reached
 /// from the Atlas Score card on Today. Custom `Path` charts (no
 /// SwiftCharts), matching the app's existing chart style.
 struct AtlasProgressView: View {
@@ -16,6 +16,7 @@ struct AtlasProgressView: View {
                     atlasScoreSection
                     streaksSection
                     consistencySection
+                    ProgressPhotosCard()
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.vertical, Spacing.lg)

@@ -52,7 +52,7 @@ struct PremiumPromoCard<Trailing: View>: View {
                     }
                     Text(title)
                         .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     if let subtitle {
@@ -97,7 +97,7 @@ struct PremiumPromoCard<Trailing: View>: View {
     private func ctaPill(label: LocalizedStringKey) -> some View {
         Text(label)
             .font(AppFont.scaled(11, weight: .heavy))
-            .foregroundStyle(.white)
+            .foregroundStyle(AppColor.textPrimary)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, 6)
             .background {

@@ -12,7 +12,8 @@ import WidgetKit
 ///   • upcoming — soft accent ring growing toward the dose time
 ///   • dueNow   — full-bleed accent, "Take now" CTA, Log button
 ///                lights up
-///   • late     — amber accent, "X min late" pill
+///   • late     — amber accent, "Late" pill
+///   • stale    — neutral "Missed window" layout once the window closes
 ///   • completed— green pill with a checkmark, auto-dismissing
 ///
 /// The activity is started by `DoseLiveActivityService` from the
@@ -27,7 +28,8 @@ struct DoseWindowLiveActivity: Widget {
         ActivityConfiguration(for: DoseWindowAttributes.self) { context in
             DoseWindowLockView(
                 attributes: context.attributes,
-                state: context.state
+                state: context.state,
+                isStale: context.isStale
             )
             // Tapping anywhere outside the Log button deep-links
             // into the matching dose row in the app.
@@ -134,16 +136,12 @@ private func statusShortLabel(
     for state: DoseWindowAttributes.ContentState
 ) -> String {
     switch state.status() {
-    case .upcoming(let minutes):
-        if minutes >= 60 {
-            let hours = minutes / 60
-            return "in \(hours)h"
-        }
-        return "in \(minutes)m"
+    case .upcoming:
+        return "Due \(state.doseTime.formatted(date: .omitted, time: .shortened))"
     case .dueNow:
         return "now"
-    case .late(let minutes):
-        return "\(minutes)m late"
+    case .late:
+        return "Late"
     case .completed:
         return "Logged"
     }
@@ -155,6 +153,9 @@ private func statusShortLabel(
 private struct DoseWindowLockView: View {
     let attributes: DoseWindowAttributes
     let state: DoseWindowAttributes.ContentState
+    /// Past the activity's `staleDate` (dose + 90 min). Nothing will
+    /// update it again, so the live countdown would be a lie.
+    let isStale: Bool
 
     private var tint: Color { Color(hex: attributes.tintHex) }
     private var accent: Color { statusAccent(for: state, tint: tint) }
@@ -175,20 +176,49 @@ private struct DoseWindowLockView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            VStack(spacing: 12) {
-                topRow
-                bottomRow
+            if isStale && !state.completed {
+                missedWindow
+                    .padding(14)
+            } else {
+                VStack(spacing: 12) {
+                    topRow
+                    bottomRow
+                }
+                .padding(14)
             }
-            .padding(14)
         }
         .activityBackgroundTint(Color.black.opacity(0.05))
         .activitySystemActionForegroundColor(.white)
     }
 
+    /// Neutral layout once the window has closed without a log. The
+    /// whole view still deep-links to the dose row, so tapping logs it.
+    private var missedWindow: some View {
+        HStack(alignment: .center, spacing: 14) {
+            Image(systemName: "clock.badge.xmark")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 56, height: 56)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(attributes.peptideName)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Text("Missed window · Tap to log")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
     private var topRow: some View {
         HStack(alignment: .center, spacing: 14) {
             LockProgressRing(
-                progress: state.windowProgress(),
+                state: state,
                 accent: accent,
                 glyph: statusGlyph(for: state)
             )
@@ -266,7 +296,7 @@ private struct DoseWindowLockView: View {
             }
         case .upcoming:
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(state.doseTime, style: .timer)
+                Text(timerInterval: state.countdownInterval(), countsDown: true)
                     .font(.system(size: 22, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(.primary)
@@ -313,24 +343,13 @@ private struct DoseWindowLockView: View {
 
 @available(iOS 16.1, *)
 private struct LockProgressRing: View {
-    let progress: Double
+    let state: DoseWindowAttributes.ContentState
     let accent: Color
     let glyph: String
 
     var body: some View {
         ZStack {
-            Circle()
-                .stroke(accent.opacity(0.18), lineWidth: 5)
-            Circle()
-                .trim(from: 0, to: max(0.001, progress))
-                .stroke(
-                    AngularGradient(
-                        colors: [accent.opacity(0.65), accent, accent.opacity(0.85)],
-                        center: .center
-                    ),
-                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
+            WindowRing(state: state, tint: accent, lineWidth: 5)
             Circle()
                 .fill(accent.opacity(0.20))
                 .padding(8)
@@ -338,6 +357,34 @@ private struct LockProgressRing: View {
                 .font(.system(size: 20, weight: .heavy))
                 .foregroundStyle(accent)
                 .shadow(color: accent.opacity(0.45), radius: 4, y: 1)
+        }
+    }
+}
+
+// MARK: - Window ring
+
+/// Fills from `windowStart` to `doseTime` on its own. A Live Activity
+/// only re-renders on a push, so a ring drawn from `Date()` would freeze
+/// at whatever fraction it had at the last update; the system timer
+/// view keeps advancing between pushes. Logged doses draw a full ring.
+@available(iOS 16.1, *)
+private struct WindowRing: View {
+    let state: DoseWindowAttributes.ContentState
+    let tint: Color
+    let lineWidth: CGFloat
+
+    var body: some View {
+        if state.completed {
+            Circle()
+                .stroke(tint, lineWidth: lineWidth)
+        } else {
+            ProgressView(timerInterval: state.windowInterval, countsDown: false) {
+                EmptyView()
+            } currentValueLabel: {
+                EmptyView()
+            }
+            .progressViewStyle(.circular)
+            .tint(tint)
         }
     }
 }
@@ -382,12 +429,7 @@ private struct CompactLeading: View {
 
     var body: some View {
         ZStack {
-            Circle()
-                .stroke(tint.opacity(0.30), lineWidth: 2)
-            Circle()
-                .trim(from: 0, to: max(0.001, state.windowProgress()))
-                .stroke(tint, style: StrokeStyle(lineWidth: 2, lineCap: .round))
-                .rotationEffect(.degrees(-90))
+            WindowRing(state: state, tint: tint, lineWidth: 2)
             Image(systemName: statusGlyph(for: state))
                 .font(.system(size: 11, weight: .heavy))
                 .foregroundStyle(tint)
@@ -423,7 +465,7 @@ private struct CompactTrailing: View {
             }
             .padding(.trailing, 2)
         case .upcoming:
-            Text(state.doseTime, style: .timer)
+            Text(timerInterval: state.countdownInterval(), countsDown: true)
                 .font(.system(size: 11, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(.white)
@@ -504,7 +546,7 @@ private struct IslandTrailingTimer: View {
         case .dueNow:
             Text(state.doseTime, style: .time)
         case .upcoming:
-            Text(state.doseTime, style: .timer)
+            Text(timerInterval: state.countdownInterval(), countsDown: true)
         }
     }
 }
@@ -570,15 +612,8 @@ private struct ProgressLabel: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            ZStack {
-                Circle()
-                    .stroke(tint.opacity(0.25), lineWidth: 3)
-                Circle()
-                    .trim(from: 0, to: max(0.001, state.windowProgress()))
-                    .stroke(tint, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-            }
-            .frame(width: 18, height: 18)
+            WindowRing(state: state, tint: tint, lineWidth: 3)
+                .frame(width: 18, height: 18)
             VStack(alignment: .leading, spacing: 0) {
                 Text("Window")
                     .font(.system(size: 10, weight: .heavy))

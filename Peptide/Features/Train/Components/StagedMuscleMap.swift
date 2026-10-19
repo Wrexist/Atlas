@@ -73,8 +73,6 @@ struct StagedMuscleMap: View {
 }
 
 extension AppAnimation {
-    /// One top-to-bottom sweep of the muscle map's scan beam.
-    static let muscleScan = Animation.easeInOut(duration: 0.9)
     /// Gap between muscle-map ignite stages (prime movers, then supporting).
     static let muscleStageDelay: Duration = .milliseconds(320)
 }

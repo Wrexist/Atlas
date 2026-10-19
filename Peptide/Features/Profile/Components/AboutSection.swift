@@ -16,6 +16,14 @@ struct AboutSection: View {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
     }
 
+    private static let termsURL = URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
+    private static let privacyURL = URL.staticHTTPS("https://wrexist.github.io/Atlas/privacy.html")
+    private static let supportURL = URL.staticHTTPS("mailto:support@peptidesai.com")
+    /// A user-tapped "Rate" opens the App Store review page directly:
+    /// `requestReview` is rate-limited by iOS and can silently show nothing.
+    private static let writeReviewURL = AppConstants.appStoreURL
+        .appending(queryItems: [URLQueryItem(name: "action", value: "write-review")])
+
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
@@ -58,6 +66,14 @@ struct AboutSection: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    Divider().foregroundStyle(AppColor.glassBorder)
+                    AboutLinkRow(title: "Terms of Use", destination: Self.termsURL)
+                    Divider().foregroundStyle(AppColor.glassBorder)
+                    AboutLinkRow(title: "Privacy Policy", destination: Self.privacyURL)
+                    Divider().foregroundStyle(AppColor.glassBorder)
+                    AboutLinkRow(title: "Contact Support", destination: Self.supportURL)
+                    Divider().foregroundStyle(AppColor.glassBorder)
+                    AboutLinkRow(title: "Rate Atlas", destination: Self.writeReviewURL)
                     Divider().foregroundStyle(AppColor.glassBorder)
                     Button { showWhatsNewReplay = true } label: {
                         HStack {
@@ -148,6 +164,27 @@ struct MedicalDisclaimerSheet: View {
                 }
             }
         }
+    }
+}
+
+private struct AboutLinkRow: View {
+    let title: LocalizedStringKey
+    let destination: URL
+
+    var body: some View {
+        Link(destination: destination) {
+            HStack {
+                Text(title)
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 

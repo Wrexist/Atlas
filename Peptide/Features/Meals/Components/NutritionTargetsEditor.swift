@@ -125,9 +125,9 @@ struct NutritionTargetsEditor: View {
                 macroBar
 
                 HStack(spacing: Spacing.lg) {
-                    macroLegend("Protein", grams: intValue(protein), tint: .green)
-                    macroLegend("Carbs", grams: intValue(carbs), tint: .blue)
-                    macroLegend("Fat", grams: intValue(fat), tint: .orange)
+                    macroLegend("Protein", grams: intValue(protein), tint: AppColor.macroProtein)
+                    macroLegend("Carbs", grams: intValue(carbs), tint: AppColor.macroCarbs)
+                    macroLegend("Fat", grams: intValue(fat), tint: AppColor.macroFat)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -141,9 +141,9 @@ struct NutritionTargetsEditor: View {
         let total = max(p + c + f, 1)
         return GeometryReader { geo in
             HStack(spacing: 2) {
-                segment(width: geo.size.width * p / total, tint: .green)
-                segment(width: geo.size.width * c / total, tint: .blue)
-                segment(width: geo.size.width * f / total, tint: .orange)
+                segment(width: geo.size.width * p / total, tint: AppColor.macroProtein)
+                segment(width: geo.size.width * c / total, tint: AppColor.macroCarbs)
+                segment(width: geo.size.width * f / total, tint: AppColor.macroFat)
             }
             .appAnimation(AppAnimation.springSmooth, value: total)
         }
@@ -197,9 +197,9 @@ struct NutritionTargetsEditor: View {
 
                 HStack(spacing: Spacing.sm) {
                     recChip("\(rec.calories)", "kcal", tint: AppColor.accentLight)
-                    recChip("\(rec.proteinG)", "P", tint: .green)
-                    recChip("\(rec.carbsG)", "C", tint: .blue)
-                    recChip("\(rec.fatG)", "F", tint: .orange)
+                    recChip("\(rec.proteinG)", "P", tint: AppColor.macroProtein)
+                    recChip("\(rec.carbsG)", "C", tint: AppColor.macroCarbs)
+                    recChip("\(rec.fatG)", "F", tint: AppColor.macroFat)
                 }
 
                 Button {
@@ -211,7 +211,7 @@ struct NutritionTargetsEditor: View {
                         Text(isApplied ? "Applied" : "Use these targets")
                     }
                     .font(AppFont.subheadline.weight(.semibold))
-                    .foregroundStyle(isApplied ? AppColor.accentLight : AppColor.background)
+                    .foregroundStyle(isApplied ? AppColor.accentLight : AppColor.onAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, Spacing.sm + 2)
                     .background {
@@ -277,20 +277,20 @@ struct NutritionTargetsEditor: View {
             VStack(spacing: 4) {
                 Image(systemName: preset.icon)
                     .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(isSelected ? AppColor.background : AppColor.accentLight)
+                    .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.accentLight)
                 Text(preset.title)
                     .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(isSelected ? AppColor.background : AppColor.textPrimary)
+                    .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                 Text("\(targets.calories)")
                     .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(isSelected ? AppColor.background.opacity(0.8) : AppColor.textSecondary)
+                    .foregroundStyle(isSelected ? AppColor.onAccent.opacity(0.8) : AppColor.textSecondary)
                 if isRecommended {
                     Text("Recommended")
                         .font(AppFont.scaled(8, weight: .bold))
-                        .foregroundStyle(isSelected ? AppColor.background.opacity(0.8) : AppColor.accentLight)
+                        .foregroundStyle(isSelected ? AppColor.onAccent.opacity(0.8) : AppColor.accentLight)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -330,11 +330,11 @@ struct NutritionTargetsEditor: View {
     private var macrosCard: some View {
         GlassCard {
             VStack(spacing: 0) {
-                inputRow(icon: "fish.fill", tint: .green, title: "Protein", unit: "g", text: $protein, field: .protein)
+                inputRow(icon: "fish.fill", tint: AppColor.macroProtein, title: "Protein", unit: "g", text: $protein, field: .protein)
                 rowDivider
-                inputRow(icon: "leaf.fill", tint: .blue, title: "Carbs", unit: "g", text: $carbs, field: .carbs)
+                inputRow(icon: "leaf.fill", tint: AppColor.macroCarbs, title: "Carbs", unit: "g", text: $carbs, field: .carbs)
                 rowDivider
-                inputRow(icon: "drop.fill", tint: .orange, title: "Fat", unit: "g", text: $fat, field: .fat)
+                inputRow(icon: "drop.fill", tint: AppColor.macroFat, title: "Fat", unit: "g", text: $fat, field: .fat)
                 rowDivider
                 inputRow(icon: "circle.grid.cross.fill", tint: AppColor.accentPrimary, title: "Fiber", unit: "g", text: $fiber, field: .fiber)
             }

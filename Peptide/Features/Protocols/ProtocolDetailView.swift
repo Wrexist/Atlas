@@ -383,9 +383,10 @@ struct ProtocolDetailView: View {
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
                     .frame(width: 32, height: 32)
-                    .contentShape(Rectangle())
+                    .minimumHitArea()
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("\(peptide.name) details")
         }
     }
 

@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Compact summary of the user's optional body metrics on the Profile
 /// screen, with a sheet for editing. They feed the calorie and macro
-/// targets on Meals and the Performance Age estimate on Biology.
+/// targets on Meals and the Biological Age estimate on Biology.
 struct BodyMetricsCard: View {
     let metrics: BodyMetrics
     let onUpdate: (BodyMetrics) -> Void
@@ -40,7 +40,7 @@ struct BodyMetricsCard: View {
                         infoChip(metrics.sex.localizedDisplay)
                     }
                 } else {
-                    Text("Optional. Add your weight, height, and age so Atlas can calculate your calorie and macro targets and your Performance Age.")
+                    Text("Optional. Add your weight, height, and age so Atlas can calculate your calorie and macro targets and your Biological Age.")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

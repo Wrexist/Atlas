@@ -31,7 +31,7 @@ struct PaywallView: View {
     @Namespace private var planSelection
     @State private var isPurchasing = false
     @State private var isRestoring = false
-    @State private var errorMessage: String?
+    @State private var notice: PurchaseNotice?
     @State private var isShowingDisclosure = false
     /// Starts `true` so the first frame shows a spinner, not the
     /// "plans didn't load" state, while the initial fetch is in flight.
@@ -353,7 +353,7 @@ struct PaywallView: View {
         [
             ("figure.strengthtraining.traditional", "Lift more every week — plans that progress you automatically"),
             ("camera.viewfinder", "Log a meal in one photo — no weighing, no searching"),
-            ("heart.text.square.fill", "Know before you train — recovery, HRV and Performance Age"),
+            ("heart.text.square.fill", "Know before you train — recovery, HRV and Biological Age"),
             ("brain.head.profile.fill", "Ask anything, get cited research — not guesswork"),
             ("chart.line.uptrend.xyaxis", "Unlimited protocols — half-life, dosing and reconstitution"),
             ("icloud.fill", "Never lose a session — synced across iPhone, Watch and widgets"),
@@ -400,6 +400,55 @@ struct PaywallView: View {
         }
     }
 
+    /// Only a real failure gets the red banner: a pending Ask to Buy and
+    /// a restore with nothing to restore are outcomes, not errors.
+    @ViewBuilder
+    private func noticeView(_ notice: PurchaseNotice) -> some View {
+        switch notice {
+        case .failed(let message):
+            purchaseErrorBanner(message: message)
+        case .pending:
+            pendingApprovalBanner
+        case .nothingToRestore:
+            Text("No previous purchase found to restore.")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var pendingApprovalBanner: some View {
+        HStack(alignment: .top, spacing: Spacing.sm) {
+            Image(systemName: "clock.fill")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.recap)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Waiting for approval")
+                    .font(AppFont.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("We'll unlock Pro automatically when the purchase is approved.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.recap.opacity(0.12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.recap.opacity(0.30), lineWidth: 0.5)
+                }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
     /// Friendly error surface for purchase / restore failures. Replaces the
     /// previous raw `Text(errorMessage).foregroundStyle(.destructive)` line
     /// that just dumped the StoreKit description on the user with no path
@@ -429,7 +478,7 @@ struct PaywallView: View {
             HStack(spacing: Spacing.sm) {
                 if let product = selectedProduct {
                     Button("Try again") {
-                        errorMessage = nil
+                        notice = nil
                         Task { await purchase(product) }
                     }
                     .font(AppFont.caption)
@@ -438,7 +487,7 @@ struct PaywallView: View {
                 }
 
                 Button("Restore purchases") {
-                    errorMessage = nil
+                    notice = nil
                     restore()
                 }
                 .font(AppFont.caption)
@@ -818,8 +867,8 @@ struct PaywallView: View {
 
     private var purchaseFooter: some View {
         VStack(spacing: Spacing.sm) {
-            if let errorMessage {
-                purchaseErrorBanner(message: errorMessage)
+            if let notice {
+                noticeView(notice)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
@@ -829,7 +878,7 @@ struct PaywallView: View {
 
             footerLinks
         }
-        .appAnimation(AppAnimation.springSnappy, value: errorMessage)
+        .appAnimation(AppAnimation.springSnappy, value: notice)
     }
 
     /// Two-line CTA: the action on top, the money underneath.
@@ -1084,12 +1133,12 @@ struct PaywallView: View {
                 Haptics.success()
                 dismiss()
             case .pending:
-                errorMessage = "Purchase pending approval. We'll unlock Pro automatically when it's approved."
+                notice = .pending
             case .userCancelled:
                 break // no UI noise on explicit cancel
             }
         } catch {
-            errorMessage = "Purchase failed. Try again or restore."
+            notice = .failed("Purchase failed. Try again or restore.")
         }
     }
 
@@ -1106,10 +1155,10 @@ struct PaywallView: View {
                     didConvert = true
                     dismiss()
                 } else {
-                    errorMessage = "No previous purchase found to restore."
+                    notice = .nothingToRestore
                 }
             } catch {
-                errorMessage = "Restore failed. Check your internet connection and try again."
+                notice = .failed("Restore failed. Check your internet connection and try again.")
             }
         }
     }
@@ -1130,4 +1179,11 @@ struct PaywallView: View {
     PaywallView(source: .protocolLimit)
         .environment(DataStore(seedSampleData: true))
         .preferredColorScheme(.dark)
+}
+
+/// What the paywall footer reports after a purchase or restore attempt.
+private enum PurchaseNotice: Equatable {
+    case failed(String)
+    case pending
+    case nothingToRestore
 }

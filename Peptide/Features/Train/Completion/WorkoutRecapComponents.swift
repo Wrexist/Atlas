@@ -97,9 +97,11 @@ struct RecapMetrics: View {
         .accessibilityLabel("\(title), \(value.replacingOccurrences(of: " " + unit.weightSuffix, with: " " + unit.weightSpokenUnit))")
     }
 
+    /// Sets a trailing weight suffix ("12,500 kg") smaller than the number.
+    /// Anything else, such as a duration of "1h 12m", stays one size.
     private func valueText(_ value: String) -> Text {
         let parts = value.split(separator: " ", maxSplits: 1)
-        if parts.count == 2, parts[0].contains(where: { $0.isNumber }) {
+        if parts.count == 2, String(parts[1]) == unit.weightSuffix {
             return Text(String(parts[0])).font(AppFont.title)
                 + Text(" " + String(parts[1])).font(AppFont.subheadline)
         }

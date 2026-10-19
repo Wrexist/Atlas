@@ -14,9 +14,8 @@ import SwiftUI
 /// here (the router switches to `.meals` first) and the Today
 /// instance stays silent for deep-links.
 ///
-/// Weight tracking and progress photos stay on the Today scroll
-/// for now (they're body-tracking, not nutrition) — a future
-/// refinement could split them into a "Body" sub-tab here.
+/// Progress photos are body-tracking, not nutrition, so they live
+/// on the Your Progress screen (`AtlasProgressView`) rather than here.
 struct MealsContainerView: View {
     var body: some View {
         NavigationStack {

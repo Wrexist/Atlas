@@ -17,7 +17,7 @@ struct AppearanceSettings: View {
 
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                Label("Settings", systemImage: "gearshape.fill")
+                Label("Preferences", systemImage: "gearshape.fill")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
@@ -49,7 +49,7 @@ struct AppearanceSettings: View {
                     dataStore.persistProfile()
                 }
 
-                if biometricService.isAvailable {
+                if biometricService.isAvailable || dataStore.profile.biometricLockEnabled {
                     Divider().foregroundStyle(AppColor.glassBorder)
 
                     SettingsToggleRow(
